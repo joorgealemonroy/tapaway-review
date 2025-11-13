@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Smartphone, Star, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
 const Index = () => {
   return (
@@ -38,16 +39,19 @@ const Index = () => {
             TapAway's NFC cards make it effortless for your customers to leave glowing reviews. One tap, 
             and they're directly on your Google or Yelp page.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          
+          <TapAwayCard3D />
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <Link to="/auth">
               <Button size="lg" className="text-lg px-8 group">
-                Start Free Trial
+                Get Started
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Link to="/demo">
               <Button size="lg" variant="outline" className="text-lg px-8">
-                View Live Demo
+                View Demo
               </Button>
             </Link>
           </div>
@@ -247,7 +251,7 @@ const Index = () => {
           </p>
           <Link to="/auth">
             <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8">
-              Start Your Free Trial
+              Get Started
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </Link>

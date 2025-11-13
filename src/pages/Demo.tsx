@@ -2,10 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { 
   Star, 
-  MapPin, 
+  Navigation, 
   Instagram, 
-  Menu as MenuIcon, 
-  CreditCard 
+  Menu as MenuIcon
 } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,8 +44,12 @@ const Demo = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 shadow-xl border-border">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8 shadow-2xl">
+        <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center mx-auto mb-6">
+          <span className="text-xs text-muted-foreground text-center">Your Logo Here</span>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             How was your visit?
@@ -58,40 +61,50 @@ const Demo = () => {
 
         <div className="space-y-3">
           <Button 
-            className="w-full h-14 text-lg justify-start gap-3 transition-smooth hover:scale-[1.02]"
-            onClick={() => handleButtonClick('google_review')}
+            className="w-full h-14 text-lg justify-start gap-3"
+            onClick={() => {
+              handleButtonClick('google_review');
+              window.open('https://www.google.com/search?q=reviews', '_blank');
+            }}
           >
             <Star className="w-5 h-5" />
-            Leave a Google Review
+            Google Reviews
           </Button>
 
           <Button 
-            variant="outline"
-            className="w-full h-14 text-lg justify-start gap-3 transition-smooth hover:scale-[1.02]"
-            onClick={() => handleButtonClick('yelp_review')}
+            variant="secondary"
+            className="w-full h-14 text-lg justify-start gap-3"
+            onClick={() => {
+              handleButtonClick('yelp_review');
+              window.open('https://www.yelp.com', '_blank');
+            }}
           >
             <Star className="w-5 h-5" />
-            Leave a Yelp Review
-          </Button>
-
-          <div className="border-t border-border my-6"></div>
-
-          <Button 
-            variant="outline"
-            className="w-full h-12 justify-start gap-3"
-            onClick={() => handleButtonClick('directions')}
-          >
-            <MapPin className="w-5 h-5" />
-            Get Directions
+            Yelp Reviews
           </Button>
 
           <Button 
             variant="outline"
             className="w-full h-12 justify-start gap-3"
-            onClick={() => handleButtonClick('instagram')}
+            onClick={() => {
+              handleButtonClick('directions');
+              window.open('https://maps.google.com', '_blank');
+            }}
+          >
+            <Navigation className="w-5 h-5" />
+            Directions
+          </Button>
+
+          <Button 
+            variant="outline"
+            className="w-full h-12 justify-start gap-3"
+            onClick={() => {
+              handleButtonClick('instagram');
+              window.open('https://instagram.com', '_blank');
+            }}
           >
             <Instagram className="w-5 h-5" />
-            Follow Us on Instagram
+            Instagram
           </Button>
 
           <Button 
@@ -103,18 +116,7 @@ const Demo = () => {
             }}
           >
             <MenuIcon className="w-5 h-5" />
-            View Our Menu
-          </Button>
-
-          <div className="border-t border-border my-6"></div>
-
-          <Button 
-            variant="ghost"
-            className="w-full h-12 justify-start gap-3 text-muted-foreground"
-            onClick={() => handleButtonClick('stripe_portal')}
-          >
-            <CreditCard className="w-5 h-5" />
-            Manage Subscription
+            View Menu
           </Button>
         </div>
 
@@ -122,7 +124,9 @@ const Demo = () => {
           Powered by{" "}
           <a 
             href="https://tapaway.co/demo" 
-            className="text-primary hover:underline font-medium"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
             onClick={() => handleButtonClick('demo_link')}
           >
             TapAway

@@ -3,25 +3,42 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const { signUp, signIn, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement login with Lovable Cloud
-    setTimeout(() => setIsLoading(false), 2000);
+    await signIn(loginEmail, loginPassword);
+    setIsLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (signupPassword !== confirmPassword) {
+      return;
+    }
     setIsLoading(true);
-    // TODO: Implement signup with Lovable Cloud
-    setTimeout(() => setIsLoading(false), 2000);
+    await signUp(signupEmail, signupPassword);
+    setIsLoading(false);
   };
 
   return (
@@ -60,6 +77,8 @@ const Auth = () => {
                     id="login-email" 
                     type="email" 
                     placeholder="you@restaurant.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required 
                   />
                 </div>
@@ -69,6 +88,8 @@ const Auth = () => {
                     id="login-password" 
                     type="password" 
                     placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     required 
                   />
                 </div>
@@ -90,20 +111,13 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Restaurant Name</Label>
-                  <Input 
-                    id="signup-name" 
-                    type="text" 
-                    placeholder="Your Restaurant"
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input 
                     id="signup-email" 
                     type="email" 
                     placeholder="you@restaurant.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     required 
                   />
                 </div>
@@ -113,6 +127,8 @@ const Auth = () => {
                     id="signup-password" 
                     type="password" 
                     placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
                     required 
                   />
                 </div>
@@ -122,6 +138,8 @@ const Auth = () => {
                     id="signup-confirm" 
                     type="password" 
                     placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required 
                   />
                 </div>
