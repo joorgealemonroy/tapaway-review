@@ -51,7 +51,7 @@ const ReviewHub = () => {
   }, [restaurantId, customSlug, location]);
 
   const fetchRestaurantBySlug = async (slug: string) => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("restaurant_public_info")
       .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
       .eq("custom_slug", slug)
@@ -64,7 +64,7 @@ const ReviewHub = () => {
   };
 
   const fetchRestaurant = async (id: string) => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("restaurant_public_info")
       .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
       .eq("id", id)
@@ -108,11 +108,11 @@ const ReviewHub = () => {
     if (!restaurant) return;
     
     try {
-      await (supabase.from("analytics_events").insert({
+      await (supabase as any).from("analytics_events").insert({
         restaurant_id: restaurant.id,
         event_type: eventName,
         event_data: { timestamp: new Date().toISOString() }
-      }) as any);
+      });
     } catch (error) {
       console.error("Analytics error:", error);
     }

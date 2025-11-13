@@ -41,11 +41,11 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
   const fetchAnalytics = async () => {
     try {
       // Fetch all analytics events for this restaurant
-      const { data, error } = (await supabase
+      const { data, error } = await (supabase as any)
         .from("analytics_events")
         .select("*")
         .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false })) as any;
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
