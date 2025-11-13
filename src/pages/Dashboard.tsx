@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MapPin } from "lucide-react";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
 import { MenuTab } from "@/components/dashboard/MenuTab";
 import { SettingsTab } from "@/components/dashboard/SettingsTab";
 import { SupportTab } from "@/components/dashboard/SupportTab";
 import { BillingTab } from "@/components/dashboard/BillingTab";
+import { AICoachTab } from "@/components/dashboard/AICoachTab";
+import { GoalsTab } from "@/components/dashboard/GoalsTab";
+import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
+import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 
 interface Restaurant {
   id: string;
@@ -23,11 +27,19 @@ interface Restaurant {
   next_billing_date: string | null;
 }
 
+interface Location {
+  id: string;
+  name: string;
+  custom_slug: string | null;
+}
+
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -77,6 +89,21 @@ const Dashboard = () => {
 
     if (data) {
       setRestaurant(data as any);
+      fetchLocations(data.id);
+    }
+  };
+
+  const fetchLocations = async (restaurantId: string) => {
+    const { data } = await supabase
+      .from("locations")
+      .select("id, name, custom_slug")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true)
+      .order("name");
+
+    if (data && data.length > 0) {
+      setLocations(data);
+      setSelectedLocation(data[0].id);
     }
   };
 
@@ -211,6 +238,29 @@ const Dashboard = () => {
             </Select>
           </Card>
         )}
+
+        {!isAdmin && locations.length > 1 && (
+          <Card className="p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <MapPin className="w-5 h-5 text-muted-foreground" />
+              <Select value={selectedLocation || undefined} onValueChange={setSelectedLocation}>
+                <SelectTrigger className="w-full md:w-[400px]">
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">
+                {locations.length} of {restaurant?.plan_type === 'bundle' ? '3' : '1'} locations
+              </span>
+            </div>
+          </Card>
+        )}
         
         <div className="mb-6">
           <h1 className="text-3xl font-bold">{restaurant.restaurant_name}</h1>
@@ -220,8 +270,12 @@ const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-4 md:grid-cols-9 w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="ai-coach">AI Coach</TabsTrigger>
+            <TabsTrigger value="competitors">Competitors</TabsTrigger>
+            <TabsTrigger value="replies">Replies</TabsTrigger>
+            <TabsTrigger value="goals">Goals</TabsTrigger>
             <TabsTrigger value="menu">Menu</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
@@ -230,6 +284,22 @@ const Dashboard = () => {
 
           <TabsContent value="overview" className="space-y-6">
             <AnalyticsOverview restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="ai-coach">
+            <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
+          </TabsContent>
+
+          <TabsContent value="competitors">
+            <CompetitorTab restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="replies">
+            <ReviewRepliesTab restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="goals">
+            <GoalsTab restaurantId={restaurant.id} />
           </TabsContent>
 
           <TabsContent value="menu">
