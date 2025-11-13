@@ -57,11 +57,13 @@ const Dashboard = () => {
   }, [user]);
 
   const checkAdminStatus = async () => {
-    const { data } = await supabase.rpc('is_admin');
-    setIsAdmin(data || false);
-    setIsTestAccount(user?.email === "test@me.com");
+    const { data: isAdminData } = await supabase.rpc('is_admin');
+    const { data: isTestData } = await supabase.rpc('is_test_account');
     
-    if (data) {
+    setIsAdmin(isAdminData || false);
+    setIsTestAccount(isTestData || false);
+    
+    if (isAdminData) {
       fetchAllRestaurants();
     } else {
       fetchRestaurant();

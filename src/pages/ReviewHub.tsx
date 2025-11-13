@@ -83,7 +83,7 @@ const ReviewHub = () => {
         *,
         menu_items (*)
       `)
-      .eq("restaurant_id", restaurantId)
+      .eq("restaurant_id", restId)
       .order("sort_order");
 
     if (sections) {

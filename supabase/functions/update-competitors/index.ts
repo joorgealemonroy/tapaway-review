@@ -6,33 +6,67 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const validateUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { restaurantId } = await req.json();
+    
+    // Validate input
+    if (!restaurantId || !validateUUID(restaurantId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid restaurantId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    // For test account, create mock competitor data
-    const { data: restaurant } = await supabaseClient
+    // Verify restaurant ownership
+    const { data: restaurant, error: restaurantError } = await supabaseClient
       .from('restaurants')
       .select('restaurant_name, address, owner_id')
       .eq('id', restaurantId)
       .single();
 
-    if (!restaurant) {
-      throw new Error('Restaurant not found');
+    if (restaurantError || !restaurant) {
+      console.error('Restaurant verification error:', restaurantError);
+      return new Response(
+        JSON.stringify({ error: 'Restaurant not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    if (!user || restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to restaurant' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Check if this is the test account
-    const { data: ownerEmail } = await supabaseClient.auth.admin.getUserById(restaurant.owner_id);
-    const isTestAccount = ownerEmail?.user?.email === 'test@me.com';
+    const isTestAccount = user.email === 'test@me.com';
 
     if (isTestAccount) {
       // Create mock competitors for test account
