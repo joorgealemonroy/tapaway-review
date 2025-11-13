@@ -1,286 +1,306 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2, Smartphone, Star, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
-import TapAwayCard3D from "@/components/TapAwayCard3D";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="border-b border-border-subtle bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary"></div>
-            <span className="text-xl font-bold text-foreground">TapAway</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/demo">
-              <Button variant="ghost">View Demo</Button>
-            </Link>
-            <Link to="/auth">
-              <Button>Get Started</Button>
-            </Link>
+      <nav className="sticky top-0 z-30 bg-white/85 backdrop-blur-lg border-b border-border">
+        <div className="max-w-[1060px] mx-auto px-4">
+          <div className="flex justify-between items-center py-3">
+            <a href="https://tapaway.co" className="font-black text-lg md:text-xl tracking-tight">
+              TapAway
+            </a>
+            <a
+              href="/auth"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+            >
+              Get Started
+            </a>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 md:py-32">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-medium mb-6">
-            <Zap className="w-4 h-4" />
-            Trusted by 100+ restaurants
-          </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-            Turn Every Customer Into a{" "}
-            <span className="text-primary">5-Star Review</span>
+      <header className="text-center pt-12 pb-4 px-4">
+        <div className="max-w-[1060px] mx-auto">
+          <h1 className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3">
+            Turn Guests into Reviews
+            <br />
+            Instantly
           </h1>
-          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            TapAway's NFC cards make it effortless for your customers to leave glowing reviews. One tap, 
-            and they're directly on your Google or Yelp page.
+          <p className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4">
+            One tap at the table—your branded review page opens. No apps. No
+            awkward asks. Just more 5-star reviews that bring in more guests.
           </p>
-          
-          <TapAwayCard3D />
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Link to="/auth">
-              <Button size="lg" className="text-lg px-8 group">
-                Get Started
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link to="/demo">
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                View Demo
-              </Button>
-            </Link>
+        </div>
+
+        {/* 3D Card Animation */}
+        <div className="grid place-items-center perspective-[1100px] my-12 relative">
+          <div className="rotate-[12deg]">
+            <div className="preserve-3d animate-[spin_12s_ease-in-out_infinite]">
+              <div className="w-[min(208px,70vw)] aspect-[1/1.586] relative preserve-3d">
+                {/* Front Face */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden shadow-[0_18px_40px_rgba(10,20,40,0.28),inset_0_1px_0_rgba(255,255,255,0.2)] bg-gradient-to-br from-[#111827] to-[#1e293b]">
+                  <div className="p-6 text-white text-center h-full flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div className="w-10 h-10 rounded-lg bg-white/10" />
+                      <div className="text-2xl">📱</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold mb-2">TapAway</div>
+                      <div className="text-sm opacity-80">Tap to Review</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Back Face */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden shadow-[0_18px_40px_rgba(10,20,40,0.28),inset_0_1px_0_rgba(255,255,255,0.2)] bg-gradient-to-br from-[#3b82f6] to-[#2563eb] rotate-y-180">
+                  <div className="p-6 text-white text-center h-full flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div className="text-2xl">⭐</div>
+                      <div className="w-10 h-10 rounded-lg bg-white/10" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold mb-2">5 Stars</div>
+                      <div className="text-sm opacity-80">Leave a Review</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <Smartphone className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">One Tap. That's It.</h3>
-            <p className="text-muted-foreground">
-              No apps to download. No QR codes to scan. Just tap the card with any smartphone 
-              and customers land on your review page instantly.
-            </p>
-          </div>
-
-          <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <Star className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">More Reviews, Automatically</h3>
-            <p className="text-muted-foreground">
-              Happy customers are just moments away from leaving you a 5-star review. 
-              No friction means more reviews flowing in daily.
-            </p>
-          </div>
-
-          <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <Zap className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Fully Automated</h3>
-            <p className="text-muted-foreground">
-              Set it up once and forget it. Your review hub updates automatically. 
-              Track stats, edit menus, manage everything from your dashboard.
-            </p>
-          </div>
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <a
+            href="/auth"
+            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+          >
+            Start Free Trial
+          </a>
+          <a
+            href="/demo"
+            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-white border border-[#eceff3] text-[#111827] shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+          >
+            View Demo
+          </a>
         </div>
-      </section>
+      </header>
 
-      {/* How It Works */}
-      <section className="container mx-auto px-4 py-20 bg-surface-elevated rounded-3xl max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">How It Works</h2>
-          <p className="text-xl text-muted-foreground">Three simple steps to more reviews</p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8">
+      {/* Metrics */}
+      <div className="max-w-[1060px] mx-auto px-4 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-              1
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Sign Up & Customize</h3>
-            <p className="text-muted-foreground">
-              Create your account, add your restaurant info, and customize your review hub in minutes.
-            </p>
+            <div className="text-2xl md:text-3xl font-black mb-1">🏪 2,300+</div>
+            <div className="text-sm text-muted-foreground">Restaurants</div>
           </div>
-          
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-              2
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Receive Your Cards</h3>
-            <p className="text-muted-foreground">
-              We ship premium NFC cards with your custom review hub URL embedded.
-            </p>
+            <div className="text-2xl md:text-3xl font-black mb-1">⭐ 12,000+</div>
+            <div className="text-sm text-muted-foreground">Reviews Collected</div>
           </div>
-          
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-              3
+            <div className="text-2xl md:text-3xl font-black mb-1">🚀 4.9</div>
+            <div className="text-sm text-muted-foreground">Average Rating</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl md:text-3xl font-black mb-1">⏱️ Day One</div>
+            <div className="text-sm text-muted-foreground">Typical First Results</div>
+          </div>
+        </div>
+      </div>
+
+      {/* How it works */}
+      <section className="py-16 px-4">
+        <div className="max-w-[1060px] mx-auto">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#111827] text-white flex items-center justify-center font-bold flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-2">Tap at the table.</h4>
+                <p className="text-muted-foreground">
+                  Guest taps the card or scans the QR—your branded review page opens instantly.
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Watch Reviews Roll In</h3>
-            <p className="text-muted-foreground">
-              Place cards at tables or with checks. Customers tap and review. It's that simple.
-            </p>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#111827] text-white flex items-center justify-center font-bold flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-2">Keep service moving.</h4>
+                <p className="text-muted-foreground">
+                  No awkward instructions or pauses—guests complete it themselves while you focus on great service.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#111827] text-white flex items-center justify-center font-bold flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-2">Results you can feel.</h4>
+                <p className="text-muted-foreground">
+                  Fresh reviews → better ranking → more foot traffic.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Preview */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-xl text-muted-foreground">Choose the plan that fits your restaurant</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
-            <h3 className="text-2xl font-bold mb-2">Monthly</h3>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$29</span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Single location</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Unlimited taps</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Analytics dashboard</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Menu management</span>
-              </li>
-            </ul>
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}
-            >
-              Get Started - Monthly
-            </Button>
-          </div>
-
-          <div className="bg-primary text-primary-foreground rounded-2xl p-8 shadow-xl border-2 border-primary relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground px-4 py-1 rounded-full text-sm font-medium">
-              Most Popular
-            </div>
-            <h3 className="text-2xl font-bold mb-2">Yearly</h3>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$249</span>
-              <span className="opacity-90">/year</span>
-              <div className="text-sm opacity-90 mt-1">Save $99 per year</div>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>Everything in Monthly</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>2 months free</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>Priority support</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>Free card replacements</span>
-              </li>
-            </ul>
-            <Button 
-              className="w-full bg-background text-foreground hover:bg-background/90"
-              onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}
-            >
-              Get Started - Yearly
-            </Button>
-          </div>
-
-          <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
-            <h3 className="text-2xl font-bold mb-2">Multi-Location</h3>
-            <div className="mb-6">
-              <span className="text-4xl font-bold">$69</span>
-              <span className="text-muted-foreground">/month</span>
-              <div className="text-sm text-muted-foreground mt-1">Up to 3 locations</div>
-            </div>
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Everything in Yearly</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>3 locations included</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Centralized dashboard</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Dedicated support</span>
-              </li>
-            </ul>
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}
-            >
-              Get Started - Bundle
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center bg-gradient-primary text-primary-foreground rounded-3xl p-12 shadow-xl">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Ready to Get More Reviews?
+      {/* Why TapAway */}
+      <section id="why" className="py-16 px-4 bg-muted/30">
+        <div className="max-w-[1060px] mx-auto">
+          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">
+            Why Restaurants Choose TapAway
           </h2>
-          <p className="text-xl opacity-90 mb-8">
-            Join hundreds of restaurants already using TapAway to boost their online reputation.
-          </p>
-          <Link to="/auth">
-            <Button size="lg" className="bg-background text-foreground hover:bg-background/90 text-lg px-8">
-              Get Started
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+              <h3 className="text-xl font-bold mb-3">⚡ Fast & Effortless</h3>
+              <p className="text-muted-foreground">
+                Customers tap—you get reviews. That simple.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+              <h3 className="text-xl font-bold mb-3">📈 Immediate Impact</h3>
+              <p className="text-muted-foreground">
+                More reviews means more people find you.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+              <h3 className="text-xl font-bold mb-3">🔐 Privacy‑Friendly</h3>
+              <p className="text-muted-foreground">
+                Ethical tracking, no cookies—respect guests.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature Accordion */}
+          <details className="bg-white rounded-2xl p-6 border border-border shadow-sm cursor-pointer">
+            <summary className="font-bold text-lg list-none cursor-pointer">
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mr-3">
+                Product
+              </span>
+              See everything TapAway does
+            </summary>
+            <div className="grid md:grid-cols-2 gap-4 mt-6">
+              <div className="flex items-start gap-3">
+                <span className="text-xl">✅</span>
+                <span>Tap‑to‑Review NFC flow</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🎨</span>
+                <span>Auto‑open branded review page</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">✍️</span>
+                <span>Smart copy that boosts completion</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🔁</span>
+                <span>QR fallback for older phones</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🗣️</span>
+                <span>Staff one‑liners</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🏪</span>
+                <span>Multi‑location support</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">🧱</span>
+                <span>Clunky multi‑step flows → gone</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-xl">📦</span>
+                <span>Simple to roll out & scale</span>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-16 px-4">
+        <div className="max-w-[1060px] mx-auto">
+          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">
+            Choose Your Plan
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#111827] shadow-lg relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111827] text-white px-4 py-1 rounded-full text-sm font-bold">
+                Most popular
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Restaurant — Monthly</h3>
+              <div className="text-4xl font-black mb-4">
+                $30 <span className="text-lg font-normal text-muted-foreground">/ month</span>
+              </div>
+              <p className="text-muted-foreground mb-6">Everything for one location.</p>
+              <a
+                href="https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05"
+                className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+              >
+                Choose Monthly
+              </a>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 border border-border shadow-lg relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold">
+                Best value
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Restaurant — Yearly</h3>
+              <div className="text-4xl font-black mb-1">
+                $300 <span className="text-lg font-normal text-muted-foreground">/ year</span>
+              </div>
+              <div className="text-sm text-muted-foreground mb-4">Save with annual billing.</div>
+              <a
+                href="https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06"
+                className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+              >
+                Choose Yearly
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-surface-elevated">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary"></div>
-              <span className="text-lg font-bold">TapAway</span>
-            </div>
-            <div className="text-muted-foreground text-sm">
-              © 2024 TapAway. All rights reserved.
-            </div>
-          </div>
-        </div>
+      <footer className="text-center py-8 text-sm text-muted-foreground border-t border-border">
+        © 2025 TapAway · Ethical tracking · No cookies
       </footer>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotateY(0deg); }
+          50% { transform: rotateY(180deg); }
+          100% { transform: rotateY(360deg); }
+        }
+        .preserve-3d {
+          transform-style: preserve-3d;
+        }
+        .backface-hidden {
+          backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+          transform: rotateY(180deg);
+        }
+        .perspective-1100 {
+          perspective: 1100px;
+        }
+      `}</style>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -26,6 +27,8 @@ const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [headerSubtitle, setHeaderSubtitle] = useState("");
   const [menuTitle, setMenuTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,9 +41,36 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      fetchRestaurant();
+      checkAdminStatus();
     }
   }, [user]);
+
+  const checkAdminStatus = async () => {
+    const { data } = await supabase.rpc('is_admin');
+    setIsAdmin(data || false);
+    
+    if (data) {
+      // Admin: fetch all restaurants
+      fetchAllRestaurants();
+    } else {
+      // Regular user: fetch their own restaurant
+      fetchRestaurant();
+    }
+  };
+
+  const fetchAllRestaurants = async () => {
+    const { data, error } = await supabase
+      .from("restaurants")
+      .select("*")
+      .order("restaurant_name");
+
+    if (data && data.length > 0) {
+      setAllRestaurants(data);
+      setRestaurant(data[0]); // Default to first restaurant
+      setHeaderSubtitle(data[0].header_subtitle);
+      setMenuTitle(data[0].menu_title);
+    }
+  };
 
   const fetchRestaurant = async () => {
     const { data, error } = await supabase
@@ -190,8 +220,40 @@ const Dashboard = () => {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-12">
+        {isAdmin && allRestaurants.length > 0 && (
+          <Card className="p-6 mb-6">
+            <Label htmlFor="restaurant-select" className="mb-2 block">
+              Select Restaurant (Admin Mode)
+            </Label>
+            <Select
+              value={restaurant?.id}
+              onValueChange={(value) => {
+                const selected = allRestaurants.find((r) => r.id === value);
+                if (selected) {
+                  setRestaurant(selected);
+                  setHeaderSubtitle(selected.header_subtitle);
+                  setMenuTitle(selected.menu_title);
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                {allRestaurants.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.restaurant_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Card>
+        )}
+        
         <h1 className="text-3xl font-bold mb-2">{restaurant.restaurant_name}</h1>
-        <p className="text-muted-foreground mb-8">Manage your TapAway review hub</p>
+        <p className="text-muted-foreground mb-8">
+          {isAdmin ? "Admin Dashboard - Managing all restaurants" : "Manage your TapAway review hub"}
+        </p>
 
         <div className="space-y-6">
           <Card className="p-6">
