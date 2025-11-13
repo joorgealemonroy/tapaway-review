@@ -74,9 +74,9 @@ export const CompetitorTab = ({ restaurantId }: CompetitorTabProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Competitor Analysis</h2>
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h2 className="text-xl md:text-2xl font-bold">Competitor Analysis</h2>
         <Button onClick={updateCompetitorData} disabled={updating} variant="outline" size="sm">
           <RefreshCw className={`w-4 h-4 mr-2 ${updating ? 'animate-spin' : ''}`} />
           Update Data
@@ -84,48 +84,55 @@ export const CompetitorTab = ({ restaurantId }: CompetitorTabProps) => {
       </div>
 
       {competitors.length === 0 ? (
-        <Card className="p-8 text-center">
-          <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No competitor data available yet.</p>
-          <p className="text-sm text-muted-foreground mt-2">
+        <Card className="p-6 md:p-8 text-center">
+          <TrendingUp className="w-10 h-10 md:w-12 md:h-12 mx-auto text-muted-foreground mb-3 md:mb-4" />
+          <p className="text-muted-foreground text-sm md:text-base">No competitor data available yet.</p>
+          <p className="text-xs md:text-sm text-muted-foreground mt-2">
             AI Coach will automatically identify and track your local competitors.
           </p>
         </Card>
       ) : (
         <>
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Review Count Comparison</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <Card className="p-4 md:p-6 bg-accent/50 border-accent">
+            <p className="text-sm md:text-base text-muted-foreground">
+              <strong>Note:</strong> Competitor comparison is currently based on lifetime review counts. 
+              Monthly 5-star comparison coming soon - check back once you've collected more reviews this month.
+            </p>
+          </Card>
+          
+          <Card className="p-4 md:p-6">
+            <h3 className="text-base md:text-lg font-semibold mb-4">Review Count Comparison</h3>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                <YAxis fontSize={12} />
                 <Tooltip />
                 <Bar dataKey="reviews" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3 md:gap-4">
             {competitors.map((competitor) => (
-              <Card key={competitor.id} className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg">{competitor.competitor_name}</h3>
+              <Card key={competitor.id} className="p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base md:text-lg">{competitor.competitor_name}</h3>
                     {competitor.competitor_link && (
                       <a
                         href={competitor.competitor_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
+                        className="text-xs md:text-sm text-primary hover:underline flex items-center gap-1 mt-1"
                       >
                         View on Google Maps
                       </a>
                     )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{competitor.current_review_count}</p>
-                    <p className="text-sm text-muted-foreground">Reviews</p>
+                  <div className="text-left sm:text-right">
+                    <div className="text-xl md:text-2xl font-bold text-primary">{competitor.current_review_count}</div>
+                    <p className="text-xs md:text-sm text-muted-foreground">Total Reviews</p>
                     {competitor.rating && (
                       <p className="text-sm mt-1">⭐ {competitor.rating.toFixed(1)}</p>
                     )}

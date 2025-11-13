@@ -249,9 +249,9 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
         {isAdmin && allRestaurants.length > 0 && (
-          <Card className="p-4 mb-6">
+          <Card className="p-3 md:p-4 mb-4 md:mb-6">
             <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
               <SelectTrigger className="w-full md:w-[400px]">
                 <SelectValue placeholder="Select restaurant" />
@@ -268,11 +268,11 @@ const Dashboard = () => {
         )}
 
         {!isAdmin && locations.length > 1 && (
-          <Card className="p-4 mb-6">
-            <div className="flex items-center gap-4">
-              <MapPin className="w-5 h-5 text-muted-foreground" />
+          <Card className="p-3 md:p-4 mb-4 md:mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
+              <MapPin className="w-5 h-5 text-muted-foreground shrink-0" />
               <Select value={selectedLocation || undefined} onValueChange={setSelectedLocation}>
-                <SelectTrigger className="w-full md:w-[400px]">
+                <SelectTrigger className="w-full sm:w-[300px] md:w-[400px]">
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,34 +283,36 @@ const Dashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs md:text-sm text-muted-foreground">
                 {locations.length} of {restaurant?.plan_type === 'bundle' ? '3' : '1'} locations
               </span>
             </div>
           </Card>
         )}
         
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">{restaurant.restaurant_name}</h1>
-          <p className="text-muted-foreground">
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">{restaurant.restaurant_name}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             {isAdmin ? "Admin Dashboard" : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 md:grid-cols-9 w-full">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="ai-coach">AI Coach</TabsTrigger>
-            <TabsTrigger value="competitors">Competitors</TabsTrigger>
-            <TabsTrigger value="replies">Replies</TabsTrigger>
-            <TabsTrigger value="goals">Goals</TabsTrigger>
-            <TabsTrigger value="menu">Menu</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="support">Support</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
+            <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-9 h-auto gap-1">
+              <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+              <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
+              <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
+              <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
+              <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
+              <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+              <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
+              <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-4 md:space-y-6">
             <AnalyticsOverview restaurantId={restaurant.id} />
           </TabsContent>
 
