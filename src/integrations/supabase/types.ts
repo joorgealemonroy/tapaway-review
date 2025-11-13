@@ -14,7 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      menu_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: string | null
+          section_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price?: string | null
+          section_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: string | null
+          section_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "menu_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_sections: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          restaurant_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          restaurant_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          restaurant_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurants: {
+        Row: {
+          address: string | null
+          created_at: string
+          directions_url: string | null
+          email: string | null
+          fathom_site_id: string | null
+          google_review_url: string | null
+          header_subtitle: string | null
+          header_title: string | null
+          id: string
+          instagram_url: string | null
+          logo_url: string | null
+          menu_title: string | null
+          next_billing_date: string | null
+          owner_id: string
+          phone: string | null
+          plan_type: string | null
+          restaurant_name: string
+          stripe_customer_id: string | null
+          stripe_portal_url: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string
+          yelp_review_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          directions_url?: string | null
+          email?: string | null
+          fathom_site_id?: string | null
+          google_review_url?: string | null
+          header_subtitle?: string | null
+          header_title?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          menu_title?: string | null
+          next_billing_date?: string | null
+          owner_id: string
+          phone?: string | null
+          plan_type?: string | null
+          restaurant_name: string
+          stripe_customer_id?: string | null
+          stripe_portal_url?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          yelp_review_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          directions_url?: string | null
+          email?: string | null
+          fathom_site_id?: string | null
+          google_review_url?: string | null
+          header_subtitle?: string | null
+          header_title?: string | null
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          menu_title?: string | null
+          next_billing_date?: string | null
+          owner_id?: string
+          phone?: string | null
+          plan_type?: string | null
+          restaurant_name?: string
+          stripe_customer_id?: string | null
+          stripe_portal_url?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          yelp_review_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
