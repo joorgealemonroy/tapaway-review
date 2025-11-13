@@ -10,9 +10,6 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import ReviewHub from "./pages/ReviewHub";
-import MenuManagement from "./pages/MenuManagement";
-import Settings from "./pages/Settings";
-import Billing from "./pages/Billing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,9 +27,6 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/menu" element={<MenuManagement />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/billing" element={<Billing />} />
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
             <Route path="/:customSlug" element={<ReviewHub />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
