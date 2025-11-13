@@ -13,6 +13,7 @@ import { z } from "zod";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
+  customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed"),
   instagram: z.string().trim().max(50).optional(),
   googlePlaceId: z.string().trim().optional(),
   yelpUrl: z.string().trim().url("Invalid Yelp URL").optional().or(z.literal("")),
@@ -35,6 +36,7 @@ const Onboarding = () => {
 
   const [formData, setFormData] = useState({
     restaurantName: "",
+    customSlug: "",
     instagram: "",
     googlePlaceId: "",
     yelpUrl: "",
@@ -74,8 +76,8 @@ const Onboarding = () => {
   };
 
   const handleNext = () => {
-    if (step === 1 && !formData.restaurantName) {
-      toast.error("Please enter your restaurant name");
+    if (step === 1 && (!formData.restaurantName || !formData.customSlug)) {
+      toast.error("Please enter your restaurant name and custom URL");
       return;
     }
     setStep((prev) => prev + 1);
@@ -112,6 +114,7 @@ const Onboarding = () => {
       const { error: insertError } = await supabase.from("restaurants").insert({
         owner_id: user.id,
         restaurant_name: validatedData.restaurantName,
+        custom_slug: validatedData.customSlug,
         instagram_url: validatedData.instagram ? `https://instagram.com/${validatedData.instagram.replace('@', '')}` : null,
         google_review_url: validatedData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${validatedData.googlePlaceId}` : null,
         yelp_review_url: validatedData.yelpUrl || null,
@@ -161,6 +164,26 @@ const Onboarding = () => {
                   placeholder="Your Restaurant Name"
                   maxLength={100}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="customSlug">Custom Page URL *</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">tapaway.co/</span>
+                  <Input
+                    id="customSlug"
+                    value={formData.customSlug}
+                    onChange={(e) => {
+                      const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                      handleInputChange("customSlug", slug);
+                    }}
+                    placeholder="your-restaurant"
+                    maxLength={50}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This will be your unique review page URL
+                </p>
               </div>
 
               <div>
