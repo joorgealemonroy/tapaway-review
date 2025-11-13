@@ -47,7 +47,7 @@ const ReviewHub = () => {
 
   const fetchRestaurant = async () => {
     const { data } = await supabase
-      .from("restaurants")
+      .from("restaurant_public_info")
       .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
       .eq("id", restaurantId)
       .single();
@@ -72,6 +72,16 @@ const ReviewHub = () => {
         ...s,
         items: s.menu_items || []
       })));
+    }
+  };
+
+  const isSafeUrl = (url: string | null): boolean => {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false;
     }
   };
 
@@ -109,7 +119,9 @@ const ReviewHub = () => {
               size="lg"
               onClick={() => {
                 trackEvent("tap_google_review");
-                window.open(restaurant.google_review_url!, "_blank");
+                if (isSafeUrl(restaurant.google_review_url)) {
+                  window.open(restaurant.google_review_url!, "_blank");
+                }
               }}
             >
               <Star className="w-5 h-5" />
@@ -124,7 +136,9 @@ const ReviewHub = () => {
               size="lg"
               onClick={() => {
                 trackEvent("tap_yelp_review");
-                window.open(restaurant.yelp_review_url!, "_blank");
+                if (isSafeUrl(restaurant.yelp_review_url)) {
+                  window.open(restaurant.yelp_review_url!, "_blank");
+                }
               }}
             >
               <Star className="w-5 h-5" />
@@ -139,7 +153,9 @@ const ReviewHub = () => {
               size="lg"
               onClick={() => {
                 trackEvent("tap_directions");
-                window.open(restaurant.directions_url!, "_blank");
+                if (isSafeUrl(restaurant.directions_url)) {
+                  window.open(restaurant.directions_url!, "_blank");
+                }
               }}
             >
               <Navigation className="w-5 h-5" />
@@ -154,7 +170,9 @@ const ReviewHub = () => {
               size="lg"
               onClick={() => {
                 trackEvent("tap_instagram");
-                window.open(restaurant.instagram_url!, "_blank");
+                if (isSafeUrl(restaurant.instagram_url)) {
+                  window.open(restaurant.instagram_url!, "_blank");
+                }
               }}
             >
               <Instagram className="w-5 h-5" />

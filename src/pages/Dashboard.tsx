@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { z } from "zod";
 
 interface Restaurant {
   id: string;
@@ -58,22 +59,40 @@ const Dashboard = () => {
   const handleSave = async () => {
     if (!restaurant) return;
 
-    setSaving(true);
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
+    // Validate input fields
+    const updateSchema = z.object({
+      header_subtitle: z.string().trim().max(200, "Subtitle must be less than 200 characters"),
+      menu_title: z.string().trim().max(50, "Menu title must be less than 50 characters"),
+    });
+
+    try {
+      const validatedData = updateSchema.parse({
         header_subtitle: headerSubtitle,
         menu_title: menuTitle,
-      })
-      .eq("id", restaurant.id);
+      });
 
-    if (error) {
-      toast.error("Failed to save changes");
-    } else {
-      toast.success("Changes saved successfully!");
-      fetchRestaurant();
+      setSaving(true);
+      const { error } = await supabase
+        .from("restaurants")
+        .update({
+          header_subtitle: validatedData.header_subtitle,
+          menu_title: validatedData.menu_title,
+        })
+        .eq("id", restaurant.id);
+
+      if (error) {
+        toast.error("Failed to save changes");
+      } else {
+        toast.success("Changes saved successfully!");
+        fetchRestaurant();
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
