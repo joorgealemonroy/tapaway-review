@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExternalLink, MapPin } from "lucide-react";
+import { toast } from "sonner";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
 import { MenuTab } from "@/components/dashboard/MenuTab";
 import { SettingsTab } from "@/components/dashboard/SettingsTab";
@@ -58,7 +59,7 @@ const Dashboard = () => {
 
   const checkAdminStatus = async () => {
     const { data: isAdminData } = await supabase.rpc('is_admin');
-    const { data: isTestData } = await supabase.rpc('is_test_account');
+    const { data: isTestData } = await (supabase as any).rpc('is_test_account');
     
     setIsAdmin(isAdminData || false);
     setIsTestAccount(isTestData || false);
@@ -92,6 +93,31 @@ const Dashboard = () => {
     if (data) {
       setRestaurant(data as any);
       fetchLocations(data.id);
+    } else if (user?.email === 'test@me.com') {
+      // Defensive fallback for test account - auto-assign if no restaurant found
+      console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
+      try {
+        const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
+        if (assignError) {
+          console.error('[Dashboard] Failed to assign test restaurant:', assignError);
+          toast.error("Failed to link test account. Please contact support.");
+        } else {
+          // Retry fetch after assignment
+          const { data: retryData } = await (supabase as any)
+            .from("restaurants")
+            .select("*")
+            .eq("owner_id", user?.id)
+            .single();
+          
+          if (retryData) {
+            setRestaurant(retryData as any);
+            fetchLocations(retryData.id);
+            toast.success("Test account linked successfully!");
+          }
+        }
+      } catch (err) {
+        console.error('[Dashboard] Error in defensive fallback:', err);
+      }
     }
   };
 
