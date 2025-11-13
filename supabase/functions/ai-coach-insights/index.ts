@@ -6,18 +6,87 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const validateUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { restaurantId, locationId } = await req.json();
+    
+    // Validate inputs
+    if (!restaurantId || !validateUUID(restaurantId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid restaurantId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (locationId && !validateUUID(locationId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid locationId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     );
+
+    // Verify restaurant ownership
+    const { data: restaurant, error: restaurantError } = await supabaseClient
+      .from('restaurants')
+      .select('owner_id')
+      .eq('id', restaurantId)
+      .single();
+
+    if (restaurantError || !restaurant) {
+      console.error('Restaurant verification error:', restaurantError);
+      return new Response(
+        JSON.stringify({ error: 'Restaurant not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    if (!user || restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to restaurant data' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify location ownership if locationId provided
+    if (locationId) {
+      const { data: location } = await supabaseClient
+        .from('locations')
+        .select('restaurant_id')
+        .eq('id', locationId)
+        .single();
+
+      if (!location || location.restaurant_id !== restaurantId) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid location for this restaurant' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Fetch analytics data
     let analyticsQuery = supabaseClient

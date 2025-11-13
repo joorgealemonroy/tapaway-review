@@ -1,8 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const validateUUID = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
+const sanitizeText = (text: string): string => {
+  return text.trim().substring(0, 5000);
 };
 
 serve(async (req) => {
@@ -11,7 +21,72 @@ serve(async (req) => {
   }
 
   try {
-    const { restaurantId, reviewText, reviewerName, rating } = await req.json();
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = await req.json();
+    
+    // Validate inputs
+    if (!body.restaurantId || !validateUUID(body.restaurantId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid restaurantId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!body.reviewText || typeof body.reviewText !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'reviewText is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof body.rating !== 'number' || body.rating < 1 || body.rating > 5 || !Number.isInteger(body.rating)) {
+      return new Response(
+        JSON.stringify({ error: 'rating must be an integer between 1 and 5' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const restaurantId = body.restaurantId;
+    const reviewText = sanitizeText(body.reviewText);
+    const reviewerName = body.reviewerName ? sanitizeText(body.reviewerName) : undefined;
+    const rating = body.rating;
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify restaurant ownership
+    const { data: restaurant, error: restaurantError } = await supabaseClient
+      .from('restaurants')
+      .select('owner_id')
+      .eq('id', restaurantId)
+      .single();
+
+    if (restaurantError || !restaurant) {
+      console.error('Restaurant verification error:', restaurantError);
+      return new Response(
+        JSON.stringify({ error: 'Restaurant not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    if (!user || restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to restaurant' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
