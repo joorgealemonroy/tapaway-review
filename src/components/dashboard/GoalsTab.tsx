@@ -49,11 +49,11 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
 
   const fetchGoals = async () => {
     try {
-      const { data, error } = (await supabase
+      const { data, error } = await (supabase as any)
         .from('goals')
         .select('*')
         .eq('restaurant_id', restaurantId)
-        .order('created_at', { ascending: false })) as any;
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setGoals(data || []);
@@ -71,7 +71,7 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
     }
 
     try {
-      const { error } = (await supabase.from('goals').insert({
+      const { error } = await (supabase as any).from('goals').insert({
         restaurant_id: restaurantId,
         title: newGoal.title,
         description: newGoal.description || null,
@@ -79,7 +79,7 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
         target_value: newGoal.target_value ? parseFloat(newGoal.target_value) : null,
         current_value: 0,
         status: 'on_track'
-      })) as any;
+      });
 
       if (error) throw error;
 
@@ -95,10 +95,10 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
 
   const handleDeleteGoal = async (goalId: string) => {
     try {
-      const { error } = (await supabase
+      const { error } = await (supabase as any)
         .from('goals')
         .delete()
-        .eq('id', goalId)) as any;
+        .eq('id', goalId);
 
       if (error) throw error;
 

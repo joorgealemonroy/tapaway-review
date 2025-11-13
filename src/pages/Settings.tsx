@@ -39,7 +39,7 @@ const Settings = () => {
       return;
     }
 
-    const { data: restaurant } = await supabase
+    const { data: restaurant } = await (supabase as any)
       .from("restaurants")
       .select("id, settings")
       .eq("owner_id", user.id)
@@ -62,7 +62,7 @@ const Settings = () => {
     if (!restaurantId) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("restaurants")
         .update({ settings: settings as any })
         .eq("id", restaurantId);
