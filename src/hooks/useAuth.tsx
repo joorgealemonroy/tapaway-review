@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/onboarding`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Please check your email to confirm.");
+      toast.success("Account created! Redirecting to setup...");
       
       // If this is the master admin email, assign admin role
       if (data.user && email === "tap@tapaway.co") {
@@ -63,6 +63,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from("user_roles")
           .insert({ user_id: data.user.id, role: "admin" });
       }
+      
+      // Redirect to onboarding
+      navigate("/onboarding");
     }
 
     return { error };

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Search } from "lucide-react";
 
 interface Restaurant {
   id: string;
@@ -29,6 +30,7 @@ const Dashboard = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [restaurantSearch, setRestaurantSearch] = useState("");
   const [headerSubtitle, setHeaderSubtitle] = useState("");
   const [menuTitle, setMenuTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -86,6 +88,15 @@ const Dashboard = () => {
     }
   };
 
+  const handleRestaurantChange = (restaurantId: string) => {
+    const selected = allRestaurants.find((r) => r.id === restaurantId);
+    if (selected) {
+      setRestaurant(selected);
+      setHeaderSubtitle(selected.header_subtitle);
+      setMenuTitle(selected.menu_title);
+    }
+  };
+
   const handleSave = async () => {
     if (!restaurant) return;
 
@@ -114,7 +125,11 @@ const Dashboard = () => {
         toast.error("Failed to save changes");
       } else {
         toast.success("Changes saved successfully!");
-        fetchRestaurant();
+        if (isAdmin) {
+          fetchAllRestaurants();
+        } else {
+          fetchRestaurant();
+        }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -129,7 +144,7 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  if (!restaurant) {
+  if (!restaurant && !isAdmin) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-background/95 backdrop-blur">
@@ -222,31 +237,34 @@ const Dashboard = () => {
       <div className="max-w-4xl mx-auto px-4 py-12">
         {isAdmin && allRestaurants.length > 0 && (
           <Card className="p-6 mb-6">
-            <Label htmlFor="restaurant-select" className="mb-2 block">
-              Select Restaurant (Admin Mode)
-            </Label>
-            <Select
-              value={restaurant?.id}
-              onValueChange={(value) => {
-                const selected = allRestaurants.find((r) => r.id === value);
-                if (selected) {
-                  setRestaurant(selected);
-                  setHeaderSubtitle(selected.header_subtitle);
-                  setMenuTitle(selected.menu_title);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a restaurant" />
-              </SelectTrigger>
-              <SelectContent>
-                {allRestaurants.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.restaurant_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <h2 className="text-lg font-semibold mb-4">Admin Mode - Restaurant Selector</h2>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search restaurants..."
+                  value={restaurantSearch}
+                  onChange={(e) => setRestaurantSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
+                <SelectTrigger className="w-[300px]">
+                  <SelectValue placeholder="Choose a restaurant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allRestaurants
+                    .filter((r) =>
+                      r.restaurant_name.toLowerCase().includes(restaurantSearch.toLowerCase())
+                    )
+                    .map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.restaurant_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
           </Card>
         )}
         
