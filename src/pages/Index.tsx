@@ -6,12 +6,6 @@ const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
-
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -21,12 +15,21 @@ const Index = () => {
             <a href="https://tapaway.co" className="font-black text-lg md:text-xl tracking-tight">
               TapAway
             </a>
-            <a
-              href="/auth"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-            >
-              Get Started
-            </a>
+            {user ? (
+              <a
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+              >
+                Go to Dashboard
+              </a>
+            ) : (
+              <a
+                href="/auth"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
+              >
+                Get Started
+              </a>
+            )}
           </div>
         </div>
       </nav>

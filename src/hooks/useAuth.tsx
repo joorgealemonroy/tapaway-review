@@ -66,12 +66,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .insert({ user_id: data.user.id, role: "admin" });
       }
       
-      // If test account, link to test restaurant
+      // If test account, link to test restaurant using backend function
       if (data.user && email === "test@me.com") {
-        await supabase
-          .from("restaurants")
-          .update({ owner_id: data.user.id })
-          .eq("id", "00000000-0000-0000-0000-000000000001");
+        try {
+          const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
+          if (assignError) {
+            console.error('[signUp] Failed to assign test restaurant:', assignError);
+            toast.error("Failed to link test account");
+          }
+        } catch (err) {
+          console.error('[signUp] Error calling assign-test-owner:', err);
+        }
         navigate("/dashboard");
       } else {
         navigate("/onboarding");
@@ -82,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -91,6 +96,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast.error(error.message);
     } else {
       toast.success("Signed in successfully!");
+      
+      // If test account, ensure test restaurant is linked
+      if (data.user && email === "test@me.com") {
+        try {
+          const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
+          if (assignError) {
+            console.error('[signIn] Failed to assign test restaurant:', assignError);
+          }
+        } catch (err) {
+          console.error('[signIn] Error calling assign-test-owner:', err);
+        }
+      }
+      
       navigate("/dashboard");
     }
 
