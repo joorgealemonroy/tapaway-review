@@ -90,20 +90,22 @@ serve(async (req) => {
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    const prompt = `Generate a professional, warm, and personalized response to this customer review.
+    const prompt = `Generate a professional response to this customer review.
 
 Reviewer: ${reviewerName || 'Guest'}
 Rating: ${rating} stars
 Review: "${reviewText}"
 
 Requirements:
-- Keep it 2-5 sentences
-- Be genuine and specific to their feedback
-- If rating is 4-5 stars: thank them warmly and encourage them to return
-- If rating is 1-3 stars: apologize sincerely, acknowledge their concerns, offer to make it right
-- Use a friendly but professional tone
-- Include the reviewer's name if provided
-- Don't be generic or robotic
+- Keep it SHORT: 2-4 sentences maximum
+- Be professional, warm, and appreciative
+- Always thank them for visiting
+- Mention something specific from their review if possible
+- Invite them back naturally
+- NO exaggerated language, NO emojis, NO all-caps, NO "OMG" or similar expressions
+- Tone should be genuine but measured - not over-the-top
+- If rating is 4-5 stars: express sincere appreciation
+- If rating is 1-3 stars: apologize professionally, acknowledge concerns, offer to discuss further
 
 Generate ONLY the reply text, no extra formatting or labels.`;
 

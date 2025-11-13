@@ -71,15 +71,15 @@ export const ReviewRepliesTab = ({ restaurantId }: ReviewRepliesTabProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <div>
-        <h2 className="text-2xl font-bold mb-2">AI Review Replies</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-xl md:text-2xl font-bold mb-2">AI Review Replies</h2>
+        <p className="text-sm md:text-base text-muted-foreground">
           Generate professional, personalized responses to customer reviews using AI
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 md:p-6">
         <div className="space-y-4">
           <div>
             <Label htmlFor="reviewer-name">Reviewer Name (optional)</Label>
