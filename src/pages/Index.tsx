@@ -168,9 +168,13 @@ const Index = () => {
                 <span>Menu management</span>
               </li>
             </ul>
-            <Link to="/auth">
-              <Button className="w-full" variant="outline">Get Started</Button>
-            </Link>
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}
+            >
+              Get Started - Monthly
+            </Button>
           </div>
 
           <div className="bg-primary text-primary-foreground rounded-2xl p-8 shadow-xl border-2 border-primary relative">
@@ -201,11 +205,12 @@ const Index = () => {
                 <span>Free card replacements</span>
               </li>
             </ul>
-            <Link to="/auth">
-              <Button className="w-full bg-background text-foreground hover:bg-background/90">
-                Get Started
-              </Button>
-            </Link>
+            <Button 
+              className="w-full bg-background text-foreground hover:bg-background/90"
+              onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}
+            >
+              Get Started - Yearly
+            </Button>
           </div>
 
           <div className="bg-card rounded-2xl p-8 shadow-md border border-border">
@@ -233,9 +238,13 @@ const Index = () => {
                 <span>Dedicated support</span>
               </li>
             </ul>
-            <Link to="/auth">
-              <Button className="w-full" variant="outline">Get Started</Button>
-            </Link>
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}
+            >
+              Get Started - Bundle
+            </Button>
           </div>
         </div>
       </section>
