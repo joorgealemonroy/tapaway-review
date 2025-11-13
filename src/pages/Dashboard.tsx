@@ -4,24 +4,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { z } from "zod";
-import { Search } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
+import { MenuTab } from "@/components/dashboard/MenuTab";
+import { SettingsTab } from "@/components/dashboard/SettingsTab";
+import { SupportTab } from "@/components/dashboard/SupportTab";
+import { BillingTab } from "@/components/dashboard/BillingTab";
 
 interface Restaurant {
   id: string;
   restaurant_name: string;
-  header_subtitle: string;
-  menu_title: string;
-  google_review_url: string | null;
-  yelp_review_url: string | null;
-  directions_url: string | null;
-  instagram_url: string | null;
+  custom_slug: string | null;
   stripe_portal_url: string | null;
+  subscription_status: string | null;
+  plan_type: string | null;
+  next_billing_date: string | null;
 }
 
 const Dashboard = () => {
@@ -30,10 +29,8 @@ const Dashboard = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [restaurantSearch, setRestaurantSearch] = useState("");
-  const [headerSubtitle, setHeaderSubtitle] = useState("");
-  const [menuTitle, setMenuTitle] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [isTestAccount, setIsTestAccount] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,41 +47,36 @@ const Dashboard = () => {
   const checkAdminStatus = async () => {
     const { data } = await supabase.rpc('is_admin');
     setIsAdmin(data || false);
+    setIsTestAccount(user?.email === "test@me.com");
     
     if (data) {
-      // Admin: fetch all restaurants
       fetchAllRestaurants();
     } else {
-      // Regular user: fetch their own restaurant
       fetchRestaurant();
     }
   };
 
   const fetchAllRestaurants = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("restaurants")
       .select("*")
       .order("restaurant_name");
 
     if (data && data.length > 0) {
       setAllRestaurants(data);
-      setRestaurant(data[0]); // Default to first restaurant
-      setHeaderSubtitle(data[0].header_subtitle);
-      setMenuTitle(data[0].menu_title);
+      setRestaurant(data[0]);
     }
   };
 
   const fetchRestaurant = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("restaurants")
       .select("*")
       .eq("owner_id", user?.id)
       .single();
 
     if (data) {
-      setRestaurant(data);
-      setHeaderSubtitle(data.header_subtitle);
-      setMenuTitle(data.menu_title);
+      setRestaurant(data as any);
     }
   };
 
@@ -92,51 +84,6 @@ const Dashboard = () => {
     const selected = allRestaurants.find((r) => r.id === restaurantId);
     if (selected) {
       setRestaurant(selected);
-      setHeaderSubtitle(selected.header_subtitle);
-      setMenuTitle(selected.menu_title);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!restaurant) return;
-
-    // Validate input fields
-    const updateSchema = z.object({
-      header_subtitle: z.string().trim().max(200, "Subtitle must be less than 200 characters"),
-      menu_title: z.string().trim().max(50, "Menu title must be less than 50 characters"),
-    });
-
-    try {
-      const validatedData = updateSchema.parse({
-        header_subtitle: headerSubtitle,
-        menu_title: menuTitle,
-      });
-
-      setSaving(true);
-      const { error } = await supabase
-        .from("restaurants")
-        .update({
-          header_subtitle: validatedData.header_subtitle,
-          menu_title: validatedData.menu_title,
-        })
-        .eq("id", restaurant.id);
-
-      if (error) {
-        toast.error("Failed to save changes");
-      } else {
-        toast.success("Changes saved successfully!");
-        if (isAdmin) {
-          fetchAllRestaurants();
-        } else {
-          fetchRestaurant();
-        }
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      }
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -144,8 +91,8 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  // Hide purchase options for admin users
-  if (!isAdmin && !restaurant) {
+  // Show purchase options only for non-admin, non-test users without a restaurant
+  if (!isAdmin && !isTestAccount && !restaurant) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-background/95 backdrop-blur">
@@ -231,128 +178,76 @@ const Dashboard = () => {
             <div className="w-8 h-8 rounded-lg bg-primary"></div>
             <span className="font-bold text-xl">TapAway</span>
           </div>
-          <Button variant="ghost" onClick={signOut}>Sign Out</Button>
+          <div className="flex items-center gap-3">
+            {restaurant?.custom_slug && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Hub
+              </Button>
+            )}
+            <Button variant="ghost" onClick={signOut}>Sign Out</Button>
+          </div>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {isAdmin && allRestaurants.length > 0 && (
-          <Card className="p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Admin Mode - Restaurant Selector</h2>
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search restaurants..."
-                  value={restaurantSearch}
-                  onChange={(e) => setRestaurantSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="Choose a restaurant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allRestaurants
-                    .filter((r) =>
-                      r.restaurant_name.toLowerCase().includes(restaurantSearch.toLowerCase())
-                    )
-                    .map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.restaurant_name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <Card className="p-4 mb-6">
+            <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
+              <SelectTrigger className="w-full md:w-[400px]">
+                <SelectValue placeholder="Select restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                {allRestaurants.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.restaurant_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Card>
         )}
         
-        <h1 className="text-3xl font-bold mb-2">{restaurant.restaurant_name}</h1>
-        <p className="text-muted-foreground mb-8">
-          {isAdmin ? "Admin Dashboard - Managing all restaurants" : "Manage your TapAway review hub"}
-        </p>
-
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Review Hub Preview</h2>
-            <div className="bg-muted p-4 rounded-lg mb-4">
-              <p className="text-sm text-muted-foreground mb-2">Your Review Hub URL:</p>
-              <code className="text-sm bg-background px-3 py-2 rounded border border-border inline-block">
-                {window.location.origin}/hub/{restaurant.id}
-              </code>
-            </div>
-            <Button
-              onClick={() => window.open(`/hub/${restaurant.id}`, "_blank")}
-              variant="outline"
-            >
-              View Live Hub
-            </Button>
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Customize Your Hub</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subtitle">Header Subtitle</Label>
-                <Textarea
-                  id="subtitle"
-                  value={headerSubtitle}
-                  onChange={(e) => setHeaderSubtitle(e.target.value)}
-                  placeholder="We'd love to hear about your experience!"
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label htmlFor="menu-title">Menu Title</Label>
-                <Input
-                  id="menu-title"
-                  value={menuTitle}
-                  onChange={(e) => setMenuTitle(e.target.value)}
-                  placeholder="Our Menu"
-                  className="mt-2"
-                />
-              </div>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Restaurant Details</h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Restaurant Name:</span>
-                <span className="font-medium">{restaurant.restaurant_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Google Review:</span>
-                <span className="font-medium">{restaurant.google_review_url ? "✓ Set" : "Not set"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Yelp Review:</span>
-                <span className="font-medium">{restaurant.yelp_review_url ? "✓ Set" : "Not set"}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                Contact support to update your restaurant name and review links.
-              </p>
-            </div>
-          </Card>
-
-          {restaurant.stripe_portal_url && (
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Subscription</h2>
-              <Button
-                onClick={() => window.open(restaurant.stripe_portal_url!, "_blank")}
-                variant="outline"
-              >
-                Manage Subscription
-              </Button>
-            </Card>
-          )}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">{restaurant.restaurant_name}</h1>
+          <p className="text-muted-foreground">
+            {isAdmin ? "Admin Dashboard" : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
+          </p>
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="menu">Menu</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="support">Support</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <AnalyticsOverview restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="menu">
+            <MenuTab restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SettingsTab restaurantId={restaurant.id} />
+          </TabsContent>
+
+          <TabsContent value="support">
+            <SupportTab />
+          </TabsContent>
+
+          <TabsContent value="billing">
+            <BillingTab restaurant={restaurant} isTestAccount={isTestAccount} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
