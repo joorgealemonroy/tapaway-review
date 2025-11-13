@@ -16,7 +16,6 @@ interface Restaurant {
   yelp_review_url: string | null;
   directions_url: string | null;
   instagram_url: string | null;
-  stripe_portal_url: string | null;
   logo_url: string | null;
 }
 
@@ -49,7 +48,7 @@ const ReviewHub = () => {
   const fetchRestaurant = async () => {
     const { data } = await supabase
       .from("restaurants")
-      .select("*")
+      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
       .eq("id", restaurantId)
       .single();
 
@@ -175,21 +174,6 @@ const ReviewHub = () => {
             <Menu className="w-5 h-5" />
             {restaurant.menu_title}
           </Button>
-
-          {restaurant.stripe_portal_url && (
-            <Button
-              className="w-full"
-              variant="ghost"
-              size="lg"
-              onClick={() => {
-                trackEvent("tap_portal");
-                window.open(restaurant.stripe_portal_url!, "_blank");
-              }}
-            >
-              <ExternalLink className="w-5 h-5" />
-              Manage Subscription
-            </Button>
-          )}
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
