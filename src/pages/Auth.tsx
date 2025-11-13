@@ -7,6 +7,23 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+import { toast } from "sonner";
+
+const authSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("Please enter a valid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z
+    .string()
+    .min(12, "Password must be at least 12 characters")
+    .max(72, "Password must be less than 72 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,18 +44,44 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await signIn(loginEmail, loginPassword);
-    setIsLoading(false);
+    
+    try {
+      const validatedData = authSchema.parse({
+        email: loginEmail,
+        password: loginPassword,
+      });
+      await signIn(validatedData.email, validatedData.password);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (signupPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
+    
     setIsLoading(true);
-    await signUp(signupEmail, signupPassword);
-    setIsLoading(false);
+    try {
+      const validatedData = authSchema.parse({
+        email: signupEmail,
+        password: signupPassword,
+      });
+      await signUp(validatedData.email, validatedData.password);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
