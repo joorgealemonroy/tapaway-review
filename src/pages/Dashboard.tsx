@@ -144,7 +144,8 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  if (!restaurant && !isAdmin) {
+  // Hide purchase options for admin users
+  if (!isAdmin && !restaurant) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-background/95 backdrop-blur">
