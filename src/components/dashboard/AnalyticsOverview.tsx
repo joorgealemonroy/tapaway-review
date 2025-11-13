@@ -41,21 +41,21 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
   const fetchAnalytics = async () => {
     try {
       // Fetch all analytics events for this restaurant
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from("analytics_events")
         .select("*")
         .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })) as any;
 
       if (error) throw error;
 
       if (data) {
         // Calculate totals
-        const googleClicks = data.filter(e => e.event_type === "google_review_clicked").length;
-        const yelpClicks = data.filter(e => e.event_type === "yelp_clicked").length;
-        const instagramClicks = data.filter(e => e.event_type === "instagram_clicked").length;
-        const directionsClicks = data.filter(e => e.event_type === "directions_clicked").length;
-        const menuViews = data.filter(e => e.event_type === "menu_viewed").length;
+        const googleClicks = data.filter((e: any) => e.event_type === "google_review_clicked").length;
+        const yelpClicks = data.filter((e: any) => e.event_type === "yelp_clicked").length;
+        const instagramClicks = data.filter((e: any) => e.event_type === "instagram_clicked").length;
+        const directionsClicks = data.filter((e: any) => e.event_type === "directions_clicked").length;
+        const menuViews = data.filter((e: any) => e.event_type === "menu_viewed").length;
 
         // Get last 7 days data
         const last7Days = new Date();

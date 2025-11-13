@@ -94,12 +94,12 @@ const Dashboard = () => {
   };
 
   const fetchLocations = async (restaurantId: string) => {
-    const { data } = await supabase
+    const { data } = (await supabase
       .from("locations")
       .select("id, name, custom_slug")
       .eq("restaurant_id", restaurantId)
       .eq("is_active", true)
-      .order("name");
+      .order("name")) as any;
 
     if (data && data.length > 0) {
       setLocations(data);

@@ -30,11 +30,11 @@ export const CompetitorTab = ({ restaurantId }: CompetitorTabProps) => {
 
   const fetchCompetitors = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = (await supabase
         .from('competitors')
         .select('*')
         .eq('restaurant_id', restaurantId)
-        .order('current_review_count', { ascending: false });
+        .order('current_review_count', { ascending: false })) as any;
 
       if (error) throw error;
       setCompetitors(data || []);
