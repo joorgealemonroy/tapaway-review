@@ -79,6 +79,13 @@ export type Database = {
             foreignKeyName: "menu_sections_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_sections_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
@@ -164,7 +171,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      restaurant_public_info: {
+        Row: {
+          address: string | null
+          directions_url: string | null
+          google_review_url: string | null
+          header_subtitle: string | null
+          header_title: string | null
+          id: string | null
+          instagram_url: string | null
+          logo_url: string | null
+          menu_title: string | null
+          restaurant_name: string | null
+          yelp_review_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          directions_url?: string | null
+          google_review_url?: string | null
+          header_subtitle?: string | null
+          header_title?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          menu_title?: string | null
+          restaurant_name?: string | null
+          yelp_review_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          directions_url?: string | null
+          google_review_url?: string | null
+          header_subtitle?: string | null
+          header_title?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          menu_title?: string | null
+          restaurant_name?: string | null
+          yelp_review_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
