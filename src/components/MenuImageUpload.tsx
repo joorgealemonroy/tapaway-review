@@ -43,7 +43,15 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('❌ STORAGE RLS ERROR - Menu Image Upload Failed', {
+          errorMessage: uploadError.message,
+          table: 'storage.objects',
+          bucket: 'restaurant-logos',
+          attemptedPath: fileName,
+          restaurantId: restaurantId,
+          fullError: JSON.stringify(uploadError, null, 2)
+        });
+        // RLS currently blocking inserts on storage.objects for bucket 'restaurant-logos'
         throw uploadError;
       }
 
@@ -72,7 +80,7 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
       setParsing(true);
       parseMenuImage(publicUrl);
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
       toast.error(error.message || "Failed to upload image");
     } finally {
       setUploading(false);
