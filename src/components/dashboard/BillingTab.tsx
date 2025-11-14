@@ -13,9 +13,10 @@ interface BillingTabProps {
     type?: string | null;
   };
   isTestAccount: boolean;
+  isGrandfathered?: boolean;
 }
 
-export const BillingTab = ({ restaurant, isTestAccount }: BillingTabProps) => {
+export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: BillingTabProps) => {
   const { toast } = useToast();
 
   const openCustomerPortal = () => {
@@ -29,6 +30,41 @@ export const BillingTab = ({ restaurant, isTestAccount }: BillingTabProps) => {
       });
     }
   };
+
+  // Grandfathered users (Sonia, Victor, Amelia)
+  if (isGrandfathered) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 bg-primary/5 border-primary">
+          <div className="flex items-start gap-3">
+            <CreditCard className="w-6 h-6 text-primary flex-shrink-0" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Grandfathered Plan</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                You're on a special grandfathered plan with full access to all TapAway features.
+              </p>
+              <div className="space-y-1">
+                <p className="text-sm"><span className="font-semibold">Billing:</span> Managed manually by TapAway</p>
+                <p className="text-sm"><span className="font-semibold">Status:</span> Active</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-xl font-semibold mb-4">Need Help?</h3>
+          <p className="text-muted-foreground mb-4">
+            If you have questions about your plan or need assistance, contact our support team.
+          </p>
+          <Button variant="outline" asChild>
+            <a href="mailto:tap@tapaway.co">
+              Contact Support
+            </a>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   // AV Meal Prep legacy plan
   if (restaurant?.custom_slug === 'avmealpreps' || restaurant?.type === 'meal_prep') {
