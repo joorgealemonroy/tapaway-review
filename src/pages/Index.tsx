@@ -281,8 +281,34 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-8 text-sm text-muted-foreground border-t border-border">
-        © 2025 TapAway · Ethical tracking · No cookies
+      <footer className="py-12 px-4 bg-[#111827] text-white/60">
+        <div className="max-w-[1060px] mx-auto text-center">
+          <p className="text-sm mb-3">
+            © 2025 TapAway. Simple. Fast. More 5-star reviews.
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-white/40">
+            <a 
+              href="/terms" 
+              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
+            >
+              Terms of Service
+            </a>
+            <span>·</span>
+            <a 
+              href="/privacy" 
+              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span>·</span>
+            <a 
+              href="/refund" 
+              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
+            >
+              Refund Policy
+            </a>
+          </div>
+        </div>
       </footer>
 
       <style>{`

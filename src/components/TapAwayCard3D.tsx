@@ -1,3 +1,5 @@
+import { YelpIcon } from "@/components/icons/YelpIcon";
+
 const TapAwayCard3D = () => {
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
@@ -80,10 +82,8 @@ const TapAwayCard3D = () => {
 
                 {/* Yelp */}
                 <div className="flex items-center gap-2 bg-white/6 rounded-full px-2.5 py-1.5">
-                  <div className="w-7 h-7 rounded-full bg-[#d32323] flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.85 13.36l-1.62.47c-.31.09-.56-.26-.38-.53l.94-1.4c.07-.1.07-.24 0-.34l-.94-1.4c-.18-.27.07-.62.38-.53l1.62.47c.11.03.23 0 .32-.08l1.19-1.06c.24-.21.59-.08.62.23l.09 1.66c.01.12.07.23.17.3l1.15.79c.23.16.23.54 0 .7l-1.15.79c-.1.07-.16.18-.17.3l-.09 1.66c-.03.31-.38.44-.62.23l-1.19-1.06c-.09-.08-.21-.11-.32-.08zm-9.7 0l1.62.47c.31.09.56-.26.38-.53l-.94-1.4c-.07-.1-.07-.24 0-.34l.94-1.4c.18-.27-.07-.62-.38-.53l-1.62.47c-.11.03-.23 0-.32-.08l-1.19-1.06c-.24-.21-.59-.08-.62.23l-.09 1.66c-.01.12-.07.23-.17.3l-1.15.79c-.23.16-.23.54 0 .7l1.15.79c.1.07.16.18.17.3l.09 1.66c.03.31.38.44.62.23l1.19-1.06c.09-.08.21-.11.32-.08z"/>
-                    </svg>
+                  <div className="w-7 h-7 aspect-square rounded-full bg-[#d32323] flex items-center justify-center">
+                    <YelpIcon className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="text-[11px] font-semibold leading-tight">Yelp Reviews</div>
