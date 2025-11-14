@@ -14,7 +14,7 @@ const Demo = () => {
 
   const handleButtonClick = (action: string) => {
     console.log(`Demo action: ${action}`);
-    // In production, this would fire Fathom events
+    // Analytics events are tracked via Supabase analytics_events table
   };
 
   const menuSections = [
