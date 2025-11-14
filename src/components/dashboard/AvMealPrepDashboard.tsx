@@ -6,7 +6,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, MousePointerClick, Activity, Target, Settings, UtensilsCrossed } from "lucide-react";
 import { AvLogoUpload } from "./av/AvLogoUpload";
 import { AvHeroSettings } from "./av/AvHeroSettings";
-import { AvMenuManager } from "./av/AvMenuManager";
+import { AvMealsManager } from "./av/AvMealsManager";
+import { AvTestimonialsManager } from "./av/AvTestimonialsManager";
 
 interface AvMealPrepDashboardProps {
   restaurantId: string;
@@ -220,10 +221,17 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
           </Card>
         </TabsContent>
 
-        <TabsContent value="menu" className="mt-6">
+        <TabsContent value="meals" className="mt-6">
           <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Menu Management</h2>
-            <AvMenuManager restaurantId={restaurantId} />
+            <h2 className="text-2xl font-bold mb-6">Meal Management</h2>
+            <AvMealsManager restaurantId={restaurantId} />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="testimonials" className="mt-6">
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Testimonials</h2>
+            <AvTestimonialsManager restaurantId={restaurantId} />
           </Card>
         </TabsContent>
       </Tabs>

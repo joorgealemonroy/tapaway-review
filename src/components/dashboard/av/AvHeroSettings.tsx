@@ -20,6 +20,8 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
   const [positiveLabel, setPositiveLabel] = useState(restaurant.avm_positive_label || "Loved it! 💚");
   const [negativeLabel, setNegativeLabel] = useState(restaurant.avm_negative_label || "Could be better");
   const [menuTitle, setMenuTitle] = useState(restaurant.menu_title || "Menu");
+  const [mealOrderUrl, setMealOrderUrl] = useState(restaurant.meal_order_url || "");
+  const [instagramUrl, setInstagramUrl] = useState(restaurant.instagram_url || "");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -30,6 +32,8 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
     setPositiveLabel(restaurant.avm_positive_label || "Loved it! 💚");
     setNegativeLabel(restaurant.avm_negative_label || "Could be better");
     setMenuTitle(restaurant.menu_title || "Menu");
+    setMealOrderUrl(restaurant.meal_order_url || "");
+    setInstagramUrl(restaurant.instagram_url || "");
   }, [restaurant]);
 
   const handleSave = async () => {
@@ -45,7 +49,9 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
           avm_question_subtitle: questionSubtitle,
           avm_positive_label: positiveLabel,
           avm_negative_label: negativeLabel,
-          menu_title: menuTitle
+          menu_title: menuTitle,
+          meal_order_url: mealOrderUrl,
+          instagram_url: instagramUrl
         })
         .eq('id', restaurantId);
 
@@ -128,6 +134,29 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
             id="menu-title"
             value={menuTitle}
             onChange={(e) => setMenuTitle(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Global URLs</h3>
+        <div>
+          <Label htmlFor="meal-order-url">Order/Subscribe URL</Label>
+          <Input
+            id="meal-order-url"
+            value={mealOrderUrl}
+            onChange={(e) => setMealOrderUrl(e.target.value)}
+            placeholder="https://avmealpreps.com/order"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Used when individual meals don't have a specific order URL</p>
+        </div>
+        <div>
+          <Label htmlFor="instagram-url">Instagram URL</Label>
+          <Input
+            id="instagram-url"
+            value={instagramUrl}
+            onChange={(e) => setInstagramUrl(e.target.value)}
+            placeholder="https://instagram.com/avmealpreps"
           />
         </div>
       </div>
