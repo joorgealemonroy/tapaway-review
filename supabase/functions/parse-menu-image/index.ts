@@ -1,66 +1,127 @@
+// supabase/functions/parse-menu/index.ts
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageUrl } = await req.json();
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Supabase environment variables are not configured.");
+    }
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured.");
+    }
+
+    // ---- 1. Get image URL from body (JSON or multipart) ----
+    let imageUrl: string | null = null;
+
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      // Frontend sent a file directly
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+
+      if (!file) {
+        return new Response(JSON.stringify({ error: "No file uploaded (expected field `file`)." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Upload to Supabase Storage (change bucket name if needed)
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { "X-Client-Info": "tapaway-menu-parser" } },
+      });
+
+      const bucketName = "restaurant-logos"; // or e.g. "menu-images"
+      const fileExt = file.name.split(".").pop() || "png";
+      const fileName = `menus/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from(bucketName).upload(fileName, file, {
+        contentType: file.type || "image/*",
+      });
+
+      if (uploadError) {
+        console.error("Error uploading file to storage:", uploadError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to upload image to storage.",
+            details: uploadError.message,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+
+      imageUrl = publicUrl;
+    } else {
+      // JSON body with { imageUrl }
+      const body = (await req.json().catch(() => null)) as { imageUrl?: string } | null;
+
+      if (!body || !body.imageUrl) {
+        return new Response(
+          JSON.stringify({
+            error:
+              'Image URL is required. Send JSON `{ "imageUrl": "https://..." }` or multipart/form-data with a `file` field.',
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      imageUrl = body.imageUrl;
+    }
 
     if (!imageUrl) {
-      return new Response(
-        JSON.stringify({ error: 'Image URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Unable to determine image URL." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Validate URL format and domain
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    if (!supabaseUrl) {
-      throw new Error('SUPABASE_URL not configured');
+    // ---- 2. Basic URL safety checks ----
+    if (!imageUrl.startsWith("https://")) {
+      return new Response(JSON.stringify({ error: "Only HTTPS image URLs are allowed." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Validate protocol (https only)
-    if (!imageUrl.startsWith('https://')) {
-      return new Response(
-        JSON.stringify({ error: 'Only HTTPS URLs are allowed' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate URL points to Supabase Storage bucket
-    const validPrefix = `${supabaseUrl}/storage/v1/object/public/restaurant-logos/`;
-    if (!imageUrl.startsWith(validPrefix)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid image URL. Must be from restaurant-logos bucket.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Use Lovable AI to parse the menu image
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    // ---- 3. Call Lovable AI gateway to parse menu ----
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: "google/gemini-2.5-flash",
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: `You are a menu parser. Extract menu information from the image and return it as JSON.
 The JSON should have this structure:
 {
@@ -78,101 +139,119 @@ The JSON should have this structure:
   ]
 }
 
-Be precise and extract all visible menu items. If prices are not visible, use empty string. If descriptions are not visible, use empty string.`
+Be precise and extract all visible menu items. If prices are not visible, use empty string. If descriptions are not visible, use empty string.`,
           },
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'text',
-                text: 'Please extract the menu from this image.'
+                type: "text",
+                text: "Please extract the menu from this image.",
               },
               {
-                type: 'image_url',
-                image_url: { url: imageUrl }
-              }
-            ]
-          }
+                type: "image_url",
+                image_url: { url: imageUrl },
+              },
+            ],
+          },
         ],
         tools: [
           {
-            type: 'function',
+            type: "function",
             function: {
-              name: 'extract_menu',
-              description: 'Extract structured menu data from the image',
+              name: "extract_menu",
+              description: "Extract structured menu data from the image",
               parameters: {
-                type: 'object',
+                type: "object",
                 properties: {
                   sections: {
-                    type: 'array',
+                    type: "array",
                     items: {
-                      type: 'object',
+                      type: "object",
                       properties: {
-                        name: { type: 'string' },
+                        name: { type: "string" },
                         items: {
-                          type: 'array',
+                          type: "array",
                           items: {
-                            type: 'object',
+                            type: "object",
                             properties: {
-                              name: { type: 'string' },
-                              description: { type: 'string' },
-                              price: { type: 'string' }
+                              name: { type: "string" },
+                              description: { type: "string" },
+                              price: { type: "string" },
                             },
-                            required: ['name', 'description', 'price']
-                          }
-                        }
+                            required: ["name", "description", "price"],
+                          },
+                        },
                       },
-                      required: ['name', 'items']
-                    }
-                  }
+                      required: ["name", "items"],
+                    },
+                  },
                 },
-                required: ['sections']
-              }
-            }
-          }
+                required: ["sections"],
+              },
+            },
+          },
         ],
-        tool_choice: { type: 'function', function: { name: 'extract_menu' } }
-      })
+        tool_choice: { type: "function", function: { name: "extract_menu" } },
+      }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    if (!aiResponse.ok) {
+      if (aiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: "Rate limit exceeded. Please try again later.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
-      if (response.status === 402) {
+      if (aiResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add credits to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: "AI credits exhausted. Please add credits to continue.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
-      
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error('Failed to process image with AI');
+
+      const errorText = await aiResponse.text();
+      console.error("AI gateway error:", aiResponse.status, errorText);
+      throw new Error("Failed to process image with AI.");
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    
+    const aiData = await aiResponse.json();
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+
     if (!toolCall) {
-      throw new Error('No menu data extracted from image');
+      throw new Error("No menu data extracted from image.");
     }
 
     const menuData = JSON.parse(toolCall.function.arguments);
 
+    // ---- 4. Return structured menu ----
     return new Response(
-      JSON.stringify({ success: true, menu: menuData }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        imageUrl,
+        menu: menuData,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
-    console.error('Error parsing menu:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to parse menu image';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error parsing menu:", error);
+    const message = error instanceof Error ? error.message : "Failed to parse menu image.";
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
