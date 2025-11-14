@@ -13,15 +13,15 @@ import { z } from "zod";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 
 const onboardingSchema = z.object({
-  restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
-  customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Only lowercase letters, numbers, and hyphens allowed"),
+  restaurantName: z.string().trim().min(1).max(100),
+  customSlug: z.string().trim().min(1).max(50).regex(/^[a-z0-9-]+$/),
   instagram: z.string().trim().max(50).optional(),
   googlePlaceId: z.string().trim().optional(),
-  yelpUrl: z.string().trim().url("Invalid Yelp URL").optional().or(z.literal("")),
-  directionsUrl: z.string().trim().url("Invalid directions URL").optional().or(z.literal("")),
+  yelpUrl: z.string().optional(),
+  directionsUrl: z.string().optional(),
   address: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
-  email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+  email: z.string().optional(),
   headerTitle: z.string().trim().max(100).optional(),
   headerSubtitle: z.string().trim().max(200).optional(),
   menuTitle: z.string().trim().max(50).optional(),
@@ -95,11 +95,11 @@ const Onboarding = () => {
     try {
       // Check slug uniqueness
       if (formData.customSlug) {
-        const { data: existing } = await supabase
+        const { data: existing } = await (supabase as any)
           .from('restaurants')
           .select('id')
           .eq('custom_slug', formData.customSlug)
-          .single();
+          .maybeSingle();
         
         if (existing) {
           toast.error('This URL is already taken. Please choose a different one.');
@@ -108,10 +108,19 @@ const Onboarding = () => {
         }
       }
 
-      const validatedData = onboardingSchema.parse(formData);
+      // Validate form data
+      try {
+        onboardingSchema.parse(formData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast.error(validationError.errors[0].message);
+          setIsLoading(false);
+          return;
+        }
+      }
 
       // Auto-generate Apple Maps URL from address
-      let directionsUrl = formData.directionsUrl;
+      let directionsUrl = formData.directionsUrl || '';
       if (!directionsUrl && formData.address) {
         const encodedAddress = encodeURIComponent(formData.address);
         const encodedName = encodeURIComponent(formData.restaurantName);
@@ -137,21 +146,21 @@ const Onboarding = () => {
       // Create restaurant record
       const { error: insertError } = await supabase.from("restaurants").insert({
         owner_id: user.id,
-        restaurant_name: validatedData.restaurantName,
-        custom_slug: validatedData.customSlug,
+        restaurant_name: formData.restaurantName,
+        custom_slug: formData.customSlug,
         slug_locked_at: new Date().toISOString(),
-        instagram_url: validatedData.instagram ? `https://instagram.com/${validatedData.instagram.replace('@', '')}` : null,
-        google_review_url: validatedData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${validatedData.googlePlaceId}` : null,
-        google_place_id: validatedData.googlePlaceId || null,
-        yelp_review_url: validatedData.yelpUrl || null,
+        instagram_url: formData.instagram ? `https://instagram.com/${formData.instagram.replace('@', '')}` : null,
+        google_review_url: formData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${formData.googlePlaceId}` : null,
+        google_place_id: formData.googlePlaceId || null,
+        yelp_review_url: formData.yelpUrl || null,
         directions_url: directionsUrl || null,
-        address: validatedData.address || null,
-        phone: validatedData.phone || null,
-        email: validatedData.email || null,
+        address: formData.address || null,
+        phone: formData.phone || null,
+        email: formData.email || null,
         logo_url: logoUrl,
-        header_title: validatedData.headerTitle || "How was your visit?",
-        header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
-        menu_title: validatedData.menuTitle || "Our Menu",
+        header_title: formData.headerTitle || "How was your visit?",
+        header_subtitle: formData.headerSubtitle || "We'd love to hear about your experience!",
+        menu_title: formData.menuTitle || "Our Menu",
       });
 
       if (insertError) throw insertError;

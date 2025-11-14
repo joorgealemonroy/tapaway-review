@@ -53,10 +53,12 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
       setImageUrl(publicUrl);
 
       // Save URL to restaurant
-      await supabase
+      const { error: updateError } = await supabase
         .from('restaurants')
-        .update({ menu_image_url: publicUrl })
+        .update({ logo_url: publicUrl })
         .eq('id', restaurantId);
+
+      if (updateError) throw updateError;
 
       toast.success("Image uploaded successfully!");
       

@@ -61,7 +61,6 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         .from("restaurants")
         .update({
           restaurant_name: restaurant.restaurant_name,
-          custom_slug: restaurant.custom_slug,
           google_review_url: restaurant.google_review_url,
           yelp_review_url: restaurant.yelp_review_url,
           instagram_url: restaurant.instagram_url,
@@ -87,14 +86,14 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Restaurant Settings</h3>
-        <Button onClick={saveSettings} size="sm">Save Changes</Button>
+    <div className="space-y-4 sm:space-y-6 pb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h3 className="text-lg sm:text-xl font-semibold">Restaurant Settings</h3>
+        <Button onClick={saveSettings} size="sm" className="w-full sm:w-auto">Save Changes</Button>
       </div>
 
-      <Card className="p-6 space-y-4">
-        <h4 className="font-semibold">Basic Information</h4>
+      <Card className="p-4 sm:p-6 space-y-4">
+        <h4 className="font-semibold text-sm sm:text-base">Basic Information</h4>
         <div>
           <Label htmlFor="name">Restaurant Name</Label>
           <Input
@@ -105,22 +104,24 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           />
         </div>
         <div>
-          <Label htmlFor="slug">Custom Slug</Label>
+          <Label htmlFor="slug">Custom Slug (Locked)</Label>
           <Input
             id="slug"
             value={restaurant.custom_slug || ""}
-            onChange={(e) => setRestaurant({ ...restaurant, custom_slug: e.target.value })}
-            className="mt-2"
+            disabled
+            className="mt-2 bg-muted cursor-not-allowed"
             placeholder="your-restaurant-name"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Your review hub will be at: tapaway.co/{restaurant.custom_slug || "your-slug"}
+            Your review hub URL: tapaway.co/{restaurant.custom_slug || "your-slug"}
+            <br />
+            <span className="text-amber-600">⚠️ Slug cannot be changed after creation. Contact admin if needed.</span>
           </p>
         </div>
       </Card>
 
-      <Card className="p-6 space-y-4">
-        <h4 className="font-semibold">Links & Social Media</h4>
+      <Card className="p-4 sm:p-6 space-y-4">
+        <h4 className="font-semibold text-sm sm:text-base">Links & Social Media</h4>
         <div>
           <Label htmlFor="google">Google Review URL</Label>
           <Input
