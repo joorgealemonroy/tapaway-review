@@ -38,11 +38,14 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
       const fileExt = file.name.split('.').pop();
       const fileName = `${restaurantId}/menu-${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('restaurant-logos')
         .upload(fileName, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -52,22 +55,25 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
       const publicUrl = urlData.publicUrl;
       setImageUrl(publicUrl);
 
-      // Save URL to restaurant
+      // Update restaurant with menu image URL
       const { error: updateError } = await supabase
         .from('restaurants')
-        .update({ logo_url: publicUrl })
+        .update({ menu_image_url: publicUrl })
         .eq('id', restaurantId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
 
       toast.success("Image uploaded successfully!");
       
       // Start parsing
       setParsing(true);
       parseMenuImage(publicUrl);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error("Failed to upload image");
+      toast.error(error.message || "Failed to upload image");
     } finally {
       setUploading(false);
     }

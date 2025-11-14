@@ -182,9 +182,9 @@ const ReviewHub = () => {
               </Button>
             )}
 
-            {restaurant.yelp_review_url && (
+            {restaurant.yelp_review_url && restaurant.yelp_review_url.trim() && (
               <Button
-                className="w-full h-12 rounded-xl bg-[#d32323] text-white hover:bg-[#b91c1c] font-medium"
+                className="w-full h-12 rounded-xl bg-[#d32323] text-white hover:bg-[#b91c1c] font-medium flex items-center justify-center gap-2"
                 onClick={() => {
                   trackEvent("yelp_clicked");
                   if (isSafeUrl(restaurant.yelp_review_url)) {
@@ -192,7 +192,9 @@ const ReviewHub = () => {
                   }
                 }}
               >
-                <YelpIcon className="w-5 h-5 shrink-0" />
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <YelpIcon className="w-5 h-5" />
+                </div>
                 Find Us on Yelp
               </Button>
             )}
