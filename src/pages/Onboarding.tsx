@@ -175,7 +175,6 @@ const Onboarding = () => {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        console.error("Onboarding error:", error);
         toast.error("Failed to complete setup. Please try again.");
       }
     } finally {
