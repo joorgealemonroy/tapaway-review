@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Users, TrendingUp, Eye, RefreshCw } from "lucide-react";
+import { LogOut, Users, TrendingUp, Eye, RefreshCw, ListChecks } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPreflight } from "@/components/dashboard/AdminPreflight";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -189,9 +190,13 @@ const Admin = () => {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="metrics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="metrics">Global Metrics</TabsTrigger>
             <TabsTrigger value="clients">All Clients</TabsTrigger>
+            <TabsTrigger value="preflight">
+              <ListChecks className="w-4 h-4 mr-2" />
+              Hub Preflight
+            </TabsTrigger>
           </TabsList>
 
           {/* Global Metrics Tab */}
