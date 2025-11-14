@@ -3,12 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, MousePointerClick, Activity, Target, Settings, Quote, UtensilsCrossed, Users } from "lucide-react";
+import { TrendingUp, MousePointerClick, Activity, Target, Settings, UtensilsCrossed } from "lucide-react";
 import { AvLogoUpload } from "./av/AvLogoUpload";
 import { AvHeroSettings } from "./av/AvHeroSettings";
-import { AvTestimonialsManager } from "./av/AvTestimonialsManager";
 import { AvMenuManager } from "./av/AvMenuManager";
-import { AvTrainerBundlesManager } from "./av/AvTrainerBundlesManager";
 
 interface AvMealPrepDashboardProps {
   restaurantId: string;
@@ -48,7 +46,7 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
       if (events) {
         const tapEvents = events.filter((e: any) => e.event_type === "tap");
         const clickEvents = events.filter((e: any) => 
-          ["google_click", "yelp_click", "instagram_click", "directions_click", "menu_view"].includes(e.event_type)
+          ["avm_loved_click", "avm_could_be_better_click", "avm_order_click", "avm_instagram_click"].includes(e.event_type)
         );
 
         // Calculate most clicked button
@@ -95,11 +93,10 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
 
   const formatButtonName = (eventType: string) => {
     const map: Record<string, string> = {
-      google_click: "Google Reviews",
-      yelp_click: "Yelp",
-      instagram_click: "Instagram",
-      directions_click: "Directions",
-      menu_view: "Menu",
+      avm_loved_click: "Loved it",
+      avm_could_be_better_click: "Could be better",
+      avm_order_click: "Order",
+      avm_instagram_click: "Instagram",
     };
     return map[eventType] || eventType;
   };
@@ -123,12 +120,10 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
       </Card>
 
       <Tabs defaultValue="analytics" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="analytics"><Activity className="w-4 h-4 mr-2" />Analytics</TabsTrigger>
           <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Settings</TabsTrigger>
-          <TabsTrigger value="testimonials"><Quote className="w-4 h-4 mr-2" />Testimonials</TabsTrigger>
           <TabsTrigger value="menu"><UtensilsCrossed className="w-4 h-4 mr-2" />Menu</TabsTrigger>
-          <TabsTrigger value="trainers"><Users className="w-4 h-4 mr-2" />Trainers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6 mt-6">
@@ -152,10 +147,10 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
             <div className="p-3 bg-primary/10 rounded-lg">
               <MousePointerClick className="w-6 h-6 text-primary" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Link Clicks</p>
-              <p className="text-2xl font-bold">{analytics.totalClicks}</p>
-            </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Button Clicks</p>
+                  <p className="text-2xl font-bold">{analytics.totalClicks}</p>
+                </div>
           </div>
         </Card>
 
@@ -199,13 +194,12 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
       </Card>
 
         {/* Info Card */}
-        <Card className="p-6 bg-primary/5">
-          <h3 className="text-lg font-semibold mb-2">About Your Dashboard</h3>
-          <p className="text-muted-foreground">
-            This dashboard tracks engagement from your TapAway campaign links. All analytics are also available
-            via your Telegram bot for real-time updates.
-          </p>
-        </Card>
+          <Card className="p-6 bg-primary/5">
+            <h3 className="text-lg font-semibold mb-2">About Your Dashboard</h3>
+            <p className="text-muted-foreground">
+              This dashboard tracks engagement from your meal prep hub. Monitor feedback, orders, and social media clicks.
+            </p>
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
@@ -226,24 +220,10 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
           </Card>
         </TabsContent>
 
-        <TabsContent value="testimonials" className="mt-6">
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Customer Testimonials</h2>
-            <AvTestimonialsManager restaurantId={restaurantId} />
-          </Card>
-        </TabsContent>
-
         <TabsContent value="menu" className="mt-6">
           <Card className="p-6">
             <h2 className="text-2xl font-bold mb-6">Menu Management</h2>
             <AvMenuManager restaurantId={restaurantId} />
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="trainers" className="mt-6">
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Trainer Bundles</h2>
-            <AvTrainerBundlesManager restaurantId={restaurantId} />
           </Card>
         </TabsContent>
       </Tabs>

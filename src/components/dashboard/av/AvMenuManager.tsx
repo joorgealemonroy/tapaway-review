@@ -6,24 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface MenuItem {
   id: string;
-  section_id: string;
+  restaurant_id: string;
   name: string;
-  calories: string;
-  details: string;
+  description: string;
+  calories_label: string;
   image_url: string;
+  order_url: string;
   sort_order: number;
   is_active: boolean;
-}
-
-interface MenuSection {
-  id: string;
-  name: string;
-  sort_order: number;
 }
 
 interface AvMenuManagerProps {
@@ -31,63 +26,27 @@ interface AvMenuManagerProps {
 }
 
 export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
-  const [sections, setSections] = useState<MenuSection[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [selectedSection, setSelectedSection] = useState<string>("");
   const [newItemName, setNewItemName] = useState("");
+  const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemCalories, setNewItemCalories] = useState("");
-  const [newItemDetails, setNewItemDetails] = useState("");
+  const [newItemOrderUrl, setNewItemOrderUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchSections();
+    fetchItems();
   }, [restaurantId]);
 
-  useEffect(() => {
-    if (selectedSection) {
-      fetchItems(selectedSection);
-    }
-  }, [selectedSection]);
-
-  const fetchSections = async () => {
+  const fetchItems = async () => {
     const { data } = await supabase
-      .from("avm_menu_sections")
+      .from("avm_menu_items")
       .select("*")
       .eq("restaurant_id", restaurantId)
       .order("sort_order");
     
-    if (data && data.length > 0) {
-      setSections(data);
-      setSelectedSection(data[0].id);
-    } else {
-      // Create default section
-      const { data: newSection, error } = await supabase
-        .from("avm_menu_sections")
-        .insert({
-          restaurant_id: restaurantId,
-          name: "Weekly Meals",
-          sort_order: 0
-        })
-        .select()
-        .single();
-      
-      if (newSection) {
-        setSections([newSection]);
-        setSelectedSection(newSection.id);
-      }
-    }
-  };
-
-  const fetchItems = async (sectionId: string) => {
-    const { data } = await supabase
-      .from("avm_menu_items")
-      .select("*")
-      .eq("section_id", sectionId)
-      .order("sort_order");
-    
-    if (data) setItems(data);
+    if (data) setItems(data as MenuItem[]);
   };
 
   const handleImageUpload = async (file: File): Promise<string> => {
@@ -124,11 +83,12 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
       const { error } = await supabase
         .from("avm_menu_items")
         .insert({
-          section_id: selectedSection,
+          restaurant_id: restaurantId,
           name: newItemName,
-          calories: newItemCalories,
-          details: newItemDetails,
+          description: newItemDescription,
+          calories_label: newItemCalories,
           image_url: imageUrl,
+          order_url: newItemOrderUrl,
           sort_order: maxOrder + 1,
           is_active: true
         });
@@ -137,10 +97,11 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
 
       toast.success("Menu item added");
       setNewItemName("");
+      setNewItemDescription("");
       setNewItemCalories("");
-      setNewItemDetails("");
+      setNewItemOrderUrl("");
       setImageFile(null);
-      fetchItems(selectedSection);
+      fetchItems();
     } catch (error: any) {
       toast.error(`Failed: ${error.message}`);
     } finally {
@@ -159,7 +120,7 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
       toast.error(`Failed: ${error.message}`);
     } else {
       toast.success(currentActive ? "Item hidden" : "Item shown");
-      fetchItems(selectedSection);
+      fetchItems();
     }
   };
 
@@ -175,7 +136,7 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
       toast.error(`Failed: ${error.message}`);
     } else {
       toast.success("Menu item deleted");
-      fetchItems(selectedSection);
+      fetchItems();
     }
   };
 
@@ -193,6 +154,16 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
           />
         </div>
         <div>
+          <Label htmlFor="item-description">Description</Label>
+          <Textarea
+            id="item-description"
+            value={newItemDescription}
+            onChange={(e) => setNewItemDescription(e.target.value)}
+            placeholder="Savory grilled chicken coated in Sweet BBQ sauce..."
+            rows={3}
+          />
+        </div>
+        <div>
           <Label htmlFor="item-calories">Calories</Label>
           <Input
             id="item-calories"
@@ -202,13 +173,12 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
           />
         </div>
         <div>
-          <Label htmlFor="item-details">Details</Label>
-          <Textarea
-            id="item-details"
-            value={newItemDetails}
-            onChange={(e) => setNewItemDetails(e.target.value)}
-            placeholder="Savory grilled chicken coated in Sweet BBQ sauce..."
-            rows={3}
+          <Label htmlFor="item-order-url">Order URL (optional)</Label>
+          <Input
+            id="item-order-url"
+            value={newItemOrderUrl}
+            onChange={(e) => setNewItemOrderUrl(e.target.value)}
+            placeholder="Leave empty to use default order URL"
           />
         </div>
         <div>
@@ -237,8 +207,11 @@ export const AvMenuManager = ({ restaurantId }: AvMenuManagerProps) => {
                 <img src={item.image_url} alt={item.name} className="w-24 h-24 object-cover rounded" />
                 <div className="flex-1">
                   <h4 className="font-semibold">{item.name}</h4>
-                  <p className="text-sm text-primary">{item.calories}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{item.details}</p>
+                  <p className="text-sm text-primary">{item.calories_label}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                  {item.order_url && (
+                    <p className="text-xs text-muted-foreground mt-1">Custom order URL set</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
