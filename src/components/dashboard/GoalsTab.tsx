@@ -5,17 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface GoalsTabProps {
   restaurantId: string;
@@ -36,12 +30,7 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newGoal, setNewGoal] = useState({
-    title: '',
-    description: '',
-    goal_type: 'reviews',
-    target_value: ''
-  });
+  const [newGoal, setNewGoal] = useState({ title: '', description: '', target_value: '' });
 
   useEffect(() => {
     fetchGoals();
@@ -75,7 +64,7 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
         restaurant_id: restaurantId,
         title: newGoal.title,
         description: newGoal.description || null,
-        goal_type: newGoal.goal_type,
+        goal_type: 'custom',
         target_value: newGoal.target_value ? parseFloat(newGoal.target_value) : null,
         current_value: 0,
         status: 'on_track'
@@ -85,7 +74,7 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
 
       toast.success('Goal created successfully');
       setDialogOpen(false);
-      setNewGoal({ title: '', description: '', goal_type: 'reviews', target_value: '' });
+      setNewGoal({ title: '', description: '', target_value: '' });
       fetchGoals();
     } catch (error) {
       console.error('Error creating goal:', error);
@@ -110,33 +99,34 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'achieved': return 'bg-green-100 text-green-800';
-      case 'on_track': return 'bg-blue-100 text-blue-800';
-      case 'at_risk': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const calculateProgress = (goal: Goal) => {
     if (!goal.target_value) return 0;
     return Math.min((goal.current_value / goal.target_value) * 100, 100);
   };
 
   if (loading) {
-    return <div className="text-muted-foreground">Loading goals...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Goals & Progress</h2>
+    <div className="space-y-6 pb-8 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
+            <Target className="w-7 h-7 text-primary" />
+            Goals
+          </h2>
+          <p className="text-muted-foreground">Track your restaurant's objectives</p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="gradient-primary text-white">
               <Plus className="w-4 h-4 mr-2" />
-              Add Goal
+              New Goal
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -145,46 +135,31 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title">Goal Title</Label>
+                <Label htmlFor="goal-title">Goal Title</Label>
                 <Input
-                  id="title"
+                  id="goal-title"
                   value={newGoal.title}
                   onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-                  placeholder="e.g., Reach 500 Google reviews"
+                  placeholder="e.g., Reach 100 5-star reviews"
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description (optional)</Label>
+                <Label htmlFor="goal-desc">Description (Optional)</Label>
                 <Textarea
-                  id="description"
+                  id="goal-desc"
                   value={newGoal.description}
                   onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                  placeholder="Describe your goal..."
+                  placeholder="Add more details about this goal..."
                 />
               </div>
               <div>
-                <Label htmlFor="goal_type">Goal Type</Label>
-                <Select value={newGoal.goal_type} onValueChange={(value) => setNewGoal({ ...newGoal, goal_type: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="reviews">Review Count</SelectItem>
-                    <SelectItem value="rating">Rating Target</SelectItem>
-                    <SelectItem value="traffic">Traffic/Clicks</SelectItem>
-                    <SelectItem value="service">Service Quality</SelectItem>
-                    <SelectItem value="engagement">Social Engagement</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="target_value">Target Value (optional)</Label>
+                <Label htmlFor="goal-target">Target Number (Optional)</Label>
                 <Input
-                  id="target_value"
+                  id="goal-target"
                   type="number"
                   value={newGoal.target_value}
                   onChange={(e) => setNewGoal({ ...newGoal, target_value: e.target.value })}
-                  placeholder="e.g., 500"
+                  placeholder="100"
                 />
               </div>
               <Button onClick={handleCreateGoal} className="w-full">Create Goal</Button>
@@ -194,43 +169,49 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
       </div>
 
       {goals.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
+        <Card className="p-8 text-center gradient-subtle border-none shadow-lg">
+          <Target className="w-16 h-16 mx-auto mb-4 text-primary" />
+          <h3 className="text-xl font-bold mb-2">No Goals Yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-4">
+            Set goals to track your restaurant's growth and stay motivated!
+          </p>
+          <Button onClick={() => setDialogOpen(true)} className="gradient-primary text-white">
+            <Plus className="w-4 h-4 mr-2" />
+            Create Your First Goal
+          </Button>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4">
           {goals.map((goal) => (
-            <Card key={goal.id} className="p-6">
-              <div className="flex justify-between items-start mb-4">
+            <Card key={goal.id} className="p-6 card-elevated transition-smooth hover:scale-[1.01]">
+              <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg">{goal.title}</h3>
+                  <h4 className="text-lg font-bold mb-1">{goal.title}</h4>
                   {goal.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{goal.description}</p>
                   )}
+                  <Badge variant="outline">
+                    {goal.status === 'achieved' ? '✅ Achieved' : goal.status === 'on_track' ? '📈 On Track' : '⚠️ At Risk'}
+                  </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-3 py-1 rounded-full ${getStatusColor(goal.status)}`}>
-                    {goal.status.replace('_', ' ')}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteGoal(goal.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteGoal(goal.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
               {goal.target_value && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span className="font-medium">
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-semibold">
                       {goal.current_value} / {goal.target_value}
                     </span>
                   </div>
-                  <Progress value={calculateProgress(goal)} />
+                  <Progress value={calculateProgress(goal)} className="h-3" />
                 </div>
               )}
             </Card>
