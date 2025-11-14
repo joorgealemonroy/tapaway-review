@@ -226,8 +226,8 @@ export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
         {goalConfigs.map((config) => {
           const Icon = config.icon;
           const goal = goals.find(g => g.goal_type === config.type);
-          const currentValue = goal?.current_value || 0;
-          const targetValue = goal?.target_value || targetValues[config.type];
+          const currentValue = goal?.current_value ?? 0;
+          const targetValue = goal?.target_value ?? targetValues[config.type] ?? 0;
           const progress = calculateProgress(currentValue, targetValue);
 
           return (
