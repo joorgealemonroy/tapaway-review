@@ -14,6 +14,379 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          location_id: string | null
+          restaurant_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          location_id?: string | null
+          restaurant_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          location_id?: string | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      av_meal_prep_meals: {
+        Row: {
+          calories: number
+          carbs_g: number | null
+          created_at: string
+          description: string | null
+          fat_g: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          name: string
+          order_url: string | null
+          protein_g: number | null
+          restaurant_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          calories: number
+          carbs_g?: number | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          name: string
+          order_url?: string | null
+          protein_g?: number | null
+          restaurant_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          calories?: number
+          carbs_g?: number | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          name?: string
+          order_url?: string | null
+          protein_g?: number | null
+          restaurant_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "av_meal_prep_meals_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "av_meal_prep_meals_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      av_meal_prep_testimonials: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          quote: string
+          restaurant_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          quote: string
+          restaurant_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          quote?: string
+          restaurant_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "av_meal_prep_testimonials_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "av_meal_prep_testimonials_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      av_trainer_bundles: {
+        Row: {
+          created_at: string
+          cta_label: string
+          cta_url: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          price_label: string | null
+          restaurant_id: string
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string
+          cta_url: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_label?: string | null
+          restaurant_id: string
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string
+          cta_url?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_label?: string | null
+          restaurant_id?: string
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "av_trainer_bundles_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "av_trainer_bundles_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          competitor_link: string | null
+          competitor_name: string
+          created_at: string
+          current_review_count: number | null
+          id: string
+          last_checked_at: string | null
+          rating: number | null
+          restaurant_id: string
+        }
+        Insert: {
+          competitor_link?: string | null
+          competitor_name: string
+          created_at?: string
+          current_review_count?: number | null
+          id?: string
+          last_checked_at?: string | null
+          rating?: number | null
+          restaurant_id: string
+        }
+        Update: {
+          competitor_link?: string | null
+          competitor_name?: string
+          created_at?: string
+          current_review_count?: number | null
+          id?: string
+          last_checked_at?: string | null
+          rating?: number | null
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitors_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitors_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          current_value: number | null
+          description: string | null
+          goal_type: string
+          id: string
+          restaurant_id: string
+          status: string
+          target_value: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          goal_type: string
+          id?: string
+          restaurant_id: string
+          status?: string
+          target_value?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          goal_type?: string
+          id?: string
+          restaurant_id?: string
+          status?: string
+          target_value?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string
+          custom_slug: string | null
+          directions_url: string | null
+          google_review_url: string | null
+          id: string
+          instagram_url: string | null
+          is_active: boolean
+          name: string
+          phone: string | null
+          restaurant_id: string
+          updated_at: string
+          yelp_review_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          custom_slug?: string | null
+          directions_url?: string | null
+          google_review_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          restaurant_id: string
+          updated_at?: string
+          yelp_review_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          custom_slug?: string | null
+          directions_url?: string | null
+          google_review_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          restaurant_id?: string
+          updated_at?: string
+          yelp_review_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           created_at: string
@@ -56,6 +429,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          location_id: string | null
           name: string
           restaurant_id: string
           sort_order: number | null
@@ -63,6 +437,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          location_id?: string | null
           name: string
           restaurant_id: string
           sort_order?: number | null
@@ -70,11 +445,19 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          location_id?: string | null
           name?: string
           restaurant_id?: string
           sort_order?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "menu_sections_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_sections_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -94,80 +477,173 @@ export type Database = {
       restaurants: {
         Row: {
           address: string | null
+          avm_default_order_url: string | null
+          avm_negative_label: string | null
+          avm_positive_label: string | null
+          avm_question_subtitle: string | null
+          avm_question_title: string | null
           created_at: string
+          custom_slug: string | null
           directions_url: string | null
           email: string | null
-          fathom_site_id: string | null
+          google_place_id: string | null
           google_review_url: string | null
           header_subtitle: string | null
           header_title: string | null
           id: string
           instagram_url: string | null
+          is_demo_account: boolean | null
           logo_url: string | null
+          meal_order_url: string | null
+          menu_image_url: string | null
           menu_title: string | null
           next_billing_date: string | null
           owner_id: string
+          owner_name: string | null
           phone: string | null
           plan_type: string | null
           restaurant_name: string
+          settings: Json | null
+          slug_locked_at: string | null
           stripe_customer_id: string | null
           stripe_portal_url: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
+          type: string | null
           updated_at: string
           yelp_review_url: string | null
         }
         Insert: {
           address?: string | null
+          avm_default_order_url?: string | null
+          avm_negative_label?: string | null
+          avm_positive_label?: string | null
+          avm_question_subtitle?: string | null
+          avm_question_title?: string | null
           created_at?: string
+          custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
-          fathom_site_id?: string | null
+          google_place_id?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
           id?: string
           instagram_url?: string | null
+          is_demo_account?: boolean | null
           logo_url?: string | null
+          meal_order_url?: string | null
+          menu_image_url?: string | null
           menu_title?: string | null
           next_billing_date?: string | null
           owner_id: string
+          owner_name?: string | null
           phone?: string | null
           plan_type?: string | null
           restaurant_name: string
+          settings?: Json | null
+          slug_locked_at?: string | null
           stripe_customer_id?: string | null
           stripe_portal_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          type?: string | null
           updated_at?: string
           yelp_review_url?: string | null
         }
         Update: {
           address?: string | null
+          avm_default_order_url?: string | null
+          avm_negative_label?: string | null
+          avm_positive_label?: string | null
+          avm_question_subtitle?: string | null
+          avm_question_title?: string | null
           created_at?: string
+          custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
-          fathom_site_id?: string | null
+          google_place_id?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
           id?: string
           instagram_url?: string | null
+          is_demo_account?: boolean | null
           logo_url?: string | null
+          meal_order_url?: string | null
+          menu_image_url?: string | null
           menu_title?: string | null
           next_billing_date?: string | null
           owner_id?: string
+          owner_name?: string | null
           phone?: string | null
           plan_type?: string | null
           restaurant_name?: string
+          settings?: Json | null
+          slug_locked_at?: string | null
           stripe_customer_id?: string | null
           stripe_portal_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          type?: string | null
           updated_at?: string
           yelp_review_url?: string | null
         }
         Relationships: []
+      }
+      review_sentiments: {
+        Row: {
+          ai_reply: string | null
+          created_at: string
+          id: string
+          platform: string
+          rating: number | null
+          restaurant_id: string
+          review_text: string
+          reviewer_name: string | null
+          sentiment: string
+          sentiment_score: number | null
+        }
+        Insert: {
+          ai_reply?: string | null
+          created_at?: string
+          id?: string
+          platform: string
+          rating?: number | null
+          restaurant_id: string
+          review_text: string
+          reviewer_name?: string | null
+          sentiment: string
+          sentiment_score?: number | null
+        }
+        Update: {
+          ai_reply?: string | null
+          created_at?: string
+          id?: string
+          platform?: string
+          rating?: number | null
+          restaurant_id?: string
+          review_text?: string
+          reviewer_name?: string | null
+          sentiment?: string
+          sentiment_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_sentiments_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_sentiments_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -194,7 +670,7 @@ export type Database = {
     Views: {
       restaurant_public_info: {
         Row: {
-          address: string | null
+          custom_slug: string | null
           directions_url: string | null
           google_review_url: string | null
           header_subtitle: string | null
@@ -207,7 +683,7 @@ export type Database = {
           yelp_review_url: string | null
         }
         Insert: {
-          address?: string | null
+          custom_slug?: string | null
           directions_url?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
@@ -220,7 +696,7 @@ export type Database = {
           yelp_review_url?: string | null
         }
         Update: {
-          address?: string | null
+          custom_slug?: string | null
           directions_url?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
@@ -244,6 +720,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_test_account: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
