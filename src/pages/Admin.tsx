@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Users, TrendingUp, Eye, RefreshCw, ListChecks } from "lucide-react";
+import { LogOut, Users, TrendingUp, Eye, RefreshCw, ListChecks, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPreflight } from "@/components/dashboard/AdminPreflight";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,9 +34,9 @@ interface GlobalMetrics {
 }
 
 const Admin = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading } = useAdminAccess();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [globalMetrics, setGlobalMetrics] = useState<GlobalMetrics>({
     totalTaps: 0,
@@ -55,10 +56,11 @@ const Admin = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user) {
-      checkAdminAndFetch();
+    if (isAdmin && user) {
+      fetchRestaurants();
+      fetchGlobalMetrics();
     }
-  }, [user]);
+  }, [isAdmin, user]);
 
   useEffect(() => {
     // Filter restaurants based on search
@@ -73,19 +75,6 @@ const Admin = () => {
     }
   }, [searchQuery, restaurants]);
 
-  const checkAdminAndFetch = async () => {
-    const { data: isAdminData } = await supabase.rpc('is_admin');
-    
-    if (!isAdminData) {
-      toast.error("Access denied. Admin privileges required.");
-      navigate("/dashboard");
-      return;
-    }
-
-    setIsAdmin(true);
-    await fetchRestaurants();
-    await fetchGlobalMetrics();
-  };
 
   const fetchRestaurants = async () => {
     const { data, error } = await (supabase as any)
@@ -152,16 +141,37 @@ const Admin = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Checking admin access...</p>
+        </div>
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-destructive">Access Denied</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <ShieldAlert className="h-12 w-12 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl">Admin Access Required</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-muted-foreground">
+              You're logged in, but this page is only available to administrators.
+            </p>
+            <Button 
+              onClick={() => navigate("/dashboard")} 
+              className="w-full"
+            >
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
