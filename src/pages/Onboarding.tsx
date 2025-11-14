@@ -171,11 +171,13 @@ const Onboarding = () => {
 
       toast.success("Restaurant setup complete!");
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error("Failed to complete setup. Please try again.");
+        // Show actual Supabase error message to help debug
+        const errorMessage = error?.message || "Failed to complete setup. Please try again.";
+        toast.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
