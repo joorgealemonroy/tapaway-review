@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
 const Index = () => {
   const { user } = useAuth();
@@ -49,39 +50,8 @@ const Index = () => {
         </div>
 
         {/* 3D Card Animation */}
-        <div className="grid place-items-center perspective-[1100px] my-12 relative">
-          <div className="rotate-[12deg]">
-            <div className="preserve-3d animate-[spin_12s_ease-in-out_infinite]">
-              <div className="w-[min(208px,70vw)] aspect-[1/1.586] relative preserve-3d">
-                {/* Front Face */}
-                <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden shadow-[0_18px_40px_rgba(10,20,40,0.28),inset_0_1px_0_rgba(255,255,255,0.2)] bg-gradient-to-br from-[#111827] to-[#1e293b]">
-                  <div className="p-6 text-white text-center h-full flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <div className="w-10 h-10 rounded-lg bg-white/10" />
-                      <div className="text-2xl">📱</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold mb-2">TapAway</div>
-                      <div className="text-sm opacity-80">Tap to Review</div>
-                    </div>
-                  </div>
-                </div>
-                {/* Back Face */}
-                <div className="absolute inset-0 rounded-2xl overflow-hidden backface-hidden shadow-[0_18px_40px_rgba(10,20,40,0.28),inset_0_1px_0_rgba(255,255,255,0.2)] bg-gradient-to-br from-[#3b82f6] to-[#2563eb] rotate-y-180">
-                  <div className="p-6 text-white text-center h-full flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <div className="text-2xl">⭐</div>
-                      <div className="w-10 h-10 rounded-lg bg-white/10" />
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold mb-2">5 Stars</div>
-                      <div className="text-sm opacity-80">Leave a Review</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="my-12">
+          <TapAwayCard3D />
         </div>
 
         <div className="flex flex-wrap justify-center gap-3 mb-8">
