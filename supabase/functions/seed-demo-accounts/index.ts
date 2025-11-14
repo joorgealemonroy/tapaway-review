@@ -40,8 +40,8 @@ serve(async (req) => {
     // Create 5 demo accounts
     const demoAccounts = [
       {
-        email: 'demo1@tapaway.app',
-        password: 'Demo123!',
+        email: 'demo1@tapaway.co',
+        password: 'DemoTest!12345',
         restaurant: {
           restaurant_name: 'Las Islas Marías - Demo',
           custom_slug: 'lasislasmariasdemo',
@@ -78,8 +78,8 @@ serve(async (req) => {
         ]
       },
       {
-        email: 'demo2@tapaway.app',
-        password: 'Demo123!',
+        email: 'demo2@tapaway.co',
+        password: 'DemoTest!54321',
         restaurant: {
           restaurant_name: 'Sakura Sushi House - Demo',
           custom_slug: 'sakurasushidemo',
@@ -115,8 +115,8 @@ serve(async (req) => {
         ]
       },
       {
-        email: 'demo3@tapaway.app',
-        password: 'Demo123!',
+        email: 'onboardtest@tapaway.co',
+        password: 'Onboard!Test123',
         restaurant: {
           restaurant_name: 'Demo Bistro - Basic Setup',
           custom_slug: 'demobistrobasic',
@@ -130,8 +130,8 @@ serve(async (req) => {
         menu: []
       },
       {
-        email: 'demo4@tapaway.app',
-        password: 'Demo123!',
+        email: 'nomenutest@tapaway.co',
+        password: 'MenuLess!12345',
         restaurant: {
           restaurant_name: 'Demo Cafe - No Menu',
           custom_slug: 'democafenomenu',
@@ -148,8 +148,8 @@ serve(async (req) => {
         menu: []
       },
       {
-        email: 'demo5@tapaway.app',
-        password: 'Demo123!',
+        email: 'nolinkstest@tapaway.co',
+        password: 'NoLinks!98765',
         restaurant: {
           restaurant_name: 'Demo Restaurant - No Links',
           custom_slug: 'demorestaurantnolinks',

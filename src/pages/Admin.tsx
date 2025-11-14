@@ -15,9 +15,9 @@ import { Input } from "@/components/ui/input";
 interface Restaurant {
   id: string;
   restaurant_name: string;
-  custom_slug: string;
-  subscription_status: string;
-  plan_type: string;
+  custom_slug: string | null;
+  subscription_status: string | null;
+  plan_type: string | null;
   is_demo_account: boolean;
   owner_id: string;
   created_at: string;
@@ -87,9 +87,9 @@ const Admin = () => {
   };
 
   const fetchRestaurants = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('restaurants')
-      .select('*')
+      .select('id, restaurant_name, custom_slug, subscription_status, plan_type, is_demo_account, owner_id, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -97,8 +97,10 @@ const Admin = () => {
       return;
     }
 
-    setRestaurants(data || []);
-    setFilteredRestaurants(data || []);
+    if (data) {
+      setRestaurants(data);
+      setFilteredRestaurants(data);
+    }
   };
 
   const fetchGlobalMetrics = async () => {
@@ -107,15 +109,15 @@ const Admin = () => {
       .from('restaurants')
       .select('*', { count: 'exact', head: true });
 
-    // Fetch analytics events
-    const { data: events } = await supabase
+    // Fetch analytics events using any cast for analytics_events table
+    const { data: events } = await (supabase as any)
       .from('analytics_events')
       .select('event_type');
 
-    const taps = events?.filter(e => e.event_type === 'tap').length || 0;
-    const googleClicks = events?.filter(e => e.event_type === 'google_click').length || 0;
-    const directions = events?.filter(e => e.event_type === 'directions_click').length || 0;
-    const menuViews = events?.filter(e => e.event_type === 'menu_view').length || 0;
+    const taps = events?.filter((e: any) => e.event_type === 'tap').length || 0;
+    const googleClicks = events?.filter((e: any) => e.event_type === 'google_click').length || 0;
+    const directions = events?.filter((e: any) => e.event_type === 'directions_click').length || 0;
+    const menuViews = events?.filter((e: any) => e.event_type === 'menu_view').length || 0;
 
     setGlobalMetrics({
       totalTaps: taps,
