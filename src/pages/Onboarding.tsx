@@ -13,15 +13,16 @@ import { z } from "zod";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 
 const onboardingSchema = z.object({
-  restaurantName: z.string().trim().min(1).max(100),
-  customSlug: z.string().trim().min(1).max(50).regex(/^[a-z0-9-]+$/),
+  restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
+  ownerName: z.string().trim().min(1, "Owner/contact name is required").max(100),
+  customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Custom URL must contain only lowercase letters, numbers, and hyphens"),
   instagram: z.string().trim().max(50).optional(),
   googlePlaceId: z.string().trim().optional(),
-  yelpUrl: z.string().optional(),
+  yelpUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
   directionsUrl: z.string().optional(),
   address: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
-  email: z.string().optional(),
+  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   headerTitle: z.string().trim().max(100).optional(),
   headerSubtitle: z.string().trim().max(200).optional(),
   menuTitle: z.string().trim().max(50).optional(),
@@ -37,6 +38,7 @@ const Onboarding = () => {
 
   const [formData, setFormData] = useState({
     restaurantName: "",
+    ownerName: "",
     customSlug: "",
     instagram: "",
     googlePlaceId: "",
@@ -77,8 +79,8 @@ const Onboarding = () => {
   };
 
   const handleNext = () => {
-    if (step === 1 && (!formData.restaurantName || !formData.customSlug)) {
-      toast.error("Please enter your restaurant name and custom URL");
+    if (step === 1 && (!formData.restaurantName || !formData.ownerName || !formData.customSlug)) {
+      toast.error("Please complete all required fields");
       return;
     }
     setStep((prev) => prev + 1);
@@ -147,16 +149,17 @@ const Onboarding = () => {
       const { error: insertError } = await supabase.from("restaurants").insert({
         owner_id: user.id,
         restaurant_name: formData.restaurantName,
+        owner_name: formData.ownerName,
         custom_slug: formData.customSlug,
         slug_locked_at: new Date().toISOString(),
         instagram_url: formData.instagram ? `https://instagram.com/${formData.instagram.replace('@', '')}` : null,
         google_review_url: formData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${formData.googlePlaceId}` : null,
         google_place_id: formData.googlePlaceId || null,
-        yelp_review_url: formData.yelpUrl || null,
+        yelp_review_url: formData.yelpUrl && formData.yelpUrl.trim() ? formData.yelpUrl : null,
         directions_url: directionsUrl || null,
         address: formData.address || null,
         phone: formData.phone || null,
-        email: formData.email || null,
+        email: formData.email && formData.email.trim() ? formData.email : null,
         logo_url: logoUrl,
         header_title: formData.headerTitle || "How was your visit?",
         header_subtitle: formData.headerSubtitle || "We'd love to hear about your experience!",
@@ -197,6 +200,17 @@ const Onboarding = () => {
                   value={formData.restaurantName}
                   onChange={(e) => handleInputChange("restaurantName", e.target.value)}
                   placeholder="Your Restaurant Name"
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="ownerName">Owner / Contact Name *</Label>
+                <Input
+                  id="ownerName"
+                  value={formData.ownerName}
+                  onChange={(e) => handleInputChange("ownerName", e.target.value)}
+                  placeholder="Your Name"
                   maxLength={100}
                 />
               </div>
@@ -366,7 +380,7 @@ const Onboarding = () => {
               />
 
               <div>
-                <Label htmlFor="yelpUrl">Yelp Review URL</Label>
+                <Label htmlFor="yelpUrl">Yelp Review URL (Optional)</Label>
                 <Input
                   id="yelpUrl"
                   type="url"
@@ -374,6 +388,9 @@ const Onboarding = () => {
                   onChange={(e) => handleInputChange("yelpUrl", e.target.value)}
                   placeholder="https://www.yelp.com/biz/your-restaurant"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave blank if you don't have a Yelp page
+                </p>
               </div>
             </div>
           </div>
