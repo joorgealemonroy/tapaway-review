@@ -21,6 +21,29 @@ serve(async (req) => {
       );
     }
 
+    // Validate URL format and domain
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL not configured');
+    }
+
+    // Validate protocol (https only)
+    if (!imageUrl.startsWith('https://')) {
+      return new Response(
+        JSON.stringify({ error: 'Only HTTPS URLs are allowed' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate URL points to Supabase Storage bucket
+    const validPrefix = `${supabaseUrl}/storage/v1/object/public/restaurant-logos/`;
+    if (!imageUrl.startsWith(validPrefix)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid image URL. Must be from restaurant-logos bucket.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Use Lovable AI to parse the menu image
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
