@@ -18,6 +18,7 @@ import { GoalsTab } from "@/components/dashboard/GoalsTab";
 import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
+import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
 
 interface Restaurant {
   id: string;
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTestAccount, setIsTestAccount] = useState(false);
+  const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -66,9 +68,11 @@ const Dashboard = () => {
     const emailAdmin = user?.email === 'tap@tapaway.co';
     const metaAdmin = (user as any)?.app_metadata?.role === 'admin';
     const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
+    const grandfathered = isGrandfatheredUser(user?.email);
 
     setIsAdmin(effectiveAdmin);
     setIsTestAccount(isTestData || false);
+    setIsGrandfathered(grandfathered);
 
     if (effectiveAdmin) {
       fetchAllRestaurants();
@@ -152,8 +156,8 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  // Show purchase options only for non-admin, non-test users without a restaurant
-  if (!isAdmin && !isTestAccount && !restaurant) {
+  // Show purchase options only for non-admin, non-test, non-grandfathered users without a restaurant
+  if (!isAdmin && !isTestAccount && !isGrandfathered && !restaurant) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-background/95 backdrop-blur">
@@ -372,7 +376,11 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="billing">
-            <BillingTab restaurant={restaurant} isTestAccount={isTestAccount} />
+            <BillingTab 
+              restaurant={restaurant} 
+              isTestAccount={isTestAccount}
+              isGrandfathered={isGrandfathered}
+            />
           </TabsContent>
         </Tabs>
       </div>
