@@ -27,187 +27,260 @@ const Privacy = () => {
         <p className="text-muted-foreground mb-8">Last Updated: January 13, 2025</p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
+          {/* 1. INTRO */}
           <section>
             <h2 className="text-2xl font-bold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground">
-              TapAway ("we," "us," or "our") respects your privacy. This Privacy Policy explains what data we collect, how we use it, and your rights regarding your personal information.
+              TapAway (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) respects your privacy and is committed to
+              protecting the information you provide. This Privacy Policy explains what data we collect, how we use it,
+              and your rights regarding your information. By using TapAway, you agree to the terms of this Privacy
+              Policy.
             </p>
           </section>
 
+          {/* 2. INFO WE COLLECT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">2. Data We Collect</h2>
-            <p className="text-muted-foreground mb-4">We collect the following types of information:</p>
-            
-            <h3 className="text-xl font-semibold mb-3 mt-6">Account Data</h3>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <h2 className="text-2xl font-bold mb-4">2. Information We Collect</h2>
+
+            <h3 className="text-xl font-semibold mb-2">Account Data</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
               <li>Email address</li>
               <li>Restaurant name and business information</li>
-              <li>Billing information (processed securely by Stripe)</li>
+              <li>Billing information (processed by Stripe; we do not store full card numbers)</li>
               <li>Account settings and preferences</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">Menu & Content Data</h3>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <h3 className="text-xl font-semibold mb-2">Menu &amp; Content Data</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
               <li>Menu sections, items, descriptions, and prices</li>
               <li>Restaurant logo and branding assets</li>
-              <li>Custom slug and URL settings</li>
+              <li>Custom slug, URL, and dashboard settings</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">Analytics & Usage Data</h3>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+            <h3 className="text-xl font-semibold mb-2">Analytics &amp; Usage Data</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
               <li>Button clicks (Google, Yelp, Instagram, Directions)</li>
               <li>Menu views and interaction data</li>
-              <li>NFC tap events (anonymous)</li>
-              <li>Device and browser information for analytics purposes</li>
+              <li>NFC tap events (anonymous device events)</li>
+              <li>Device type, browser, and technical analytics</li>
             </ul>
 
-            <h3 className="text-xl font-semibold mb-3 mt-6">AI Processing Data</h3>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Analytics data used to generate AI insights</li>
-              <li>Review text (pulled from public Google reviews) for reply generation</li>
-              <li>Competitor data from public sources</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">3. Data We DO NOT Collect</h2>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Credit card information (handled exclusively by Stripe)</li>
-              <li>Personal information from your restaurant customers</li>
-              <li>Tracking data from customers outside the Review Hub</li>
-              <li>Social Security numbers or government IDs</li>
+            <h3 className="text-xl font-semibold mb-2">AI Processing Data</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-1">
+              <li>Analytics used to generate AI insights</li>
+              <li>Public Google review text used for reply generation</li>
+              <li>Competitor data sourced from public listings</li>
             </ul>
           </section>
 
+          {/* 3. WE DO NOT COLLECT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">4. How We Use Your Data</h2>
-            <p className="text-muted-foreground mb-4">We use collected data to:</p>
+            <h2 className="text-2xl font-bold mb-4">3. Information We Do NOT Collect</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Provide and improve our review-automation platform</li>
-              <li>Generate analytics and performance insights</li>
-              <li>Create AI-powered suggestions and recommendations</li>
-              <li>Send weekly performance reports</li>
-              <li>Personalize your Review Hub links and dashboard</li>
-              <li>Detect fraud and prevent abuse</li>
-              <li>Process payments through Stripe</li>
+              <li>Full credit card numbers (handled solely by Stripe)</li>
+              <li>Personal information of your restaurant customers</li>
+              <li>Social Security numbers or government-issued IDs</li>
+              <li>Customer tracking outside the TapAway Review Hub</li>
+              <li>Sensitive personal data such as race, religion, or health data</li>
             </ul>
           </section>
 
+          {/* 4. HOW WE USE DATA */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">5. AI & Automated Processing</h2>
-            <p className="text-muted-foreground">
-              Our AI Coach analyzes your analytics data to provide insights, suggestions, and performance scores. This processing is done to help you improve your review collection strategy. Where possible, data is anonymized before AI processing. AI-generated content (such as review replies) is provided as suggestions only—you remain responsible for what you post publicly.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">6. Third-Party Services</h2>
-            <p className="text-muted-foreground mb-4">We use the following third-party services:</p>
-            
-            <h3 className="text-xl font-semibold mb-3 mt-6">Stripe (Payment Processing)</h3>
-            <p className="text-muted-foreground">
-              All billing and subscription management is handled by Stripe. We never see your full credit card information. Stripe's privacy policy applies to payment data.
-            </p>
-
-            <h3 className="text-xl font-semibold mb-3 mt-6">Supabase / Lovable Cloud (Hosting & Database)</h3>
-            <p className="text-muted-foreground">
-              Our infrastructure is hosted on secure cloud services. Data is encrypted in transit and at rest.
-            </p>
-
-            <p className="text-muted-foreground mt-6">
-              <strong>We do NOT sell your data to third parties. Ever.</strong>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">7. Cookies & Tracking</h2>
-            <p className="text-muted-foreground mb-4">
-              We use minimal cookies for:
-            </p>
+            <h2 className="text-2xl font-bold mb-4">4. How We Use Your Information</h2>
+            <p className="text-muted-foreground mb-4">We use the information we collect to:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Authentication (keeping you logged in)</li>
-              <li>Anonymous analytics (to understand feature usage)</li>
+              <li>Operate and improve the TapAway platform</li>
+              <li>Provide analytics and performance insights</li>
+              <li>Generate AI-powered recommendations and suggestions</li>
+              <li>Create automated review reply suggestions</li>
+              <li>Send weekly reports and usage summaries</li>
+              <li>Personalize your dashboard and Review Hub</li>
+              <li>Prevent fraud, abuse, and security breaches</li>
+              <li>Process payments and manage subscriptions</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              You can disable cookies in your browser settings, though this may limit functionality.
+              We do not sell your data to third parties under any circumstances.
             </p>
           </section>
 
+          {/* 5. AI & AUTOMATION */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">8. Data Retention</h2>
+            <h2 className="text-2xl font-bold mb-4">5. AI &amp; Automated Decision Making</h2>
             <p className="text-muted-foreground">
-              We retain your data as long as your account is active. After you cancel your subscription or request account deletion, we will delete your personal information within 30 days, except where required by law to retain certain records.
+              TapAway&apos;s AI features analyze your analytics data to provide insights, suggestions, and performance
+              scores. Where possible, data is anonymized prior to processing. AI-generated content (such as review
+              replies) is advisory only. You are responsible for reviewing and approving any AI-generated content before
+              posting it publicly.
             </p>
           </section>
 
+          {/* 6. AGGREGATED DATA */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">9. Your Rights (GDPR Compliance)</h2>
-            <p className="text-muted-foreground mb-4">If you are in the European Union, you have the right to:</p>
+            <h2 className="text-2xl font-bold mb-4">6. Aggregated &amp; Anonymized Data</h2>
+            <p className="text-muted-foreground">
+              We may use aggregated or anonymized data that does not identify you or your business to improve the
+              platform, train models, analyze trends, and develop new features. This information cannot reasonably be
+              used to identify you.
+            </p>
+          </section>
+
+          {/* 7. THIRD PARTY SERVICES */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">7. Third-Party Services</h2>
+            <p className="text-muted-foreground mb-4">We use trusted third-party providers to operate TapAway:</p>
+
+            <h3 className="text-xl font-semibold mb-2">Stripe (Payments)</h3>
+            <p className="text-muted-foreground mb-4">
+              Stripe handles all billing and subscription payments. We do not have access to your full credit card
+              number. Stripe&apos;s privacy policy governs your payment information.
+            </p>
+
+            <h3 className="text-xl font-semibold mb-2">Supabase / Lovable Cloud (Hosting &amp; Database)</h3>
+            <p className="text-muted-foreground mb-4">
+              We use secure cloud infrastructure for hosting and database management. Data is encrypted in transit and
+              at rest, with access controls in place.
+            </p>
+
+            <p className="text-muted-foreground">
+              We do not share, rent, or sell your personal information with advertisers or unrelated third parties.
+            </p>
+          </section>
+
+          {/* 8. COOKIES */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">8. Cookies &amp; Tracking Technologies</h2>
+            <p className="text-muted-foreground mb-4">TapAway uses minimal cookies and similar technologies for:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Access:</strong> Request a copy of all data we have about you</li>
-              <li><strong>Correct:</strong> Update inaccurate or incomplete information</li>
-              <li><strong>Delete:</strong> Request deletion of your account and data</li>
-              <li><strong>Export:</strong> Download your data in a portable format</li>
-              <li><strong>Object:</strong> Opt out of certain data processing activities</li>
+              <li>Authentication and keeping you logged in</li>
+              <li>Session management and security</li>
+              <li>Anonymous analytics to understand feature usage</li>
+              <li>Preventing fraudulent or abusive activity</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              To exercise these rights, contact us at <strong>tap@tapaway.co</strong>
+              You can disable cookies in your browser settings, but some features of TapAway may not function properly.
             </p>
           </section>
 
+          {/* 9. INTERNATIONAL TRANSFERS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">10. California Privacy Rights (CCPA)</h2>
+            <h2 className="text-2xl font-bold mb-4">9. International Data Transfers</h2>
+            <p className="text-muted-foreground">
+              Your information may be stored and processed in the United States or other countries where our service
+              providers operate. By using TapAway, you consent to the transfer of your information outside of your
+              country in accordance with this Privacy Policy.
+            </p>
+          </section>
+
+          {/* 10. DATA RETENTION */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">10. Data Retention</h2>
+            <p className="text-muted-foreground">
+              We retain your information for as long as your account is active. If you cancel your subscription or
+              request account deletion, we will delete your personal information within 30 days, except where we are
+              legally required to retain certain records (such as billing or tax documentation).
+            </p>
+          </section>
+
+          {/* 11. GDPR RIGHTS */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">11. Your Rights (GDPR)</h2>
             <p className="text-muted-foreground mb-4">
-              If you are a California resident, you have the right to:
+              If you are located in the European Union, you have the right to:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Know what personal information we collect and how it's used</li>
+              <li>Access: Request a copy of the data we hold about you</li>
+              <li>Correct: Request correction of inaccurate or incomplete data</li>
+              <li>Delete: Request deletion of your account and associated data</li>
+              <li>Export: Request a portable copy of your data</li>
+              <li>Object: Opt out of certain data processing where legally applicable</li>
+            </ul>
+            <p className="text-muted-foreground mt-4">
+              To exercise these rights, contact us at <strong>tap@tapaway.co</strong>.
+            </p>
+          </section>
+
+          {/* 12. CCPA RIGHTS */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">12. California Privacy Rights (CCPA)</h2>
+            <p className="text-muted-foreground mb-4">If you are a California resident, you have the right to:</p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Know what personal information we collect, use, and disclose</li>
               <li>Request deletion of your personal information</li>
-              <li>Opt out of the sale of personal information (note: we do not sell your data)</li>
-              <li>Non-discrimination for exercising your privacy rights</li>
+              <li>Opt out of the sale of personal information (we do not sell your data)</li>
+              <li>Not be discriminated against for exercising your privacy rights</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              To submit a request, email <strong>tap@tapaway.co</strong> with "California Privacy Request" in the subject line.
+              To submit a request, email <strong>tap@tapaway.co</strong> with the subject line:{" "}
+              <em>&quot;California Privacy Request&quot;</em>.
             </p>
           </section>
 
+          {/* 13. SECURITY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">11. Security Measures</h2>
-            <p className="text-muted-foreground mb-4">We protect your data with:</p>
+            <h2 className="text-2xl font-bold mb-4">13. Security Measures</h2>
+            <p className="text-muted-foreground mb-4">
+              We take reasonable technical and organizational measures to protect your data, including:
+            </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Encryption in transit (HTTPS/TLS)</li>
               <li>Encryption at rest for sensitive data</li>
-              <li>Secure database environment with access controls</li>
+              <li>Secure database environments and access controls</li>
               <li>Limited employee access to personal information</li>
-              <li>Regular security audits</li>
+              <li>Periodic security reviews and monitoring</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              While we take reasonable precautions, no system is 100% secure. Use strong passwords and keep your account credentials confidential.
+              However, no system is 100% secure. You are responsible for using a strong password and keeping your
+              account credentials confidential.
             </p>
           </section>
 
+          {/* 14. LAW ENFORCEMENT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">12. Children's Privacy</h2>
+            <h2 className="text-2xl font-bold mb-4">14. Legal Compliance &amp; Law Enforcement</h2>
             <p className="text-muted-foreground">
-              TapAway is not intended for use by individuals under 18. We do not knowingly collect data from children.
+              We may disclose information about you if required to do so by law or in the good-faith belief that such
+              action is necessary to: comply with a legal obligation, respond to valid law enforcement requests, protect
+              the rights or property of TapAway, or enforce our Terms of Service.
             </p>
           </section>
 
+          {/* 15. THIRD-PARTY LINKS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">13. Changes to This Policy</h2>
+            <h2 className="text-2xl font-bold mb-4">15. Third-Party Links</h2>
             <p className="text-muted-foreground">
-              We may update this Privacy Policy from time to time. We will notify you of significant changes via email or dashboard notification. Continued use of TapAway after updates constitutes acceptance of the revised policy.
+              TapAway may contain links to third-party websites or services (such as Google, Yelp, Instagram, or map
+              providers). We are not responsible for the privacy practices or content of those external sites. We
+              encourage you to review their privacy policies separately.
             </p>
           </section>
 
+          {/* 16. CHILDREN */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">14. Contact Us</h2>
+            <h2 className="text-2xl font-bold mb-4">16. Children&apos;s Privacy</h2>
             <p className="text-muted-foreground">
-              For privacy-related questions, data access requests, or concerns, contact us at:
+              TapAway is not intended for individuals under 18 years of age. We do not knowingly collect personal
+              information from children. If you believe a minor has provided us with information, please contact us so
+              we can delete it.
             </p>
-            <p className="text-muted-foreground mt-4">
-              <strong>Email:</strong> tap@tapaway.co<br />
-              <strong>Subject Line:</strong> Privacy Inquiry
+          </section>
+
+          {/* 17. CHANGES */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">17. Changes to This Privacy Policy</h2>
+            <p className="text-muted-foreground">
+              We may update this Privacy Policy at any time, with or without notice. The &quot;Last Updated&quot; date
+              at the top of this page reflects the latest version. Your continued use of TapAway after any changes means
+              you accept the updated Privacy Policy. You are responsible for reviewing this page periodically.
+            </p>
+          </section>
+
+          {/* 18. CONTACT */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">18. Contact Us</h2>
+            <p className="text-muted-foreground">
+              For privacy-related questions, data access requests, or concerns, contact us at:{" "}
+              <strong>tap@tapaway.co</strong> with the subject line <em>&quot;Privacy Inquiry&quot;</em>.
             </p>
           </section>
         </div>
