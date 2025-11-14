@@ -318,6 +318,11 @@ const Admin = () => {
               </Table>
             </Card>
           </TabsContent>
+
+          {/* Hub Preflight Tab */}
+          <TabsContent value="preflight">
+            <AdminPreflight />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
