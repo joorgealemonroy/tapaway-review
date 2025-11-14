@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar } from "lucide-react";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface BillingTabProps {
@@ -31,152 +31,117 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
     }
   };
 
-  // Grandfathered users (Sonia, Victor, Amelia)
-  if (isGrandfathered) {
-    return (
-      <div className="space-y-6">
-        <Card className="p-6 bg-primary/5 border-primary">
-          <div className="flex items-start gap-3">
-            <CreditCard className="w-6 h-6 text-primary flex-shrink-0" />
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Grandfathered Plan</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                You're on a special grandfathered plan with full access to all TapAway features.
-              </p>
-              <div className="space-y-1">
-                <p className="text-sm"><span className="font-semibold">Billing:</span> Managed manually by TapAway</p>
-                <p className="text-sm"><span className="font-semibold">Status:</span> Active</p>
+  const planType = restaurant?.plan_type || 'standard';
+  const isBundle = planType === 'bundle';
+  const isPrivateAccess = planType === 'private_access';
+  const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
+
+  return (
+    <div className="space-y-6 pb-8 animate-fade-in">
+      <div>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
+          <CreditCard className="w-7 h-7 text-primary" />
+          Billing & Subscription
+        </h2>
+        <p className="text-muted-foreground">Manage your subscription and billing information</p>
+      </div>
+
+      {isGrandfathered && (
+        <Card className="p-6 gradient-subtle border-none">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">Grandfathered Plan</h3>
+              <p className="text-muted-foreground mb-4">Your account has special grandfathered access with billing managed directly by TapAway.</p>
+              <div className="text-sm space-y-1">
+                <p><strong>Status:</strong> Active (Lifetime Access)</p>
+                <p><strong>Billing:</strong> Managed Manually</p>
+                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
             </div>
           </div>
         </Card>
+      )}
 
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-4">Need Help?</h3>
-          <p className="text-muted-foreground mb-4">
-            If you have questions about your plan or need assistance, contact our support team.
-          </p>
-          <Button variant="outline" asChild>
-            <a href="mailto:tap@tapaway.co">
-              Contact Support
-            </a>
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  // AV Meal Prep legacy plan
-  if (restaurant?.custom_slug === 'avmealpreps' || restaurant?.type === 'meal_prep') {
-    return (
-      <div className="space-y-6">
-        <Card className="p-6 bg-primary/5 border-primary">
-          <div className="flex items-start gap-3">
-            <CreditCard className="w-6 h-6 text-primary flex-shrink-0" />
-            <div>
-              <h3 className="text-lg font-semibold mb-2">AV Meal Prep Legacy Plan</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                You're on a special grandfathered plan with full access to all TapAway features.
-              </p>
-              <div className="space-y-1">
-                <p className="text-sm"><span className="font-semibold">Plan:</span> Legacy ($10/month)</p>
-                <p className="text-sm"><span className="font-semibold">Billing:</span> Managed manually by TapAway</p>
-                <p className="text-sm"><span className="font-semibold">Status:</span> Active</p>
+      {!isGrandfathered && isBundle && (
+        <Card className="p-6 gradient-subtle border-none">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">Multi-Location Bundle Plan</h3>
+              <p className="text-muted-foreground mb-4">Your locations are part of a bundle with billing managed directly by TapAway.</p>
+              <div className="text-sm space-y-1">
+                <p><strong>Status:</strong> Active</p>
+                <p><strong>Billing:</strong> Managed Directly with TapAway</p>
+                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
             </div>
           </div>
         </Card>
+      )}
 
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold mb-4">Need Help?</h3>
-          <p className="text-muted-foreground mb-4">
-            If you have questions about your plan or need assistance, contact our support team.
-          </p>
-          <Button variant="outline" asChild>
-            <a href="mailto:tap@tapaway.co">
-              Contact Support
-            </a>
-          </Button>
+      {!isGrandfathered && isPrivateAccess && (
+        <Card className="p-6 gradient-subtle border-none">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Crown className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">Private Access Plan</h3>
+              <p className="text-muted-foreground mb-4">Your billing is handled manually by TapAway.</p>
+              <div className="text-sm space-y-1">
+                <p><strong>Status:</strong> Active</p>
+                <p><strong>Billing:</strong> Custom Arrangement</p>
+                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
+              </div>
+            </div>
+          </div>
         </Card>
-      </div>
-    );
-  }
+      )}
 
-  if (isTestAccount) {
-    return (
-      <div className="space-y-6">
+      {!isAlwaysAllowed && isTestAccount && (
         <Card className="p-6 bg-primary/5 border-primary">
           <div className="flex items-start gap-3">
             <CreditCard className="w-6 h-6 text-primary flex-shrink-0" />
             <div>
               <h3 className="text-lg font-semibold mb-2">Test Account</h3>
-              <p className="text-sm text-muted-foreground">
-                This is a test account with unlimited access. No billing is required.
-              </p>
+              <p className="text-sm text-muted-foreground">This is a test account for demonstration purposes.</p>
             </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Current Plan</h3>
-            <p className="text-2xl font-bold text-primary mb-1">
-              {restaurant?.plan_type || "Free Plan"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Status: <span className="capitalize">{restaurant?.subscription_status || "active"}</span>
-            </p>
-          </div>
-          <CreditCard className="w-8 h-8 text-muted-foreground" />
-        </div>
-      </Card>
-
-      {restaurant?.next_billing_date && (
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Next Billing Date</h3>
-              <p className="text-lg">
-                {new Date(restaurant.next_billing_date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-            </div>
-            <Calendar className="w-8 h-8 text-muted-foreground" />
           </div>
         </Card>
       )}
 
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-4">Manage Subscription</h3>
-        <p className="text-muted-foreground mb-6">
-          Update your payment method, view invoices, or change your plan through the Stripe customer portal.
-        </p>
-        <Button onClick={openCustomerPortal} disabled={!restaurant?.stripe_portal_url}>
-          <ExternalLink className="w-4 h-4 mr-2" />
-          Open Customer Portal
-        </Button>
-      </Card>
-
-      <Card className="p-6">
-        <h3 className="text-xl font-semibold mb-4">Need Help?</h3>
-        <p className="text-muted-foreground mb-4">
-          If you have questions about billing or need to make changes to your account, contact our support team.
-        </p>
-        <Button variant="outline" asChild>
-          <a href="mailto:tap@tapaway.co">
-            Contact Support
-          </a>
-        </Button>
-      </Card>
+      {!isAlwaysAllowed && planType === 'standard' && !isTestAccount && restaurant?.stripe_portal_url && (
+        <Card className="p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Current Plan</h3>
+                <p className="text-muted-foreground text-sm">Standard Plan</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="font-semibold capitalize">{restaurant?.subscription_status || 'Active'}</p>
+              </div>
+            </div>
+            {restaurant?.next_billing_date && (
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Next billing:</span>
+                <span className="font-medium">{new Date(restaurant.next_billing_date).toLocaleDateString()}</span>
+              </div>
+            )}
+            <Button onClick={openCustomerPortal} className="w-full">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Manage Subscription
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

@@ -103,7 +103,7 @@ const Dashboard = () => {
     if (data) {
       setRestaurant(data as any);
       fetchLocations(data.id);
-    } else if (user?.email === 'test@me.com') {
+    } else if (user?.email === 'test@me.com' || isGrandfatheredUser(user?.email)) {
       // Defensive fallback for test account - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
       try {
@@ -156,8 +156,11 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  // Show purchase options only for non-admin, non-test, non-grandfathered users without a restaurant
-  if (!isAdmin && !isTestAccount && !isGrandfathered && !restaurant) {
+  // Check if user should bypass paywall
+  const planType = restaurant?.plan_type || 'standard';
+  const shouldBypassPaywall = isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+
+  if (!loading && user && !restaurant && !shouldBypassPaywall) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-background/95 backdrop-blur">

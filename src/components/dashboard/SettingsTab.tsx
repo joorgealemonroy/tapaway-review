@@ -5,13 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Lock, ExternalLink } from "lucide-react";
+import { Settings, Lock, ExternalLink, Upload, Palette } from "lucide-react";
 import { validateAllUrls } from "@/lib/urlValidation";
+import { useState as useReactState } from "react";
 
 interface Restaurant {
   id: string;
   restaurant_name: string;
   custom_slug: string;
+  logo_url: string | null;
+  hub_background_style: string | null;
   google_review_url: string | null;
   yelp_review_url: string | null;
   instagram_url: string | null;
@@ -26,6 +29,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const { toast } = useToast();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useReactState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -43,6 +47,45 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
     }
     
     setLoading(false);
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${restaurantId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('restaurant-logos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('restaurant-logos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('restaurants')
+        .update({ logo_url: publicUrl })
+        .eq('id', restaurantId);
+
+      if (updateError) throw updateError;
+
+      setRestaurant(prev => prev ? { ...prev, logo_url: publicUrl } : null);
+      toast({ title: "Logo updated", description: "Your logo has been updated successfully." });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Upload failed: ${error.message}`, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveSettings = async () => {
@@ -73,6 +116,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         .from("restaurants")
         .update({
           restaurant_name: restaurant.restaurant_name,
+          hub_background_style: restaurant.hub_background_style,
           google_review_url: restaurant.google_review_url,
           yelp_review_url: restaurant.yelp_review_url,
           instagram_url: restaurant.instagram_url,
@@ -114,6 +158,80 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           Save Changes
         </Button>
       </div>
+
+      {/* Logo Upload Section */}
+      <Card className="p-6 card-elevated">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-primary" />
+          Restaurant Logo
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <Label>Current Logo</Label>
+            {restaurant.logo_url ? (
+              <div className="mt-2">
+                <img src={restaurant.logo_url} alt="Logo" className="w-32 h-32 object-cover rounded-lg border-2 border-border" />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">No logo uploaded</p>
+            )}
+          </div>
+          
+          <div>
+            <Label htmlFor="logo-upload">Upload New Logo</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={uploading}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              This logo will appear in your review hub and dashboard
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Hub Background Style */}
+      <Card className="p-6 card-elevated">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Palette className="w-5 h-5 text-primary" />
+          Hub Background Style
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Choose how your review hub looks to customers
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { value: 'classic', label: 'Classic', desc: 'Clean white background' },
+            { value: 'soft-gradient', label: 'Soft Gradient', desc: 'Subtle color gradient' },
+            { value: 'photo-blur', label: 'Photo Blur', desc: 'Blurred photo backdrop' },
+            { value: 'dark', label: 'Dark', desc: 'Dark theme with contrast' }
+          ].map(style => (
+            <div
+              key={style.value}
+              onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: style.value } : null)}
+              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                restaurant.hub_background_style === style.value 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <div className={`w-full h-16 rounded mb-2 ${
+                style.value === 'classic' ? 'bg-background' :
+                style.value === 'soft-gradient' ? 'bg-gradient-to-br from-blue-50 to-purple-50' :
+                style.value === 'photo-blur' ? 'bg-gradient-to-br from-gray-200 to-gray-300' :
+                'bg-gray-900'
+              }`} />
+              <h4 className="font-semibold text-sm">{style.label}</h4>
+              <p className="text-xs text-muted-foreground">{style.desc}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <Card className="p-6 card-elevated">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
