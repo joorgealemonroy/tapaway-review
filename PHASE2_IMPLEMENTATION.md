@@ -342,12 +342,68 @@ Phase 2 is complete when:
 
 ---
 
+## Real Client Hubs Configured
+
+The following 5 production hubs are now live in the database and ready for DNS cutover:
+
+### Active Production Slugs
+1. **avmealpreps** → AV Meal Prep
+2. **lasnuevasislas** → Las Nuevas Islas  
+3. **lasislaswoodburn** → Las Islas – Woodburn (Victor)
+4. **lasislasportland** → Las Islas – Portland (Victor)
+5. **lasislassalem** → Las Islas – Salem (Victor)
+
+### Owner Grouping
+- **Victor's Locations**: The three Las Islas locations (Woodburn, Portland, Salem) are grouped with `owner_name = "Victor"` for easy identification
+- **Individual Clients**: avmealpreps and lasnuevasislas are separate client accounts
+- All restaurants currently use `owner_id = b6451fc5-443e-467b-829e-8cac01b28879` (tap@tapaway.co) for dashboard access
+
+### URLs Configuration
+All hubs are now accessible at:
+- **Lovable staging**: `https://tapaway-review.lovable.app/{slug}`
+- **After DNS cutover**: `https://tapaway.co/{slug}` will resolve to Lovable
+- **Current (Typedream)**: `https://www.tapaway.co/{slug}` still active until DNS change
+
+Each restaurant has editable fields via Settings tab:
+- `google_review_url`
+- `yelp_review_url`  
+- `instagram_url`
+- `directions_url`
+- `logo_url`
+
+### Admin Preflight Verification
+The Admin → Hub Preflight tool now shows:
+- **Total Hubs**: 8 (3 test/demo + 5 production)
+- **Missing Slugs**: 0 ✅
+- **Duplicate Slugs**: 0 ✅
+- All 5 production hubs with working "Test Staging" links
+
+### Adding New Restaurants
+To add future restaurant hubs:
+1. Insert new row in `restaurants` table:
+   ```sql
+   INSERT INTO restaurants (
+     restaurant_name, custom_slug, owner_id, owner_name,
+     is_demo_account, header_title, header_subtitle, menu_title
+   ) VALUES (
+     'Restaurant Name', 'url-slug', 'user-uuid', 'Owner Name',
+     false, 'How was your visit?', 'Tell us about it!', 'Our Menu'
+   );
+   ```
+2. Hub automatically appears in Admin → Hub Preflight
+3. Hub accessible at `/:customSlug` route immediately
+4. Update review URLs via Settings tab in dashboard
+
+---
+
 ## Next Steps (Phase 3)
 
-1. Execute manual test plan from Admin Preflight
-2. Create client accounts if needed (Victor, Sonia)
-3. Update DNS for `tapaway.co` to point to Lovable
-4. Monitor analytics during DNS propagation
-5. Test production URLs as DNS propagates
-6. Update any hardcoded URLs if needed (unlikely)
-7. Celebrate successful migration! 🎉
+When ready to perform the DNS cutover:
+1. Run through the complete test plan for all 5 production hubs using Admin → Hub Preflight
+2. Verify each hub's review URLs (Google, Yelp, Instagram, Directions) are configured correctly
+3. Test analytics tracking on all production hubs
+4. Update DNS for `tapaway.co` to point to Lovable
+5. Monitor analytics during DNS propagation to verify traffic is flowing correctly
+6. Test production URLs (`tapaway.co/{slug}`) as DNS propagates
+7. Update any external integrations (e.g., AVMealPrep Telegram bot) if needed
+8. Celebrate successful migration! 🎉
