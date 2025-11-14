@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Settings, Lock, ExternalLink } from "lucide-react";
+import { validateAllUrls } from "@/lib/urlValidation";
 
 interface Restaurant {
   id: string;
@@ -46,6 +47,26 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
   const saveSettings = async () => {
     if (!restaurant) return;
+
+    // Validate URLs before saving
+    const validation = validateAllUrls({
+      google: restaurant.google_review_url,
+      yelp: restaurant.yelp_review_url,
+      instagram: restaurant.instagram_url,
+      directions: restaurant.directions_url,
+    });
+
+    if (!validation.valid) {
+      const errorMessages = Object.entries(validation.errors)
+        .map(([field, message]) => `${field}: ${message}`)
+        .join("\n");
+      toast({ 
+        title: "Invalid URLs", 
+        description: errorMessages,
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase

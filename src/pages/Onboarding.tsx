@@ -11,15 +11,16 @@ import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
+import { urlValidationSchemas } from "@/lib/urlValidation";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
   ownerName: z.string().trim().min(1, "Owner/contact name is required").max(100),
   customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Custom URL must contain only lowercase letters, numbers, and hyphens"),
-  instagram: z.string().trim().max(50).optional(),
+  instagram: urlValidationSchemas.instagram,
   googlePlaceId: z.string().trim().optional(),
-  yelpUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  directionsUrl: z.string().optional(),
+  yelpUrl: urlValidationSchemas.yelp,
+  directionsUrl: urlValidationSchemas.directions,
   address: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
