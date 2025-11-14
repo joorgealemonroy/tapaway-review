@@ -17,6 +17,7 @@ import { AICoachTab } from "@/components/dashboard/AICoachTab";
 import { GoalsTab } from "@/components/dashboard/GoalsTab";
 import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
+import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 
 interface Restaurant {
   id: string;
@@ -26,6 +27,7 @@ interface Restaurant {
   subscription_status: string | null;
   plan_type: string | null;
   next_billing_date: string | null;
+  type?: string | null;
 }
 
 interface Location {
@@ -299,49 +301,65 @@ const Dashboard = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
           <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
-            <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-9 h-auto gap-1">
-              <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
-              <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
-              <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
-              <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
-              <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
-              <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-              <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
-              <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-            </TabsList>
+            {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
+              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
+                <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+              </TabsList>
+            ) : (
+              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-9 h-auto gap-1">
+                <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
+                <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
+                <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
+                <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
+                <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
+                <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
+                <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+              </TabsList>
+            )}
           </div>
 
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
-            <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+            {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
+              <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+            ) : (
+              <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+            )}
           </TabsContent>
 
-          <TabsContent value="ai-coach">
-            <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
-          </TabsContent>
+          {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
+            <>
+              <TabsContent value="ai-coach">
+                <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
+              </TabsContent>
 
-          <TabsContent value="competitors">
-            <CompetitorTab restaurantId={restaurant.id} />
-          </TabsContent>
+              <TabsContent value="competitors">
+                <CompetitorTab restaurantId={restaurant.id} />
+              </TabsContent>
 
-          <TabsContent value="replies">
-            <ReviewRepliesTab restaurantId={restaurant.id} />
-          </TabsContent>
+              <TabsContent value="replies">
+                <ReviewRepliesTab restaurantId={restaurant.id} />
+              </TabsContent>
 
-          <TabsContent value="goals">
-            <GoalsTab restaurantId={restaurant.id} />
-          </TabsContent>
+              <TabsContent value="goals">
+                <GoalsTab restaurantId={restaurant.id} />
+              </TabsContent>
 
-          <TabsContent value="menu">
-            <MenuTab restaurantId={restaurant.id} />
-          </TabsContent>
+              <TabsContent value="menu">
+                <MenuTab restaurantId={restaurant.id} />
+              </TabsContent>
+
+              <TabsContent value="support">
+                <SupportTab />
+              </TabsContent>
+            </>
+          )}
 
           <TabsContent value="settings">
             <SettingsTab restaurantId={restaurant.id} />
-          </TabsContent>
-
-          <TabsContent value="support">
-            <SupportTab />
           </TabsContent>
 
           <TabsContent value="billing">
