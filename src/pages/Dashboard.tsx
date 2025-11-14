@@ -313,7 +313,7 @@ const Dashboard = () => {
           </div>
 
           <TabsContent value="overview" className="space-y-4 md:space-y-6">
-            <AnalyticsOverview restaurantId={restaurant.id} />
+            <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
           </TabsContent>
 
           <TabsContent value="ai-coach">
