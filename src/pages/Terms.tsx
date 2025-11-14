@@ -27,169 +27,239 @@ const Terms = () => {
         <p className="text-muted-foreground mb-8">Last Updated: January 13, 2025</p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
+          {/* ================================ */}
+          {/* 1. INTRODUCTION + ACCEPTANCE     */}
+          {/* ================================ */}
+
           <section>
-            <h2 className="text-2xl font-bold mb-4">1. Introduction</h2>
+            <h2 className="text-2xl font-bold mb-4">1. Introduction & Acceptance of Terms</h2>
             <p className="text-muted-foreground">
-              Welcome to TapAway. TapAway is a SaaS platform that provides NFC "tap-to-review" cards and a review-automation dashboard for restaurants and service businesses. By accessing or using our website, dashboard, or services, you agree to be bound by these Terms of Service.
+              Welcome to TapAway. By accessing or using our website, dashboard, NFC cards, or any TapAway services, you
+              agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree, you must stop
+              using TapAway immediately.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 2. ELIGIBILITY                   */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">2. Eligibility</h2>
             <p className="text-muted-foreground mb-4">To use TapAway, you must:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Be at least 18 years of age</li>
+              <li>Be at least 18 years old</li>
               <li>Be a business owner or authorized representative of a restaurant or service business</li>
-              <li>Have the legal authority to enter into these Terms on behalf of your business</li>
+              <li>Have the legal authority to agree to these Terms on behalf of your business</li>
             </ul>
           </section>
+
+          {/* ================================ */}
+          {/* 3. ACCOUNTS & SECURITY           */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">3. Accounts & Security</h2>
             <p className="text-muted-foreground mb-4">
-              You are responsible for maintaining the security of your account credentials. You agree to:
+              You are responsible for maintaining the confidentiality and security of your account. You agree to:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Keep your password secure and confidential</li>
-              <li>Notify us immediately of any unauthorized access to your account</li>
-              <li>Accept responsibility for all activities that occur under your account</li>
-              <li>Not share your account with unauthorized parties</li>
+              <li>Keep your password secure</li>
+              <li>Notify us immediately of any unauthorized access</li>
+              <li>Accept all responsibility for actions taken under your account</li>
+              <li>Not share your account with unauthorized users</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              We reserve the right to terminate accounts that violate these Terms or engage in illegal, fraudulent, or abusive behavior.
+              We may suspend or terminate accounts involved in fraud, abuse, illegal activity, or violation of these
+              Terms.
             </p>
           </section>
 
+          {/* ================================ */}
+          {/* 4. USE OF SERVICE                */}
+          {/* ================================ */}
+
           <section>
             <h2 className="text-2xl font-bold mb-4">4. Use of the Service</h2>
+
             <p className="text-muted-foreground mb-4">Permitted uses include:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Using NFC cards to direct customers to review platforms</li>
-              <li>Managing your restaurant menu and settings through the dashboard</li>
-              <li>Viewing analytics and AI-generated insights</li>
-              <li>Generating review replies using our AI tools</li>
+              <li>Using TapAway NFC cards to direct customers to review platforms</li>
+              <li>Managing your menu, branding, and settings through the dashboard</li>
+              <li>Viewing analytics and insights</li>
+              <li>Using our AI tools to draft review replies</li>
             </ul>
+
             <p className="text-muted-foreground my-4">Prohibited uses include:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Creating fraudulent or fake reviews</li>
-              <li>Manipulating review platforms in violation of their terms of service</li>
-              <li>Scraping, reverse-engineering, or attempting to extract our source code</li>
-              <li>Using the service for any illegal purpose</li>
-              <li>Reselling or redistributing TapAway services without authorization</li>
+              <li>Creating fake, misleading, or fraudulent reviews</li>
+              <li>Offering incentives or compensation in exchange for positive reviews</li>
+              <li>Violating Google, Yelp, or platform review policies</li>
+              <li>Reverse-engineering, scraping, or attempting to exploit the software</li>
+              <li>Using TapAway for unlawful purposes</li>
+              <li>Reselling TapAway services without written permission</li>
             </ul>
+
             <p className="text-muted-foreground mt-4">
-              You must comply with Google's, Yelp's, and other platforms' terms of service when soliciting reviews.
+              You are solely responsible for complying with all third-party review platform rules.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 5. PHYSICAL PRODUCT              */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">5. Physical Product Disclaimer</h2>
             <p className="text-muted-foreground">
-              Our NFC cards work only with NFC-compatible devices. TapAway is not responsible for device incompatibility, normal wear and tear, or damage caused by improper use. You are responsible for proper placement and usage of the cards.
+              TapAway NFC cards require NFC-compatible devices. We are not responsible for device incompatibility,
+              normal wear, damage from misuse, or placement issues.
             </p>
           </section>
 
+          {/* ================================ */}
+          {/* 6. DATA & CONSENT                */}
+          {/* ================================ */}
+
           <section>
             <h2 className="text-2xl font-bold mb-4">6. Data & Consent</h2>
-            <p className="text-muted-foreground mb-4">
-              By using TapAway, you consent to our collection and use of:
-            </p>
+            <p className="text-muted-foreground mb-4">By using TapAway, you consent to our collection and use of:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Restaurant information (name, address, menu data, logo)</li>
-              <li>Analytics data (button clicks, menu views, tap events)</li>
-              <li>AI logs used to generate insights and suggestions</li>
+              <li>Business information (name, address, menu, logo)</li>
+              <li>Analytics events (taps, clicks, button activity, menu views)</li>
+              <li>AI logs used to improve suggestions and generate insights</li>
             </ul>
-            <p className="text-muted-foreground mt-4">
-              We do not collect or store sensitive personal information from your customers. For details, see our Privacy Policy.
-            </p>
+            <p className="text-muted-foreground mt-4">We do not store sensitive personal data from your customers.</p>
           </section>
+
+          {/* ================================ */}
+          {/* 7. AI DISCLAIMER                 */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">7. AI Tools Disclaimer</h2>
             <p className="text-muted-foreground">
-              Our AI-powered features (including AI Coach insights and review reply generator) may contain inaccuracies. You agree to review and verify all AI-generated content before posting or acting on it. TapAway is not liable for outcomes resulting from reliance on AI suggestions.
+              TapAway’s AI features may generate incorrect, incomplete, or imperfect content. You agree to review all
+              AI-generated replies and insights before posting or using them. TapAway is not responsible for actions
+              taken based on AI content.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 8. PAYMENT & BILLING             */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">8. Payment, Subscriptions & Billing</h2>
             <p className="text-muted-foreground mb-4">
-              All payments are processed securely through Stripe. By subscribing, you agree to:
+              Payments are processed securely through Stripe. By subscribing, you agree to:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Auto-renewal of your subscription unless canceled</li>
-              <li>Maintaining up-to-date payment information</li>
-              <li>Monthly or yearly billing as selected during checkout</li>
+              <li>Automatic renewal unless canceled</li>
+              <li>Keeping valid payment information on file</li>
+              <li>Being billed monthly or yearly depending on your plan</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              Prices are subject to change with 30 days' notice. Add-on features (extra NFC cards, custom designs, etc.) may incur additional charges.
+              <strong>No refunds</strong> are provided for monthly or yearly subscriptions, except in the case of a
+              billing error caused by TapAway.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 9. CANCELLATION & TERMINATION    */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">9. Cancellation & Termination</h2>
             <p className="text-muted-foreground">
-              You may cancel your subscription at any time through the Stripe billing portal. Upon cancellation, your access will continue until the end of your current billing cycle. No partial refunds are provided unless stated in our Refund Policy. We reserve the right to terminate accounts for violations of these Terms.
+              You may cancel anytime through your Stripe billing portal. Your subscription remains active until the end
+              of your billing period. We may suspend or terminate accounts that violate these Terms.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 10. INTELLECTUAL PROPERTY        */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">10. Intellectual Property</h2>
             <p className="text-muted-foreground mb-4">
-              TapAway retains all rights to:
+              TapAway owns all rights to the software, dashboard, algorithms, branding, and product designs. You retain
+              ownership of all business content you upload, including logos and menu data.
             </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Software, algorithms, and AI models</li>
-              <li>Dashboard design and branding</li>
-              <li>NFC card design templates</li>
-            </ul>
-            <p className="text-muted-foreground mt-4">
-              You retain ownership of your restaurant content, including logos, menu data, and custom settings.
+            <p className="text-muted-foreground">
+              You agree that you have permission to upload all content you provide. You are responsible for any claims
+              arising from copyrighted or unauthorized content you upload.
             </p>
           </section>
 
+          {/* ================================ */}
+          {/* 11. LIMITATION OF LIABILITY      */}
+          {/* ================================ */}
+
           <section>
             <h2 className="text-2xl font-bold mb-4">11. Limitation of Liability</h2>
-            <p className="text-muted-foreground mb-4">
-              TapAway is not responsible for:
-            </p>
+            <p className="text-muted-foreground mb-4">TapAway is not responsible for:</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Lost revenue or business opportunities</li>
-              <li>Issues with third-party review platforms (Google, Yelp, Instagram)</li>
-              <li>Service outages or technical difficulties</li>
+              <li>Lost revenue, profits, customers, or business opportunities</li>
+              <li>Issues or restrictions imposed by Google, Yelp, or other platforms</li>
+              <li>Service interruptions, bugs, downtime, or technical issues</li>
               <li>Device incompatibility with NFC cards</li>
-              <li>Outcomes based on AI-generated content</li>
+              <li>Results or outcomes generated by AI tools</li>
+              <li>Any expectation of guaranteed new reviews or ratings</li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              Our maximum liability shall not exceed the amount you paid in the last 30 days.
+              TapAway does not guarantee the number, quality, or frequency of reviews your business may receive. Our
+              maximum liability is limited to the amount paid to TapAway in the last 30 days.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 12. INDEMNIFICATION              */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">12. Indemnification</h2>
             <p className="text-muted-foreground">
-              You agree to indemnify and hold harmless TapAway from any claims, damages, or expenses arising from your misuse of the service, violations of review platform policies, or illegal activities.
+              You agree to indemnify and hold TapAway harmless from any claims, damages, or legal actions arising from:
+              misuse of the service, violations of review platform rules, illegal activity, improper content uploads, or
+              breach of these Terms.
             </p>
           </section>
 
+          {/* ================================ */}
+          {/* 13. CHANGES TO TERMS             */}
+          {/* ================================ */}
+
           <section>
-            <h2 className="text-2xl font-bold mb-4">13. Modifications</h2>
+            <h2 className="text-2xl font-bold mb-4">13. Modifications to Terms</h2>
             <p className="text-muted-foreground">
-              We may update these Terms at any time. We will notify you of significant changes via email or dashboard notification. Continued use of TapAway after changes constitutes acceptance of the new Terms.
+              We may update these Terms at any time, with or without notice. The “Last Updated” date reflects when
+              changes were made. Continued use of TapAway constitutes acceptance of the latest Terms. You are
+              responsible for reviewing this page periodically.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 14. GOVERNING LAW                */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">14. Governing Law</h2>
             <p className="text-muted-foreground">
-              These Terms are governed by the laws of the State of California, United States. Any disputes shall be resolved in the courts of California.
+              These Terms are governed by the laws of the State of California. All disputes must be handled in
+              California courts.
             </p>
           </section>
+
+          {/* ================================ */}
+          {/* 15. CONTACT                      */}
+          {/* ================================ */}
 
           <section>
             <h2 className="text-2xl font-bold mb-4">15. Contact</h2>
             <p className="text-muted-foreground">
-              For questions about these Terms, contact us at: <strong>tap@tapaway.co</strong>
+              For any questions, contact us at: <strong>tap@tapaway.co</strong>
             </p>
           </section>
         </div>
