@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Star, Navigation, Instagram, Menu, X } from "lucide-react";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 
 interface Restaurant {
@@ -37,6 +36,7 @@ const ReviewHub = () => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Track when a restaurant is loaded (tap event)
   useEffect(() => {
@@ -134,17 +134,17 @@ const ReviewHub = () => {
 
   useEffect(() => {
     if (menuOpen) {
+      document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     } else {
+      document.documentElement.style.overflow = 'unset';
       document.body.style.overflow = 'unset';
     }
     return () => {
+      document.documentElement.style.overflow = 'unset';
       document.body.style.overflow = 'unset';
     };
   }, [menuOpen]);
-
-  // Show loading state initially
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Set loading to false after attempting to fetch
@@ -154,11 +154,12 @@ const ReviewHub = () => {
 
   if (loading && !restaurant) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '100vh', background: '#fff' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '48px', height: '48px', border: '4px solid #111', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+          <p style={{ color: '#6b7280' }}>Loading...</p>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -166,18 +167,18 @@ const ReviewHub = () => {
   // If not loading and still no restaurant, show not found
   if (!restaurant) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">🔍</span>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '100vh', background: '#fff', padding: '16px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '480px' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '32px' }}>
+            🔍
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Hub Not Found</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#111', marginBottom: '8px' }}>Hub Not Found</h1>
+          <p style={{ color: '#6b7280', marginBottom: '24px', fontSize: '15px', lineHeight: '1.5' }}>
             We couldn't find the review hub you're looking for. Please check the URL and try again.
           </p>
           <a 
             href="https://tapaway.co" 
-            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            style={{ display: 'inline-block', padding: '14px 24px', background: '#111', color: '#fff', borderRadius: '12px', textDecoration: 'none', fontWeight: '700' }}
           >
             Visit TapAway.co
           </a>
@@ -188,172 +189,283 @@ const ReviewHub = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
-          {restaurant.logo_url ? (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%', boxSizing: 'border-box', background: '#fff', minHeight: '100vh', padding: '28px 16px' }}>
+        <div style={{ 
+          maxWidth: '480px', 
+          width: '100%', 
+          margin: '0 auto', 
+          padding: '28px 24px', 
+          border: '1px solid #eee', 
+          borderRadius: '16px', 
+          boxShadow: '0 6px 24px rgba(0,0,0,.06)', 
+          background: '#fff', 
+          fontFamily: "'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif", 
+          textAlign: 'center' as const
+        }}>
+          
+          {/* Logo */}
+          {restaurant.logo_url && (
             <img 
               src={restaurant.logo_url} 
-              alt="Logo" 
-              className="w-20 h-20 rounded-lg mx-auto mb-6 object-cover" 
+              alt="Restaurant Logo" 
+              style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '12px', 
+                margin: '0 auto 24px', 
+                objectFit: 'cover',
+                display: 'block'
+              }} 
             />
-          ) : (
-            <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center mx-auto mb-6">
-              <span className="text-xs text-gray-400 text-center px-2">Logo</span>
-            </div>
           )}
 
-          <h1 className="text-[28px] font-bold text-[#111] text-center mb-2">
+          {/* Header */}
+          <h2 style={{ margin: '0 0 8px', fontSize: '28px', lineHeight: '1.2', fontWeight: '800', color: '#111' }}>
             {restaurant.header_title}
-          </h1>
-          <p className="text-[15px] text-[#6b7280] text-center mb-8">
+          </h2>
+          <p style={{ margin: '0 0 22px', color: '#6b7280', fontSize: '15px', lineHeight: '1.5' }}>
             {restaurant.header_subtitle}
           </p>
 
-          <div className="space-y-3">
-            {restaurant.google_review_url && (
-              <Button
-                className="w-full h-12 rounded-xl bg-white border border-[#e5e7eb] text-gray-900 hover:bg-gray-50 font-medium"
-                onClick={() => {
-                  trackEvent("google_review_clicked");
-                  if (isSafeUrl(restaurant.google_review_url)) {
-                    window.open(restaurant.google_review_url!, "_blank");
-                  }
-                }}
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Leave a Google Review
-              </Button>
-            )}
-
-            {restaurant.yelp_review_url && restaurant.yelp_review_url.trim() && (
-              <Button
-                className="w-full h-12 rounded-xl bg-[#d32323] text-white hover:bg-[#b91c1c] font-medium flex items-center justify-center gap-2"
-                onClick={() => {
-                  trackEvent("yelp_clicked");
-                  if (isSafeUrl(restaurant.yelp_review_url)) {
-                    window.open(restaurant.yelp_review_url!, "_blank");
-                  }
-                }}
-              >
-                <YelpIcon className="w-5 h-5 flex-shrink-0" />
-                Find Us on Yelp
-              </Button>
-            )}
-
-            {restaurant.instagram_url && (
-              <Button
-                className="w-full h-12 rounded-xl text-white font-medium"
-                style={{ background: 'linear-gradient(45deg, #f58529, #dd2a7b, #8134af, #515bd4)' }}
-                onClick={() => {
-                  trackEvent("instagram_clicked");
-                  if (isSafeUrl(restaurant.instagram_url)) {
-                    window.open(restaurant.instagram_url!, "_blank");
-                  }
-                }}
-              >
-                <Instagram className="w-5 h-5" />
-                Follow Us on Instagram
-              </Button>
-            )}
-
-            {restaurant.directions_url && (
-              <Button
-                className="w-full h-12 rounded-xl bg-[#2563eb] text-white hover:bg-[#1d4ed8] font-medium"
-                onClick={() => {
-                  trackEvent("directions_clicked");
-                  if (isSafeUrl(restaurant.directions_url)) {
-                    window.open(restaurant.directions_url!, "_blank");
-                  }
-                }}
-              >
-                <Navigation className="w-5 h-5" />
-                Get Directions
-              </Button>
-            )}
-
-            <Button
-              className="w-full h-12 rounded-xl bg-[#111] text-white hover:bg-black font-medium"
-              onClick={() => {
-                trackEvent("menu_viewed");
-                setMenuOpen(true);
+          {/* GOOGLE REVIEW */}
+          {isSafeUrl(restaurant.google_review_url) && (
+            <a 
+              href={restaurant.google_review_url!}
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('google_click')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                justifyContent: 'center', 
+                width: '100%', 
+                textDecoration: 'none', 
+                background: '#fff', 
+                border: '1px solid #e5e7eb', 
+                color: '#111', 
+                padding: '14px 16px', 
+                borderRadius: '12px', 
+                fontWeight: '700', 
+                marginBottom: '12px', 
+                transition: '.2s',
+                cursor: 'pointer'
               }}
             >
-              <Menu className="w-5 h-5" />
-              {restaurant.menu_title}
-            </Button>
-          </div>
-
-          <p className="text-center text-xs text-gray-500 mt-8">
-            Powered by{" "}
-            <a
-              href="https://tapaway.co"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-black hover:underline"
-            >
-              TapAway
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.223 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 6.053 29.084 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 6.053 29.084 4 24 4c-7.682 0-14.344 4.337-17.694 10.691z"/>
+                <path fill="#4CAF50" d="M24 44c5.167 0 9.86-1.977 13.409-5.193l-6.198-5.238C29.104 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.794 2.241-2.231 4.166-3.894 5.569l6.2 5.238C36.945 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+              </svg>
+              Leave a Google Review
             </a>
-          </p>
+          )}
+
+          {/* YELP */}
+          {isSafeUrl(restaurant.yelp_review_url) && (
+            <a 
+              href={restaurant.yelp_review_url!}
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('yelp_click')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                justifyContent: 'center', 
+                width: '100%', 
+                textDecoration: 'none', 
+                background: '#d32323', 
+                color: '#fff', 
+                padding: '14px 16px', 
+                borderRadius: '12px', 
+                fontWeight: '700', 
+                marginBottom: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              <YelpIcon className="w-[18px] h-[18px] flex-shrink-0 invert" />
+              Find Us on Yelp
+            </a>
+          )}
+
+          {/* INSTAGRAM */}
+          {isSafeUrl(restaurant.instagram_url) && (
+            <a 
+              href={restaurant.instagram_url!}
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('instagram_click')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                justifyContent: 'center', 
+                width: '100%', 
+                textDecoration: 'none', 
+                background: 'linear-gradient(45deg,#f58529,#dd2a7b,#8134af,#515bd4)', 
+                color: '#fff', 
+                padding: '14px 16px', 
+                borderRadius: '12px', 
+                fontWeight: '700', 
+                marginBottom: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+                <path fill="#fff" d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.31.975.975 1.248 2.242 1.31 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.31 3.608-.975.975-2.242 1.248-3.608 1.31-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.31-.975-.975-1.248-2.242-1.31-3.608C2.175 15.747 2.163 15.367 2.163 12s.012-3.584.07-4.85c.062-1.366.334-2.633 1.31-3.608.975-.975 2.242-1.248 3.608-1.31C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.735 0 8.332.014 7.052.072 5.775.13 4.897.304 4.158.543c-.78.255-1.438.597-2.096 1.255C1.403 2.456 1.06 3.114.806 3.894.567 4.633.393 5.511.335 6.788.277 8.068.263 8.471.263 12c0 3.529.014 3.932.072 5.212.058 1.277.232 2.155.471 2.894.255.78.597 1.438 1.255 2.096.658.658 1.316 1 2.096 1.255.739.239 1.617.413 2.894.471 1.28.058 1.683.072 5.212.072s3.932-.014 5.212-.072c1.277-.058 2.155-.232 2.894-.471.78-.255 1.438-.597 2.096-1.255.658-.658 1-1.316 1.255-2.096.239-.739.413-1.617.471-2.894.058-1.28.072-1.683.072-5.212 0-3.529-.014-3.932-.072-5.212-.058-1.277-.232-2.155-.471-2.894-.255-.78-.597-1.438-1.255-2.096C21.544 1.14 20.886.798 20.106.543c-.739-.239-1.617-.413-2.894-.471C15.932.014 15.529 0 12 0zM12 5.838a6.162 6.162 0 1 0 0 12.324A6.162 6.162 0 0 0 12 5.838zm0 10.162a3.999 3.999 0 1 1 0-7.998 3.999 3.999 0 0 1 0 7.998zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
+              </svg>
+              Follow Us on Instagram
+            </a>
+          )}
+
+          {/* DIRECTIONS */}
+          {isSafeUrl(restaurant.directions_url) && (
+            <a 
+              href={restaurant.directions_url!}
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('directions_click')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                justifyContent: 'center', 
+                width: '100%', 
+                textDecoration: 'none', 
+                background: '#2563eb', 
+                color: '#fff', 
+                padding: '14px 16px', 
+                borderRadius: '12px', 
+                fontWeight: '700', 
+                marginBottom: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#fff" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+              </svg>
+              Get Directions
+            </a>
+          )}
+
+          {/* MENU BUTTON */}
+          <a 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              trackEvent('menu_view');
+              setMenuOpen(true);
+            }}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              justifyContent: 'center', 
+              width: '100%', 
+              textDecoration: 'none', 
+              background: '#111', 
+              color: '#fff', 
+              padding: '14px 16px', 
+              borderRadius: '12px', 
+              fontWeight: '700', 
+              marginBottom: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#fff" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 20H3V8h18v12zm0-14H3V4h18v2zm-9 8v2h5v-2h-5z"/>
+            </svg>
+            {restaurant.menu_title}
+          </a>
+
+          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: '1px solid #eee', fontSize: '12px', color: '#9ca3af' }}>
+            Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: '#111', textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
+          </div>
         </div>
       </div>
 
-      {/* Menu Modal */}
+      {/* MENU MODAL */}
       {menuOpen && (
         <div 
-          className="fixed inset-0 bg-[rgba(17,24,39,0.6)] backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(17,24,39,0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
           onClick={() => setMenuOpen(false)}
         >
           <div 
-            className="bg-white rounded-2xl w-full max-w-[780px] max-h-[90vh] flex flex-col shadow-2xl"
+            style={{
+              background: '#fff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '780px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              overflow: 'hidden'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sticky Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-[#111]">{restaurant.restaurant_name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#111', margin: 0 }}>{restaurant.restaurant_name}</h2>
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-full"
+                style={{ borderRadius: '9999px', padding: '8px 16px', fontWeight: '600' }}
                 onClick={() => setMenuOpen(false)}
               >
-                <X className="w-5 h-5" />
-                Close
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span style={{ marginLeft: '8px' }}>Close</span>
               </Button>
             </div>
 
             {/* Scrollable Menu Content */}
-            <div className="overflow-y-auto p-6 space-y-4">
+            <div style={{ overflowY: 'auto', padding: '24px' }}>
               {menuSections.length > 0 ? (
-                menuSections.map((section) => (
-                  <details key={section.id} className="group" open>
-                    <summary className="cursor-pointer bg-gray-50 rounded-xl p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
-                      <span className="font-bold text-lg text-[#111]">{section.name}</span>
-                    </summary>
-                    <div className="mt-2 space-y-3 pl-4">
-                      {section.items.map((item) => (
-                        <div key={item.id} className="flex justify-between items-start py-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-[#111]">{item.name}</p>
-                            {item.description && (
-                              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {menuSections.map((section) => (
+                    <details key={section.id} open style={{ background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                      <summary style={{ cursor: 'pointer', padding: '16px', fontWeight: '700', fontSize: '18px', color: '#111', listStyle: 'none' }}>
+                        {section.name}
+                      </summary>
+                      <div style={{ padding: '0 16px 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {section.items.map((item) => (
+                          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: '8px', paddingBottom: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontWeight: '600', color: '#111', margin: '0 0 4px 0' }}>{item.name}</p>
+                              {item.description && (
+                                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>{item.description}</p>
+                              )}
+                            </div>
+                            {item.price && (
+                              <p style={{ fontWeight: '700', color: '#111', marginLeft: '16px', flexShrink: 0, margin: 0 }}>{item.price}</p>
                             )}
                           </div>
-                          {item.price && (
-                            <p className="font-bold text-[#111] ml-4">{item.price}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                ))
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">Menu coming soon...</p>
+                <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                  <p style={{ color: '#6b7280', fontSize: '15px' }}>Menu coming soon...</p>
                 </div>
               )}
             </div>
