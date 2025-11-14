@@ -19,23 +19,22 @@ export const useAdminAccess = () => {
         return;
       }
 
-      // Avoid double-checking
       if (checked) return;
       setChecked(true);
 
       try {
-        // Check if user email is tap@tapaway.co
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // Server-side admin check using RPC
+        const { data, error } = await supabase.rpc('is_admin');
         
-        if (authUser?.email === "tap@tapaway.co") {
+        if (error) throw error;
+        
+        if (data === true) {
           setIsAdmin(true);
         } else {
-          // Not admin, redirect to dashboard
           toast.error("Admin access is restricted to TapAway staff");
           navigate("/dashboard");
         }
       } catch (error) {
-        console.error("Error checking admin access:", error);
         toast.error("Failed to verify admin access");
         navigate("/dashboard");
       } finally {
