@@ -192,9 +192,7 @@ const ReviewHub = () => {
                   }
                 }}
               >
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <YelpIcon className="w-5 h-5" />
-                </div>
+                <YelpIcon className="w-5 h-5 flex-shrink-0" />
                 Find Us on Yelp
               </Button>
             )}

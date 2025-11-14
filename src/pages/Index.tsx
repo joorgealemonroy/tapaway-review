@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import { NewHero } from "@/components/landing/NewHero";
+import { HowItWorks } from "@/components/landing/HowItWorks";
 
 const Index = () => {
   const { user } = useAuth();
@@ -35,24 +38,48 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="text-center pt-12 pb-4 px-4">
+      {/* New Black Hero */}
+      <NewHero />
+
+      {/* How TapAway Works */}
+      <HowItWorks />
+
+      {/* Existing Hero Section - now acts as secondary section */}
+      <header id="get-started" className="text-center pt-12 pb-4 px-4">
         <div className="max-w-[1060px] mx-auto">
-          <h1 className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3"
+          >
             Turn Guests into Reviews
             <br />
             Instantly
-          </h1>
-          <p className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4"
+          >
             One tap at the table—your branded review page opens. No apps. No
             awkward asks. Just more 5-star reviews that bring in more guests.
-          </p>
+          </motion.p>
         </div>
 
         {/* 3D Card Animation */}
-        <div className="my-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="my-12"
+        >
           <TapAwayCard3D />
-        </div>
+        </motion.div>
 
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           <a
