@@ -231,6 +231,11 @@ const Dashboard = () => {
     );
   }
 
+  // If no restaurant is loaded yet (even for admins), show loading
+  if (!restaurant) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">Loading restaurant data...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-background/95 backdrop-blur">
