@@ -38,6 +38,13 @@ const ReviewHub = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
 
+  // Track when a restaurant is loaded (tap event)
+  useEffect(() => {
+    if (restaurant) {
+      trackEvent('tap');
+    }
+  }, [restaurant]);
+
   useEffect(() => {
     // Check if we're on a custom slug route (not /hub/:id)
     const isCustomSlugRoute = !location.pathname.startsWith('/hub/');
@@ -52,11 +59,17 @@ const ReviewHub = () => {
   }, [restaurantId, customSlug, location]);
 
   const fetchRestaurantBySlug = async (slug: string) => {
-    const { data } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from("restaurant_public_info")
       .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
       .eq("custom_slug", slug)
       .single();
+
+    if (error || !data) {
+      console.error("Restaurant not found for slug:", slug);
+      setRestaurant(null);
+      return;
+    }
 
     if (data) {
       setRestaurant(data);
@@ -130,10 +143,45 @@ const ReviewHub = () => {
     };
   }, [menuOpen]);
 
-  if (!restaurant) {
+  // Show loading state initially
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Set loading to false after attempting to fetch
+    const timer = setTimeout(() => setLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading && !restaurant) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not loading and still no restaurant, show not found
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">🔍</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Hub Not Found</h1>
+          <p className="text-gray-600 mb-6">
+            We couldn't find the review hub you're looking for. Please check the URL and try again.
+          </p>
+          <a 
+            href="https://tapaway.co" 
+            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Visit TapAway.co
+          </a>
+        </div>
       </div>
     );
   }
