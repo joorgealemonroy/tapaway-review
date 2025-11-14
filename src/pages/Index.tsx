@@ -56,7 +56,7 @@ const Index = () => {
           >
             Turn Guests into Reviews
             <br />
-            Instantly
+            Instantly✨
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -65,8 +65,8 @@ const Index = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4"
           >
-            One tap at the table—your branded review page opens. No apps. No
-            awkward asks. Just more 5-star reviews that bring in more guests.
+            One tap at the table—your branded review page opens. No apps. No awkward asks. Just more 5-star reviews that
+            bring in more guests.
           </motion.p>
         </div>
 
@@ -151,9 +151,7 @@ const Index = () => {
               </div>
               <div>
                 <h4 className="font-bold text-lg mb-2">Results you can feel.</h4>
-                <p className="text-muted-foreground">
-                  Fresh reviews → better ranking → more foot traffic.
-                </p>
+                <p className="text-muted-foreground">Fresh reviews → better ranking → more foot traffic.</p>
               </div>
             </div>
           </div>
@@ -163,27 +161,19 @@ const Index = () => {
       {/* Why TapAway */}
       <section id="why" className="py-16 px-4 bg-muted/30">
         <div className="max-w-[1060px] mx-auto">
-          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">
-            Why Restaurants Choose TapAway
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">Why Restaurants Choose TapAway</h2>
           <div className="grid md:grid-cols-3 gap-8 mb-12">
             <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
               <h3 className="text-xl font-bold mb-3">⚡ Fast & Effortless</h3>
-              <p className="text-muted-foreground">
-                Customers tap—you get reviews. That simple.
-              </p>
+              <p className="text-muted-foreground">Customers tap—you get reviews. That simple.</p>
             </div>
             <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
               <h3 className="text-xl font-bold mb-3">📈 Immediate Impact</h3>
-              <p className="text-muted-foreground">
-                More reviews means more people find you.
-              </p>
+              <p className="text-muted-foreground">More reviews means more people find you.</p>
             </div>
             <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
               <h3 className="text-xl font-bold mb-3">🔐 Privacy‑Friendly</h3>
-              <p className="text-muted-foreground">
-                Ethical tracking, no cookies—respect guests.
-              </p>
+              <p className="text-muted-foreground">Ethical tracking, no cookies—respect guests.</p>
             </div>
           </div>
 
@@ -236,9 +226,7 @@ const Index = () => {
       {/* Pricing */}
       <section id="pricing" className="py-16 px-4">
         <div className="max-w-[1060px] mx-auto">
-          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">
-            Choose Your Plan
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">Choose Your Plan</h2>
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             <div className="bg-white rounded-2xl p-8 border-2 border-[#111827] shadow-lg relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111827] text-white px-4 py-1 rounded-full text-sm font-bold">
@@ -280,28 +268,17 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-12 px-4 bg-[#111827] text-white/60">
         <div className="max-w-[1060px] mx-auto text-center">
-          <p className="text-sm mb-3">
-            © 2025 TapAway. Simple. Fast. More 5-star reviews.
-          </p>
+          <p className="text-sm mb-3">© 2025 TapAway. Simple. Fast. More 5-star reviews.</p>
           <div className="flex items-center justify-center gap-2 text-xs text-white/40">
-            <a 
-              href="/terms" 
-              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
-            >
+            <a href="/terms" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
               Terms of Service
             </a>
             <span>·</span>
-            <a 
-              href="/privacy" 
-              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
-            >
+            <a href="/privacy" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
               Privacy Policy
             </a>
             <span>·</span>
-            <a 
-              href="/refund" 
-              className="hover:text-white/70 hover:underline underline-offset-4 transition-colors"
-            >
+            <a href="/refund" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
               Refund Policy
             </a>
           </div>
