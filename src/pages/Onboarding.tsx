@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
+import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -92,7 +93,30 @@ const Onboarding = () => {
 
     setIsLoading(true);
     try {
+      // Check slug uniqueness
+      if (formData.customSlug) {
+        const { data: existing } = await supabase
+          .from('restaurants')
+          .select('id')
+          .eq('custom_slug', formData.customSlug)
+          .single();
+        
+        if (existing) {
+          toast.error('This URL is already taken. Please choose a different one.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const validatedData = onboardingSchema.parse(formData);
+
+      // Auto-generate Apple Maps URL from address
+      let directionsUrl = formData.directionsUrl;
+      if (!directionsUrl && formData.address) {
+        const encodedAddress = encodeURIComponent(formData.address);
+        const encodedName = encodeURIComponent(formData.restaurantName);
+        directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+      }
 
       let logoUrl = null;
       if (logoFile) {
@@ -115,10 +139,12 @@ const Onboarding = () => {
         owner_id: user.id,
         restaurant_name: validatedData.restaurantName,
         custom_slug: validatedData.customSlug,
+        slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram ? `https://instagram.com/${validatedData.instagram.replace('@', '')}` : null,
         google_review_url: validatedData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${validatedData.googlePlaceId}` : null,
+        google_place_id: validatedData.googlePlaceId || null,
         yelp_review_url: validatedData.yelpUrl || null,
-        directions_url: validatedData.directionsUrl || null,
+        directions_url: directionsUrl || null,
         address: validatedData.address || null,
         phone: validatedData.phone || null,
         email: validatedData.email || null,
@@ -290,10 +316,13 @@ const Onboarding = () => {
                   type="url"
                   value={formData.directionsUrl}
                   onChange={(e) => handleInputChange("directionsUrl", e.target.value)}
-                  placeholder="https://maps.apple.com/..."
+                  placeholder="Auto-generated from address or search"
+                  disabled
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Get link from Apple Maps: Share → Copy Link
+                  {formData.directionsUrl 
+                    ? "✓ Directions URL auto-generated" 
+                    : "Will be generated from your address"}
                 </p>
               </div>
             </div>
@@ -309,26 +338,23 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="googlePlaceId">Google Place ID</Label>
-                <Input
-                  id="googlePlaceId"
-                  value={formData.googlePlaceId}
-                  onChange={(e) => handleInputChange("googlePlaceId", e.target.value)}
-                  placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Find your Place ID at{" "}
-                  <a
-                    href="https://developers.google.com/maps/documentation/places/web-service/place-id"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Google Place ID Finder
-                  </a>
-                </p>
-              </div>
+              <GooglePlacesAutocomplete
+                onPlaceSelected={(place) => {
+                  handleInputChange("googlePlaceId", place.placeId);
+                  if (!formData.restaurantName) {
+                    handleInputChange("restaurantName", place.name);
+                  }
+                  if (!formData.address) {
+                    handleInputChange("address", place.address);
+                  }
+                  // Auto-generate Apple Maps URL
+                  const encodedAddress = encodeURIComponent(place.address);
+                  const encodedName = encodeURIComponent(place.name);
+                  handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
+                  toast.success("Business found! Review URL will be auto-generated.");
+                }}
+                defaultValue={formData.restaurantName}
+              />
 
               <div>
                 <Label htmlFor="yelpUrl">Yelp Review URL</Label>
