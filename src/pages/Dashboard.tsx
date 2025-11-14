@@ -62,11 +62,15 @@ const Dashboard = () => {
   const checkAdminStatus = async () => {
     const { data: isAdminData } = await supabase.rpc('is_admin');
     const { data: isTestData } = await (supabase as any).rpc('is_test_account');
-    
-    setIsAdmin(isAdminData || false);
+
+    const emailAdmin = user?.email === 'tap@tapaway.co';
+    const metaAdmin = (user as any)?.app_metadata?.role === 'admin';
+    const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
+
+    setIsAdmin(effectiveAdmin);
     setIsTestAccount(isTestData || false);
-    
-    if (isAdminData) {
+
+    if (effectiveAdmin) {
       fetchAllRestaurants();
     } else {
       fetchRestaurant();
