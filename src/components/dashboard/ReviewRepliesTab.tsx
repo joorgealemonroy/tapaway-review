@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Copy, Star, Sparkles } from "lucide-react";
+import { Copy, Sparkles, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 interface ReviewRepliesTabProps {
@@ -71,97 +71,93 @@ export const ReviewRepliesTab = ({ restaurantId }: ReviewRepliesTabProps) => {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
+    <div className="space-y-6 pb-8 animate-fade-in">
       <div>
-        <h2 className="text-xl md:text-2xl font-bold mb-2">AI Review Replies</h2>
-        <p className="text-sm md:text-base text-muted-foreground">
-          Generate professional, personalized responses to customer reviews using AI
-        </p>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
+          <MessageSquare className="w-7 h-7 text-primary" />
+          AI Review Replies
+        </h2>
+        <p className="text-muted-foreground">Generate professional responses to customer reviews</p>
       </div>
 
-      <Card className="p-4 md:p-6">
+      <Card className="p-6 card-elevated">
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="reviewer-name">Reviewer Name (optional)</Label>
-            <Input
-              id="reviewer-name"
-              value={reviewerName}
-              onChange={(e) => setReviewerName(e.target.value)}
-              placeholder="John D."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="rating">Rating</Label>
-            <div className="flex gap-2 mt-2">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  onClick={() => setRating(value)}
-                  className={`text-2xl ${value <= rating ? 'text-yellow-500' : 'text-gray-300'}`}
-                >
-                  ★
-                </button>
-              ))}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="reviewer-name" className="text-sm font-semibold">Reviewer Name (Optional)</Label>
+              <Input
+                id="reviewer-name"
+                value={reviewerName}
+                onChange={(e) => setReviewerName(e.target.value)}
+                placeholder="John D."
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Rating</Label>
+              <div className="flex gap-2 mt-2">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setRating(value)}
+                    className={`text-3xl transition-smooth ${value <= rating ? 'text-yellow-500 scale-110' : 'text-gray-300'}`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="review-text">Review Text</Label>
+            <Label htmlFor="review-text" className="text-sm font-semibold">Review Text</Label>
             <Textarea
               id="review-text"
               value={reviewText}
               onChange={(e) => setReviewText(e.target.value)}
               placeholder="Paste the customer's review here..."
               rows={6}
+              className="mt-2"
             />
           </div>
 
-          <Button onClick={generateReply} disabled={generating} className="w-full">
+          <Button onClick={generateReply} disabled={generating} className="w-full gradient-primary text-white">
             <Sparkles className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-            {generating ? 'Generating...' : 'Generate AI Reply'}
+            {generating ? 'Generating Reply...' : 'Generate AI Reply'}
           </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            💡 Example: "The food was great but service was slow" → AI generates empathetic, professional response
+          </p>
         </div>
       </Card>
 
       {replies.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Generated Replies</h3>
+          <h3 className="text-xl font-bold">Generated Replies</h3>
           {replies.map((reply, index) => (
-            <Card key={index} className="p-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium">Review</span>
-                    <div className="flex text-yellow-500">
+            <Card key={index} className="p-6 card-elevated">
+              <div className="space-y-4">
+                <div className="pb-4 border-b">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold">{reply.reviewerName || 'Anonymous'}</p>
+                    <div className="flex gap-1">
                       {Array.from({ length: reply.rating }).map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-current" />
+                        <span key={i} className="text-yellow-500">★</span>
                       ))}
                     </div>
                   </div>
-                  {reply.reviewerName && (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      By: {reply.reviewerName}
-                    </p>
-                  )}
-                  <p className="text-sm bg-muted p-4 rounded-lg">{reply.reviewText}</p>
+                  <p className="text-sm text-muted-foreground italic">"{reply.reviewText}"</p>
                 </div>
-
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Suggested Reply</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyReply(reply.aiReply)}
-                    >
+                    <p className="font-semibold text-primary">AI Generated Reply:</p>
+                    <Button variant="outline" size="sm" onClick={() => copyReply(reply.aiReply)}>
                       <Copy className="w-4 h-4 mr-2" />
                       Copy
                     </Button>
                   </div>
-                  <p className="text-sm bg-primary/5 p-4 rounded-lg border border-primary/20">
-                    {reply.aiReply}
-                  </p>
+                  <p className="text-sm leading-relaxed">{reply.aiReply}</p>
                 </div>
               </div>
             </Card>

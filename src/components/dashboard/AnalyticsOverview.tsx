@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu } from "lucide-react";
+import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu, Activity, Calendar } from "lucide-react";
 
 interface AnalyticsData {
   totalTaps: number;
@@ -18,9 +18,10 @@ interface AnalyticsData {
 
 interface AnalyticsOverviewProps {
   restaurantId: string;
+  restaurantName: string;
 }
 
-export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
+export const AnalyticsOverview = ({ restaurantId, restaurantName }: AnalyticsOverviewProps) => {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     googleClicks: 0,
@@ -40,7 +41,6 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
 
   const fetchAnalytics = async () => {
     try {
-      // Fetch all analytics events for this restaurant
       const { data, error } = await (supabase as any)
         .from("analytics_events")
         .select("*")
@@ -50,19 +50,16 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
       if (error) throw error;
 
       if (data) {
-        // Calculate totals
         const googleClicks = data.filter((e: any) => e.event_type === "google_review_clicked").length;
         const yelpClicks = data.filter((e: any) => e.event_type === "yelp_clicked").length;
         const instagramClicks = data.filter((e: any) => e.event_type === "instagram_clicked").length;
         const directionsClicks = data.filter((e: any) => e.event_type === "directions_clicked").length;
         const menuViews = data.filter((e: any) => e.event_type === "menu_viewed").length;
 
-        // Get last 7 days data
         const last7Days = new Date();
         last7Days.setDate(last7Days.getDate() - 7);
         const recentData = data.filter(e => new Date(e.created_at) >= last7Days);
 
-        // Group by date for chart
         const dateGroups: { [key: string]: number } = {};
         recentData.forEach(event => {
           const date = new Date(event.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -71,7 +68,6 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
 
         const chartData = Object.entries(dateGroups).map(([date, taps]) => ({ date, taps }));
 
-        // Calculate most clicked button
         const clicks = [
           { name: "Google Review", count: googleClicks },
           { name: "Yelp", count: yelpClicks },
@@ -81,7 +77,6 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
         ];
         const mostClicked = clicks.reduce((max, item) => item.count > max.count ? item : max, clicks[0]).name;
 
-        // Calculate peak day (simplified - would need more complex logic for real implementation)
         const dayGroups: { [key: string]: number } = {};
         recentData.forEach(event => {
           const day = new Date(event.created_at).toLocaleDateString('en-US', { weekday: 'long' });
@@ -92,7 +87,7 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
         );
 
         setAnalytics({
-          totalTaps: data.length,
+          totalTaps: recentData.length,
           googleClicks,
           yelpClicks,
           instagramClicks,
@@ -111,91 +106,149 @@ export const AnalyticsOverview = ({ restaurantId }: AnalyticsOverviewProps) => {
   };
 
   if (loading) {
-    return <div className="text-muted-foreground">Loading analytics...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
+  const buttonStats = [
+    { name: "Google Reviews", count: analytics.googleClicks, icon: Star, color: "text-yellow-600" },
+    { name: "Directions", count: analytics.directionsClicks, icon: MapPin, color: "text-blue-600" },
+    { name: "Menu Views", count: analytics.menuViews, icon: Menu, color: "text-purple-600" },
+    { name: "Instagram", count: analytics.instagramClicks, icon: Instagram, color: "text-pink-600" },
+  ];
+
   return (
-    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-        <Card className="p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-muted-foreground">Total Taps (7 days)</p>
-              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{analytics.totalTaps}</p>
-            </div>
-            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-primary shrink-0" />
+    <div className="space-y-6 pb-8 animate-fade-in">
+      {/* Welcome Card */}
+      <Card className="p-6 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 w-12 h-12 rounded-full gradient-primary flex items-center justify-center">
+            <Activity className="w-6 h-6 text-white" />
           </div>
-        </Card>
-
-        <Card className="p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-muted-foreground">Most Clicked</p>
-              <p className="text-lg md:text-xl font-semibold mt-1 md:mt-2">{analytics.mostClicked}</p>
-            </div>
-            <MousePointer className="w-6 h-6 md:w-8 md:h-8 text-primary shrink-0" />
-          </div>
-        </Card>
-
-        <Card className="p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs md:text-sm text-muted-foreground">Peak Day</p>
-              <p className="text-lg md:text-xl font-semibold mt-1 md:mt-2">{analytics.peakDay}</p>
-            </div>
-            <Star className="w-6 h-6 md:w-8 md:h-8 text-primary shrink-0" />
-          </div>
-        </Card>
-      </div>
-
-      {/* Individual Button Clicks */}
-      <Card className="p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Button Performance</h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <div className="text-center">
-            <Star className="w-5 h-5 md:w-6 md:h-6 mx-auto text-primary mb-2" />
-            <p className="text-xl md:text-2xl font-bold">{analytics.googleClicks}</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Google Reviews</p>
-          </div>
-          <div className="text-center">
-            <Star className="w-5 h-5 md:w-6 md:h-6 mx-auto text-destructive mb-2" />
-            <p className="text-xl md:text-2xl font-bold">{analytics.yelpClicks}</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Yelp</p>
-          </div>
-          <div className="text-center">
-            <Instagram className="w-5 h-5 md:w-6 md:h-6 mx-auto text-primary mb-2" />
-            <p className="text-xl md:text-2xl font-bold">{analytics.instagramClicks}</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Instagram</p>
-          </div>
-          <div className="text-center">
-            <MapPin className="w-5 h-5 md:w-6 md:h-6 mx-auto text-primary mb-2" />
-            <p className="text-xl md:text-2xl font-bold">{analytics.directionsClicks}</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Directions</p>
-          </div>
-          <div className="text-center">
-            <Menu className="w-5 h-5 md:w-6 md:h-6 mx-auto text-foreground mb-2" />
-            <p className="text-xl md:text-2xl font-bold">{analytics.menuViews}</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Menu Views</p>
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              Hi, {restaurantName}! 👋
+            </h2>
+            <p className="text-muted-foreground text-base">
+              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
+              {analytics.totalTaps > 0 && (
+                <>
+                  {" "}Your most clicked button is <span className="font-semibold text-primary">{analytics.mostClicked}</span>, 
+                  and your peak day is <span className="font-semibold text-primary">{analytics.peakDay}</span>.
+                </>
+              )}
+            </p>
           </div>
         </div>
       </Card>
 
-      {/* Chart */}
+      {/* Key Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Total Taps</p>
+            </div>
+          </div>
+          <p className="text-4xl font-bold text-primary">{analytics.totalTaps}</p>
+          <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+        </Card>
+
+        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                <MousePointer className="w-5 h-5 text-accent" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Most Clicked</p>
+            </div>
+          </div>
+          <p className="text-2xl font-bold">{analytics.mostClicked}</p>
+          <p className="text-xs text-muted-foreground mt-1">Most popular action</p>
+        </Card>
+
+        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-green-600" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Peak Day</p>
+            </div>
+          </div>
+          <p className="text-2xl font-bold">{analytics.peakDay}</p>
+          <p className="text-xs text-muted-foreground mt-1">Most active day</p>
+        </Card>
+      </div>
+
+      {/* Activity Chart */}
       {analytics.chartData.length > 0 && (
-        <Card className="p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Activity Over Time (Last 7 Days)</h3>
-          <ResponsiveContainer width="100%" height={250}>
+        <Card className="p-6 card-elevated">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
+            <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={analytics.chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" angle={-45} textAnchor="end" height={60} fontSize={11} />
-              <YAxis fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="taps" fill="hsl(var(--primary))" />
+              <defs>
+                <linearGradient id="colorTaps" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(182 85% 39%)" stopOpacity={0.8}/>
+                  <stop offset="100%" stopColor="hsl(182 85% 39%)" stopOpacity={0.3}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
+              <XAxis dataKey="date" stroke="hsl(215 16% 47%)" fontSize={12} />
+              <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white',
+                  border: '1px solid hsl(214 32% 91%)',
+                  borderRadius: '0.5rem',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              />
+              <Bar dataKey="taps" fill="url(#colorTaps)" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
       )}
+
+      {/* Button Performance */}
+      <Card className="p-6 card-elevated">
+        <div className="mb-6">
+          <h3 className="text-xl font-bold mb-1">Button Performance</h3>
+          <p className="text-sm text-muted-foreground">Track which actions your customers are taking</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {buttonStats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.name} className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 transition-smooth hover:bg-muted">
+                <div className={`w-10 h-10 rounded-lg bg-white flex items-center justify-center ${stat.color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stat.count}</p>
+                  <p className="text-xs text-muted-foreground">{stat.name}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {analytics.totalTaps > 0 && (
+          <div className="mt-6 p-4 rounded-lg bg-accent/10 border border-accent/20">
+            <p className="text-sm text-foreground">
+              💡 <span className="font-semibold">Pro Tip:</span> Hand out more cards at tables with great experiences to boost these numbers!
+            </p>
+          </div>
+        )}
+      </Card>
     </div>
   );
 };

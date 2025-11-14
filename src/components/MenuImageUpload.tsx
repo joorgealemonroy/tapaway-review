@@ -58,7 +58,7 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
       // Update restaurant with menu image URL
       const { error: updateError } = await supabase
         .from('restaurants')
-        .update({ menu_image_url: publicUrl })
+        .update({ menu_image_url: publicUrl } as any)
         .eq('id', restaurantId);
 
       if (updateError) {
