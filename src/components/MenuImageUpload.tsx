@@ -19,9 +19,9 @@ export const MenuImageUpload = ({ restaurantId, onMenuParsed }: MenuImageUploadP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 10MB)
-    if (file.size > 10485760) {
-      toast.error("Image must be less than 10MB");
+    // Validate file size (max 20MB)
+    if (file.size > 20971520) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
