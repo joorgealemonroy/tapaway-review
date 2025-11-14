@@ -3,6 +3,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
+import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
 
 interface Restaurant {
   id: string;
@@ -15,6 +16,8 @@ interface Restaurant {
   directions_url: string | null;
   instagram_url: string | null;
   logo_url: string | null;
+  custom_slug: string | null;
+  type?: string | null;
 }
 
 interface MenuSection {
@@ -61,18 +64,26 @@ const ReviewHub = () => {
   const fetchRestaurantBySlug = async (slug: string) => {
     const { data, error } = await (supabase as any)
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
+      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, custom_slug")
       .eq("custom_slug", slug)
       .single();
 
     if (error || !data) {
       console.error("Restaurant not found for slug:", slug);
       setRestaurant(null);
+      setLoading(false);
       return;
     }
 
     if (data) {
-      setRestaurant(data);
+      // Fetch type from restaurants table
+      const { data: restaurantData } = await (supabase as any)
+        .from("restaurants")
+        .select("type")
+        .eq("id", data.id)
+        .single();
+      
+      setRestaurant({ ...data, type: restaurantData?.type || null });
       fetchMenu(data.id);
     }
   };
@@ -80,12 +91,19 @@ const ReviewHub = () => {
   const fetchRestaurant = async (id: string) => {
     const { data } = await (supabase as any)
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url")
+      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, custom_slug")
       .eq("id", id)
       .single();
 
     if (data) {
-      setRestaurant(data);
+      // Fetch type from restaurants table
+      const { data: restaurantData } = await (supabase as any)
+        .from("restaurants")
+        .select("type")
+        .eq("id", data.id)
+        .single();
+      
+      setRestaurant({ ...data, type: restaurantData?.type || null });
       fetchMenu(data.id);
     }
   };
@@ -185,6 +203,11 @@ const ReviewHub = () => {
         </div>
       </div>
     );
+  }
+
+  // AV Meal Prep custom hub
+  if (restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep') {
+    return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
 
   return (

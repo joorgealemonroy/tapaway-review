@@ -33,28 +33,28 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
 
   const fetchAnalytics = async () => {
     try {
-      const { data: events } = await supabase
+      const { data: events } = await (supabase as any)
         .from("analytics_events")
         .select("*")
         .eq("restaurant_id", restaurantId)
         .order("created_at", { ascending: false });
 
       if (events) {
-        const tapEvents = events.filter((e) => e.event_type === "tap");
-        const clickEvents = events.filter((e) => 
+        const tapEvents = events.filter((e: any) => e.event_type === "tap");
+        const clickEvents = events.filter((e: any) => 
           ["google_click", "yelp_click", "instagram_click", "directions_click", "menu_view"].includes(e.event_type)
         );
 
         // Calculate most clicked button
         const clickCounts: Record<string, number> = {};
-        clickEvents.forEach((e) => {
+        clickEvents.forEach((e: any) => {
           clickCounts[e.event_type] = (clickCounts[e.event_type] || 0) + 1;
         });
         const mostClicked = Object.entries(clickCounts).sort((a, b) => b[1] - a[1])[0];
 
         // Calculate peak day
         const dayCounts: Record<string, number> = {};
-        tapEvents.forEach((e) => {
+        tapEvents.forEach((e: any) => {
           const day = new Date(e.created_at).toLocaleDateString("en-US", { weekday: "long" });
           dayCounts[day] = (dayCounts[day] || 0) + 1;
         });
@@ -69,7 +69,7 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
 
         const chartData = last7Days.map((date) => ({
           date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          taps: tapEvents.filter((e) => e.created_at.startsWith(date)).length,
+          taps: tapEvents.filter((e: any) => e.created_at.startsWith(date)).length,
         }));
 
         setAnalytics({
