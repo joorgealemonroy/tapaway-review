@@ -59,8 +59,8 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${restaurantId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const randomUuid = crypto.randomUUID();
+      const filePath = `${restaurantId}/${randomUuid}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('restaurant-logos')
