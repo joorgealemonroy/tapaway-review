@@ -18,6 +18,10 @@ interface Restaurant {
   logo_url: string | null;
   custom_slug: string | null;
   type?: string | null;
+  avm_question_title?: string | null;
+  avm_question_subtitle?: string | null;
+  avm_positive_label?: string | null;
+  avm_negative_label?: string | null;
 }
 
 interface MenuSection {

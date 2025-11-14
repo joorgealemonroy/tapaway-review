@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, MousePointerClick, Activity, Target } from "lucide-react";
+import { TrendingUp, MousePointerClick, Activity, Target, Settings, Quote, UtensilsCrossed, Users } from "lucide-react";
+import { AvLogoUpload } from "./av/AvLogoUpload";
+import { AvHeroSettings } from "./av/AvHeroSettings";
+import { AvTestimonialsManager } from "./av/AvTestimonialsManager";
+import { AvMenuManager } from "./av/AvMenuManager";
+import { AvTrainerBundlesManager } from "./av/AvTrainerBundlesManager";
 
 interface AvMealPrepDashboardProps {
   restaurantId: string;
@@ -112,9 +118,20 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
       <Card className="p-6">
         <h2 className="text-2xl font-bold mb-2">Welcome to Your Dashboard</h2>
         <p className="text-muted-foreground">
-          Track campaign performance and engagement for {restaurantName}
+          Manage your meal prep hub and track campaign performance for {restaurantName}
         </p>
       </Card>
+
+      <Tabs defaultValue="analytics" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="analytics"><Activity className="w-4 h-4 mr-2" />Analytics</TabsTrigger>
+          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Settings</TabsTrigger>
+          <TabsTrigger value="testimonials"><Quote className="w-4 h-4 mr-2" />Testimonials</TabsTrigger>
+          <TabsTrigger value="menu"><UtensilsCrossed className="w-4 h-4 mr-2" />Menu</TabsTrigger>
+          <TabsTrigger value="trainers"><Users className="w-4 h-4 mr-2" />Trainers</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="space-y-6 mt-6">
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -181,14 +198,55 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
         </ResponsiveContainer>
       </Card>
 
-      {/* Info Card */}
-      <Card className="p-6 bg-primary/5">
-        <h3 className="text-lg font-semibold mb-2">About Your Dashboard</h3>
-        <p className="text-muted-foreground">
-          This dashboard tracks engagement from your TapAway campaign links. All analytics are also available
-          via your Telegram bot for real-time updates.
-        </p>
-      </Card>
+        {/* Info Card */}
+        <Card className="p-6 bg-primary/5">
+          <h3 className="text-lg font-semibold mb-2">About Your Dashboard</h3>
+          <p className="text-muted-foreground">
+            This dashboard tracks engagement from your TapAway campaign links. All analytics are also available
+            via your Telegram bot for real-time updates.
+          </p>
+        </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Hub Settings</h2>
+            <div className="space-y-8">
+              <AvLogoUpload
+                restaurantId={restaurantId}
+                currentLogoUrl={(analytics as any).logo_url}
+                onUpdate={fetchAnalytics}
+              />
+              <AvHeroSettings
+                restaurantId={restaurantId}
+                restaurant={(analytics as any)}
+                onUpdate={fetchAnalytics}
+              />
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="testimonials" className="mt-6">
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Customer Testimonials</h2>
+            <AvTestimonialsManager restaurantId={restaurantId} />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="menu" className="mt-6">
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Menu Management</h2>
+            <AvMenuManager restaurantId={restaurantId} />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="trainers" className="mt-6">
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6">Trainer Bundles</h2>
+            <AvTrainerBundlesManager restaurantId={restaurantId} />
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
