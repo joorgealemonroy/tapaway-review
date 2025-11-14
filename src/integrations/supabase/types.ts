@@ -490,6 +490,7 @@ export type Database = {
           google_review_url: string | null
           header_subtitle: string | null
           header_title: string | null
+          hub_background_style: string | null
           id: string
           instagram_url: string | null
           is_demo_account: boolean | null
@@ -528,6 +529,7 @@ export type Database = {
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
+          hub_background_style?: string | null
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null
@@ -566,6 +568,7 @@ export type Database = {
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
+          hub_background_style?: string | null
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null

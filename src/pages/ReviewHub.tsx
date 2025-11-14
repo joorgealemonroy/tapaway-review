@@ -16,6 +16,7 @@ interface Restaurant {
   directions_url: string | null;
   instagram_url: string | null;
   logo_url: string | null;
+  hub_background_style: string | null;
   custom_slug: string | null;
   type?: string | null;
   avm_question_title?: string | null;
@@ -80,14 +81,18 @@ const ReviewHub = () => {
     }
 
     if (data) {
-      // Fetch type from restaurants table
+      // Fetch type and hub_background_style from restaurants table
       const { data: restaurantData } = await (supabase as any)
         .from("restaurants")
-        .select("type")
+        .select("type, hub_background_style")
         .eq("id", data.id)
         .single();
       
-      setRestaurant({ ...data, type: restaurantData?.type || null });
+      setRestaurant({ 
+        ...data, 
+        type: restaurantData?.type || null,
+        hub_background_style: restaurantData?.hub_background_style || 'classic'
+      });
       fetchMenu(data.id);
     }
   };
@@ -100,14 +105,18 @@ const ReviewHub = () => {
       .single();
 
     if (data) {
-      // Fetch type from restaurants table
+      // Fetch type and hub_background_style from restaurants table
       const { data: restaurantData } = await (supabase as any)
         .from("restaurants")
-        .select("type")
+        .select("type, hub_background_style")
         .eq("id", data.id)
         .single();
       
-      setRestaurant({ ...data, type: restaurantData?.type || null });
+      setRestaurant({ 
+        ...data, 
+        type: restaurantData?.type || null,
+        hub_background_style: restaurantData?.hub_background_style || 'classic'
+      });
       fetchMenu(data.id);
     }
   };
