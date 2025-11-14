@@ -16,39 +16,47 @@ serve(async (req: Request) => {
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error("Supabase environment variables are not configured.");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured.");
     }
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY not configured.");
     }
 
-    // ---- 1. Get image URL from body (JSON or multipart) ----
+    // ---- 1. Get image URL (JSON or multipart with file) ----
     let imageUrl: string | null = null;
-
     const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("multipart/form-data")) {
-      // Frontend sent a file directly
+      // Client sent a file directly
       const formData = await req.formData();
       const file = formData.get("file") as File | null;
 
       if (!file) {
-        return new Response(JSON.stringify({ error: "No file uploaded (expected field `file`)." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "No file uploaded (expected field `file`).",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
-      // Upload to Supabase Storage (change bucket name if needed)
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // Use service role key so RLS doesn't block us
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
         global: { headers: { "X-Client-Info": "tapaway-menu-parser" } },
       });
 
-      const bucketName = "restaurant-logos"; // or e.g. "menu-images"
+      const bucketName = "restaurant-logos"; // change if your bucket is different
       const fileExt = file.name.split(".").pop() || "png";
       const fileName = `menus/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
@@ -102,7 +110,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // ---- 2. Basic URL safety checks ----
+    // ---- 2. Basic URL check ----
     if (!imageUrl.startsWith("https://")) {
       return new Response(JSON.stringify({ error: "Only HTTPS image URLs are allowed." }), {
         status: 400,
@@ -110,7 +118,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // ---- 3. Call Lovable AI gateway to parse menu ----
+    // ---- 3. Call Lovable AI to parse the menu ----
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
