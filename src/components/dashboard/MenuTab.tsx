@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MenuImageUpload } from "@/components/MenuImageUpload";
 
 interface MenuItem {
   id?: string;
@@ -31,10 +32,32 @@ export const MenuTab = ({ restaurantId }: MenuTabProps) => {
   const { toast } = useToast();
   const [sections, setSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   useEffect(() => {
     fetchMenu();
   }, [restaurantId]);
+
+  const handleMenuParsed = (menuData: any) => {
+    // Convert parsed menu data to our format
+    const parsedSections: MenuSection[] = menuData.sections.map((section: any, sIdx: number) => ({
+      name: section.name,
+      sort_order: sIdx,
+      items: section.items.map((item: any, iIdx: number) => ({
+        name: item.name,
+        description: item.description || '',
+        price: item.price || '',
+        sort_order: iIdx
+      }))
+    }));
+    
+    setSections(parsedSections);
+    setShowImageUpload(false);
+    toast({ 
+      title: "Menu parsed successfully!", 
+      description: "Review and edit the items below, then click Save." 
+    });
+  };
 
   const fetchMenu = async () => {
     const { data: menuData } = await supabase
@@ -126,17 +149,31 @@ export const MenuTab = ({ restaurantId }: MenuTabProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 pb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Menu Management</h3>
-        <div className="flex gap-2">
-          <Button onClick={addSection} variant="outline" size="sm">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {sections.length === 0 && !showImageUpload && (
+            <Button onClick={() => setShowImageUpload(true)} variant="outline" size="sm" className="w-full sm:w-auto">
+              Upload Menu Image
+            </Button>
+          )}
+          <Button onClick={addSection} variant="outline" size="sm" className="w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
             Add Section
           </Button>
-          <Button onClick={saveMenu} size="sm">Save Menu</Button>
+          <Button onClick={saveMenu} size="sm" className="w-full sm:w-auto">Save Menu</Button>
         </div>
       </div>
+
+      {showImageUpload && (
+        <div className="space-y-4">
+          <MenuImageUpload restaurantId={restaurantId} onMenuParsed={handleMenuParsed} />
+          <Button onClick={() => setShowImageUpload(false)} variant="ghost" className="w-full">
+            Cancel
+          </Button>
+        </div>
+      )}
 
       {sections.map((section, sIndex) => (
         <Card key={sIndex} className="p-4">

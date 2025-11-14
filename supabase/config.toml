@@ -2,3 +2,9 @@ project_id = "xfrvckdcrqvkqdwjzopt"
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.seed-demo-accounts]
+verify_jwt = true
+
+[functions.parse-menu-image]
+verify_jwt = true
