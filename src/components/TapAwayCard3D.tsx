@@ -12,8 +12,8 @@ const TapAwayCard3D = () => {
           <div
             className="relative"
             style={{
-              width: "min(208px, 70vw)",
-              aspectRatio: "1 / 1.586", // credit-card proportion
+              width: "min(260px, 80vw)", // slightly bigger so details are visible
+              aspectRatio: "1 / 1.586", // card proportion
               transformStyle: "preserve-3d",
             }}
           >
@@ -50,7 +50,6 @@ const TapAwayCard3D = () => {
         </div>
       </div>
 
-      {/* keyframes for the spin animation */}
       <style>
         {`
           @keyframes spin-3d {
