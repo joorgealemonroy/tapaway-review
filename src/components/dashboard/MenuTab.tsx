@@ -114,32 +114,68 @@ export const MenuTab = ({ restaurantId }: MenuTabProps) => {
 
   const saveMenu = async () => {
     try {
-      await supabase.from("menu_sections").delete().eq("restaurant_id", restaurantId);
+      const { error: deleteError } = await supabase
+        .from("menu_sections")
+        .delete()
+        .eq("restaurant_id", restaurantId);
+
+      if (deleteError) {
+        console.error('❌ DELETE Error on menu_sections:', JSON.stringify(deleteError, null, 2));
+        throw deleteError;
+      }
 
       for (const section of sections) {
-        const { data: sectionData } = await supabase
+        const { data: sectionData, error: sectionError } = await supabase
           .from("menu_sections")
-          .insert({ restaurant_id: restaurantId, name: section.name, sort_order: section.sort_order })
+          .insert({ 
+            restaurant_id: restaurantId, 
+            name: section.name, 
+            sort_order: section.sort_order 
+          })
           .select()
           .single();
 
+        if (sectionError) {
+          console.error('❌ RLS ERROR on menu_sections INSERT', {
+            table: 'menu_sections',
+            restaurantId: restaurantId,
+            sectionName: section.name,
+            error: JSON.stringify(sectionError, null, 2)
+          });
+          // RLS currently blocking inserts on public.menu_sections
+          throw sectionError;
+        }
+
         if (sectionData) {
           for (const item of section.items) {
-            await supabase.from("menu_items").insert({
-              section_id: sectionData.id,
-              name: item.name,
-              description: item.description,
-              price: item.price,
-              sort_order: item.sort_order
-            });
+            const { error: itemError } = await supabase
+              .from("menu_items")
+              .insert({
+                section_id: sectionData.id,
+                name: item.name,
+                description: item.description,
+                price: item.price,
+                sort_order: item.sort_order
+              });
+
+            if (itemError) {
+              console.error('❌ RLS ERROR on menu_items INSERT', {
+                table: 'menu_items',
+                sectionId: sectionData.id,
+                itemName: item.name,
+                error: JSON.stringify(itemError, null, 2)
+              });
+              // RLS currently blocking inserts on public.menu_items
+              throw itemError;
+            }
           }
         }
       }
 
       toast({ title: "Success", description: "Menu saved successfully!" });
-    } catch (error) {
-      console.error("Error saving menu:", error);
-      toast({ title: "Error", description: "Failed to save menu.", variant: "destructive" });
+    } catch (error: any) {
+      console.error("❌ MENU SAVE FAILED:", error);
+      toast({ title: "Error", description: error.message || "Failed to save menu.", variant: "destructive" });
     }
   };
 
