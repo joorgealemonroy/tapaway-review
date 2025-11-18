@@ -96,12 +96,24 @@ const Onboarding = () => {
 
     setIsLoading(true);
     try {
+      // Validate and transform form data first
+      let validatedData;
+      try {
+        validatedData = onboardingSchema.parse(formData);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast.error(validationError.errors[0].message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Check slug uniqueness
-      if (formData.customSlug) {
+      if (validatedData.customSlug) {
         const { data: existing } = await (supabase as any)
           .from('restaurants')
           .select('id')
-          .eq('custom_slug', formData.customSlug)
+          .eq('custom_slug', validatedData.customSlug)
           .maybeSingle();
         
         if (existing) {
@@ -111,22 +123,11 @@ const Onboarding = () => {
         }
       }
 
-      // Validate form data
-      try {
-        onboardingSchema.parse(formData);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          toast.error(validationError.errors[0].message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
       // Auto-generate Apple Maps URL from address
-      let directionsUrl = formData.directionsUrl || '';
-      if (!directionsUrl && formData.address) {
-        const encodedAddress = encodeURIComponent(formData.address);
-        const encodedName = encodeURIComponent(formData.restaurantName);
+      let directionsUrl = validatedData.directionsUrl || '';
+      if (!directionsUrl && validatedData.address) {
+        const encodedAddress = encodeURIComponent(validatedData.address);
+        const encodedName = encodeURIComponent(validatedData.restaurantName);
         directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
       }
 
@@ -149,22 +150,22 @@ const Onboarding = () => {
       // Create restaurant record
       const { error: insertError } = await supabase.from("restaurants").insert({
         owner_id: user.id,
-        restaurant_name: formData.restaurantName,
-        owner_name: formData.ownerName,
-        custom_slug: formData.customSlug,
+        restaurant_name: validatedData.restaurantName,
+        owner_name: validatedData.ownerName,
+        custom_slug: validatedData.customSlug,
         slug_locked_at: new Date().toISOString(),
-        instagram_url: formData.instagram ? `https://instagram.com/${formData.instagram.replace('@', '')}` : null,
-        google_review_url: formData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${formData.googlePlaceId}` : null,
-        google_place_id: formData.googlePlaceId || null,
-        yelp_review_url: formData.yelpUrl && formData.yelpUrl.trim() ? formData.yelpUrl : null,
+        instagram_url: validatedData.instagram || null,
+        google_review_url: validatedData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${validatedData.googlePlaceId}` : null,
+        google_place_id: validatedData.googlePlaceId || null,
+        yelp_review_url: validatedData.yelpUrl && validatedData.yelpUrl.trim() ? validatedData.yelpUrl : null,
         directions_url: directionsUrl || null,
-        address: formData.address || null,
-        phone: formData.phone || null,
-        email: formData.email && formData.email.trim() ? formData.email : null,
+        address: validatedData.address || null,
+        phone: validatedData.phone || null,
+        email: validatedData.email && validatedData.email.trim() ? validatedData.email : null,
         logo_url: logoUrl,
-        header_title: formData.headerTitle || "How was your visit?",
-        header_subtitle: formData.headerSubtitle || "We'd love to hear about your experience!",
-        menu_title: formData.menuTitle || "Our Menu",
+        header_title: validatedData.headerTitle || "How was your visit?",
+        header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
+        menu_title: validatedData.menuTitle || "Our Menu",
       });
 
       if (insertError) throw insertError;
