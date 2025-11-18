@@ -103,8 +103,8 @@ const Dashboard = () => {
     if (data) {
       setRestaurant(data as any);
       fetchLocations(data.id);
-    } else if (user?.email === 'test@me.com' || isGrandfatheredUser(user?.email)) {
-      // Defensive fallback for test account - auto-assign if no restaurant found
+    } else if (user?.email === 'test@me.com') {
+      // Defensive fallback for test account only - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
       try {
         const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
@@ -128,6 +128,11 @@ const Dashboard = () => {
       } catch (err) {
         console.error('[Dashboard] Error in defensive fallback:', err);
       }
+    } else if (isGrandfatheredUser(user?.email)) {
+      // Grandfathered user without restaurant - redirect to onboarding
+      console.log('[Dashboard] Grandfathered user has no restaurant, redirecting to onboarding');
+      toast.info("Please complete your business setup");
+      navigate("/onboarding");
     }
   };
 
