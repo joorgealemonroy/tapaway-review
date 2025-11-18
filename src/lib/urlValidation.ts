@@ -21,9 +21,20 @@ export const urlValidationSchemas = {
   
   instagram: z.string()
     .optional()
+    .transform((val) => {
+      if (!val || val === "") return val;
+      // If it's already a full URL, return as-is
+      if (val.startsWith('http://') || val.startsWith('https://')) {
+        return val;
+      }
+      // If it's just a username, prepend Instagram URL
+      // Remove @ symbol if present
+      const username = val.replace(/^@/, '').trim();
+      return `https://instagram.com/${username}`;
+    })
     .refine(
-      (val) => !val || val === "" || /^https:\/\/(www\.)?instagram\.com\//.test(val),
-      "Instagram URL must be from instagram.com"
+      (val) => !val || val === "" || /^https:\/\/(www\.)?instagram\.com\/[\w.]+$/.test(val),
+      "Instagram must be a valid username or URL from instagram.com"
     ),
   
   directions: z.string()

@@ -41,8 +41,8 @@ export const GooglePlacesAutocomplete = ({
     const script = document.createElement('script');
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     
-    if (!apiKey) {
-      setError('Google Maps API key not configured');
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+      setError('Please add your Google Maps API key to the .env file (VITE_GOOGLE_MAPS_API_KEY). Get one at https://console.cloud.google.com/apis/credentials');
       return;
     }
 
