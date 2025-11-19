@@ -5,9 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Lock, ExternalLink, Upload, Palette } from "lucide-react";
+import { Settings, Lock, ExternalLink, Upload, Palette, Edit } from "lucide-react";
 import { validateAllUrls } from "@/lib/urlValidation";
 import { useState as useReactState } from "react";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface Restaurant {
   id: string;
@@ -28,6 +29,7 @@ interface SettingsTabProps {
 
 export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const { toast } = useToast();
+  const { isAdmin } = useAdminAccess();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useReactState(false);
@@ -151,18 +153,44 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       return;
     }
 
+    // If admin is changing slug, check uniqueness
+    if (isAdmin && restaurant.custom_slug) {
+      const { data: existingSlug } = await supabase
+        .from("restaurants")
+        .select("id")
+        .eq("custom_slug", restaurant.custom_slug)
+        .neq("id", restaurantId)
+        .maybeSingle();
+
+      if (existingSlug) {
+        toast({
+          title: "Slug already taken",
+          description: `The slug "${restaurant.custom_slug}" is already in use by another restaurant. Please choose a different one.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     try {
+      const updateData: any = {
+        restaurant_name: restaurant.restaurant_name,
+        hub_background_style: restaurant.hub_background_style,
+        custom_background_url: restaurant.custom_background_url,
+        google_review_url: restaurant.google_review_url,
+        yelp_review_url: restaurant.yelp_review_url,
+        instagram_url: restaurant.instagram_url,
+        directions_url: restaurant.directions_url,
+      };
+
+      // Only allow admins to update custom_slug
+      if (isAdmin && restaurant.custom_slug) {
+        updateData.custom_slug = restaurant.custom_slug;
+      }
+
       const { error } = await supabase
         .from("restaurants")
-        .update({
-          restaurant_name: restaurant.restaurant_name,
-          hub_background_style: restaurant.hub_background_style,
-          custom_background_url: restaurant.custom_background_url,
-          google_review_url: restaurant.google_review_url,
-          yelp_review_url: restaurant.yelp_review_url,
-          instagram_url: restaurant.instagram_url,
-          directions_url: restaurant.directions_url,
-        })
+        .update(updateData)
         .eq("id", restaurantId);
 
       if (error) throw error;
@@ -375,20 +403,36 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           <div>
             <Label htmlFor="slug" className="text-sm font-semibold flex items-center gap-2">
               Custom Slug
-              <Lock className="w-4 h-4 text-muted-foreground" />
+              {isAdmin ? (
+                <Edit className="w-4 h-4 text-primary" />
+              ) : (
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              )}
             </Label>
             <Input
               id="slug"
               value={restaurant.custom_slug || ""}
-              disabled
-              className="mt-2 bg-muted cursor-not-allowed"
+              onChange={(e) => {
+                if (isAdmin) {
+                  // Only allow lowercase letters, numbers, and hyphens
+                  const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                  setRestaurant({ ...restaurant, custom_slug: sanitized });
+                }
+              }}
+              disabled={!isAdmin}
+              className={`mt-2 ${!isAdmin ? 'bg-muted cursor-not-allowed' : ''}`}
+              placeholder="my-restaurant-name"
             />
-            <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-sm text-amber-900">
+            <div className={`mt-2 p-3 rounded-lg border ${isAdmin ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
+              <p className={`text-sm ${isAdmin ? 'text-blue-900' : 'text-amber-900'}`}>
                 <strong>Your Review Hub:</strong> tapaway.co/{restaurant.custom_slug || "your-slug"}
               </p>
-              <p className="text-xs text-amber-700 mt-1">
-                ⚠️ Slug cannot be changed after creation. Contact TapAway support if needed.
+              <p className={`text-xs mt-1 ${isAdmin ? 'text-blue-700' : 'text-amber-700'}`}>
+                {isAdmin ? (
+                  <>✓ Admin: You can edit this slug. Use only lowercase letters, numbers, and hyphens.</>
+                ) : (
+                  <>⚠️ Slug cannot be changed after creation. Contact TapAway support if needed.</>
+                )}
               </p>
             </div>
           </div>
