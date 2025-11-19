@@ -229,9 +229,49 @@ const ReviewHub = () => {
     return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
 
+  // Determine background style
+  const getBackgroundStyle = () => {
+    const style = restaurant.hub_background_style || 'classic';
+    switch (style) {
+      case 'soft-gradient':
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+      case 'photo-blur':
+        return 'linear-gradient(135deg, rgba(156, 163, 175, 0.3) 0%, rgba(107, 114, 128, 0.3) 100%)';
+      case 'dark':
+        return '#1a1a1a';
+      case 'classic':
+      default:
+        return '#fff';
+    }
+  };
+
+  const getCardBackground = () => {
+    const style = restaurant.hub_background_style || 'classic';
+    if (style === 'dark') {
+      return '#2a2a2a';
+    }
+    return '#fff';
+  };
+
+  const getTextColor = () => {
+    const style = restaurant.hub_background_style || 'classic';
+    if (style === 'dark') {
+      return '#fff';
+    }
+    return '#111';
+  };
+
+  const getMutedTextColor = () => {
+    const style = restaurant.hub_background_style || 'classic';
+    if (style === 'dark') {
+      return '#9ca3af';
+    }
+    return '#6b7280';
+  };
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%', boxSizing: 'border-box', background: '#fff', minHeight: '100vh', padding: '28px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%', boxSizing: 'border-box', background: getBackgroundStyle(), minHeight: '100vh', padding: '28px 16px' }}>
         <div style={{ 
           maxWidth: '480px', 
           width: '100%', 
@@ -240,7 +280,7 @@ const ReviewHub = () => {
           border: '1px solid #eee', 
           borderRadius: '16px', 
           boxShadow: '0 6px 24px rgba(0,0,0,.06)', 
-          background: '#fff', 
+          background: getCardBackground(), 
           fontFamily: "'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif", 
           textAlign: 'center' as const
         }}>
@@ -251,21 +291,23 @@ const ReviewHub = () => {
               src={restaurant.logo_url} 
               alt="Restaurant Logo" 
               style={{ 
-                width: '80px', 
-                height: '80px', 
+                maxWidth: '150px', 
+                maxHeight: '150px', 
+                width: 'auto',
+                height: 'auto',
                 borderRadius: '12px', 
                 margin: '0 auto 24px', 
-                objectFit: 'cover',
+                objectFit: 'contain',
                 display: 'block'
               }} 
             />
           )}
 
           {/* Header */}
-          <h2 style={{ margin: '0 0 8px', fontSize: '28px', lineHeight: '1.2', fontWeight: '800', color: '#111' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: '28px', lineHeight: '1.2', fontWeight: '800', color: getTextColor() }}>
             {restaurant.header_title}
           </h2>
-          <p style={{ margin: '0 0 22px', color: '#6b7280', fontSize: '15px', lineHeight: '1.5' }}>
+          <p style={{ margin: '0 0 22px', color: getMutedTextColor(), fontSize: '15px', lineHeight: '1.5' }}>
             {restaurant.header_subtitle}
           </p>
 
@@ -283,9 +325,9 @@ const ReviewHub = () => {
                 justifyContent: 'center', 
                 width: '100%', 
                 textDecoration: 'none', 
-                background: '#fff', 
-                border: '1px solid #e5e7eb', 
-                color: '#111', 
+                background: restaurant.hub_background_style === 'dark' ? '#3a3a3a' : '#fff', 
+                border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`, 
+                color: getTextColor(), 
                 padding: '14px 16px', 
                 borderRadius: '12px', 
                 fontWeight: '700', 
@@ -407,7 +449,7 @@ const ReviewHub = () => {
               justifyContent: 'center', 
               width: '100%', 
               textDecoration: 'none', 
-              background: '#111', 
+              background: restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#111', 
               color: '#fff', 
               padding: '14px 16px', 
               borderRadius: '12px', 
@@ -422,8 +464,8 @@ const ReviewHub = () => {
             {restaurant.menu_title}
           </a>
 
-          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: '1px solid #eee', fontSize: '12px', color: '#9ca3af' }}>
-            Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: '#111', textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
+          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
+            Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: getTextColor(), textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
           </div>
         </div>
       </div>
