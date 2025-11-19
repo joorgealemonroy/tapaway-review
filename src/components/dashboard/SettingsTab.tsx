@@ -264,124 +264,40 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         </div>
       </Card>
 
-      {/* Hub Background Style */}
+      {/* Hub Theme */}
       <Card className="p-6 card-elevated">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
           <Palette className="w-5 h-5 text-primary" />
-          Hub Background Style
+          Hub Theme
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Choose how your review hub looks to customers
+          Choose between light or dark mode for your review hub
         </p>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { value: 'classic', label: 'Classic', desc: 'Clean white background' },
-            { value: 'soft-gradient', label: 'Soft Gradient', desc: 'Subtle color gradient' },
-            { value: 'photo-blur', label: 'Photo Blur', desc: 'Blurred photo backdrop' },
-            { value: 'dark', label: 'Dark', desc: 'Dark theme with contrast' }
-          ].map(style => (
-            <div
-              key={style.value}
-              onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: style.value } : null)}
-              className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                restaurant.hub_background_style === style.value 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className={`w-full h-16 rounded mb-2 ${
-                style.value === 'classic' ? 'bg-background' :
-                style.value === 'soft-gradient' ? 'bg-gradient-to-br from-blue-50 to-purple-50' :
-                style.value === 'photo-blur' ? 'bg-gradient-to-br from-gray-200 to-gray-300' :
-                'bg-gray-900'
-              }`} />
-              <h4 className="font-semibold text-sm">{style.label}</h4>
-              <p className="text-xs text-muted-foreground">{style.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Custom Background Upload */}
-      <Card className="p-6 card-elevated">
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-primary" />
-          Custom Background Image
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Upload a custom background image for your hub (overrides style selection)
-        </p>
-        <div className="space-y-4">
-          {restaurant.custom_background_url && (
-            <div>
-              <Label>Current Background</Label>
-              <div className="mt-2 relative h-32 rounded-lg overflow-hidden border-2 border-border">
-                <img 
-                  src={restaurant.custom_background_url} 
-                  alt="Background" 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={async () => {
-                  await supabase
-                    .from('restaurants')
-                    .update({ custom_background_url: null })
-                    .eq('id', restaurantId);
-                  setRestaurant(prev => prev ? { ...prev, custom_background_url: null } : null);
-                  toast({ title: "Background removed" });
-                }}
-              >
-                Remove Custom Background
-              </Button>
-            </div>
-          )}
-          
-          <div>
-            <Label htmlFor="bg-upload">Upload Background Image</Label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                id="bg-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleBackgroundUpload}
-                disabled={uploading}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Recommended: 1920x1080px or larger for best quality
-            </p>
+        <div className="grid grid-cols-2 gap-4 max-w-md">
+          <div
+            onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: 'classic' } : null)}
+            className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              restaurant.hub_background_style === 'classic' || !restaurant.hub_background_style
+                ? 'border-primary bg-primary/5' 
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="w-full h-16 rounded mb-2 bg-white border border-gray-200" />
+            <h4 className="font-semibold text-sm">Light</h4>
+            <p className="text-xs text-muted-foreground">Clean white background</p>
           </div>
-
-          {/* Preview */}
-          <div>
-            <Label>Preview Hub Style</Label>
-            <div 
-              className="mt-2 h-40 rounded-lg border-2 border-border overflow-hidden relative"
-              style={{
-                background: restaurant.custom_background_url 
-                  ? `url(${restaurant.custom_background_url}) center/cover`
-                  : restaurant.hub_background_style === 'soft-gradient'
-                  ? 'linear-gradient(135deg, #00f5ff 0%, #ff00ea 100%)'
-                  : restaurant.hub_background_style === 'photo-blur'
-                  ? 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)'
-                  : restaurant.hub_background_style === 'dark'
-                  ? '#000000'
-                  : '#ffffff'
-              }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-white/90 dark:bg-black/90 backdrop-blur-sm p-6 rounded-lg shadow-lg">
-                  <p className="text-sm font-semibold">Hub Preview</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {restaurant.custom_background_url ? 'Custom Image' : restaurant.hub_background_style || 'Classic'}
-                  </p>
-                </div>
-              </div>
-            </div>
+          
+          <div
+            onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: 'dark' } : null)}
+            className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              restaurant.hub_background_style === 'dark'
+                ? 'border-primary bg-primary/5' 
+                : 'border-border hover:border-primary/50'
+            }`}
+          >
+            <div className="w-full h-16 rounded mb-2 bg-gray-900" />
+            <h4 className="font-semibold text-sm">Dark</h4>
+            <p className="text-xs text-muted-foreground">Dark theme with contrast</p>
           </div>
         </div>
       </Card>
