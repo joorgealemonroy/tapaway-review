@@ -76,6 +76,23 @@ const Onboarding = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // Format phone number as user types
+    if (field === "phone") {
+      const digits = value.replace(/\D/g, "").slice(0, 10);
+      if (digits.length <= 10) {
+        let formatted = digits;
+        if (digits.length > 6) {
+          formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+        } else if (digits.length > 3) {
+          formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+        } else if (digits.length > 0) {
+          formatted = `(${digits}`;
+        }
+        setFormData((prev) => ({ ...prev, [field]: formatted }));
+        return;
+      }
+      return;
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -108,8 +125,22 @@ const Onboarding = () => {
         }
       }
 
-      // Check slug uniqueness
-      if (validatedData.customSlug) {
+      // Check if user already has a restaurant (for UPSERT logic)
+      const { data: userRestaurant, error: userCheckError } = await supabase
+        .from('restaurants')
+        .select('id, custom_slug')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (userCheckError) {
+        console.error('[Onboarding] Error checking user restaurant:', userCheckError);
+        toast.error('Failed to verify account. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // If user doesn't have a restaurant, check slug uniqueness
+      if (!userRestaurant && validatedData.customSlug) {
         const { data: existing, error: checkError } = await supabase
           .from('restaurants')
           .select('id')
@@ -154,8 +185,8 @@ const Onboarding = () => {
         logoUrl = urlData.publicUrl;
       }
 
-      // Create restaurant record
-      const { error: insertError } = await supabase.from("restaurants").insert({
+      // Create or update restaurant record (UPSERT)
+      const restaurantData = {
         owner_id: user.id,
         restaurant_name: validatedData.restaurantName,
         owner_name: validatedData.ownerName,
@@ -173,9 +204,24 @@ const Onboarding = () => {
         header_title: validatedData.headerTitle || "How was your visit?",
         header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
         menu_title: validatedData.menuTitle || "Our Menu",
-      });
+      };
 
-      if (insertError) throw insertError;
+      if (userRestaurant) {
+        // Update existing restaurant
+        const { error: updateError } = await supabase
+          .from("restaurants")
+          .update(restaurantData)
+          .eq('id', userRestaurant.id);
+        
+        if (updateError) throw updateError;
+      } else {
+        // Insert new restaurant
+        const { error: insertError } = await supabase
+          .from("restaurants")
+          .insert(restaurantData);
+        
+        if (insertError) throw insertError;
+      }
 
       toast.success("Restaurant setup complete!");
       navigate("/dashboard");
@@ -306,17 +352,24 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="123 Main Street, City, State ZIP"
-                  rows={2}
-                  maxLength={200}
-                />
-              </div>
+              <GooglePlacesAutocomplete
+                onPlaceSelected={(place) => {
+                  handleInputChange("googlePlaceId", place.placeId);
+                  handleInputChange("address", place.address);
+                  if (!formData.restaurantName) {
+                    handleInputChange("restaurantName", place.name);
+                  }
+                  // Auto-generate Apple Maps URL
+                  const encodedAddress = encodeURIComponent(place.address);
+                  const encodedName = encodeURIComponent(place.name);
+                  handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
+                  toast.success("Business found! Details populated from Google.");
+                }}
+                defaultValue={formData.address}
+              />
+              <p className="text-xs text-muted-foreground">
+                Search for your business to auto-populate address and review links
+              </p>
 
               <div>
                 <Label htmlFor="phone">Phone Number</Label>
@@ -326,8 +379,11 @@ const Onboarding = () => {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="(555) 123-4567"
-                  maxLength={20}
+                  maxLength={14}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter 10 digits (auto-formatted)
+                </p>
               </div>
 
               <div>
@@ -341,23 +397,6 @@ const Onboarding = () => {
                   maxLength={255}
                 />
               </div>
-
-              <div>
-                <Label htmlFor="directionsUrl">Directions Link (Apple Maps)</Label>
-                <Input
-                  id="directionsUrl"
-                  type="url"
-                  value={formData.directionsUrl}
-                  onChange={(e) => handleInputChange("directionsUrl", e.target.value)}
-                  placeholder="Auto-generated from address or search"
-                  disabled
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.directionsUrl 
-                    ? "✓ Directions URL auto-generated" 
-                    : "Will be generated from your address"}
-                </p>
-              </div>
             </div>
           </div>
         );
@@ -367,27 +406,23 @@ const Onboarding = () => {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-2">Review Links</h2>
-              <p className="text-muted-foreground">Where customers can leave feedback</p>
+              <p className="text-muted-foreground">Additional review platforms</p>
             </div>
 
             <div className="space-y-4">
-              <GooglePlacesAutocomplete
-                onPlaceSelected={(place) => {
-                  handleInputChange("googlePlaceId", place.placeId);
-                  if (!formData.restaurantName) {
-                    handleInputChange("restaurantName", place.name);
-                  }
-                  if (!formData.address) {
-                    handleInputChange("address", place.address);
-                  }
-                  // Auto-generate Apple Maps URL
-                  const encodedAddress = encodeURIComponent(place.address);
-                  const encodedName = encodeURIComponent(place.name);
-                  handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
-                  toast.success("Business found! Review URL will be auto-generated.");
-                }}
-                defaultValue={formData.restaurantName}
-              />
+              <div>
+                <Label htmlFor="googleReviewUrl">Google Review URL</Label>
+                <Input
+                  id="googleReviewUrl"
+                  type="url"
+                  value={formData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${formData.googlePlaceId}` : ''}
+                  disabled
+                  placeholder="Auto-generated from Google search in Step 2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formData.googlePlaceId ? "✓ Google review URL auto-generated" : "Use Google search in Step 2 to generate"}
+                </p>
+              </div>
 
               <div>
                 <Label htmlFor="yelpUrl">Yelp Review URL (Optional)</Label>
