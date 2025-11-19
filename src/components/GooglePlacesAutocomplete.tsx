@@ -83,43 +83,66 @@ export const GooglePlacesAutocomplete = ({
     }
 
     try {
-      // Create the new PlaceAutocompleteElement
-      const autocompleteElement = new window.google.maps.places.PlaceAutocompleteElement({
+      const placeAutocompleteElement: any = new window.google.maps.places.PlaceAutocompleteElement({
         componentRestrictions: { country: ["us"] },
         types: ["establishment"],
       });
 
-      // Clear container and append the element
-      containerRef.current.innerHTML = '';
-      containerRef.current.appendChild(autocompleteElement);
+      const inputElement: HTMLInputElement | undefined = placeAutocompleteElement.Eg;
+      const dropdownElement: HTMLElement | undefined = placeAutocompleteElement.Jg;
+
+      if (!inputElement || !dropdownElement) {
+        console.error("[GooglePlacesAutocomplete] Missing internal elements on PlaceAutocompleteElement");
+        setError("Error initializing autocomplete");
+        return;
+      }
+
+      // Apply initial value and disabled state
+      if (defaultValue) {
+        inputElement.value = defaultValue;
+      }
+      inputElement.disabled = !!disabled;
+
+      // Clear container and append elements
+      containerRef.current.innerHTML = "";
+      containerRef.current.appendChild(inputElement);
+      containerRef.current.appendChild(dropdownElement);
 
       // Listen for place selection
-      autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
+      const handlePlaceSelect = async (event: any) => {
         const place = event.place;
-        
+
         if (!place?.id) {
           setError("Please select a valid place from the dropdown");
           return;
         }
 
-        // Fetch place details to get formatted address and name
-        await place.fetchFields({
-          fields: ['id', 'displayName', 'formattedAddress']
-        });
+        try {
+          await place.fetchFields({
+            fields: ["id", "displayName", "formattedAddress"],
+          });
 
-        onPlaceSelected({
-          placeId: place.id,
-          name: place.displayName || "",
-          address: place.formattedAddress || "",
-        });
+          onPlaceSelected({
+            placeId: place.id,
+            name: place.displayName || "",
+            address: place.formattedAddress || "",
+          });
 
-        setError(null);
-      });
+          setError(null);
+        } catch (err) {
+          console.error("[GooglePlacesAutocomplete] Error fetching place fields:", err);
+          setError("Error loading place details. Please try again.");
+        }
+      };
 
-      // Set default value if provided
-      if (defaultValue) {
-        autocompleteElement.value = defaultValue;
-      }
+      placeAutocompleteElement.addEventListener("gmp-placeselect", handlePlaceSelect);
+
+      return () => {
+        placeAutocompleteElement.removeEventListener("gmp-placeselect", handlePlaceSelect);
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+        }
+      };
     } catch (err) {
       console.error("[GooglePlacesAutocomplete] Error initializing:", err);
       setError("Error initializing autocomplete");
@@ -138,11 +161,10 @@ export const GooglePlacesAutocomplete = ({
   return (
     <div>
       <Label htmlFor="google-places-autocomplete">Search Your Business on Google</Label>
-      <div 
+      <div
         ref={containerRef}
         id="google-places-autocomplete"
-        className="mt-2"
-        style={{ minHeight: '44px' }}
+        className="mt-2 relative z-30 min-h-[44px]"
       />
       {!isLoaded && (
         <div className="text-xs text-muted-foreground mt-1">

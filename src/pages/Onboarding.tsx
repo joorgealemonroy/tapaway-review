@@ -156,42 +156,57 @@ const Onboarding = () => {
         }
       }
 
-      // Check if user already has a restaurant (for UPSERT logic)
-      const { data: userRestaurant, error: userCheckError } = await supabase
-        .from('restaurants')
-        .select('id, custom_slug')
-        .eq('owner_id', user.id)
+      // Determine target restaurant for UPSERT based on slug and owner
+      const slugToUse = validatedData.customSlug.toLowerCase().trim();
+
+      // Check for an existing restaurant with this slug (may be limited by RLS)
+      const { data: existingSlugRestaurant, error: slugCheckError } = await supabase
+        .from("restaurants")
+        .select("id, owner_id")
+        .eq("custom_slug", slugToUse)
         .maybeSingle();
 
-      if (userCheckError) {
-        console.error('[Onboarding] Error checking user restaurant:', userCheckError);
-        toast.error('Failed to verify account. Please try again.');
+      if (slugCheckError && slugCheckError.code !== "PGRST116") {
+        console.error("[Onboarding] Error checking slug uniqueness:", slugCheckError);
+        toast.error("Failed to verify URL availability. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      // Check slug uniqueness (skip if user is keeping their existing slug)
-      if (validatedData.customSlug) {
-        const slugToCheck = validatedData.customSlug.toLowerCase().trim();
-        const { data: existing, error: checkError } = await supabase
-          .from('restaurants')
-          .select('id, owner_id')
-          .eq('custom_slug', slugToCheck)
-          .maybeSingle();
-        
-        if (checkError) {
-          console.error('[Onboarding] Error checking slug uniqueness:', checkError);
-          toast.error('Failed to verify URL availability. Please try again.');
+      // Check if the current user already has a restaurant
+      const { data: userRestaurant, error: userCheckError } = await supabase
+        .from("restaurants")
+        .select("id, custom_slug")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (userCheckError && userCheckError.code !== "PGRST116") {
+        console.error("[Onboarding] Error checking user restaurant:", userCheckError);
+        toast.error("Failed to verify account. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      let targetRestaurantId: string | null = null;
+      let shouldInsert = false;
+
+      if (existingSlugRestaurant) {
+        // Slug exists: allow if it's unclaimed or already belongs to this user
+        if (!existingSlugRestaurant.owner_id || existingSlugRestaurant.owner_id === user.id) {
+          targetRestaurantId = existingSlugRestaurant.id;
+        } else {
+          toast.error(
+            `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
+          );
           setIsLoading(false);
           return;
         }
-        
-        // If slug exists and doesn't belong to current user, reject
-        if (existing && existing.owner_id !== user.id) {
-          toast.error(`The custom link (tapaway.co/${validatedData.customSlug}) is already taken. Please choose a unique name.`);
-          setIsLoading(false);
-          return;
-        }
+      } else if (userRestaurant) {
+        // No existing slug match, but user already has a restaurant: update that
+        targetRestaurantId = userRestaurant.id;
+      } else {
+        // No existing restaurant or slug: perform insert
+        shouldInsert = true;
       }
 
       // Auto-generate Apple Maps URL from address
@@ -239,21 +254,37 @@ const Onboarding = () => {
         menu_title: validatedData.menuTitle || "Our Menu",
       };
 
-      if (userRestaurant) {
-        // Update existing restaurant
+      if (targetRestaurantId) {
+        // Update existing restaurant (either by slug or by owner)
         const { error: updateError } = await supabase
           .from("restaurants")
           .update(restaurantData)
-          .eq('id', userRestaurant.id);
-        
-        if (updateError) throw updateError;
-      } else {
+          .eq("id", targetRestaurantId);
+
+        if (updateError) {
+          if ((updateError as any).code === "23505") {
+            toast.error(
+              `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
+            );
+            setIsLoading(false);
+            return;
+          }
+          throw updateError;
+        }
+      } else if (shouldInsert) {
         // Insert new restaurant
-        const { error: insertError } = await supabase
-          .from("restaurants")
-          .insert(restaurantData);
-        
-        if (insertError) throw insertError;
+        const { error: insertError } = await supabase.from("restaurants").insert(restaurantData);
+
+        if (insertError) {
+          if ((insertError as any).code === "23505") {
+            toast.error(
+              `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
+            );
+            setIsLoading(false);
+            return;
+          }
+          throw insertError;
+        }
       }
 
       toast.success("Restaurant setup complete!");
