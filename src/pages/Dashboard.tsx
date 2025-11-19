@@ -156,6 +156,7 @@ const Dashboard = () => {
     const selected = allRestaurants.find((r) => r.id === restaurantId);
     if (selected) {
       setRestaurant(selected);
+      fetchLocations(selected.id);
     }
   };
 
@@ -277,7 +278,7 @@ const Dashboard = () => {
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
         {isAdmin && allRestaurants.length > 0 && (
           <Card className="p-3 md:p-4 mb-4 md:mb-6">
-            <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
+            <Select value={restaurant?.id || ""} onValueChange={handleRestaurantChange}>
               <SelectTrigger className="w-full md:w-[400px]">
                 <SelectValue placeholder="Select a restaurant to manage" />
               </SelectTrigger>
