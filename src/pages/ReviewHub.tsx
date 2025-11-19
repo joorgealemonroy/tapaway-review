@@ -291,37 +291,21 @@ const ReviewHub = () => {
   // Check if user has voted on current poll
   const hasVoted = engagement ? localStorage.getItem(`poll_vote_${engagement.id}`) === 'true' : false;
 
-  // Determine background style - only apply special styles when explicitly set
+  // Strict Light/Dark Theme - only two options
   const getBackgroundStyle = () => {
     const style = restaurant.hub_background_style;
     
-    // Use custom background if uploaded
-    if (restaurant.custom_background_url) {
-      return { background: `url(${restaurant.custom_background_url}) center/cover` };
+    // Only dark or light (classic/default)
+    if (style === 'dark') {
+      return { background: '#000000' };
     }
     
-    // Only apply special backgrounds when explicitly selected (not 'classic' or null)
-    if (!style || style === 'classic') {
-      return { background: '#ffffff' }; // Clean white background for classic
-    }
-    
-    switch (style) {
-      case 'soft-gradient':
-        // Bright blue to cyan gradient - VIVID
-        return { background: 'linear-gradient(135deg, #0066ff 0%, #00ccff 100%)' };
-      case 'photo-blur':
-        // Vivid neon green to yellow gradient - HIGH CONTRAST
-        return { background: 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)' };
-      case 'dark':
-        return { background: '#000000' };
-      default:
-        return { background: '#ffffff' };
-    }
+    // Default to light/classic (clean white)
+    return { background: '#ffffff' };
   };
 
   const getCardBackground = () => {
     const style = restaurant.hub_background_style;
-    // Only apply dark card background for dark theme
     if (style === 'dark') {
       return '#1a1a1a';
     }
@@ -330,8 +314,7 @@ const ReviewHub = () => {
 
   const getTextColor = () => {
     const style = restaurant.hub_background_style;
-    // White text for dark theme and vivid backgrounds
-    if (style === 'dark' || style === 'soft-gradient' || style === 'photo-blur') {
+    if (style === 'dark') {
       return '#ffffff';
     }
     return '#111827';
@@ -339,7 +322,7 @@ const ReviewHub = () => {
 
   const getMutedTextColor = () => {
     const style = restaurant.hub_background_style;
-    if (style === 'dark' || style === 'soft-gradient' || style === 'photo-blur') {
+    if (style === 'dark') {
       return '#d1d5db';
     }
     return '#6b7280';
@@ -404,7 +387,8 @@ const ReviewHub = () => {
               borderRadius: '12px',
               padding: '20px',
               marginBottom: '24px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+              animation: engagement.type === 'promotion' ? 'promotionFadeIn 0.6s ease-out' : 'none'
             }}>
               {engagement.type === 'promotion' && (
                 <>
@@ -698,6 +682,20 @@ const ReviewHub = () => {
           </div>
         </div>
       </div>
+
+      {/* Promotion animation keyframes */}
+      <style>{`
+        @keyframes promotionFadeIn {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
 
       {/* MENU MODAL */}
       {menuOpen && (
