@@ -33,31 +33,42 @@ serve(async (req) => {
 
     console.log('[lookup-place-id] Looking up place ID for address:', address);
 
-    // Use Google Places Text Search API
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(address)}&key=${googleApiKey}`;
+    // Use Google Places API (New)
+    const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
     
-    const response = await fetch(searchUrl);
+    const response = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': googleApiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
+      },
+      body: JSON.stringify({
+        textQuery: address
+      })
+    });
+
     const data = await response.json();
 
-    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
-      console.error('[lookup-place-id] No results found:', data.status, data.error_message);
+    if (!data.places || data.places.length === 0) {
+      console.error('[lookup-place-id] No results found:', data);
       return new Response(
         JSON.stringify({ 
           error: 'Could not find location. Please verify the address.',
-          details: data.error_message 
+          details: 'No matching location found' 
         }), 
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const place = data.results[0];
-    console.log('[lookup-place-id] Found place:', place.name, place.place_id);
+    const place = data.places[0];
+    console.log('[lookup-place-id] Found place:', place.displayName?.text, place.id);
 
     return new Response(
       JSON.stringify({ 
-        placeId: place.place_id,
-        name: place.name,
-        formattedAddress: place.formatted_address
+        placeId: place.id,
+        name: place.displayName?.text || '',
+        formattedAddress: place.formattedAddress || ''
       }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
