@@ -172,7 +172,7 @@ const Dashboard = () => {
   if (!loading && user && !restaurant && !shouldBypassPaywall) {
     return (
       <div className="min-h-screen bg-background">
-        <nav className="border-b border-border bg-background/95 backdrop-blur">
+        <nav className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-primary"></div>
@@ -181,67 +181,152 @@ const Dashboard = () => {
             <Button variant="ghost" onClick={signOut}>Sign Out</Button>
           </div>
         </nav>
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <Card className="p-8">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <h2 className="text-3xl font-bold mb-3">Welcome to TapAway!</h2>
-              <p className="text-muted-foreground mb-8 text-lg">
-                Choose a plan to get started with your Review Hub
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-4 mb-6">
-              <div className="border border-border rounded-lg p-4 hover:border-primary transition-colors">
-                <h3 className="font-semibold text-lg mb-2">Monthly</h3>
-                <div className="text-2xl font-bold mb-3">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <Button 
-                  className="w-full" 
-                  size="sm"
-                  onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}
-                >
-                  Choose Monthly
-                </Button>
-              </div>
-              
-              <div className="border-2 border-primary rounded-lg p-4 relative bg-primary/5">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">
-                  Popular
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Yearly</h3>
-                <div className="text-2xl font-bold mb-1">$249<span className="text-sm font-normal text-muted-foreground">/yr</span></div>
-                <div className="text-xs text-muted-foreground mb-3">Save $99/year</div>
-                <Button 
-                  className="w-full" 
-                  size="sm"
-                  onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}
-                >
-                  Choose Yearly
-                </Button>
-              </div>
-              
-              <div className="border border-border rounded-lg p-4 hover:border-primary transition-colors">
-                <h3 className="font-semibold text-lg mb-2">Bundle</h3>
-                <div className="text-2xl font-bold mb-1">$69<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                <div className="text-xs text-muted-foreground mb-3">3 locations</div>
-                <Button 
-                  className="w-full" 
-                  size="sm"
-                  onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}
-                >
-                  Choose Bundle
-                </Button>
-              </div>
-            </div>
-            
-            <p className="text-sm text-muted-foreground text-center">
-              After purchase, your dashboard will be activated automatically
+        
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Welcome to TapAway</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Choose the perfect plan for your business and start collecting reviews in minutes
             </p>
-          </Card>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Monthly Plan */}
+            <Card className="p-6 hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-2">Monthly</h3>
+                <p className="text-sm text-muted-foreground">Perfect for getting started</p>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">$29</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+              </div>
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}
+              >
+                Get Started
+              </Button>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  1 Location
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Custom Review Hub
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Analytics Dashboard
+                </li>
+              </ul>
+            </Card>
+
+            {/* Yearly Plan - Popular */}
+            <Card className="p-6 border-2 border-primary shadow-lg relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold shadow-md">
+                Most Popular
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-2">Yearly</h3>
+                <p className="text-sm text-muted-foreground">Best value - save $99!</p>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">$249</span>
+                  <span className="text-muted-foreground">/year</span>
+                </div>
+                <p className="text-sm text-primary font-medium mt-1">Save $99 per year</p>
+              </div>
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}
+              >
+                Get Started
+              </Button>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  1 Location
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Custom Review Hub
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Analytics Dashboard
+                </li>
+              </ul>
+            </Card>
+
+            {/* Bundle Plan */}
+            <Card className="p-6 hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-2">Multi-Location</h3>
+                <p className="text-sm text-muted-foreground">For growing businesses</p>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold">$69</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+              </div>
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}
+              >
+                Get Started
+              </Button>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-semibold">3 Locations</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Custom Review Hubs
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Consolidated Analytics
+                </li>
+              </ul>
+            </Card>
+          </div>
+
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Your dashboard will activate automatically after purchase
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Cancel anytime • No hidden fees • Money-back guarantee
+            </p>
+          </div>
         </div>
       </div>
     );
