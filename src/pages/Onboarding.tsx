@@ -214,12 +214,13 @@ const Onboarding = () => {
         return;
       }
 
-      // If user doesn't have a restaurant, check slug uniqueness
-      if (!userRestaurant && validatedData.customSlug) {
+      // Check slug uniqueness (skip if user is keeping their existing slug)
+      if (validatedData.customSlug) {
+        const slugToCheck = validatedData.customSlug.toLowerCase().trim();
         const { data: existing, error: checkError } = await supabase
           .from('restaurants')
-          .select('id')
-          .eq('custom_slug', validatedData.customSlug.toLowerCase().trim())
+          .select('id, owner_id')
+          .eq('custom_slug', slugToCheck)
           .maybeSingle();
         
         if (checkError) {
@@ -229,7 +230,8 @@ const Onboarding = () => {
           return;
         }
         
-        if (existing) {
+        // If slug exists and doesn't belong to current user, reject
+        if (existing && existing.owner_id !== user.id) {
           toast.error(`The custom link (tapaway.co/${validatedData.customSlug}) is already taken. Please choose a unique name.`);
           setIsLoading(false);
           return;
@@ -487,20 +489,6 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="googleReviewUrl">Google Review URL</Label>
-                <Input
-                  id="googleReviewUrl"
-                  type="url"
-                  value={formData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${formData.googlePlaceId}` : ''}
-                  disabled
-                  placeholder="Auto-generated from Google search in Step 2"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formData.googlePlaceId ? "✓ Google review URL auto-generated" : "Use Google search in Step 2 to generate"}
-                </p>
-              </div>
-
               <div>
                 <Label htmlFor="yelpUrl">Yelp Review URL (Optional)</Label>
                 <Input
