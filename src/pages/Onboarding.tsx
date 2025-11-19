@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
+import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -385,16 +386,19 @@ const Onboarding = () => {
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="address">Business Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="123 Main St, City, State ZIP"
-                  maxLength={200}
+                <GooglePlacesAutocomplete
+                  onPlaceSelected={({ placeId, name, address }) => {
+                    handleInputChange("googlePlaceId", placeId);
+                    handleInputChange("address", address);
+                    if (!formData.restaurantName && name) {
+                      handleInputChange("restaurantName", name);
+                    }
+                  }}
+                  defaultValue={formData.address}
+                  disabled={isLoading}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Enter your full business address
+                  Start typing to search your business, then select it from the dropdown
                 </p>
               </div>
 
