@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,13 +11,6 @@ import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
-
-declare global {
-  interface Window {
-    google: any;
-    initGooglePlacesOnboarding: () => void;
-  }
-}
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -40,8 +33,6 @@ const Onboarding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
-  const addressInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -66,73 +57,6 @@ const Onboarding = () => {
       navigate("/auth");
     }
   }, [user, navigate]);
-
-  useEffect(() => {
-    // Load Google Maps script
-    if (window.google?.maps?.places) {
-      setIsGoogleMapsLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-    if (!apiKey) {
-      console.warn("[Onboarding] VITE_GOOGLE_MAPS_API_KEY is not set");
-    }
-
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlacesOnboarding`;
-    script.async = true;
-    script.defer = true;
-
-    window.initGooglePlacesOnboarding = () => {
-      setIsGoogleMapsLoaded(true);
-    };
-
-    script.onerror = () => {
-      console.error('Failed to load Google Maps');
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-      delete window.initGooglePlacesOnboarding;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isGoogleMapsLoaded && addressInputRef.current && step === 2) {
-      const autocomplete = new window.google.maps.places.Autocomplete(addressInputRef.current, {
-        fields: ['place_id', 'name', 'formatted_address', 'geometry'],
-        types: ['establishment']
-      });
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-
-        if (!place.place_id || !place.geometry) {
-          toast.error('Please select a valid place from the dropdown');
-          return;
-        }
-
-        handleInputChange("googlePlaceId", place.place_id);
-        handleInputChange("address", place.formatted_address || '');
-        if (!formData.restaurantName) {
-          handleInputChange("restaurantName", place.name || '');
-        }
-
-        // Auto-generate Apple Maps URL
-        const encodedAddress = encodeURIComponent(place.formatted_address || '');
-        const encodedName = encodeURIComponent(place.name || '');
-        handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
-        
-        toast.success("Business found! Details populated from Google.");
-      });
-    }
-  }, [isGoogleMapsLoaded, step]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -197,6 +121,37 @@ const Onboarding = () => {
           toast.error(validationError.errors[0].message);
           setIsLoading(false);
           return;
+        }
+      }
+
+      // Lookup Google Place ID server-side if address is provided
+      let placeId = formData.googlePlaceId;
+      if (validatedData.address && !placeId) {
+        console.log('[Onboarding] Looking up Place ID for address:', validatedData.address);
+        try {
+          const { data: lookupData, error: lookupError } = await supabase.functions.invoke('lookup-place-id', {
+            body: { address: validatedData.address }
+          });
+
+          if (lookupError) {
+            console.error('[Onboarding] Place ID lookup error:', lookupError);
+            toast.error('Could not verify business address with Google. Please check the address.');
+            setIsLoading(false);
+            return;
+          }
+
+          if (lookupData?.placeId) {
+            placeId = lookupData.placeId;
+            console.log('[Onboarding] Found Place ID:', placeId);
+            
+            // Update restaurant name if not set
+            if (!formData.restaurantName && lookupData.name) {
+              handleInputChange("restaurantName", lookupData.name);
+            }
+          }
+        } catch (error) {
+          console.error('[Onboarding] Place ID lookup failed:', error);
+          // Continue without place ID - it's optional
         }
       }
 
@@ -270,8 +225,8 @@ const Onboarding = () => {
         custom_slug: validatedData.customSlug,
         slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram || null,
-        google_review_url: validatedData.googlePlaceId ? `https://search.google.com/local/writereview?placeid=${validatedData.googlePlaceId}` : null,
-        google_place_id: validatedData.googlePlaceId || null,
+        google_review_url: placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : null,
+        google_place_id: placeId || null,
         yelp_review_url: validatedData.yelpUrl && validatedData.yelpUrl.trim() ? validatedData.yelpUrl : null,
         directions_url: directionsUrl || null,
         address: validatedData.address || null,
@@ -432,22 +387,15 @@ const Onboarding = () => {
               <div>
                 <Label htmlFor="address">Business Address</Label>
                 <Input
-                  ref={addressInputRef}
                   id="address"
                   value={formData.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="Start typing your business address..."
+                  placeholder="123 Main St, City, State ZIP"
                   maxLength={200}
-                  disabled={!isGoogleMapsLoaded}
                 />
-                {!isGoogleMapsLoaded && (
-                  <p className="text-xs text-muted-foreground mt-1">Loading Google Places...</p>
-                )}
-                {isGoogleMapsLoaded && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Start typing to search for your business and auto-populate details
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter your full business address
+                </p>
               </div>
 
               <div>
