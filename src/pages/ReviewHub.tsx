@@ -297,25 +297,25 @@ const ReviewHub = () => {
     
     // Use custom background if uploaded
     if (restaurant.custom_background_url) {
-      return `url(${restaurant.custom_background_url}) center/cover`;
+      return { background: `url(${restaurant.custom_background_url}) center/cover` };
     }
     
     // Only apply special backgrounds when explicitly selected (not 'classic' or null)
     if (!style || style === 'classic') {
-      return '#ffffff'; // Clean white background for classic
+      return { background: '#ffffff' }; // Clean white background for classic
     }
     
     switch (style) {
       case 'soft-gradient':
-        // Bright blue to cyan gradient
-        return 'linear-gradient(135deg, #0066ff 0%, #00ccff 100%)';
+        // Bright blue to cyan gradient - VIVID
+        return { background: 'linear-gradient(135deg, #0066ff 0%, #00ccff 100%)' };
       case 'photo-blur':
-        // Vivid neon green to yellow gradient
-        return 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)';
+        // Vivid neon green to yellow gradient - HIGH CONTRAST
+        return { background: 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)' };
       case 'dark':
-        return '#000000';
+        return { background: '#000000' };
       default:
-        return '#ffffff';
+        return { background: '#ffffff' };
     }
   };
 
@@ -347,15 +347,24 @@ const ReviewHub = () => {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%', boxSizing: 'border-box', background: getBackgroundStyle(), minHeight: '100vh', padding: '28px 16px' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'flex-start', 
+        width: '100%', 
+        boxSizing: 'border-box', 
+        minHeight: '100vh', 
+        padding: '28px 16px',
+        ...getBackgroundStyle()
+      }}>
         <div style={{ 
           maxWidth: '480px', 
           width: '100%', 
           margin: '0 auto', 
-          padding: '28px 24px', 
+          padding: '32px 28px', 
           border: '1px solid #eee', 
           borderRadius: '16px', 
-          boxShadow: '0 6px 24px rgba(0,0,0,.06)', 
+          boxShadow: '0 10px 40px rgba(0,0,0,0.12)', 
           background: getCardBackground(), 
           fontFamily: "'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif", 
           textAlign: 'center' as const
@@ -447,14 +456,14 @@ const ReviewHub = () => {
                   {hasVoted && (
                     <p style={{ 
                       fontSize: '13px', 
-                      color: getMutedTextColor(), 
-                      marginBottom: '12px',
-                      fontStyle: 'italic'
+                      color: '#10b981', 
+                      marginBottom: '14px',
+                      fontWeight: '600'
                     }}>
-                      Thanks for voting! Here are the results:
+                      ✓ Thanks for voting!
                     </p>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {engagement.options?.choices?.map((choice: string, index: number) => {
                       const totalVotes = Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) as number;
                       const votes = pollVotes[index] || 0;
@@ -467,65 +476,64 @@ const ReviewHub = () => {
                           disabled={hasVoted}
                           style={{
                             position: 'relative',
-                            padding: '14px 16px',
+                            padding: '16px 18px',
                             background: restaurant.hub_background_style === 'dark' ? '#2a2a2a' : '#ffffff',
                             border: `2px solid ${restaurant.hub_background_style === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
-                            borderRadius: '10px',
+                            borderRadius: '12px',
                             cursor: hasVoted ? 'default' : 'pointer',
                             textAlign: 'left',
                             overflow: 'hidden',
-                            transition: 'all 0.2s',
-                            opacity: hasVoted ? 1 : 0.95,
-                            boxShadow: hasVoted ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.05)'
+                            transition: 'all 0.2s ease-out',
+                            opacity: hasVoted ? 1 : 0.98,
+                            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.08)'
                           }}
                           onMouseEnter={(e) => {
                             if (!hasVoted) {
                               e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                              e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (!hasVoted) {
                               e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)';
+                              e.currentTarget.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.08)';
                             }
                           }}
                         >
+                          {/* Progress bar - always visible for public results */}
                           <div style={{
                             position: 'absolute',
                             left: 0,
                             top: 0,
                             bottom: 0,
                             width: `${percentage}%`,
-                            background: hasVoted 
-                              ? 'linear-gradient(90deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.08))'
-                              : 'rgba(37, 99, 235, 0.08)',
-                            transition: 'width 0.4s ease-out',
-                            borderRadius: '8px 0 0 8px'
+                            background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.08))',
+                            transition: 'width 0.5s ease-out',
+                            borderRadius: '10px 0 0 10px'
                           }} />
-                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
                             <span style={{ fontWeight: '600', color: getTextColor(), fontSize: '15px', flex: 1 }}>{choice}</span>
-                            {hasVoted && (
-                              <span style={{ 
-                                fontSize: '13px', 
-                                color: getMutedTextColor(), 
-                                fontWeight: '700',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {percentage}% ({votes})
-                              </span>
-                            )}
+                            {/* Always show results to everyone (public poll results) */}
+                            <span style={{ 
+                              fontSize: '14px', 
+                              color: getMutedTextColor(), 
+                              fontWeight: '700',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {percentage}% ({votes})
+                            </span>
                           </div>
                         </button>
                       );
                     })}
                   </div>
-                  {hasVoted && Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) > 0 && (
+                  {Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) > 0 && (
                     <p style={{ 
-                      fontSize: '12px', 
+                      fontSize: '13px', 
                       color: getMutedTextColor(), 
-                      marginTop: '12px',
-                      textAlign: 'center'
+                      marginTop: '14px',
+                      textAlign: 'center',
+                      fontWeight: '500'
                     }}>
                       Total votes: {Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0)}
                     </p>
