@@ -15,6 +15,7 @@ interface Restaurant {
   custom_slug: string;
   logo_url: string | null;
   hub_background_style: string | null;
+  custom_background_url: string | null;
   google_review_url: string | null;
   yelp_review_url: string | null;
   instagram_url: string | null;
@@ -88,6 +89,45 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
     }
   };
 
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const randomUuid = crypto.randomUUID();
+      const filePath = `${restaurantId}/bg-${randomUuid}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('restaurant-logos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('restaurant-logos')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('restaurants')
+        .update({ custom_background_url: publicUrl })
+        .eq('id', restaurantId);
+
+      if (updateError) throw updateError;
+
+      setRestaurant(prev => prev ? { ...prev, custom_background_url: publicUrl } : null);
+      toast({ title: "Background updated", description: "Your custom background has been updated." });
+    } catch (error: any) {
+      toast({ title: "Error", description: `Upload failed: ${error.message}`, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const saveSettings = async () => {
     if (!restaurant) return;
 
@@ -117,6 +157,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         .update({
           restaurant_name: restaurant.restaurant_name,
           hub_background_style: restaurant.hub_background_style,
+          custom_background_url: restaurant.custom_background_url,
           google_review_url: restaurant.google_review_url,
           yelp_review_url: restaurant.yelp_review_url,
           instagram_url: restaurant.instagram_url,
@@ -230,6 +271,90 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
               <p className="text-xs text-muted-foreground">{style.desc}</p>
             </div>
           ))}
+        </div>
+      </Card>
+
+      {/* Custom Background Upload */}
+      <Card className="p-6 card-elevated">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-primary" />
+          Custom Background Image
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Upload a custom background image for your hub (overrides style selection)
+        </p>
+        <div className="space-y-4">
+          {restaurant.custom_background_url && (
+            <div>
+              <Label>Current Background</Label>
+              <div className="mt-2 relative h-32 rounded-lg overflow-hidden border-2 border-border">
+                <img 
+                  src={restaurant.custom_background_url} 
+                  alt="Background" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={async () => {
+                  await supabase
+                    .from('restaurants')
+                    .update({ custom_background_url: null })
+                    .eq('id', restaurantId);
+                  setRestaurant(prev => prev ? { ...prev, custom_background_url: null } : null);
+                  toast({ title: "Background removed" });
+                }}
+              >
+                Remove Custom Background
+              </Button>
+            </div>
+          )}
+          
+          <div>
+            <Label htmlFor="bg-upload">Upload Background Image</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                id="bg-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleBackgroundUpload}
+                disabled={uploading}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Recommended: 1920x1080px or larger for best quality
+            </p>
+          </div>
+
+          {/* Preview */}
+          <div>
+            <Label>Preview Hub Style</Label>
+            <div 
+              className="mt-2 h-40 rounded-lg border-2 border-border overflow-hidden relative"
+              style={{
+                background: restaurant.custom_background_url 
+                  ? `url(${restaurant.custom_background_url}) center/cover`
+                  : restaurant.hub_background_style === 'soft-gradient'
+                  ? 'linear-gradient(135deg, #00f5ff 0%, #ff00ea 100%)'
+                  : restaurant.hub_background_style === 'photo-blur'
+                  ? 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)'
+                  : restaurant.hub_background_style === 'dark'
+                  ? '#000000'
+                  : '#ffffff'
+              }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-white/90 dark:bg-black/90 backdrop-blur-sm p-6 rounded-lg shadow-lg">
+                  <p className="text-sm font-semibold">Hub Preview</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {restaurant.custom_background_url ? 'Custom Image' : restaurant.hub_background_style || 'Classic'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
 
