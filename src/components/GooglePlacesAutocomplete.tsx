@@ -16,6 +16,7 @@ interface GooglePlacesAutocompleteProps {
 declare global {
   interface Window {
     google: any;
+    initGooglePlaces: () => void;
   }
 }
 
@@ -29,19 +30,54 @@ export const GooglePlacesAutocomplete = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if Google Maps is already loaded
     if (window.google?.maps?.places) {
       setIsLoaded(true);
       return;
     }
 
-    const interval = setInterval(() => {
-      if (window.google?.maps?.places) {
-        setIsLoaded(true);
-        clearInterval(interval);
-      }
-    }, 300);
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      const checkLoaded = setInterval(() => {
+        if (window.google?.maps?.places) {
+          setIsLoaded(true);
+          clearInterval(checkLoaded);
+        }
+      }, 100);
+      return () => clearInterval(checkLoaded);
+    }
 
-    return () => clearInterval(interval);
+    // Load Google Maps script dynamically
+    const script = document.createElement('script');
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      console.error("[GooglePlacesAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set");
+      setError('Google Maps API key not configured');
+      return;
+    }
+
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlaces`;
+    script.async = true;
+    script.defer = true;
+
+    window.initGooglePlaces = () => {
+      setIsLoaded(true);
+    };
+
+    script.onerror = () => {
+      setError('Failed to load Google Maps');
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      delete window.initGooglePlaces;
+    };
   }, []);
 
   useEffect(() => {
