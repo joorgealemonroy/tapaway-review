@@ -90,8 +90,9 @@ const Dashboard = () => {
 
     if (data && data.length > 0) {
       setAllRestaurants(data);
-      // Don't auto-select for admins - let them choose
-      setRestaurant(null);
+      // Auto-select first restaurant so admin can see content
+      setRestaurant(data[0]);
+      fetchLocations(data[0].id);
     }
   };
 
@@ -246,8 +247,8 @@ const Dashboard = () => {
     );
   }
 
-  // If no restaurant is loaded yet, show loading (except for admins who can select one)
-  if (!restaurant && !isAdmin) {
+  // If no restaurant is loaded yet, show loading
+  if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading restaurant data...</div>;
   }
 
@@ -277,7 +278,11 @@ const Dashboard = () => {
 
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
         {isAdmin && allRestaurants.length > 0 && (
-          <Card className="p-3 md:p-4 mb-4 md:mb-6">
+          <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs font-semibold text-primary uppercase tracking-wide">Admin Mode</span>
+            </div>
             <Select value={restaurant?.id || ""} onValueChange={handleRestaurantChange}>
               <SelectTrigger className="w-full md:w-[400px]">
                 <SelectValue placeholder="Select a restaurant to manage" />
@@ -290,15 +295,6 @@ const Dashboard = () => {
                 ))}
               </SelectContent>
             </Select>
-          </Card>
-        )}
-
-        {isAdmin && !restaurant && (
-          <Card className="p-8 text-center">
-            <h2 className="text-xl font-semibold mb-2">Admin Dashboard</h2>
-            <p className="text-muted-foreground">
-              Please select a restaurant from the dropdown above to manage its settings.
-            </p>
           </Card>
         )}
 
@@ -330,7 +326,7 @@ const Dashboard = () => {
             <div className="mb-4 md:mb-6">
               <h1 className="text-2xl md:text-3xl font-bold">{restaurant.restaurant_name}</h1>
               <p className="text-sm md:text-base text-muted-foreground">
-                {isAdmin ? "Admin Dashboard" : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
+                {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
               </p>
             </div>
 
