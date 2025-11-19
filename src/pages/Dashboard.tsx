@@ -165,7 +165,7 @@ const Dashboard = () => {
 
   // Check if user should bypass paywall
   const planType = restaurant?.plan_type || 'standard';
-  const shouldBypassPaywall = isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+  const shouldBypassPaywall = isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
 
   if (!loading && user && !restaurant && !shouldBypassPaywall) {
     return (
