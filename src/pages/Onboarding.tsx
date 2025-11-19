@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +10,14 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
-import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { urlValidationSchemas } from "@/lib/urlValidation";
+
+declare global {
+  interface Window {
+    google: any;
+    initGooglePlacesOnboarding: () => void;
+  }
+}
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -34,6 +40,8 @@ const Onboarding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -58,6 +66,73 @@ const Onboarding = () => {
       navigate("/auth");
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    // Load Google Maps script
+    if (window.google?.maps?.places) {
+      setIsGoogleMapsLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      console.warn("[Onboarding] VITE_GOOGLE_MAPS_API_KEY is not set");
+    }
+
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlacesOnboarding`;
+    script.async = true;
+    script.defer = true;
+
+    window.initGooglePlacesOnboarding = () => {
+      setIsGoogleMapsLoaded(true);
+    };
+
+    script.onerror = () => {
+      console.error('Failed to load Google Maps');
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      delete window.initGooglePlacesOnboarding;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isGoogleMapsLoaded && addressInputRef.current && step === 2) {
+      const autocomplete = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        fields: ['place_id', 'name', 'formatted_address', 'geometry'],
+        types: ['establishment']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+
+        if (!place.place_id || !place.geometry) {
+          toast.error('Please select a valid place from the dropdown');
+          return;
+        }
+
+        handleInputChange("googlePlaceId", place.place_id);
+        handleInputChange("address", place.formatted_address || '');
+        if (!formData.restaurantName) {
+          handleInputChange("restaurantName", place.name || '');
+        }
+
+        // Auto-generate Apple Maps URL
+        const encodedAddress = encodeURIComponent(place.formatted_address || '');
+        const encodedName = encodeURIComponent(place.name || '');
+        handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
+        
+        toast.success("Business found! Details populated from Google.");
+      });
+    }
+  }, [isGoogleMapsLoaded, step]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -352,24 +427,26 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              <GooglePlacesAutocomplete
-                onPlaceSelected={(place) => {
-                  handleInputChange("googlePlaceId", place.placeId);
-                  handleInputChange("address", place.address);
-                  if (!formData.restaurantName) {
-                    handleInputChange("restaurantName", place.name);
-                  }
-                  // Auto-generate Apple Maps URL
-                  const encodedAddress = encodeURIComponent(place.address);
-                  const encodedName = encodeURIComponent(place.name);
-                  handleInputChange("directionsUrl", `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`);
-                  toast.success("Business found! Details populated from Google.");
-                }}
-                defaultValue={formData.address}
-              />
-              <p className="text-xs text-muted-foreground">
-                Search for your business to auto-populate address and review links
-              </p>
+              <div>
+                <Label htmlFor="address">Business Address</Label>
+                <Input
+                  ref={addressInputRef}
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="Start typing your business address..."
+                  maxLength={200}
+                  disabled={!isGoogleMapsLoaded}
+                />
+                {!isGoogleMapsLoaded && (
+                  <p className="text-xs text-muted-foreground mt-1">Loading Google Places...</p>
+                )}
+                {isGoogleMapsLoaded && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Start typing to search for your business and auto-populate details
+                  </p>
+                )}
+              </div>
 
               <div>
                 <Label htmlFor="phone">Phone Number</Label>
