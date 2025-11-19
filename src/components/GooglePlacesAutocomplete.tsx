@@ -16,7 +16,6 @@ interface GooglePlacesAutocompleteProps {
 declare global {
   interface Window {
     google: any;
-    initGooglePlaces: () => void;
   }
 }
 
@@ -30,43 +29,19 @@ export const GooglePlacesAutocomplete = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if Google Maps is already loaded
     if (window.google?.maps?.places) {
       setIsLoaded(true);
-      initAutocomplete();
       return;
     }
 
-    // Load Google Maps script
-    const script = document.createElement('script');
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-    // Even if the key is misconfigured, attempt to load the script and let the
-    // standard onerror handler surface a generic error to the user.
-    if (!apiKey) {
-      console.warn("[GooglePlacesAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set");
-    }
-
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlaces`;
-    script.async = true;
-    script.defer = true;
-
-    window.initGooglePlaces = () => {
-      setIsLoaded(true);
-    };
-
-    script.onerror = () => {
-      setError('Failed to load Google Maps');
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
+    const interval = setInterval(() => {
+      if (window.google?.maps?.places) {
+        setIsLoaded(true);
+        clearInterval(interval);
       }
-      delete window.initGooglePlaces;
-    };
+    }, 300);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -121,7 +96,7 @@ export const GooglePlacesAutocomplete = ({
         ref={inputRef}
         id="google-places-search"
         type="text"
-        placeholder="Start typing your restaurant name..."
+        placeholder={defaultValue || "Start typing your restaurant name..."}
         defaultValue={defaultValue}
         disabled={disabled || !isLoaded}
         className="mt-2"
