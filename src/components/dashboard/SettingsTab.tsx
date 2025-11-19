@@ -193,7 +193,18 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         .update(updateData)
         .eq("id", restaurantId);
 
-      if (error) throw error;
+      if (error) {
+        // Handle unique constraint violation for custom_slug
+        if (error.code === '23505' && error.message.includes('custom_slug')) {
+          toast({
+            title: "Slug already taken",
+            description: `The slug "${restaurant.custom_slug}" is already in use. Please choose a different one.`,
+            variant: "destructive"
+          });
+          return;
+        }
+        throw error;
+      }
 
       toast({ title: "Settings saved", description: "Your settings have been updated successfully." });
     } catch (error) {
