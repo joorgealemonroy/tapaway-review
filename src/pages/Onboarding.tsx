@@ -110,14 +110,21 @@ const Onboarding = () => {
 
       // Check slug uniqueness
       if (validatedData.customSlug) {
-        const { data: existing } = await (supabase as any)
+        const { data: existing, error: checkError } = await supabase
           .from('restaurants')
           .select('id')
-          .eq('custom_slug', validatedData.customSlug)
+          .eq('custom_slug', validatedData.customSlug.toLowerCase().trim())
           .maybeSingle();
         
+        if (checkError) {
+          console.error('[Onboarding] Error checking slug uniqueness:', checkError);
+          toast.error('Failed to verify URL availability. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+        
         if (existing) {
-          toast.error('This URL is already taken. Please choose a different one.');
+          toast.error(`The custom link (tapaway.co/${validatedData.customSlug}) is already taken. Please choose a unique name.`);
           setIsLoading(false);
           return;
         }
