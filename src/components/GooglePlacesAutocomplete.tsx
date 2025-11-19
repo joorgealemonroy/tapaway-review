@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface GooglePlacesAutocompleteProps {
@@ -24,8 +23,7 @@ export const GooglePlacesAutocomplete = ({
   defaultValue = "",
   disabled = false,
 }: GooglePlacesAutocompleteProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,40 +78,53 @@ export const GooglePlacesAutocomplete = ({
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || !inputRef.current || !window.google?.maps?.places) {
+    if (!isLoaded || !containerRef.current || !window.google?.maps?.places || disabled) {
       return;
     }
 
     try {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(
-        inputRef.current,
-        {
-          fields: ["place_id", "name", "formatted_address"],
-          types: ["establishment"],
-        }
-      );
+      // Create the new PlaceAutocompleteElement
+      const autocompleteElement = new window.google.maps.places.PlaceAutocompleteElement({
+        componentRestrictions: { country: ["us"] },
+        types: ["establishment"],
+      });
 
-      autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current.getPlace();
+      // Clear container and append the element
+      containerRef.current.innerHTML = '';
+      containerRef.current.appendChild(autocompleteElement);
 
-        if (!place?.place_id) {
+      // Listen for place selection
+      autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
+        const place = event.place;
+        
+        if (!place?.id) {
           setError("Please select a valid place from the dropdown");
           return;
         }
 
+        // Fetch place details to get formatted address and name
+        await place.fetchFields({
+          fields: ['id', 'displayName', 'formattedAddress']
+        });
+
         onPlaceSelected({
-          placeId: place.place_id,
-          name: place.name || "",
-          address: place.formatted_address || "",
+          placeId: place.id,
+          name: place.displayName || "",
+          address: place.formattedAddress || "",
         });
 
         setError(null);
       });
+
+      // Set default value if provided
+      if (defaultValue) {
+        autocompleteElement.value = defaultValue;
+      }
     } catch (err) {
       console.error("[GooglePlacesAutocomplete] Error initializing:", err);
       setError("Error initializing autocomplete");
     }
-  }, [isLoaded, onPlaceSelected]);
+  }, [isLoaded, onPlaceSelected, defaultValue, disabled]);
 
   if (error) {
     return (
@@ -126,15 +137,12 @@ export const GooglePlacesAutocomplete = ({
 
   return (
     <div>
-      <Label htmlFor="google-places-input">Search Your Business on Google</Label>
-      <Input
-        ref={inputRef}
-        id="google-places-input"
-        type="text"
-        placeholder={defaultValue || "Start typing your restaurant name..."}
-        defaultValue={defaultValue}
-        disabled={disabled || !isLoaded}
+      <Label htmlFor="google-places-autocomplete">Search Your Business on Google</Label>
+      <div 
+        ref={containerRef}
+        id="google-places-autocomplete"
         className="mt-2"
+        style={{ minHeight: '44px' }}
       />
       {!isLoaded && (
         <div className="text-xs text-muted-foreground mt-1">
