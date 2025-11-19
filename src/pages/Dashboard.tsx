@@ -355,7 +355,47 @@ const Dashboard = () => {
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
-...
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
+                  <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+                ) : (
+                  <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+                )}
+              </TabsContent>
+
+              {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
+                <>
+                  <TabsContent value="ai-coach">
+                    <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
+                  </TabsContent>
+
+                  <TabsContent value="competitors">
+                    <CompetitorTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="replies">
+                    <ReviewRepliesTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="goals">
+                    <GoalsTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="engagement">
+                    <EngagementTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="menu">
+                    <MenuTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
+                  <TabsContent value="support">
+                    <SupportTab />
+                  </TabsContent>
+                </>
+              )}
+
+              <TabsContent value="settings">
+                <SettingsTab restaurantId={restaurant.id} />
               </TabsContent>
 
               <TabsContent value="billing">
