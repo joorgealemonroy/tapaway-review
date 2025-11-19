@@ -40,10 +40,11 @@ export const GooglePlacesAutocomplete = ({
     // Load Google Maps script
     const script = document.createElement('script');
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    
+
+    // Even if the key is misconfigured, attempt to load the script and let the
+    // standard onerror handler surface a generic error to the user.
     if (!apiKey) {
-      setError('Google Maps API key is not configured. Please contact support.');
-      return;
+      console.warn("[GooglePlacesAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set");
     }
 
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlaces`;
