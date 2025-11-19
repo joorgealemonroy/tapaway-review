@@ -209,6 +209,9 @@ const Onboarding = () => {
         shouldInsert = true;
       }
 
+      // Strip "places/" prefix from Place ID for legacy Google Review URL compatibility
+      const legacyPlaceId = placeId ? placeId.replace(/^places\//, '') : null;
+
       // Auto-generate Apple Maps URL from address
       let directionsUrl = validatedData.directionsUrl || '';
       if (!directionsUrl && validatedData.address) {
@@ -241,8 +244,8 @@ const Onboarding = () => {
         custom_slug: validatedData.customSlug,
         slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram || null,
-        google_review_url: placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : null,
-        google_place_id: placeId || null,
+        google_review_url: legacyPlaceId ? `https://search.google.com/local/writereview?placeid=${legacyPlaceId}` : null,
+        google_place_id: legacyPlaceId || null,
         yelp_review_url: validatedData.yelpUrl && validatedData.yelpUrl.trim() ? validatedData.yelpUrl : null,
         directions_url: directionsUrl || null,
         address: validatedData.address || null,
