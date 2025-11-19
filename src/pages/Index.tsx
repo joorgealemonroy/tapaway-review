@@ -5,13 +5,12 @@ import { motion } from "framer-motion";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 import { NewHero } from "@/components/landing/NewHero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-
 const Index = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       {/* Navigation */}
       <nav className="sticky top-0 z-30 bg-white/85 backdrop-blur-lg border-b border-border">
         <div className="max-w-[1060px] mx-auto px-4">
@@ -19,21 +18,11 @@ const Index = () => {
             <a href="https://tapaway.co" className="font-black text-lg md:text-xl tracking-tight">
               TapAway
             </a>
-            {user ? (
-              <a
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-              >
+            {user ? <a href="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
                 Go to Dashboard
-              </a>
-            ) : (
-              <a
-                href="/auth"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-              >
+              </a> : <a href="/auth" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
                 Get Started
-              </a>
-            )}
+              </a>}
           </div>
         </div>
       </nav>
@@ -47,51 +36,92 @@ const Index = () => {
       {/* Existing Hero Section - now acts as secondary section */}
       <header id="get-started" className="text-center pt-12 pb-4 px-4">
         <div className="max-w-[1060px] mx-auto">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3"
-          >
-            Turn Guests into Reviews
+          <motion.h1 initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} viewport={{
+          once: true
+        }} transition={{
+          duration: 0.5
+        }} className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3">
+            Turn Guests into Reviews Instantly✨   
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
             <br />
             Instantly✨
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4"
-          >
+          <motion.p initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} viewport={{
+          once: true
+        }} transition={{
+          duration: 0.5,
+          delay: 0.1
+        }} className="max-w-[700px] mx-auto text-[clamp(16px,4.5vw,20px)] text-[#333b49] mb-4">
             One tap at the table—your branded review page opens. No apps. No awkward asks. Just more 5-star reviews that
             bring in more guests.
           </motion.p>
         </div>
 
         {/* 3D Card Animation */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="my-12"
-        >
+        <motion.div initial={{
+        opacity: 0,
+        scale: 0.95
+      }} whileInView={{
+        opacity: 1,
+        scale: 1
+      }} viewport={{
+        once: true
+      }} transition={{
+        duration: 0.6,
+        delay: 0.2
+      }} className="my-12">
           <TapAwayCard3D />
         </motion.div>
 
         <div className="flex flex-wrap justify-center gap-3 mb-8">
-          <a
-            href="/auth"
-            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-          >
+          <a href="/auth" className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
             Start Free Trial
           </a>
-          <a
-            href="/demo"
-            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-white border border-[#eceff3] text-[#111827] shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-          >
+          <a href="/demo" className="inline-flex items-center gap-2 px-6 py-4 rounded-xl font-extrabold bg-white border border-[#eceff3] text-[#111827] shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
             View Demo
           </a>
         </div>
@@ -237,10 +267,7 @@ const Index = () => {
                 $30 <span className="text-lg font-normal text-muted-foreground">/ month</span>
               </div>
               <p className="text-muted-foreground mb-6">Everything for one location.</p>
-              <a
-                href="https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05"
-                className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-              >
+              <a href="https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
                 Choose Monthly
               </a>
             </div>
@@ -254,10 +281,7 @@ const Index = () => {
                 $300 <span className="text-lg font-normal text-muted-foreground">/ year</span>
               </div>
               <div className="text-sm text-muted-foreground mb-4">Save with annual billing.</div>
-              <a
-                href="https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06"
-                className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all"
-              >
+              <a href="https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
                 Choose Yearly
               </a>
             </div>
@@ -304,8 +328,6 @@ const Index = () => {
           perspective: 1100px;
         }
       `}</style>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
