@@ -7,7 +7,6 @@ interface GooglePlacesAutocompleteProps {
     placeId: string;
     name: string;
     address: string;
-    reviewUrl: string;
   }) => void;
   defaultValue?: string;
   disabled?: boolean;
@@ -16,58 +15,58 @@ interface GooglePlacesAutocompleteProps {
 declare global {
   interface Window {
     google: any;
-    initGooglePlaces: () => void;
+    initMap: () => void;
   }
 }
 
-export const GooglePlacesAutocomplete = ({ 
-  onPlaceSelected, 
+export const GooglePlacesAutocomplete = ({
+  onPlaceSelected,
   defaultValue = "",
-  disabled = false 
+  disabled = false,
 }: GooglePlacesAutocompleteProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if Google Maps is already loaded
+    // Check if already loaded
     if (window.google?.maps?.places) {
       setIsLoaded(true);
       return;
     }
 
-    // Check if script is already being loaded
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existingScript) {
-      const checkLoaded = setInterval(() => {
+    // Check if script is loading
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+      const checkInterval = setInterval(() => {
         if (window.google?.maps?.places) {
           setIsLoaded(true);
-          clearInterval(checkLoaded);
+          clearInterval(checkInterval);
         }
       }, 100);
-      return () => clearInterval(checkLoaded);
+      return () => clearInterval(checkInterval);
     }
 
-    // Load Google Maps script dynamically
-    const script = document.createElement('script');
+    // Load script
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-    if (!apiKey) {
-      console.error("[GooglePlacesAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set");
-      setError('Google Maps API key not configured');
+    if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+      setError("Google Maps API key not configured");
+      console.error("[GooglePlacesAutocomplete] Invalid or missing API key");
       return;
     }
 
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlaces`;
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
     script.async = true;
     script.defer = true;
 
-    window.initGooglePlaces = () => {
+    window.initMap = () => {
       setIsLoaded(true);
     };
 
     script.onerror = () => {
-      setError('Failed to load Google Maps');
+      setError("Failed to load Google Maps");
+      console.error("[GooglePlacesAutocomplete] Script failed to load");
     };
 
     document.head.appendChild(script);
@@ -76,45 +75,45 @@ export const GooglePlacesAutocomplete = ({
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      delete window.initGooglePlaces;
+      delete window.initMap;
     };
   }, []);
 
   useEffect(() => {
-    if (isLoaded && inputRef.current) {
-      initAutocomplete();
+    if (!isLoaded || !inputRef.current || !window.google?.maps?.places) {
+      return;
     }
-  }, [isLoaded]);
 
-  const initAutocomplete = () => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
+    try {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          fields: ["place_id", "name", "formatted_address"],
+          types: ["establishment"],
+        }
+      );
 
-    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-      fields: ['place_id', 'name', 'formatted_address', 'geometry'],
-      types: ['establishment']
-    });
+      autocompleteRef.current.addListener("place_changed", () => {
+        const place = autocompleteRef.current.getPlace();
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
+        if (!place?.place_id) {
+          setError("Please select a valid place from the dropdown");
+          return;
+        }
 
-      if (!place.place_id || !place.geometry) {
-        setError('Please select a valid place from the dropdown');
-        return;
-      }
+        onPlaceSelected({
+          placeId: place.place_id,
+          name: place.name || "",
+          address: place.formatted_address || "",
+        });
 
-      // Generate Google Review URL from place_id
-      const reviewUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-
-      onPlaceSelected({
-        placeId: place.place_id,
-        name: place.name || '',
-        address: place.formatted_address || '',
-        reviewUrl
+        setError(null);
       });
-
-      setError(null);
-    });
-  };
+    } catch (err) {
+      console.error("[GooglePlacesAutocomplete] Error initializing:", err);
+      setError("Error initializing autocomplete");
+    }
+  }, [isLoaded, onPlaceSelected]);
 
   if (error) {
     return (
@@ -127,10 +126,10 @@ export const GooglePlacesAutocomplete = ({
 
   return (
     <div>
-      <Label htmlFor="google-places-search">Search Your Business on Google</Label>
+      <Label htmlFor="google-places-input">Search Your Business on Google</Label>
       <Input
         ref={inputRef}
-        id="google-places-search"
+        id="google-places-input"
         type="text"
         placeholder={defaultValue || "Start typing your restaurant name..."}
         defaultValue={defaultValue}
@@ -138,7 +137,9 @@ export const GooglePlacesAutocomplete = ({
         className="mt-2"
       />
       {!isLoaded && (
-        <div className="text-xs text-muted-foreground mt-1">Loading Google Places...</div>
+        <div className="text-xs text-muted-foreground mt-1">
+          Loading Google Places...
+        </div>
       )}
     </div>
   );
