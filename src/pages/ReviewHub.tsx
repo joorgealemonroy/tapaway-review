@@ -153,13 +153,19 @@ const ReviewHub = () => {
     if (!restaurant) return;
     
     try {
-      await (supabase as any).from("analytics_events").insert({
-        restaurant_id: restaurant.id,
-        event_type: eventName,
-        event_data: { timestamp: new Date().toISOString() }
+      const { error } = await supabase.functions.invoke('track-event', {
+        body: {
+          restaurant_id: restaurant.id,
+          event_type: eventName,
+          event_data: {},
+        }
       });
-    } catch (error) {
-      console.error("Analytics error:", error);
+
+      if (error) {
+        console.error("Error tracking event:", error);
+      }
+    } catch (err) {
+      console.error("Error tracking event:", err);
     }
   };
 

@@ -30,17 +30,14 @@ export const GooglePlacesAutocomplete = ({
   useEffect(() => {
     // Check if already loaded
     if (window.google?.maps?.places) {
-      console.log("[GooglePlacesAutocomplete] Google Maps Places library already loaded");
       setIsLoaded(true);
       return;
     }
 
     // Check if script is loading
     if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-      console.log("[GooglePlacesAutocomplete] Script already loading, waiting...");
       const checkInterval = setInterval(() => {
         if (window.google?.maps?.places) {
-          console.log("[GooglePlacesAutocomplete] Places library now available");
           setIsLoaded(true);
           clearInterval(checkInterval);
         }
@@ -52,24 +49,20 @@ export const GooglePlacesAutocomplete = ({
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
       setError("Google Maps API key not configured");
-      console.error("[GooglePlacesAutocomplete] Invalid or missing API key");
       return;
     }
 
-    console.log("[GooglePlacesAutocomplete] Loading Google Maps script with Places library");
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
     script.async = true;
     script.defer = true;
 
     window.initMap = () => {
-      console.log("[GooglePlacesAutocomplete] Google Maps script loaded successfully");
       setIsLoaded(true);
     };
 
     script.onerror = () => {
       setError("Failed to load Google Maps");
-      console.error("[GooglePlacesAutocomplete] Script failed to load");
     };
 
     document.head.appendChild(script);
@@ -89,14 +82,11 @@ export const GooglePlacesAutocomplete = ({
 
     // Strict readiness check
     if (!window.google?.maps?.places?.PlaceAutocompleteElement) {
-      console.error("[GooglePlacesAutocomplete] PlaceAutocompleteElement not available");
       setError("Google Places library not fully loaded");
       return;
     }
 
     try {
-      console.log("[GooglePlacesAutocomplete] Initializing PlaceAutocompleteElement");
-      
       // Create the PlaceAutocompleteElement
       const placeAutocomplete = new window.google.maps.places.PlaceAutocompleteElement({
         componentRestrictions: { country: ["us"] },
@@ -114,11 +104,9 @@ export const GooglePlacesAutocomplete = ({
 
       // Listen for place selection
       const handlePlaceSelect = async (event: any) => {
-        console.log("[GooglePlacesAutocomplete] Place selected", event);
         const place = event.place;
 
         if (!place?.id) {
-          console.error("[GooglePlacesAutocomplete] Invalid place selected");
           setError("Please select a valid place from the dropdown");
           return;
         }
@@ -129,12 +117,6 @@ export const GooglePlacesAutocomplete = ({
             fields: ["id", "displayName", "formattedAddress"],
           });
 
-          console.log("[GooglePlacesAutocomplete] Place details fetched:", {
-            id: place.id,
-            name: place.displayName,
-            address: place.formattedAddress,
-          });
-
           onPlaceSelected({
             placeId: place.id,
             name: place.displayName || "",
@@ -143,7 +125,7 @@ export const GooglePlacesAutocomplete = ({
 
           setError(null);
         } catch (err) {
-          console.error("[GooglePlacesAutocomplete] Error fetching place fields:", err);
+          console.error("Error fetching place details:", err);
           setError("Error loading place details. Please try again.");
         }
       };
