@@ -18,6 +18,7 @@ interface Restaurant {
   logo_url: string | null;
   hub_background_style: string | null;
   custom_slug: string | null;
+  custom_background_url: string | null;
   type?: string | null;
   avm_question_title?: string | null;
   avm_question_subtitle?: string | null;
@@ -45,6 +46,8 @@ const ReviewHub = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [engagement, setEngagement] = useState<any>(null);
+  const [pollVotes, setPollVotes] = useState<Record<string, number>>({});
 
   // Track when a restaurant is loaded (tap event)
   useEffect(() => {
@@ -91,9 +94,11 @@ const ReviewHub = () => {
       setRestaurant({ 
         ...data, 
         type: restaurantData?.type || null,
-        hub_background_style: restaurantData?.hub_background_style || 'classic'
+        hub_background_style: restaurantData?.hub_background_style || 'classic',
+        custom_background_url: restaurantData?.custom_background_url || null
       });
       fetchMenu(data.id);
+      fetchEngagement(data.id);
     }
   };
 
@@ -115,9 +120,29 @@ const ReviewHub = () => {
       setRestaurant({ 
         ...data, 
         type: restaurantData?.type || null,
-        hub_background_style: restaurantData?.hub_background_style || 'classic'
+        hub_background_style: restaurantData?.hub_background_style || 'classic',
+        custom_background_url: restaurantData?.custom_background_url || null
       });
       fetchMenu(data.id);
+      fetchEngagement(data.id);
+    }
+  };
+
+  const fetchEngagement = async (restId: string) => {
+    const { data } = await supabase
+      .from("restaurant_engagement")
+      .select("*")
+      .eq("restaurant_id", restId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setEngagement(data);
+      if (data.type === 'poll' && data.options && typeof data.options === 'object' && 'votes' in data.options) {
+        setPollVotes(data.options.votes as Record<string, number>);
+      }
     }
   };
 
@@ -229,16 +254,46 @@ const ReviewHub = () => {
     return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
 
+  const handlePollVote = async (optionIndex: number) => {
+    if (!restaurant || !engagement) return;
+    
+    try {
+      const newVotes = { ...pollVotes };
+      newVotes[optionIndex] = (newVotes[optionIndex] || 0) + 1;
+      setPollVotes(newVotes);
+
+      await supabase
+        .from("restaurant_engagement")
+        .update({ 
+          options: { 
+            ...engagement.options, 
+            votes: newVotes 
+          } 
+        })
+        .eq("id", engagement.id);
+
+      trackEvent('poll_vote');
+    } catch (err) {
+      console.error("Error voting:", err);
+    }
+  };
+
   // Determine background style
   const getBackgroundStyle = () => {
     const style = restaurant.hub_background_style || 'classic';
+    
+    // Use custom background if uploaded
+    if (restaurant.custom_background_url) {
+      return `url(${restaurant.custom_background_url}) center/cover`;
+    }
+    
     switch (style) {
       case 'soft-gradient':
-        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        return 'linear-gradient(135deg, #00f5ff 0%, #ff00ea 100%)';
       case 'photo-blur':
-        return 'linear-gradient(135deg, rgba(156, 163, 175, 0.3) 0%, rgba(107, 114, 128, 0.3) 100%)';
+        return 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)';
       case 'dark':
-        return '#1a1a1a';
+        return '#000000';
       case 'classic':
       default:
         return '#fff';
@@ -310,6 +365,106 @@ const ReviewHub = () => {
           <p style={{ margin: '0 0 22px', color: getMutedTextColor(), fontSize: '15px', lineHeight: '1.5' }}>
             {restaurant.header_subtitle}
           </p>
+
+          {/* ENGAGEMENT: Promotion or Poll */}
+          {engagement && (
+            <div style={{
+              background: restaurant.hub_background_style === 'dark' ? '#2a2a2a' : '#f9fafb',
+              border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '20px'
+            }}>
+              {engagement.type === 'promotion' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+                    </svg>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: getTextColor() }}>Special Offer</span>
+                  </div>
+                  <p style={{ color: getTextColor(), fontSize: '15px', lineHeight: '1.5', marginBottom: engagement.options?.link ? '12px' : '0' }}>
+                    {engagement.content}
+                  </p>
+                  {engagement.options?.link && (
+                    <a
+                      href={engagement.options.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackEvent('promotion_click')}
+                      style={{
+                        display: 'inline-block',
+                        padding: '8px 16px',
+                        background: '#2563eb',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Learn More
+                    </a>
+                  )}
+                </>
+              )}
+              
+              {engagement.type === 'poll' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+                    </svg>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: getTextColor() }}>Quick Poll</span>
+                  </div>
+                  <p style={{ color: getTextColor(), fontSize: '15px', lineHeight: '1.5', marginBottom: '12px', fontWeight: '600' }}>
+                    {engagement.content}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {engagement.options?.choices?.map((choice: string, index: number) => {
+                      const totalVotes = Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) as number;
+                      const votes = pollVotes[index] || 0;
+                      const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handlePollVote(index)}
+                          style={{
+                            position: 'relative',
+                            padding: '12px 16px',
+                            background: restaurant.hub_background_style === 'dark' ? '#3a3a3a' : '#fff',
+                            border: `2px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            overflow: 'hidden',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: `${percentage}%`,
+                            background: 'rgba(37, 99, 235, 0.1)',
+                            transition: 'width 0.3s'
+                          }} />
+                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '600', color: getTextColor(), fontSize: '14px' }}>{choice}</span>
+                            <span style={{ fontSize: '12px', color: getMutedTextColor(), fontWeight: '600' }}>
+                              {votes} votes ({percentage}%)
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* GOOGLE REVIEW */}
           {isSafeUrl(restaurant.google_review_url) && (

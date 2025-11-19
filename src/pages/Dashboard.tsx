@@ -17,6 +17,7 @@ import { AICoachTab } from "@/components/dashboard/AICoachTab";
 import { GoalsTab } from "@/components/dashboard/GoalsTab";
 import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
+import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
 
@@ -329,12 +330,13 @@ const Dashboard = () => {
                 <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
               </TabsList>
             ) : (
-              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-9 h-auto gap-1">
+              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
                 <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                 <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
                 <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
                 <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
                 <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
+                <TabsTrigger value="engagement" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
                 <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
                 <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
                 <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
@@ -367,6 +369,10 @@ const Dashboard = () => {
 
               <TabsContent value="goals">
                 <GoalsTab restaurantId={restaurant.id} />
+              </TabsContent>
+
+              <TabsContent value="engagement">
+                <EngagementTab restaurantId={restaurant.id} />
               </TabsContent>
 
               <TabsContent value="menu">

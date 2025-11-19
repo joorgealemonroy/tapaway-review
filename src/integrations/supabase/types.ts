@@ -474,6 +474,54 @@ export type Database = {
           },
         ]
       }
+      restaurant_engagement: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          options: Json | null
+          restaurant_id: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          restaurant_id: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          restaurant_id?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_engagement_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_engagement_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -483,6 +531,7 @@ export type Database = {
           avm_question_subtitle: string | null
           avm_question_title: string | null
           created_at: string
+          custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
           email: string | null
@@ -522,6 +571,7 @@ export type Database = {
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
           created_at?: string
+          custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
@@ -561,6 +611,7 @@ export type Database = {
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
           created_at?: string
+          custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
