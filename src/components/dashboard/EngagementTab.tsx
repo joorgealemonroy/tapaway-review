@@ -238,52 +238,80 @@ export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
             No engagements yet. Create your first promotion or poll above.
           </Card>
         ) : (
-          engagements.map((engagement) => (
-            <Card key={engagement.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    {engagement.type === 'promotion' ? (
-                      <Megaphone className="w-4 h-4 text-primary" />
-                    ) : (
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                    )}
-                    <span className="text-sm font-medium capitalize">{engagement.type}</span>
-                    <span className={`text-xs px-2 py-1 rounded ${engagement.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {engagement.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-sm mb-2">{engagement.content}</p>
-                  {engagement.type === 'promotion' && engagement.options?.link && (
-                    <a href={engagement.options.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                      {engagement.options.link}
-                    </a>
-                  )}
-                  {engagement.type === 'poll' && engagement.options?.choices && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Options: {engagement.options.choices.join(', ')}
+          engagements.map((engagement) => {
+            const totalVotes = engagement.type === 'poll' && engagement.options?.votes 
+              ? Object.values(engagement.options.votes as Record<string, number>).reduce((a, b) => a + b, 0)
+              : 0;
+            
+            return (
+              <Card key={engagement.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {engagement.type === 'promotion' ? (
+                        <Megaphone className="w-4 h-4 text-primary" />
+                      ) : (
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                      )}
+                      <span className="text-sm font-medium capitalize">{engagement.type}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${engagement.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {engagement.is_active ? 'Active' : 'Inactive'}
+                      </span>
                     </div>
-                  )}
+                    <p className="text-sm mb-2">{engagement.content}</p>
+                    {engagement.type === 'promotion' && engagement.options?.link && (
+                      <a href={engagement.options.link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                        {engagement.options.link}
+                      </a>
+                    )}
+                    {engagement.type === 'poll' && engagement.options?.choices && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-medium mb-2">
+                          <span>Poll Results</span>
+                          <span className="text-muted-foreground">Total votes: {totalVotes}</span>
+                        </div>
+                        {engagement.options.choices.map((choice: string, i: number) => {
+                          const votes = engagement.options?.votes?.[i] || 0;
+                          const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                          
+                          return (
+                            <div key={i} className="space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="font-medium">{choice}</span>
+                                <span className="text-muted-foreground">{votes} votes ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-secondary rounded-full h-2">
+                                <div 
+                                  className="bg-primary rounded-full h-2 transition-all duration-300"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleActive(engagement.id, engagement.is_active)}
+                    >
+                      {engagement.is_active ? 'Deactivate' : 'Activate'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(engagement.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggleActive(engagement.id, engagement.is_active)}
-                  >
-                    {engagement.is_active ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(engagement.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

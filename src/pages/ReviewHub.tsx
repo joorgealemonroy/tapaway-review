@@ -257,6 +257,14 @@ const ReviewHub = () => {
   const handlePollVote = async (optionIndex: number) => {
     if (!restaurant || !engagement) return;
     
+    // Check if user has already voted using localStorage
+    const voteKey = `poll_vote_${engagement.id}`;
+    const hasVoted = localStorage.getItem(voteKey);
+    
+    if (hasVoted) {
+      return; // User has already voted
+    }
+    
     try {
       const newVotes = { ...pollVotes };
       newVotes[optionIndex] = (newVotes[optionIndex] || 0) + 1;
@@ -272,54 +280,67 @@ const ReviewHub = () => {
         })
         .eq("id", engagement.id);
 
+      // Mark as voted in localStorage
+      localStorage.setItem(voteKey, 'true');
       trackEvent('poll_vote');
     } catch (err) {
       console.error("Error voting:", err);
     }
   };
 
-  // Determine background style
+  // Check if user has voted on current poll
+  const hasVoted = engagement ? localStorage.getItem(`poll_vote_${engagement.id}`) === 'true' : false;
+
+  // Determine background style - only apply special styles when explicitly set
   const getBackgroundStyle = () => {
-    const style = restaurant.hub_background_style || 'classic';
+    const style = restaurant.hub_background_style;
     
     // Use custom background if uploaded
     if (restaurant.custom_background_url) {
       return `url(${restaurant.custom_background_url}) center/cover`;
     }
     
+    // Only apply special backgrounds when explicitly selected (not 'classic' or null)
+    if (!style || style === 'classic') {
+      return '#ffffff'; // Clean white background for classic
+    }
+    
     switch (style) {
       case 'soft-gradient':
-        return 'linear-gradient(135deg, #00f5ff 0%, #ff00ea 100%)';
+        // Bright blue to cyan gradient
+        return 'linear-gradient(135deg, #0066ff 0%, #00ccff 100%)';
       case 'photo-blur':
+        // Vivid neon green to yellow gradient
         return 'linear-gradient(135deg, #39ff14 0%, #ffff00 100%)';
       case 'dark':
         return '#000000';
-      case 'classic':
       default:
-        return '#fff';
+        return '#ffffff';
     }
   };
 
   const getCardBackground = () => {
-    const style = restaurant.hub_background_style || 'classic';
+    const style = restaurant.hub_background_style;
+    // Only apply dark card background for dark theme
     if (style === 'dark') {
-      return '#2a2a2a';
+      return '#1a1a1a';
     }
-    return '#fff';
+    return '#ffffff';
   };
 
   const getTextColor = () => {
-    const style = restaurant.hub_background_style || 'classic';
-    if (style === 'dark') {
-      return '#fff';
+    const style = restaurant.hub_background_style;
+    // White text for dark theme and vivid backgrounds
+    if (style === 'dark' || style === 'soft-gradient' || style === 'photo-blur') {
+      return '#ffffff';
     }
-    return '#111';
+    return '#111827';
   };
 
   const getMutedTextColor = () => {
-    const style = restaurant.hub_background_style || 'classic';
-    if (style === 'dark') {
-      return '#9ca3af';
+    const style = restaurant.hub_background_style;
+    if (style === 'dark' || style === 'soft-gradient' || style === 'photo-blur') {
+      return '#d1d5db';
     }
     return '#6b7280';
   };
@@ -369,21 +390,22 @@ const ReviewHub = () => {
           {/* ENGAGEMENT: Promotion or Poll */}
           {engagement && (
             <div style={{
-              background: restaurant.hub_background_style === 'dark' ? '#2a2a2a' : '#f9fafb',
-              border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
+              background: restaurant.hub_background_style === 'dark' ? 'rgba(42, 42, 42, 0.9)' : 'rgba(249, 250, 251, 0.95)',
+              border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
               borderRadius: '12px',
-              padding: '16px',
-              marginBottom: '20px'
+              padding: '20px',
+              marginBottom: '24px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
             }}>
               {engagement.type === 'promotion' && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                     </svg>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: getTextColor() }}>Special Offer</span>
+                    <span style={{ fontWeight: '700', fontSize: '15px', color: getTextColor(), letterSpacing: '0.02em' }}>Special Offer</span>
                   </div>
-                  <p style={{ color: getTextColor(), fontSize: '15px', lineHeight: '1.5', marginBottom: engagement.options?.link ? '12px' : '0' }}>
+                  <p style={{ color: getTextColor(), fontSize: '15px', lineHeight: '1.6', marginBottom: engagement.options?.link ? '14px' : '0' }}>
                     {engagement.content}
                   </p>
                   {engagement.options?.link && (
@@ -394,13 +416,15 @@ const ReviewHub = () => {
                       onClick={() => trackEvent('promotion_click')}
                       style={{
                         display: 'inline-block',
-                        padding: '8px 16px',
+                        padding: '10px 20px',
                         background: '#2563eb',
                         color: '#fff',
                         borderRadius: '8px',
                         textDecoration: 'none',
                         fontWeight: '600',
-                        fontSize: '14px'
+                        fontSize: '14px',
+                        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+                        transition: 'all 0.2s'
                       }}
                     >
                       Learn More
@@ -411,16 +435,26 @@ const ReviewHub = () => {
               
               {engagement.type === 'poll' && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
                     </svg>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: getTextColor() }}>Quick Poll</span>
+                    <span style={{ fontWeight: '700', fontSize: '15px', color: getTextColor(), letterSpacing: '0.02em' }}>Quick Poll</span>
                   </div>
-                  <p style={{ color: getTextColor(), fontSize: '15px', lineHeight: '1.5', marginBottom: '12px', fontWeight: '600' }}>
+                  <p style={{ color: getTextColor(), fontSize: '16px', lineHeight: '1.6', marginBottom: '16px', fontWeight: '600' }}>
                     {engagement.content}
                   </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {hasVoted && (
+                    <p style={{ 
+                      fontSize: '13px', 
+                      color: getMutedTextColor(), 
+                      marginBottom: '12px',
+                      fontStyle: 'italic'
+                    }}>
+                      Thanks for voting! Here are the results:
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {engagement.options?.choices?.map((choice: string, index: number) => {
                       const totalVotes = Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) as number;
                       const votes = pollVotes[index] || 0;
@@ -430,16 +464,31 @@ const ReviewHub = () => {
                         <button
                           key={index}
                           onClick={() => handlePollVote(index)}
+                          disabled={hasVoted}
                           style={{
                             position: 'relative',
-                            padding: '12px 16px',
-                            background: restaurant.hub_background_style === 'dark' ? '#3a3a3a' : '#fff',
-                            border: `2px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
-                            borderRadius: '8px',
-                            cursor: 'pointer',
+                            padding: '14px 16px',
+                            background: restaurant.hub_background_style === 'dark' ? '#2a2a2a' : '#ffffff',
+                            border: `2px solid ${restaurant.hub_background_style === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
+                            borderRadius: '10px',
+                            cursor: hasVoted ? 'default' : 'pointer',
                             textAlign: 'left',
                             overflow: 'hidden',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            opacity: hasVoted ? 1 : 0.95,
+                            boxShadow: hasVoted ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.05)'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!hasVoted) {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!hasVoted) {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)';
+                            }
                           }}
                         >
                           <div style={{
@@ -448,19 +497,39 @@ const ReviewHub = () => {
                             top: 0,
                             bottom: 0,
                             width: `${percentage}%`,
-                            background: 'rgba(37, 99, 235, 0.1)',
-                            transition: 'width 0.3s'
+                            background: hasVoted 
+                              ? 'linear-gradient(90deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.08))'
+                              : 'rgba(37, 99, 235, 0.08)',
+                            transition: 'width 0.4s ease-out',
+                            borderRadius: '8px 0 0 8px'
                           }} />
-                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: getTextColor(), fontSize: '14px' }}>{choice}</span>
-                            <span style={{ fontSize: '12px', color: getMutedTextColor(), fontWeight: '600' }}>
-                              {votes} votes ({percentage}%)
-                            </span>
+                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontWeight: '600', color: getTextColor(), fontSize: '15px', flex: 1 }}>{choice}</span>
+                            {hasVoted && (
+                              <span style={{ 
+                                fontSize: '13px', 
+                                color: getMutedTextColor(), 
+                                fontWeight: '700',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {percentage}% ({votes})
+                              </span>
+                            )}
                           </div>
                         </button>
                       );
                     })}
                   </div>
+                  {hasVoted && Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) > 0 && (
+                    <p style={{ 
+                      fontSize: '12px', 
+                      color: getMutedTextColor(), 
+                      marginTop: '12px',
+                      textAlign: 'center'
+                    }}>
+                      Total votes: {Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0)}
+                    </p>
+                  )}
                 </>
               )}
             </div>
