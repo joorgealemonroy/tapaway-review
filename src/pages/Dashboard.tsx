@@ -90,7 +90,8 @@ const Dashboard = () => {
 
     if (data && data.length > 0) {
       setAllRestaurants(data);
-      setRestaurant(data[0]);
+      // Don't auto-select for admins - let them choose
+      setRestaurant(null);
     }
   };
 
@@ -244,8 +245,8 @@ const Dashboard = () => {
     );
   }
 
-  // If no restaurant is loaded yet (even for admins), show loading
-  if (!restaurant) {
+  // If no restaurant is loaded yet, show loading (except for admins who can select one)
+  if (!restaurant && !isAdmin) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading restaurant data...</div>;
   }
 
@@ -278,7 +279,7 @@ const Dashboard = () => {
           <Card className="p-3 md:p-4 mb-4 md:mb-6">
             <Select value={restaurant?.id} onValueChange={handleRestaurantChange}>
               <SelectTrigger className="w-full md:w-[400px]">
-                <SelectValue placeholder="Select restaurant" />
+                <SelectValue placeholder="Select a restaurant to manage" />
               </SelectTrigger>
               <SelectContent>
                 {allRestaurants.map((r) => (
@@ -288,6 +289,15 @@ const Dashboard = () => {
                 ))}
               </SelectContent>
             </Select>
+          </Card>
+        )}
+
+        {isAdmin && !restaurant && (
+          <Card className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Admin Dashboard</h2>
+            <p className="text-muted-foreground">
+              Please select a restaurant from the dropdown above to manage its settings.
+            </p>
           </Card>
         )}
 
@@ -314,89 +324,53 @@ const Dashboard = () => {
           </Card>
         )}
         
-        <div className="mb-4 md:mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">{restaurant.restaurant_name}</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            {isAdmin ? "Admin Dashboard" : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
-          </p>
-        </div>
+        {restaurant && (
+          <>
+            <div className="mb-4 md:mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold">{restaurant.restaurant_name}</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                {isAdmin ? "Admin Dashboard" : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
+              </p>
+            </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-          <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
-            {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
-              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
-                <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
-                <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-              </TabsList>
-            ) : (
-              <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
-                <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
-                <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
-                <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
-                <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
-                <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
-                <TabsTrigger value="engagement" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
-                <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
-                <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
-                <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-              </TabsList>
-            )}
-          </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+              <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
+                  <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
+                    <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                    <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                    <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                  </TabsList>
+                ) : (
+                  <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
+                    <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                    <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
+                    <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
+                    <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
+                    <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
+                    <TabsTrigger value="engagement" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
+                    <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
+                    <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                    <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
+                    <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                  </TabsList>
+                )}
+              </div>
 
-          <TabsContent value="overview" className="space-y-4 md:space-y-6">
-            {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
-              <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
-            ) : (
-              <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
-            )}
-          </TabsContent>
-
-          {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
-            <>
-              <TabsContent value="ai-coach">
-                <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
+              <TabsContent value="overview" className="space-y-4 md:space-y-6">
+...
               </TabsContent>
 
-              <TabsContent value="competitors">
-                <CompetitorTab restaurantId={restaurant.id} />
+              <TabsContent value="billing">
+                <BillingTab 
+                  restaurant={restaurant} 
+                  isTestAccount={isTestAccount}
+                  isGrandfathered={isGrandfathered}
+                />
               </TabsContent>
-
-              <TabsContent value="replies">
-                <ReviewRepliesTab restaurantId={restaurant.id} />
-              </TabsContent>
-
-              <TabsContent value="goals">
-                <GoalsTab restaurantId={restaurant.id} />
-              </TabsContent>
-
-              <TabsContent value="engagement">
-                <EngagementTab restaurantId={restaurant.id} />
-              </TabsContent>
-
-              <TabsContent value="menu">
-                <MenuTab restaurantId={restaurant.id} />
-              </TabsContent>
-
-              <TabsContent value="support">
-                <SupportTab />
-              </TabsContent>
-            </>
-          )}
-
-          <TabsContent value="settings">
-            <SettingsTab restaurantId={restaurant.id} />
-          </TabsContent>
-
-          <TabsContent value="billing">
-            <BillingTab 
-              restaurant={restaurant} 
-              isTestAccount={isTestAccount}
-              isGrandfathered={isGrandfathered}
-            />
-          </TabsContent>
-        </Tabs>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   );
