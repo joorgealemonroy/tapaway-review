@@ -35,6 +35,7 @@ type Restaurant = {
   directions_url?: string | null;
   instagram_url?: string | null;
   logo_url?: string | null;
+  greeting_name?: string | null;
 };
 
 type Location = {
@@ -81,7 +82,7 @@ const Admin = () => {
           supabase
             .from("restaurants")
             .select(
-              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url"
+              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
             )
             .order("created_at", { ascending: false }),
           supabase.from("locations").select("id, restaurant_id"),
@@ -155,6 +156,7 @@ const Admin = () => {
         "instagram_url",
         "logo_url",
         "custom_slug",
+        "greeting_name",
       ];
 
       fields.forEach((f) => {
@@ -389,6 +391,16 @@ const Admin = () => {
           </DialogHeader>
 
           <div className="space-y-4">
+            <div>
+              <Label>Greeting Name</Label>
+              <Input
+                value={editingRestaurant?.greeting_name ?? ""}
+                onChange={(e) =>
+                  changeEdit("greeting_name", e.target.value)
+                }
+              />
+            </div>
+
             <div>
               <Label>Slug</Label>
               <Input
