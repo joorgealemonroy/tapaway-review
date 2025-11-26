@@ -30,6 +30,7 @@ type Restaurant = {
   plan_type?: string | null;
   subscription_status?: string | null;
   created_at?: string | null;
+  google_place_id?: string | null;
   google_review_url?: string | null;
   yelp_review_url?: string | null;
   directions_url?: string | null;
@@ -82,7 +83,7 @@ const Admin = () => {
           supabase
             .from("restaurants")
             .select(
-              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
+              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
             )
             .order("created_at", { ascending: false }),
           supabase.from("locations").select("id, restaurant_id"),
@@ -193,6 +194,34 @@ const Admin = () => {
 
     if (!error) {
       setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
+    }
+  };
+
+  const repairGoogleReviewLink = async (r: Restaurant) => {
+    if (!r.google_place_id || !r.google_place_id.trim()) {
+      setError("No Google Place ID is set for this restaurant.");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("restaurants")
+        .update({
+          google_place_id: r.google_place_id,
+        })
+        .eq("id", r.id)
+        .select("id, google_place_id, google_review_url")
+        .single();
+
+      if (error) throw error;
+
+      setRestaurants((prev) =>
+        prev.map((x) => (x.id === r.id ? { ...x, ...data } : x))
+      );
+
+      setError(null);
+    } catch (e: any) {
+      setError("Failed to repair link: " + (e.message ?? "Unknown error"));
     }
   };
 
@@ -353,6 +382,13 @@ const Admin = () => {
                         size="sm"
                       >
                         Toggle Sub
+                      </Button>
+                      <Button
+                        onClick={() => repairGoogleReviewLink(r)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Repair Google Link
                       </Button>
                       <Button
                         onClick={() => startDelete(r)}
