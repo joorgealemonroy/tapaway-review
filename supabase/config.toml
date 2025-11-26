@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.track-event]
 verify_jwt = false
+
+[functions.auto-yelp-from-place]
+verify_jwt = true
