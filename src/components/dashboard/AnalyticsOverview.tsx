@@ -19,9 +19,14 @@ interface AnalyticsData {
 interface AnalyticsOverviewProps {
   restaurantId: string;
   restaurantName: string;
+  restaurant: {
+    greeting_name?: string | null;
+    restaurant_name: string;
+  };
+  user: any;
 }
 
-export const AnalyticsOverview = ({ restaurantId, restaurantName }: AnalyticsOverviewProps) => {
+export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user }: AnalyticsOverviewProps) => {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     googleClicks: 0,
@@ -34,6 +39,18 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName }: AnalyticsOve
     peakDay: "Monday"
   });
   const [loading, setLoading] = useState(true);
+
+  // Compute greeting name with fallback logic
+  const ownerNameFromAuth =
+    (user?.user_metadata?.full_name as string) ||
+    (user?.user_metadata?.name as string) ||
+    (user?.email ? user.email.split("@")[0] : "");
+
+  const greetingName =
+    restaurant.greeting_name ||
+    ownerNameFromAuth ||
+    restaurant.restaurant_name ||
+    "there";
 
   useEffect(() => {
     fetchAnalytics();
@@ -130,7 +147,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName }: AnalyticsOve
           </div>
           <div className="flex-1">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">
-              Hi, {restaurantName}! 👋
+              Hi, {greetingName}! 👋
             </h2>
             <p className="text-muted-foreground text-base">
               You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
