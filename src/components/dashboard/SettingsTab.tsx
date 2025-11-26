@@ -9,6 +9,7 @@ import { Settings, Lock, ExternalLink, Upload, Palette, Edit } from "lucide-reac
 import { validateAllUrls } from "@/lib/urlValidation";
 import { useState as useReactState } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { SettingsGreeting } from "./SettingsGreeting";
 
 interface Restaurant {
   id: string;
@@ -21,6 +22,7 @@ interface Restaurant {
   yelp_review_url: string | null;
   instagram_url: string | null;
   directions_url: string | null;
+  greeting_name?: string | null;
 }
 
 interface SettingsTabProps {
@@ -238,6 +240,12 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           Save Changes
         </Button>
       </div>
+
+      {/* Greeting Settings */}
+      <SettingsGreeting
+        restaurant={restaurant}
+        onUpdated={(updated) => setRestaurant({ ...restaurant, ...updated })}
+      />
 
       {/* Logo Upload Section */}
       <Card className="p-6 card-elevated">

@@ -222,6 +222,18 @@ export type Database = {
           },
         ]
       }
+      banned_words: {
+        Row: {
+          word: string
+        }
+        Insert: {
+          word: string
+        }
+        Update: {
+          word?: string
+        }
+        Relationships: []
+      }
       competitors: {
         Row: {
           competitor_link: string | null
@@ -537,6 +549,7 @@ export type Database = {
           email: string | null
           google_place_id: string | null
           google_review_url: string | null
+          greeting_name: string | null
           header_subtitle: string | null
           header_title: string | null
           hub_background_style: string | null
@@ -577,6 +590,7 @@ export type Database = {
           email?: string | null
           google_place_id?: string | null
           google_review_url?: string | null
+          greeting_name?: string | null
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
@@ -617,6 +631,7 @@ export type Database = {
           email?: string | null
           google_place_id?: string | null
           google_review_url?: string | null
+          greeting_name?: string | null
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
@@ -775,6 +790,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_clean_greeting: { Args: { input: string }; Returns: boolean }
       is_test_account: { Args: never; Returns: boolean }
     }
     Enums: {

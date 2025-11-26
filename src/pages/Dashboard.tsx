@@ -30,6 +30,7 @@ interface Restaurant {
   plan_type: string | null;
   next_billing_date: string | null;
   type?: string | null;
+  greeting_name?: string | null;
 }
 
 interface Location {
@@ -85,7 +86,7 @@ const Dashboard = () => {
   const fetchAllRestaurants = async () => {
     const { data } = await (supabase as any)
       .from("restaurants")
-      .select("*")
+      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name")
       .order("restaurant_name");
 
     if (data && data.length > 0) {
@@ -409,7 +410,9 @@ const Dashboard = () => {
         {restaurant && (
           <>
             <div className="mb-4 md:mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold">{restaurant.restaurant_name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">
+                Hi, {restaurant.greeting_name || restaurant.restaurant_name}! 👋
+              </h1>
               <p className="text-sm md:text-base text-muted-foreground">
                 {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
               </p>
