@@ -20,7 +20,6 @@ import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
-
 interface Restaurant {
   id: string;
   restaurant_name: string;
@@ -32,15 +31,17 @@ interface Restaurant {
   type?: string | null;
   greeting_name?: string | null;
 }
-
 interface Location {
   id: string;
   name: string;
   custom_slug: string | null;
 }
-
 const Dashboard = () => {
-  const { user, loading, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    signOut
+  } = useAuth();
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
@@ -50,45 +51,40 @@ const Dashboard = () => {
   const [isTestAccount, setIsTestAccount] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
   useEffect(() => {
     if (user) {
       checkAdminStatus();
     }
   }, [user]);
-
   const checkAdminStatus = async () => {
-    const { data: isAdminData } = await supabase.rpc('is_admin');
-    const { data: isTestData } = await (supabase as any).rpc('is_test_account');
-
+    const {
+      data: isAdminData
+    } = await supabase.rpc('is_admin');
+    const {
+      data: isTestData
+    } = await (supabase as any).rpc('is_test_account');
     const emailAdmin = user?.email === 'tap@tapaway.co';
     const metaAdmin = (user as any)?.app_metadata?.role === 'admin';
     const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
     const grandfathered = isGrandfatheredUser(user?.email);
-
     setIsAdmin(effectiveAdmin);
     setIsTestAccount(isTestData || false);
     setIsGrandfathered(grandfathered);
-
     if (effectiveAdmin) {
       fetchAllRestaurants();
     } else {
       fetchRestaurant();
     }
   };
-
   const fetchAllRestaurants = async () => {
-    const { data } = await (supabase as any)
-      .from("restaurants")
-      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name")
-      .order("restaurant_name");
-
+    const {
+      data
+    } = await (supabase as any).from("restaurants").select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name").order("restaurant_name");
     if (data && data.length > 0) {
       setAllRestaurants(data);
       // Auto-select first restaurant so admin can see content
@@ -96,14 +92,10 @@ const Dashboard = () => {
       fetchLocations(data[0].id);
     }
   };
-
   const fetchRestaurant = async () => {
-    const { data } = await (supabase as any)
-      .from("restaurants")
-      .select("*")
-      .eq("owner_id", user?.id)
-      .single();
-
+    const {
+      data
+    } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).single();
     if (data) {
       setRestaurant(data as any);
       fetchLocations(data.id);
@@ -111,18 +103,17 @@ const Dashboard = () => {
       // Defensive fallback for test account only - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
       try {
-        const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
+        const {
+          error: assignError
+        } = await supabase.functions.invoke('assign-test-owner');
         if (assignError) {
           console.error('[Dashboard] Failed to assign test restaurant:', assignError);
           toast.error("Failed to link test account. Please contact support.");
         } else {
           // Retry fetch after assignment
-          const { data: retryData } = await (supabase as any)
-            .from("restaurants")
-            .select("*")
-            .eq("owner_id", user?.id)
-            .single();
-          
+          const {
+            data: retryData
+          } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).single();
           if (retryData) {
             setRestaurant(retryData as any);
             fetchLocations(retryData.id);
@@ -139,29 +130,22 @@ const Dashboard = () => {
       navigate("/onboarding");
     }
   };
-
   const fetchLocations = async (restaurantId: string) => {
-    const { data } = await (supabase as any)
-      .from("locations")
-      .select("id, name, custom_slug")
-      .eq("restaurant_id", restaurantId)
-      .eq("is_active", true)
-      .order("name");
-
+    const {
+      data
+    } = await (supabase as any).from("locations").select("id, name, custom_slug").eq("restaurant_id", restaurantId).eq("is_active", true).order("name");
     if (data && data.length > 0) {
       setLocations(data);
       setSelectedLocation(data[0].id);
     }
   };
-
   const handleRestaurantChange = (restaurantId: string) => {
-    const selected = allRestaurants.find((r) => r.id === restaurantId);
+    const selected = allRestaurants.find(r => r.id === restaurantId);
     if (selected) {
       setRestaurant(selected);
       fetchLocations(selected.id);
     }
   };
-
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
@@ -169,10 +153,8 @@ const Dashboard = () => {
   // Check if user should bypass paywall
   const planType = restaurant?.plan_type || 'standard';
   const shouldBypassPaywall = isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
-
   if (!loading && user && !restaurant && !shouldBypassPaywall) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -204,11 +186,7 @@ const Dashboard = () => {
                   <span className="text-muted-foreground">/month</span>
                 </div>
               </div>
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}
-              >
+              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}>
                 Get Started
               </Button>
               <ul className="mt-6 space-y-3">
@@ -249,11 +227,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-sm text-primary font-medium mt-1">Save $99 per year</p>
               </div>
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}
-              >
+              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}>
                 Get Started
               </Button>
               <ul className="mt-6 space-y-3">
@@ -290,11 +264,7 @@ const Dashboard = () => {
                   <span className="text-muted-foreground">/month</span>
                 </div>
               </div>
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}
-              >
+              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}>
                 Get Started
               </Button>
               <ul className="mt-6 space-y-3">
@@ -329,42 +299,32 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // If no restaurant is loaded yet, show loading
   if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading restaurant data...</div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary"></div>
+            
             <span className="font-bold text-xl">TapAway</span>
           </div>
           <div className="flex items-center gap-3">
-            {restaurant?.custom_slug && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}
-              >
+            {restaurant?.custom_slug && <Button variant="outline" size="sm" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
-              </Button>
-            )}
+              </Button>}
             <Button variant="ghost" onClick={signOut}>Sign Out</Button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
-        {isAdmin && allRestaurants.length > 0 && (
-          <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
+        {isAdmin && allRestaurants.length > 0 && <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <span className="text-xs font-semibold text-primary uppercase tracking-wide">Admin Mode</span>
@@ -374,18 +334,14 @@ const Dashboard = () => {
                 <SelectValue placeholder="Select a restaurant to manage" />
               </SelectTrigger>
               <SelectContent>
-                {allRestaurants.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
+                {allRestaurants.map(r => <SelectItem key={r.id} value={r.id}>
                     {r.restaurant_name}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
-          </Card>
-        )}
+          </Card>}
 
-        {!isAdmin && locations.length > 1 && (
-          <Card className="p-3 md:p-4 mb-4 md:mb-6">
+        {!isAdmin && locations.length > 1 && <Card className="p-3 md:p-4 mb-4 md:mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
               <MapPin className="w-5 h-5 text-muted-foreground shrink-0" />
               <Select value={selectedLocation || undefined} onValueChange={setSelectedLocation}>
@@ -393,22 +349,18 @@ const Dashboard = () => {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
+                  {locations.map(loc => <SelectItem key={loc.id} value={loc.id}>
                       {loc.name}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
               <span className="text-xs md:text-sm text-muted-foreground">
                 {locations.length} of {restaurant?.plan_type === 'bundle' ? '3' : '1'} locations
               </span>
             </div>
-          </Card>
-        )}
+          </Card>}
         
-        {restaurant && (
-          <>
+        {restaurant && <>
             <div className="mb-4 md:mb-6">
               <h1 className="text-2xl md:text-3xl font-bold">
                 {restaurant.restaurant_name}
@@ -420,14 +372,11 @@ const Dashboard = () => {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
               <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
-                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
-                  <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
                     <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                     <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
                     <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-                  </TabsList>
-                ) : (
-                  <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
+                  </TabsList> : <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
                     <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                     <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
                     <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
@@ -438,30 +387,14 @@ const Dashboard = () => {
                     <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
                     <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
                     <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-                  </TabsList>
-                )}
+                  </TabsList>}
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
-                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
-                  <AvMealPrepDashboard 
-                    restaurantId={restaurant.id} 
-                    restaurantName={restaurant.restaurant_name}
-                    restaurant={restaurant}
-                    user={user}
-                  />
-                ) : (
-                  <AnalyticsOverview 
-                    restaurantId={restaurant.id} 
-                    restaurantName={restaurant.restaurant_name}
-                    restaurant={restaurant}
-                    user={user}
-                  />
-                )}
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} />}
               </TabsContent>
 
-              {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
-                <>
+              {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && <>
                   <TabsContent value="ai-coach">
                     <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
                   </TabsContent>
@@ -489,26 +422,18 @@ const Dashboard = () => {
                   <TabsContent value="support">
                     <SupportTab />
                   </TabsContent>
-                </>
-              )}
+                </>}
 
               <TabsContent value="settings">
                 <SettingsTab restaurantId={restaurant.id} />
               </TabsContent>
 
               <TabsContent value="billing">
-                <BillingTab 
-                  restaurant={restaurant} 
-                  isTestAccount={isTestAccount}
-                  isGrandfathered={isGrandfathered}
-                />
+                <BillingTab restaurant={restaurant} isTestAccount={isTestAccount} isGrandfathered={isGrandfathered} />
               </TabsContent>
             </Tabs>
-          </>
-        )}
+          </>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
