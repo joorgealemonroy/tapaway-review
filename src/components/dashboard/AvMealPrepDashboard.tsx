@@ -12,6 +12,11 @@ import { AvTestimonialsManager } from "./av/AvTestimonialsManager";
 interface AvMealPrepDashboardProps {
   restaurantId: string;
   restaurantName: string;
+  restaurant: {
+    greeting_name?: string | null;
+    restaurant_name: string;
+  };
+  user: any;
 }
 
 interface AnalyticsData {
@@ -22,7 +27,7 @@ interface AnalyticsData {
   chartData: Array<{ date: string; taps: number }>;
 }
 
-export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrepDashboardProps) => {
+export const AvMealPrepDashboard = ({ restaurantId, restaurantName, restaurant, user }: AvMealPrepDashboardProps) => {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     totalClicks: 0,
@@ -31,6 +36,18 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
     chartData: [],
   });
   const [loading, setLoading] = useState(true);
+
+  // Compute greeting name with fallback logic
+  const ownerNameFromAuth =
+    (user?.user_metadata?.full_name as string) ||
+    (user?.user_metadata?.name as string) ||
+    (user?.email ? user.email.split("@")[0] : "");
+
+  const greetingName =
+    restaurant.greeting_name ||
+    ownerNameFromAuth ||
+    restaurant.restaurant_name ||
+    "there";
 
   useEffect(() => {
     fetchAnalytics();
@@ -114,9 +131,9 @@ export const AvMealPrepDashboard = ({ restaurantId, restaurantName }: AvMealPrep
     <div className="space-y-6">
       {/* Welcome Card */}
       <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-2">Welcome to Your Dashboard</h2>
+        <h2 className="text-2xl font-bold mb-2">Hi, {greetingName}! 👋</h2>
         <p className="text-muted-foreground">
-          Manage your meal prep hub and track campaign performance for {restaurantName}
+          Manage your meal prep hub and track campaign performance
         </p>
       </Card>
 

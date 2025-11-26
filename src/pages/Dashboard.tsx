@@ -411,7 +411,7 @@ const Dashboard = () => {
           <>
             <div className="mb-4 md:mb-6">
               <h1 className="text-2xl md:text-3xl font-bold">
-                Hi, {restaurant.greeting_name || restaurant.restaurant_name}! 👋
+                {restaurant.restaurant_name}
               </h1>
               <p className="text-sm md:text-base text-muted-foreground">
                 {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
@@ -444,9 +444,19 @@ const Dashboard = () => {
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
-                  <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+                  <AvMealPrepDashboard 
+                    restaurantId={restaurant.id} 
+                    restaurantName={restaurant.restaurant_name}
+                    restaurant={restaurant}
+                    user={user}
+                  />
                 ) : (
-                  <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} />
+                  <AnalyticsOverview 
+                    restaurantId={restaurant.id} 
+                    restaurantName={restaurant.restaurant_name}
+                    restaurant={restaurant}
+                    user={user}
+                  />
                 )}
               </TabsContent>
 
