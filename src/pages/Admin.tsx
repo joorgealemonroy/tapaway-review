@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
@@ -32,6 +33,7 @@ type Restaurant = {
   created_at?: string | null;
   google_place_id?: string | null;
   google_review_url?: string | null;
+  yelp_business_id?: string | null;
   yelp_review_url?: string | null;
   directions_url?: string | null;
   instagram_url?: string | null;
@@ -65,6 +67,8 @@ const Admin = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const [yelpDebugTarget, setYelpDebugTarget] = useState<YelpDebugRestaurant | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -83,7 +87,7 @@ const Admin = () => {
           supabase
             .from("restaurants")
             .select(
-              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
+              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
             )
             .order("created_at", { ascending: false }),
           supabase.from("locations").select("id, restaurant_id"),
@@ -391,6 +395,22 @@ const Admin = () => {
                         Repair Google Link
                       </Button>
                       <Button
+                        onClick={() =>
+                          setYelpDebugTarget({
+                            id: r.id,
+                            restaurant_name: r.restaurant_name,
+                            google_place_id: r.google_place_id ?? null,
+                            google_review_url: r.google_review_url ?? null,
+                            yelp_business_id: (r as any).yelp_business_id ?? null,
+                            yelp_review_url: r.yelp_review_url ?? null,
+                          })
+                        }
+                        variant="outline"
+                        size="sm"
+                      >
+                        Yelp debug
+                      </Button>
+                      <Button
                         onClick={() => startDelete(r)}
                         variant="outline"
                         size="sm"
@@ -553,6 +573,19 @@ const Admin = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {yelpDebugTarget && (
+        <YelpDebugModal
+          restaurant={yelpDebugTarget}
+          onClose={() => setYelpDebugTarget(null)}
+          onUpdated={(updated) => {
+            setRestaurants((prev) =>
+              prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
+            );
+            setYelpDebugTarget(updated);
+          }}
+        />
+      )}
     </div>
   );
 };
