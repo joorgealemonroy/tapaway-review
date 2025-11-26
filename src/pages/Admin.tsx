@@ -1,340 +1,426 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, Users, TrendingUp, Eye, RefreshCw, ListChecks, ShieldAlert } from "lucide-react";
-import { toast } from "sonner";
-import { AdminPreflight } from "@/components/dashboard/AdminPreflight";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface Restaurant {
+const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
+
+type Restaurant = {
   id: string;
-  restaurant_name: string;
-  custom_slug: string | null;
-  subscription_status: string | null;
-  plan_type: string | null;
-  is_demo_account: boolean;
-  owner_id: string;
-  created_at: string;
-}
+  restaurant_name: string | null;
+  header_title?: string | null;
+  custom_slug?: string | null;
+  plan_type?: string | null;
+  subscription_status?: string | null;
+  created_at?: string | null;
+  google_review_url?: string | null;
+  yelp_review_url?: string | null;
+  directions_url?: string | null;
+  instagram_url?: string | null;
+  logo_url?: string | null;
+};
 
-interface GlobalMetrics {
-  totalTaps: number;
-  totalGoogleClicks: number;
-  totalDirections: number;
-  totalMenuViews: number;
-  totalRestaurants: number;
-}
+type Location = {
+  id: string;
+  restaurant_id: string;
+};
 
 const Admin = () => {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { isAdmin, loading } = useAdminAccess();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
+
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [globalMetrics, setGlobalMetrics] = useState<GlobalMetrics>({
-    totalTaps: 0,
-    totalGoogleClicks: 0,
-    totalDirections: 0,
-    totalMenuViews: 0,
-    totalRestaurants: 0
-  });
-  const [filteredRestaurants, setFilteredRestaurants] = useState<Restaurant[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin && user) {
-      fetchRestaurants();
-      fetchGlobalMetrics();
-    }
-  }, [isAdmin, user]);
+    if (!isAdmin || adminLoading) return;
 
-  useEffect(() => {
-    // Filter restaurants based on search
-    if (searchQuery) {
-      const filtered = restaurants.filter(r => 
-        r.restaurant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.custom_slug?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredRestaurants(filtered);
-    } else {
-      setFilteredRestaurants(restaurants);
-    }
-  }, [searchQuery, restaurants]);
+    const loadData = async () => {
+      setLoadingData(true);
+      setError(null);
 
+      try {
+        const [restaurantsRes, locationsRes] = await Promise.all([
+          supabase
+            .from("restaurants")
+            .select(
+              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url"
+            )
+            .order("created_at", { ascending: false }),
+          supabase.from("locations").select("id, restaurant_id"),
+        ]);
 
-  const fetchRestaurants = async () => {
-    const { data, error } = await (supabase as any)
-      .from('restaurants')
-      .select('id, restaurant_name, custom_slug, subscription_status, plan_type, is_demo_account, owner_id, created_at')
-      .order('created_at', { ascending: false });
+        if (restaurantsRes.error) throw restaurantsRes.error;
+        if (locationsRes.error) throw locationsRes.error;
 
-    if (error) {
-      toast.error("Failed to fetch restaurants");
-      return;
-    }
+        setRestaurants(restaurantsRes.data ?? []);
+        setLocations(locationsRes.data ?? []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoadingData(false);
+      }
+    };
 
-    if (data) {
-      setRestaurants(data);
-      setFilteredRestaurants(data);
-    }
-  };
+    loadData();
+  }, [isAdmin, adminLoading]);
 
-  const fetchGlobalMetrics = async () => {
-    // Fetch total restaurants count
-    const { count: restaurantCount } = await supabase
-      .from('restaurants')
-      .select('*', { count: 'exact', head: true });
-
-    // Fetch analytics events using any cast for analytics_events table
-    const { data: events } = await (supabase as any)
-      .from('analytics_events')
-      .select('event_type');
-
-    const taps = events?.filter((e: any) => e.event_type === 'tap').length || 0;
-    const googleClicks = events?.filter((e: any) => e.event_type === 'google_click').length || 0;
-    const directions = events?.filter((e: any) => e.event_type === 'directions_click').length || 0;
-    const menuViews = events?.filter((e: any) => e.event_type === 'menu_view').length || 0;
-
-    setGlobalMetrics({
-      totalTaps: taps,
-      totalGoogleClicks: googleClicks,
-      totalDirections: directions,
-      totalMenuViews: menuViews,
-      totalRestaurants: restaurantCount || 0
+  const locationsCount = useMemo(() => {
+    const map: Record<string, number> = {};
+    locations.forEach((l) => {
+      map[l.restaurant_id] = (map[l.restaurant_id] ?? 0) + 1;
     });
+    return map;
+  }, [locations]);
+
+  const filteredRestaurants = useMemo(() => {
+    return restaurants.filter((r) => {
+      let ok = true;
+
+      if (search.trim()) {
+        const s = search.toLowerCase();
+        const name = (r.restaurant_name ?? "").toLowerCase();
+        const slug = (r.custom_slug ?? "").toLowerCase();
+        ok = name.includes(s) || slug.includes(s);
+      }
+
+      if (planFilter !== "all") {
+        ok = ok && r.plan_type === planFilter;
+      }
+
+      if (statusFilter !== "all") {
+        ok = ok && r.subscription_status === statusFilter;
+      }
+
+      return ok;
+    });
+  }, [restaurants, search, planFilter, statusFilter]);
+
+  const openEdit = (r: Restaurant) => setEditingRestaurant(r);
+
+  const changeEdit = (field: keyof Restaurant, value: any) => {
+    if (!editingRestaurant) return;
+    setEditingRestaurant({ ...editingRestaurant, [field]: value });
   };
 
-  const handleImpersonate = (restaurantId: string, ownerEmail: string) => {
-    setImpersonating(ownerEmail);
-    // Store impersonation state in sessionStorage
-    sessionStorage.setItem('admin_impersonating', restaurantId);
-    sessionStorage.setItem('admin_impersonating_email', ownerEmail);
-    navigate('/dashboard');
-  };
+  const saveEdit = async () => {
+    if (!editingRestaurant) return;
 
-  const seedDemoAccounts = async () => {
-    const { data, error } = await supabase.functions.invoke('seed-demo-accounts');
-    
-    if (error) {
-      toast.error("Failed to seed demo accounts: " + error.message);
-      return;
+    setSavingEdit(true);
+    try {
+      const { id, ...updates } = editingRestaurant;
+
+      const validUpdates: any = {};
+      const fields = [
+        "google_review_url",
+        "yelp_review_url",
+        "directions_url",
+        "instagram_url",
+        "logo_url",
+        "custom_slug",
+      ];
+
+      fields.forEach((f) => {
+        if (f in updates) validUpdates[f] = (updates as any)[f];
+      });
+
+      const { data, error } = await supabase
+        .from("restaurants")
+        .update(validUpdates)
+        .eq("id", id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      setRestaurants((prev) => prev.map((r) => (r.id === id ? data : r)));
+      setEditingRestaurant(null);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSavingEdit(false);
     }
-
-    toast.success(`Successfully created ${data.created} demo accounts!`);
-    await fetchRestaurants();
-    await fetchGlobalMetrics();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Checking admin access...</p>
-        </div>
-      </div>
-    );
+  const toggleSub = async (r: Restaurant) => {
+    const next = r.subscription_status === "active" ? "paused" : "active";
+
+    const { data, error } = await supabase
+      .from("restaurants")
+      .update({ subscription_status: next })
+      .eq("id", r.id)
+      .select("*")
+      .single();
+
+    if (!error) {
+      setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
+    }
+  };
+
+  const openHub = (r: Restaurant) => {
+    if (!r.custom_slug) return;
+    window.open(`/${r.custom_slug}`, "_blank");
+  };
+
+  if (authLoading || adminLoading) {
+    return <div className="p-6">Loading...</div>;
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md w-full mx-4">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <ShieldAlert className="h-12 w-12 text-destructive" />
-            </div>
-            <CardTitle className="text-2xl">Admin Access Required</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              You're logged in, but this page is only available to administrators.
-            </p>
-            <Button 
-              onClick={() => navigate("/dashboard")} 
-              className="w-full"
-            >
-              Return to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="p-6">
+        <h1 className="text-xl font-semibold">Access denied</h1>
+        <p className="text-muted-foreground">
+          This page is only for {SUPER_ADMIN_EMAIL}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">TapAway Admin Portal</h1>
-            <p className="text-sm text-muted-foreground">Superadmin Dashboard</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={seedDemoAccounts}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Seed Demo Accounts
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">TapAway Admin Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Logged in as {user?.email}
+        </p>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="metrics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="metrics">Global Metrics</TabsTrigger>
-            <TabsTrigger value="clients">All Clients</TabsTrigger>
-            <TabsTrigger value="preflight">
-              <ListChecks className="w-4 h-4 mr-2" />
-              Hub Preflight
-            </TabsTrigger>
-          </TabsList>
+      <section className="bg-card border rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold">Filters</h2>
+        <div className="flex flex-col md:flex-row gap-3">
+          <Input
+            placeholder="Search name or slug"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Select value={planFilter} onValueChange={setPlanFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All plans" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All plans</SelectItem>
+              <SelectItem value="standard">Standard</SelectItem>
+              <SelectItem value="bundle">Bundle</SelectItem>
+              <SelectItem value="lite">Lite</SelectItem>
+              <SelectItem value="premium">Premium</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="canceled">Canceled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
 
-          {/* Global Metrics Tab */}
-          <TabsContent value="metrics" className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Taps</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{globalMetrics.totalTaps}</div>
-                  <p className="text-xs text-muted-foreground">Across all hubs</p>
-                </CardContent>
-              </Card>
+      <section className="bg-card border rounded-xl p-4">
+        <h2 className="font-semibold mb-3">Restaurants</h2>
+        {error && <div className="text-destructive text-sm mb-3">{error}</div>}
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Google Clicks</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{globalMetrics.totalGoogleClicks}</div>
-                  <p className="text-xs text-muted-foreground">Review button clicks</p>
-                </CardContent>
-              </Card>
+        <div className="overflow-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="p-2 text-left">Name</th>
+                <th className="p-2">Slug</th>
+                <th className="p-2">Plan</th>
+                <th className="p-2">Status</th>
+                <th className="p-2">Locations</th>
+                <th className="p-2">Created</th>
+                <th className="p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRestaurants.map((r) => (
+                <tr key={r.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2">
+                    <div className="font-medium">
+                      {r.restaurant_name ?? "(no name)"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.header_title}
+                    </div>
+                  </td>
+                  <td className="p-2 text-xs font-mono">
+                    {r.custom_slug ?? "—"}
+                  </td>
+                  <td className="p-2">{r.plan_type ?? "—"}</td>
+                  <td className="p-2">{r.subscription_status ?? "—"}</td>
+                  <td className="p-2 text-center">
+                    {locationsCount[r.id] ?? 0}
+                  </td>
+                  <td className="p-2">
+                    {r.created_at
+                      ? new Date(r.created_at).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="p-2">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Button
+                        onClick={() => openEdit(r)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={() => openHub(r)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Hub
+                      </Button>
+                      <Button
+                        onClick={() => toggleSub(r)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Toggle Sub
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Directions</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{globalMetrics.totalDirections}</div>
-                  <p className="text-xs text-muted-foreground">Apple Maps clicks</p>
-                </CardContent>
-              </Card>
+              {!loadingData && filteredRestaurants.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-xs text-muted-foreground"
+                  >
+                    No restaurants match filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Menu Views</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{globalMetrics.totalMenuViews}</div>
-                  <p className="text-xs text-muted-foreground">Menu opened</p>
-                </CardContent>
-              </Card>
+      <Dialog open={!!editingRestaurant} onOpenChange={() => setEditingRestaurant(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Edit – {editingRestaurant?.restaurant_name}
+            </DialogTitle>
+          </DialogHeader>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Restaurants</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{globalMetrics.totalRestaurants}</div>
-                  <p className="text-xs text-muted-foreground">Active accounts</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* All Clients Tab */}
-          <TabsContent value="clients" className="space-y-4">
-            <div className="flex gap-4 items-center">
+          <div className="space-y-4">
+            <div>
+              <Label>Slug</Label>
               <Input
-                placeholder="Search restaurants..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-sm"
+                value={editingRestaurant?.custom_slug ?? ""}
+                onChange={(e) => changeEdit("custom_slug", e.target.value)}
               />
             </div>
 
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Restaurant</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRestaurants.map((restaurant) => (
-                    <TableRow key={restaurant.id}>
-                      <TableCell className="font-medium">{restaurant.restaurant_name}</TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {restaurant.custom_slug || 'No slug'}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={restaurant.subscription_status === 'active' ? 'default' : 'secondary'}>
-                          {restaurant.subscription_status || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{restaurant.plan_type || 'N/A'}</TableCell>
-                      <TableCell>
-                        {restaurant.is_demo_account && (
-                          <Badge variant="outline">Demo</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleImpersonate(restaurant.id, restaurant.owner_id)}
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          View as Client
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+            <div>
+              <Label>Google Reviews</Label>
+              <Input
+                value={editingRestaurant?.google_review_url ?? ""}
+                onChange={(e) =>
+                  changeEdit("google_review_url", e.target.value)
+                }
+              />
+            </div>
 
-          {/* Hub Preflight Tab */}
-          <TabsContent value="preflight">
-            <AdminPreflight />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <div>
+              <Label>Yelp Reviews</Label>
+              <Input
+                value={editingRestaurant?.yelp_review_url ?? ""}
+                onChange={(e) =>
+                  changeEdit("yelp_review_url", e.target.value)
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Directions</Label>
+              <Input
+                value={editingRestaurant?.directions_url ?? ""}
+                onChange={(e) =>
+                  changeEdit("directions_url", e.target.value)
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Instagram</Label>
+              <Input
+                value={editingRestaurant?.instagram_url ?? ""}
+                onChange={(e) =>
+                  changeEdit("instagram_url", e.target.value)
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Logo URL</Label>
+              <Input
+                value={editingRestaurant?.logo_url ?? ""}
+                onChange={(e) =>
+                  changeEdit("logo_url", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingRestaurant(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={saveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
