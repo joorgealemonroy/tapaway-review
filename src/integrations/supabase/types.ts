@@ -781,6 +781,7 @@ export type Database = {
       }
     }
     Functions: {
+      build_google_review_url: { Args: { place_id: string }; Returns: string }
       current_user_email: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -791,6 +792,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_clean_greeting: { Args: { input: string }; Returns: boolean }
+      is_google_review_url_valid: { Args: { url: string }; Returns: boolean }
       is_test_account: { Args: never; Returns: boolean }
     }
     Enums: {
