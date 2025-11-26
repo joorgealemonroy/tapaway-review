@@ -1,208 +1,232 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { z } from "zod";
-import { toast } from "sonner";
 
-const authSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Please enter a valid email address")
-    .max(255, "Email must be less than 255 characters"),
-  password: z
-    .string()
-    .min(12, "Password must be at least 12 characters")
-    .max(72, "Password must be less than 72 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-});
+const PAYWALL_PATH = "/onboarding";
+
+type Mode = "login" | "forgot";
 
 const Auth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const { signUp, signIn, user } = useAuth();
-  const navigate = useNavigate();
+  const [mode, setMode] = useState<Mode>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
     try {
-      const validatedData = authSchema.parse({
-        email: loginEmail,
-        password: loginPassword,
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
-      await signIn(validatedData.email, validatedData.password);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      }
+
+      if (error) throw error;
+
+      setMessage("Logged in successfully. Redirecting…");
+    } catch (e: any) {
+      setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const onForgot = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (signupPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    setIsLoading(true);
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
     try {
-      const validatedData = authSchema.parse({
-        email: signupEmail,
-        password: signupPassword,
-      });
-      await signUp(validatedData.email, validatedData.password);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      }
+      const redirectTo = `${window.location.origin}/auth/reset-password`;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo }
+      );
+
+      if (error) throw error;
+
+      setMessage(
+        "If an account exists with that email, we've sent a reset link."
+      );
+    } catch (e: any) {
+      setError(e.message ?? "Unable to send reset email right now.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
+
+  const title = mode === "login" ? "Welcome back" : "Reset your password";
+  const subtitle =
+    mode === "login"
+      ? "Log in to your TapAway dashboard."
+      : "We'll email you a link to set a new password.";
 
   return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
       <div className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </Link>
-
-        <Card className="p-8 shadow-xl border-border">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-primary"></div>
-              <span className="text-2xl font-bold">TapAway</span>
+        <div className="bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
+          <div className="space-y-2 text-center">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground font-bold text-lg">
+              T
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Welcome to TapAway
-            </h1>
-            <p className="text-muted-foreground">
-              Sign in to manage your restaurant's reviews
-            </p>
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
+            </div>
           </div>
 
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+          {message && (
+            <div className="text-xs rounded-md bg-green-50 text-green-700 px-3 py-2">
+              {message}
+            </div>
+          )}
+          {error && (
+            <div className="text-xs rounded-md bg-red-50 text-red-700 px-3 py-2">
+              {error}
+            </div>
+          )}
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input 
-                    id="login-email" 
-                    type="email" 
-                    placeholder="you@restaurant.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required 
+          {mode === "login" && (
+            <form className="space-y-4" onSubmit={onLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@restaurant.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-input"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input 
-                    id="login-password" 
-                    type="password" 
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required 
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+                  <span>Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("forgot");
+                    setMessage(null);
+                    setError(null);
+                  }}
+                  className="text-foreground hover:underline"
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-                <div className="text-center">
-                  <a href="#" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </a>
-                </div>
-              </form>
-            </TabsContent>
+                  Forgot password?
+                </button>
+              </div>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input 
-                    id="signup-email" 
-                    type="email" 
-                    placeholder="you@restaurant.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input 
-                    id="signup-password" 
-                    type="password" 
-                    placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirm Password</Label>
-                  <Input 
-                    id="signup-confirm" 
-                    type="password" 
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required 
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+              <div className="space-y-3">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full"
                 >
-                  {isLoading ? "Creating account..." : "Create Account"}
+                  {loading ? "Signing in…" : "Sign in"}
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  By signing up, you agree to our Terms of Service and Privacy Policy
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Need help? <a href="#" className="text-primary hover:underline">Contact Support</a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    window.location.href = PAYWALL_PATH;
+                  }}
+                  className="w-full"
+                >
+                  Create an account
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {mode === "forgot" && (
+            <form className="space-y-4" onSubmit={onForgot}>
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">Email address</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@restaurant.com"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? "Sending link…" : "Send reset link"}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setMessage(null);
+                  setError(null);
+                }}
+                className="w-full text-xs text-muted-foreground hover:underline text-center"
+              >
+                Back to login
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = PAYWALL_PATH;
+                }}
+                className="w-full text-xs text-muted-foreground hover:underline text-center"
+              >
+                Create an account
+              </button>
+            </form>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Having trouble?{" "}
+          <a
+            href="mailto:support@tapaway.co"
+            className="underline decoration-dotted"
+          >
+            support@tapaway.co
+          </a>
         </p>
       </div>
     </div>
