@@ -35,7 +35,7 @@ const Auth = () => {
       setMessage("Logged in successfully. Redirecting…");
       
       // Redirect to main app entry
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
