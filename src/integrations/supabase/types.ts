@@ -574,6 +574,7 @@ export type Database = {
           subscription_status: string | null
           type: string | null
           updated_at: string
+          yelp_business_id: string | null
           yelp_review_url: string | null
         }
         Insert: {
@@ -615,6 +616,7 @@ export type Database = {
           subscription_status?: string | null
           type?: string | null
           updated_at?: string
+          yelp_business_id?: string | null
           yelp_review_url?: string | null
         }
         Update: {
@@ -656,6 +658,7 @@ export type Database = {
           subscription_status?: string | null
           type?: string | null
           updated_at?: string
+          yelp_business_id?: string | null
           yelp_review_url?: string | null
         }
         Relationships: []
