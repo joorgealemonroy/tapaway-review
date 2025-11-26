@@ -59,6 +59,10 @@ const Admin = () => {
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const [deletingRestaurant, setDeletingRestaurant] = useState<Restaurant | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -190,6 +194,37 @@ const Admin = () => {
     }
   };
 
+  const startDelete = (r: Restaurant) => {
+    setDeletingRestaurant(r);
+    setDeleteConfirmText("");
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingRestaurant) return;
+    if (deleteConfirmText !== "DELETE ACCOUNT") return;
+
+    setDeleting(true);
+
+    try {
+      await supabase.from("locations").delete().eq("restaurant_id", deletingRestaurant.id);
+
+      const { error } = await supabase
+        .from("restaurants")
+        .delete()
+        .eq("id", deletingRestaurant.id);
+
+      if (error) throw error;
+
+      setRestaurants((prev) => prev.filter((x) => x.id !== deletingRestaurant.id));
+      setDeletingRestaurant(null);
+      setDeleteConfirmText("");
+    } catch (e: any) {
+      setError("Delete failed: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openHub = (r: Restaurant) => {
     if (!r.custom_slug) return;
     window.open(`/${r.custom_slug}`, "_blank");
@@ -317,6 +352,14 @@ const Admin = () => {
                       >
                         Toggle Sub
                       </Button>
+                      <Button
+                        onClick={() => startDelete(r)}
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive hover:bg-destructive/10"
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -416,6 +459,47 @@ const Admin = () => {
                 disabled={savingEdit}
               >
                 {savingEdit ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deletingRestaurant} onOpenChange={() => setDeletingRestaurant(null)}>
+        <DialogContent className="max-w-md border-destructive">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              Delete Account – {deletingRestaurant?.restaurant_name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This action is <strong>permanent</strong> and cannot be undone.
+              To confirm, type <span className="font-mono font-bold">DELETE ACCOUNT</span>.
+            </p>
+
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+              placeholder="DELETE ACCOUNT"
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeletingRestaurant(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={confirmDelete}
+                disabled={deleteConfirmText !== "DELETE ACCOUNT" || deleting}
+                variant="destructive"
+              >
+                {deleting ? "Deleting..." : "Delete Permanently"}
               </Button>
             </div>
           </div>
