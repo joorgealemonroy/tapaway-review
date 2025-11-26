@@ -309,10 +309,12 @@ const Dashboard = () => {
   return <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            
+          <button 
+            onClick={() => navigate(user ? "/dashboard" : "/")}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             <span className="font-bold text-xl">TapAway</span>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             {restaurant?.custom_slug && <Button variant="outline" size="sm" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
