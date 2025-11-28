@@ -34,6 +34,37 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - authentication required' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Create client for auth check
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid token' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Create admin client for database operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -45,15 +76,26 @@ Deno.serve(async (req) => {
       throw new Error('restaurant_slug is required');
     }
 
-    // Look up restaurant
+    // Look up restaurant and verify ownership
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id')
+      .select('id, owner_id')
       .eq('custom_slug', restaurant_slug)
       .single();
 
     if (restaurantError || !restaurant) {
       throw new Error(`Restaurant with slug "${restaurant_slug}" not found`);
+    }
+
+    // Verify the calling user owns this restaurant
+    if (restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied - you do not own this restaurant' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const restaurantId = restaurant.id;
