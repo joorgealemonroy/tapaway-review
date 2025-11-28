@@ -332,12 +332,69 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - authentication required" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Create client for auth check
+    const supabaseClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - invalid token" }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const payload = (await req.json()) as AutoYelpPayload;
     if (!payload.restaurantId) {
       return new Response(
         JSON.stringify({ error: "Missing restaurantId" }),
         {
           status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Verify restaurant ownership before proceeding
+    const { data: restaurant, error: ownerError } = await supabaseClient
+      .from("restaurants")
+      .select("owner_id")
+      .eq("id", payload.restaurantId)
+      .single();
+
+    if (ownerError || !restaurant) {
+      return new Response(
+        JSON.stringify({ error: "Restaurant not found" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: "Access denied - you do not own this restaurant" }),
+        {
+          status: 403,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
