@@ -64,7 +64,7 @@ serve(async (req) => {
       ],
       discounts,
       customer_email: email,
-      success_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/paywall`,
       allow_promotion_codes: false, // Disable manual entry since we auto-apply
       billing_address_collection: 'auto',
