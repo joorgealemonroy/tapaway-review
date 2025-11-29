@@ -47,7 +47,7 @@ const PLANS = {
 };
 
 // December promo deadline: Dec 31, 11:59:59 PM PST
-const PROMO_DEADLINE = new Date('2024-12-31T23:59:59-08:00').getTime();
+const PROMO_DEADLINE = new Date('2025-12-31T23:59:59-08:00').getTime();
 
 const Paywall = () => {
   const navigate = useNavigate();
@@ -292,6 +292,7 @@ const Paywall = () => {
                     </div>
 
                     {/* Urgency Line */}
+                    {/* Urgency Line */}
                     <div className="pt-4 border-t border-border">
                       <p className="text-xs text-muted-foreground">
                         🎄 This Christmas deal disappears after December 31. On January 1, the plan returns to $300/year for everyone.
@@ -381,7 +382,11 @@ const Paywall = () => {
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-bold mb-2">Create Your Account</h2>
                   <p className="text-sm text-muted-foreground">
-                    Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}
+                    {selectedPlan === "yearly" && isPromoActive ? (
+                      <>Start with Yearly • $150 for your first year (renews at $300/year)</>
+                    ) : (
+                      <>Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>
+                    )}
                   </p>
                 </div>
 
