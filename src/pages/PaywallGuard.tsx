@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
 
 export const usePaywallGuard = () => {
   const { user } = useAuth();
@@ -11,6 +12,13 @@ export const usePaywallGuard = () => {
   useEffect(() => {
     const checkSubscription = async () => {
       if (!user) {
+        setChecking(false);
+        return;
+      }
+
+      // Grandfathered users bypass paywall
+      if (isGrandfatheredUser(user.email)) {
+        navigate("/dashboard");
         setChecking(false);
         return;
       }
