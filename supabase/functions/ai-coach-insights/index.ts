@@ -112,17 +112,19 @@ serve(async (req) => {
     const { data: analytics } = await analyticsQuery;
     const events = analytics || [];
 
+    // Count only "tap" events for hub visits
+    const tapEvents = events.filter(e => e.event_type === 'tap');
+    const totalTaps = tapEvents.length;
+
     // Calculate last 7 days
     const last7Days = new Date();
     last7Days.setDate(last7Days.getDate() - 7);
     const recentEvents = events.filter(e => new Date(e.created_at) >= last7Days);
+    const recentTaps = tapEvents.filter(e => new Date(e.created_at) >= last7Days);
 
-    // Calculate scores
-    const totalEvents = events.length;
-    const recentEventsCount = recentEvents.length;
-    
-    const healthScore = Math.min(100, Math.round((recentEventsCount / 50) * 100));
-    const activityScore = Math.min(100, Math.round((totalEvents / 100) * 100));
+    // Calculate scores based on taps (hub visits)
+    const healthScore = Math.min(100, Math.round((recentTaps.length / 50) * 100));
+    const activityScore = Math.min(100, Math.round((totalTaps / 100) * 100));
     
     const googleClicks = events.filter(e => e.event_type === 'google_review_clicked').length;
     const totalClicks = events.filter(e => e.event_type.includes('clicked')).length;
@@ -136,7 +138,8 @@ serve(async (req) => {
     const prompt = `As an AI restaurant consultant, analyze this data and provide actionable insights:
 
 Restaurant Analytics (Last 7 days):
-- Total interactions: ${recentEventsCount}
+- Hub visits (taps): ${recentTaps.length}
+- Total hub visits (all time): ${totalTaps}
 - Google review clicks: ${events.filter(e => e.event_type === 'google_review_clicked' && new Date(e.created_at) >= last7Days).length}
 - Yelp clicks: ${events.filter(e => e.event_type === 'yelp_clicked' && new Date(e.created_at) >= last7Days).length}
 - Instagram clicks: ${events.filter(e => e.event_type === 'instagram_clicked' && new Date(e.created_at) >= last7Days).length}
