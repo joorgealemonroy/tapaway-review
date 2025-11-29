@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Check, Sparkles, Clock, Snowflake, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { usePaywallGuard } from "./PaywallGuard";
+import { motion, useInView } from "framer-motion";
 
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -17,6 +18,69 @@ const signupSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[!?#@$%^&*]/, "Password must contain at least one symbol (! ? # @ $ % ^ & *)"),
 });
+
+// Animated Info Card Component with scroll-in and hover effects
+const AnimatedInfoCard = ({ children }: { children: React.ReactNode }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.98 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      whileHover={{ 
+        y: -4,
+        transition: { duration: 0.2 }
+      }}
+      className="lg:hover:shadow-lg transition-shadow duration-200"
+    >
+      <Card className="p-8 bg-white" style={{ border: '1px solid rgba(167, 243, 208, 0.5)' }}>
+        {children}
+      </Card>
+    </motion.div>
+  );
+};
+
+// Animated Savings Number Component
+const AnimatedSavings = () => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    if (!isInView) return;
+    
+    const duration = 800;
+    const start = Date.now();
+    const targetValue = 210;
+    
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out function
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(easeOut * targetValue);
+      
+      setDisplayValue(current);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
+  }, [isInView]);
+  
+  return (
+    <span ref={ref} className="text-base font-bold text-primary">
+      ${displayValue} vs Monthly
+    </span>
+  );
+};
 
 type PlanType = "monthly" | "yearly";
 
@@ -315,7 +379,7 @@ const Paywall = () => {
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">Save 50% this year</span>
+                        <span className="text-sm">Save 50% your first year</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -327,7 +391,7 @@ const Paywall = () => {
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">Renews at ${PLANS.yearlyPromo.renewalPrice}/year after December 31</span>
+                        <span className="text-sm">Renews at $300/year after your first year</span>
                       </li>
                     </ul>
                   </>
@@ -491,7 +555,7 @@ const Paywall = () => {
             </Card>
 
             {/* Why TapAway Pays for Itself Section */}
-            <Card className="p-8 bg-muted/30">
+            <AnimatedInfoCard>
               <div className="space-y-4">
                 <h3 className="text-xl font-bold flex items-center gap-2">
                   📈 Why TapAway Pays for Itself
@@ -511,22 +575,24 @@ const Paywall = () => {
                   </li>
                 </ol>
               </div>
-            </Card>
+            </AnimatedInfoCard>
           </div>
         </div>
 
         {/* Full-Width December Deal Explanation - Only show during promo */}
         {isPromoActive && (
-          <div className="max-w-4xl mx-auto mb-16 animate-fade-in">
-            <Card className="p-8 bg-white"
-                  style={{ 
-                    border: '1px solid rgba(167, 243, 208, 0.5)'
-                  }}>
+          <div className="max-w-4xl mx-auto mb-16">
+            <AnimatedInfoCard>
               <div className="space-y-6">
                 {/* Title */}
-                <h3 className="text-2xl font-bold text-center mb-6">
-                  🎄 Why TapAway's December Deal Is a No-Brainer
-                </h3>
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold mb-2">
+                    🎄 TapAway December Deal – Simple Price Breakdown
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    See exactly how the December deal compares to our normal pricing.
+                  </p>
+                </div>
 
                 {/* Price Comparison Block */}
                 <div className="bg-muted/30 rounded-lg p-6">
@@ -546,7 +612,7 @@ const Paywall = () => {
                     </div>
                     <div className="flex justify-between items-center pt-3 border-t border-border">
                       <span className="text-base font-bold text-primary">You Save:</span>
-                      <span className="text-base font-bold text-primary">$210 vs Monthly</span>
+                      <AnimatedSavings />
                     </div>
                   </div>
                 </div>
@@ -572,7 +638,7 @@ const Paywall = () => {
                   </p>
                 </div>
               </div>
-            </Card>
+            </AnimatedInfoCard>
           </div>
         )}
       </div>
