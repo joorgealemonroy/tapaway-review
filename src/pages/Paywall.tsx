@@ -202,20 +202,18 @@ const Paywall = () => {
       localStorage.setItem("pending_plan_type", selectedPlan);
 
       // Create Stripe Checkout Session via edge function
-      const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
-        'create-checkout-session',
-        {
-          body: {
-            plan: selectedPlan,
-            email: validated.email.trim(),
-          },
+      const {
+        data: sessionData,
+        error: sessionError
+      } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          plan: selectedPlan,
+          email: validated.email.trim()
         }
-      );
-
+      });
       if (sessionError || !sessionData?.url) {
         throw new Error(sessionError?.message || 'Failed to create checkout session');
       }
-
       toast.success("Account created! Redirecting to payment...");
 
       // Small delay to show the success message
@@ -279,9 +277,7 @@ const Paywall = () => {
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-20">
         {/* Value Prop */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Less Work. More Reviews. Automatically.
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Less Work. More Reviews.</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             TapAway automates all the work — no extra steps.
           </p>
