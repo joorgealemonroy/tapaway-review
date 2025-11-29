@@ -26,11 +26,17 @@ serve(async (req) => {
     
     console.log('Creating checkout session:', { plan, email });
 
-    // Price IDs (these should match your Stripe product prices)
+    // Price IDs from Stripe Dashboard
+    // TODO: Update these with your actual Stripe price IDs
+    // Find these at: https://dashboard.stripe.com/products
+    // Monthly: The price ID for your $30/month subscription
+    // Yearly: The price ID for your $300/year subscription
     const PRICE_IDS = {
-      monthly: 'price_1QaYdXDg8DaTuVNZ9hH8oxFX', // $30/month
-      yearly: 'price_1QaYedDg8DaTuVNZXiCQX3G0',  // $300/year
+      monthly: 'price_1QaYdXDg8DaTuVNZ9hH8oxFX', // REPLACE: $30/month price ID
+      yearly: 'price_1QaYedDg8DaTuVNZXiCQX3G0',  // REPLACE: $300/year price ID
     };
+
+    console.log('Using price IDs:', PRICE_IDS);
 
     // Check if December promo is active
     const PROMO_DEADLINE = new Date('2025-12-31T23:59:59-08:00').getTime();
