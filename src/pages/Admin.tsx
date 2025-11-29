@@ -39,6 +39,7 @@ type Restaurant = {
   instagram_url?: string | null;
   logo_url?: string | null;
   greeting_name?: string | null;
+  total_taps?: number;
 };
 
 type Location = {
@@ -83,21 +84,53 @@ const Admin = () => {
       setError(null);
 
       try {
-        const [restaurantsRes, locationsRes] = await Promise.all([
-          supabase
-            .from("restaurants")
-            .select(
-              "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
-            )
-            .order("created_at", { ascending: false }),
-          supabase.from("locations").select("id, restaurant_id"),
-        ]);
+        // First, get all restaurants
+        const { data: allRestaurants, error: restaurantsError } = await supabase
+          .from("restaurants")
+          .select(
+            "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
+          )
+          .order("created_at", { ascending: false });
 
-        if (restaurantsRes.error) throw restaurantsRes.error;
-        if (locationsRes.error) throw locationsRes.error;
+        if (restaurantsError) throw restaurantsError;
 
-        setRestaurants(restaurantsRes.data ?? []);
-        setLocations(locationsRes.data ?? []);
+        // Get tap counts for each restaurant
+        const restaurantIds = (allRestaurants ?? []).map(r => r.id);
+        const { data: tapCounts, error: tapsError } = await supabase
+          .from("analytics_events")
+          .select("restaurant_id")
+          .eq("event_type", "tap")
+          .in("restaurant_id", restaurantIds);
+
+        if (tapsError) throw tapsError;
+
+        // Count taps per restaurant
+        const tapsMap: Record<string, number> = {};
+        (tapCounts ?? []).forEach(event => {
+          tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
+        });
+
+        // Add tap counts to restaurants and filter for TapAway or 1000+ taps
+        const MIN_TAPS_FOR_AI = 1000;
+        const restaurantsWithTaps = (allRestaurants ?? []).map(r => ({
+          ...r,
+          total_taps: tapsMap[r.id] ?? 0
+        })).filter(r => {
+          const isTapAway = 
+            r.restaurant_name?.toLowerCase().includes("tapaway") ||
+            r.custom_slug?.toLowerCase() === "tapaway";
+          return isTapAway || (r.total_taps ?? 0) >= MIN_TAPS_FOR_AI;
+        });
+
+        // Get locations
+        const { data: locationsData, error: locationsError } = await supabase
+          .from("locations")
+          .select("id, restaurant_id");
+
+        if (locationsError) throw locationsError;
+
+        setRestaurants(restaurantsWithTaps);
+        setLocations(locationsData ?? []);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -333,6 +366,7 @@ const Admin = () => {
               <tr className="border-b">
                 <th className="p-2 text-left">Name</th>
                 <th className="p-2">Slug</th>
+                <th className="p-2">Taps</th>
                 <th className="p-2">Plan</th>
                 <th className="p-2">Status</th>
                 <th className="p-2">Locations</th>
@@ -353,6 +387,9 @@ const Admin = () => {
                   </td>
                   <td className="p-2 text-xs font-mono">
                     {r.custom_slug ?? "—"}
+                  </td>
+                  <td className="p-2 font-medium">
+                    {r.total_taps?.toLocaleString() ?? 0}
                   </td>
                   <td className="p-2">{r.plan_type ?? "—"}</td>
                   <td className="p-2">{r.subscription_status ?? "—"}</td>
@@ -426,7 +463,7 @@ const Admin = () => {
               {!loadingData && filteredRestaurants.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="p-4 text-center text-xs text-muted-foreground"
                   >
                     No restaurants match filters.
