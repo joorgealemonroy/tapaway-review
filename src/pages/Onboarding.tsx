@@ -55,24 +55,33 @@ const Onboarding = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/auth");
+      navigate("/auth?redirect=/onboarding");
       return;
     }
 
-    // Check if user has an active subscription, if not redirect to paywall
-    const checkSubscription = async () => {
+    // Check if user has an active subscription and if they're already fully onboarded
+    const checkOnboardingStatus = async () => {
       const { data: restaurant } = await supabase
         .from("restaurants")
-        .select("subscription_status, plan_type")
+        .select("subscription_status, plan_type, custom_slug, restaurant_name")
         .eq("owner_id", user.id)
         .maybeSingle();
 
+      // If no active subscription, send to paywall
       if (!restaurant || !restaurant.subscription_status || restaurant.subscription_status !== 'active') {
         navigate("/paywall");
+        return;
+      }
+
+      // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
+      // This prevents already-onboarded users from re-entering onboarding
+      if (restaurant.custom_slug && restaurant.restaurant_name) {
+        console.log('[Onboarding] User already onboarded, redirecting to dashboard');
+        navigate("/dashboard");
       }
     };
 
-    checkSubscription();
+    checkOnboardingStatus();
   }, [user, navigate]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
