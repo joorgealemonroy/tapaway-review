@@ -181,17 +181,83 @@ function LockedState({ totalTaps }: { totalTaps: number }) {
   );
 }
 
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
 function UnlockedState({ restaurantName, stats }: { restaurantName: string; stats: AiCoachStats }) {
-  const { totalTaps, positive, neutral, negative, topItems, recommendations } = stats;
+  const { totalTaps, positive, neutral, negative } = stats;
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Hola 👋 I'm your TapAway AI Coach. Ask me anything about your reviews, taps, and how to get even more love from your customers.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const totalSentiment = positive + neutral + negative || 1;
   const positivePct = Math.round((positive / totalSentiment) * 100);
   const neutralPct = Math.round((neutral / totalSentiment) * 100);
   const negativePct = Math.round((negative / totalSentiment) * 100);
 
+  const sampleLabel = totalTaps <= 1
+    ? "your latest tap"
+    : `your latest ${Math.min(totalTaps, 250).toLocaleString()} taps`;
+
+  const quickQuestions = [
+    "What are my biggest wins this week?",
+    "Which dishes are customers loving the most?",
+    "When are my best days and hours for happy customers?",
+    "How can I get more reviews using TapAway?",
+    "How is TapAway helping my business grow?",
+  ];
+
+  const handleAsk = async (question: string) => {
+    if (!question.trim() || isSending) return;
+
+    const userMsg: Message = { role: "user", content: question.trim() };
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
+    setInput("");
+    setIsSending(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-coach-chat', {
+        body: {
+          orgName: restaurantName,
+          stats,
+          messages: nextMessages,
+        }
+      });
+
+      if (error) throw error;
+
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: data.reply ?? "Here's what I'm seeing: TapAway is driving solid engagement. Keep collecting taps and I'll keep surfacing your wins 🚀",
+      };
+
+      setMessages(prev => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error("AI Coach error", err);
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "No pasa nada, algo falló al responder. Pero tus datos siguen seguros y TapAway sigue contando tus taps. Intenta otra pregunta en un momento 😊",
+        },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      {/* HEADER */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="flex items-start gap-4">
           <div className="h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center">
             <span className="text-2xl">🤖</span>
@@ -201,126 +267,146 @@ function UnlockedState({ restaurantName, stats }: { restaurantName: string; stat
               AI Coach Insights
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Based on your latest {totalTaps.toLocaleString()}+ taps for{" "}
-              <span className="font-medium">{restaurantName}</span>.
+              Based on {sampleLabel} for{" "}
+              <span className="font-medium">{restaurantName}</span>. Ask questions
+              and get positive, practical ideas TapAway can help you with.
             </p>
           </div>
         </div>
+
+        {/* QUICK STATS PILL ROW */}
+        <div className="flex flex-wrap gap-3 text-xs md:text-sm">
+          <StatPill label="Total taps" value={totalTaps.toLocaleString()} />
+          <StatPill label="Positive sentiment" value={`${positivePct}%`} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">
-            Top Opportunities
-          </h3>
-          <ul className="space-y-2 text-sm text-slate-600">
-            {topItems && topItems.length > 0 ? (
-              topItems.map((item, idx) => (
-                <li key={idx} className="flex gap-2">
-                  <span className="mt-0.5">📌</span>
-                  <span>{item}</span>
-                </li>
-              ))
-            ) : (
-              <>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">📌</span>
-                  <span>
-                    Customers consistently praise your most popular dishes — highlight them on your menu and social media.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">⏱️</span>
-                  <span>
-                    Wait times feel long during peak hours. Consider more staff or simplified rush-hour menu items.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">😊</span>
-                  <span>
-                    Staff friendliness is a major driver of 5-star reviews. Keep recognizing top performers.
-                  </span>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
+      {/* TWO-COLUMN LAYOUT: LEFT = POSITIVE INSIGHTS, RIGHT = CHAT */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* LEFT: POSITIVE INSIGHTS & HOW TAPAWAY HELPS */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              What you're doing great 🎉
+            </h3>
+            <ul className="space-y-2 text-sm text-slate-600">
+              <li className="flex gap-2">
+                <span className="mt-0.5">✅</span>
+                <span>
+                  Customers are actively engaging with your TapAway cards —
+                  every tap is a chance to collect another happy review.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5">⭐</span>
+                <span>
+                  Your positive sentiment is{" "}
+                  <span className="font-medium">{positivePct}%</span>. That's a powerful signal new customers see before they ever walk in.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5">💬</span>
+                <span>
+                  You've collected <span className="font-medium">{totalTaps.toLocaleString()} taps</span>. Every single one helps build your reputation and brings you closer to more reviews.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-0.5">📈</span>
+                <span>
+                  TapAway is tracking every tap for you automatically — no extra
+                  work, just more data you can turn into better decisions.
+                </span>
+              </li>
+            </ul>
+          </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">
-            Customer Sentiment
-          </h3>
-          <p className="text-3xl font-semibold text-slate-900 mb-1">
-            {positivePct}% <span className="text-base font-normal">positive</span>
-          </p>
-          <p className="text-xs text-slate-500 mb-4">
-            Based on your latest {totalTaps.toLocaleString()} taps.
-          </p>
-
-          <div className="space-y-2">
-            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-teal-400"
-                style={{ width: `${positivePct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>🙂 {positivePct}%</span>
-              <span>😐 {neutralPct}%</span>
-              <span>🙁 {negativePct}%</span>
-            </div>
+          <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5">
+            <p className="text-sm font-medium text-teal-900">
+              How TapAway helps you win
+            </p>
+            <ul className="mt-2 space-y-1 text-xs text-teal-800">
+              <li>• Turns table taps into more Google & Yelp reviews.</li>
+              <li>• Shows what customers love most about your experience.</li>
+              <li>• Keeps all your feedback in one clean dashboard.</li>
+              <li>• Helps your team focus on the moves that actually matter.</li>
+            </ul>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
+        {/* RIGHT: AI CHAT */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col h-full">
           <h3 className="text-sm font-semibold text-slate-900 mb-3">
-            Recommended Actions
+            Ask your AI Coach
           </h3>
-          <ul className="space-y-2 text-sm text-slate-600">
-            {recommendations && recommendations.length > 0 ? (
-              recommendations.map((rec, idx) => (
-                <li key={idx} className="flex gap-2">
-                  <span className="mt-0.5">➡️</span>
-                  <span>{rec}</span>
-                </li>
-              ))
-            ) : (
-              <>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">➡️</span>
-                  <span>
-                    Promote your best-reviewed plates with in-store signage and stories.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">➡️</span>
-                  <span>
-                    Run a weekly staff challenge tied to number of 5-star reviews.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-0.5">➡️</span>
-                  <span>
-                    Train hosts and servers to remind happy tables to tap the card before leaving.
-                  </span>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
-      </div>
 
-      <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5 flex items-start gap-3">
-        <div className="mt-1">🔄</div>
-        <div>
-          <p className="text-sm font-medium text-teal-900">
-            AI Coach keeps learning.
-          </p>
-          <p className="text-xs text-teal-800 mt-1">
-            Every new tap updates your insights automatically. Keep driving reviews to unlock even deeper recommendations.
-          </p>
+          {/* SUGGESTED QUESTIONS */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {quickQuestions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                className="text-xs rounded-full bg-slate-50 px-3 py-1 border border-slate-200 hover:bg-slate-100 transition"
+                onClick={() => handleAsk(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* CHAT AREA */}
+          <div className="flex-1 min-h-[200px] max-h-[340px] overflow-y-auto rounded-xl bg-slate-50 px-3 py-3 mb-4 space-y-3">
+            {messages.map((m, idx) => (
+              <div
+                key={idx}
+                className={
+                  m.role === "assistant"
+                    ? "text-xs text-slate-700 bg-white rounded-lg px-3 py-2 max-w-[95%]"
+                    : "text-xs text-slate-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2 ml-auto max-w-[95%]"
+                }
+              >
+                {m.content}
+              </div>
+            ))}
+            {isSending && (
+              <div className="text-xs text-slate-500 bg-white rounded-lg px-3 py-2 inline-block">
+                Thinking about the best wins to highlight for you… ✨
+              </div>
+            )}
+          </div>
+
+          {/* INPUT */}
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAsk(input);
+            }}
+          >
+            <input
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400"
+              placeholder="Ask about your reviews, taps, or how to get more wins with TapAway…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={isSending || !input.trim()}
+              className="rounded-xl bg-teal-500 text-white px-4 py-2 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed hover:bg-teal-600 transition"
+            >
+              Send
+            </button>
+          </form>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-3 py-1">
+      <span className="text-[11px] text-slate-500">{label}</span>
+      <span className="text-xs font-medium text-slate-900">{value}</span>
     </div>
   );
 }
