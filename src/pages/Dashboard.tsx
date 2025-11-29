@@ -19,7 +19,7 @@ import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
-import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
+import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 interface Restaurant {
   id: string;
   restaurant_name: string;
@@ -161,6 +161,9 @@ const Dashboard = () => {
       console.log('[Dashboard] Grandfathered user has no restaurant, redirecting to onboarding');
       toast.info("Please complete your business setup");
       navigate("/onboarding");
+    } else if (isSuperAdmin(user?.email)) {
+      // Super admin without restaurant - that's fine, they can still access admin dashboard
+      console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
       // Regular user without restaurant - redirect to paywall to subscribe
       console.log('[Dashboard] User has no restaurant, redirecting to paywall');
@@ -190,7 +193,8 @@ const Dashboard = () => {
 
   // Check if user should bypass paywall
   const planType = restaurant?.plan_type || 'standard';
-  const shouldBypassPaywall = isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+  const superAdmin = isSuperAdmin(user?.email);
+  const shouldBypassPaywall = superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
   if (!loading && user && !restaurant && !shouldBypassPaywall) {
     return <div className="min-h-screen bg-background">
         <nav className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">

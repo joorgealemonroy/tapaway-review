@@ -12,7 +12,7 @@ import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
-import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
+import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -57,6 +57,13 @@ const Onboarding = () => {
   useEffect(() => {
     if (!user) {
       navigate("/auth?redirect=/onboarding");
+      return;
+    }
+
+    // Super admin should never see onboarding - redirect to admin
+    if (isSuperAdmin(user.email)) {
+      console.log('[Onboarding] Super admin detected, redirecting to /admin');
+      navigate("/admin");
       return;
     }
 

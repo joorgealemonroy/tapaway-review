@@ -94,11 +94,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) {
       toast.error(error.message);
-    } else {
-      toast.success("Signed in successfully!");
-      
-      // If test account, ensure test restaurant is linked
-      if (data.user && email === "test@me.com") {
+      return { error };
+    }
+
+    toast.success("Signed in successfully!");
+    
+    // Priority routing:
+    // 1. Super admin (tap@tapaway.co) → always go to /admin
+    // 2. Test accounts (tester*@tapaway.co or test@me.com) → go to /admin for testing
+    // 3. Normal users → go to /dashboard
+    const emailLower = email.toLowerCase();
+    
+    if (emailLower === 'tap@tapaway.co') {
+      // Super admin: always redirect to admin dashboard
+      navigate("/admin");
+    } else if (emailLower === 'test@me.com' || (emailLower.includes('@tapaway.co') && emailLower.includes('tester'))) {
+      // Test accounts: ensure linked, then redirect to admin
+      if (data.user && emailLower === "test@me.com") {
         try {
           const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
           if (assignError) {
@@ -108,11 +120,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('[signIn] Error calling assign-test-owner:', err);
         }
       }
-      
+      navigate("/admin");
+    } else {
+      // Normal users: redirect to dashboard
       navigate("/dashboard");
     }
 
-    return { error };
+    return { error: null };
   };
 
   const signOut = async () => {

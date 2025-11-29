@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
+import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 
 export const usePaywallGuard = () => {
   const { user } = useAuth();
@@ -12,6 +12,13 @@ export const usePaywallGuard = () => {
   useEffect(() => {
     const checkSubscription = async () => {
       if (!user) {
+        setChecking(false);
+        return;
+      }
+
+      // Super admin bypasses everything and goes to /admin
+      if (isSuperAdmin(user.email)) {
+        navigate("/admin");
         setChecking(false);
         return;
       }
