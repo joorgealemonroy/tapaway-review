@@ -84,7 +84,7 @@ const Admin = () => {
       setError(null);
 
       try {
-        // First, get all restaurants
+        // Get all restaurants
         const { data: allRestaurants, error: restaurantsError } = await supabase
           .from("restaurants")
           .select(
@@ -110,17 +110,11 @@ const Admin = () => {
           tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
         });
 
-        // Add tap counts to restaurants and filter for TapAway or 1000+ taps
-        const MIN_TAPS_FOR_AI = 1000;
+        // Add tap counts to ALL restaurants (no filtering)
         const restaurantsWithTaps = (allRestaurants ?? []).map(r => ({
           ...r,
           total_taps: tapsMap[r.id] ?? 0
-        })).filter(r => {
-          const isTapAway = 
-            r.restaurant_name?.toLowerCase().includes("tapaway") ||
-            r.custom_slug?.toLowerCase() === "tapaway";
-          return isTapAway || (r.total_taps ?? 0) >= MIN_TAPS_FOR_AI;
-        });
+        }));
 
         // Get locations
         const { data: locationsData, error: locationsError } = await supabase
