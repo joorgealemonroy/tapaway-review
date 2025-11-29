@@ -1,15 +1,68 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 import { NewHero } from "@/components/landing/NewHero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+
 const Index = () => {
-  const {
-    user
-  } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
+
+  // Check auth and subscription status on mount
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      if (authLoading) return;
+      
+      if (!user) {
+        // Not logged in - show marketing page
+        setChecking(false);
+        return;
+      }
+
+      // User is logged in - check subscription
+      try {
+        const { data: restaurant } = await supabase
+          .from("restaurants")
+          .select("subscription_status, id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+
+        if (restaurant && restaurant.subscription_status === 'active') {
+          // Has active subscription → dashboard
+          navigate("/dashboard");
+        } else {
+          // No active subscription → paywall
+          navigate("/paywall");
+        }
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        setChecking(false);
+      }
+    };
+
+    checkUserStatus();
+  }, [user, authLoading, navigate]);
+
+  // Show loading screen while checking
+  if (checking || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg mb-4 mx-auto">
+            T
+          </div>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show marketing page to logged-out users
   return <div className="min-h-screen">
       {/* Navigation */}
       <nav className="sticky top-0 z-30 bg-white/85 backdrop-blur-lg border-b border-border">
