@@ -65,7 +65,18 @@ serve(async (req) => {
 
     const { data: { user } } = await supabaseClient.auth.getUser();
     
-    if (!user || restaurant.owner_id !== user.id) {
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to restaurant data' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is admin or owns the restaurant
+    const { data: isAdminData } = await supabaseClient.rpc('is_admin');
+    const isAdmin = isAdminData || user.email === 'tap@tapaway.co';
+    
+    if (!isAdmin && restaurant.owner_id !== user.id) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized access to restaurant data' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

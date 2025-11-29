@@ -120,8 +120,20 @@ export const AICoachTab = ({ restaurantId, locationId }: AICoachTabProps) => {
 
       {aiCoachLocked ? (
         <LockedState totalTaps={totalTaps} />
+      ) : stats ? (
+        <UnlockedState restaurantName={restaurantName} stats={stats} />
       ) : (
-        <UnlockedState restaurantName={restaurantName} stats={stats!} />
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 flex flex-col items-center text-center">
+          <div className="h-14 w-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">
+            Unable to Load Insights
+          </h2>
+          <p className="text-slate-500 max-w-xl text-sm">
+            We couldn't load AI Coach insights for this restaurant. Please try again later.
+          </p>
+        </div>
       )}
     </div>
   );
