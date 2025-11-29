@@ -336,6 +336,63 @@ export type Database = {
           },
         ]
       }
+      google_reviews: {
+        Row: {
+          author_name: string | null
+          created_at: string | null
+          id: number
+          place_id: string | null
+          profile_photo_url: string | null
+          rating: number
+          relative_time_description: string | null
+          restaurant_id: string
+          review_time: string | null
+          source: string | null
+          text: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          created_at?: string | null
+          id?: never
+          place_id?: string | null
+          profile_photo_url?: string | null
+          rating: number
+          relative_time_description?: string | null
+          restaurant_id: string
+          review_time?: string | null
+          source?: string | null
+          text?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          created_at?: string | null
+          id?: never
+          place_id?: string | null
+          profile_photo_url?: string | null
+          rating?: number
+          relative_time_description?: string | null
+          restaurant_id?: string
+          review_time?: string | null
+          source?: string | null
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_reviews_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_reviews_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
@@ -548,7 +605,9 @@ export type Database = {
           directions_url: string | null
           email: string | null
           google_place_id: string | null
+          google_rating: number | null
           google_review_url: string | null
+          google_user_ratings_total: number | null
           greeting_name: string | null
           header_subtitle: string | null
           header_title: string | null
@@ -556,6 +615,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_demo_account: boolean | null
+          last_google_sync_at: string | null
           logo_url: string | null
           meal_order_url: string | null
           menu_image_url: string | null
@@ -590,7 +650,9 @@ export type Database = {
           directions_url?: string | null
           email?: string | null
           google_place_id?: string | null
+          google_rating?: number | null
           google_review_url?: string | null
+          google_user_ratings_total?: number | null
           greeting_name?: string | null
           header_subtitle?: string | null
           header_title?: string | null
@@ -598,6 +660,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null
+          last_google_sync_at?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
@@ -632,7 +695,9 @@ export type Database = {
           directions_url?: string | null
           email?: string | null
           google_place_id?: string | null
+          google_rating?: number | null
           google_review_url?: string | null
+          google_user_ratings_total?: number | null
           greeting_name?: string | null
           header_subtitle?: string | null
           header_title?: string | null
@@ -640,6 +705,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null
+          last_google_sync_at?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
           menu_image_url?: string | null
