@@ -27,13 +27,9 @@ serve(async (req) => {
     console.log('Creating checkout session:', { plan, email });
 
     // Price IDs from Stripe Dashboard
-    // TODO: Update these with your actual Stripe price IDs
-    // Find these at: https://dashboard.stripe.com/products
-    // Monthly: The price ID for your $30/month subscription
-    // Yearly: The price ID for your $300/year subscription
     const PRICE_IDS = {
-      monthly: 'price_1QaYdXDg8DaTuVNZ9hH8oxFX', // REPLACE: $30/month price ID
-      yearly: 'price_1QaYedDg8DaTuVNZXiCQX3G0',  // REPLACE: $300/year price ID
+      monthly: 'price_1SJP7CDg8DaTuVNZlcOE5Rn8',   // TapAway Monthly
+      yearly: 'price_1SJPryDg8DaTuVNZBB4at0Gc'     // TapAway Yearly ($300 renewal)
     };
 
     console.log('Using price IDs:', PRICE_IDS);
