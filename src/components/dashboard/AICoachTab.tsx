@@ -54,20 +54,23 @@ export const AICoachTab = ({ restaurantId }: AICoachTabProps) => {
       // Fetch restaurant info
       const { data: restaurantData } = await supabase
         .from('restaurants')
-        .select('restaurant_name, last_google_sync_at')
+        .select('restaurant_name, last_google_sync_at, google_place_id')
         .eq('id', restaurantId)
         .single();
       
       if (restaurantData) {
         setRestaurantName(restaurantData.restaurant_name);
 
-        // Auto-sync if lastGoogleSyncAt is null or > 12 hours old
-        const lastSync = restaurantData.last_google_sync_at;
-        const shouldAutoSync = !lastSync || 
-          (new Date().getTime() - new Date(lastSync).getTime() > 12 * 60 * 60 * 1000);
+        // Only sync if restaurant has a Google Place ID configured
+        if (restaurantData.google_place_id) {
+          // Auto-sync if lastGoogleSyncAt is null or > 12 hours old
+          const lastSync = restaurantData.last_google_sync_at;
+          const shouldAutoSync = !lastSync || 
+            (new Date().getTime() - new Date(lastSync).getTime() > 12 * 60 * 60 * 1000);
 
-        if (shouldAutoSync || forceSync) {
-          await syncGoogleReviews();
+          if (shouldAutoSync || forceSync) {
+            await syncGoogleReviews();
+          }
         }
       }
 
