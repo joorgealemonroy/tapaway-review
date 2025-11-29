@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 interface AICoachTabProps {
   restaurantId: string;
@@ -9,9 +10,14 @@ interface AICoachTabProps {
 
 interface AiCoachStats {
   totalTaps: number;
+  totalReviews: number;
+  avgRating: number | null;
   positive: number;
   neutral: number;
   negative: number;
+  positivePct: number | null;
+  neutralPct: number | null;
+  negativePct: number | null;
   topItems: string[];
   recommendations: string[];
 }
@@ -40,53 +46,28 @@ export const AICoachTab = ({ restaurantId, locationId }: AICoachTabProps) => {
         setRestaurantName(restaurantData.restaurant_name);
       }
 
-      // Fetch total taps (hub visits only)
-      const { count } = await supabase
-        .from('analytics_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId)
-        .eq('event_type', 'tap');
-      
-      const totalTaps = count || 0;
+      // First, sync Google reviews
+      await supabase.functions.invoke('sync-google-reviews', {
+        body: { restaurant_id: restaurantId }
+      });
 
-      // Fetch AI insights
+      // Fetch AI insights with new stats format
       const { data: insightsData, error } = await supabase.functions.invoke('ai-coach-insights', {
-        body: { restaurantId, locationId }
+        body: { restaurant_id: restaurantId }
       });
 
       if (error) throw error;
 
-      // Map existing data structure to new format
-      const scores = insightsData.scores || { health: 0, staffEngagement: 0, reviewQuality: 0, activity: 0 };
-      const insights = insightsData.insights || [];
-
-      // Derive sentiment from review quality score (simple mapping)
-      const reviewQuality = scores.reviewQuality || 50;
-      const positive = Math.round((reviewQuality / 100) * totalTaps * 0.6);
-      const neutral = Math.round((reviewQuality / 100) * totalTaps * 0.3);
-      const negative = totalTaps - positive - neutral;
-
-      // Split insights into opportunities and recommendations
-      const topItems = insights
-        .filter((i: any) => i.type === 'warning')
-        .map((i: any) => i.title)
-        .slice(0, 3);
-      
-      const recommendations = insights
-        .filter((i: any) => i.type === 'success' || i.type === 'info')
-        .map((i: any) => i.title)
-        .slice(0, 3);
-
-      setStats({
-        totalTaps,
-        positive,
-        neutral,
-        negative,
-        topItems,
-        recommendations
-      });
+      if (insightsData) {
+        setStats(insightsData);
+      }
     } catch (error) {
       console.error('Error fetching AI coach data:', error);
+      toast({
+        title: "Error loading insights",
+        description: "Could not load AI Coach insights. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -115,7 +96,7 @@ export const AICoachTab = ({ restaurantId, locationId }: AICoachTabProps) => {
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-slate-900">AI Coach</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Smarter insights based on your customer reviews and taps.
+          Smarter insights based on your Google reviews and customer taps.
         </p>
       </div>
 
@@ -187,7 +168,7 @@ interface Message {
 }
 
 function UnlockedState({ restaurantName, stats }: { restaurantName: string; stats: AiCoachStats }) {
-  const { totalTaps, positive, neutral, negative } = stats;
+  const { totalTaps, totalReviews, avgRating, positivePct, neutralPct, negativePct, positive, neutral, negative } = stats;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -197,21 +178,15 @@ function UnlockedState({ restaurantName, stats }: { restaurantName: string; stat
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  const totalSentiment = positive + neutral + negative || 1;
-  const positivePct = Math.round((positive / totalSentiment) * 100);
-  const neutralPct = Math.round((neutral / totalSentiment) * 100);
-  const negativePct = Math.round((negative / totalSentiment) * 100);
-
   const sampleLabel = totalTaps <= 1
     ? "your latest tap"
     : `your latest ${Math.min(totalTaps, 250).toLocaleString()} taps`;
 
   const quickQuestions = [
-    "What are my biggest wins this week?",
-    "Which dishes are customers loving the most?",
-    "When are my best days and hours for happy customers?",
+    "What are my biggest wins?",
+    "Which dishes are customers loving?",
     "How can I get more reviews using TapAway?",
-    "How is TapAway helping my business grow?",
+    "What's my review-to-tap conversion rate?",
   ];
 
   const handleAsk = async (question: string) => {
@@ -267,7 +242,7 @@ function UnlockedState({ restaurantName, stats }: { restaurantName: string; stat
               AI Coach Insights
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Based on {sampleLabel} for{" "}
+              Based on your latest Google reviews and taps for{" "}
               <span className="font-medium">{restaurantName}</span>. Ask questions
               and get positive, practical ideas TapAway can help you with.
             </p>
@@ -277,47 +252,73 @@ function UnlockedState({ restaurantName, stats }: { restaurantName: string; stat
         {/* QUICK STATS PILL ROW */}
         <div className="flex flex-wrap gap-3 text-xs md:text-sm">
           <StatPill label="Total taps" value={totalTaps.toLocaleString()} />
-          <StatPill label="Positive sentiment" value={`${positivePct}%`} />
+          <StatPill label="Total reviews" value={totalReviews.toString()} />
+          <StatPill label="Avg rating" value={avgRating ? `${avgRating.toFixed(1)}★` : 'N/A'} />
         </div>
       </div>
 
-      {/* TWO-COLUMN LAYOUT: LEFT = POSITIVE INSIGHTS, RIGHT = CHAT */}
+      {/* TWO-COLUMN LAYOUT: LEFT = SENTIMENT BREAKDOWN, RIGHT = CHAT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LEFT: POSITIVE INSIGHTS & HOW TAPAWAY HELPS */}
+        {/* LEFT: SENTIMENT ANALYSIS */}
         <div className="space-y-4">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <h3 className="text-sm font-semibold text-slate-900 mb-3">
-              What you're doing great 🎉
+              Customer Sentiment from Google Reviews
             </h3>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li className="flex gap-2">
-                <span className="mt-0.5">✅</span>
-                <span>
-                  Customers are actively engaging with your TapAway cards —
-                  every tap is a chance to collect another happy review.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5">⭐</span>
-                <span>
-                  Your positive sentiment is{" "}
-                  <span className="font-medium">{positivePct}%</span>. That's a powerful signal new customers see before they ever walk in.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5">💬</span>
-                <span>
-                  You've collected <span className="font-medium">{totalTaps.toLocaleString()} taps</span>. Every single one helps build your reputation and brings you closer to more reviews.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-0.5">📈</span>
-                <span>
-                  TapAway is tracking every tap for you automatically — no extra
-                  work, just more data you can turn into better decisions.
-                </span>
-              </li>
-            </ul>
+            
+            {totalReviews === 0 ? (
+              <div className="p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                <p>You're collecting taps! As soon as your first Google reviews come in, I'll break down what customers love most.</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground mb-4">Based on {totalReviews} Google review{totalReviews !== 1 ? 's' : ''}</p>
+                <div className="space-y-3">
+                  {positivePct !== null && positive > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-green-500" />
+                          Positive (≥4★)
+                        </span>
+                        <span className="font-medium">{positive} ({positivePct}%)</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${positivePct}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {neutralPct !== null && neutral > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                          Neutral (3★)
+                        </span>
+                        <span className="font-medium">{neutral} ({neutralPct}%)</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div className="bg-yellow-500 h-2 rounded-full transition-all" style={{ width: `${neutralPct}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {negativePct !== null && negative > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          Negative (≤2★)
+                        </span>
+                        <span className="font-medium">{negative} ({negativePct}%)</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div className="bg-red-500 h-2 rounded-full transition-all" style={{ width: `${negativePct}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5">
@@ -328,7 +329,7 @@ function UnlockedState({ restaurantName, stats }: { restaurantName: string; stat
               <li>• Turns table taps into more Google & Yelp reviews.</li>
               <li>• Shows what customers love most about your experience.</li>
               <li>• Keeps all your feedback in one clean dashboard.</li>
-              <li>• Helps your team focus on the moves that actually matter.</li>
+              <li>• Tracks engagement automatically with no extra work.</li>
             </ul>
           </div>
         </div>
