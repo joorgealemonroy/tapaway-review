@@ -10,87 +10,92 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion, useInView } from "framer-motion";
-
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[!?#@$%^&*]/, "Password must contain at least one symbol (! ? # @ $ % ^ & *)"),
+  password: z.string().min(8, "Password must be at least 8 characters").regex(/[0-9]/, "Password must contain at least one number").regex(/[!?#@$%^&*]/, "Password must contain at least one symbol (! ? # @ $ % ^ & *)")
 });
 
 // Animated Info Card Component with scroll-in and hover effects
-const AnimatedInfoCard = ({ children }: { children: React.ReactNode }) => {
+const AnimatedInfoCard = ({
+  children
+}: {
+  children: React.ReactNode;
+}) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-  
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.98 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      whileHover={{ 
-        y: -4,
-        transition: { duration: 0.2 }
-      }}
-      className="lg:hover:shadow-lg transition-shadow duration-200"
-    >
-      <Card className="p-8 bg-white" style={{ border: '1px solid rgba(167, 243, 208, 0.5)' }}>
+  const isInView = useInView(ref, {
+    once: true,
+    margin: "-50px"
+  });
+  return <motion.div ref={ref} initial={{
+    opacity: 0,
+    y: 12,
+    scale: 0.98
+  }} animate={isInView ? {
+    opacity: 1,
+    y: 0,
+    scale: 1
+  } : {
+    opacity: 0,
+    y: 12,
+    scale: 0.98
+  }} transition={{
+    duration: 0.35,
+    ease: "easeOut"
+  }} whileHover={{
+    y: -4,
+    transition: {
+      duration: 0.2
+    }
+  }} className="lg:hover:shadow-lg transition-shadow duration-200">
+      <Card className="p-8 bg-white" style={{
+      border: '1px solid rgba(167, 243, 208, 0.5)'
+    }}>
         {children}
       </Card>
-    </motion.div>
-  );
+    </motion.div>;
 };
 
 // Animated Savings Number Component
 const AnimatedSavings = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const isInView = useInView(ref, {
+    once: true,
+    margin: "-50px"
+  });
   const [displayValue, setDisplayValue] = useState(0);
-  
   useEffect(() => {
     if (!isInView) return;
-    
     const duration = 800;
     const start = Date.now();
     const targetValue = 210;
-    
     const animate = () => {
       const now = Date.now();
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      
+
       // Ease out function
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const current = Math.floor(easeOut * targetValue);
-      
       setDisplayValue(current);
-      
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
     };
-    
     animate();
   }, [isInView]);
-  
-  return (
-    <span ref={ref} className="text-base font-bold text-primary">
+  return <span ref={ref} className="text-base font-bold text-primary">
       ${displayValue} vs Monthly
-    </span>
-  );
+    </span>;
 };
-
 type PlanType = "monthly" | "yearly";
-
 const PLANS = {
   monthly: {
     name: "Monthly",
     price: 30,
     interval: "month",
     checkoutUrl: "https://buy.stripe.com/fZu14n7tZbXRgSl5ku",
-    description: "Simple, flexible billing",
+    description: "Simple, flexible billing"
   },
   yearlyPromo: {
     name: "Yearly",
@@ -99,29 +104,30 @@ const PLANS = {
     renewalPrice: 300,
     interval: "year",
     checkoutUrl: "https://buy.stripe.com/4gw7sLcOj2nhcC52ei",
-    description: "LIMITED DECEMBER DEAL — Ends Dec 31",
+    description: "LIMITED DECEMBER DEAL — Ends Dec 31"
   },
   yearlyNormal: {
     name: "Yearly",
     price: 300,
     interval: "year",
     checkoutUrl: "https://buy.stripe.com/4gw7sLcOj2nhcC52ei",
-    description: "Best long-term value",
-  },
+    description: "Best long-term value"
+  }
 };
 
 // December promo deadline: Dec 31, 11:59:59 PM PST
 const PROMO_DEADLINE = new Date('2025-12-31T23:59:59-08:00').getTime();
-
 const Paywall = () => {
   const navigate = useNavigate();
-  const { checking } = usePaywallGuard();
+  const {
+    checking
+  } = usePaywallGuard();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("yearly");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
+    password: ""
   });
   const [timeRemaining, setTimeRemaining] = useState<{
     days: number;
@@ -136,60 +142,58 @@ const Paywall = () => {
     const calculateTimeRemaining = () => {
       const now = Date.now();
       const difference = PROMO_DEADLINE - now;
-
       if (difference <= 0) {
         setIsPromoActive(false);
         setTimeRemaining(null);
         return;
       }
-
       setIsPromoActive(true);
       const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      setTimeRemaining({ days, hours, minutes, seconds });
+      const hours = Math.floor(difference % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
+      const minutes = Math.floor(difference % (1000 * 60 * 60) / (1000 * 60));
+      const seconds = Math.floor(difference % (1000 * 60) / 1000);
+      setTimeRemaining({
+        days,
+        hours,
+        minutes,
+        seconds
+      });
     };
-
     calculateTimeRemaining();
     const interval = setInterval(calculateTimeRemaining, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
   // Don't render until we've checked subscription status
   if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       // Validate form
       const validated = signupSchema.parse(formData);
 
       // Create user account
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      const {
+        data: authData,
+        error: signUpError
+      } = await supabase.auth.signUp({
         email: validated.email.trim(),
         password: validated.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            greeting_name: validated.name.trim(),
-          },
-        },
+            greeting_name: validated.name.trim()
+          }
+        }
       });
-
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Failed to create account");
 
@@ -198,18 +202,14 @@ const Paywall = () => {
       localStorage.setItem("pending_plan_type", selectedPlan);
 
       // Redirect to Stripe Checkout
-      const plan = selectedPlan === "yearly" 
-        ? (isPromoActive ? PLANS.yearlyPromo : PLANS.yearlyNormal)
-        : PLANS.monthly;
+      const plan = selectedPlan === "yearly" ? isPromoActive ? PLANS.yearlyPromo : PLANS.yearlyNormal : PLANS.monthly;
       const checkoutUrl = `${plan.checkoutUrl}?prefilled_email=${encodeURIComponent(validated.email)}`;
-      
       toast.success("Account created! Redirecting to payment...");
-      
+
       // Small delay to show the success message
       setTimeout(() => {
         window.location.href = checkoutUrl;
       }, 1000);
-
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -221,15 +221,11 @@ const Paywall = () => {
       setLoading(false);
     }
   };
-
   const yearlyPlan = isPromoActive ? PLANS.yearlyPromo : PLANS.yearlyNormal;
   const displayPlan = selectedPlan === "yearly" ? yearlyPlan : PLANS.monthly;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
+  return <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
       {/* Snowfall Background - Only show during promo */}
-      {isPromoActive && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {isPromoActive && <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
           <div className="snowflake">❄</div>
           <div className="snowflake">❅</div>
           <div className="snowflake">❆</div>
@@ -239,8 +235,7 @@ const Paywall = () => {
           <div className="snowflake">❄</div>
           <div className="snowflake">❅</div>
           <div className="snowflake">❆</div>
-        </div>
-      )}
+        </div>}
       
       {/* Header */}
       <div className="border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -251,27 +246,22 @@ const Paywall = () => {
             </div>
             <span className="font-bold text-xl">TapAway</span>
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/auth")}
-            className="text-sm"
-          >
+          <Button variant="ghost" onClick={() => navigate("/auth")} className="text-sm">
             Already have an account?
           </Button>
         </div>
       </div>
 
       {/* Mobile Sticky Banner - Only show during promo on mobile */}
-      {isPromoActive && timeRemaining && (
-        <div className="lg:hidden sticky top-[73px] z-20 border-b border-border/40 animate-fade-in"
-             style={{ backgroundColor: '#E6FCF8' }}>
+      {isPromoActive && timeRemaining && <div className="lg:hidden sticky top-[73px] z-20 border-b border-border/40 animate-fade-in" style={{
+      backgroundColor: '#E6FCF8'
+    }}>
           <div className="px-4 py-2.5 text-center">
             <p className="text-sm font-bold">
               🎁 Ends in <span className="text-primary">{timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s</span> — Save 50% Today! ❄️
             </p>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-20">
@@ -286,17 +276,17 @@ const Paywall = () => {
         </div>
 
         {/* Desktop Countdown Bar - Only show during promo on desktop */}
-        {isPromoActive && timeRemaining && (
-          <div className="hidden lg:block max-w-3xl mx-auto mb-12 animate-fade-in">
-            <div className="bg-white rounded-xl p-6 flex items-center justify-between gap-6"
-                 style={{ 
-                   border: '1px solid rgba(167, 243, 208, 0.5)',
-                   boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                 }}>
+        {isPromoActive && timeRemaining && <div className="hidden lg:block max-w-3xl mx-auto mb-12 animate-fade-in">
+            <div className="bg-white rounded-xl p-6 flex items-center justify-between gap-6" style={{
+          border: '1px solid rgba(167, 243, 208, 0.5)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        }}>
               <div className="flex items-center gap-3">
                 <span className="text-2xl">❄️</span>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#E6D8A8' }}>December Deal Ends In:</p>
+                  <p className="text-sm font-semibold" style={{
+                color: '#E6D8A8'
+              }}>December Deal Ends In:</p>
                   <p className="text-3xl font-black text-primary">
                     {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
                   </p>
@@ -304,27 +294,16 @@ const Paywall = () => {
               </div>
               <span className="text-2xl">🎁</span>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
           {/* Left: Pricing Cards */}
           <div className="space-y-6">
             {/* Yearly Plan - Hero */}
-            <Card
-              className={`relative p-8 cursor-pointer transition-all bg-white ${
-                selectedPlan === "yearly"
-                  ? isPromoActive
-                    ? "border-2 border-primary shadow-2xl scale-[1.02]"
-                    : "border-2 border-primary shadow-2xl scale-[1.02]"
-                  : "border-2 border-primary/40 hover:border-primary/60"
-              }`}
-              style={isPromoActive && selectedPlan === "yearly" ? {
-                boxShadow: '0 10px 30px -3px rgba(0,0,0,0.1), 0 0 0 1px rgba(230,216,168,0.2)'
-              } : undefined}
-              onClick={() => setSelectedPlan("yearly")}
-            >
+            <Card className={`relative p-8 cursor-pointer transition-all bg-white ${selectedPlan === "yearly" ? isPromoActive ? "border-2 border-primary shadow-2xl scale-[1.02]" : "border-2 border-primary shadow-2xl scale-[1.02]" : "border-2 border-primary/40 hover:border-primary/60"}`} style={isPromoActive && selectedPlan === "yearly" ? {
+            boxShadow: '0 10px 30px -3px rgba(0,0,0,0.1), 0 0 0 1px rgba(230,216,168,0.2)'
+          } : undefined} onClick={() => setSelectedPlan("yearly")}>
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-lg">
                 <Sparkles className="w-4 h-4" />
                 BEST VALUE
@@ -340,23 +319,20 @@ const Paywall = () => {
                 </div>
                 
                 {/* Small Countdown Timer - Secondary indicator */}
-                {isPromoActive && timeRemaining && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
-                       style={{ 
-                         backgroundColor: '#EEFDF6',
-                         borderColor: 'rgba(167, 243, 208, 0.4)'
-                       }}>
+                {isPromoActive && timeRemaining && <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border" style={{
+                backgroundColor: '#EEFDF6',
+                borderColor: 'rgba(167, 243, 208, 0.4)'
+              }}>
                     <span className="text-[10px] opacity-50">❄</span>
                     <span className="text-[11px] text-muted-foreground">Ends:</span>
                     <span className="text-[11px] font-bold text-primary">
                       {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m
                     </span>
-                  </div>
-                )}
+                  </div>}
                 
-                {isPromoActive ? (
-                  // Promo Variant
-                  <>
+                {isPromoActive ?
+              // Promo Variant
+              <>
                     <div>
                       <div className="flex items-baseline gap-2">
                         <Gift className="w-3.5 h-3.5 opacity-70 flex-shrink-0 mt-2" />
@@ -394,10 +370,9 @@ const Paywall = () => {
                         <span className="text-sm">Renews at $300/year after your first year</span>
                       </li>
                     </ul>
-                  </>
-                ) : (
-                  // Normal Variant (After Promo)
-                  <>
+                  </> :
+              // Normal Variant (After Promo)
+              <>
                     <div>
                       <div className="flex items-baseline gap-2">
                         <span className="text-5xl font-black text-primary">${PLANS.yearlyNormal.price}</span>
@@ -426,20 +401,12 @@ const Paywall = () => {
                         <span className="text-sm">Real-time analytics dashboard</span>
                       </li>
                     </ul>
-                  </>
-                )}
+                  </>}
               </div>
             </Card>
 
             {/* Monthly Plan */}
-            <Card
-              className={`relative p-8 cursor-pointer transition-all ${
-                selectedPlan === "monthly"
-                  ? "border-2 border-primary shadow-lg scale-[1.02]"
-                  : "border border-border hover:border-border/60"
-              }`}
-              onClick={() => setSelectedPlan("monthly")}
-            >
+            <Card className={`relative p-8 cursor-pointer transition-all ${selectedPlan === "monthly" ? "border-2 border-primary shadow-lg scale-[1.02]" : "border border-border hover:border-border/60"}`} onClick={() => setSelectedPlan("monthly")}>
               <div className="space-y-4">
                 <div>
                   <h3 className="text-2xl font-bold mb-1">Monthly</h3>
@@ -478,27 +445,17 @@ const Paywall = () => {
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-bold mb-2">Create Your Account</h2>
                   <p className="text-sm text-muted-foreground">
-                    {selectedPlan === "yearly" && isPromoActive ? (
-                      <>Start with Yearly • $150 for your first year (renews at $300/year)</>
-                    ) : (
-                      <>Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>
-                    )}
+                    {selectedPlan === "yearly" && isPromoActive ? <>Start with Yearly • $150 for your first year (renews at $300/year)</> : <>Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>}
                   </p>
                 </div>
 
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="name">Your Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Jorge"
-                    maxLength={100}
-                    disabled={loading}
-                  />
+                  <Input id="name" type="text" required value={formData.name} onChange={e => setFormData({
+                    ...formData,
+                    name: e.target.value
+                  })} placeholder="Jorge" maxLength={100} disabled={loading} />
                   <p className="text-xs text-muted-foreground mt-1">
                     This will be used for your personalized dashboard greeting
                   </p>
@@ -506,44 +463,26 @@ const Paywall = () => {
 
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="you@restaurant.com"
-                    disabled={loading}
-                  />
+                  <Input id="email" type="email" required value={formData.email} onChange={e => setFormData({
+                    ...formData,
+                    email: e.target.value
+                  })} placeholder="you@restaurant.com" disabled={loading} />
                 </div>
 
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
+                  <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({
+                    ...formData,
+                    password: e.target.value
+                  })} placeholder="••••••••" disabled={loading} />
                   <p className="text-xs text-muted-foreground mt-1">
                     8+ characters, at least 1 number and 1 symbol (! ? # @ $ % ^ & *)
                   </p>
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-bold"
-                disabled={loading}
-              >
-                {loading ? "Creating account..." : (
-                  isPromoActive && selectedPlan === "yearly" 
-                    ? "Activate Christmas Deal 🎁" 
-                    : "Continue to Payment"
-                )}
+              <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
+                {loading ? "Creating account..." : isPromoActive && selectedPlan === "yearly" ? "Activate Christmas Deal 🎁" : "Continue to Payment"}
               </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
@@ -580,8 +519,7 @@ const Paywall = () => {
         </div>
 
         {/* Full-Width December Deal Explanation - Only show during promo */}
-        {isPromoActive && (
-          <div className="max-w-4xl mx-auto mb-16">
+        {isPromoActive && <div className="max-w-4xl mx-auto mb-16">
             <AnimatedInfoCard>
               <div className="space-y-6">
                 {/* Title */}
@@ -618,15 +556,13 @@ const Paywall = () => {
                 </div>
 
                 {/* Holiday Savings Event */}
-                <div className="text-center space-y-3 py-4">
-                  <p className="text-lg font-bold" style={{ color: '#E6D8A8' }}>🎄 Holiday Savings Event</p>
-                  <p className="text-sm text-muted-foreground italic max-w-2xl mx-auto leading-relaxed">
-                  </p>
-                </div>
+                
 
                 {/* Pine Branch Separator */}
                 <div className="relative flex items-center justify-center py-2">
-                  <div className="absolute inset-x-0 h-px" style={{ backgroundColor: '#CCF5E9' }}></div>
+                  <div className="absolute inset-x-0 h-px" style={{
+                backgroundColor: '#CCF5E9'
+              }}></div>
                   <span className="relative bg-white px-3 text-sm opacity-60">🌲</span>
                 </div>
 
@@ -638,11 +574,8 @@ const Paywall = () => {
                 </div>
               </div>
             </AnimatedInfoCard>
-          </div>
-        )}
+          </div>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Paywall;
