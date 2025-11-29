@@ -201,14 +201,26 @@ const Paywall = () => {
       localStorage.setItem("pending_greeting_name", validated.name.trim());
       localStorage.setItem("pending_plan_type", selectedPlan);
 
-      // Redirect to Stripe Checkout
-      const plan = selectedPlan === "yearly" ? isPromoActive ? PLANS.yearlyPromo : PLANS.yearlyNormal : PLANS.monthly;
-      const checkoutUrl = `${plan.checkoutUrl}?prefilled_email=${encodeURIComponent(validated.email)}`;
+      // Create Stripe Checkout Session via edge function
+      const { data: sessionData, error: sessionError } = await supabase.functions.invoke(
+        'create-checkout-session',
+        {
+          body: {
+            plan: selectedPlan,
+            email: validated.email.trim(),
+          },
+        }
+      );
+
+      if (sessionError || !sessionData?.url) {
+        throw new Error(sessionError?.message || 'Failed to create checkout session');
+      }
+
       toast.success("Account created! Redirecting to payment...");
 
       // Small delay to show the success message
       setTimeout(() => {
-        window.location.href = checkoutUrl;
+        window.location.href = sessionData.url;
       }, 1000);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -346,6 +358,12 @@ const Paywall = () => {
                       <p className="text-xs text-muted-foreground mt-2">
                         Equivalent to $12.50/month (Monthly plan is $30/month)
                       </p>
+                      <div className="mt-3 pt-3 border-t border-border/40">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <Gift className="w-3 h-3 text-primary" />
+                          Promo code <span className="font-mono font-semibold text-primary">CHRISTMAS150</span> is automatically applied at checkout
+                        </p>
+                      </div>
                     </div>
 
                     <ul className="space-y-3 pt-4">
@@ -556,7 +574,18 @@ const Paywall = () => {
                 </div>
 
                 {/* Holiday Savings Event */}
-                
+                <div className="text-center space-y-3">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-lg border border-primary/20">
+                    <Gift className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-primary">🎄 Holiday Savings Event</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    Get TapAway for the lowest price of the entire year. This deal unlocks 12 months of growth for the price of 5.
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    Promo code <span className="font-mono font-semibold text-primary">CHRISTMAS150</span> is automatically applied at checkout — first year is $150 with the $150 discount, then $300/year after your first year.
+                  </p>
+                </div>
 
                 {/* Pine Branch Separator */}
                 <div className="relative flex items-center justify-center py-2">
