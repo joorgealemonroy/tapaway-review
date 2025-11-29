@@ -215,47 +215,42 @@ const Paywall = () => {
           <div className="space-y-6">
             {/* Yearly Plan - Hero */}
             <Card
-              className={`relative p-8 cursor-pointer transition-all ${
-                isPromoActive 
-                  ? "bg-gradient-to-br from-[hsl(164,73%,98%)] via-background to-background"
-                  : "bg-gradient-to-br from-primary/5 via-background to-background"
-              } ${
+              className={`relative p-8 cursor-pointer transition-all bg-white ${
                 selectedPlan === "yearly"
                   ? isPromoActive
-                    ? "border-2 shadow-2xl scale-[1.02] holiday-border"
+                    ? "border-2 border-primary shadow-2xl scale-[1.02]"
                     : "border-2 border-primary shadow-2xl scale-[1.02]"
-                  : isPromoActive
-                    ? "border-2 border-[hsl(164,73%,65%)]/40 hover:border-[hsl(164,73%,65%)]/60"
-                    : "border-2 border-primary/40 hover:border-primary/60"
+                  : "border-2 border-primary/40 hover:border-primary/60"
               }`}
+              style={isPromoActive && selectedPlan === "yearly" ? {
+                boxShadow: '0 10px 30px -3px rgba(0,0,0,0.1), 0 0 0 1px rgba(230,216,168,0.2)'
+              } : undefined}
               onClick={() => setSelectedPlan("yearly")}
             >
-              <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-6 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-lg ${
-                isPromoActive
-                  ? "bg-gradient-to-r from-[hsl(164,73%,65%)] to-[hsl(182,85%,39%)] text-white"
-                  : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
-              }`}>
-                {isPromoActive ? <Gift className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                {isPromoActive ? "🎁 HOLIDAY BEST VALUE" : "BEST VALUE"}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-lg">
+                <Sparkles className="w-4 h-4" />
+                BEST VALUE
               </div>
 
               <div className="space-y-4">
                 <div>
                   <h3 className="text-2xl font-bold mb-1">Yearly</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    {isPromoActive && <Snowflake className="w-3.5 h-3.5 text-[hsl(182,85%,39%)]" />}
+                    {isPromoActive && <Snowflake className="w-3 h-3 opacity-60" />}
                     {yearlyPlan.description}
                   </p>
                 </div>
                 
                 {/* Countdown Timer - Only show during promo */}
                 {isPromoActive && timeRemaining && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[hsl(164,73%,65%)]/10 to-[hsl(182,85%,39%)]/10 border border-[hsl(182,85%,39%)]/20 shadow-sm">
-                    <span className="text-lg">❄️</span>
-                    <span className="text-xs font-medium" style={{ color: '#EAC98F' }}>
-                      Deal ends in:
-                    </span>
-                    <span className="text-sm font-bold text-[hsl(182,85%,39%)]">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border"
+                       style={{ 
+                         backgroundColor: '#EEFDF6',
+                         borderColor: 'rgba(167, 243, 208, 0.4)'
+                       }}>
+                    <span className="opacity-50">❄</span>
+                    <span className="text-muted-foreground">Deal ends in:</span>
+                    <span className="font-bold text-primary">
                       {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
                     </span>
                   </div>
@@ -266,8 +261,8 @@ const Paywall = () => {
                   <>
                     <div>
                       <div className="flex items-baseline gap-2">
-                        <Gift className="w-6 h-6 text-[hsl(182,85%,39%)] flex-shrink-0 mt-2" />
-                        <span className="text-5xl font-black text-[hsl(182,85%,39%)]">${PLANS.yearlyPromo.price}</span>
+                        <Gift className="w-3.5 h-3.5 opacity-70 flex-shrink-0 mt-2" />
+                        <span className="text-5xl font-black text-primary">${PLANS.yearlyPromo.price}</span>
                         <span className="text-muted-foreground">for the first year</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
@@ -281,30 +276,31 @@ const Paywall = () => {
 
                     <ul className="space-y-3 pt-4">
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-[hsl(164,73%,65%)] flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm font-medium">Everything in Monthly, plus:</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-[hsl(164,73%,65%)] flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">Save 50% this year</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-[hsl(164,73%,65%)] flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">Pay for 5 months, get 12 months</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-[hsl(164,73%,65%)] flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">Lock in the lowest price we'll ever offer</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-[hsl(164,73%,65%)] flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <span className="text-sm">Renews at ${PLANS.yearlyPromo.renewalPrice}/year after December 31</span>
                       </li>
                     </ul>
 
                     {/* Pine Branch Separator */}
-                    <div className="pt-4 relative">
-                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(150,60%,40%)] to-transparent opacity-30"></div>
+                    <div className="pt-4 relative flex items-center justify-center">
+                      <div className="absolute inset-x-0 h-px" style={{ backgroundColor: '#CCF5E9' }}></div>
+                      <span className="relative bg-white px-2 text-xs opacity-60">🌲</span>
                     </div>
                     
                     {/* Price Comparison Block */}
@@ -331,8 +327,8 @@ const Paywall = () => {
                     </div>
 
                     {/* Holiday Savings Event */}
-                    <div className="pt-4 border-t border-[hsl(164,73%,65%)]/20 bg-gradient-to-r from-[hsl(164,73%,65%)]/5 to-transparent p-4 rounded-lg -mx-2">
-                      <p className="text-sm font-bold mb-2">🎄 Holiday Savings Event</p>
+                    <div className="pt-4 border-t border-border">
+                      <p className="text-sm font-bold mb-2" style={{ color: '#E6D8A8' }}>🎄 Holiday Savings Event</p>
                       <p className="text-xs text-muted-foreground italic">
                         "Get TapAway for the lowest price of the entire year. This deal unlocks 12 months of growth for the price of 5."
                       </p>
@@ -486,11 +482,7 @@ const Paywall = () => {
 
               <Button
                 type="submit"
-                className={`w-full h-12 text-base font-bold transition-all ${
-                  isPromoActive && selectedPlan === "yearly"
-                    ? "bg-gradient-to-r from-[hsl(164,73%,65%)] to-[hsl(182,85%,39%)] hover:shadow-lg hover:shadow-[hsl(164,73%,65%)]/20"
-                    : ""
-                }`}
+                className="w-full h-12 text-base font-bold"
                 disabled={loading}
               >
                 {loading ? "Creating account..." : (
