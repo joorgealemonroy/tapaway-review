@@ -256,35 +256,111 @@ const Index = () => {
       {/* Pricing */}
       <section id="pricing" className="py-16 px-4">
         <div className="max-w-[1060px] mx-auto">
-          <h2 className="text-3xl md:text-4xl font-black text-center mb-12">Choose Your Plan</h2>
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl p-8 border-2 border-[#111827] shadow-lg relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111827] text-white px-4 py-1 rounded-full text-sm font-bold">
-                Most popular
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Restaurant — Monthly</h3>
-              <div className="text-4xl font-black mb-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-black mb-4">Less Work. More Reviews. Automatically.</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Choose your plan and start collecting 5-star reviews today
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Monthly Plan */}
+            <div className="bg-white rounded-2xl p-8 border border-border shadow-lg relative">
+              <h3 className="text-2xl font-bold mb-2">Monthly</h3>
+              <p className="text-sm text-muted-foreground mb-4">Simple, flexible billing</p>
+              <div className="text-5xl font-black mb-6">
                 $30 <span className="text-lg font-normal text-muted-foreground">/ month</span>
               </div>
-              <p className="text-muted-foreground mb-6">Everything for one location.</p>
-              <a href="https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
-                Choose Monthly
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Unlimited review collection
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Custom review hub page
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Real-time analytics
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Cancel anytime
+                </li>
+              </ul>
+              <a href="/paywall" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
+                Get Started
               </a>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 border border-border shadow-lg relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold">
-                Best value
+            {/* Yearly Plan - Hero */}
+            <div className="bg-gradient-to-br from-primary/5 via-white to-white rounded-2xl p-8 border-2 border-primary shadow-2xl relative transform hover:scale-[1.02] transition-transform">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-lg">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                BEST VALUE
               </div>
-              <h3 className="text-2xl font-bold mb-2">Restaurant — Yearly</h3>
-              <div className="text-4xl font-black mb-1">
-                $300 <span className="text-lg font-normal text-muted-foreground">/ year</span>
+              <h3 className="text-2xl font-bold mb-2">Yearly</h3>
+              <p className="text-sm text-muted-foreground mb-4">Lock in 50% savings this year</p>
+              <div className="mb-2">
+                <div className="text-5xl font-black text-primary mb-2">
+                  $150 <span className="text-lg font-normal text-muted-foreground">first year</span>
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm line-through text-muted-foreground">$300/year</span>
+                  <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">Save $150</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Renews at $300/year • Equivalent to $12.50/month
+                </p>
               </div>
-              <div className="text-sm text-muted-foreground mb-4">Save with annual billing.</div>
-              <a href="https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
-                Choose Yearly
+              <ul className="space-y-3 mb-8 mt-6">
+                <li className="flex items-start gap-2 text-sm font-medium">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Everything in Monthly, plus:
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Get 12 months for the cost of 5
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Lock in the lowest price we'll ever offer
+                </li>
+                <li className="flex items-start gap-2 text-sm">
+                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  Typically pays for itself with 2-3 extra reviews
+                </li>
+              </ul>
+              <a href="/paywall" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-gradient-to-r from-primary to-primary/80 text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
+                Get Started
               </a>
             </div>
+          </div>
+          
+          {/* ROI Message */}
+          <div className="max-w-2xl mx-auto mt-12 p-6 rounded-xl bg-muted/30 border border-border">
+            <h3 className="font-bold text-lg mb-2 text-center">Why This Works</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              More reviews = more customers = more revenue. Industry data shows every 5-star review increases trust and conversion. Just 2-3 extra reviews typically generate enough new business to cover your entire yearly cost.
+            </p>
           </div>
         </div>
       </section>

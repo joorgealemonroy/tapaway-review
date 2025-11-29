@@ -99,6 +99,13 @@ const Dashboard = () => {
     if (data) {
       setRestaurant(data as any);
       fetchLocations(data.id);
+
+      // Check subscription status and redirect to paywall if needed
+      if (!isAdmin && data.subscription_status !== 'active') {
+        toast.error("Your subscription is not active. Please update your payment method.");
+        navigate("/paywall");
+        return;
+      }
     } else if (user?.email === 'test@me.com') {
       // Defensive fallback for test account only - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
@@ -128,6 +135,11 @@ const Dashboard = () => {
       console.log('[Dashboard] Grandfathered user has no restaurant, redirecting to onboarding');
       toast.info("Please complete your business setup");
       navigate("/onboarding");
+    } else {
+      // Regular user without restaurant - redirect to paywall to subscribe
+      console.log('[Dashboard] User has no restaurant, redirecting to paywall');
+      toast.info("Please choose a plan to get started");
+      navigate("/paywall");
     }
   };
   const fetchLocations = async (restaurantId: string) => {

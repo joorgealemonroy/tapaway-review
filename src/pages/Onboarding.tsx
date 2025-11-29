@@ -56,7 +56,23 @@ const Onboarding = () => {
   useEffect(() => {
     if (!user) {
       navigate("/auth");
+      return;
     }
+
+    // Check if user has an active subscription, if not redirect to paywall
+    const checkSubscription = async () => {
+      const { data: restaurant } = await supabase
+        .from("restaurants")
+        .select("subscription_status, plan_type")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      if (!restaurant || !restaurant.subscription_status || restaurant.subscription_status !== 'active') {
+        navigate("/paywall");
+      }
+    };
+
+    checkSubscription();
   }, [user, navigate]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,6 +257,7 @@ const Onboarding = () => {
         owner_id: user.id,
         restaurant_name: validatedData.restaurantName,
         owner_name: validatedData.ownerName,
+        greeting_name: validatedData.ownerName, // Use owner name as greeting name
         custom_slug: validatedData.customSlug,
         slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram || null,

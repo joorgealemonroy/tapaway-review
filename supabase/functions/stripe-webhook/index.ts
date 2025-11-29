@@ -103,62 +103,55 @@ serve(async (req) => {
         console.log('Created new user:', userId);
       }
 
-      // Determine plan type and number of locations
+      // Determine plan type (only monthly or yearly, no bundles)
       let planType = 'monthly';
-      let numLocations = 1;
 
       // Get the price ID from the session to determine plan
       if (subscriptionId) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
         
-        // Map price IDs to plan types
-        // You'll need to update these with your actual Stripe price IDs
+        // Map price IDs to plan types (only monthly or yearly)
         if (priceId?.includes('year')) {
           planType = 'yearly';
-          numLocations = 1;
-        } else if (priceId?.includes('bundle')) {
-          planType = 'bundle';
-          numLocations = 3;
         } else {
           planType = 'monthly';
-          numLocations = 1;
         }
       }
 
-      console.log(`Creating ${numLocations} location(s) for plan: ${planType}`);
+      console.log(`Creating restaurant for plan: ${planType}`);
 
       // Get customer portal URL
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${Deno.env.get('VITE_SUPABASE_URL') || supabaseUrl}/dashboard`,
+        return_url: `${Deno.env.get('STRIPE_PORTAL_RETURN_URL') || `${supabaseUrl}/dashboard`}`,
       });
 
-      // Create restaurant locations
-      for (let i = 0; i < numLocations; i++) {
-        const locationName = numLocations > 1 
-          ? `Location ${i + 1}` 
-          : 'My Restaurant';
+      // Get user metadata for greeting_name if available
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
-        const { error: insertError } = await supabaseAdmin
-          .from('restaurants')
-          .insert({
-            owner_id: userId,
-            restaurant_name: locationName,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            stripe_portal_url: portalSession.url,
-            plan_type: planType,
-            subscription_status: 'active',
-            header_subtitle: "We'd love to hear about your experience!",
-            menu_title: "Our Menu",
-          });
+      // Create single restaurant record
+      const { error: insertError } = await supabaseAdmin
+        .from('restaurants')
+        .insert({
+          owner_id: userId,
+          restaurant_name: 'My Restaurant',
+          greeting_name: greetingName,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          stripe_portal_url: portalSession.url,
+          plan_type: planType,
+          subscription_status: 'active',
+          header_title: "How was your visit?",
+          header_subtitle: "We'd love to hear about your experience!",
+          menu_title: "Our Menu",
+        });
 
-        if (insertError) {
-          console.error(`Failed to create location ${i + 1}:`, insertError);
-        } else {
-          console.log(`Created location ${i + 1}: ${locationName}`);
-        }
+      if (insertError) {
+        console.error('Failed to create restaurant:', insertError);
+      } else {
+        console.log('Created restaurant successfully');
       }
 
       console.log('Successfully processed checkout session');

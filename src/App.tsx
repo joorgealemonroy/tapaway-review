@@ -9,6 +9,7 @@ import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
+import Paywall from "./pages/Paywall";
 import Dashboard from "./pages/Dashboard";
 import ReviewHub from "./pages/ReviewHub";
 import Terms from "./pages/Terms";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/paywall" element={<Paywall />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terms" element={<Terms />} />
