@@ -28,8 +28,8 @@ const Auth = () => {
       if (error) throw error;
       setMessage("Logged in successfully. Redirecting…");
 
-      // Redirect to root - it will handle routing based on subscription status
-      window.location.href = "/";
+      // Redirect directly to dashboard
+      window.location.href = "/dashboard";
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
