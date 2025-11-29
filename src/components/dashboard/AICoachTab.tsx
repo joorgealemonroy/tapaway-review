@@ -40,11 +40,12 @@ export const AICoachTab = ({ restaurantId, locationId }: AICoachTabProps) => {
         setRestaurantName(restaurantData.restaurant_name);
       }
 
-      // Fetch total taps
+      // Fetch total taps (hub visits only)
       const { count } = await supabase
         .from('analytics_events')
         .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId);
+        .eq('restaurant_id', restaurantId)
+        .eq('event_type', 'tap');
       
       const totalTaps = count || 0;
 
