@@ -46,7 +46,7 @@ const Index = () => {
           once: true
         }} transition={{
           duration: 0.5
-        }} className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3">Turn Guests into Reviews Instantly✨         
+        }} className="text-[clamp(30px,8vw,46px)] font-black leading-tight mb-3">Turn Guests into Reviews Instantly✨
           <br />
             Instantly✨
           </motion.h1>
