@@ -621,7 +621,6 @@ const Paywall = () => {
                 <div className="text-center space-y-3 py-4">
                   <p className="text-lg font-bold" style={{ color: '#E6D8A8' }}>🎄 Holiday Savings Event</p>
                   <p className="text-sm text-muted-foreground italic max-w-2xl mx-auto leading-relaxed">
-                    "Get TapAway for the lowest price of the entire year. This deal unlocks 12 months of growth for the price of 5."
                   </p>
                 </div>
 
