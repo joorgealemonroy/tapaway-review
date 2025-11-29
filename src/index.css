@@ -76,6 +76,13 @@ All colors MUST be HSL.
     --brand-teal-dark: 182 85% 30%;
     --brand-gold: 48 96% 53%;
     
+    /* Holiday/Christmas Tokens */
+    --holiday-mint: 164 73% 65%;
+    --holiday-teal: 182 85% 39%;
+    --holiday-snow: 0 0% 100%;
+    --holiday-gold: 48 82% 70%;
+    --holiday-pine: 150 60% 40%;
+    
     --text-primary: 222 47% 11%;
     --text-muted: 215 16% 47%;
     
@@ -88,6 +95,10 @@ All colors MUST be HSL.
     --gradient-header: linear-gradient(135deg, hsl(182 85% 39%) 0%, hsl(182 85% 32%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(213 27% 98%), hsl(213 27% 96%));
     --gradient-gold: linear-gradient(135deg, hsl(48 96% 53%), hsl(48 96% 63%));
+    
+    /* Holiday Gradients */
+    --gradient-holiday: linear-gradient(135deg, hsl(164 73% 65%), hsl(182 85% 39%), hsl(0 0% 100%));
+    --gradient-holiday-cta: linear-gradient(135deg, hsl(164 73% 65%), hsl(182 85% 39%));
     
     /* Shadows - Elevated Design */
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.08);
@@ -218,5 +229,56 @@ All colors MUST be HSL.
   .card-elevated:hover {
     box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
+  }
+  
+  /* Holiday Snowfall Animation */
+  @keyframes snowfall {
+    0% {
+      transform: translateY(-10vh) translateX(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.08;
+    }
+    90% {
+      opacity: 0.08;
+    }
+    100% {
+      transform: translateY(110vh) translateX(20px);
+      opacity: 0;
+    }
+  }
+  
+  .snowflake {
+    position: absolute;
+    top: -10vh;
+    animation: snowfall linear infinite;
+    pointer-events: none;
+    color: hsl(var(--holiday-snow));
+    opacity: 0.08;
+    user-select: none;
+  }
+  
+  .snowflake:nth-child(1) { left: 10%; animation-duration: 15s; animation-delay: 0s; font-size: 1.2rem; }
+  .snowflake:nth-child(2) { left: 20%; animation-duration: 18s; animation-delay: 2s; font-size: 1rem; }
+  .snowflake:nth-child(3) { left: 30%; animation-duration: 20s; animation-delay: 4s; font-size: 0.8rem; }
+  .snowflake:nth-child(4) { left: 40%; animation-duration: 16s; animation-delay: 6s; font-size: 1.4rem; }
+  .snowflake:nth-child(5) { left: 50%; animation-duration: 19s; animation-delay: 1s; font-size: 1.1rem; }
+  .snowflake:nth-child(6) { left: 60%; animation-duration: 17s; animation-delay: 3s; font-size: 0.9rem; }
+  .snowflake:nth-child(7) { left: 70%; animation-duration: 21s; animation-delay: 5s; font-size: 1.3rem; }
+  .snowflake:nth-child(8) { left: 80%; animation-duration: 18s; animation-delay: 7s; font-size: 1rem; }
+  .snowflake:nth-child(9) { left: 90%; animation-duration: 16s; animation-delay: 2s; font-size: 1.2rem; }
+  
+  /* Holiday Shimmer Animation */
+  @keyframes holiday-shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  
+  .holiday-border {
+    position: relative;
+    background: linear-gradient(135deg, hsl(164 73% 65%), hsl(182 85% 39%), hsl(0 0% 100%));
+    background-size: 200% 200%;
+    animation: holiday-shimmer 3s ease-in-out infinite;
   }
 }
