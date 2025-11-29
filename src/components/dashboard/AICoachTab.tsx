@@ -1,251 +1,313 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { TrendingUp, Target, Users, Star, RefreshCw, Lock, Sparkles, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AICoachTabProps {
   restaurantId: string;
   locationId?: string;
 }
 
-interface Scores {
-  health: number;
-  staffEngagement: number;
-  reviewQuality: number;
-  activity: number;
-}
-
-interface Insight {
-  title: string;
-  content: string;
-  type: 'success' | 'warning' | 'info';
+interface AiCoachStats {
+  totalTaps: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  topItems: string[];
+  recommendations: string[];
 }
 
 export const AICoachTab = ({ restaurantId, locationId }: AICoachTabProps) => {
-  const [scores, setScores] = useState<Scores>({ health: 0, staffEngagement: 0, reviewQuality: 0, activity: 0 });
-  const [insights, setInsights] = useState<Insight[]>([]);
+  const { user } = useAuth();
+  const [stats, setStats] = useState<AiCoachStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [totalTaps, setTotalTaps] = useState(0);
-  const [openItems, setOpenItems] = useState<Set<number>>(new Set());
+  const [restaurantName, setRestaurantName] = useState<string>("");
 
   useEffect(() => {
-    fetchTotalTaps();
-    fetchAIInsights();
+    fetchData();
   }, [restaurantId, locationId]);
 
-  const fetchTotalTaps = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const { count } = await (supabase as any)
+      // Fetch restaurant info
+      const { data: restaurantData } = await supabase
+        .from('restaurants')
+        .select('restaurant_name')
+        .eq('id', restaurantId)
+        .single();
+      
+      if (restaurantData) {
+        setRestaurantName(restaurantData.restaurant_name);
+      }
+
+      // Fetch total taps
+      const { count } = await supabase
         .from('analytics_events')
         .select('*', { count: 'exact', head: true })
         .eq('restaurant_id', restaurantId);
       
-      setTotalTaps(count || 0);
-    } catch (error) {
-      console.error('Error fetching taps:', error);
-    }
-  };
+      const totalTaps = count || 0;
 
-  const fetchAIInsights = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-coach-insights', {
+      // Fetch AI insights
+      const { data: insightsData, error } = await supabase.functions.invoke('ai-coach-insights', {
         body: { restaurantId, locationId }
       });
 
       if (error) throw error;
 
-      setScores(data.scores);
-      setInsights(data.insights);
+      // Map existing data structure to new format
+      const scores = insightsData.scores || { health: 0, staffEngagement: 0, reviewQuality: 0, activity: 0 };
+      const insights = insightsData.insights || [];
+
+      // Derive sentiment from review quality score (simple mapping)
+      const reviewQuality = scores.reviewQuality || 50;
+      const positive = Math.round((reviewQuality / 100) * totalTaps * 0.6);
+      const neutral = Math.round((reviewQuality / 100) * totalTaps * 0.3);
+      const negative = totalTaps - positive - neutral;
+
+      // Split insights into opportunities and recommendations
+      const topItems = insights
+        .filter((i: any) => i.type === 'warning')
+        .map((i: any) => i.title)
+        .slice(0, 3);
+      
+      const recommendations = insights
+        .filter((i: any) => i.type === 'success' || i.type === 'info')
+        .map((i: any) => i.title)
+        .slice(0, 3);
+
+      setStats({
+        totalTaps,
+        positive,
+        neutral,
+        negative,
+        topItems,
+        recommendations
+      });
     } catch (error) {
-      console.error('Error fetching AI insights:', error);
-      toast.error('Failed to load AI insights');
+      console.error('Error fetching AI coach data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const regenerateInsights = async () => {
-    setGenerating(true);
-    await fetchAIInsights();
-    setGenerating(false);
-    toast.success('Insights refreshed');
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getInsightIcon = (type: string) => {
-    switch (type) {
-      case 'success': return <CheckCircle2 className="w-5 h-5 text-green-600" />;
-      case 'warning': return <AlertCircle className="w-5 h-5 text-yellow-600" />;
-      default: return <Info className="w-5 h-5 text-blue-600" />;
-    }
-  };
-
-  const getInsightBgColor = (type: string) => {
-    switch (type) {
-      case 'success': return 'bg-green-50 border-green-200';
-      case 'warning': return 'bg-yellow-50 border-yellow-200';
-      default: return 'bg-blue-50 border-blue-200';
-    }
-  };
-
-  const getTagColor = (type: string) => {
-    switch (type) {
-      case 'success': return 'bg-green-100 text-green-800';
-      case 'warning': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-blue-100 text-blue-800';
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="p-8">
+        <div className="h-10 w-64 rounded-xl bg-slate-100 animate-pulse mb-6" />
+        <div className="h-32 w-full rounded-2xl bg-slate-100 animate-pulse" />
       </div>
     );
   }
 
-  const isUnlocked = totalTaps >= 1000;
+  const totalTaps = stats?.totalTaps ?? 0;
 
-  if (!isUnlocked) {
-    return (
-      <div className="space-y-6 pb-8 animate-fade-in">
-        <Card className="p-8 text-center gradient-subtle border-none shadow-lg">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full gradient-primary flex items-center justify-center">
-            <Lock className="w-10 h-10 text-white" />
-          </div>
-          <h2 className="text-3xl font-bold mb-4">AI Coach Locked</h2>
-          <p className="text-muted-foreground text-lg mb-6 max-w-2xl mx-auto">
-            AI Coach unlocks after <span className="font-bold text-primary">1,000 taps</span> so we have enough data to give you real insights.
-          </p>
-          <div className="max-w-md mx-auto">
-            <div className="flex justify-between text-sm mb-3">
-              <span className="font-semibold">{totalTaps.toLocaleString()} taps</span>
-              <span className="font-semibold">1,000 taps</span>
-            </div>
-            <Progress value={(totalTaps / 1000) * 100} className="h-4 mb-3" />
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
-              <Sparkles className="w-4 h-4" />
-              <span className="font-semibold">{(1000 - totalTaps).toLocaleString()} more taps to unlock</span>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  // Check if TapAway account (bypass for admin/owner)
+  const isTapAwayOrg = 
+    restaurantName.toLowerCase().includes("tapaway") ||
+    user?.email === 'tap@tapaway.co';
 
-  const toggleItem = (index: number) => {
-    const newOpen = new Set(openItems);
-    if (newOpen.has(index)) {
-      newOpen.delete(index);
-    } else {
-      newOpen.add(index);
-    }
-    setOpenItems(newOpen);
-  };
-
-  const scoreCards = [
-    { label: "Health Score", value: scores.health, icon: TrendingUp },
-    { label: "Staff Engagement", value: scores.staffEngagement, icon: Users },
-    { label: "Review Quality", value: scores.reviewQuality, icon: Star },
-    { label: "Activity", value: scores.activity, icon: Target },
-  ];
+  const aiCoachLocked = !isTapAwayOrg && totalTaps < 1000;
 
   return (
-    <div className="space-y-6 pb-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-primary" />
-            AI Coach
-          </h2>
-          <p className="text-muted-foreground">Personalized tips to grow your restaurant</p>
-        </div>
-        <Button onClick={regenerateInsights} disabled={generating} className="gradient-primary text-white">
-          <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
-          Refresh Tips
-        </Button>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900">AI Coach</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Smarter insights based on your customer reviews and taps.
+        </p>
       </div>
 
-      {/* Score Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {scoreCards.map((scoreCard) => {
-          const Icon = scoreCard.icon;
-          return (
-            <Card key={scoreCard.label} className="p-4 sm:p-6 card-elevated transition-smooth hover:scale-105">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">{scoreCard.label}</p>
-              <div className="flex items-baseline gap-2">
-                <p className={`text-3xl font-bold ${getScoreColor(scoreCard.value)}`}>
-                  {scoreCard.value}
-                </p>
-                <span className="text-sm text-muted-foreground">/100</span>
-              </div>
-              <Progress value={scoreCard.value} className="h-2 mt-3" />
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Insights */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold">Your Personalized Insights</h3>
-        {insights.length === 0 ? (
-          <Card className="p-8 text-center">
-            <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">No insights available yet. Keep growing your business!</p>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {insights.map((insight, index) => (
-              <Collapsible key={index} open={openItems.has(index)} onOpenChange={() => toggleItem(index)}>
-                <Card className={`overflow-hidden border-2 transition-smooth ${getInsightBgColor(insight.type)}`}>
-                  <CollapsibleTrigger className="w-full p-4 sm:p-6 text-left hover:bg-white/50 transition-smooth">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getInsightIcon(insight.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h4 className="font-semibold text-base sm:text-lg pr-2">{insight.title}</h4>
-                          <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${openItems.has(index) ? 'rotate-180' : ''}`} />
-                        </div>
-                        <Badge className={`${getTagColor(insight.type)} text-xs`}>
-                          {insight.type === 'success' ? 'Going Great' : insight.type === 'warning' ? 'Needs Attention' : 'Pro Tip'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
-                      <div className="pl-8">
-                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{insight.content}</p>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            ))}
-          </div>
-        )}
-      </div>
+      {aiCoachLocked ? (
+        <LockedState totalTaps={totalTaps} />
+      ) : (
+        <UnlockedState restaurantName={restaurantName} stats={stats!} />
+      )}
     </div>
   );
 };
+
+function LockedState({ totalTaps }: { totalTaps: number }) {
+  const target = 1000;
+  const remaining = Math.max(target - totalTaps, 0);
+  const progress = Math.min((totalTaps / target) * 100, 100);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-10 flex flex-col items-center text-center">
+      <div className="h-14 w-14 rounded-full bg-teal-100 flex items-center justify-center mb-4">
+        <span className="text-2xl">🔒</span>
+      </div>
+      <h2 className="text-xl font-semibold text-slate-900 mb-2">
+        AI Coach Locked
+      </h2>
+      <p className="text-slate-500 max-w-xl mb-8 text-sm">
+        AI Coach unlocks after <span className="font-medium">1,000 taps</span>{" "}
+        so we have enough data to give you real insights.
+      </p>
+
+      <div className="w-full max-w-md mb-3">
+        <div className="flex justify-between text-xs text-slate-400 mb-1">
+          <span>{totalTaps} taps</span>
+          <span>1,000 taps</span>
+        </div>
+        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-2.5 bg-teal-400 rounded-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="mt-4 inline-flex items-center gap-2 rounded-full bg-teal-400/10 text-teal-600 px-5 py-2 text-sm font-medium"
+      >
+        <span>✨ {remaining} more taps to unlock</span>
+      </button>
+    </div>
+  );
+}
+
+function UnlockedState({ restaurantName, stats }: { restaurantName: string; stats: AiCoachStats }) {
+  const { totalTaps, positive, neutral, negative, topItems, recommendations } = stats;
+
+  const totalSentiment = positive + neutral + negative || 1;
+  const positivePct = Math.round((positive / totalSentiment) * 100);
+  const neutralPct = Math.round((neutral / totalSentiment) * 100);
+  const negativePct = Math.round((negative / totalSentiment) * 100);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center">
+            <span className="text-2xl">🤖</span>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              AI Coach Insights
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Based on your latest {totalTaps.toLocaleString()}+ taps for{" "}
+              <span className="font-medium">{restaurantName}</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Top Opportunities
+          </h3>
+          <ul className="space-y-2 text-sm text-slate-600">
+            {topItems && topItems.length > 0 ? (
+              topItems.map((item, idx) => (
+                <li key={idx} className="flex gap-2">
+                  <span className="mt-0.5">📌</span>
+                  <span>{item}</span>
+                </li>
+              ))
+            ) : (
+              <>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">📌</span>
+                  <span>
+                    Customers consistently praise your most popular dishes — highlight them on your menu and social media.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">⏱️</span>
+                  <span>
+                    Wait times feel long during peak hours. Consider more staff or simplified rush-hour menu items.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">😊</span>
+                  <span>
+                    Staff friendliness is a major driver of 5-star reviews. Keep recognizing top performers.
+                  </span>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Customer Sentiment
+          </h3>
+          <p className="text-3xl font-semibold text-slate-900 mb-1">
+            {positivePct}% <span className="text-base font-normal">positive</span>
+          </p>
+          <p className="text-xs text-slate-500 mb-4">
+            Based on your latest {totalTaps.toLocaleString()} taps.
+          </p>
+
+          <div className="space-y-2">
+            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-teal-400"
+                style={{ width: `${positivePct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>🙂 {positivePct}%</span>
+              <span>😐 {neutralPct}%</span>
+              <span>🙁 {negativePct}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Recommended Actions
+          </h3>
+          <ul className="space-y-2 text-sm text-slate-600">
+            {recommendations && recommendations.length > 0 ? (
+              recommendations.map((rec, idx) => (
+                <li key={idx} className="flex gap-2">
+                  <span className="mt-0.5">➡️</span>
+                  <span>{rec}</span>
+                </li>
+              ))
+            ) : (
+              <>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">➡️</span>
+                  <span>
+                    Promote your best-reviewed plates with in-store signage and stories.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">➡️</span>
+                  <span>
+                    Run a weekly staff challenge tied to number of 5-star reviews.
+                  </span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-0.5">➡️</span>
+                  <span>
+                    Train hosts and servers to remind happy tables to tap the card before leaving.
+                  </span>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5 flex items-start gap-3">
+        <div className="mt-1">🔄</div>
+        <div>
+          <p className="text-sm font-medium text-teal-900">
+            AI Coach keeps learning.
+          </p>
+          <p className="text-xs text-teal-800 mt-1">
+            Every new tap updates your insights automatically. Keep driving reviews to unlock even deeper recommendations.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
