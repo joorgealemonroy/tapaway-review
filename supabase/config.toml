@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.auto-yelp-from-place]
 verify_jwt = true
+
+[functions.ai-coach-chat]
+verify_jwt = true
