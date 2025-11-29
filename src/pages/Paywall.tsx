@@ -197,6 +197,18 @@ const Paywall = () => {
         </div>
       </div>
 
+      {/* Mobile Sticky Banner - Only show during promo on mobile */}
+      {isPromoActive && timeRemaining && (
+        <div className="lg:hidden sticky top-[73px] z-20 border-b border-border/40 animate-fade-in"
+             style={{ backgroundColor: '#E6FCF8' }}>
+          <div className="px-4 py-2.5 text-center">
+            <p className="text-sm font-bold">
+              🎁 Ends in <span className="text-primary">{timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s</span> — Save 50% Today! ❄️
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-20">
         {/* Value Prop */}
@@ -208,6 +220,28 @@ const Paywall = () => {
             TapAway automates all the work — no extra steps.
           </p>
         </div>
+
+        {/* Desktop Countdown Bar - Only show during promo on desktop */}
+        {isPromoActive && timeRemaining && (
+          <div className="hidden lg:block max-w-3xl mx-auto mb-12 animate-fade-in">
+            <div className="bg-white rounded-xl p-6 flex items-center justify-between gap-6"
+                 style={{ 
+                   border: '1px solid rgba(167, 243, 208, 0.5)',
+                   boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                 }}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">❄️</span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#E6D8A8' }}>December Deal Ends In:</p>
+                  <p className="text-3xl font-black text-primary">
+                    {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
+                  </p>
+                </div>
+              </div>
+              <span className="text-2xl">🎁</span>
+            </div>
+          </div>
+        )}
 
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
@@ -241,17 +275,17 @@ const Paywall = () => {
                   </p>
                 </div>
                 
-                {/* Countdown Timer - Only show during promo */}
+                {/* Small Countdown Timer - Secondary indicator */}
                 {isPromoActive && timeRemaining && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border"
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
                        style={{ 
                          backgroundColor: '#EEFDF6',
                          borderColor: 'rgba(167, 243, 208, 0.4)'
                        }}>
-                    <span className="opacity-50">❄</span>
-                    <span className="text-muted-foreground">Deal ends in:</span>
-                    <span className="font-bold text-primary">
-                      {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m {timeRemaining.seconds}s
+                    <span className="text-[10px] opacity-50">❄</span>
+                    <span className="text-[11px] text-muted-foreground">Ends:</span>
+                    <span className="text-[11px] font-bold text-primary">
+                      {timeRemaining.days}d {timeRemaining.hours}h {timeRemaining.minutes}m
                     </span>
                   </div>
                 )}
