@@ -12,6 +12,7 @@ import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
+import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -67,15 +68,18 @@ const Onboarding = () => {
         .eq("owner_id", user.id)
         .maybeSingle();
 
-      // If no active subscription, send to paywall
-      if (!restaurant || !restaurant.subscription_status || restaurant.subscription_status !== 'active') {
+      // Grandfathered users bypass subscription check
+      const isGrandfathered = isGrandfatheredUser(user.email);
+
+      // If no active subscription and not grandfathered, send to paywall
+      if (!isGrandfathered && (!restaurant || !restaurant.subscription_status || restaurant.subscription_status !== 'active')) {
         navigate("/paywall");
         return;
       }
 
       // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
       // This prevents already-onboarded users from re-entering onboarding
-      if (restaurant.custom_slug && restaurant.restaurant_name) {
+      if (restaurant && restaurant.custom_slug && restaurant.restaurant_name) {
         console.log('[Onboarding] User already onboarded, redirecting to dashboard');
         navigate("/dashboard");
       }
