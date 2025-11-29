@@ -84,29 +84,35 @@ serve(async (req) => {
       }
     }
 
-    // Fetch from Google Places API
+    // Fetch from Google Places API (New)
     console.log('Fetching Google reviews for place:', restaurant.google_place_id);
     
-    const googleUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${restaurant.google_place_id}&fields=rating,user_ratings_total,reviews&key=${googleApiKey}`;
+    const googleUrl = `https://places.googleapis.com/v1/places/${restaurant.google_place_id}`;
     
-    const googleResponse = await fetch(googleUrl);
-    const googleData = await googleResponse.json();
+    const googleResponse = await fetch(googleUrl, {
+      headers: {
+        'X-Goog-Api-Key': googleApiKey,
+        'X-Goog-FieldMask': 'rating,userRatingCount,reviews'
+      }
+    });
 
-    if (googleData.status !== 'OK') {
-      console.error('Google API error:', googleData.status, googleData.error_message);
+    if (!googleResponse.ok) {
+      const errorText = await googleResponse.text();
+      console.error('Google API error:', googleResponse.status, errorText);
       return new Response(
         JSON.stringify({ 
-          error: `Google API error: ${googleData.status}`,
-          message: googleData.error_message 
+          error: `Google API error: ${googleResponse.status}`,
+          message: errorText
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const result = googleData.result || {};
-    const rating = result.rating || null;
-    const userRatingsTotal = result.user_ratings_total || null;
-    const reviews = result.reviews || [];
+    const googleData = await googleResponse.json();
+    
+    const rating = googleData.rating || null;
+    const userRatingsTotal = googleData.userRatingCount || null;
+    const reviews = googleData.reviews || [];
 
     console.log(`Found ${reviews.length} reviews, rating: ${rating}, total: ${userRatingsTotal}`);
 
@@ -116,16 +122,16 @@ serve(async (req) => {
       .delete()
       .eq('restaurant_id', restaurant_id);
 
-    // Insert new reviews
+    // Insert new reviews (mapping from new API format)
     const reviewsToInsert = reviews.map((review: any) => ({
       restaurant_id,
       place_id: restaurant.google_place_id,
-      author_name: review.author_name || 'Anonymous',
+      author_name: review.authorAttribution?.displayName || 'Anonymous',
       rating: review.rating,
-      text: review.text || '',
-      review_time: review.time ? new Date(review.time * 1000).toISOString() : null,
-      relative_time_description: review.relative_time_description || '',
-      profile_photo_url: review.profile_photo_url || null
+      text: review.text?.text || review.originalText?.text || '',
+      review_time: review.publishTime ? new Date(review.publishTime).toISOString() : null,
+      relative_time_description: review.relativePublishTimeDescription || '',
+      profile_photo_url: review.authorAttribution?.photoUri || null
     }));
 
     if (reviewsToInsert.length > 0) {
