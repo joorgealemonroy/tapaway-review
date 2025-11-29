@@ -330,50 +330,6 @@ const Paywall = () => {
                         <span className="text-sm">Renews at ${PLANS.yearlyPromo.renewalPrice}/year after December 31</span>
                       </li>
                     </ul>
-
-                    {/* Pine Branch Separator */}
-                    <div className="pt-4 relative flex items-center justify-center">
-                      <div className="absolute inset-x-0 h-px" style={{ backgroundColor: '#CCF5E9' }}></div>
-                      <span className="relative bg-white px-2 text-xs opacity-60">🌲</span>
-                    </div>
-                    
-                    {/* Price Comparison Block */}
-                    <div className="pt-4">
-                      <p className="text-xs font-semibold mb-2 text-muted-foreground">Price Comparison:</p>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Monthly × 12:</span>
-                          <span className="text-muted-foreground">$360/year</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Normal Yearly:</span>
-                          <span className="text-muted-foreground">$300/year</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                          <span className="text-primary">December Deal:</span>
-                          <span className="text-primary">$150/year</span>
-                        </div>
-                        <div className="flex justify-between text-primary font-bold pt-2 border-t border-border">
-                          <span>You Save:</span>
-                          <span>$210 vs Monthly</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Holiday Savings Event */}
-                    <div className="pt-4 border-t border-border">
-                      <p className="text-sm font-bold mb-2" style={{ color: '#E6D8A8' }}>🎄 Holiday Savings Event</p>
-                      <p className="text-xs text-muted-foreground italic">
-                        "Get TapAway for the lowest price of the entire year. This deal unlocks 12 months of growth for the price of 5."
-                      </p>
-                    </div>
-                    
-                    {/* Urgency Line */}
-                    <div className="pt-4 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        🎄 This Christmas deal disappears after December 31. On January 1, the plan returns to $300/year for everyone.
-                      </p>
-                    </div>
                   </>
                 ) : (
                   // Normal Variant (After Promo)
@@ -558,6 +514,67 @@ const Paywall = () => {
             </Card>
           </div>
         </div>
+
+        {/* Full-Width December Deal Explanation - Only show during promo */}
+        {isPromoActive && (
+          <div className="max-w-4xl mx-auto mb-16 animate-fade-in">
+            <Card className="p-8 bg-white"
+                  style={{ 
+                    border: '1px solid rgba(167, 243, 208, 0.5)'
+                  }}>
+              <div className="space-y-6">
+                {/* Title */}
+                <h3 className="text-2xl font-bold text-center mb-6">
+                  🎄 Why TapAway's December Deal Is a No-Brainer
+                </h3>
+
+                {/* Price Comparison Block */}
+                <div className="bg-muted/30 rounded-lg p-6">
+                  <p className="text-sm font-semibold mb-4 text-center text-muted-foreground">Price Comparison:</p>
+                  <div className="space-y-3 max-w-md mx-auto">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Monthly × 12:</span>
+                      <span className="text-sm font-medium">$360/year</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Normal Yearly:</span>
+                      <span className="text-sm font-medium">$300/year</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-primary">December Deal:</span>
+                      <span className="text-sm font-bold text-primary">$150/year</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-3 border-t border-border">
+                      <span className="text-base font-bold text-primary">You Save:</span>
+                      <span className="text-base font-bold text-primary">$210 vs Monthly</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Holiday Savings Event */}
+                <div className="text-center space-y-3 py-4">
+                  <p className="text-lg font-bold" style={{ color: '#E6D8A8' }}>🎄 Holiday Savings Event</p>
+                  <p className="text-sm text-muted-foreground italic max-w-2xl mx-auto leading-relaxed">
+                    "Get TapAway for the lowest price of the entire year. This deal unlocks 12 months of growth for the price of 5."
+                  </p>
+                </div>
+
+                {/* Pine Branch Separator */}
+                <div className="relative flex items-center justify-center py-2">
+                  <div className="absolute inset-x-0 h-px" style={{ backgroundColor: '#CCF5E9' }}></div>
+                  <span className="relative bg-white px-3 text-sm opacity-60">🌲</span>
+                </div>
+
+                {/* Christmas Deal Notice */}
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                    🎄 This Christmas deal disappears after December 31. On January 1, the plan returns to $300/year for everyone.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
