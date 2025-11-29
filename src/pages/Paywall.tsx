@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion, useInView } from "framer-motion";
-import { isGrandfatheredUser } from "@/lib/grandfatheredUsers";
+import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().email("Please enter a valid email"),
@@ -197,6 +197,20 @@ const Paywall = () => {
       });
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("Failed to create account");
+
+      // Priority handling:
+      // 1. Super admin → redirect to /admin (should never sign up here, but handle it)
+      // 2. Grandfathered test accounts → create test restaurant
+      // 3. Normal users → go to Stripe checkout
+      
+      if (isSuperAdmin(validated.email)) {
+        // Super admin should never hit this, but if they do, just send to admin
+        toast.success("Super admin account detected. Redirecting to admin dashboard...");
+        setTimeout(() => {
+          navigate("/admin");
+        }, 1000);
+        return;
+      }
 
       // Check if user is grandfathered (test account)
       const isGrandfathered = isGrandfatheredUser(validated.email);
