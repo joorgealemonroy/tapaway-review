@@ -48,6 +48,13 @@ const ReviewHub = () => {
   const [loading, setLoading] = useState(true);
   const [engagement, setEngagement] = useState<any>(null);
   const [pollVotes, setPollVotes] = useState<Record<string, number>>({});
+  
+  // Visitor theme preference (light/dark)
+  const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('tapaway_hub_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
 
   // Track when a restaurant is loaded (tap event)
   useEffect(() => {
@@ -291,38 +298,37 @@ const ReviewHub = () => {
   // Check if user has voted on current poll
   const hasVoted = engagement ? localStorage.getItem(`poll_vote_${engagement.id}`) === 'true' : false;
 
-  // Strict Light/Dark Theme - only two options
+  // Toggle visitor theme preference
+  const toggleVisitorTheme = () => {
+    const newTheme = visitorTheme === 'light' ? 'dark' : 'light';
+    setVisitorTheme(newTheme);
+    localStorage.setItem('tapaway_hub_theme', newTheme);
+  };
+
+  // Use visitor theme instead of restaurant setting
   const getBackgroundStyle = () => {
-    const style = restaurant.hub_background_style;
-    
-    // Only dark or light (classic/default)
-    if (style === 'dark') {
-      return { background: '#000000' };
+    if (visitorTheme === 'dark') {
+      return { background: '#1a1a1a' };
     }
-    
-    // Default to light/classic (clean white)
-    return { background: '#ffffff' };
+    return { background: '#f9fafb' };
   };
 
   const getCardBackground = () => {
-    const style = restaurant.hub_background_style;
-    if (style === 'dark') {
-      return '#1a1a1a';
+    if (visitorTheme === 'dark') {
+      return '#262626';
     }
     return '#ffffff';
   };
 
   const getTextColor = () => {
-    const style = restaurant.hub_background_style;
-    if (style === 'dark') {
+    if (visitorTheme === 'dark') {
       return '#ffffff';
     }
     return '#111827';
   };
 
   const getMutedTextColor = () => {
-    const style = restaurant.hub_background_style;
-    if (style === 'dark') {
+    if (visitorTheme === 'dark') {
       return '#d1d5db';
     }
     return '#6b7280';
@@ -337,7 +343,11 @@ const ReviewHub = () => {
         width: '100%', 
         boxSizing: 'border-box', 
         minHeight: '100vh', 
-        padding: '28px 16px',
+        paddingTop: '40px',
+        paddingBottom: '40px',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+        transition: 'background 0.3s ease',
         ...getBackgroundStyle()
       }}>
         <div style={{ 
@@ -345,13 +355,54 @@ const ReviewHub = () => {
           width: '100%', 
           margin: '0 auto', 
           padding: '32px 28px', 
-          border: '1px solid #eee', 
+          border: `1px solid ${visitorTheme === 'dark' ? '#404040' : '#e5e7eb'}`, 
           borderRadius: '16px', 
-          boxShadow: '0 10px 40px rgba(0,0,0,0.12)', 
+          boxShadow: visitorTheme === 'dark' ? '0 10px 40px rgba(0,0,0,0.5)' : '0 10px 40px rgba(0,0,0,0.12)', 
           background: getCardBackground(), 
           fontFamily: "'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial,sans-serif", 
-          textAlign: 'center' as const
+          textAlign: 'center' as const,
+          position: 'relative' as const,
+          transition: 'all 0.3s ease'
         }}>
+          
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleVisitorTheme}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: visitorTheme === 'dark' ? '#404040' : '#f3f4f6',
+              border: `1px solid ${visitorTheme === 'dark' ? '#525252' : '#d1d5db'}`,
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: getTextColor(),
+              transition: 'all 0.2s ease'
+            }}
+            aria-label="Toggle theme"
+          >
+            {visitorTheme === 'light' ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <span>Light</span>
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <span>Dark</span>
+              </>
+            )}
+          </button>
           
           {/* Logo */}
           {restaurant.logo_url && (
@@ -359,12 +410,12 @@ const ReviewHub = () => {
               src={restaurant.logo_url} 
               alt="Restaurant Logo" 
               style={{ 
-                maxWidth: '150px', 
-                maxHeight: '150px', 
+                maxWidth: '200px', 
+                maxHeight: '200px', 
                 width: 'auto',
                 height: 'auto',
-                borderRadius: '12px', 
-                margin: '0 auto 24px', 
+                borderRadius: '16px', 
+                margin: '32px auto 28px', 
                 objectFit: 'contain',
                 display: 'block'
               }} 
@@ -382,8 +433,8 @@ const ReviewHub = () => {
           {/* ENGAGEMENT: Promotion or Poll */}
           {engagement && (
             <div style={{
-              background: restaurant.hub_background_style === 'dark' ? 'rgba(42, 42, 42, 0.9)' : 'rgba(249, 250, 251, 0.95)',
-              border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
+              background: visitorTheme === 'dark' ? 'rgba(42, 42, 42, 0.9)' : 'rgba(249, 250, 251, 0.95)',
+              border: `1px solid ${visitorTheme === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
               borderRadius: '12px',
               padding: '20px',
               marginBottom: '24px',
@@ -418,8 +469,8 @@ const ReviewHub = () => {
                       style={{
                         display: 'inline-block',
                         padding: '12px 24px',
-                        background: restaurant.hub_background_style === 'dark' ? '#ffffff' : '#000000',
-                        color: restaurant.hub_background_style === 'dark' ? '#000000' : '#ffffff',
+                        background: visitorTheme === 'dark' ? '#ffffff' : '#000000',
+                        color: visitorTheme === 'dark' ? '#000000' : '#ffffff',
                         borderRadius: '8px',
                         fontWeight: '700',
                         fontSize: '14px',
@@ -460,9 +511,9 @@ const ReviewHub = () => {
                           style={{
                             position: 'relative',
                             padding: '18px 20px',
-                            background: restaurant.hub_background_style === 'dark' ? '#2d2d2d' : '#f3f4f6',
+                            background: visitorTheme === 'dark' ? '#2d2d2d' : '#f3f4f6',
                             border: totalVotes > 0 && isWinner 
-                              ? `3px solid ${restaurant.hub_background_style === 'dark' ? '#10b981' : '#10b981'}` 
+                              ? `3px solid ${visitorTheme === 'dark' ? '#10b981' : '#10b981'}` 
                               : 'none',
                             borderRadius: '50px',
                             cursor: hasVoted ? 'default' : 'pointer',
@@ -484,7 +535,7 @@ const ReviewHub = () => {
                               width: `${percentage}%`,
                               background: isWinner
                                 ? 'linear-gradient(90deg, rgba(251, 146, 60, 0.3) 0%, rgba(16, 185, 129, 0.3) 100%)'
-                                : restaurant.hub_background_style === 'dark' 
+                                : visitorTheme === 'dark' 
                                   ? 'rgba(255, 255, 255, 0.1)'
                                   : 'rgba(0, 0, 0, 0.06)',
                               transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -538,8 +589,8 @@ const ReviewHub = () => {
                 justifyContent: 'center', 
                 width: '100%', 
                 textDecoration: 'none', 
-                background: restaurant.hub_background_style === 'dark' ? '#3a3a3a' : '#fff', 
-                border: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#e5e7eb'}`, 
+                background: visitorTheme === 'dark' ? '#3a3a3a' : '#fff', 
+                border: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
                 color: getTextColor(), 
                 padding: '14px 16px', 
                 borderRadius: '12px', 
@@ -579,10 +630,13 @@ const ReviewHub = () => {
                 borderRadius: '12px', 
                 fontWeight: '700', 
                 marginBottom: '12px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
             >
-              <YelpIcon className="w-[18px] h-[18px] flex-shrink-0 invert" />
+              <YelpIcon className="w-5 h-5 flex-shrink-0 text-white" />
               Find Us on Yelp
             </a>
           )}
@@ -662,7 +716,7 @@ const ReviewHub = () => {
               justifyContent: 'center', 
               width: '100%', 
               textDecoration: 'none', 
-              background: restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#111', 
+              background: visitorTheme === 'dark' ? '#4a4a4a' : '#111',
               color: '#fff', 
               padding: '14px 16px', 
               borderRadius: '12px', 
@@ -677,7 +731,7 @@ const ReviewHub = () => {
             {restaurant.menu_title}
           </a>
 
-          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${restaurant.hub_background_style === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
+          <div style={{ marginTop: '16px', paddingTop: '10px', borderTop: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#eee'}`, fontSize: '12px', color: getMutedTextColor() }}>
             Powered by <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer" style={{ color: getTextColor(), textDecoration: 'none', fontWeight: '700' }}>TapAway</a>
           </div>
         </div>
@@ -752,7 +806,7 @@ const ReviewHub = () => {
               {menuSections.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {menuSections.map((section) => (
-                    <details key={section.id} open style={{ background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                    <details key={section.id} style={{ background: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                       <summary style={{ cursor: 'pointer', padding: '16px', fontWeight: '700', fontSize: '18px', color: '#111', listStyle: 'none' }}>
                         {section.name}
                       </summary>
