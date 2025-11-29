@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const PAYWALL_PATH = "/onboarding";
+const PAYWALL_PATH = "/paywall";
 
 type Mode = "login" | "forgot";
 
