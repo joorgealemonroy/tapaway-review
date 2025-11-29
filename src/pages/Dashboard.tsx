@@ -30,6 +30,7 @@ interface Restaurant {
   next_billing_date: string | null;
   type?: string | null;
   greeting_name?: string | null;
+  total_taps?: number;
 }
 interface Location {
   id: string;
@@ -82,14 +83,56 @@ const Dashboard = () => {
     }
   };
   const fetchAllRestaurants = async () => {
-    const {
-      data
-    } = await (supabase as any).from("restaurants").select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name").order("restaurant_name");
-    if (data && data.length > 0) {
-      setAllRestaurants(data);
-      // Auto-select first restaurant so admin can see content
-      setRestaurant(data[0]);
-      fetchLocations(data[0].id);
+    // Get all restaurants
+    const { data: allRestaurantsData } = await (supabase as any)
+      .from("restaurants")
+      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name")
+      .order("restaurant_name");
+
+    if (!allRestaurantsData || allRestaurantsData.length === 0) return;
+
+    // Get tap counts
+    const restaurantIds = allRestaurantsData.map((r: Restaurant) => r.id);
+    const { data: tapCounts } = await supabase
+      .from("analytics_events")
+      .select("restaurant_id")
+      .eq("event_type", "tap")
+      .in("restaurant_id", restaurantIds);
+
+    // Count taps per restaurant
+    const tapsMap: Record<string, number> = {};
+    (tapCounts ?? []).forEach((event: any) => {
+      tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
+    });
+
+    // Add tap counts and filter for TapAway or 1000+ taps
+    const MIN_TAPS_FOR_AI = 1000;
+    const filteredRestaurants = allRestaurantsData
+      .map((r: Restaurant) => ({
+        ...r,
+        total_taps: tapsMap[r.id] ?? 0
+      }))
+      .filter((r: Restaurant) => {
+        const isTapAway = 
+          r.restaurant_name?.toLowerCase().includes("tapaway") ||
+          r.custom_slug?.toLowerCase() === "tapaway";
+        return isTapAway || (r.total_taps ?? 0) >= MIN_TAPS_FOR_AI;
+      })
+      .sort((a: Restaurant, b: Restaurant) => {
+        // TapAway first
+        const aIsTapAway = a.restaurant_name?.toLowerCase().includes("tapaway");
+        const bIsTapAway = b.restaurant_name?.toLowerCase().includes("tapaway");
+        if (aIsTapAway && !bIsTapAway) return -1;
+        if (!aIsTapAway && bIsTapAway) return 1;
+        // Then by tap count descending
+        return (b.total_taps ?? 0) - (a.total_taps ?? 0);
+      });
+
+    if (filteredRestaurants.length > 0) {
+      setAllRestaurants(filteredRestaurants);
+      // Auto-select first restaurant (TapAway if available)
+      setRestaurant(filteredRestaurants[0]);
+      fetchLocations(filteredRestaurants[0].id);
     }
   };
   const fetchRestaurant = async () => {
@@ -348,9 +391,14 @@ const Dashboard = () => {
                 <SelectValue placeholder="Select a restaurant to manage" />
               </SelectTrigger>
               <SelectContent>
-                {allRestaurants.map(r => <SelectItem key={r.id} value={r.id}>
-                    {r.restaurant_name}
-                  </SelectItem>)}
+                {allRestaurants.map(r => {
+                  const isTapAway = r.restaurant_name?.toLowerCase().includes("tapaway");
+                  return (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.restaurant_name} {isTapAway ? "(TapAway)" : `(${r.total_taps?.toLocaleString() ?? 0} taps)`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </Card>}
