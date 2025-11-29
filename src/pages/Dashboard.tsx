@@ -105,34 +105,17 @@ const Dashboard = () => {
       tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
     });
 
-    // Add tap counts and filter for TapAway or 1000+ taps
-    const MIN_TAPS_FOR_AI = 1000;
-    const filteredRestaurants = allRestaurantsData
-      .map((r: Restaurant) => ({
-        ...r,
-        total_taps: tapsMap[r.id] ?? 0
-      }))
-      .filter((r: Restaurant) => {
-        const isTapAway = 
-          r.restaurant_name?.toLowerCase().includes("tapaway") ||
-          r.custom_slug?.toLowerCase() === "tapaway";
-        return isTapAway || (r.total_taps ?? 0) >= MIN_TAPS_FOR_AI;
-      })
-      .sort((a: Restaurant, b: Restaurant) => {
-        // TapAway first
-        const aIsTapAway = a.restaurant_name?.toLowerCase().includes("tapaway");
-        const bIsTapAway = b.restaurant_name?.toLowerCase().includes("tapaway");
-        if (aIsTapAway && !bIsTapAway) return -1;
-        if (!aIsTapAway && bIsTapAway) return 1;
-        // Then by tap count descending
-        return (b.total_taps ?? 0) - (a.total_taps ?? 0);
-      });
+    // Add tap counts to ALL restaurants (no filtering)
+    const restaurantsWithTaps = allRestaurantsData.map((r: Restaurant) => ({
+      ...r,
+      total_taps: tapsMap[r.id] ?? 0
+    }));
 
-    if (filteredRestaurants.length > 0) {
-      setAllRestaurants(filteredRestaurants);
-      // Auto-select first restaurant (TapAway if available)
-      setRestaurant(filteredRestaurants[0]);
-      fetchLocations(filteredRestaurants[0].id);
+    if (restaurantsWithTaps.length > 0) {
+      setAllRestaurants(restaurantsWithTaps);
+      // Auto-select first restaurant
+      setRestaurant(restaurantsWithTaps[0]);
+      fetchLocations(restaurantsWithTaps[0].id);
     }
   };
   const fetchRestaurant = async () => {
@@ -391,14 +374,11 @@ const Dashboard = () => {
                 <SelectValue placeholder="Select a restaurant to manage" />
               </SelectTrigger>
               <SelectContent>
-                {allRestaurants.map(r => {
-                  const isTapAway = r.restaurant_name?.toLowerCase().includes("tapaway");
-                  return (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.restaurant_name} {isTapAway ? "(TapAway)" : `(${r.total_taps?.toLocaleString() ?? 0} taps)`}
-                    </SelectItem>
-                  );
-                })}
+                {allRestaurants.map(r => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.restaurant_name} ({r.total_taps?.toLocaleString() ?? 0} taps)
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Card>}
