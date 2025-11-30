@@ -234,6 +234,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_ignored: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          ignore_until: string
+          ignored_at: string
+          restaurant_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          ignore_until: string
+          ignored_at?: string
+          restaurant_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          ignore_until?: string
+          ignored_at?: string
+          restaurant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_ignored_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_ignored_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitors: {
         Row: {
           competitor_link: string | null

@@ -442,7 +442,7 @@ const Dashboard = () => {
 
               {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && <>
                   <TabsContent value="ai-coach">
-                    <AICoachTab restaurantId={restaurant.id} locationId={selectedLocation || undefined} />
+                    <AICoachTab restaurantId={restaurant.id} />
                   </TabsContent>
 
                   <TabsContent value="competitors">
