@@ -252,13 +252,28 @@ Return ONLY valid JSON array, no explanation.`;
       }
     }
 
-    // 6. Get latest 3-5 reviews for display
-    const latestReviews = reviews.slice(0, 5).map(r => ({
+    // 6. Get display-recent reviews (last 90 days) for UI
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    
+    let displayRecentReviews = reviews.filter(r => 
+      r.review_time && new Date(r.review_time) >= ninetyDaysAgo
+    );
+    
+    // Fallback: if no reviews in last 90 days, use 3 most recent
+    if (displayRecentReviews.length === 0 && reviews.length > 0) {
+      displayRecentReviews = reviews.slice(0, 3);
+    }
+    
+    const latestReviews = displayRecentReviews.slice(0, 5).map(r => ({
       author_name: r.author_name ?? 'Anonymous',
       rating: r.rating,
       text: r.text ?? '',
       relative_time_description: r.relative_time_description ?? null,
+      review_time: r.review_time,
     }));
+    
+    const hasOldReviews = displayRecentReviews.length === 0 && reviews.length > 0;
 
     // 7. Return comprehensive stats
     const stats = {
@@ -278,6 +293,7 @@ Return ONLY valid JSON array, no explanation.`;
       lastGoogleSyncAt: restaurant.last_google_sync_at,
       hasGooglePlaceId: !!restaurant.google_place_id,
       latestReviews,
+      hasOldReviews,
       negativeThemes,
       positiveThemes,
     };
