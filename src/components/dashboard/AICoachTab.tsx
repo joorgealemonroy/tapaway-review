@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 
 interface ReviewTheme {
   theme: string;
@@ -43,7 +44,9 @@ interface AiCoachStats {
     rating: number;
     text: string;
     relative_time_description: string | null;
+    review_time?: string | null;
   }[];
+  hasOldReviews?: boolean;
   negativeThemes: ReviewTheme[];
   positiveThemes: ReviewTheme[];
 }
@@ -448,7 +451,7 @@ function UnlockedState({ restaurantName, stats, syncing, onRefresh }: UnlockedSt
 }
 
 function WinCard({ stats, restaurantName }: { stats: AiCoachStats; restaurantName: string }) {
-  const { totalTaps, totalReviews, avgRating, recentReviewCount } = stats;
+  const { totalTaps, totalReviews, avgRating } = stats;
 
   return (
     <div className="bg-gradient-to-br from-green-50 to-teal-50 border border-green-200 rounded-2xl p-6">
@@ -459,27 +462,27 @@ function WinCard({ stats, restaurantName }: { stats: AiCoachStats; restaurantNam
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            Customers are actively tapping your TapAway cards — <strong>{totalTaps.toLocaleString()} hub {totalTaps === 1 ? 'visit' : 'visits'}</strong> means more chances to earn happy reviews.
+            <strong>{totalTaps.toLocaleString()} hub {totalTaps === 1 ? 'visit' : 'visits'}</strong> — customers are tapping your TapAway cards.
           </span>
         </li>
         {avgRating && (
           <li className="flex items-start gap-2">
             <span className="text-green-600 mt-0.5">•</span>
             <span>
-              Your average Google rating is <strong>{avgRating.toFixed(1)}★</strong>. That's a strong first impression for new customers.
+              <strong>{avgRating.toFixed(1)}★ average rating</strong> — strong first impression for new guests.
             </span>
           </li>
         )}
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            You've collected <strong>{totalReviews} Google {totalReviews === 1 ? 'review' : 'reviews'}</strong>. Each one makes your restaurant more discoverable.
+            <strong>{totalReviews} Google {totalReviews === 1 ? 'review' : 'reviews'}</strong> collected — each one boosts discoverability.
           </span>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            TapAway is tracking every tap and review automatically — <strong>no extra work</strong>, just better decisions.
+            <strong>Auto-tracking</strong> every tap and review — no extra work, just better decisions.
           </span>
         </li>
       </ul>
@@ -510,21 +513,33 @@ function WhereYoureWinningCard({ themes }: { themes: ReviewTheme[] }) {
 }
 
 function OpportunitiesCard({ themes }: { themes: ReviewTheme[] }) {
+  const emojiMap: Record<number, string> = { 0: '⚠️', 1: '🌮', 2: '💬', 3: '⏱️' };
+  
+  if (themes.length === 0) {
+    return (
+      <div className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-6">
+        <h3 className="text-base font-semibold text-orange-900 mb-3">
+          Top things to fix next
+        </h3>
+        <p className="text-sm text-orange-700">
+          No clear issues popping up — keep doing what you're doing and collect more reviews.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-6">
       <h3 className="text-base font-semibold text-orange-900 mb-4">
-        Top opportunities to improve
+        Top things to fix next
       </h3>
       <ul className="space-y-3 text-sm text-orange-800">
-        {themes.slice(0, 2).map((theme, idx) => (
-          <li key={idx} className="flex items-start gap-2">
-            <span className="text-orange-600 mt-0.5">•</span>
-            <div>
-              <p className="font-medium">{theme.theme}</p>
-              <p className="text-xs text-orange-700 mt-1">
-                A few guests mention this — focusing here could turn more visits into 5★ reviews.
-              </p>
-            </div>
+        {themes.slice(0, 3).map((theme, idx) => (
+          <li key={idx} className="flex items-start gap-2.5">
+            <span className="text-base flex-shrink-0">{emojiMap[idx] || '⚠️'}</span>
+            <span>
+              <strong>{theme.theme}</strong> — several guests mention this. Focus here first.
+            </span>
           </li>
         ))}
       </ul>
@@ -644,11 +659,15 @@ interface RecentReviewsCardProps {
     rating: number;
     text: string;
     relative_time_description: string | null;
+    review_time?: string | null;
   }[];
   recentWindowDescription: string;
 }
 
 function RecentReviewsCard({ reviews, recentWindowDescription }: RecentReviewsCardProps) {
+  const hasOldReviews = reviews.length > 0 && reviews[0]?.review_time && 
+    new Date().getTime() - new Date(reviews[0].review_time).getTime() > 90 * 24 * 60 * 60 * 1000;
+  
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
       <h3 className="text-sm font-semibold text-slate-900 mb-4">
@@ -657,7 +676,7 @@ function RecentReviewsCard({ reviews, recentWindowDescription }: RecentReviewsCa
       <div className="space-y-4">
         {reviews.slice(0, 3).map((review, idx) => (
           <div key={idx} className="border-b border-slate-100 last:border-0 pb-3 last:pb-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs font-medium text-slate-700">{review.author_name}</span>
               <span className="text-xs text-yellow-500">{'★'.repeat(review.rating)}</span>
               {review.relative_time_description && (
@@ -665,7 +684,7 @@ function RecentReviewsCard({ reviews, recentWindowDescription }: RecentReviewsCa
               )}
             </div>
             {review.text && (
-              <p className="text-xs text-slate-600 line-clamp-2">
+              <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                 {review.text}
               </p>
             )}
@@ -673,7 +692,10 @@ function RecentReviewsCard({ reviews, recentWindowDescription }: RecentReviewsCa
         ))}
       </div>
       <p className="text-xs text-slate-400 mt-4">
-        Showing a few recent reviews — insights are based on {recentWindowDescription}.
+        {hasOldReviews 
+          ? "No very recent reviews yet — showing your latest ones. Insights are based on a larger batch of recent feedback."
+          : `Showing your latest reviews — insights are based on ${recentWindowDescription}.`
+        }
       </p>
     </div>
   );
@@ -708,65 +730,84 @@ function SentimentCard({
         </h3>
         <div className="flex items-center gap-3 text-sm text-slate-500">
           <span className="text-2xl">👍</span>
-          <p>
-            Waiting for your first Google reviews — as soon as they arrive,
-            I'll show you what customers love most.
-          </p>
+          <div>
+            <p className="mb-1">Waiting for your first Google reviews 👍</p>
+            <p className="text-xs">
+              You're already getting taps — as soon as reviews arrive, I'll break down how guests feel.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-      <h3 className="text-sm font-semibold text-slate-900 mb-2">
-        Customer sentiment at a glance
-      </h3>
-      <p className="text-xs text-slate-500 mb-4">
-        Most of your guests are having a great experience — here's how that looks based on {recentWindowDescription}.
-      </p>
+  const lowReviewCount = recentReviewCount < 5;
 
-      <div className="space-y-3">
-        {positivePct !== null && positive > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <span className="text-base">👍</span>
-                <span className="text-slate-700">Happy guests</span>
-              </span>
-              <span className="font-medium text-slate-900">{positive} ({positivePct}%)</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2">
-              <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${positivePct}%` }} />
-            </div>
+  return (
+    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl shadow-sm border border-teal-200 p-6 overflow-hidden">
+      <div className="mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-bold text-teal-900 mb-1"
+        >
+          {positivePct}% happy guests
+        </motion.div>
+        <p className="text-xs text-teal-700">
+          {lowReviewCount 
+            ? `Early signal from ${recentReviewCount} ${recentReviewCount === 1 ? 'review' : 'reviews'} — keep collecting more for a clearer picture.`
+            : `Based on ${recentWindowDescription}`
+          }
+        </p>
+      </div>
+
+      {/* Combined horizontal bar */}
+      <div className="mb-5 h-3 bg-slate-200 rounded-full overflow-hidden flex">
+        {positivePct > 0 && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${positivePct}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="bg-gradient-to-r from-green-400 to-green-500 h-full"
+          />
+        )}
+        {neutralPct > 0 && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${neutralPct}%` }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            className="bg-yellow-400 h-full"
+          />
+        )}
+        {negativePct > 0 && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${negativePct}%` }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            className="bg-orange-400 h-full"
+          />
+        )}
+      </div>
+
+      {/* Breakdown rows */}
+      <div className="space-y-2.5">
+        {positive > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-green-800">
+              <span className="text-base">👍</span>
+              <span className="font-medium">Happy guests</span>
+            </span>
+            <span className="font-semibold text-green-900">{positive} ({positivePct}%)</span>
           </div>
         )}
-        {neutralPct !== null && neutral > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <span className="text-base">😐</span>
-                <span className="text-slate-700">Neutral</span>
-              </span>
-              <span className="font-medium text-slate-900">{neutral} ({neutralPct}%)</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2">
-              <div className="bg-yellow-500 h-2 rounded-full transition-all" style={{ width: `${neutralPct}%` }} />
-            </div>
-          </div>
-        )}
-        {negativePct !== null && negative > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2">
-                <span className="text-base">😕</span>
-                <span className="text-slate-700">Needs attention</span>
-              </span>
-              <span className="font-medium text-slate-900">{negative} ({negativePct}%)</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2">
-              <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${negativePct}%` }} />
-            </div>
+        {negative > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2 text-orange-800">
+              <span className="text-base">😕</span>
+              <span className="font-medium">Needs attention</span>
+            </span>
+            <span className="font-semibold text-orange-900">{negative} ({negativePct}%)</span>
           </div>
         )}
       </div>
