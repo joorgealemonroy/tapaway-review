@@ -27,7 +27,7 @@ serve(async (req) => {
       );
     }
 
-    const { restaurantId } = await req.json();
+    const { restaurantId, reviewLimit = 10 } = await req.json();
     
     if (!restaurantId) {
       return new Response(
@@ -35,6 +35,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Validate reviewLimit
+    const validLimits = [5, 10, 20, 50];
+    const limit = validLimits.includes(reviewLimit) ? reviewLimit : 10;
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -85,7 +89,7 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // Get ALL reviews from google_reviews
+    // Get ALL reviews from google_reviews for theme analysis
     const { data: allReviews } = await supabaseClient
       .from('google_reviews')
       .select('author_name, rating, text, review_time, relative_time_description')
@@ -94,19 +98,12 @@ serve(async (req) => {
 
     const reviews = allReviews ?? [];
 
-    // Define window: last 90 days OR last 10 reviews, whichever is FEWER
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    // For theme analysis: use ALL reviews (not limited)
+    // For display: use the requested limit
+    const displayReviews = reviews.slice(0, limit);
     
-    const reviewsLast90Days = reviews.filter(r => 
-      r.review_time && new Date(r.review_time) >= ninetyDaysAgo
-    );
-
-    const recentReviews = reviewsLast90Days.length <= 10 
-      ? reviewsLast90Days 
-      : reviews.slice(0, 10);
-
-    const recentReviewCount = recentReviews.length;
+    // Use all reviews for sentiment and theme extraction
+    const recentReviewCount = reviews.length;
 
     // Compute sentiment on recentReviews
     let positive = 0;
@@ -116,7 +113,7 @@ serve(async (req) => {
     const negativeReviews: typeof reviews = [];
     const positiveReviews: typeof reviews = [];
 
-    for (const review of recentReviews) {
+    for (const review of reviews) {
       if (review.rating >= 4) {
         positive++;
         positiveReviews.push(review);
@@ -250,17 +247,8 @@ Return ONLY a JSON array of strings (max 3 wins), no explanation.`;
       }
     }
 
-    // Get latest 3 reviews for display
-    const latestReviews = recentReviews.slice(0, 3).map(r => ({
-      author_name: r.author_name ?? 'Anonymous',
-      rating: r.rating,
-      text: r.text ?? '',
-      relative_time_description: r.relative_time_description ?? null,
-      review_time: r.review_time,
-    }));
-
-    // Get next 3 reviews for "Show more"
-    const moreReviews = recentReviews.slice(3, 6).map(r => ({
+    // Return reviews based on requested limit
+    const latestReviews = displayReviews.map(r => ({
       author_name: r.author_name ?? 'Anonymous',
       rating: r.rating,
       text: r.text ?? '',
@@ -274,7 +262,6 @@ Return ONLY a JSON array of strings (max 3 wins), no explanation.`;
       wins,
       opportunities,
       recentReviews: latestReviews,
-      moreReviews,
       sentiment: {
         positiveCount: positive,
         negativeCount: negative,

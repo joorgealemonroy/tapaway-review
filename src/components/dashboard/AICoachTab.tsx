@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Send, ChevronDown } from "lucide-react";
+import { Loader2, RefreshCw, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 
@@ -28,7 +29,6 @@ interface AiCoachStats {
   wins: string[];
   opportunities: Opportunity[];
   recentReviews: Review[];
-  moreReviews: Review[];
   sentiment: {
     positiveCount: number;
     negativeCount: number;
@@ -37,11 +37,19 @@ interface AiCoachStats {
   lastUpdated: string;
 }
 
+const SUGGESTED_QUESTIONS = [
+  "What are guests' biggest concerns?",
+  "What do customers love the most?",
+  "What should I fix first?",
+  "Any trends I should watch?",
+  "How can I get more reviews this week?",
+];
+
 export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const [stats, setStats] = useState<AiCoachStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showMoreReviews, setShowMoreReviews] = useState(false);
+  const [reviewLimit, setReviewLimit] = useState<number>(10);
   const [ignoredCategories, setIgnoredCategories] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
@@ -50,7 +58,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   useEffect(() => {
     loadStats();
     loadIgnoredCategories();
-  }, [restaurantId]);
+  }, [restaurantId, reviewLimit]);
 
   const loadIgnoredCategories = async () => {
     const { data, error } = await supabase
@@ -78,7 +86,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
 
   const handleIgnore = async (category: string) => {
     const ignoreUntil = new Date();
-    ignoreUntil.setDate(ignoreUntil.getDate() + 7);
+    ignoreUntil.setDate(ignoreUntil.getDate() + 30);
 
     const { error } = await supabase
       .from('coach_ignored')
@@ -97,14 +105,14 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     }
 
     setIgnoredCategories(prev => new Set([...prev, category]));
-    toast.success("Hidden for 7 days");
+    toast.success("Hidden for 30 days");
   };
 
   const loadStats = async () => {
     setIsLoadingStats(true);
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-insights', {
-        body: { restaurantId }
+        body: { restaurantId, reviewLimit }
       });
 
       if (error) throw error;
@@ -133,19 +141,19 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!message.trim() || isLoadingChat) return;
+  const sendMessage = async (questionText?: string) => {
+    const textToSend = questionText || message.trim();
+    if (!textToSend || isLoadingChat) return;
 
-    const userMessage = message.trim();
     setMessage("");
-    setChatHistory(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatHistory(prev => [...prev, { role: "user", content: textToSend }]);
     setIsLoadingChat(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-chat', {
         body: {
           restaurantId,
-          message: userMessage,
+          message: textToSend,
           chatHistory
         }
       });
@@ -211,7 +219,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                 <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {stats.wins.map((win, idx) => (
+                {stats.wins.slice(0, 3).map((win, idx) => (
                   <p key={idx} className="text-sm">{win}</p>
                 ))}
               </CardContent>
@@ -225,22 +233,27 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                 <CardTitle className="text-lg">Top things to fix next</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {visibleOpportunities.map((opp, idx) => (
-                  <div key={idx} className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0">
+                {visibleOpportunities.slice(0, 3).map((opp, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-semibold text-sm">{opp.title}</h4>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleIgnore(opp.category)}
-                        className="text-xs text-muted-foreground h-auto py-1 px-2"
+                        className="text-xs text-muted-foreground h-auto py-1 px-2 hover:text-foreground"
                       >
                         Ignore
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">{opp.summary}</p>
                     <p className="text-sm font-medium text-primary">Quick win: {opp.quickWin}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </CardContent>
             </Card>
@@ -259,80 +272,80 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
 
           {/* Recent Reviews */}
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-3">
               <CardTitle className="text-lg">Recent Google reviews</CardTitle>
+              <Select value={reviewLimit.toString()} onValueChange={(val) => setReviewLimit(parseInt(val))}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">Showing last 5</SelectItem>
+                  <SelectItem value="10">Showing last 10</SelectItem>
+                  <SelectItem value="20">Showing last 20</SelectItem>
+                  <SelectItem value="50">Showing last 50</SelectItem>
+                </SelectContent>
+              </Select>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {stats.recentReviews.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No reviews yet</p>
               ) : (
                 <>
-                  {stats.recentReviews.map((review, idx) => (
-                    <div key={idx} className="space-y-1 pb-4 border-b last:border-b-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{review.author_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {"⭐".repeat(review.rating)}
-                        </span>
-                        {review.relative_time_description && (
+                  <div className="max-h-[350px] overflow-y-auto pr-2 space-y-4">
+                    {stats.recentReviews.map((review, idx) => (
+                      <div key={idx} className="space-y-1 pb-4 border-b last:border-b-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{review.author_name}</span>
                           <span className="text-xs text-muted-foreground">
-                            • {review.relative_time_description}
+                            {"⭐".repeat(review.rating)}
                           </span>
+                          {review.relative_time_description && (
+                            <span className="text-xs text-muted-foreground">
+                              • {review.relative_time_description}
+                            </span>
+                          )}
+                        </div>
+                        {review.text && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {review.text}
+                          </p>
                         )}
                       </div>
-                      {review.text && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {review.text}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-
-                  {!showMoreReviews && stats.moreReviews.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowMoreReviews(true)}
-                      className="w-full"
-                    >
-                      <ChevronDown className="h-4 w-4 mr-2" />
-                      Show more
-                    </Button>
-                  )}
-
-                  {showMoreReviews && stats.moreReviews.map((review, idx) => (
-                    <div key={idx} className="space-y-1 pb-4 border-b last:border-b-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{review.author_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {"⭐".repeat(review.rating)}
-                        </span>
-                        {review.relative_time_description && (
-                          <span className="text-xs text-muted-foreground">
-                            • {review.relative_time_description}
-                          </span>
-                        )}
-                      </div>
-                      {review.text && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {review.text}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4 text-center">
+                    Insights are based on all your Google reviews.
+                  </p>
                 </>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right: AI Chat (40% height) */}
+        {/* Right: AI Chat */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">Ask your AI Coach</CardTitle>
             <CardDescription>Get personalized insights</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Suggested Questions Pills */}
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTED_QUESTIONS.map((question, idx) => (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => sendMessage(question)}
+                  disabled={isLoadingChat}
+                  className="text-xs h-auto py-1.5 px-3"
+                >
+                  {question}
+                </Button>
+              ))}
+            </div>
+
+            {/* Chat History */}
             <div className="h-[160px] overflow-y-auto space-y-3 border rounded-lg p-3 bg-muted/30">
               {chatHistory.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
@@ -367,6 +380,8 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                 </div>
               )}
             </div>
+
+            {/* Input */}
             <div className="flex gap-2">
               <Input
                 placeholder="Ask a question..."
@@ -375,7 +390,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 disabled={isLoadingChat}
               />
-              <Button onClick={sendMessage} disabled={isLoadingChat || !message.trim()}>
+              <Button onClick={() => sendMessage()} disabled={isLoadingChat || !message.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
@@ -395,33 +410,10 @@ const SentimentCard = ({ sentiment }: { sentiment: AiCoachStats['sentiment'] }) 
       <Card>
         <CardContent className="pt-6 text-center">
           <div className="text-4xl mb-2">👍</div>
-          <h3 className="text-xl font-bold mb-2">Waiting for your first Google reviews</h3>
+          <h3 className="text-3xl font-bold mb-2">Waiting for your first Google reviews</h3>
           <p className="text-sm text-muted-foreground">
             You're already getting taps — as soon as reviews arrive, I'll break down how guests feel.
           </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (total < 5) {
-    return (
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <h3 className="text-3xl font-bold mb-2">{percentagePositive}% happy guests</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Early signal from a few reviews — keep collecting more
-          </p>
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div>
-              <span className="mr-2">😊</span>
-              Happy — {positiveCount}
-            </div>
-            <div>
-              <span className="mr-2">😕</span>
-              Needs attention — {negativeCount}
-            </div>
-          </div>
         </CardContent>
       </Card>
     );
@@ -433,12 +425,15 @@ const SentimentCard = ({ sentiment }: { sentiment: AiCoachStats['sentiment'] }) 
         <div className="text-center mb-4">
           <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
           <p className="text-sm text-muted-foreground">
-            Based on your Google reviews
+            {total < 5 
+              ? "Early signal from recent reviews — keep collecting more"
+              : "Based on your Google reviews"
+            }
           </p>
         </div>
 
         <motion.div
-          className="h-3 rounded-full overflow-hidden bg-muted mb-6"
+          className="h-3 rounded-full overflow-hidden bg-muted"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -450,23 +445,6 @@ const SentimentCard = ({ sentiment }: { sentiment: AiCoachStats['sentiment'] }) 
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </motion.div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">😊</span>
-            <div>
-              <div className="font-medium">Happy</div>
-              <div className="text-muted-foreground">{positiveCount}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">😕</span>
-            <div>
-              <div className="font-medium">Needs attention</div>
-              <div className="text-muted-foreground">{negativeCount}</div>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
