@@ -11,24 +11,28 @@ serve(async (req) => {
   }
 
   try {
-    const { orgName, stats, messages } = await req.json();
+    const { restaurantId, message, chatHistory, stats } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build themes context
-    let posThemesText = "";
-    if (stats.positiveThemes && stats.positiveThemes.length > 0) {
-      const themes = stats.positiveThemes.slice(0, 5).map((t: any) => `• ${t.theme} (${t.count} mentions)`).join('\n');
-      posThemesText = `\n\nWHAT GUESTS LOVE (from positive reviews):\n${themes}`;
+    if (!stats) {
+      throw new Error("Stats are required");
     }
 
-    let negThemesText = "";
-    if (stats.negativeThemes && stats.negativeThemes.length > 0) {
-      const themes = stats.negativeThemes.slice(0, 3).map((t: any) => `• ${t.theme} (${t.count} mentions)`).join('\n');
-      negThemesText = `\n\nTOP OPPORTUNITIES (from negative reviews):\n${themes}`;
+    // Build wins and opportunities context
+    let winsText = "";
+    if (stats.wins && stats.wins.length > 0) {
+      const winsList = stats.wins.map((w: string) => `${w}`).join('\n');
+      winsText = `\n\nWHAT GUESTS LOVE:\n${winsList}`;
+    }
+
+    let opportunitiesText = "";
+    if (stats.opportunities && stats.opportunities.length > 0) {
+      const oppsList = stats.opportunities.map((o: any) => `• ${o.title} — ${o.summary}`).join('\n');
+      opportunitiesText = `\n\nTOP OPPORTUNITIES:\n${oppsList}`;
     }
 
     const systemPrompt = `You are the TapAway AI Coach. You help restaurant owners understand their Google reviews, taps, and what moves TapAway can help them with.
@@ -40,19 +44,13 @@ CRITICAL RULES:
 4. Be concise and mobile-friendly. Use short bullet points (1-2 lines each) for action items.
 5. Use emojis sparingly but naturally 🌮😊.
 
-ORGANIZATION: ${orgName}
-
 KEY STATS:
 - Total taps: ${stats.totalTaps}
-- Total reviews: ${stats.totalReviews}
-- Avg rating: ${stats.avgRating ? stats.avgRating.toFixed(1) : 'N/A'}
-- Positive sentiment: ${stats.positivePct !== null ? `${stats.positivePct}%` : 'N/A'} (${stats.positive} reviews)
-- Neutral: ${stats.neutralPct !== null ? `${stats.neutralPct}%` : 'N/A'} (${stats.neutral} reviews)
-- Negative: ${stats.negativePct !== null ? `${stats.negativePct}%` : 'N/A'} (${stats.negative} reviews)${posThemesText}${negThemesText}
+- Positive sentiment: ${stats.sentiment?.percentagePositive !== null ? `${stats.sentiment.percentagePositive}%` : 'N/A'} (${stats.sentiment?.positiveCount || 0} happy, ${stats.sentiment?.negativeCount || 0} needs attention)${winsText}${opportunitiesText}
 
 When answering:
-- Start with 1-2 wins from "What guests love" themes.
-- Then highlight the top 1-2 opportunities from negative themes.
+- Start with 1-2 wins from the "What guests love" section.
+- Then highlight the top 1-2 opportunities to improve.
 - Use bullet points for action items (max 2 lines each).
 - Connect advice back to TapAway features (more taps, better replies, tracking, etc.).
 - Keep answers short and scannable on mobile.
@@ -78,10 +76,11 @@ Keep doing what you're doing and stack more reviews! 💚"
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
-      ...messages.map((m: any) => ({
+      ...chatHistory.map((m: any) => ({
         role: m.role,
         content: m.content,
       })),
+      { role: "user", content: message }
     ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
