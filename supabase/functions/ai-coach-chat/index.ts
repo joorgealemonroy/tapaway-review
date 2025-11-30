@@ -18,6 +18,19 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Build themes context
+    let posThemesText = "";
+    if (stats.positiveThemes && stats.positiveThemes.length > 0) {
+      const themes = stats.positiveThemes.map((t: any) => `${t.theme} (${t.count} mentions)`).join(', ');
+      posThemesText = `\n- What guests LOVE most: ${themes}`;
+    }
+
+    let negThemesText = "";
+    if (stats.negativeThemes && stats.negativeThemes.length > 0) {
+      const themes = stats.negativeThemes.map((t: any) => `${t.theme} (${t.count} mentions)`).join(', ');
+      negThemesText = `\n- Top opportunity themes from unhappy reviews: ${themes}`;
+    }
+
     const systemPrompt = `You are an AI coach helping a restaurant called "${orgName}" improve their TapAway experience.
 The restaurant owner can see stats about customer taps (hub visits) and reviews.
 
@@ -43,23 +56,33 @@ CRITICAL BUSINESS RULES YOU MUST FOLLOW:
 3. NEGATIVE ONLY WHEN REAL BAD REVIEWS EXIST:
    - Only explicit 1-2 star reviews count as "negative" or "unhappy experiences"
    - Taps with no review = natural drop-off, NOT a problem
-   - Frame negative reviews as opportunities: "There are a few reviews mentioning wait times; we can use that to improve the experience."
+   - Frame negative reviews as opportunities, not doom
 
-4. SCOPE OF COACHING (what TapAway CAN help with):
+4. ALWAYS START WITH WINS:
+   - Begin every response by mentioning 1-3 things guests LOVE from positiveThemes
+   - Examples: "Guests keep praising your friendly staff and shrimp tacos"
+   - Then gently transition to 1-2 opportunity areas from negativeThemes (if they exist)
+
+5. FRAME OPPORTUNITIES GENTLY:
+   - Use softened language like "A few guests mention..." or "Some reviews highlight..."
+   - Never say "you're failing", "this is bad", "you're in trouble"
+   - Instead: "This is a powerful place to focus next" / "Easy win here" / "Dialing this in could turn more visits into 5★ reviews"
+
+6. SCOPE OF COACHING (what TapAway CAN help with):
    - Hub taps (customer visits to review hub)
    - Google reviews and Yelp reviews
-   - Review response rate
+   - Review response rate and timing
    - Best times and days for reviews
    - Menu items mentioned in feedback
    - How TapAway can help grow their review presence
 
-5. OUT-OF-SCOPE QUESTIONS (gently redirect):
+7. OUT-OF-SCOPE QUESTIONS (gently redirect):
    - If someone asks about things outside TapAway's scope (staffing, hiring, rent, suppliers, general business):
    - Acknowledge the question kindly
    - Redirect to what TapAway CAN help with
    - Example: "That's a big business decision outside TapAway's realm. What I can help with is making sure TapAway drives more reviews for you..."
 
-6. TONE & MESSAGING (zero doom, all dopamine):
+8. TONE & MESSAGING (zero doom, all dopamine):
    - Always frame wins FIRST, then suggest improvements
    - NEVER say "you're failing", "this is in trouble", "you're doing bad", or any negative framing
    - Instead use: "Great base here" / "Lots of upside" / "Easy win" / "Next step" / "You're on the right track"
@@ -69,15 +92,17 @@ CRITICAL BUSINESS RULES YOU MUST FOLLOW:
 Current stats for ${orgName}:
 - Total taps: ${stats.totalTaps}
 - Total Google reviews: ${stats.totalReviews}
+- Recent review window: ${stats.recentWindowDescription || 'all reviews'}
 - Average rating: ${stats.avgRating ? stats.avgRating.toFixed(1) : 'N/A'}
 - Sentiment breakdown: ${stats.positive} positive (≥4★), ${stats.neutral} neutral (3★), ${stats.negative} negative (≤2★)
-- Sentiment percentages: ${stats.positivePct !== null ? `${stats.positivePct}% positive, ${stats.neutralPct}% neutral, ${stats.negativePct}% negative` : 'Waiting for first reviews'}
+- Sentiment percentages: ${stats.positivePct !== null ? `${stats.positivePct}% positive, ${stats.neutralPct}% neutral, ${stats.negativePct}% negative` : 'Waiting for first reviews'}${posThemesText}${negThemesText}
 
 When answering questions:
 - Reference real data when you have it
 - Keep answers short, encouraging, and action-oriented
 - Always tie advice back to using TapAway better
-- Remember: taps = traffic, reviews = sentiment, no reviews ≠ bad`;
+- Remember: taps = traffic, reviews = sentiment, no reviews ≠ bad
+- Start with wins from positiveThemes, then gently mention 1-2 opportunities from negativeThemes`;
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
@@ -97,7 +122,7 @@ When answering questions:
         model: "google/gemini-2.5-flash",
         messages: chatMessages,
         temperature: 0.8,
-        max_tokens: 350,
+        max_tokens: 400,
       }),
     });
 

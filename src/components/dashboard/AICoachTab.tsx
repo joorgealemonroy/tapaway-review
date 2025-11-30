@@ -5,15 +5,29 @@ import { toast } from "@/hooks/use-toast";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+interface ReviewTheme {
+  theme: string;
+  count: number;
+  exampleQuotes: string[];
+}
+
 interface AICoachTabProps {
   restaurantId: string;
   locationId?: string;
+}
+
+interface ReviewTheme {
+  theme: string;
+  count: number;
+  exampleQuotes: string[];
 }
 
 interface AiCoachStats {
   totalTaps: number;
   totalReviews: number;
   avgRating: number | null;
+  recentReviewCount: number;
+  recentWindowDescription: string;
   positive: number;
   neutral: number;
   negative: number;
@@ -30,6 +44,8 @@ interface AiCoachStats {
     text: string;
     relative_time_description: string | null;
   }[];
+  negativeThemes: ReviewTheme[];
+  positiveThemes: ReviewTheme[];
 }
 
 interface Message {
@@ -260,7 +276,23 @@ interface UnlockedStateProps {
 }
 
 function UnlockedState({ restaurantName, stats, syncing, onRefresh }: UnlockedStateProps) {
-  const { totalTaps, totalReviews, avgRating, positivePct, neutralPct, negativePct, positive, neutral, negative, lastGoogleSyncAt } = stats;
+  const { 
+    totalTaps, 
+    totalReviews, 
+    avgRating, 
+    recentReviewCount,
+    recentWindowDescription,
+    positivePct, 
+    neutralPct, 
+    negativePct, 
+    positive, 
+    neutral, 
+    negative, 
+    lastGoogleSyncAt,
+    latestReviews,
+    positiveThemes,
+    negativeThemes 
+  } = stats;
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -374,7 +406,13 @@ function UnlockedState({ restaurantName, stats, syncing, onRefresh }: UnlockedSt
         {/* LEFT: WIN CARDS */}
         <div className="space-y-6">
           <WinCard stats={stats} restaurantName={restaurantName} />
+          {positiveThemes && positiveThemes.length > 0 && (
+            <WhereYoureWinningCard themes={positiveThemes} />
+          )}
           <HowTapAwayHelpsCard />
+          {negativeThemes && negativeThemes.length > 0 && (
+            <OpportunitiesCard themes={negativeThemes} />
+          )}
         </div>
 
         {/* RIGHT: CHAT + SENTIMENT */}
@@ -387,8 +425,15 @@ function UnlockedState({ restaurantName, stats, syncing, onRefresh }: UnlockedSt
             onInputChange={setInput}
             onAsk={handleAsk}
           />
+          {latestReviews && latestReviews.length > 0 && (
+            <RecentReviewsCard 
+              reviews={latestReviews} 
+              recentWindowDescription={recentWindowDescription}
+            />
+          )}
           <SentimentCard 
-            totalReviews={totalReviews}
+            recentReviewCount={recentReviewCount}
+            recentWindowDescription={recentWindowDescription}
             positive={positive}
             neutral={neutral}
             negative={negative}
@@ -403,7 +448,7 @@ function UnlockedState({ restaurantName, stats, syncing, onRefresh }: UnlockedSt
 }
 
 function WinCard({ stats, restaurantName }: { stats: AiCoachStats; restaurantName: string }) {
-  const { totalTaps, totalReviews, avgRating } = stats;
+  const { totalTaps, totalReviews, avgRating, recentReviewCount } = stats;
 
   return (
     <div className="bg-gradient-to-br from-green-50 to-teal-50 border border-green-200 rounded-2xl p-6">
@@ -414,29 +459,74 @@ function WinCard({ stats, restaurantName }: { stats: AiCoachStats; restaurantNam
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            Customers are actively tapping your TapAway cards — <strong>{totalTaps.toLocaleString()} taps</strong> means every interaction is a chance to earn another happy review.
+            Customers are actively tapping your TapAway cards — <strong>{totalTaps.toLocaleString()} hub {totalTaps === 1 ? 'visit' : 'visits'}</strong> means more chances to earn happy reviews.
           </span>
         </li>
         {avgRating && (
           <li className="flex items-start gap-2">
             <span className="text-green-600 mt-0.5">•</span>
             <span>
-              Your average Google rating is <strong>{avgRating.toFixed(1)}★</strong>. That's a strong first impression for new customers searching for {restaurantName}.
+              Your average Google rating is <strong>{avgRating.toFixed(1)}★</strong>. That's a strong first impression for new customers.
             </span>
           </li>
         )}
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            You've collected <strong>{totalReviews} Google {totalReviews === 1 ? 'review' : 'reviews'}</strong>. Each one makes your restaurant more discoverable and trusted.
+            You've collected <strong>{totalReviews} Google {totalReviews === 1 ? 'review' : 'reviews'}</strong>. Each one makes your restaurant more discoverable.
           </span>
         </li>
         <li className="flex items-start gap-2">
           <span className="text-green-600 mt-0.5">•</span>
           <span>
-            TapAway is tracking every tap and review automatically — <strong>no extra work</strong>, just better insights for you.
+            TapAway is tracking every tap and review automatically — <strong>no extra work</strong>, just better decisions.
           </span>
         </li>
+      </ul>
+    </div>
+  );
+}
+
+function WhereYoureWinningCard({ themes }: { themes: ReviewTheme[] }) {
+  const icons = ['🫶', '🌮', '✨', '⚡', '💚', '🎯', '👏'];
+  
+  return (
+    <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6">
+      <h3 className="text-base font-semibold text-purple-900 mb-4">
+        Where you're winning right now
+      </h3>
+      <ul className="space-y-2.5 text-sm text-purple-800">
+        {themes.slice(0, 4).map((theme, idx) => (
+          <li key={idx} className="flex items-start gap-2">
+            <span className="mt-0.5">{icons[idx % icons.length]}</span>
+            <span>
+              <strong>{theme.theme}</strong> — guests keep mentioning this{theme.count > 1 && ` (${theme.count}+ reviews)`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function OpportunitiesCard({ themes }: { themes: ReviewTheme[] }) {
+  return (
+    <div className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-6">
+      <h3 className="text-base font-semibold text-orange-900 mb-4">
+        Top opportunities to improve
+      </h3>
+      <ul className="space-y-3 text-sm text-orange-800">
+        {themes.slice(0, 2).map((theme, idx) => (
+          <li key={idx} className="flex items-start gap-2">
+            <span className="text-orange-600 mt-0.5">•</span>
+            <div>
+              <p className="font-medium">{theme.theme}</p>
+              <p className="text-xs text-orange-700 mt-1">
+                A few guests mention this — focusing here could turn more visits into 5★ reviews.
+              </p>
+            </div>
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -548,8 +638,50 @@ function ChatCard({ quickQuestions, messages, input, isSending, onInputChange, o
   );
 }
 
+interface RecentReviewsCardProps {
+  reviews: {
+    author_name: string;
+    rating: number;
+    text: string;
+    relative_time_description: string | null;
+  }[];
+  recentWindowDescription: string;
+}
+
+function RecentReviewsCard({ reviews, recentWindowDescription }: RecentReviewsCardProps) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+      <h3 className="text-sm font-semibold text-slate-900 mb-4">
+        Recent Google reviews
+      </h3>
+      <div className="space-y-4">
+        {reviews.slice(0, 3).map((review, idx) => (
+          <div key={idx} className="border-b border-slate-100 last:border-0 pb-3 last:pb-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-medium text-slate-700">{review.author_name}</span>
+              <span className="text-xs text-yellow-500">{'★'.repeat(review.rating)}</span>
+              {review.relative_time_description && (
+                <span className="text-xs text-slate-400">· {review.relative_time_description}</span>
+              )}
+            </div>
+            {review.text && (
+              <p className="text-xs text-slate-600 line-clamp-2">
+                {review.text}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-slate-400 mt-4">
+        Showing a few recent reviews — insights are based on {recentWindowDescription}.
+      </p>
+    </div>
+  );
+}
+
 interface SentimentCardProps {
-  totalReviews: number;
+  recentReviewCount: number;
+  recentWindowDescription: string;
   positive: number;
   neutral: number;
   negative: number;
@@ -558,19 +690,27 @@ interface SentimentCardProps {
   negativePct: number | null;
 }
 
-function SentimentCard({ totalReviews, positive, neutral, negative, positivePct, neutralPct, negativePct }: SentimentCardProps) {
-  if (totalReviews === 0) {
+function SentimentCard({ 
+  recentReviewCount, 
+  recentWindowDescription,
+  positive, 
+  neutral, 
+  negative, 
+  positivePct, 
+  neutralPct, 
+  negativePct 
+}: SentimentCardProps) {
+  if (recentReviewCount === 0 || positivePct === null) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
         <h3 className="text-sm font-semibold text-slate-900 mb-3">
-          Customer Sentiment from Google Reviews
+          Customer sentiment at a glance
         </h3>
-        <div className="p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 text-sm text-slate-500">
+          <span className="text-2xl">👍</span>
           <p>
-            <strong>Waiting for your first Google reviews 👍</strong>
-          </p>
-          <p className="mt-2">
-            You're already getting taps. As soon as reviews start coming in, I'll break down what customers love most.
+            Waiting for your first Google reviews — as soon as they arrive,
+            I'll show you what customers love most.
           </p>
         </div>
       </div>
@@ -579,23 +719,24 @@ function SentimentCard({ totalReviews, positive, neutral, negative, positivePct,
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-      <h3 className="text-sm font-semibold text-slate-900 mb-3">
-        Customer Sentiment from Google Reviews
+      <h3 className="text-sm font-semibold text-slate-900 mb-2">
+        Customer sentiment at a glance
       </h3>
-      <p className="text-xs text-muted-foreground mb-4">
-        Most of your guests are having a great experience — here's how that looks based on <strong>{totalReviews}</strong> Google {totalReviews === 1 ? 'review' : 'reviews'}:
+      <p className="text-xs text-slate-500 mb-4">
+        Most of your guests are having a great experience — here's how that looks based on {recentWindowDescription}.
       </p>
+
       <div className="space-y-3">
         {positivePct !== null && positive > 0 && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                Positive (≥4★)
+                <span className="text-base">👍</span>
+                <span className="text-slate-700">Happy guests</span>
               </span>
-              <span className="font-medium">{positive} ({positivePct}%)</span>
+              <span className="font-medium text-slate-900">{positive} ({positivePct}%)</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            <div className="w-full bg-slate-100 rounded-full h-2">
               <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${positivePct}%` }} />
             </div>
           </div>
@@ -604,12 +745,12 @@ function SentimentCard({ totalReviews, positive, neutral, negative, positivePct,
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                Neutral (3★)
+                <span className="text-base">😐</span>
+                <span className="text-slate-700">Neutral</span>
               </span>
-              <span className="font-medium">{neutral} ({neutralPct}%)</span>
+              <span className="font-medium text-slate-900">{neutral} ({neutralPct}%)</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
+            <div className="w-full bg-slate-100 rounded-full h-2">
               <div className="bg-yellow-500 h-2 rounded-full transition-all" style={{ width: `${neutralPct}%` }} />
             </div>
           </div>
@@ -618,13 +759,13 @@ function SentimentCard({ totalReviews, positive, neutral, negative, positivePct,
           <div className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                Negative (≤2★)
+                <span className="text-base">😕</span>
+                <span className="text-slate-700">Needs attention</span>
               </span>
-              <span className="font-medium">{negative} ({negativePct}%)</span>
+              <span className="font-medium text-slate-900">{negative} ({negativePct}%)</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div className="bg-red-500 h-2 rounded-full transition-all" style={{ width: `${negativePct}%` }} />
+            <div className="w-full bg-slate-100 rounded-full h-2">
+              <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${negativePct}%` }} />
             </div>
           </div>
         )}

@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ReviewTheme {
+  theme: string;
+  count: number;
+  exampleQuotes: string[];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -79,44 +85,188 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // 2. Get reviews from google_reviews
-    const { data: reviews } = await supabaseClient
+    // 2. Get ALL reviews from google_reviews
+    const { data: allReviews } = await supabaseClient
       .from('google_reviews')
       .select('author_name, rating, text, review_time, relative_time_description')
       .eq('restaurant_id', restaurantId)
       .order('review_time', { ascending: false });
 
-    const allReviews = reviews ?? [];
-    const totalReviews = allReviews.length;
+    const reviews = allReviews ?? [];
+    const totalReviews = reviews.length;
 
-    // 3. Compute sentiment (ONLY from reviews, never from taps)
+    // 3. Define RECENT review window
+    let recentReviews = reviews;
+    let recentWindowDescription = "all your Google reviews";
+
+    if (totalReviews >= 10) {
+      // Calculate 6 months ago
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      const reviewsLast6Months = reviews.filter(r => 
+        r.review_time && new Date(r.review_time) >= sixMonthsAgo
+      );
+
+      if (reviewsLast6Months.length >= 50) {
+        recentReviews = reviewsLast6Months;
+        recentWindowDescription = `last ${reviewsLast6Months.length} Google reviews (last 6 months)`;
+      } else {
+        // Use up to 50 most recent reviews
+        recentReviews = reviews.slice(0, Math.min(50, reviews.length));
+        recentWindowDescription = `last ${recentReviews.length} Google reviews`;
+      }
+    }
+
+    const recentReviewCount = recentReviews.length;
+
+    // 4. Compute sentiment on recentReviews
     let positive = 0;
     let neutral = 0;
     let negative = 0;
 
-    for (const review of allReviews) {
-      if (review.rating >= 4) positive++;
-      else if (review.rating === 3) neutral++;
-      else negative++;
+    const negativeReviews: typeof reviews = [];
+    const positiveReviews: typeof reviews = [];
+
+    for (const review of recentReviews) {
+      if (review.rating >= 4) {
+        positive++;
+        positiveReviews.push(review);
+      } else if (review.rating === 3) {
+        neutral++;
+        // Include negative-sounding 3★ reviews in negativeReviews for theme analysis
+        if (review.text && (
+          review.text.toLowerCase().includes('but') ||
+          review.text.toLowerCase().includes('however') ||
+          review.text.toLowerCase().includes('unfortunately') ||
+          review.text.toLowerCase().includes('disappointed')
+        )) {
+          negativeReviews.push(review);
+        }
+      } else {
+        negative++;
+        negativeReviews.push(review);
+      }
     }
 
-    const positivePct = totalReviews > 0 ? Math.round((positive / totalReviews) * 100) : null;
-    const neutralPct = totalReviews > 0 ? Math.round((neutral / totalReviews) * 100) : null;
-    const negativePct = totalReviews > 0 ? Math.round((negative / totalReviews) * 100) : null;
+    const positivePct = recentReviewCount > 0 ? Math.round((positive / recentReviewCount) * 100) : null;
+    const neutralPct = recentReviewCount > 0 ? Math.round((neutral / recentReviewCount) * 100) : null;
+    const negativePct = recentReviewCount > 0 ? Math.round((negative / recentReviewCount) * 100) : null;
 
-    // 4. Get latest 3-5 reviews for display
-    const latestReviews = allReviews.slice(0, 5).map(r => ({
+    // 5. Extract themes using AI
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    let negativeThemes: ReviewTheme[] = [];
+    let positiveThemes: ReviewTheme[] = [];
+
+    if (LOVABLE_API_KEY && recentReviewCount > 0) {
+      // Extract negative themes
+      if (negativeReviews.length >= 3) {
+        try {
+          const negativeTexts = negativeReviews
+            .filter(r => r.text && r.text.trim().length > 10)
+            .slice(0, 30)
+            .map(r => `[${r.rating}★] ${r.text}`);
+
+          if (negativeTexts.length > 0) {
+            const negativePrompt = `Analyze these negative restaurant reviews and group them into up to 5 high-level themes. Return a JSON array of objects with: theme (2-4 word name), count (estimated number of reviews mentioning this), exampleQuotes (1-3 very short excerpts, max 10 words each).
+
+Reviews:
+${negativeTexts.join('\n\n')}
+
+Return ONLY valid JSON array, no explanation.`;
+
+            const negResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [{ role: "user", content: negativePrompt }],
+                temperature: 0.3,
+                max_tokens: 500,
+              }),
+            });
+
+            if (negResponse.ok) {
+              const negData = await negResponse.json();
+              const negContent = negData.choices?.[0]?.message?.content ?? "";
+              try {
+                const parsed = JSON.parse(negContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+                negativeThemes = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+              } catch (e) {
+                console.error("Failed to parse negative themes:", e);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error extracting negative themes:", e);
+        }
+      }
+
+      // Extract positive themes
+      if (positiveReviews.length >= 3) {
+        try {
+          const positiveTexts = positiveReviews
+            .filter(r => r.text && r.text.trim().length > 10)
+            .slice(0, 30)
+            .map(r => `[${r.rating}★] ${r.text}`);
+
+          if (positiveTexts.length > 0) {
+            const positivePrompt = `Analyze these positive restaurant reviews and extract what guests LOVE most. Group into up to 5 themes. Return a JSON array of objects with: theme (2-4 word name like "Friendly staff" or "Shrimp tacos"), count (estimated number mentioning this), exampleQuotes (1-3 very short excerpts, max 10 words each).
+
+Reviews:
+${positiveTexts.join('\n\n')}
+
+Return ONLY valid JSON array, no explanation.`;
+
+            const posResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [{ role: "user", content: positivePrompt }],
+                temperature: 0.3,
+                max_tokens: 500,
+              }),
+            });
+
+            if (posResponse.ok) {
+              const posData = await posResponse.json();
+              const posContent = posData.choices?.[0]?.message?.content ?? "";
+              try {
+                const parsed = JSON.parse(posContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+                positiveThemes = Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+              } catch (e) {
+                console.error("Failed to parse positive themes:", e);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error extracting positive themes:", e);
+        }
+      }
+    }
+
+    // 6. Get latest 3-5 reviews for display
+    const latestReviews = reviews.slice(0, 5).map(r => ({
       author_name: r.author_name ?? 'Anonymous',
       rating: r.rating,
       text: r.text ?? '',
       relative_time_description: r.relative_time_description ?? null,
     }));
 
-    // 5. Return comprehensive stats
+    // 7. Return comprehensive stats
     const stats = {
       totalTaps,
       totalReviews,
       avgRating: restaurant.google_rating,
+      recentReviewCount,
+      recentWindowDescription,
       positive,
       neutral,
       negative,
@@ -128,6 +278,8 @@ serve(async (req) => {
       lastGoogleSyncAt: restaurant.last_google_sync_at,
       hasGooglePlaceId: !!restaurant.google_place_id,
       latestReviews,
+      negativeThemes,
+      positiveThemes,
     };
 
     return new Response(
