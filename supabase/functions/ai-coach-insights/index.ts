@@ -99,13 +99,11 @@ serve(async (req) => {
     const reviews = allReviews ?? [];
 
     // For theme analysis: use ALL reviews (not limited)
-    // For display: use the requested limit
+    // For display AND sentiment calculation: use the requested limit
     const displayReviews = reviews.slice(0, limit);
-    
-    // Use all reviews for sentiment and theme extraction
-    const recentReviewCount = reviews.length;
+    const recentReviewCount = displayReviews.length;
 
-    // Compute sentiment on recentReviews
+    // Compute sentiment on LIMITED reviews (selected window)
     let positive = 0;
     let neutral = 0;
     let negative = 0;
@@ -113,12 +111,11 @@ serve(async (req) => {
     const negativeReviews: typeof reviews = [];
     const positiveReviews: typeof reviews = [];
 
+    // Use ALL reviews for theme extraction
     for (const review of reviews) {
       if (review.rating >= 4) {
-        positive++;
         positiveReviews.push(review);
       } else if (review.rating === 3) {
-        neutral++;
         if (review.text && (
           review.text.toLowerCase().includes('but') ||
           review.text.toLowerCase().includes('however') ||
@@ -128,8 +125,18 @@ serve(async (req) => {
           negativeReviews.push(review);
         }
       } else {
-        negative++;
         negativeReviews.push(review);
+      }
+    }
+
+    // Calculate sentiment ONLY from the limited review window
+    for (const review of displayReviews) {
+      if (review.rating >= 4) {
+        positive++;
+      } else if (review.rating === 3) {
+        neutral++;
+      } else {
+        negative++;
       }
     }
 
