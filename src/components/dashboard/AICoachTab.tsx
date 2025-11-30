@@ -121,7 +121,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     setIsSyncing(true);
     try {
       await supabase.functions.invoke('sync-google-reviews', {
-        body: { restaurantId }
+        body: { restaurant_id: restaurantId }
       });
       await loadStats();
       toast.success("Reviews refreshed");
