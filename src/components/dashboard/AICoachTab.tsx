@@ -54,11 +54,18 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
+  const [isChangingLimit, setIsChangingLimit] = useState(false);
 
   useEffect(() => {
     loadStats();
     loadIgnoredCategories();
-  }, [restaurantId, reviewLimit]);
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (stats) {
+      loadStats(true);
+    }
+  }, [reviewLimit]);
 
   const loadIgnoredCategories = async () => {
     const { data, error } = await supabase
@@ -108,8 +115,12 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     toast.success("Hidden for 30 days");
   };
 
-  const loadStats = async () => {
-    setIsLoadingStats(true);
+  const loadStats = async (showLimitChange = false) => {
+    if (showLimitChange) {
+      setIsChangingLimit(true);
+    } else {
+      setIsLoadingStats(true);
+    }
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-insights', {
         body: { restaurantId, reviewLimit }
@@ -122,6 +133,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       toast.error("Failed to load insights");
     } finally {
       setIsLoadingStats(false);
+      setIsChangingLimit(false);
     }
   };
 
@@ -161,7 +173,15 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
 
       if (error) throw error;
 
-      setChatHistory(prev => [...prev, { role: "assistant", content: data.response }]);
+      setChatHistory(prev => [...prev, { role: "assistant", content: data.reply }]);
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        const container = document.getElementById('chat-container');
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error("Failed to send message");
@@ -207,14 +227,23 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       </div>
 
       {/* Sentiment Card */}
-      <SentimentCard sentiment={stats.sentiment} />
+      <SentimentCard sentiment={stats.sentiment} reviewCount={stats.recentReviews.length} isChanging={isChangingLimit} />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Wins + Opportunities + Reviews */}
         <div className="space-y-6">
           {/* Wins */}
-          {stats.wins.length > 0 && (
+          {isChangingLimit ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </CardContent>
+            </Card>
+          ) : stats.wins.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
@@ -225,10 +254,19 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                 ))}
               </CardContent>
             </Card>
-          )}
+          ) : null}
 
           {/* Opportunities */}
-          {visibleOpportunities.length > 0 ? (
+          {isChangingLimit ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Top things to fix next</CardTitle>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </CardContent>
+            </Card>
+          ) : visibleOpportunities.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Top things to fix next</CardTitle>
@@ -236,9 +274,11 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
               <CardContent className="space-y-4">
                 {visibleOpportunities.slice(0, 3).map((opp, idx) => (
                   <motion.div
-                    key={idx}
+                    key={opp.category}
                     initial={{ opacity: 1 }}
+                    animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
                     className="space-y-2 pb-4 border-b last:border-b-0 last:pb-0"
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -347,7 +387,10 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
             </div>
 
             {/* Chat History */}
-            <div className="h-[160px] overflow-y-auto space-y-3 border rounded-lg p-3 bg-muted/30">
+            <div 
+              className="h-[160px] overflow-y-auto space-y-3 border rounded-lg p-3 bg-muted/30"
+              id="chat-container"
+            >
               {chatHistory.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Ask me anything
@@ -402,7 +445,11 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   );
 };
 
-const SentimentCard = ({ sentiment }: { sentiment: AiCoachStats['sentiment'] }) => {
+const SentimentCard = ({ sentiment, reviewCount, isChanging }: { 
+  sentiment: AiCoachStats['sentiment']; 
+  reviewCount: number;
+  isChanging: boolean;
+}) => {
   const { positiveCount, negativeCount, percentagePositive } = sentiment;
   const total = positiveCount + negativeCount;
 
@@ -423,29 +470,37 @@ const SentimentCard = ({ sentiment }: { sentiment: AiCoachStats['sentiment'] }) 
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="text-center mb-4">
-          <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
-          <p className="text-sm text-muted-foreground">
-            {total < 5 
-              ? "Early signal from recent reviews — keep collecting more"
-              : "Based on your Google reviews"
-            }
-          </p>
-        </div>
+        {isChanging ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <div className="text-center mb-4">
+              <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
+              <p className="text-sm text-muted-foreground">
+                {total < 5 
+                  ? "Early signal from recent reviews — keep collecting more"
+                  : `Based on last ${reviewCount} reviews`
+                }
+              </p>
+            </div>
 
-        <motion.div
-          className="h-3 rounded-full overflow-hidden bg-muted"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-green-500 to-orange-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${percentagePositive}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          />
-        </motion.div>
+            <motion.div
+              className="h-3 rounded-full overflow-hidden bg-muted"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <motion.div
+                className="h-full bg-gradient-to-r from-green-500 to-orange-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${percentagePositive}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </motion.div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
