@@ -154,7 +154,8 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
         body: {
           restaurantId,
           message: textToSend,
-          chatHistory
+          chatHistory,
+          stats: stats // Pass current stats to chat function
         }
       });
 
