@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     // Validate reviewLimit
-    const validLimits = [5, 10, 20, 50];
+    const validLimits = [5, 10, 20, 30, 40, 50];
     const limit = validLimits.includes(reviewLimit) ? reviewLimit : 10;
 
     const supabaseClient = createClient(
@@ -98,8 +98,18 @@ serve(async (req) => {
 
     const reviews = allReviews ?? [];
 
-    // CRITICAL: Use ONLY the limited window for ALL calculations (sentiment, themes, display)
-    const displayReviews = reviews.slice(0, limit);
+    // CRITICAL: Filter to ONLY reviews from last 90 days (3 months)
+    const now = new Date();
+    const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+    
+    const recentReviews = reviews.filter(r => {
+      if (!r.review_time) return false;
+      const reviewDate = new Date(r.review_time);
+      return reviewDate >= ninetyDaysAgo;
+    });
+
+    // Apply the selected limit to recent reviews ONLY
+    const displayReviews = recentReviews.slice(0, limit);
     const recentReviewCount = displayReviews.length;
 
     // Compute sentiment on LIMITED reviews (selected window)
