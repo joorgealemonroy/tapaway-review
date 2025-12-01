@@ -70,6 +70,9 @@ const Admin = () => {
 
   const [yelpDebugTarget, setYelpDebugTarget] = useState<YelpDebugRestaurant | null>(null);
 
+  const [seedingTestAccounts, setSeedingTestAccounts] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -292,6 +295,48 @@ const Admin = () => {
     window.open(`/${r.custom_slug}`, "_blank");
   };
 
+  const seedTestAccounts = async () => {
+    setSeedingTestAccounts(true);
+    setSeedMessage(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-test-accounts");
+      
+      if (error) throw error;
+      
+      setSeedMessage(`✅ ${data.message}`);
+      
+      // Reload restaurants to show new test accounts
+      const { data: allRestaurants } = await supabase
+        .from("restaurants")
+        .select("id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name")
+        .order("created_at", { ascending: false });
+
+      const restaurantIds = (allRestaurants ?? []).map(r => r.id);
+      const { data: tapCounts } = await supabase
+        .from("analytics_events")
+        .select("restaurant_id")
+        .eq("event_type", "tap")
+        .in("restaurant_id", restaurantIds);
+
+      const tapsMap: Record<string, number> = {};
+      (tapCounts ?? []).forEach(event => {
+        tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
+      });
+
+      const restaurantsWithTaps = (allRestaurants ?? []).map(r => ({
+        ...r,
+        total_taps: tapsMap[r.id] ?? 0
+      }));
+
+      setRestaurants(restaurantsWithTaps);
+    } catch (e: any) {
+      setSeedMessage(`❌ Error: ${e.message}`);
+    } finally {
+      setSeedingTestAccounts(false);
+    }
+  };
+
   if (authLoading || adminLoading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -315,6 +360,25 @@ const Admin = () => {
           Logged in as {user?.email}
         </p>
       </div>
+
+      <section className="bg-card border rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold">Test Accounts</h2>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={seedTestAccounts} 
+            disabled={seedingTestAccounts}
+            size="sm"
+          >
+            {seedingTestAccounts ? "Seeding..." : "Seed Test Accounts"}
+          </Button>
+          {seedMessage && (
+            <p className="text-sm">{seedMessage}</p>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Creates test-owner1@tapaway.co, test-owner2@tapaway.co, test-owner3@tapaway.co with active subscriptions and 2,500 taps each.
+        </p>
+      </section>
 
       <section className="bg-card border rounded-xl p-4 space-y-3">
         <h2 className="font-semibold">Filters</h2>
