@@ -20,6 +20,7 @@ import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
+import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 interface Restaurant {
   id: string;
   restaurant_name: string;
@@ -31,6 +32,7 @@ interface Restaurant {
   type?: string | null;
   greeting_name?: string | null;
   total_taps?: number;
+  is_demo_account?: boolean;
 }
 interface Location {
   id: string;
@@ -49,7 +51,7 @@ const Dashboard = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isTestAccount, setIsTestAccount] = useState(false);
+  const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   useEffect(() => {
@@ -73,8 +75,9 @@ const Dashboard = () => {
     const metaAdmin = (user as any)?.app_metadata?.role === 'admin';
     const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
     const grandfathered = isGrandfatheredUser(user?.email);
+    const isTestAcc = checkIsTestAccount(user?.email);
     setIsAdmin(effectiveAdmin);
-    setIsTestAccount(isTestData || false);
+    setIsTestAccountFlag(isTestAcc);
     setIsGrandfathered(grandfathered);
     if (effectiveAdmin) {
       fetchAllRestaurants();
@@ -86,7 +89,7 @@ const Dashboard = () => {
     // Get all restaurants
     const { data: allRestaurantsData } = await (supabase as any)
       .from("restaurants")
-      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name")
+      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name, is_demo_account")
       .order("restaurant_name");
 
     if (!allRestaurantsData || allRestaurantsData.length === 0) return;
@@ -380,7 +383,7 @@ const Dashboard = () => {
               <SelectContent>
                 {allRestaurants.map(r => (
                   <SelectItem key={r.id} value={r.id}>
-                    {r.restaurant_name} ({r.total_taps?.toLocaleString() ?? 0} taps)
+                    {r.restaurant_name} {r.is_demo_account && '(TEST)'} ({r.total_taps?.toLocaleString() ?? 0} taps)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -406,13 +409,20 @@ const Dashboard = () => {
             </div>
           </Card>}
         
+        {/* Test Account Banner */}
+        {isTestAccountFlag && (
+          <div className="mb-3 rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-800 border border-amber-200">
+            You're using a <strong>TapAway test account</strong>. Data here is for internal testing only.
+          </div>
+        )}
+
         {restaurant && <>
             <div className="mb-4 md:mb-6">
               <h1 className="text-2xl md:text-3xl font-bold">
                 {restaurant.restaurant_name}
               </h1>
               <p className="text-sm md:text-base text-muted-foreground">
-                {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccount ? "Test Account Dashboard" : "Restaurant Dashboard"}
+                {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccountFlag ? "Test Account Dashboard" : "Restaurant Dashboard"}
               </p>
             </div>
 
@@ -475,7 +485,7 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="billing">
-                <BillingTab restaurant={restaurant} isTestAccount={isTestAccount} isGrandfathered={isGrandfathered} />
+                <BillingTab restaurant={restaurant} isTestAccount={isTestAccountFlag} isGrandfathered={isGrandfathered} />
               </TabsContent>
             </Tabs>
           </>}

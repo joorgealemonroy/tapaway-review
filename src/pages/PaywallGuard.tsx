@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
+import { isTestAccount } from "@/lib/testAccounts";
 
 export const usePaywallGuard = () => {
   const { user } = useAuth();
@@ -19,6 +20,13 @@ export const usePaywallGuard = () => {
       // Super admin bypasses everything and goes to /admin
       if (isSuperAdmin(user.email)) {
         navigate("/admin");
+        setChecking(false);
+        return;
+      }
+
+      // Test accounts bypass paywall
+      if (isTestAccount(user.email)) {
+        navigate("/dashboard");
         setChecking(false);
         return;
       }
