@@ -89,7 +89,7 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // Get ALL reviews from google_reviews for theme analysis
+    // Get reviews sorted by time (newest first)
     const { data: allReviews } = await supabaseClient
       .from('google_reviews')
       .select('author_name, rating, text, review_time, relative_time_description')
@@ -98,8 +98,7 @@ serve(async (req) => {
 
     const reviews = allReviews ?? [];
 
-    // For theme analysis: use ALL reviews (not limited)
-    // For display AND sentiment calculation: use the requested limit
+    // CRITICAL: Use ONLY the limited window for ALL calculations (sentiment, themes, display)
     const displayReviews = reviews.slice(0, limit);
     const recentReviewCount = displayReviews.length;
 
@@ -111,11 +110,12 @@ serve(async (req) => {
     const negativeReviews: typeof reviews = [];
     const positiveReviews: typeof reviews = [];
 
-    // Use ALL reviews for theme extraction
-    for (const review of reviews) {
+    // Use ONLY displayReviews (limited window) for theme extraction
+    for (const review of displayReviews) {
       if (review.rating >= 4) {
         positiveReviews.push(review);
       } else if (review.rating === 3) {
+        // Treat negative 3-star reviews as needing attention
         if (review.text && (
           review.text.toLowerCase().includes('but') ||
           review.text.toLowerCase().includes('however') ||
@@ -124,7 +124,8 @@ serve(async (req) => {
         )) {
           negativeReviews.push(review);
         }
-      } else {
+      } else if (review.rating <= 2) {
+        // Always include 1-2 star reviews as negative
         negativeReviews.push(review);
       }
     }
@@ -148,22 +149,22 @@ serve(async (req) => {
     let wins: string[] = [];
 
     if (LOVABLE_API_KEY && recentReviewCount > 0) {
-      // Extract negative themes (opportunities)
-      if (negativeReviews.length >= 2) {
+      // Extract negative themes (opportunities) from limited window
+      if (negativeReviews.length >= 1) {
         try {
           const negativeTexts = negativeReviews
             .filter(r => r.text && r.text.trim().length > 10)
-            .slice(0, 20)
+            .slice(0, 10)
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (negativeTexts.length > 0) {
-            const negativePrompt = `Analyze these negative restaurant reviews and group them into up to 3 high-level categories. Use ONLY these categories: service, food quality, food consistency, price/value, hospitality, cleanliness, wait time, accuracy.
+            const negativePrompt = `Analyze these negative restaurant reviews from the MOST RECENT review window and group them into up to 3 high-level categories. Use ONLY these categories: service, food quality, food consistency, price/value, hospitality, cleanliness, wait time, accuracy.
 
 For each issue found, return:
 - category (one of the 8 listed above)
-- title (short, blunt but kind, e.g. "Service speed could be smoother")
-- summary (very short, 1 sentence, e.g. "Some guests said food takes long during busy hours.")
-- quickWin (1-line action step, e.g. "Prep your top 3 dishes earlier.")
+- title (ULTRA short, under 50 chars, e.g. "Service feels rushed")
+- summary (ONE sentence max, under 80 chars, e.g. "Guests mention slow service during peak hours.")
+- quickWin (ONE line action, under 80 chars, e.g. "Add one more server during dinner rush.")
 
 Reviews:
 ${negativeTexts.join('\n\n')}
@@ -200,23 +201,23 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
         }
       }
 
-      // Extract positive themes (wins)
-      if (positiveReviews.length >= 2) {
+      // Extract positive themes (wins) from limited window
+      if (positiveReviews.length >= 1) {
         try {
           const positiveTexts = positiveReviews
             .filter(r => r.text && r.text.trim().length > 10)
-            .slice(0, 20)
+            .slice(0, 10)
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (positiveTexts.length > 0) {
-            const positivePrompt = `Analyze these positive restaurant reviews and extract what guests LOVE most. Return up to 3 short wins (one-liners with emoji).
+            const positivePrompt = `Analyze these positive restaurant reviews from the MOST RECENT review window and extract what guests LOVE most. Return up to 3 ULTRA short wins (one-liners with emoji, each under 60 chars).
 
 Format: "⭐ [Thing guests love]"
 
 Examples:
-- "⭐ Guests love your ceviche bowl"
-- "⭐ Friendly staff mentioned repeatedly"
-- "⭐ Clean, comfortable vibe"
+- "⭐ Guests love your tacos"
+- "⭐ Friendly staff"
+- "⭐ Clean and cozy"
 
 Reviews:
 ${positiveTexts.join('\n\n')}

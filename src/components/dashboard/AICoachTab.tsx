@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Send } from "lucide-react";
 import { motion } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 interface Review {
   author_name: string;
@@ -217,7 +217,18 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
         <div>
           <h2 className="text-2xl font-bold">AI Coach</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Last updated: {formatDistanceToNow(new Date(stats.lastUpdated), { addSuffix: true })}
+            Last updated: {(() => {
+              const now = new Date();
+              const updated = new Date(stats.lastUpdated);
+              const diffMs = now.getTime() - updated.getTime();
+              const diffMinutes = Math.floor(diffMs / 60000);
+              const diffHours = Math.floor(diffMs / 3600000);
+              
+              if (diffMinutes < 1) return 'just now';
+              if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+              if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+              return `on ${format(updated, 'MMM d, yyyy')}`;
+            })()}
           </p>
         </div>
         <Button onClick={handleRefresh} disabled={isSyncing} variant="outline" size="sm">
@@ -315,17 +326,19 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
           <Card>
             <CardHeader className="space-y-3">
               <CardTitle className="text-lg">Recent Google reviews</CardTitle>
-              <Select value={reviewLimit.toString()} onValueChange={(val) => setReviewLimit(parseInt(val))}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">Showing last 5</SelectItem>
-                  <SelectItem value="10">Showing last 10</SelectItem>
-                  <SelectItem value="20">Showing last 20</SelectItem>
-                  <SelectItem value="50">Showing last 50</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={reviewLimit.toString()} onValueChange={(val) => setReviewLimit(parseInt(val) as 5 | 10 | 20 | 30 | 40 | 50)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">Showing last 5</SelectItem>
+                <SelectItem value="10">Showing last 10</SelectItem>
+                <SelectItem value="20">Showing last 20</SelectItem>
+                <SelectItem value="30">Showing last 30</SelectItem>
+                <SelectItem value="40">Showing last 40</SelectItem>
+                <SelectItem value="50">Showing last 50</SelectItem>
+              </SelectContent>
+            </Select>
             </CardHeader>
             <CardContent>
               {stats.recentReviews.length === 0 ? (
