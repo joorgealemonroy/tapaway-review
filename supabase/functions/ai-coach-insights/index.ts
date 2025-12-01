@@ -98,80 +98,56 @@ serve(async (req) => {
       );
     }
 
-    // Get reviews sorted by time (newest first)
-    const { data: allReviews } = await supabaseClient
+    // Get last 10 reviews (newest first)
+    const { data: lastReviews } = await supabaseClient
       .from('google_reviews')
       .select('author_name, rating, text, review_time, relative_time_description')
       .eq('restaurant_id', restaurantId)
-      .order('review_time', { ascending: false });
+      .order('review_time', { ascending: false })
+      .limit(10);
 
-    const reviews = allReviews ?? [];
+    const reviews = lastReviews ?? [];
+    const reviewCount = reviews.length;
 
-    // CRITICAL: Filter to ONLY reviews from last 90 days (3 months)
-    const now = new Date();
-    const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-    
-    const recentReviews = reviews.filter(r => {
-      if (!r.review_time) return false;
-      const reviewDate = new Date(r.review_time);
-      return reviewDate >= ninetyDaysAgo;
-    });
-
-    // Use ALL recent reviews (no limit)
-    const displayReviews = recentReviews;
-    const recentReviewCount = displayReviews.length;
-
-    // Compute sentiment on LIMITED reviews (selected window)
+    // Compute sentiment from last 10 reviews
     let positive = 0;
-    let neutral = 0;
     let negative = 0;
 
     const negativeReviews: typeof reviews = [];
     const positiveReviews: typeof reviews = [];
 
-    // Extract themes from displayReviews (all recent reviews)
-    for (const review of displayReviews) {
-      if (review.rating >= 4) {
-        positiveReviews.push(review);
-      } else if (review.rating <= 2) {
-        // Only 1-2 star reviews count as negative
-        negativeReviews.push(review);
-      }
-      // 3-star reviews are completely ignored
-    }
-
-    // Calculate sentiment from ALL recent reviews (last 90 days)
-    for (const review of displayReviews) {
+    // Extract themes from reviews
+    for (const review of reviews) {
       if (review.rating >= 4) {
         positive++;
-      } else if (review.rating === 3) {
-        neutral++;
-        // 3-star reviews are counted but ignored in percentage calculation
-      } else {
+        positiveReviews.push(review);
+      } else if (review.rating <= 2) {
         negative++;
+        negativeReviews.push(review);
       }
+      // 3-star reviews are completely ignored in sentiment calculation
     }
 
     // Calculate percentage ignoring 3-star reviews: positive / (positive + negative) * 100
     const sentimentTotal = positive + negative;
     const positivePct = sentimentTotal > 0 ? Math.round((positive / sentimentTotal) * 100) : null;
+    const hasEnoughData = sentimentTotal > 0;
 
     // Extract themes using AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     let opportunities: Opportunity[] = [];
     let wins: string[] = [];
 
-    if (LOVABLE_API_KEY && recentReviewCount > 0) {
-      // Extract negative themes (opportunities) from ALL recent reviews
+    if (LOVABLE_API_KEY && reviewCount > 0) {
+      // Extract negative themes (opportunities) from last 10 reviews
       if (negativeReviews.length > 0) {
         try {
           const negativeTexts = negativeReviews
             .filter(r => r.text && r.text.trim().length > 10)
-            .slice(0, 10)
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (negativeTexts.length > 0) {
-            const negativePrompt = `Analyze these negative restaurant reviews from the last 90 days and identify the top 3 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
+            const negativePrompt = `Analyze these negative restaurant reviews and identify the top 3 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
 
 For each issue found, return:
 - category (one of the 6 listed above)
@@ -214,16 +190,15 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
         }
       }
 
-      // Extract positive themes (wins) from ALL recent reviews
+      // Extract positive themes (wins) from last 10 reviews
       if (positiveReviews.length > 0) {
         try {
           const positiveTexts = positiveReviews
             .filter(r => r.text && r.text.trim().length > 10)
-            .slice(0, 10)
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (positiveTexts.length > 0) {
-            const positivePrompt = `Analyze these positive restaurant reviews from the last 90 days and extract the top 3 things guests LOVE most. Return ULTRA short wins (one-liners with emoji, each under 60 chars).
+            const positivePrompt = `Analyze these positive restaurant reviews and extract the top 3 things guests LOVE most. Return ULTRA short wins (one-liners with emoji, each under 60 chars).
 
 Format: "⭐ [Thing guests love]"
 
@@ -268,25 +243,17 @@ Return ONLY a JSON array of strings (max 3 wins), no explanation.`;
       }
     }
 
-    // Return reviews based on requested limit
-    const latestReviews = displayReviews.map(r => ({
-      author_name: r.author_name ?? 'Anonymous',
-      rating: r.rating,
-      text: r.text ?? '',
-      relative_time_description: r.relative_time_description ?? null,
-      review_time: r.review_time,
-    }));
-
     // Return stats
     const stats = {
       totalTaps,
       wins,
       opportunities,
-      recentReviews: latestReviews,
+      reviewCount,
       sentiment: {
         positiveCount: positive,
         negativeCount: negative,
         percentagePositive: positivePct,
+        hasEnoughData,
       },
       lastUpdated: new Date().toISOString(),
     };

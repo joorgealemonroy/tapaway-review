@@ -8,14 +8,6 @@ import { Loader2, RefreshCw, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
 
-interface Review {
-  author_name: string;
-  rating: number;
-  text: string;
-  relative_time_description: string | null;
-  review_time: string;
-}
-
 interface Opportunity {
   category: string;
   title: string;
@@ -27,11 +19,12 @@ interface AiCoachStats {
   totalTaps: number;
   wins: string[];
   opportunities: Opportunity[];
-  recentReviews: Review[];
+  reviewCount: number;
   sentiment: {
     positiveCount: number;
     negativeCount: number;
     percentagePositive: number | null;
+    hasEnoughData: boolean;
   };
   lastUpdated: string;
 }
@@ -274,7 +267,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       {/* Sentiment Card */}
       <SentimentCard 
         sentiment={stats.sentiment} 
-        reviewCount={stats.recentReviews.length}
+        reviewCount={stats.reviewCount}
       />
 
       {/* Two Column Layout */}
@@ -336,10 +329,10 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
               <CardContent className="text-center py-6">
                 <div className="text-4xl mb-3">🎉</div>
                 <p className="text-sm font-medium mb-2">
-                  No recent bad reviews in the last 90 days.
+                  No recent bad reviews in your last few Google reviews.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Keep doing what you're doing and collecting more feedback.
+                  Keep doing what you're doing.
                 </p>
               </CardContent>
             </Card>
@@ -436,17 +429,16 @@ const SentimentCard = ({
   sentiment: AiCoachStats['sentiment']; 
   reviewCount: number;
 }) => {
-  const { positiveCount, negativeCount, percentagePositive } = sentiment;
-  const total = positiveCount + negativeCount;
+  const { positiveCount, negativeCount, percentagePositive, hasEnoughData } = sentiment;
 
-  if (total === 0 || percentagePositive === null) {
+  if (!hasEnoughData || percentagePositive === null) {
     return (
       <Card>
         <CardContent className="pt-6 text-center">
           <div className="text-4xl mb-2">👍</div>
-          <h3 className="text-3xl font-bold mb-2">No Google reviews in the last 90 days yet</h3>
+          <h3 className="text-3xl font-bold mb-2">Not enough recent reviews yet</h3>
           <p className="text-sm text-muted-foreground">
-            Keep sending guests to your TapAway cards to unlock AI insights.
+            Once you have more reviews, we'll show clear trends here.
           </p>
         </CardContent>
       </Card>
@@ -459,41 +451,36 @@ const SentimentCard = ({
         <div className="mb-4">
           <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
           <p className="text-sm text-muted-foreground">
-            Based on all Google reviews from the last 90 days ({reviewCount} review{reviewCount !== 1 ? 's' : ''}). We focus on recent feedback so you know what matters right now.
+            Based on your last {reviewCount} Google review{reviewCount !== 1 ? 's' : ''}.
           </p>
         </div>
 
         {/* Gradient Bar */}
-        <motion.div
-          className="relative h-3 bg-muted rounded-full overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
+        <div className="relative h-3 rounded-full overflow-hidden bg-slate-100">
           <motion.div
-            className="absolute inset-y-0 left-0 rounded-full"
+            className="h-full rounded-full"
             style={{
               background: `linear-gradient(to right, 
-                ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
-                  percentagePositive >= 60 ? 'hsl(var(--chart-3))' : 
-                  'hsl(var(--chart-1))'} 0%, 
-                ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
-                  percentagePositive >= 60 ? 'hsl(var(--chart-4))' : 
-                  'hsl(var(--chart-5))'} 100%)`
+                ${percentagePositive >= 80 ? 'hsl(142, 76%, 36%)' : 
+                  percentagePositive >= 60 ? 'hsl(45, 93%, 47%)' : 
+                  'hsl(25, 95%, 53%)'}, 
+                ${percentagePositive >= 80 ? 'hsl(142, 76%, 36%)' : 
+                  percentagePositive >= 60 ? 'hsl(45, 93%, 47%)' : 
+                  'hsl(25, 95%, 53%)'})`
             }}
             initial={{ width: 0 }}
             animate={{ width: `${percentagePositive}%` }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           />
-        </motion.div>
+        </div>
 
         {/* Stats Row */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
           <span className="text-muted-foreground">
-            👍 Happy guests — {positiveCount} reviews ({percentagePositive}%)
+            👍 Happy guests — {positiveCount} review{positiveCount !== 1 ? 's' : ''}
           </span>
           <span className="text-muted-foreground">
-            😕 Needs attention — {negativeCount} reviews ({100 - percentagePositive}%)
+            😕 Needs attention — {negativeCount} review{negativeCount !== 1 ? 's' : ''}
           </span>
         </div>
       </CardContent>
