@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Send } from "lucide-react";
@@ -56,24 +55,16 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const [stats, setStats] = useState<AiCoachStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [reviewLimit, setReviewLimit] = useState<number>(10);
   const [ignoredCategories, setIgnoredCategories] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
-  const [isChangingLimit, setIsChangingLimit] = useState(false);
   const [lockedInfo, setLockedInfo] = useState<LockedResponse | null>(null);
 
   useEffect(() => {
     loadStats();
     loadIgnoredCategories();
   }, [restaurantId]);
-
-  useEffect(() => {
-    if (stats) {
-      loadStats(true);
-    }
-  }, [reviewLimit]);
 
   const loadIgnoredCategories = async () => {
     const { data, error } = await supabase
@@ -123,15 +114,11 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     toast.success("Hidden for 30 days");
   };
 
-  const loadStats = async (showLimitChange = false) => {
-    if (showLimitChange) {
-      setIsChangingLimit(true);
-    } else {
-      setIsLoadingStats(true);
-    }
+  const loadStats = async () => {
+    setIsLoadingStats(true);
     try {
       const { data, error } = await supabase.functions.invoke('ai-coach-insights', {
-        body: { restaurantId, reviewLimit }
+        body: { restaurantId }
       });
 
       if (error) {
@@ -150,7 +137,6 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       toast.error("Failed to load insights");
     } finally {
       setIsLoadingStats(false);
-      setIsChangingLimit(false);
     }
   };
 
@@ -288,27 +274,15 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       {/* Sentiment Card */}
       <SentimentCard 
         sentiment={stats.sentiment} 
-        reviewCount={stats.recentReviews.length} 
-        isChanging={isChangingLimit}
-        reviewLimit={reviewLimit}
-        onReviewLimitChange={setReviewLimit}
+        reviewCount={stats.recentReviews.length}
       />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Wins + Opportunities + Reviews */}
+        {/* Left: Wins + Opportunities */}
         <div className="space-y-6">
           {/* Wins */}
-          {isChangingLimit ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </CardContent>
-            </Card>
-          ) : stats.wins.length > 0 ? (
+          {stats.wins.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
@@ -322,16 +296,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
           ) : null}
 
           {/* Opportunities */}
-          {isChangingLimit ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Top things to fix next</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </CardContent>
-            </Card>
-          ) : visibleOpportunities.length > 0 ? (
+          {visibleOpportunities.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Top things to fix next</CardTitle>
@@ -466,16 +431,10 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
 
 const SentimentCard = ({ 
   sentiment, 
-  reviewCount, 
-  isChanging,
-  reviewLimit,
-  onReviewLimitChange
+  reviewCount
 }: { 
   sentiment: AiCoachStats['sentiment']; 
   reviewCount: number;
-  isChanging: boolean;
-  reviewLimit: number;
-  onReviewLimitChange: (limit: number) => void;
 }) => {
   const { positiveCount, negativeCount, percentagePositive } = sentiment;
   const total = positiveCount + negativeCount;
@@ -497,72 +456,46 @@ const SentimentCard = ({
   return (
     <Card>
       <CardContent className="pt-6">
-        {isChanging ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-              <div className="text-center sm:text-left flex-1">
-                <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
-                <p className="text-sm text-muted-foreground">
-                  Based on your last {reviewCount} Google reviews (past 90 days). We focus on recent feedback so you know what to improve right now.
-                </p>
-              </div>
-              <Select 
-                value={reviewLimit.toString()} 
-                onValueChange={(val) => onReviewLimitChange(parseInt(val) as 5 | 10 | 20 | 30 | 40 | 50)}
-              >
-                <SelectTrigger className="w-[160px] shrink-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">Showing last 5</SelectItem>
-                  <SelectItem value="10">Showing last 10</SelectItem>
-                  <SelectItem value="20">Showing last 20</SelectItem>
-                  <SelectItem value="30">Showing last 30</SelectItem>
-                  <SelectItem value="40">Showing last 40</SelectItem>
-                  <SelectItem value="50">Showing last 50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="mb-4">
+          <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
+          <p className="text-sm text-muted-foreground">
+            Based on all Google reviews from the last 90 days ({reviewCount} review{reviewCount !== 1 ? 's' : ''}). We focus on recent feedback so you know what matters right now.
+          </p>
+        </div>
 
-            {/* Gradient Bar */}
-            <motion.div
-              className="relative h-3 bg-muted rounded-full overflow-hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <motion.div
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{
-                  background: `linear-gradient(to right, 
-                    ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
-                      percentagePositive >= 60 ? 'hsl(var(--chart-3))' : 
-                      'hsl(var(--chart-1))'} 0%, 
-                    ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
-                      percentagePositive >= 60 ? 'hsl(var(--chart-4))' : 
-                      'hsl(var(--chart-5))'} 100%)`
-                }}
-                initial={{ width: 0 }}
-                animate={{ width: `${percentagePositive}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-            </motion.div>
+        {/* Gradient Bar */}
+        <motion.div
+          className="relative h-3 bg-muted rounded-full overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{
+              background: `linear-gradient(to right, 
+                ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
+                  percentagePositive >= 60 ? 'hsl(var(--chart-3))' : 
+                  'hsl(var(--chart-1))'} 0%, 
+                ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
+                  percentagePositive >= 60 ? 'hsl(var(--chart-4))' : 
+                  'hsl(var(--chart-5))'} 100%)`
+            }}
+            initial={{ width: 0 }}
+            animate={{ width: `${percentagePositive}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          />
+        </motion.div>
 
-            {/* Stats Row */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
-              <span className="text-muted-foreground">
-                👍 Happy guests — {positiveCount} reviews ({percentagePositive}%)
-              </span>
-              <span className="text-muted-foreground">
-                😕 Needs attention — {negativeCount} reviews ({100 - percentagePositive}%)
-              </span>
-            </div>
-          </>
-        )}
+        {/* Stats Row */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
+          <span className="text-muted-foreground">
+            👍 Happy guests — {positiveCount} reviews ({percentagePositive}%)
+          </span>
+          <span className="text-muted-foreground">
+            😕 Needs attention — {negativeCount} reviews ({100 - percentagePositive}%)
+          </span>
+        </div>
       </CardContent>
     </Card>
   );

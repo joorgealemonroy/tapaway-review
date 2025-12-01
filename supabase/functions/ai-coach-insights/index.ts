@@ -27,7 +27,7 @@ serve(async (req) => {
       );
     }
 
-    const { restaurantId, reviewLimit = 10 } = await req.json();
+    const { restaurantId } = await req.json();
     
     if (!restaurantId) {
       return new Response(
@@ -35,10 +35,6 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Validate reviewLimit
-    const validLimits = [5, 10, 20, 30, 40, 50];
-    const limit = validLimits.includes(reviewLimit) ? reviewLimit : 10;
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -121,8 +117,8 @@ serve(async (req) => {
       return reviewDate >= ninetyDaysAgo;
     });
 
-    // Apply the selected limit to recent reviews ONLY
-    const displayReviews = recentReviews.slice(0, limit);
+    // Use ALL recent reviews (no limit)
+    const displayReviews = recentReviews;
     const recentReviewCount = displayReviews.length;
 
     // Compute sentiment on LIMITED reviews (selected window)
@@ -133,38 +129,30 @@ serve(async (req) => {
     const negativeReviews: typeof reviews = [];
     const positiveReviews: typeof reviews = [];
 
-    // Use ONLY displayReviews (limited window) for theme extraction
+    // Extract themes from displayReviews (all recent reviews)
     for (const review of displayReviews) {
       if (review.rating >= 4) {
         positiveReviews.push(review);
-      } else if (review.rating === 3) {
-        // Treat negative 3-star reviews as needing attention
-        if (review.text && (
-          review.text.toLowerCase().includes('but') ||
-          review.text.toLowerCase().includes('however') ||
-          review.text.toLowerCase().includes('unfortunately') ||
-          review.text.toLowerCase().includes('disappointed')
-        )) {
-          negativeReviews.push(review);
-        }
       } else if (review.rating <= 2) {
-        // Always include 1-2 star reviews as negative
+        // Only 1-2 star reviews count as negative
         negativeReviews.push(review);
       }
+      // 3-star reviews are completely ignored
     }
 
-    // Calculate sentiment ONLY from the limited review window
+    // Calculate sentiment from ALL recent reviews (last 90 days)
     for (const review of displayReviews) {
       if (review.rating >= 4) {
         positive++;
       } else if (review.rating === 3) {
         neutral++;
+        // 3-star reviews are counted but ignored in percentage calculation
       } else {
         negative++;
       }
     }
 
-    // Calculate percentage ignoring 3-star reviews (positive / (positive + negative) * 100)
+    // Calculate percentage ignoring 3-star reviews: positive / (positive + negative) * 100
     const sentimentTotal = positive + negative;
     const positivePct = sentimentTotal > 0 ? Math.round((positive / sentimentTotal) * 100) : null;
 
@@ -174,8 +162,8 @@ serve(async (req) => {
     let wins: string[] = [];
 
     if (LOVABLE_API_KEY && recentReviewCount > 0) {
-      // Extract negative themes (opportunities) from limited window
-      if (negativeReviews.length >= 1) {
+      // Extract negative themes (opportunities) from ALL recent reviews
+      if (negativeReviews.length > 0) {
         try {
           const negativeTexts = negativeReviews
             .filter(r => r.text && r.text.trim().length > 10)
@@ -183,13 +171,13 @@ serve(async (req) => {
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (negativeTexts.length > 0) {
-            const negativePrompt = `Analyze these negative restaurant reviews from the MOST RECENT review window and group them into up to 3 high-level categories. Use ONLY these categories: service, food quality, food consistency, price/value, hospitality, cleanliness, wait time, accuracy.
+            const negativePrompt = `Analyze these negative restaurant reviews from the last 90 days and identify the top 3 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
 
 For each issue found, return:
-- category (one of the 8 listed above)
-- title (ULTRA short, under 50 chars, e.g. "Service feels rushed")
-- summary (ONE sentence max, under 80 chars, e.g. "Guests mention slow service during peak hours.")
-- quickWin (ONE line action, under 80 chars, e.g. "Add one more server during dinner rush.")
+- category (one of the 6 listed above)
+- title (ULTRA short, under 50 chars, direct and blunt, e.g. "Service feels rude")
+- summary (ONE sentence max, under 80 chars, e.g. "Multiple guests report unfriendly staff.")
+- quickWin (ONE line action, under 80 chars, e.g. "Coach staff on greeting warmly.")
 
 Reviews:
 ${negativeTexts.join('\n\n')}
@@ -226,8 +214,8 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
         }
       }
 
-      // Extract positive themes (wins) from limited window
-      if (positiveReviews.length >= 1) {
+      // Extract positive themes (wins) from ALL recent reviews
+      if (positiveReviews.length > 0) {
         try {
           const positiveTexts = positiveReviews
             .filter(r => r.text && r.text.trim().length > 10)
@@ -235,14 +223,14 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (positiveTexts.length > 0) {
-            const positivePrompt = `Analyze these positive restaurant reviews from the MOST RECENT review window and extract what guests LOVE most. Return up to 3 ULTRA short wins (one-liners with emoji, each under 60 chars).
+            const positivePrompt = `Analyze these positive restaurant reviews from the last 90 days and extract the top 3 things guests LOVE most. Return ULTRA short wins (one-liners with emoji, each under 60 chars).
 
 Format: "⭐ [Thing guests love]"
 
 Examples:
-- "⭐ Guests love your tacos"
-- "⭐ Friendly staff"
-- "⭐ Clean and cozy"
+- "⭐ Guests love your ceviche"
+- "⭐ Friendly service"
+- "⭐ Clean and welcoming"
 
 Reviews:
 ${positiveTexts.join('\n\n')}
