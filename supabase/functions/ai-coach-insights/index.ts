@@ -45,7 +45,7 @@ serve(async (req) => {
     // Verify restaurant ownership or admin access
     const { data: restaurant, error: restaurantError } = await supabaseClient
       .from('restaurants')
-      .select('owner_id, google_rating')
+      .select('owner_id, google_rating, is_demo_account')
       .eq('id', restaurantId)
       .single();
 
@@ -85,8 +85,9 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // Check 1,000-tap unlock for non-admins
-    if (!isAdmin && totalTaps < 1000) {
+    // Check 1,000-tap unlock for non-admins (test accounts bypass this)
+    const isTestAccount = restaurant.is_demo_account === true;
+    if (!isAdmin && !isTestAccount && totalTaps < 1000) {
       return new Response(
         JSON.stringify({ 
           error: 'AI Coach locked',

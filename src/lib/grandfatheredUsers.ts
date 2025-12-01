@@ -1,3 +1,5 @@
+import { isTestAccount } from './testAccounts';
+
 // Super admin account (God mode - bypasses everything)
 export const SUPER_ADMIN_EMAIL = 'tap@tapaway.co';
 
@@ -18,5 +20,5 @@ export const isSuperAdmin = (email: string | undefined | null): boolean => {
 
 export const isGrandfatheredUser = (email: string | undefined | null): boolean => {
   if (!email) return false;
-  return GRANDFATHERED_EMAILS.includes(email.toLowerCase());
+  return GRANDFATHERED_EMAILS.includes(email.toLowerCase()) || isTestAccount(email);
 };
