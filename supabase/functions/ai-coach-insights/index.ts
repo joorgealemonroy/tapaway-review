@@ -89,6 +89,19 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
+    // Check 1,000-tap unlock for non-admins
+    if (!isAdmin && totalTaps < 1000) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI Coach locked',
+          locked: true,
+          totalTaps,
+          requiredTaps: 1000
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get reviews sorted by time (newest first)
     const { data: allReviews } = await supabaseClient
       .from('google_reviews')
@@ -151,7 +164,9 @@ serve(async (req) => {
       }
     }
 
-    const positivePct = recentReviewCount > 0 ? Math.round((positive / recentReviewCount) * 100) : null;
+    // Calculate percentage ignoring 3-star reviews (positive / (positive + negative) * 100)
+    const sentimentTotal = positive + negative;
+    const positivePct = sentimentTotal > 0 ? Math.round((positive / sentimentTotal) * 100) : null;
 
     // Extract themes using AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

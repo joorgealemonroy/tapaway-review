@@ -37,6 +37,13 @@ interface AiCoachStats {
   lastUpdated: string;
 }
 
+interface LockedResponse {
+  locked: true;
+  totalTaps: number;
+  requiredTaps: number;
+  error: string;
+}
+
 const SUGGESTED_QUESTIONS = [
   "What are guests' biggest concerns?",
   "What do customers love the most?",
@@ -55,6 +62,7 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const [isChangingLimit, setIsChangingLimit] = useState(false);
+  const [lockedInfo, setLockedInfo] = useState<LockedResponse | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -126,8 +134,17 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
         body: { restaurantId, reviewLimit }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a locked response
+        if (data?.locked) {
+          setLockedInfo(data as LockedResponse);
+          setStats(null);
+          return;
+        }
+        throw error;
+      }
       setStats(data);
+      setLockedInfo(null);
     } catch (error) {
       console.error('Error loading AI Coach stats:', error);
       toast.error("Failed to load insights");
@@ -195,6 +212,37 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (lockedInfo) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="pt-12 pb-12 text-center">
+          <div className="text-6xl mb-6">🔒</div>
+          <h2 className="text-3xl font-bold mb-4">AI Coach Locked</h2>
+          <p className="text-lg mb-6 text-muted-foreground">
+            Unlock AI-powered insights at <span className="font-bold text-foreground">1,000 taps</span>
+          </p>
+          <div className="max-w-md mx-auto mb-8">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">{lockedInfo.totalTaps} taps</span>
+              <span className="font-semibold">{lockedInfo.requiredTaps} taps</span>
+            </div>
+            <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${(lockedInfo.totalTaps / lockedInfo.requiredTaps) * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Keep sharing your TapAway cards! Once you hit 1,000 taps, you'll unlock personalized insights, sentiment analysis, and AI-powered recommendations to grow your business.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
