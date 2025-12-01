@@ -238,7 +238,13 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       </div>
 
       {/* Sentiment Card */}
-      <SentimentCard sentiment={stats.sentiment} reviewCount={stats.recentReviews.length} isChanging={isChangingLimit} />
+      <SentimentCard 
+        sentiment={stats.sentiment} 
+        reviewCount={stats.recentReviews.length} 
+        isChanging={isChangingLimit}
+        reviewLimit={reviewLimit}
+        onReviewLimitChange={setReviewLimit}
+      />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -314,66 +320,18 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
               <CardHeader>
                 <CardTitle className="text-lg">Top things to fix next</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  No clear issues popping up — keep doing what you're doing and collect more reviews.
+              <CardContent className="text-center py-6">
+                <div className="text-4xl mb-3">🎉</div>
+                <p className="text-sm font-medium mb-2">
+                  No recent bad reviews in the last 90 days.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Keep doing what you're doing and collecting more feedback.
                 </p>
               </CardContent>
             </Card>
           ) : null}
 
-          {/* Recent Reviews */}
-          <Card>
-            <CardHeader className="space-y-3">
-              <CardTitle className="text-lg">Recent Google reviews</CardTitle>
-            <Select value={reviewLimit.toString()} onValueChange={(val) => setReviewLimit(parseInt(val) as 5 | 10 | 20 | 30 | 40 | 50)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">Showing last 5</SelectItem>
-                <SelectItem value="10">Showing last 10</SelectItem>
-                <SelectItem value="20">Showing last 20</SelectItem>
-                <SelectItem value="30">Showing last 30</SelectItem>
-                <SelectItem value="40">Showing last 40</SelectItem>
-                <SelectItem value="50">Showing last 50</SelectItem>
-              </SelectContent>
-            </Select>
-            </CardHeader>
-            <CardContent>
-              {stats.recentReviews.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No reviews yet</p>
-              ) : (
-                <>
-                  <div className="max-h-[350px] overflow-y-auto pr-2 space-y-4">
-                    {stats.recentReviews.map((review, idx) => (
-                      <div key={idx} className="space-y-1 pb-4 border-b last:border-b-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{review.author_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {"⭐".repeat(review.rating)}
-                          </span>
-                          {review.relative_time_description && (
-                            <span className="text-xs text-muted-foreground">
-                              • {review.relative_time_description}
-                            </span>
-                          )}
-                        </div>
-                        {review.text && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {review.text}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-4 text-center">
-                    Insights are based on all your Google reviews.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
         {/* Right: AI Chat */}
@@ -458,10 +416,18 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   );
 };
 
-const SentimentCard = ({ sentiment, reviewCount, isChanging }: { 
+const SentimentCard = ({ 
+  sentiment, 
+  reviewCount, 
+  isChanging,
+  reviewLimit,
+  onReviewLimitChange
+}: { 
   sentiment: AiCoachStats['sentiment']; 
   reviewCount: number;
   isChanging: boolean;
+  reviewLimit: number;
+  onReviewLimitChange: (limit: number) => void;
 }) => {
   const { positiveCount, negativeCount, percentagePositive } = sentiment;
   const total = positiveCount + negativeCount;
@@ -471,9 +437,9 @@ const SentimentCard = ({ sentiment, reviewCount, isChanging }: {
       <Card>
         <CardContent className="pt-6 text-center">
           <div className="text-4xl mb-2">👍</div>
-          <h3 className="text-3xl font-bold mb-2">Waiting for your first Google reviews</h3>
+          <h3 className="text-3xl font-bold mb-2">No Google reviews in the last 90 days yet</h3>
           <p className="text-sm text-muted-foreground">
-            You're already getting taps — as soon as reviews arrive, I'll break down how guests feel.
+            Keep sending guests to your TapAway cards to unlock AI insights.
           </p>
         </CardContent>
       </Card>
@@ -489,29 +455,64 @@ const SentimentCard = ({ sentiment, reviewCount, isChanging }: {
           </div>
         ) : (
           <>
-            <div className="text-center mb-4">
-              <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
-              <p className="text-sm text-muted-foreground">
-                {total < 5 
-                  ? "Early signal from recent reviews — keep collecting more"
-                  : `Based on last ${reviewCount} reviews`
-                }
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+              <div className="text-center sm:text-left flex-1">
+                <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
+                <p className="text-sm text-muted-foreground">
+                  Based on your last {reviewCount} Google reviews (past 90 days). We focus on recent feedback so you know what to improve right now.
+                </p>
+              </div>
+              <Select 
+                value={reviewLimit.toString()} 
+                onValueChange={(val) => onReviewLimitChange(parseInt(val) as 5 | 10 | 20 | 30 | 40 | 50)}
+              >
+                <SelectTrigger className="w-[160px] shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">Showing last 5</SelectItem>
+                  <SelectItem value="10">Showing last 10</SelectItem>
+                  <SelectItem value="20">Showing last 20</SelectItem>
+                  <SelectItem value="30">Showing last 30</SelectItem>
+                  <SelectItem value="40">Showing last 40</SelectItem>
+                  <SelectItem value="50">Showing last 50</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Gradient Bar */}
             <motion.div
-              className="h-3 rounded-full overflow-hidden bg-muted"
+              className="relative h-3 bg-muted rounded-full overflow-hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
               <motion.div
-                className="h-full bg-gradient-to-r from-green-500 to-orange-500"
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  background: `linear-gradient(to right, 
+                    ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
+                      percentagePositive >= 60 ? 'hsl(var(--chart-3))' : 
+                      'hsl(var(--chart-1))'} 0%, 
+                    ${percentagePositive >= 80 ? 'hsl(var(--chart-2))' : 
+                      percentagePositive >= 60 ? 'hsl(var(--chart-4))' : 
+                      'hsl(var(--chart-5))'} 100%)`
+                }}
                 initial={{ width: 0 }}
                 animate={{ width: `${percentagePositive}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </motion.div>
+
+            {/* Stats Row */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-4 text-sm">
+              <span className="text-muted-foreground">
+                👍 Happy guests — {positiveCount} reviews ({percentagePositive}%)
+              </span>
+              <span className="text-muted-foreground">
+                😕 Needs attention — {negativeCount} reviews ({100 - percentagePositive}%)
+              </span>
+            </div>
           </>
         )}
       </CardContent>
