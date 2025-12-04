@@ -142,9 +142,21 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const handleRefresh = async () => {
     setIsSyncing(true);
     try {
-      await supabase.functions.invoke('sync-google-reviews', {
+      const { data, error } = await supabase.functions.invoke('sync-google-reviews', {
         body: { restaurant_id: restaurantId }
       });
+      
+      // Handle specific error cases
+      if (error || data?.error) {
+        const errorMessage = data?.error || error?.message || '';
+        if (errorMessage.includes('no Google Place ID')) {
+          toast.error("This restaurant doesn't have Google linked yet. Add a Google Place ID in settings first.");
+        } else {
+          toast.error("We couldn't reach Google right now. Try again in a bit.");
+        }
+        return;
+      }
+      
       await loadStats();
       toast.success("Reviews refreshed");
     } catch (error) {
