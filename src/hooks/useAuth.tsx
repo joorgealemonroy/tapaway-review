@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Priority routing:
     // 1. Super admin (tap@tapaway.co) → always go to /admin
     // 2. Test accounts (tester*@tapaway.co or test@me.com) → go to /admin for testing
-    // 3. Normal users → go to /dashboard
+    // 3. Normal users → check onboarding status, then dashboard or onboarding
     const emailLower = email.toLowerCase();
     
     if (emailLower === 'tap@tapaway.co') {
@@ -122,8 +122,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       navigate("/admin");
     } else {
-      // Normal users: redirect to dashboard
-      navigate("/dashboard");
+      // Normal users: check if onboarding is complete
+      const { data: restaurant } = await supabase
+        .from("restaurants")
+        .select("onboarding_completed")
+        .eq("owner_id", data.user?.id)
+        .maybeSingle();
+      
+      if (restaurant && !restaurant.onboarding_completed) {
+        // Resume incomplete onboarding
+        navigate("/onboarding");
+      } else {
+        // Fully onboarded, go to dashboard
+        navigate("/dashboard");
+      }
     }
 
     return { error: null };
