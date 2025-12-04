@@ -60,6 +60,27 @@ const Onboarding = () => {
     menuTitle: "Our Menu",
   });
 
+  // Refresh restaurant data from DB to sync local state
+  const refreshRestaurantFromDb = useCallback(async () => {
+    if (!user || !existingRestaurantId) return;
+    
+    const { data: restaurant } = await supabase
+      .from("restaurants")
+      .select("id, google_place_id, restaurant_name, address")
+      .eq("id", existingRestaurantId)
+      .maybeSingle();
+    
+    if (restaurant?.google_place_id) {
+      console.log('[Onboarding] Refreshed from DB - Google connected:', restaurant.google_place_id);
+      setGoogleSavedToDb(true);
+      setSelectedGooglePlace({
+        placeId: restaurant.google_place_id,
+        name: restaurant.restaurant_name || "",
+        address: restaurant.address || "",
+      });
+    }
+  }, [user, existingRestaurantId]);
+
   useEffect(() => {
     if (!user) {
       navigate("/auth?redirect=/onboarding");
@@ -124,6 +145,13 @@ const Onboarding = () => {
 
     checkOnboardingStatus();
   }, [user, navigate]);
+
+  // Refresh from DB when entering Step 3 to ensure we have latest google_place_id
+  useEffect(() => {
+    if (step === 3) {
+      refreshRestaurantFromDb();
+    }
+  }, [step, refreshRestaurantFromDb]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
