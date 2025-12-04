@@ -106,26 +106,49 @@ export const GooglePlacesAutocomplete = ({
       const handlePlaceSelect = async (event: any) => {
         const place = event.place;
 
+        console.log('[GooglePlacesAutocomplete] Raw place from event:', place);
+
         if (!place?.id) {
+          console.error('[GooglePlacesAutocomplete] No place.id in selection');
           setError("Please select a valid place from the dropdown");
           return;
         }
 
         try {
-          // Fetch place details
+          // Fetch place details - the new API requires fetchFields
           await place.fetchFields({
             fields: ["id", "displayName", "formattedAddress"],
           });
 
+          console.log('[GooglePlacesAutocomplete] After fetchFields:', {
+            id: place.id,
+            displayName: place.displayName,
+            formattedAddress: place.formattedAddress,
+          });
+
+          // In the new Places API, displayName is a LocalizedText object
+          // It has a 'text' property that contains the actual string
+          const placeName = typeof place.displayName === 'object' 
+            ? (place.displayName?.text || place.displayName?.toString() || "")
+            : (place.displayName || "");
+          
+          const placeAddress = place.formattedAddress || "";
+
+          console.log('[GooglePlacesAutocomplete] Extracted values:', {
+            placeId: place.id,
+            name: placeName,
+            address: placeAddress,
+          });
+
           onPlaceSelected({
             placeId: place.id,
-            name: place.displayName || "",
-            address: place.formattedAddress || "",
+            name: placeName,
+            address: placeAddress,
           });
 
           setError(null);
         } catch (err) {
-          console.error("Error fetching place details:", err);
+          console.error("[GooglePlacesAutocomplete] Error fetching place details:", err);
           setError("Error loading place details. Please try again.");
         }
       };
