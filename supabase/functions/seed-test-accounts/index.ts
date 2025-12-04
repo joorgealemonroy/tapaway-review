@@ -65,8 +65,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if user is admin
-    const { data: isAdmin } = await supabaseAdmin.rpc('is_admin');
+    // Check if user is admin by email
+    const ADMIN_EMAILS = ["tap@tapaway.co"];
+    const isAdmin = ADMIN_EMAILS.includes(user.email ?? "");
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
