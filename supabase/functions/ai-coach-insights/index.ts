@@ -85,13 +85,16 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // Check if AI Coach is unlocked: either 1000+ taps OR manually unlocked
+    // ===========================================
+    // AI Coach Gating: ONLY based on taps + manual unlock
+    // No admin bypass, no test account bypass, no legacy/paywall flags
+    // ===========================================
     const isManuallyUnlocked = restaurant.ai_coach_unlocked === true;
     const isUnlocked = (totalTaps >= 1000) || isManuallyUnlocked;
     
     if (!isUnlocked) {
       // Return 200 with locked flag so frontend can properly display lock screen
-      // Note: ALL users (including admins) see locked screen, but admins can unlock via UI
+      // ALL users (including admins) see locked screen, but admins can unlock via UI
       return new Response(
         JSON.stringify({ 
           locked: true,
@@ -102,15 +105,34 @@ serve(async (req) => {
       );
     }
 
-    // Get last 10 reviews (newest first)
-    const { data: lastReviews } = await supabaseClient
-      .from('google_reviews')
-      .select('author_name, rating, text, review_time, relative_time_description')
-      .eq('restaurant_id', restaurantId)
-      .order('review_time', { ascending: false })
-      .limit(10);
+    // ===========================================
+    // AI Coach is UNLOCKED - fetch reviews and compute insights
+    // Wrap everything in try-catch to handle Google errors gracefully
+    // ===========================================
+    
+    let reviews: any[] = [];
+    let googleError = false;
 
-    const reviews = lastReviews ?? [];
+    try {
+      // Get last 10 reviews (newest first)
+      const { data: lastReviews, error: reviewsError } = await supabaseClient
+        .from('google_reviews')
+        .select('author_name, rating, text, review_time, relative_time_description')
+        .eq('restaurant_id', restaurantId)
+        .order('review_time', { ascending: false })
+        .limit(10);
+
+      if (reviewsError) {
+        console.error('Error fetching reviews:', reviewsError);
+        googleError = true;
+      } else {
+        reviews = lastReviews ?? [];
+      }
+    } catch (e) {
+      console.error('Exception fetching reviews:', e);
+      googleError = true;
+    }
+
     const reviewCount = reviews.length;
 
     // Compute sentiment from last 10 reviews
@@ -137,7 +159,7 @@ serve(async (req) => {
     const positivePct = sentimentTotal > 0 ? Math.round((positive / sentimentTotal) * 100) : null;
     const hasEnoughData = sentimentTotal > 0;
 
-    // Extract themes using AI
+    // Extract themes using AI (wrap in try-catch to not fail the whole request)
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     let opportunities: Opportunity[] = [];
     let wins: string[] = [];
@@ -247,23 +269,23 @@ Return ONLY a JSON array of strings (max 3 wins), no explanation.`;
       }
     }
 
-    // Return stats
-    const stats = {
-      totalTaps,
-      wins,
-      opportunities,
-      reviewCount,
-      sentiment: {
-        positiveCount: positive,
-        negativeCount: negative,
-        percentagePositive: positivePct,
-        hasEnoughData,
-      },
-      lastUpdated: new Date().toISOString(),
-    };
-
+    // Return UNLOCKED stats - always include locked: false for consistency
     return new Response(
-      JSON.stringify(stats),
+      JSON.stringify({
+        locked: false,
+        totalTaps,
+        wins,
+        opportunities,
+        reviewCount,
+        googleError,
+        sentiment: {
+          positiveCount: positive,
+          negativeCount: negative,
+          percentagePositive: positivePct,
+          hasEnoughData,
+        },
+        lastUpdated: new Date().toISOString(),
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
