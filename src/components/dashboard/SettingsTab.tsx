@@ -10,6 +10,7 @@ import { validateAllUrls } from "@/lib/urlValidation";
 import { useState as useReactState } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { SettingsGreeting } from "./SettingsGreeting";
+import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 
 interface Restaurant {
   id: string;
@@ -18,6 +19,7 @@ interface Restaurant {
   logo_url: string | null;
   hub_background_style: string | null;
   custom_background_url: string | null;
+  google_place_id: string | null;
   google_review_url: string | null;
   yelp_review_url: string | null;
   instagram_url: string | null;
@@ -175,11 +177,17 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
     }
 
     try {
+      // Normalize Google Place ID from the input (could be URL or bare ID)
+      const normalizedPlaceId = normalizeGooglePlaceId(restaurant.google_place_id);
+      // Build canonical review URL from the normalized Place ID
+      const canonicalGoogleUrl = buildGoogleReviewUrl(normalizedPlaceId);
+
       const updateData: any = {
         restaurant_name: restaurant.restaurant_name,
         hub_background_style: restaurant.hub_background_style,
         custom_background_url: restaurant.custom_background_url,
-        google_review_url: restaurant.google_review_url,
+        google_place_id: normalizedPlaceId,
+        google_review_url: canonicalGoogleUrl,
         yelp_review_url: restaurant.yelp_review_url,
         instagram_url: restaurant.instagram_url,
         directions_url: restaurant.directions_url,
@@ -207,6 +215,13 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         }
         throw error;
       }
+
+      // Update local state with normalized values
+      setRestaurant(prev => prev ? { 
+        ...prev, 
+        google_place_id: normalizedPlaceId,
+        google_review_url: canonicalGoogleUrl 
+      } : null);
 
       toast({ title: "Settings saved", description: "Your settings have been updated successfully." });
     } catch (error) {
@@ -378,13 +393,13 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         <h3 className="text-lg font-bold mb-4">Links & Social Media</h3>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="google" className="text-sm font-semibold">Google Review URL</Label>
+            <Label htmlFor="google" className="text-sm font-semibold">Google Place ID or Review URL</Label>
             <div className="flex gap-2 mt-2">
               <Input
                 id="google"
-                value={restaurant.google_review_url || ""}
-                onChange={(e) => setRestaurant({ ...restaurant, google_review_url: e.target.value })}
-                placeholder="https://search.google.com/local/writereview?placeid=..."
+                value={restaurant.google_place_id || ""}
+                onChange={(e) => setRestaurant({ ...restaurant, google_place_id: e.target.value })}
+                placeholder="ChIJ... or https://search.google.com/local/writereview?placeid=..."
               />
               {restaurant.google_review_url && (
                 <Button variant="outline" size="sm" asChild>
@@ -394,6 +409,9 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 </Button>
               )}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Paste either the full Google Review URL or just the Place ID (e.g., ChIJV_SjbZJMw4ARZINlm2uAaoE). Used for AI Coach insights.
+            </p>
           </div>
           <div>
             <Label htmlFor="yelp" className="text-sm font-semibold">Yelp URL (Optional)</Label>
