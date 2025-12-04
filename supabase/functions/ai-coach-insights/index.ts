@@ -88,14 +88,14 @@ serve(async (req) => {
     // Check 1,000-tap unlock for non-admins (test accounts bypass this)
     const isTestAccount = restaurant.is_demo_account === true;
     if (!isAdmin && !isTestAccount && totalTaps < 1000) {
+      // Return 200 with locked flag so frontend can properly display lock screen
       return new Response(
         JSON.stringify({ 
-          error: 'AI Coach locked',
           locked: true,
           totalTaps,
           requiredTaps: 1000
         }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
