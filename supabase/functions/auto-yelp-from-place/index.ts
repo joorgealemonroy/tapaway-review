@@ -19,6 +19,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 type RestaurantRow = {
   id: string;
   restaurant_name: string | null;
+  address: string | null;
   google_place_id: string | null;
   yelp_business_id: string | null;
   yelp_review_url: string | null;
@@ -40,37 +41,43 @@ type YelpBusiness = {
 
 async function fetchPlaceDetails(placeId: string) {
   if (!GOOGLE_PLACES_API_KEY) {
-    throw new Error("GOOGLE_PLACES_API_KEY not set");
+    console.log("[auto-yelp] No GOOGLE_PLACES_API_KEY set, skipping Google lookup");
+    return null;
   }
 
-  const params = new URLSearchParams({
-    place_id: placeId,
-    key: GOOGLE_PLACES_API_KEY,
-    fields: "name,formatted_address,geometry",
-  });
+  try {
+    const params = new URLSearchParams({
+      place_id: placeId,
+      key: GOOGLE_PLACES_API_KEY,
+      fields: "name,formatted_address,geometry",
+    });
 
-  const res = await fetch(
-    `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`
-  );
-
-  if (!res.ok) {
-    throw new Error(`Google Places API error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  if (data.status !== "OK" || !data.result) {
-    throw new Error(
-      `Google Places returned status ${data.status || "UNKNOWN"}`
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`
     );
-  }
 
-  const result = data.result;
-  return {
-    name: result.name as string,
-    address: result.formatted_address as string,
-    lat: result.geometry?.location?.lat as number | undefined,
-    lng: result.geometry?.location?.lng as number | undefined,
-  };
+    if (!res.ok) {
+      console.log(`[auto-yelp] Google Places API error: ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    if (data.status !== "OK" || !data.result) {
+      console.log(`[auto-yelp] Google Places returned status ${data.status || "UNKNOWN"}`);
+      return null;
+    }
+
+    const result = data.result;
+    return {
+      name: result.name as string,
+      address: result.formatted_address as string,
+      lat: result.geometry?.location?.lat as number | undefined,
+      lng: result.geometry?.location?.lng as number | undefined,
+    };
+  } catch (err) {
+    console.error("[auto-yelp] Error fetching Google Place details:", err);
+    return null;
+  }
 }
 
 function normalize(str: string | null | undefined): string {
@@ -198,54 +205,63 @@ async function searchYelpWithScoring(place: {
   lng?: number;
 }): Promise<YelpBusiness | null> {
   if (!YELP_API_KEY) {
-    throw new Error("YELP_API_KEY not set");
-  }
-
-  const searchParams = new URLSearchParams({
-    term: place.name,
-    limit: "5",
-  });
-
-  if (place.lat && place.lng) {
-    searchParams.set("latitude", String(place.lat));
-    searchParams.set("longitude", String(place.lng));
-  }
-
-  const res = await fetch(
-    `https://api.yelp.com/v3/businesses/search?${searchParams.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${YELP_API_KEY}`,
-      },
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Yelp API error: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  const businesses = (data.businesses ?? []) as YelpBusiness[];
-
-  if (!businesses.length) return null;
-
-  let best: YelpBusiness | null = null;
-  let bestScore = -1;
-
-  for (const biz of businesses) {
-    const s = scoreYelpBusiness(place, biz);
-    if (s > bestScore) {
-      bestScore = s;
-      best = biz;
-    }
-  }
-
-  if (!best || bestScore < 50) {
+    console.log("[auto-yelp] No YELP_API_KEY set");
     return null;
   }
 
-  return best;
+  try {
+    const searchParams = new URLSearchParams({
+      term: place.name,
+      limit: "5",
+    });
+
+    if (place.lat && place.lng) {
+      searchParams.set("latitude", String(place.lat));
+      searchParams.set("longitude", String(place.lng));
+    }
+
+    const res = await fetch(
+      `https://api.yelp.com/v3/businesses/search?${searchParams.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${YELP_API_KEY}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.log(`[auto-yelp] Yelp API error: ${res.status} ${text}`);
+      return null;
+    }
+
+    const data = await res.json();
+    const businesses = (data.businesses ?? []) as YelpBusiness[];
+
+    if (!businesses.length) return null;
+
+    let best: YelpBusiness | null = null;
+    let bestScore = -1;
+
+    for (const biz of businesses) {
+      const s = scoreYelpBusiness(place, biz);
+      if (s > bestScore) {
+        bestScore = s;
+        best = biz;
+      }
+    }
+
+    if (!best || bestScore < 50) {
+      console.log(`[auto-yelp] Best score ${bestScore} below threshold 50`);
+      return null;
+    }
+
+    console.log(`[auto-yelp] Found match with score ${bestScore}: ${best.name}`);
+    return best;
+  } catch (err) {
+    console.error("[auto-yelp] Error searching Yelp:", err);
+    return null;
+  }
 }
 
 function canonicalizeYelpUrl(rawUrl: string): string {
@@ -261,11 +277,21 @@ function canonicalizeYelpUrl(rawUrl: string): string {
   }
 }
 
+// Build a Yelp search URL as fallback
+function buildYelpSearchUrl(name: string, address: string): string {
+  const encodedName = encodeURIComponent(name);
+  // Extract city from address (usually after the first comma)
+  const cityMatch = address.match(/,\s*([^,]+),?\s*[A-Z]{2}/i);
+  const city = cityMatch ? cityMatch[1].trim() : address.split(',')[1]?.trim() || address;
+  const encodedLocation = encodeURIComponent(city);
+  return `https://www.yelp.com/search?find_desc=${encodedName}&find_loc=${encodedLocation}`;
+}
+
 async function autoYelpForRestaurant(restaurantId: string) {
   const { data: restaurant, error } = await supabaseAdmin
     .from("restaurants")
     .select(
-      "id, restaurant_name, google_place_id, yelp_business_id, yelp_review_url"
+      "id, restaurant_name, address, google_place_id, yelp_business_id, yelp_review_url"
     )
     .eq("id", restaurantId)
     .single();
@@ -275,26 +301,50 @@ async function autoYelpForRestaurant(restaurantId: string) {
   }
 
   const r = restaurant as RestaurantRow;
-  if (!r.google_place_id) {
-    throw new Error("Restaurant has no google_place_id set");
+  
+  // Need either google_place_id or address+name to search
+  if (!r.google_place_id && !r.address && !r.restaurant_name) {
+    throw new Error("Restaurant has no google_place_id or address set");
   }
 
-  const place = await fetchPlaceDetails(r.google_place_id);
+  let place: { name: string; address: string; lat?: number; lng?: number } | null = null;
+  
+  // Try to get details from Google first if we have a place ID
+  if (r.google_place_id) {
+    place = await fetchPlaceDetails(r.google_place_id);
+  }
+  
+  // Fallback to restaurant data if Google lookup fails or no place ID
+  if (!place) {
+    place = {
+      name: r.restaurant_name || "",
+      address: r.address || "",
+    };
+  }
+
   const searchName = place.name || r.restaurant_name || "";
+  const searchAddress = place.address || r.address || "";
 
   if (!searchName) {
     throw new Error("No name available to search Yelp");
   }
 
-  const yelpBiz = await searchYelpWithScoring(place);
+  // Try Yelp API search first
+  const yelpBiz = await searchYelpWithScoring({ ...place, name: searchName, address: searchAddress });
 
-  if (!yelpBiz) {
-    throw new Error("No confident Yelp match found for this address.");
+  let yelpBusinessId: string | null = null;
+  let yelpUrl: string;
+
+  if (yelpBiz) {
+    // Found a confident match via API
+    yelpBusinessId = yelpBiz.id;
+    yelpUrl = canonicalizeYelpUrl(yelpBiz.url);
+    console.log(`[auto-yelp] Found Yelp business via API: ${yelpUrl}`);
+  } else {
+    // Fallback: build a Yelp search URL
+    yelpUrl = buildYelpSearchUrl(searchName, searchAddress);
+    console.log(`[auto-yelp] Using fallback Yelp search URL: ${yelpUrl}`);
   }
-
-  const yelpBusinessId = yelpBiz.id;
-  const rawUrl = yelpBiz.url;
-  const yelpUrl = canonicalizeYelpUrl(rawUrl);
 
   const { data: updated, error: updateError } = await supabaseAdmin
     .from("restaurants")
@@ -336,7 +386,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized - authentication required" }),
+        JSON.stringify({ success: false, error: "Unauthorized - authentication required" }),
         {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -354,7 +404,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized - invalid token" }),
+        JSON.stringify({ success: false, error: "Unauthorized - invalid token" }),
         {
           status: 401,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -365,7 +415,7 @@ serve(async (req) => {
     const payload = (await req.json()) as AutoYelpPayload;
     if (!payload.restaurantId) {
       return new Response(
-        JSON.stringify({ error: "Missing restaurantId" }),
+        JSON.stringify({ success: false, error: "Missing restaurantId" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -382,7 +432,7 @@ serve(async (req) => {
 
     if (ownerError || !restaurant) {
       return new Response(
-        JSON.stringify({ error: "Restaurant not found" }),
+        JSON.stringify({ success: false, error: "Restaurant not found" }),
         {
           status: 404,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -392,7 +442,7 @@ serve(async (req) => {
 
     if (restaurant.owner_id !== user.id) {
       return new Response(
-        JSON.stringify({ error: "Access denied - you do not own this restaurant" }),
+        JSON.stringify({ success: false, error: "Access denied - you do not own this restaurant" }),
         {
           status: 403,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -419,7 +469,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ success: false, error: (err as Error).message }),
       {
-        status: 500,
+        status: 200, // Return 200 so frontend can parse the error
         headers: {
           "Content-Type": "application/json",
           ...corsHeaders,
