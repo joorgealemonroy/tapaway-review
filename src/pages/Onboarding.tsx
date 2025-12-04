@@ -90,7 +90,7 @@ const Onboarding = () => {
     const checkOnboardingStatus = async () => {
       const { data: restaurant } = await supabase
         .from("restaurants")
-        .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url")
+        .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
         .eq("owner_id", user.id)
         .maybeSingle();
 
@@ -107,6 +107,16 @@ const Onboarding = () => {
       if (restaurant) {
         setExistingRestaurantId(restaurant.id);
         restaurantIdRef.current = restaurant.id;
+        
+        // If onboarding is already completed, redirect to dashboard
+        if (restaurant.onboarding_completed) {
+          navigate("/dashboard");
+          return;
+        }
+        
+        // Resume from saved step (default to 1)
+        const savedStep = restaurant.onboarding_step || 1;
+        setStep(savedStep);
         
         // Track if Google is already connected in DB
         if (restaurant.google_place_id) {
@@ -125,12 +135,8 @@ const Onboarding = () => {
           address: restaurant.address || prev.address,
           phone: restaurant.phone || prev.phone,
           directionsUrl: restaurant.directions_url || prev.directionsUrl,
+          instagram: restaurant.instagram_url || prev.instagram,
         }));
-        
-        // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
-        if (restaurant.custom_slug && restaurant.restaurant_name && restaurant.restaurant_name !== "New Restaurant") {
-          navigate("/dashboard");
-        }
       }
     };
 
@@ -323,10 +329,34 @@ const Onboarding = () => {
   };
 
   const handleNext = async () => {
-    // Step 1 validation
-    if (step === 1 && (!formData.restaurantName || !formData.ownerName || !formData.customSlug)) {
-      toast.error("Please complete all required fields");
-      return;
+    // Step 1 validation and save
+    if (step === 1) {
+      if (!formData.restaurantName || !formData.ownerName || !formData.customSlug) {
+        toast.error("Please complete all required fields");
+        return;
+      }
+      
+      // Save Step 1 data to DB
+      if (restaurantIdRef.current) {
+        const { error } = await supabase
+          .from("restaurants")
+          .update({
+            restaurant_name: formData.restaurantName,
+            owner_name: formData.ownerName,
+            greeting_name: formData.ownerName,
+            custom_slug: formData.customSlug.toLowerCase().trim(),
+            instagram_url: formData.instagram || null,
+            onboarding_step: 2, // Save progress
+          })
+          .eq("id", restaurantIdRef.current);
+        
+        if (error) {
+          console.error('[Onboarding] Failed to save Step 1:', error);
+          toast.error("Failed to save. Please try again.");
+          return;
+        }
+        console.log('[Onboarding] Step 1 saved, moving to step 2');
+      }
     }
     
     // Step 2 validation - GOOGLE IS MANDATORY
@@ -372,6 +402,7 @@ const Onboarding = () => {
               phone: formData.phone || null,
               address: selection.address || formData.address || null,
               directions_url: directionsUrl,
+              onboarding_step: 3, // Save progress
             })
             .eq("id", restaurantIdRef.current);
 
@@ -417,6 +448,15 @@ const Onboarding = () => {
       }
       
       setStep2Error(null);
+    }
+    
+    // Step 3 - just save progress (Yelp checkbox preference)
+    if (step === 3 && restaurantIdRef.current) {
+      await supabase
+        .from("restaurants")
+        .update({ onboarding_step: 4 })
+        .eq("id", restaurantIdRef.current);
+      console.log('[Onboarding] Step 3 saved, moving to step 4');
     }
     
     setStep((prev) => prev + 1);
@@ -519,6 +559,8 @@ const Onboarding = () => {
         header_title: validatedData.headerTitle || "How was your visit?",
         header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
         menu_title: validatedData.menuTitle || "Our Menu",
+        onboarding_completed: true, // Mark as complete
+        onboarding_step: 4, // Final step
       };
 
       let restaurantId: string | null = existingRestaurantId;

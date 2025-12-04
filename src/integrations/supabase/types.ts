@@ -686,6 +686,8 @@ export type Database = {
           menu_image_url: string | null
           menu_title: string | null
           next_billing_date: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: number | null
           owner_id: string
           owner_name: string | null
           phone: string | null
@@ -733,6 +735,8 @@ export type Database = {
           menu_image_url?: string | null
           menu_title?: string | null
           next_billing_date?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
           owner_id: string
           owner_name?: string | null
           phone?: string | null
@@ -780,6 +784,8 @@ export type Database = {
           menu_image_url?: string | null
           menu_title?: string | null
           next_billing_date?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
           owner_id?: string
           owner_name?: string | null
           phone?: string | null
