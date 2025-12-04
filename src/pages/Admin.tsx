@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -20,6 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
+import { getAppSettings, setPaywallEnabled } from "@/lib/appSettings";
+import { toast } from "sonner";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
@@ -70,8 +73,10 @@ const Admin = () => {
 
   const [yelpDebugTarget, setYelpDebugTarget] = useState<YelpDebugRestaurant | null>(null);
 
-  const [seedingTestAccounts, setSeedingTestAccounts] = useState(false);
-  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  // Paywall control state
+  const [paywallEnabled, setPaywallEnabledState] = useState(true);
+  const [loadingPaywallSetting, setLoadingPaywallSetting] = useState(true);
+  const [updatingPaywall, setUpdatingPaywall] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -295,46 +300,36 @@ const Admin = () => {
     window.open(`/${r.custom_slug}`, "_blank");
   };
 
-  const seedTestAccounts = async () => {
-    setSeedingTestAccounts(true);
-    setSeedMessage(null);
+  // Load paywall settings
+  useEffect(() => {
+    if (!isAdmin || adminLoading) return;
     
-    try {
-      const { data, error } = await supabase.functions.invoke("seed-test-accounts");
-      
-      if (error) throw error;
-      
-      setSeedMessage(`✅ ${data.message}`);
-      
-      // Reload restaurants to show new test accounts
-      const { data: allRestaurants } = await supabase
-        .from("restaurants")
-        .select("id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name")
-        .order("created_at", { ascending: false });
+    const loadPaywallSetting = async () => {
+      setLoadingPaywallSetting(true);
+      const settings = await getAppSettings(supabase);
+      setPaywallEnabledState(settings.paywallEnabled);
+      setLoadingPaywallSetting(false);
+    };
+    
+    loadPaywallSetting();
+  }, [isAdmin, adminLoading]);
 
-      const restaurantIds = (allRestaurants ?? []).map(r => r.id);
-      const { data: tapCounts } = await supabase
-        .from("analytics_events")
-        .select("restaurant_id")
-        .eq("event_type", "tap")
-        .in("restaurant_id", restaurantIds);
-
-      const tapsMap: Record<string, number> = {};
-      (tapCounts ?? []).forEach(event => {
-        tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
-      });
-
-      const restaurantsWithTaps = (allRestaurants ?? []).map(r => ({
-        ...r,
-        total_taps: tapsMap[r.id] ?? 0
-      }));
-
-      setRestaurants(restaurantsWithTaps);
-    } catch (e: any) {
-      setSeedMessage(`❌ Error: ${e.message}`);
-    } finally {
-      setSeedingTestAccounts(false);
+  const handlePaywallToggle = async (enabled: boolean) => {
+    const previousValue = paywallEnabled;
+    setPaywallEnabledState(enabled);
+    setUpdatingPaywall(true);
+    
+    const result = await setPaywallEnabled(supabase, enabled);
+    
+    if (result.success) {
+      toast.success(enabled ? "Paywall enabled for new users." : "Paywall disabled for new/test users.");
+    } else {
+      // Revert on error
+      setPaywallEnabledState(previousValue);
+      toast.error("Failed to update paywall setting: " + result.error);
     }
+    
+    setUpdatingPaywall(false);
   };
 
   if (authLoading || adminLoading) {
@@ -362,21 +357,23 @@ const Admin = () => {
       </div>
 
       <section className="bg-card border rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold">Test Accounts</h2>
+        <h2 className="font-semibold">Paywall Control</h2>
+        <p className="text-sm text-muted-foreground">
+          Toggle the global paywall for new/test users. When OFF, new signups can use TapAway without paying. Existing restaurants are not affected.
+        </p>
         <div className="flex items-center gap-3">
-          <Button 
-            onClick={seedTestAccounts} 
-            disabled={seedingTestAccounts}
-            size="sm"
-          >
-            {seedingTestAccounts ? "Seeding..." : "Seed Test Accounts"}
-          </Button>
-          {seedMessage && (
-            <p className="text-sm">{seedMessage}</p>
-          )}
+          <Switch
+            checked={paywallEnabled}
+            onCheckedChange={handlePaywallToggle}
+            disabled={loadingPaywallSetting || updatingPaywall}
+          />
+          <span className="text-sm font-medium">
+            {loadingPaywallSetting ? "Loading..." : paywallEnabled ? "Paywall ON" : "Paywall OFF"}
+          </span>
+          {updatingPaywall && <span className="text-xs text-muted-foreground">Updating...</span>}
         </div>
         <p className="text-xs text-muted-foreground">
-          Creates test-owner1@tapaway.co, test-owner2@tapaway.co, test-owner3@tapaway.co with active subscriptions and 2,500 taps each.
+          Note: AI Coach remains locked until 1,000 taps regardless of this setting.
         </p>
       </section>
 

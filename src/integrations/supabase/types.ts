@@ -63,6 +63,27 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          paywall_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          paywall_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          paywall_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       av_meal_prep_meals: {
         Row: {
           calories: number
@@ -657,6 +678,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_demo_account: boolean | null
+          is_legacy_user: boolean
           last_google_sync_at: string | null
           logo_url: string | null
           meal_order_url: string | null
@@ -702,6 +724,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null
+          is_legacy_user?: boolean
           last_google_sync_at?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
@@ -747,6 +770,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_demo_account?: boolean | null
+          is_legacy_user?: boolean
           last_google_sync_at?: string | null
           logo_url?: string | null
           meal_order_url?: string | null
