@@ -13,6 +13,7 @@ import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
+import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -35,18 +36,17 @@ const Onboarding = () => {
   const [addYelp, setAddYelp] = useState(true);
   const [existingRestaurantId, setExistingRestaurantId] = useState<string | null>(null);
   
-  // Separate state for selected Google place - completely decoupled from phone input
+  // Selected Google place - single source of truth for Google connection
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string;
     name: string;
     address: string;
   } | null>(null);
-  const [googleSavedToDb, setGoogleSavedToDb] = useState(false);
   
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Form data - phone is now completely independent
+  // Form data - phone is completely independent from Google selection
   const [formData, setFormData] = useState({
     restaurantName: "",
     ownerName: "",
@@ -60,48 +60,6 @@ const Onboarding = () => {
     menuTitle: "Our Menu",
   });
 
-  // Refresh restaurant data from DB to sync local state
-  const refreshRestaurantFromDb = useCallback(async () => {
-    console.log('[DEBUG refreshRestaurantFromDb] Called with:', { 
-      userId: user?.id, 
-      existingRestaurantId 
-    });
-    
-    if (!user || !existingRestaurantId) {
-      console.log('[DEBUG refreshRestaurantFromDb] Skipping - missing user or restaurantId');
-      return;
-    }
-    
-    const { data: restaurant, error } = await supabase
-      .from("restaurants")
-      .select("id, google_place_id, google_review_url, restaurant_name, address")
-      .eq("id", existingRestaurantId)
-      .maybeSingle();
-    
-    console.log('[DEBUG refreshRestaurantFromDb] DB query result:', {
-      restaurant: restaurant ? {
-        id: restaurant.id,
-        google_place_id: restaurant.google_place_id,
-        google_review_url: restaurant.google_review_url,
-        restaurant_name: restaurant.restaurant_name,
-        address: restaurant.address,
-      } : null,
-      error: error?.message
-    });
-    
-    if (restaurant?.google_place_id) {
-      console.log('[DEBUG refreshRestaurantFromDb] Setting googleSavedToDb=true');
-      setGoogleSavedToDb(true);
-      setSelectedGooglePlace({
-        placeId: restaurant.google_place_id,
-        name: restaurant.restaurant_name || "",
-        address: restaurant.address || "",
-      });
-    } else {
-      console.log('[DEBUG refreshRestaurantFromDb] No google_place_id found in DB');
-    }
-  }, [user, existingRestaurantId]);
-
   useEffect(() => {
     if (!user) {
       navigate("/auth?redirect=/onboarding");
@@ -110,7 +68,6 @@ const Onboarding = () => {
 
     // Super admin should never see onboarding - redirect to admin
     if (isSuperAdmin(user.email)) {
-      console.log('[Onboarding] Super admin detected, redirecting to /admin');
       navigate("/admin");
       return;
     }
@@ -138,7 +95,6 @@ const Onboarding = () => {
         
         // Track if Google is already connected in DB
         if (restaurant.google_place_id) {
-          setGoogleSavedToDb(true);
           setSelectedGooglePlace({
             placeId: restaurant.google_place_id,
             name: restaurant.restaurant_name || "",
@@ -158,7 +114,6 @@ const Onboarding = () => {
         
         // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
         if (restaurant.custom_slug && restaurant.restaurant_name && restaurant.restaurant_name !== "New Restaurant") {
-          console.log('[Onboarding] User already onboarded, redirecting to dashboard');
           navigate("/dashboard");
         }
       }
@@ -166,27 +121,6 @@ const Onboarding = () => {
 
     checkOnboardingStatus();
   }, [user, navigate]);
-
-  // Refresh from DB when entering Step 3 to ensure we have latest google_place_id
-  useEffect(() => {
-    if (step === 3) {
-      console.log('[DEBUG Step3 Effect] Step 3 entered, calling refreshRestaurantFromDb');
-      refreshRestaurantFromDb();
-    }
-  }, [step, refreshRestaurantFromDb]);
-
-  // Debug log whenever isGoogleConnected state changes
-  useEffect(() => {
-    console.log('[DEBUG State Change]', {
-      googleSavedToDb,
-      selectedGooglePlace: selectedGooglePlace ? {
-        placeId: selectedGooglePlace.placeId,
-        name: selectedGooglePlace.name
-      } : null,
-      isGoogleConnected: googleSavedToDb || !!selectedGooglePlace,
-      currentStep: step
-    });
-  }, [googleSavedToDb, selectedGooglePlace, step]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -224,14 +158,12 @@ const Onboarding = () => {
 
   // Memoized callback for Google place selection - saves immediately to DB
   const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
-    console.log('[DEBUG Step2] Google place selected:', { placeId, name, address });
-    console.log('[DEBUG Step2] existingRestaurantId:', existingRestaurantId);
-    
-    // Strip "places/" prefix for legacy compatibility
-    const legacyPlaceId = placeId.replace(/^places\//, '');
+    // Normalize the place ID (strip "places/" prefix if present)
+    const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
+    const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
     
     // Update local state immediately
-    setSelectedGooglePlace({ placeId: legacyPlaceId, name, address });
+    setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
     
     // Update form data for address and name (if not already set)
     setFormData(prev => ({
@@ -243,25 +175,15 @@ const Onboarding = () => {
     // Immediately persist to database if we have a restaurant ID
     if (existingRestaurantId) {
       try {
-        const googleReviewUrl = `https://search.google.com/local/writereview?placeid=${legacyPlaceId}`;
-        
         // Build Apple Maps URL from address
         const encodedAddress = encodeURIComponent(address);
         const encodedName = encodeURIComponent(name);
         const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
         
-        console.log('[DEBUG Step2] Saving to DB:', {
-          restaurantId: existingRestaurantId,
-          google_place_id: legacyPlaceId,
-          google_review_url: googleReviewUrl,
-          address: address,
-          directions_url: directionsUrl,
-        });
-        
         const { error } = await supabase
           .from("restaurants")
           .update({
-            google_place_id: legacyPlaceId,
+            google_place_id: normalizedPlaceId,
             google_review_url: googleReviewUrl,
             address: address,
             directions_url: directionsUrl,
@@ -269,32 +191,15 @@ const Onboarding = () => {
           .eq("id", existingRestaurantId);
 
         if (error) {
-          console.error('[DEBUG Step2] Error saving Google place:', error);
+          console.error('[Onboarding] Error saving Google place:', error);
           toast.error("Failed to save Google business. Please try again.");
         } else {
-          console.log('[DEBUG Step2] Google place saved successfully!');
-          setGoogleSavedToDb(true);
           setFormData(prev => ({ ...prev, directionsUrl }));
-          
-          // Verify it was actually saved
-          const { data: verifyRestaurant, error: verifyError } = await supabase
-            .from("restaurants")
-            .select("id, google_place_id, google_review_url")
-            .eq("id", existingRestaurantId)
-            .single();
-          
-          console.log('[DEBUG Step2] Verification query result:', {
-            verifyRestaurant,
-            verifyError: verifyError?.message
-          });
-          
           toast.success("Google Business connected!");
         }
       } catch (err) {
-        console.error('[DEBUG Step2] Exception saving Google place:', err);
+        console.error('[Onboarding] Exception saving Google place:', err);
       }
-    } else {
-      console.warn('[DEBUG Step2] No existingRestaurantId available - cannot save to DB');
     }
   }, [existingRestaurantId]);
 
@@ -312,7 +217,7 @@ const Onboarding = () => {
         };
         
         // Only update address if we have one and Google wasn't selected
-        if (formData.address && !googleSavedToDb) {
+        if (formData.address && !selectedGooglePlace) {
           updateData.address = formData.address;
         }
 
@@ -409,7 +314,7 @@ const Onboarding = () => {
         custom_slug: slugToUse,
         slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram || null,
-        google_review_url: placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : null,
+        google_review_url: placeId ? buildGoogleReviewUrl(placeId) : null,
         google_place_id: placeId || null,
         directions_url: directionsUrl || null,
         address: selectedGooglePlace?.address || validatedData.address || null,
@@ -424,7 +329,6 @@ const Onboarding = () => {
 
       // Always try UPDATE first if we have an existing restaurant ID
       if (existingRestaurantId) {
-        console.log('[Onboarding] Updating existing restaurant:', existingRestaurantId);
         const { error: updateError } = await supabase
           .from("restaurants")
           .update(restaurantData)
@@ -449,7 +353,6 @@ const Onboarding = () => {
           .maybeSingle();
 
         if (userRestaurant) {
-          console.log('[Onboarding] Found existing restaurant by owner_id:', userRestaurant.id);
           restaurantId = userRestaurant.id;
           const { error: updateError } = await supabase
             .from("restaurants")
@@ -461,7 +364,6 @@ const Onboarding = () => {
             throw updateError;
           }
         } else {
-          console.log('[Onboarding] Inserting new restaurant');
           const { data: newRestaurant, error: insertError } = await supabase
             .from("restaurants")
             .insert(restaurantData)
@@ -512,23 +414,20 @@ const Onboarding = () => {
 
       // Auto-detect Yelp if checkbox is checked and we have a Google Place ID
       if (addYelp && placeId && restaurantId) {
-        console.log('[Onboarding] Attempting auto-detect Yelp for restaurant:', restaurantId);
         try {
           const { data: yelpData, error: yelpError } = await supabase.functions.invoke('auto-yelp-from-place', {
             body: { restaurantId }
           });
 
           if (yelpError) {
-            console.log('[Onboarding] Yelp auto-detect failed (non-blocking):', yelpError);
             toast.info("Couldn't auto-find Yelp, you can add it later in Settings.");
           } else if (yelpData?.success && yelpData?.restaurant?.yelp_review_url) {
-            console.log('[Onboarding] Auto-detected Yelp URL:', yelpData.restaurant.yelp_review_url);
             toast.success("Yelp page found automatically!");
           } else if (yelpData?.success === false) {
-            console.log('[Onboarding] Yelp auto-detect returned no match');
             toast.info("Couldn't auto-find Yelp, you can add it later in Settings.");
           }
         } catch (error) {
+          // Non-blocking - just log it
           console.log('[Onboarding] Yelp auto-detect error (non-blocking):', error);
         }
       } else if (addYelp && !placeId) {
@@ -550,8 +449,8 @@ const Onboarding = () => {
     }
   };
 
-  // Check if Google is connected (either saved to DB or selected locally)
-  const isGoogleConnected = googleSavedToDb || !!selectedGooglePlace;
+  // Check if Google is connected
+  const isGoogleConnected = !!selectedGooglePlace;
 
   const renderStep = () => {
     switch (step) {
@@ -716,48 +615,20 @@ const Onboarding = () => {
         );
 
       case 3:
-        // Debug log for Step 3 rendering
-        console.log('[DEBUG Step3 Render]', {
-          isGoogleConnected,
-          googleSavedToDb,
-          selectedGooglePlace: selectedGooglePlace ? {
-            placeId: selectedGooglePlace.placeId,
-            name: selectedGooglePlace.name
-          } : null,
-          existingRestaurantId
-        });
-        
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Review Links</h2>
-              <p className="text-muted-foreground">Additional review platforms</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Review Platforms</h2>
+              <p className="text-muted-foreground">Set up your review collection</p>
             </div>
 
             <div className="space-y-4">
-              {/* DEBUG INFO - only visible in development */}
-              {process.env.NODE_ENV === 'development' && (
-                <pre className="text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded overflow-auto">
-                  [DEBUG Step3]
-                  restaurantId: {existingRestaurantId}
-                  googleSavedToDb: {String(googleSavedToDb)}
-                  selectedGooglePlace: {selectedGooglePlace ? selectedGooglePlace.placeId : 'null'}
-                  isGoogleConnected: {String(isGoogleConnected)}
-                </pre>
-              )}
-              
-              {/* Google status - based on actual state */}
-              {isGoogleConnected ? (
+              {/* Google status - show positive confirmation if connected */}
+              {isGoogleConnected && (
                 <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                   <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    Google Business connected: {selectedGooglePlace?.name || "Connected"}
-                  </p>
-                </div>
-              ) : (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    No Google Business selected yet. You can go back to Step 2 to add it, or continue without it.
+                    Google Business connected: {selectedGooglePlace?.name}
                   </p>
                 </div>
               )}
@@ -776,7 +647,7 @@ const Onboarding = () => {
                   <p className="text-sm text-muted-foreground">
                     {isGoogleConnected
                       ? "We'll automatically find your Yelp page using your Google listing."
-                      : "Connect Google first, then we can auto-detect your Yelp page."
+                      : "We'll search for your Yelp page based on your business name and address."
                     }
                   </p>
                 </div>
@@ -787,7 +658,16 @@ const Onboarding = () => {
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    Apple Maps directions will be auto-created from your Google address
+                    Apple Maps directions will be auto-created from your address
+                  </p>
+                </div>
+              )}
+
+              {/* Helpful tip if no Google connected */}
+              {!isGoogleConnected && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Tip: You can always add Google later in Settings if you skipped Step 2.
                   </p>
                 </div>
               )}
@@ -898,6 +778,7 @@ const Onboarding = () => {
           ) : (
             <Button onClick={handleSubmit} disabled={isLoading}>
               {isLoading ? "Setting up..." : "Complete Setup"}
+              <Check className="w-4 h-4 ml-2" />
             </Button>
           )}
         </div>
