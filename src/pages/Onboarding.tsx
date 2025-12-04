@@ -158,9 +158,15 @@ const Onboarding = () => {
 
   // Memoized callback for Google place selection - saves immediately to DB
   const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
+    console.log('[Onboarding] handleGooglePlaceSelected called:', { placeId, name, address });
+    console.log('[Onboarding] existingRestaurantId:', existingRestaurantId);
+    
     // Normalize the place ID (strip "places/" prefix if present)
     const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
     const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
+    
+    console.log('[Onboarding] Normalized place ID:', normalizedPlaceId);
+    console.log('[Onboarding] Google review URL:', googleReviewUrl);
     
     // Update local state immediately
     setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
@@ -180,6 +186,13 @@ const Onboarding = () => {
         const encodedName = encodeURIComponent(name);
         const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
         
+        console.log('[Onboarding] Saving to DB with payload:', {
+          google_place_id: normalizedPlaceId,
+          google_review_url: googleReviewUrl,
+          address: address,
+          directions_url: directionsUrl,
+        });
+        
         const { error } = await supabase
           .from("restaurants")
           .update({
@@ -194,12 +207,15 @@ const Onboarding = () => {
           console.error('[Onboarding] Error saving Google place:', error);
           toast.error("Failed to save Google business. Please try again.");
         } else {
+          console.log('[Onboarding] Google place saved successfully!');
           setFormData(prev => ({ ...prev, directionsUrl }));
           toast.success("Google Business connected!");
         }
       } catch (err) {
         console.error('[Onboarding] Exception saving Google place:', err);
       }
+    } else {
+      console.warn('[Onboarding] No existingRestaurantId - cannot save to DB yet');
     }
   }, [existingRestaurantId]);
 
