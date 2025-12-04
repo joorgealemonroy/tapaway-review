@@ -115,14 +115,18 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       });
 
       if (error) {
-        // Check if it's a locked response
-        if (data?.locked) {
-          setLockedInfo(data as LockedResponse);
-          setStats(null);
-          return;
-        }
-        throw error;
+        console.error('Error loading AI Coach stats:', error);
+        toast.error("Failed to load insights");
+        return;
       }
+
+      // Check if AI Coach is locked (returned as 200 with locked flag)
+      if (data?.locked === true) {
+        setLockedInfo(data as LockedResponse);
+        setStats(null);
+        return;
+      }
+
       setStats(data);
       setLockedInfo(null);
     } catch (error) {
