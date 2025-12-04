@@ -126,6 +126,13 @@ const Dashboard = () => {
       data
     } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).single();
     if (data) {
+      // Check if onboarding is incomplete - redirect back to onboarding
+      if (!data.onboarding_completed) {
+        console.log('[Dashboard] Onboarding incomplete, redirecting to /onboarding');
+        navigate("/onboarding");
+        return;
+      }
+      
       setRestaurant(data as any);
       fetchLocations(data.id);
 
