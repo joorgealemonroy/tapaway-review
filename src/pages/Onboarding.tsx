@@ -171,42 +171,62 @@ const Onboarding = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Save Google place data to DB
-  const saveGooglePlaceToDb = async (placeId: string, name: string, address: string) => {
+  // Save Google place data to DB - this is the ONLY place we persist Google data
+  const saveGooglePlaceToDb = async (placeId: string, name: string, address: string): Promise<boolean> => {
     const currentRestaurantId = restaurantIdRef.current;
     
-    console.log('[Onboarding] saveGooglePlaceToDb called:', { placeId, name, address, currentRestaurantId });
+    console.log('[Onboarding] saveGooglePlaceToDb called:', { 
+      placeId, 
+      name, 
+      address, 
+      currentRestaurantId,
+      refValue: restaurantIdRef.current 
+    });
     
     if (!currentRestaurantId) {
-      console.warn('[Onboarding] No restaurant ID available - will save on Next click');
+      console.warn('[Onboarding] No restaurant ID available yet - data will be saved on Next click');
+      return false;
+    }
+
+    if (!placeId) {
+      console.error('[Onboarding] No place ID provided');
       return false;
     }
 
     try {
+      // Normalize the place ID (handle both "places/ChIJ..." and bare "ChIJ..." formats)
       const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
       const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
       
-      // Build Apple Maps URL from address
-      const encodedAddress = encodeURIComponent(address);
-      const encodedName = encodeURIComponent(name);
-      const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+      if (!googleReviewUrl) {
+        console.error('[Onboarding] Could not build Google review URL from:', normalizedPlaceId);
+        return false;
+      }
       
-      console.log('[Onboarding] Saving Google data:', {
+      // Build Apple Maps URL from address
+      let directionsUrl: string | null = null;
+      if (address) {
+        const encodedAddress = encodeURIComponent(address);
+        const encodedName = encodeURIComponent(name || 'Business');
+        directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+      }
+      
+      const updatePayload: Record<string, any> = {
         google_place_id: normalizedPlaceId,
         google_review_url: googleReviewUrl,
-        address,
-        directions_url: directionsUrl,
+      };
+      
+      if (address) updatePayload.address = address;
+      if (directionsUrl) updatePayload.directions_url = directionsUrl;
+      
+      console.log('[Onboarding] Saving Google data to restaurants:', {
+        ...updatePayload,
         restaurant_id: currentRestaurantId
       });
       
       const { error } = await supabase
         .from("restaurants")
-        .update({
-          google_place_id: normalizedPlaceId,
-          google_review_url: googleReviewUrl,
-          address: address,
-          directions_url: directionsUrl,
-        })
+        .update(updatePayload)
         .eq("id", currentRestaurantId);
 
       if (error) {
@@ -215,7 +235,12 @@ const Onboarding = () => {
       }
       
       console.log('[Onboarding] Google place saved successfully!');
-      setFormData(prev => ({ ...prev, directionsUrl, address }));
+      
+      // Update form data with the directions URL
+      if (directionsUrl) {
+        setFormData(prev => ({ ...prev, directionsUrl, address: address || prev.address }));
+      }
+      
       return true;
     } catch (err) {
       console.error('[Onboarding] Exception saving Google place:', err);
@@ -223,29 +248,49 @@ const Onboarding = () => {
     }
   };
 
-  // Memoized callback for Google place selection
+  // Memoized callback for Google place selection - ONLY source of Google data from autocomplete
   const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
-    console.log('[Onboarding] handleGooglePlaceSelected called:', { placeId, name, address });
+    console.log('[Onboarding] handleGooglePlaceSelected received from Google API:', { 
+      placeId, 
+      name, 
+      address,
+      hasRestaurantId: !!restaurantIdRef.current 
+    });
     
-    // Normalize the place ID
+    if (!placeId) {
+      console.error('[Onboarding] handleGooglePlaceSelected called with empty placeId');
+      setStep2Error('Invalid place selected. Please try again.');
+      return;
+    }
+    
+    // Normalize the place ID immediately
     const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
     
-    // Update local state immediately
+    console.log('[Onboarding] Normalized place ID:', normalizedPlaceId);
+    
+    // Update local state immediately - this is our source of truth until saved
     setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
-    setStep2Error(null); // Clear any error
+    setStep2Error(null);
     setManualGoogleInput(""); // Clear manual input since we have autocomplete selection
     
-    // Update form data
+    // Update form data with name/address from Google
     setFormData(prev => ({
       ...prev,
       address: address || prev.address,
-      restaurantName: prev.restaurantName || name || prev.restaurantName,
+      restaurantName: prev.restaurantName || name || '',
     }));
 
-    // Try to save to DB immediately
-    const saved = await saveGooglePlaceToDb(normalizedPlaceId, name, address);
-    if (saved) {
-      toast.success("Google Business connected!");
+    // Try to save to DB immediately if we have a restaurant ID
+    if (restaurantIdRef.current) {
+      const saved = await saveGooglePlaceToDb(normalizedPlaceId, name, address);
+      if (saved) {
+        toast.success("Google Business connected!");
+      } else {
+        // Not a fatal error - will try again on Next click
+        console.log('[Onboarding] Could not save immediately, will save on Next');
+      }
+    } else {
+      console.log('[Onboarding] No restaurant ID yet - will save Google data on Next click');
     }
   }, []);
 
@@ -302,9 +347,23 @@ const Onboarding = () => {
         return;
       }
       
-      // Save to DB if not already saved
+      // Save to DB
       if (restaurantIdRef.current) {
         try {
+          // Build directions URL
+          const encodedAddress = encodeURIComponent(selection.address || formData.address || "");
+          const encodedName = encodeURIComponent(selection.name || formData.restaurantName);
+          const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+          
+          console.log('[Onboarding] Step 2 saving to DB:', {
+            google_place_id: normalizedPlaceId,
+            google_review_url: googleReviewUrl,
+            address: selection.address || formData.address,
+            directions_url: directionsUrl,
+            phone: formData.phone,
+            restaurant_id: restaurantIdRef.current
+          });
+          
           const { error } = await supabase
             .from("restaurants")
             .update({
@@ -312,6 +371,7 @@ const Onboarding = () => {
               google_review_url: googleReviewUrl,
               phone: formData.phone || null,
               address: selection.address || formData.address || null,
+              directions_url: directionsUrl,
             })
             .eq("id", restaurantIdRef.current);
 
@@ -321,6 +381,21 @@ const Onboarding = () => {
             return;
           }
           
+          // VERIFY the save by reading back the data
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("restaurants")
+            .select("id, google_place_id, google_review_url")
+            .eq("id", restaurantIdRef.current)
+            .single();
+          
+          if (verifyError || !verifyData?.google_place_id || !verifyData?.google_review_url) {
+            console.error('[Onboarding] Verification failed:', { verifyError, verifyData });
+            setStep2Error("Failed to verify Google connection. Please try again.");
+            return;
+          }
+          
+          console.log('[Onboarding] Step 2 save VERIFIED:', verifyData);
+          
           // Update local state to match what we saved
           setSelectedGooglePlace({
             placeId: normalizedPlaceId,
@@ -328,16 +403,6 @@ const Onboarding = () => {
             address: selection.address
           });
           
-          // Build directions URL
-          const encodedAddress = encodeURIComponent(selection.address || formData.address || "");
-          const encodedName = encodeURIComponent(selection.name || formData.restaurantName);
-          const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-          
-          await supabase
-            .from("restaurants")
-            .update({ directions_url: directionsUrl })
-            .eq("id", restaurantIdRef.current);
-            
           setFormData(prev => ({ ...prev, directionsUrl }));
           
         } catch (err) {
@@ -345,6 +410,10 @@ const Onboarding = () => {
           setStep2Error("Failed to save. Please try again.");
           return;
         }
+      } else {
+        console.error('[Onboarding] No restaurant ID available for Step 2 save');
+        setStep2Error("Setup error - no restaurant found. Please refresh and try again.");
+        return;
       }
       
       setStep2Error(null);
