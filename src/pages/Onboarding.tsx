@@ -62,22 +62,43 @@ const Onboarding = () => {
 
   // Refresh restaurant data from DB to sync local state
   const refreshRestaurantFromDb = useCallback(async () => {
-    if (!user || !existingRestaurantId) return;
+    console.log('[DEBUG refreshRestaurantFromDb] Called with:', { 
+      userId: user?.id, 
+      existingRestaurantId 
+    });
     
-    const { data: restaurant } = await supabase
+    if (!user || !existingRestaurantId) {
+      console.log('[DEBUG refreshRestaurantFromDb] Skipping - missing user or restaurantId');
+      return;
+    }
+    
+    const { data: restaurant, error } = await supabase
       .from("restaurants")
-      .select("id, google_place_id, restaurant_name, address")
+      .select("id, google_place_id, google_review_url, restaurant_name, address")
       .eq("id", existingRestaurantId)
       .maybeSingle();
     
+    console.log('[DEBUG refreshRestaurantFromDb] DB query result:', {
+      restaurant: restaurant ? {
+        id: restaurant.id,
+        google_place_id: restaurant.google_place_id,
+        google_review_url: restaurant.google_review_url,
+        restaurant_name: restaurant.restaurant_name,
+        address: restaurant.address,
+      } : null,
+      error: error?.message
+    });
+    
     if (restaurant?.google_place_id) {
-      console.log('[Onboarding] Refreshed from DB - Google connected:', restaurant.google_place_id);
+      console.log('[DEBUG refreshRestaurantFromDb] Setting googleSavedToDb=true');
       setGoogleSavedToDb(true);
       setSelectedGooglePlace({
         placeId: restaurant.google_place_id,
         name: restaurant.restaurant_name || "",
         address: restaurant.address || "",
       });
+    } else {
+      console.log('[DEBUG refreshRestaurantFromDb] No google_place_id found in DB');
     }
   }, [user, existingRestaurantId]);
 
@@ -149,9 +170,23 @@ const Onboarding = () => {
   // Refresh from DB when entering Step 3 to ensure we have latest google_place_id
   useEffect(() => {
     if (step === 3) {
+      console.log('[DEBUG Step3 Effect] Step 3 entered, calling refreshRestaurantFromDb');
       refreshRestaurantFromDb();
     }
   }, [step, refreshRestaurantFromDb]);
+
+  // Debug log whenever isGoogleConnected state changes
+  useEffect(() => {
+    console.log('[DEBUG State Change]', {
+      googleSavedToDb,
+      selectedGooglePlace: selectedGooglePlace ? {
+        placeId: selectedGooglePlace.placeId,
+        name: selectedGooglePlace.name
+      } : null,
+      isGoogleConnected: googleSavedToDb || !!selectedGooglePlace,
+      currentStep: step
+    });
+  }, [googleSavedToDb, selectedGooglePlace, step]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,7 +224,8 @@ const Onboarding = () => {
 
   // Memoized callback for Google place selection - saves immediately to DB
   const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
-    console.log('[Onboarding] Google place selected:', { placeId, name, address });
+    console.log('[DEBUG Step2] Google place selected:', { placeId, name, address });
+    console.log('[DEBUG Step2] existingRestaurantId:', existingRestaurantId);
     
     // Strip "places/" prefix for legacy compatibility
     const legacyPlaceId = placeId.replace(/^places\//, '');
@@ -214,6 +250,14 @@ const Onboarding = () => {
         const encodedName = encodeURIComponent(name);
         const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
         
+        console.log('[DEBUG Step2] Saving to DB:', {
+          restaurantId: existingRestaurantId,
+          google_place_id: legacyPlaceId,
+          google_review_url: googleReviewUrl,
+          address: address,
+          directions_url: directionsUrl,
+        });
+        
         const { error } = await supabase
           .from("restaurants")
           .update({
@@ -225,17 +269,32 @@ const Onboarding = () => {
           .eq("id", existingRestaurantId);
 
         if (error) {
-          console.error('[Onboarding] Failed to save Google place:', error);
+          console.error('[DEBUG Step2] Error saving Google place:', error);
           toast.error("Failed to save Google business. Please try again.");
         } else {
-          console.log('[Onboarding] Google place saved to DB:', legacyPlaceId);
+          console.log('[DEBUG Step2] Google place saved successfully!');
           setGoogleSavedToDb(true);
           setFormData(prev => ({ ...prev, directionsUrl }));
+          
+          // Verify it was actually saved
+          const { data: verifyRestaurant, error: verifyError } = await supabase
+            .from("restaurants")
+            .select("id, google_place_id, google_review_url")
+            .eq("id", existingRestaurantId)
+            .single();
+          
+          console.log('[DEBUG Step2] Verification query result:', {
+            verifyRestaurant,
+            verifyError: verifyError?.message
+          });
+          
           toast.success("Google Business connected!");
         }
       } catch (err) {
-        console.error('[Onboarding] Error saving Google place:', err);
+        console.error('[DEBUG Step2] Exception saving Google place:', err);
       }
+    } else {
+      console.warn('[DEBUG Step2] No existingRestaurantId available - cannot save to DB');
     }
   }, [existingRestaurantId]);
 
@@ -657,6 +716,17 @@ const Onboarding = () => {
         );
 
       case 3:
+        // Debug log for Step 3 rendering
+        console.log('[DEBUG Step3 Render]', {
+          isGoogleConnected,
+          googleSavedToDb,
+          selectedGooglePlace: selectedGooglePlace ? {
+            placeId: selectedGooglePlace.placeId,
+            name: selectedGooglePlace.name
+          } : null,
+          existingRestaurantId
+        });
+        
         return (
           <div className="space-y-6">
             <div>
@@ -665,6 +735,17 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
+              {/* DEBUG INFO - only visible in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <pre className="text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded overflow-auto">
+                  [DEBUG Step3]
+                  restaurantId: {existingRestaurantId}
+                  googleSavedToDb: {String(googleSavedToDb)}
+                  selectedGooglePlace: {selectedGooglePlace ? selectedGooglePlace.placeId : 'null'}
+                  isGoogleConnected: {String(isGoogleConnected)}
+                </pre>
+              )}
+              
               {/* Google status - based on actual state */}
               {isGoogleConnected ? (
                 <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
