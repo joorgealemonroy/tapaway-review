@@ -787,27 +787,6 @@ const Onboarding = () => {
                 )}
               </div>
 
-              {/* Manual input fallback */}
-              {!selectedGooglePlace && (
-                <div className="pt-4 border-t border-border">
-                  <Label htmlFor="manualGoogle" className="text-sm">
-                    Or paste your Google Review URL / Place ID
-                  </Label>
-                  <Input
-                    id="manualGoogle"
-                    value={manualGoogleInput}
-                    onChange={(e) => {
-                      setManualGoogleInput(e.target.value);
-                      setStep2Error(null);
-                    }}
-                    placeholder="https://search.google.com/local/writereview?placeid=... or ChIJ..."
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Can't find your business? Paste your Google Review URL or Place ID directly.
-                  </p>
-                </div>
-              )}
 
               {/* Error message */}
               {step2Error && (
