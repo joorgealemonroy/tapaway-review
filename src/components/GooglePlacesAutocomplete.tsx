@@ -102,20 +102,36 @@ export const GooglePlacesAutocomplete = ({
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(placeAutocomplete);
 
-      // Listen for place selection
-      const handlePlaceSelect = async (event: any) => {
-        const place = event.place;
+      // Handler for place selection - works with both event types
+      const handlePlaceSelection = async (event: any) => {
+        console.log('[GooglePlacesAutocomplete] Place selection event fired:', event.type, event);
+        
+        // The new API uses 'gmp-select' with placePrediction
+        // Also handle 'gmp-placeselect' for backwards compatibility
+        let place = event.place;
+        let placePrediction = event.placePrediction;
+        
+        console.log('[GooglePlacesAutocomplete] Event data:', { place, placePrediction });
 
-        console.log('[GooglePlacesAutocomplete] Raw place from event:', place);
+        // If we have a placePrediction (new API format), convert it to a Place
+        if (placePrediction && !place) {
+          try {
+            console.log('[GooglePlacesAutocomplete] Converting placePrediction to Place...');
+            place = await placePrediction.toPlace();
+            console.log('[GooglePlacesAutocomplete] Converted place:', place);
+          } catch (err) {
+            console.error('[GooglePlacesAutocomplete] Error converting placePrediction:', err);
+          }
+        }
 
-        if (!place?.id) {
-          console.error('[GooglePlacesAutocomplete] No place.id in selection');
+        if (!place) {
+          console.error('[GooglePlacesAutocomplete] No place object available');
           setError("Please select a valid place from the dropdown");
           return;
         }
 
         try {
-          // Fetch place details - the new API requires fetchFields
+          // Fetch place details
           await place.fetchFields({
             fields: ["id", "displayName", "formattedAddress"],
           });
@@ -126,22 +142,30 @@ export const GooglePlacesAutocomplete = ({
             formattedAddress: place.formattedAddress,
           });
 
+          // Extract the place ID
+          const placeId = place.id;
+          
+          if (!placeId) {
+            console.error('[GooglePlacesAutocomplete] No place.id after fetchFields');
+            setError("Could not get place ID. Please try again.");
+            return;
+          }
+
           // In the new Places API, displayName is a LocalizedText object
-          // It has a 'text' property that contains the actual string
           const placeName = typeof place.displayName === 'object' 
             ? (place.displayName?.text || place.displayName?.toString() || "")
             : (place.displayName || "");
           
           const placeAddress = place.formattedAddress || "";
 
-          console.log('[GooglePlacesAutocomplete] Extracted values:', {
-            placeId: place.id,
+          console.log('[GooglePlacesAutocomplete] Calling onPlaceSelected with:', {
+            placeId,
             name: placeName,
             address: placeAddress,
           });
 
           onPlaceSelected({
-            placeId: place.id,
+            placeId,
             name: placeName,
             address: placeAddress,
           });
@@ -153,12 +177,15 @@ export const GooglePlacesAutocomplete = ({
         }
       };
 
-      placeAutocomplete.addEventListener("gmp-placeselect", handlePlaceSelect);
+      // Listen for BOTH event types to ensure compatibility
+      placeAutocomplete.addEventListener("gmp-placeselect", handlePlaceSelection);
+      placeAutocomplete.addEventListener("gmp-select", handlePlaceSelection);
 
-      console.log("[GooglePlacesAutocomplete] Initialization complete");
+      console.log("[GooglePlacesAutocomplete] Initialization complete - listening for gmp-placeselect and gmp-select events");
 
       return () => {
-        placeAutocomplete.removeEventListener("gmp-placeselect", handlePlaceSelect);
+        placeAutocomplete.removeEventListener("gmp-placeselect", handlePlaceSelection);
+        placeAutocomplete.removeEventListener("gmp-select", handlePlaceSelection);
         if (containerRef.current) {
           containerRef.current.innerHTML = "";
         }
