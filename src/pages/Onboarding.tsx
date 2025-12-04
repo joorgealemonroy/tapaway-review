@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { z } from "zod";
@@ -20,11 +20,9 @@ const onboardingSchema = z.object({
   customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Custom URL must contain only lowercase letters, numbers, and hyphens"),
   instagram: urlValidationSchemas.instagram,
   googlePlaceId: z.string().trim().optional(),
-  yelpUrl: urlValidationSchemas.yelp,
   directionsUrl: urlValidationSchemas.directions,
   address: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(20).optional(),
-  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   headerTitle: z.string().trim().max(100).optional(),
   headerSubtitle: z.string().trim().max(200).optional(),
   menuTitle: z.string().trim().max(50).optional(),
@@ -35,6 +33,8 @@ const Onboarding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [addYelp, setAddYelp] = useState(true); // Checkbox state for Yelp
+  const [existingRestaurantId, setExistingRestaurantId] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -44,11 +44,9 @@ const Onboarding = () => {
     customSlug: "",
     instagram: "",
     googlePlaceId: "",
-    yelpUrl: "",
     directionsUrl: "",
     address: "",
     phone: "",
-    email: "",
     headerTitle: "How was your visit?",
     headerSubtitle: "We'd love to hear about your experience!",
     menuTitle: "Our Menu",
@@ -71,7 +69,7 @@ const Onboarding = () => {
     const checkOnboardingStatus = async () => {
       const { data: restaurant } = await supabase
         .from("restaurants")
-        .select("subscription_status, plan_type, custom_slug, restaurant_name")
+        .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name")
         .eq("owner_id", user.id)
         .maybeSingle();
 
@@ -84,11 +82,26 @@ const Onboarding = () => {
         return;
       }
 
-      // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
-      // This prevents already-onboarded users from re-entering onboarding
-      if (restaurant && restaurant.custom_slug && restaurant.restaurant_name) {
-        console.log('[Onboarding] User already onboarded, redirecting to dashboard');
-        navigate("/dashboard");
+      // If user has an existing restaurant (created by paywall), store its ID for update
+      if (restaurant) {
+        setExistingRestaurantId(restaurant.id);
+        
+        // Pre-fill form with any existing data
+        if (restaurant.restaurant_name && restaurant.restaurant_name !== "New Restaurant") {
+          setFormData(prev => ({
+            ...prev,
+            restaurantName: restaurant.restaurant_name || "",
+            ownerName: restaurant.owner_name || restaurant.greeting_name || "",
+            address: restaurant.address || "",
+            phone: restaurant.phone || "",
+          }));
+        }
+        
+        // If user already has a fully configured restaurant (has slug and name), redirect to dashboard
+        if (restaurant.custom_slug && restaurant.restaurant_name && restaurant.restaurant_name !== "New Restaurant") {
+          console.log('[Onboarding] User already onboarded, redirecting to dashboard');
+          navigate("/dashboard");
+        }
       }
     };
 
@@ -172,12 +185,8 @@ const Onboarding = () => {
 
           if (lookupError) {
             console.error('[Onboarding] Place ID lookup error:', lookupError);
-            toast.error('Could not verify business address with Google. Please check the address.');
-            setIsLoading(false);
-            return;
-          }
-
-          if (lookupData?.placeId) {
+            // Don't block onboarding - just continue without place ID
+          } else if (lookupData?.placeId) {
             placeId = lookupData.placeId;
             console.log('[Onboarding] Found Place ID:', placeId);
             
@@ -192,10 +201,9 @@ const Onboarding = () => {
         }
       }
 
-      // Determine target restaurant for UPSERT based on slug and owner
+      // Check slug uniqueness (excluding current user's restaurant)
       const slugToUse = validatedData.customSlug.toLowerCase().trim();
-
-      // Check for an existing restaurant with this slug (may be limited by RLS)
+      
       const { data: existingSlugRestaurant, error: slugCheckError } = await supabase
         .from("restaurants")
         .select("id, owner_id")
@@ -209,40 +217,11 @@ const Onboarding = () => {
         return;
       }
 
-      // Check if the current user already has a restaurant
-      const { data: userRestaurant, error: userCheckError } = await supabase
-        .from("restaurants")
-        .select("id, custom_slug")
-        .eq("owner_id", user.id)
-        .maybeSingle();
-
-      if (userCheckError && userCheckError.code !== "PGRST116") {
-        console.error("[Onboarding] Error checking user restaurant:", userCheckError);
-        toast.error("Failed to verify account. Please try again.");
+      // If slug exists and belongs to someone else, block
+      if (existingSlugRestaurant && existingSlugRestaurant.owner_id !== user.id) {
+        toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
         setIsLoading(false);
         return;
-      }
-
-      let targetRestaurantId: string | null = null;
-      let shouldInsert = false;
-
-      if (existingSlugRestaurant) {
-        // Slug exists: allow if it's unclaimed or already belongs to this user
-        if (!existingSlugRestaurant.owner_id || existingSlugRestaurant.owner_id === user.id) {
-          targetRestaurantId = existingSlugRestaurant.id;
-        } else {
-          toast.error(
-            `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
-          );
-          setIsLoading(false);
-          return;
-        }
-      } else if (userRestaurant) {
-        // No existing slug match, but user already has a restaurant: update that
-        targetRestaurantId = userRestaurant.id;
-      } else {
-        // No existing restaurant or slug: perform insert
-        shouldInsert = true;
       }
 
       // Strip "places/" prefix from Place ID for legacy Google Review URL compatibility
@@ -272,68 +251,117 @@ const Onboarding = () => {
         logoUrl = urlData.publicUrl;
       }
 
-      // Create or update restaurant record (UPSERT)
+      // Build restaurant data - use auth email as contact email
       const restaurantData = {
         owner_id: user.id,
         restaurant_name: validatedData.restaurantName,
         owner_name: validatedData.ownerName,
-        greeting_name: validatedData.ownerName, // Use owner name as greeting name
-        custom_slug: validatedData.customSlug,
+        greeting_name: validatedData.ownerName,
+        custom_slug: slugToUse,
         slug_locked_at: new Date().toISOString(),
         instagram_url: validatedData.instagram || null,
         google_review_url: legacyPlaceId ? `https://search.google.com/local/writereview?placeid=${legacyPlaceId}` : null,
         google_place_id: legacyPlaceId || null,
-        yelp_review_url: validatedData.yelpUrl && validatedData.yelpUrl.trim() ? validatedData.yelpUrl : null,
         directions_url: directionsUrl || null,
         address: validatedData.address || null,
         phone: validatedData.phone || null,
-        email: validatedData.email && validatedData.email.trim() ? validatedData.email : null,
+        email: user.email || null, // Use auth email as contact email
         logo_url: logoUrl,
         header_title: validatedData.headerTitle || "How was your visit?",
         header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
         menu_title: validatedData.menuTitle || "Our Menu",
       };
 
-      if (targetRestaurantId) {
-        // Update existing restaurant (either by slug or by owner)
+      let restaurantId: string | null = existingRestaurantId;
+
+      // Always try UPDATE first if we have an existing restaurant ID
+      if (existingRestaurantId) {
+        console.log('[Onboarding] Updating existing restaurant:', existingRestaurantId);
         const { error: updateError } = await supabase
           .from("restaurants")
           .update(restaurantData)
-          .eq("id", targetRestaurantId);
+          .eq("id", existingRestaurantId)
+          .eq("owner_id", user.id); // Extra safety check
 
         if (updateError) {
+          console.error('[Onboarding] Update error:', updateError);
           if ((updateError as any).code === "23505") {
-            toast.error(
-              `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
-            );
+            toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
             setIsLoading(false);
             return;
           }
           throw updateError;
         }
-      } else if (shouldInsert) {
-        // Insert new restaurant
-        const { error: insertError } = await supabase.from("restaurants").insert(restaurantData);
+      } else {
+        // No existing restaurant - try to find one by owner_id first
+        const { data: userRestaurant } = await supabase
+          .from("restaurants")
+          .select("id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
 
-        if (insertError) {
-          if ((insertError as any).code === "23505") {
-            toast.error(
-              `The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`,
-            );
-            setIsLoading(false);
-            return;
+        if (userRestaurant) {
+          // Found an existing restaurant, update it
+          console.log('[Onboarding] Found existing restaurant by owner_id:', userRestaurant.id);
+          restaurantId = userRestaurant.id;
+          const { error: updateError } = await supabase
+            .from("restaurants")
+            .update(restaurantData)
+            .eq("id", userRestaurant.id);
+
+          if (updateError) {
+            console.error('[Onboarding] Update error:', updateError);
+            throw updateError;
           }
-          throw insertError;
+        } else {
+          // No existing restaurant at all - insert new
+          console.log('[Onboarding] Inserting new restaurant');
+          const { data: newRestaurant, error: insertError } = await supabase
+            .from("restaurants")
+            .insert(restaurantData)
+            .select("id")
+            .single();
+
+          if (insertError) {
+            console.error('[Onboarding] Insert error:', insertError);
+            if ((insertError as any).code === "23505") {
+              toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
+              setIsLoading(false);
+              return;
+            }
+            throw insertError;
+          }
+          restaurantId = newRestaurant?.id || null;
+        }
+      }
+
+      // Auto-detect Yelp if checkbox is checked and we have a Google Place ID
+      if (addYelp && legacyPlaceId && restaurantId) {
+        console.log('[Onboarding] Attempting auto-detect Yelp for restaurant:', restaurantId);
+        try {
+          const { data: yelpData, error: yelpError } = await supabase.functions.invoke('auto-yelp-from-place', {
+            body: { restaurantId }
+          });
+
+          if (yelpError) {
+            console.log('[Onboarding] Yelp auto-detect failed (non-blocking):', yelpError);
+            // Don't block onboarding - Yelp is optional
+          } else if (yelpData?.yelp_review_url) {
+            console.log('[Onboarding] Auto-detected Yelp URL:', yelpData.yelp_review_url);
+          }
+        } catch (error) {
+          console.log('[Onboarding] Yelp auto-detect error (non-blocking):', error);
+          // Continue without Yelp - it's optional
         }
       }
 
       toast.success("Restaurant setup complete!");
       navigate("/dashboard");
     } catch (error: any) {
+      console.error('[Onboarding] Submit error:', error);
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        // Show actual Supabase error message to help debug
         const errorMessage = error?.message || "Failed to complete setup. Please try again.";
         toast.error(errorMessage);
       }
@@ -488,16 +516,15 @@ const Onboarding = () => {
                 </p>
               </div>
 
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="contact@restaurant.com"
-                  maxLength={255}
-                />
+              {/* Email is auto-filled from auth - show read-only info */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium">Contact email:</span>{" "}
+                  <span className="text-foreground">{user?.email}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  We'll use your account email. You can change this later in Settings.
+                </p>
               </div>
             </div>
           </div>
@@ -512,18 +539,40 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="yelpUrl">Yelp Review URL (Optional)</Label>
-                <Input
-                  id="yelpUrl"
-                  type="url"
-                  value={formData.yelpUrl}
-                  onChange={(e) => handleInputChange("yelpUrl", e.target.value)}
-                  placeholder="https://www.yelp.com/biz/your-restaurant"
+              {/* Google info - show what we have */}
+              {formData.googlePlaceId ? (
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    Google Business connected
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    No Google Business selected. Go back to Step 2 to search and select your business.
+                  </p>
+                </div>
+              )}
+
+              {/* Yelp checkbox - auto-detect */}
+              <div className="flex items-start space-x-3 p-4 border border-border rounded-lg">
+                <Checkbox
+                  id="addYelp"
+                  checked={addYelp}
+                  onCheckedChange={(checked) => setAddYelp(checked === true)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Leave blank if you don't have a Yelp page
-                </p>
+                <div className="space-y-1">
+                  <Label htmlFor="addYelp" className="text-base font-medium cursor-pointer">
+                    Add Yelp (recommended)
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.googlePlaceId 
+                      ? "We'll automatically find your Yelp page using your Google listing."
+                      : "Connect Google first, then we can auto-detect your Yelp page."
+                    }
+                  </p>
+                </div>
               </div>
             </div>
           </div>
