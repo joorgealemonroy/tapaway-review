@@ -657,6 +657,7 @@ export type Database = {
       restaurants: {
         Row: {
           address: string | null
+          ai_coach_unlocked: boolean
           avm_default_order_url: string | null
           avm_negative_label: string | null
           avm_positive_label: string | null
@@ -703,6 +704,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ai_coach_unlocked?: boolean
           avm_default_order_url?: string | null
           avm_negative_label?: string | null
           avm_positive_label?: string | null
@@ -749,6 +751,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ai_coach_unlocked?: boolean
           avm_default_order_url?: string | null
           avm_negative_label?: string | null
           avm_positive_label?: string | null

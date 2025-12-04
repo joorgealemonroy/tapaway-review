@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Send } from "lucide-react";
+import { Loader2, RefreshCw, Send, Unlock } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface Opportunity {
   category: string;
@@ -33,7 +34,6 @@ interface LockedResponse {
   locked: true;
   totalTaps: number;
   requiredTaps: number;
-  error: string;
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -53,6 +53,8 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
   const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const [lockedInfo, setLockedInfo] = useState<LockedResponse | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const { isAdmin } = useAdminAccess();
 
   useEffect(() => {
     loadStats();
@@ -190,6 +192,26 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     }
   };
 
+  const handleAdminUnlock = async () => {
+    setIsUnlocking(true);
+    try {
+      const { error } = await supabase
+        .from('restaurants')
+        .update({ ai_coach_unlocked: true })
+        .eq('id', restaurantId);
+
+      if (error) throw error;
+
+      toast.success("AI Coach unlocked for this restaurant.");
+      await loadStats(); // Re-fetch to get unlocked state
+    } catch (error) {
+      console.error('Error unlocking AI Coach:', error);
+      toast.error("Failed to unlock AI Coach");
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   if (isLoadingStats) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -221,9 +243,31 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
               />
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-8">
             Keep sharing your TapAway cards! Once you hit 1,000 taps, you'll unlock personalized insights, sentiment analysis, and AI-powered recommendations to grow your business.
           </p>
+          
+          {/* Admin-only unlock button */}
+          {isAdmin && (
+            <div className="border-t pt-6 mt-6">
+              <Button
+                onClick={handleAdminUnlock}
+                disabled={isUnlocking}
+                variant="outline"
+                className="gap-2"
+              >
+                {isUnlocking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Unlock className="h-4 w-4" />
+                )}
+                Unlock AI Coach early (admin only)
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                This permanently unlocks AI Coach for this restaurant, even if they have fewer than 1,000 taps.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
