@@ -45,7 +45,7 @@ serve(async (req) => {
     // Verify restaurant ownership or admin access
     const { data: restaurant, error: restaurantError } = await supabaseClient
       .from('restaurants')
-      .select('owner_id, google_rating, is_demo_account')
+      .select('owner_id, google_rating, ai_coach_unlocked')
       .eq('id', restaurantId)
       .single();
 
@@ -85,10 +85,13 @@ serve(async (req) => {
 
     const totalTaps = tapEvents?.length ?? 0;
 
-    // Check 1,000-tap unlock for non-admins (test accounts bypass this)
-    const isTestAccount = restaurant.is_demo_account === true;
-    if (!isAdmin && !isTestAccount && totalTaps < 1000) {
+    // Check if AI Coach is unlocked: either 1000+ taps OR manually unlocked
+    const isManuallyUnlocked = restaurant.ai_coach_unlocked === true;
+    const isUnlocked = (totalTaps >= 1000) || isManuallyUnlocked;
+    
+    if (!isUnlocked) {
       // Return 200 with locked flag so frontend can properly display lock screen
+      // Note: ALL users (including admins) see locked screen, but admins can unlock via UI
       return new Response(
         JSON.stringify({ 
           locked: true,
