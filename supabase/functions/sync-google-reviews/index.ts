@@ -51,9 +51,10 @@ serve(async (req) => {
     }
 
     if (!restaurant.google_place_id) {
+      // Return 200 with error flag so frontend can read the response body
       return new Response(
-        JSON.stringify({ error: 'Restaurant has no Google Place ID configured' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'Restaurant has no Google Place ID configured' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
