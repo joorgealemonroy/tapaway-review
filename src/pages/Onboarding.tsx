@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Upload, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { urlValidationSchemas } from "@/lib/urlValidation";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
@@ -36,12 +36,21 @@ const Onboarding = () => {
   const [addYelp, setAddYelp] = useState(true);
   const [existingRestaurantId, setExistingRestaurantId] = useState<string | null>(null);
   
+  // Use ref to always have the latest restaurantId in callbacks
+  const restaurantIdRef = useRef<string | null>(null);
+  
   // Selected Google place - single source of truth for Google connection
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string;
     name: string;
     address: string;
   } | null>(null);
+  
+  // Step 2 validation error
+  const [step2Error, setStep2Error] = useState<string | null>(null);
+  
+  // Manual Google input for edge cases
+  const [manualGoogleInput, setManualGoogleInput] = useState("");
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -59,6 +68,11 @@ const Onboarding = () => {
     headerSubtitle: "We'd love to hear about your experience!",
     menuTitle: "Our Menu",
   });
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    restaurantIdRef.current = existingRestaurantId;
+  }, [existingRestaurantId]);
 
   useEffect(() => {
     if (!user) {
@@ -92,6 +106,7 @@ const Onboarding = () => {
       // If user has an existing restaurant (created by paywall), store its ID for update
       if (restaurant) {
         setExistingRestaurantId(restaurant.id);
+        restaurantIdRef.current = restaurant.id;
         
         // Track if Google is already connected in DB
         if (restaurant.google_place_id) {
@@ -156,98 +171,183 @@ const Onboarding = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Memoized callback for Google place selection - saves immediately to DB
+  // Save Google place data to DB
+  const saveGooglePlaceToDb = async (placeId: string, name: string, address: string) => {
+    const currentRestaurantId = restaurantIdRef.current;
+    
+    console.log('[Onboarding] saveGooglePlaceToDb called:', { placeId, name, address, currentRestaurantId });
+    
+    if (!currentRestaurantId) {
+      console.warn('[Onboarding] No restaurant ID available - will save on Next click');
+      return false;
+    }
+
+    try {
+      const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
+      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
+      
+      // Build Apple Maps URL from address
+      const encodedAddress = encodeURIComponent(address);
+      const encodedName = encodeURIComponent(name);
+      const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+      
+      console.log('[Onboarding] Saving Google data:', {
+        google_place_id: normalizedPlaceId,
+        google_review_url: googleReviewUrl,
+        address,
+        directions_url: directionsUrl,
+        restaurant_id: currentRestaurantId
+      });
+      
+      const { error } = await supabase
+        .from("restaurants")
+        .update({
+          google_place_id: normalizedPlaceId,
+          google_review_url: googleReviewUrl,
+          address: address,
+          directions_url: directionsUrl,
+        })
+        .eq("id", currentRestaurantId);
+
+      if (error) {
+        console.error('[Onboarding] Error saving Google place:', error);
+        return false;
+      }
+      
+      console.log('[Onboarding] Google place saved successfully!');
+      setFormData(prev => ({ ...prev, directionsUrl, address }));
+      return true;
+    } catch (err) {
+      console.error('[Onboarding] Exception saving Google place:', err);
+      return false;
+    }
+  };
+
+  // Memoized callback for Google place selection
   const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
     console.log('[Onboarding] handleGooglePlaceSelected called:', { placeId, name, address });
-    console.log('[Onboarding] existingRestaurantId:', existingRestaurantId);
     
-    // Normalize the place ID (strip "places/" prefix if present)
+    // Normalize the place ID
     const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
-    const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
-    
-    console.log('[Onboarding] Normalized place ID:', normalizedPlaceId);
-    console.log('[Onboarding] Google review URL:', googleReviewUrl);
     
     // Update local state immediately
     setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
+    setStep2Error(null); // Clear any error
+    setManualGoogleInput(""); // Clear manual input since we have autocomplete selection
     
-    // Update form data for address and name (if not already set)
+    // Update form data
     setFormData(prev => ({
       ...prev,
       address: address || prev.address,
       restaurantName: prev.restaurantName || name || prev.restaurantName,
     }));
 
-    // Immediately persist to database if we have a restaurant ID
-    if (existingRestaurantId) {
-      try {
-        // Build Apple Maps URL from address
-        const encodedAddress = encodeURIComponent(address);
-        const encodedName = encodeURIComponent(name);
-        const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-        
-        console.log('[Onboarding] Saving to DB with payload:', {
-          google_place_id: normalizedPlaceId,
-          google_review_url: googleReviewUrl,
-          address: address,
-          directions_url: directionsUrl,
-        });
-        
-        const { error } = await supabase
-          .from("restaurants")
-          .update({
-            google_place_id: normalizedPlaceId,
-            google_review_url: googleReviewUrl,
-            address: address,
-            directions_url: directionsUrl,
-          })
-          .eq("id", existingRestaurantId);
-
-        if (error) {
-          console.error('[Onboarding] Error saving Google place:', error);
-          toast.error("Failed to save Google business. Please try again.");
-        } else {
-          console.log('[Onboarding] Google place saved successfully!');
-          setFormData(prev => ({ ...prev, directionsUrl }));
-          toast.success("Google Business connected!");
-        }
-      } catch (err) {
-        console.error('[Onboarding] Exception saving Google place:', err);
-      }
-    } else {
-      console.warn('[Onboarding] No existingRestaurantId - cannot save to DB yet');
+    // Try to save to DB immediately
+    const saved = await saveGooglePlaceToDb(normalizedPlaceId, name, address);
+    if (saved) {
+      toast.success("Google Business connected!");
     }
-  }, [existingRestaurantId]);
+  }, []);
+
+  // Compute if we have a valid Google selection
+  const computeGoogleSelection = (): { source: 'place' | 'manual'; placeId: string; name: string; address: string } | null => {
+    // Priority 1: Autocomplete selection
+    if (selectedGooglePlace && selectedGooglePlace.placeId) {
+      return {
+        source: 'place',
+        placeId: selectedGooglePlace.placeId,
+        name: selectedGooglePlace.name,
+        address: selectedGooglePlace.address
+      };
+    }
+    
+    // Priority 2: Manual input (URL or bare Place ID)
+    if (manualGoogleInput.trim()) {
+      const normalized = normalizeGooglePlaceId(manualGoogleInput.trim());
+      if (normalized) {
+        return {
+          source: 'manual',
+          placeId: normalized,
+          name: formData.restaurantName || "Business",
+          address: formData.address || ""
+        };
+      }
+    }
+    
+    return null;
+  };
 
   const handleNext = async () => {
+    // Step 1 validation
     if (step === 1 && (!formData.restaurantName || !formData.ownerName || !formData.customSlug)) {
       toast.error("Please complete all required fields");
       return;
     }
     
-    // On Step 2 completion, save phone to DB if we have a restaurant
-    if (step === 2 && existingRestaurantId) {
-      try {
-        const updateData: Record<string, string | null> = {
-          phone: formData.phone || null,
-        };
-        
-        // Only update address if we have one and Google wasn't selected
-        if (formData.address && !selectedGooglePlace) {
-          updateData.address = formData.address;
-        }
-
-        const { error } = await supabase
-          .from("restaurants")
-          .update(updateData)
-          .eq("id", existingRestaurantId);
-
-        if (error) {
-          console.error('[Onboarding] Failed to save Step 2 data:', error);
-        }
-      } catch (err) {
-        console.error('[Onboarding] Error saving Step 2:', err);
+    // Step 2 validation - GOOGLE IS MANDATORY
+    if (step === 2) {
+      const selection = computeGoogleSelection();
+      
+      if (!selection) {
+        setStep2Error("Please search and select your business from Google to continue.");
+        return;
       }
+      
+      // Validate the selection
+      const normalizedPlaceId = normalizeGooglePlaceId(selection.placeId);
+      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
+      
+      if (!normalizedPlaceId || !googleReviewUrl) {
+        setStep2Error("The Google link/ID you provided is invalid. Please try again.");
+        return;
+      }
+      
+      // Save to DB if not already saved
+      if (restaurantIdRef.current) {
+        try {
+          const { error } = await supabase
+            .from("restaurants")
+            .update({
+              google_place_id: normalizedPlaceId,
+              google_review_url: googleReviewUrl,
+              phone: formData.phone || null,
+              address: selection.address || formData.address || null,
+            })
+            .eq("id", restaurantIdRef.current);
+
+          if (error) {
+            console.error('[Onboarding] Failed to save Step 2 data:', error);
+            setStep2Error("There was a problem saving your Google business. Please try again.");
+            return;
+          }
+          
+          // Update local state to match what we saved
+          setSelectedGooglePlace({
+            placeId: normalizedPlaceId,
+            name: selection.name,
+            address: selection.address
+          });
+          
+          // Build directions URL
+          const encodedAddress = encodeURIComponent(selection.address || formData.address || "");
+          const encodedName = encodeURIComponent(selection.name || formData.restaurantName);
+          const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+          
+          await supabase
+            .from("restaurants")
+            .update({ directions_url: directionsUrl })
+            .eq("id", restaurantIdRef.current);
+            
+          setFormData(prev => ({ ...prev, directionsUrl }));
+          
+        } catch (err) {
+          console.error('[Onboarding] Error saving Step 2:', err);
+          setStep2Error("Failed to save. Please try again.");
+          return;
+        }
+      }
+      
+      setStep2Error(null);
     }
     
     setStep((prev) => prev + 1);
@@ -274,6 +374,31 @@ const Onboarding = () => {
         }
       }
 
+      // CRITICAL: Verify Google is connected before allowing completion
+      // Refresh the restaurant from DB to get the most current google_place_id
+      let currentRestaurant = null;
+      if (existingRestaurantId) {
+        const { data } = await supabase
+          .from("restaurants")
+          .select("id, google_place_id, google_review_url, directions_url")
+          .eq("id", existingRestaurantId)
+          .maybeSingle();
+        currentRestaurant = data;
+      }
+
+      // Check if Google is connected
+      const hasGoogleInDb = currentRestaurant?.google_place_id && currentRestaurant?.google_review_url;
+      const hasGoogleInState = selectedGooglePlace?.placeId;
+      
+      if (!hasGoogleInDb && !hasGoogleInState) {
+        toast.error("You must connect your Google Business before finishing setup. Please go back to Step 2.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Use DB value if available, fall back to local state
+      const placeId = currentRestaurant?.google_place_id || selectedGooglePlace?.placeId || null;
+
       // Check slug uniqueness (excluding current user's restaurant)
       const slugToUse = validatedData.customSlug.toLowerCase().trim();
       
@@ -296,20 +421,6 @@ const Onboarding = () => {
         setIsLoading(false);
         return;
       }
-
-      // Refresh the restaurant from DB to get the most current google_place_id
-      let currentRestaurant = null;
-      if (existingRestaurantId) {
-        const { data } = await supabase
-          .from("restaurants")
-          .select("id, google_place_id, directions_url")
-          .eq("id", existingRestaurantId)
-          .maybeSingle();
-        currentRestaurant = data;
-      }
-
-      // Use DB value if available, fall back to local state
-      const placeId = currentRestaurant?.google_place_id || selectedGooglePlace?.placeId || null;
 
       // Auto-generate Apple Maps URL from address if not already set
       let directionsUrl = currentRestaurant?.directions_url || validatedData.directionsUrl || '';
@@ -446,8 +557,6 @@ const Onboarding = () => {
           // Non-blocking - just log it
           console.log('[Onboarding] Yelp auto-detect error (non-blocking):', error);
         }
-      } else if (addYelp && !placeId) {
-        toast.info("We'll add Yelp once you connect Google in Settings.");
       }
 
       toast.success("Restaurant setup complete!");
@@ -466,7 +575,7 @@ const Onboarding = () => {
   };
 
   // Check if Google is connected
-  const isGoogleConnected = !!selectedGooglePlace;
+  const isGoogleConnected = !!selectedGooglePlace || !!manualGoogleInput.trim();
 
   const renderStep = () => {
     switch (step) {
@@ -577,11 +686,12 @@ const Onboarding = () => {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Contact & Location</h2>
-              <p className="text-muted-foreground">Help customers find you</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Search Your Business on Google *</h2>
+              <p className="text-muted-foreground">This is required to set up your review hub</p>
             </div>
 
             <div className="space-y-4">
+              {/* Google Places Autocomplete */}
               <div>
                 <GooglePlacesAutocomplete
                   onPlaceSelected={handleGooglePlaceSelected}
@@ -591,18 +701,58 @@ const Onboarding = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   Start typing to search your business, then select it from the dropdown
                 </p>
-                {isGoogleConnected && (
-                  <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> 
-                      Google Business connected: {selectedGooglePlace?.name || "Connected"}
+                
+                {/* Success state */}
+                {selectedGooglePlace && (
+                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                      <Check className="w-4 h-4" /> 
+                      <span><strong>Connected:</strong> {selectedGooglePlace.name}</span>
                     </p>
+                    {selectedGooglePlace.address && (
+                      <p className="text-xs text-green-600 dark:text-green-500 mt-1 ml-6">
+                        {selectedGooglePlace.address}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
+              {/* Manual input fallback */}
+              {!selectedGooglePlace && (
+                <div className="pt-4 border-t border-border">
+                  <Label htmlFor="manualGoogle" className="text-sm">
+                    Or paste your Google Review URL / Place ID
+                  </Label>
+                  <Input
+                    id="manualGoogle"
+                    value={manualGoogleInput}
+                    onChange={(e) => {
+                      setManualGoogleInput(e.target.value);
+                      setStep2Error(null);
+                    }}
+                    placeholder="https://search.google.com/local/writereview?placeid=... or ChIJ..."
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Can't find your business? Paste your Google Review URL or Place ID directly.
+                  </p>
+                </div>
+              )}
+
+              {/* Error message */}
+              {step2Error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <p className="text-sm text-destructive flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {step2Error}
+                  </p>
+                </div>
+              )}
+
+              {/* Phone number - secondary */}
+              <div className="pt-4 border-t border-border">
+                <Label htmlFor="phone">Phone Number (optional)</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -616,7 +766,7 @@ const Onboarding = () => {
                 </p>
               </div>
 
-              {/* Email is auto-filled from auth - show read-only info */}
+              {/* Email info */}
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Contact email:</span>{" "}
@@ -639,15 +789,13 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Google status - show positive confirmation if connected */}
-              {isGoogleConnected && (
-                <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    Google Business connected: {selectedGooglePlace?.name}
-                  </p>
-                </div>
-              )}
+              {/* Google status - always show positive since it's mandatory */}
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Google Business connected: {selectedGooglePlace?.name || "Connected"}
+                </p>
+              </div>
 
               {/* Yelp checkbox - auto-detect */}
               <div className="flex items-start space-x-3 p-4 border border-border rounded-lg">
@@ -661,32 +809,18 @@ const Onboarding = () => {
                     Add Yelp (recommended)
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    {isGoogleConnected
-                      ? "We'll automatically find your Yelp page using your Google listing."
-                      : "We'll search for your Yelp page based on your business name and address."
-                    }
+                    We'll automatically find your Yelp page using your Google listing.
                   </p>
                 </div>
               </div>
 
               {/* Directions info */}
-              {isGoogleConnected && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                    <Check className="w-4 h-4" />
-                    Apple Maps directions will be auto-created from your address
-                  </p>
-                </div>
-              )}
-
-              {/* Helpful tip if no Google connected */}
-              {!isGoogleConnected && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    💡 Tip: You can always add Google later in Settings if you skipped Step 2.
-                  </p>
-                </div>
-              )}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Apple Maps directions will be auto-created from your address
+                </p>
+              </div>
             </div>
           </div>
         );
