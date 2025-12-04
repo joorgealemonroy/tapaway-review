@@ -137,6 +137,26 @@ const Paywall = () => {
     seconds: number;
   } | null>(null);
   const [isPromoActive, setIsPromoActive] = useState(Date.now() < PROMO_DEADLINE);
+  const [paywallEnabled, setPaywallEnabled] = useState<boolean | null>(null);
+
+  // Fetch paywall setting on mount
+  useEffect(() => {
+    const fetchPaywallSetting = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("paywall_enabled")
+          .eq("id", "global")
+          .maybeSingle();
+        // Default to true if setting not found
+        setPaywallEnabled(data?.paywall_enabled ?? true);
+      } catch (err) {
+        console.error("Failed to fetch paywall setting:", err);
+        setPaywallEnabled(true); // Default to enabled on error
+      }
+    };
+    fetchPaywallSetting();
+  }, []);
 
   // Countdown timer effect
   useEffect(() => {
@@ -237,29 +257,54 @@ const Paywall = () => {
           navigate("/onboarding");
         }, 1000);
       } else {
-        // Store greeting_name in localStorage temporarily for use after Stripe redirect
-        localStorage.setItem("pending_greeting_name", validated.name.trim());
-        localStorage.setItem("pending_plan_type", selectedPlan);
+        // Check if paywall is disabled - if so, skip Stripe and create restaurant directly
+        if (paywallEnabled === false) {
+          // Paywall is OFF - create restaurant directly without Stripe
+          const { error: restaurantError } = await supabase
+            .from("restaurants")
+            .insert({
+              owner_id: authData.user.id,
+              restaurant_name: "New Restaurant",
+              subscription_status: "active",
+              plan_type: "free_trial",
+              greeting_name: validated.name.trim(),
+            });
 
-        // Create Stripe Checkout Session via edge function
-        const {
-          data: sessionData,
-          error: sessionError
-        } = await supabase.functions.invoke('create-checkout-session', {
-          body: {
-            plan: selectedPlan,
-            email: validated.email.trim()
+          if (restaurantError) {
+            console.error("Failed to create restaurant:", restaurantError);
+            throw new Error("Failed to set up account");
           }
-        });
-        if (sessionError || !sessionData?.url) {
-          throw new Error(sessionError?.message || 'Failed to create checkout session');
-        }
-        toast.success("Account created! Redirecting to payment...");
 
-        // Small delay to show the success message
-        setTimeout(() => {
-          window.location.href = sessionData.url;
-        }, 1000);
+          toast.success("Account created! Redirecting to onboarding...");
+          setTimeout(() => {
+            navigate("/onboarding");
+          }, 1000);
+        } else {
+          // Paywall is ON - proceed with Stripe checkout
+          // Store greeting_name in localStorage temporarily for use after Stripe redirect
+          localStorage.setItem("pending_greeting_name", validated.name.trim());
+          localStorage.setItem("pending_plan_type", selectedPlan);
+
+          // Create Stripe Checkout Session via edge function
+          const {
+            data: sessionData,
+            error: sessionError
+          } = await supabase.functions.invoke('create-checkout-session', {
+            body: {
+              plan: selectedPlan,
+              email: validated.email.trim()
+            }
+          });
+          if (sessionError || !sessionData?.url) {
+            throw new Error(sessionError?.message || 'Failed to create checkout session');
+          }
+          toast.success("Account created! Redirecting to payment...");
+
+          // Small delay to show the success message
+          setTimeout(() => {
+            window.location.href = sessionData.url;
+          }, 1000);
+        }
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
