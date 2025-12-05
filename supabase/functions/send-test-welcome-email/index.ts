@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // TapAway logo hosted on imgur - reliable permanent URL for emails
-const LOGO_URL = 'https://i.imgur.com/JxYK7zM.png';
+const LOGO_URL = 'https://i.imgur.com/7wJOS7a.png';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
