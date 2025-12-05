@@ -19,30 +19,28 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Fetch the logo from the public URL
-    const logoUrl = 'https://id.lovableproject.com/storage/v1/object/public/assets/xfrvckdcrqvkqdwjzopt/tapaway-logo-email.png';
+    const { imageUrl } = await req.json();
     
-    // Try fetching from lovable first, fallback to hardcoded base64
-    let imageBuffer: ArrayBuffer;
-    
-    try {
-      const imgResponse = await fetch(logoUrl);
-      if (imgResponse.ok) {
-        imageBuffer = await imgResponse.arrayBuffer();
-      } else {
-        throw new Error('Failed to fetch');
-      }
-    } catch {
-      // Hardcoded logo won't work, return error
-      return new Response(JSON.stringify({ 
-        error: 'Please upload the logo manually to Supabase Storage',
-        bucket: 'restaurant-logos',
-        filename: 'tapaway-email-logo.png'
-      }), {
+    if (!imageUrl) {
+      return new Response(JSON.stringify({ error: 'Missing imageUrl' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('[upload-email-logo] Fetching image from:', imageUrl);
+    
+    // Fetch the image
+    const imgResponse = await fetch(imageUrl);
+    if (!imgResponse.ok) {
+      return new Response(JSON.stringify({ error: `Failed to fetch image: ${imgResponse.status}` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const imageBuffer = await imgResponse.arrayBuffer();
+    console.log('[upload-email-logo] Image size:', imageBuffer.byteLength);
 
     // Upload to Supabase Storage
     const { data, error } = await supabaseAdmin.storage
@@ -53,7 +51,7 @@ serve(async (req) => {
       });
 
     if (error) {
-      console.error('Upload error:', error);
+      console.error('[upload-email-logo] Upload error:', error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -61,6 +59,7 @@ serve(async (req) => {
     }
 
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/restaurant-logos/tapaway-email-logo.png`;
+    console.log('[upload-email-logo] Uploaded to:', publicUrl);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -72,7 +71,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[upload-email-logo] Error:', error);
     return new Response(JSON.stringify({ error: String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
