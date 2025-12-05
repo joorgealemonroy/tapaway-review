@@ -138,7 +138,6 @@ const Dashboard = () => {
 
       // Check subscription status and redirect to paywall if needed
       if (!isAdmin && data.subscription_status !== 'active') {
-        toast.error("Your subscription is not active. Please update your payment method.");
         navigate("/paywall");
         return;
       }
@@ -169,7 +168,6 @@ const Dashboard = () => {
     } else if (isGrandfatheredUser(user?.email)) {
       // Grandfathered user without restaurant - redirect to onboarding
       console.log('[Dashboard] Grandfathered user has no restaurant, redirecting to onboarding');
-      toast.info("Please complete your business setup");
       navigate("/onboarding");
     } else if (isSuperAdmin(user?.email)) {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
@@ -177,7 +175,6 @@ const Dashboard = () => {
     } else {
       // Regular user without restaurant - redirect to paywall to subscribe
       console.log('[Dashboard] User has no restaurant, redirecting to paywall');
-      toast.info("Please choose a plan to get started");
       navigate("/paywall");
     }
   };
@@ -205,158 +202,11 @@ const Dashboard = () => {
   const planType = restaurant?.plan_type || 'standard';
   const superAdmin = isSuperAdmin(user?.email);
   const shouldBypassPaywall = superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
-  if (!loading && user && !restaurant && !shouldBypassPaywall) {
-    return <div className="min-h-screen bg-background">
-        <nav className="border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary"></div>
-              <span className="font-bold text-xl">TapAway</span>
-            </div>
-            <Button variant="ghost" onClick={signOut}>Sign Out</Button>
-          </div>
-        </nav>
-        
-        <div className="max-w-6xl mx-auto px-4 py-16">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Welcome to TapAway</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose the perfect plan for your business and start collecting reviews in minutes
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {/* Monthly Plan */}
-            <Card className="p-6 hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2">Monthly</h3>
-                <p className="text-sm text-muted-foreground">Perfect for getting started</p>
-              </div>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">$29</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-              </div>
-              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/fZu14n7tZbXRgSl5QugYU05'}>
-                Get Started
-              </Button>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  1 Location
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Custom Review Hub
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Analytics Dashboard
-                </li>
-              </ul>
-            </Card>
-
-            {/* Yearly Plan - Popular */}
-            <Card className="p-6 border-2 border-primary shadow-lg relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold shadow-md">
-                Most Popular
-              </div>
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2">Yearly</h3>
-                <p className="text-sm text-muted-foreground">Best value - save $99!</p>
-              </div>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">$249</span>
-                  <span className="text-muted-foreground">/year</span>
-                </div>
-                <p className="text-sm text-primary font-medium mt-1">Save $99 per year</p>
-              </div>
-              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/4gM7sLcOj2nhcC52EigYU06'}>
-                Get Started
-              </Button>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  1 Location
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Custom Review Hub
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Analytics Dashboard
-                </li>
-              </ul>
-            </Card>
-
-            {/* Bundle Plan */}
-            <Card className="p-6 hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2">Multi-Location</h3>
-                <p className="text-sm text-muted-foreground">For growing businesses</p>
-              </div>
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">$69</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-              </div>
-              <Button className="w-full" size="lg" onClick={() => window.location.href = 'https://buy.stripe.com/3cI8wPdSn9PJeKdfr4gYU09'}>
-                Get Started
-              </Button>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="font-semibold">3 Locations</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Custom Review Hubs
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Consolidated Analytics
-                </li>
-              </ul>
-            </Card>
-          </div>
-
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Your dashboard will activate automatically after purchase
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Cancel anytime • No hidden fees • Money-back guarantee
-            </p>
-          </div>
-        </div>
-      </div>;
-  }
-
+  
+  // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
   // If no restaurant is loaded yet, show loading
   if (!restaurant) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Loading restaurant data...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
   return <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-background/95 backdrop-blur">
