@@ -62,7 +62,7 @@ serve(async (req) => {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center">
-                    <span style="font-size:32px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">TapAway</span>
+                    <img src="https://tapaway.co/tapaway-logo-white.png" alt="TapAway" style="height:36px;width:auto;" />
                   </td>
                 </tr>
                 <tr>
