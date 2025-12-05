@@ -55,18 +55,26 @@ serve(async (req) => {
         <!-- Main card -->
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
           
-          <!-- Header with gradient -->
+          <!-- Header with white background for logo visibility -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:40px 32px;text-align:center;">
-              <!-- Logo text -->
+            <td style="background:#ffffff;padding:32px 32px 24px;text-align:center;border-bottom:3px solid #0d9488;">
+              <!-- Logo as text with styling to match brand -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center">
-                    <img src="https://tapaway-review.lovable.app/tapaway-logo-email.png" alt="TapAway" style="height:40px;width:auto;" />
+                    <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:36px;font-weight:900;font-style:italic;background:linear-gradient(135deg,#1E88E5 0%,#26C6DA 100%);-webkit-background-clip:text;background-clip:text;color:#1E88E5;">TAPAWAY</span>
                   </td>
                 </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Gradient welcome banner -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:32px;text-align:center;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td align="center" style="padding-top:20px;">
+                  <td align="center">
                     <span style="font-size:48px;">🎉</span>
                   </td>
                 </tr>
