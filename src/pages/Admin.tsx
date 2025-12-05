@@ -276,14 +276,19 @@ const Admin = () => {
     setDeleting(true);
 
     try {
-      await supabase.from("locations").delete().eq("restaurant_id", deletingRestaurant.id);
-
-      const { error } = await supabase
-        .from("restaurants")
-        .delete()
-        .eq("id", deletingRestaurant.id);
+      // Call edge function to fully delete user and all related data
+      const { data, error } = await supabase.functions.invoke("delete-user-complete", {
+        body: { restaurantId: deletingRestaurant.id }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.warning) {
+        toast.warning(data.warning);
+      } else {
+        toast.success("Account completely deleted");
+      }
 
       setRestaurants((prev) => prev.filter((x) => x.id !== deletingRestaurant.id));
       setDeletingRestaurant(null);
