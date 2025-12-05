@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// TapAway logo hosted on imgur - reliable permanent URL for emails
+const LOGO_URL = 'https://i.imgur.com/JxYK7zM.png';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,14 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const { to, logoBase64 } = await req.json();
+    const { to } = await req.json();
     
     if (!to) {
       return new Response(JSON.stringify({ error: 'Missing "to" email address' }), {
@@ -36,41 +31,6 @@ serve(async (req) => {
       });
     }
 
-    // Try to get logo from Supabase Storage first
-    let logoUrl = '';
-    const storagePath = 'tapaway-email-logo.png';
-    
-    // Check if logo exists in storage
-    const { data: existingFile } = await supabaseAdmin.storage
-      .from('restaurant-logos')
-      .list('', { search: storagePath });
-    
-    if (existingFile && existingFile.length > 0) {
-      logoUrl = `${supabaseUrl}/storage/v1/object/public/restaurant-logos/${storagePath}`;
-      console.log('[send-test-welcome-email] Using existing logo from storage:', logoUrl);
-    } else if (logoBase64) {
-      // Upload logo if provided
-      const binaryString = atob(logoBase64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from('restaurant-logos')
-        .upload(storagePath, bytes.buffer, {
-          contentType: 'image/png',
-          upsert: true,
-        });
-      
-      if (uploadError) {
-        console.error('[send-test-welcome-email] Upload error:', uploadError);
-      } else {
-        logoUrl = `${supabaseUrl}/storage/v1/object/public/restaurant-logos/${storagePath}`;
-        console.log('[send-test-welcome-email] Uploaded logo to storage:', logoUrl);
-      }
-    }
-
     // Test data
     const ownerName = 'Jorge';
     const restaurantName = 'Test Restaurant';
@@ -79,11 +39,6 @@ serve(async (req) => {
     const cardsQty = 15;
     const stripeReceiptUrl = null;
     const shippingEta = '3–5 business days';
-
-    // Fallback to text if no logo
-    const logoHtml = logoUrl 
-      ? `<img src="${logoUrl}" alt="TapAway" width="280" style="height:auto;max-width:280px;display:block;margin:0 auto;" />`
-      : `<span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:36px;font-weight:900;font-style:italic;color:#1E88E5;">TAPAWAY</span>`;
 
     const html = `
 <!DOCTYPE html>
@@ -104,7 +59,7 @@ serve(async (req) => {
           <!-- Header with logo -->
           <tr>
             <td style="background:#ffffff;padding:32px 32px 20px;text-align:center;border-bottom:3px solid #0d9488;">
-              ${logoHtml}
+              <img src="${LOGO_URL}" alt="TapAway" width="280" style="height:auto;max-width:280px;display:block;margin:0 auto;" />
             </td>
           </tr>
           
@@ -354,7 +309,7 @@ Questions? Email us at tap@tapaway.co
     const data = await response.json();
     console.log('[send-test-welcome-email] Email sent:', data);
 
-    return new Response(JSON.stringify({ success: true, emailId: data.id, logoUrl }), {
+    return new Response(JSON.stringify({ success: true, emailId: data.id }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
