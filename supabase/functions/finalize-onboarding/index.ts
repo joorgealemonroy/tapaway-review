@@ -6,9 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// TapAway logo URL for emails
-const TAPAWAY_LOGO_URL = 'https://tapaway-review.lovable.app/tapaway-logo.svg';
-
 // Email sending helper with text fallback support
 async function sendEmail(options: {
   to: string;
@@ -46,6 +43,273 @@ async function sendEmail(options: {
     console.error('[finalize-onboarding] Email send failed:', error);
     return false;
   }
+}
+
+// Generate branded welcome email HTML
+function generateWelcomeEmailHtml(params: {
+  ownerName: string;
+  restaurantName: string;
+  dashboardUrl: string;
+  planName: string;
+  cardsQty: number;
+  stripeReceiptUrl: string | null;
+  shippingEta: string;
+}): string {
+  const { ownerName, restaurantName, dashboardUrl, planName, cardsQty, stripeReceiptUrl, shippingEta } = params;
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to TapAway</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f0fdfa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0fdfa;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        
+        <!-- Main card -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
+          
+          <!-- Header with gradient -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:40px 32px;text-align:center;">
+              <!-- Logo text -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center">
+                    <span style="font-size:32px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">TapAway</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:20px;">
+                    <span style="font-size:48px;">🎉</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:16px;">
+                    <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;line-height:1.3;">
+                      Welcome aboard, ${ownerName}!
+                    </h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:8px;">
+                    <p style="margin:0;font-size:16px;color:rgba(255,255,255,0.9);">
+                      You're all set to collect 5-star reviews
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Body content -->
+          <tr>
+            <td style="padding:32px;">
+              
+              <!-- Restaurant name callout -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#f0fdfa 0%,#ccfbf1 100%);border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="40" valign="top">
+                          <span style="font-size:24px;">🏪</span>
+                        </td>
+                        <td style="padding-left:12px;">
+                          <p style="margin:0;font-size:13px;color:#0d9488;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Your Restaurant</p>
+                          <p style="margin:4px 0 0 0;font-size:20px;font-weight:700;color:#134e4a;">${restaurantName}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Order summary -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:2px solid #e5e7eb;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;border-bottom:1px solid #f3f4f6;">
+                    <p style="margin:0;font-size:14px;font-weight:700;color:#111827;">📦 Your Order</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="font-size:14px;color:#6b7280;">Plan</td>
+                              <td align="right" style="font-size:14px;font-weight:600;color:#111827;">${planName}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="font-size:14px;color:#6b7280;">NFC Review Cards</td>
+                              <td align="right" style="font-size:14px;font-weight:600;color:#0d9488;">${cardsQty} cards</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td style="font-size:14px;color:#6b7280;">Shipping</td>
+                              <td align="right" style="font-size:14px;font-weight:600;color:#111827;">${shippingEta}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                ${stripeReceiptUrl ? `
+                <tr>
+                  <td style="padding:12px 24px 16px;border-top:1px solid #f3f4f6;">
+                    <a href="${stripeReceiptUrl}" style="font-size:13px;color:#0d9488;text-decoration:underline;">View payment receipt →</a>
+                  </td>
+                </tr>
+                ` : ''}
+              </table>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+                <tr>
+                  <td align="center">
+                    <a href="${dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#14b8a6 100%);color:#ffffff;padding:16px 40px;border-radius:999px;font-size:16px;font-weight:700;text-decoration:none;box-shadow:0 4px 14px rgba(13,148,136,0.4);">
+                      Open My Dashboard →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- What happens next -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fafafa;border-radius:16px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 16px 0;font-size:16px;font-weight:700;color:#111827;">✨ What happens next</p>
+                    
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td width="32" valign="top" style="font-size:14px;font-weight:700;color:#0d9488;">1.</td>
+                              <td style="font-size:14px;color:#4b5563;line-height:1.5;">We prepare and print your custom NFC TapAway cards</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td width="32" valign="top" style="font-size:14px;font-weight:700;color:#0d9488;">2.</td>
+                              <td style="font-size:14px;color:#4b5563;line-height:1.5;">We ship them to the address you provided at checkout</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td width="32" valign="top" style="font-size:14px;font-weight:700;color:#0d9488;">3.</td>
+                              <td style="font-size:14px;color:#4b5563;line-height:1.5;">Place them at your restaurant and watch the reviews roll in!</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Support -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e5e7eb;padding-top:24px;">
+                <tr>
+                  <td align="center">
+                    <p style="margin:0;font-size:14px;color:#6b7280;">
+                      Questions? We're here to help!
+                    </p>
+                    <p style="margin:8px 0 0 0;">
+                      <a href="mailto:tap@tapaway.co" style="font-size:14px;color:#0d9488;font-weight:600;text-decoration:none;">tap@tapaway.co</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;padding:24px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">
+                You're receiving this because you created a TapAway account for <strong>${restaurantName}</strong>
+              </p>
+              <p style="margin:12px 0 0 0;font-size:12px;color:#9ca3af;">
+                <a href="https://tapaway.co" style="color:#0d9488;text-decoration:none;">tapaway.co</a> · Turn every visit into a Google review
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+        
+      </td>
+    </tr>
+  </table>
+  
+</body>
+</html>
+`;
+}
+
+// Generate plain text version
+function generateWelcomeEmailText(params: {
+  ownerName: string;
+  restaurantName: string;
+  dashboardUrl: string;
+  planName: string;
+  cardsQty: number;
+  stripeReceiptUrl: string | null;
+  shippingEta: string;
+}): string {
+  const { ownerName, restaurantName, dashboardUrl, planName, cardsQty, stripeReceiptUrl, shippingEta } = params;
+  
+  return `
+🎉 Welcome to TapAway, ${ownerName}!
+
+Your restaurant "${restaurantName}" is now set up and ready to collect 5-star reviews.
+
+📦 YOUR ORDER
+• Plan: ${planName}
+• NFC Review Cards: ${cardsQty}
+• Shipping: ${shippingEta}
+
+${stripeReceiptUrl ? `View receipt: ${stripeReceiptUrl}\n` : ''}
+✨ WHAT HAPPENS NEXT
+1. We prepare and print your custom NFC TapAway cards
+2. We ship them to the address you provided at checkout
+3. Place them at your restaurant and watch the reviews roll in!
+
+👉 Open your dashboard: ${dashboardUrl}
+
+Questions? Email us at tap@tapaway.co
+
+– The TapAway Team
+`;
 }
 
 serve(async (req) => {
@@ -148,7 +412,7 @@ serve(async (req) => {
     const dashboardUrl = 'https://tapaway-review.lovable.app/dashboard';
 
     // Email configuration
-    const emailFrom = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
+    const emailFrom = Deno.env.get('EMAIL_FROM') || 'TapAway <no-reply@tapaway.co>';
     const emailInternal = Deno.env.get('EMAIL_INTERNAL') || 'tap@tapaway.co';
     const customerEmail = restaurant.email || user.email;
     const ownerName = restaurant.owner_name || 'there';
@@ -159,93 +423,36 @@ serve(async (req) => {
     const cardsQty = fulfillmentOrder?.quantity || 15;
     const stripeReceiptUrl = (fulfillmentOrder as any)?.stripe_receipt_url || null;
     const shippingEta = '3–5 business days';
-    const logoUrl = TAPAWAY_LOGO_URL;
 
     let customerEmailSent = false;
     let internalEmailSent = false;
 
     // Send branded customer welcome email
     if (customerEmail) {
-      const customerHtml = `
-  <div style="background-color:#f5f5f7;padding:32px 16px;">
-    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;line-height:1.5;">
-      
-      <div style="text-align:center;margin-bottom:24px;">
-        <img src="${logoUrl}" alt="TapAway" style="height:40px;max-width:100%;object-fit:contain;" />
-      </div>
+      const customerHtml = generateWelcomeEmailHtml({
+        ownerName,
+        restaurantName,
+        dashboardUrl,
+        planName,
+        cardsQty,
+        stripeReceiptUrl,
+        shippingEta,
+      });
 
-      <h1 style="font-size:24px;margin:0 0 12px 0;">Welcome to TapAway, ${ownerName} 🎉</h1>
-      <p style="margin:0 0 16px 0;font-size:15px;color:#4b5563;">
-        Your restaurant <strong>${restaurantName}</strong> is now set up and ready to collect more 5-star reviews.
-      </p>
-
-      <div style="border-radius:12px;border:1px solid #e5e7eb;padding:16px 18px;margin:16px 0;background:#f9fafb;">
-        <p style="margin:0 0 8px 0;font-weight:600;font-size:14px;color:#111827;">Your order summary</p>
-        <ul style="margin:0 0 8px 18px;padding:0;font-size:14px;color:#4b5563;">
-          <li>Plan: <strong>${planName}</strong></li>
-          <li>NFC review cards: <strong>${cardsQty}</strong></li>
-          <li>Shipping: <strong>Standard (${shippingEta})</strong></li>
-        </ul>
-        ${stripeReceiptUrl ? `
-          <p style="margin:8px 0 0 0;font-size:13px;">
-            Stripe receipt:
-            <a href="${stripeReceiptUrl}" style="color:#0f766e;text-decoration:underline;">view payment details</a>
-          </p>
-        ` : ``}
-      </div>
-
-      <div style="text-align:center;margin:20px 0;">
-        <a href="${dashboardUrl}"
-           style="display:inline-block;background:#111827;color:#ffffff;padding:12px 22px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;">
-          Open my dashboard
-        </a>
-      </div>
-
-      <h2 style="font-size:16px;margin:0 0 8px 0;">What happens next</h2>
-      <ol style="margin:0 0 16px 18px;padding:0;font-size:14px;color:#4b5563;">
-        <li>We prepare and print your NFC TapAway cards.</li>
-        <li>We ship them to the address you provided at checkout.</li>
-        <li>You place them for customers and start collecting reviews automatically.</li>
-      </ol>
-
-      <p style="margin:12px 0 4px 0;font-size:14px;color:#111827;font-weight:500;">Need help?</p>
-      <p style="margin:0 0 16px 0;font-size:14px;color:#4b5563;">
-        Contact us anytime at 
-        <a href="mailto:tap@tapaway.co" style="color:#0f766e;text-decoration:underline;">tap@tapaway.co</a>.
-      </p>
-
-      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
-
-      <p style="margin:0;font-size:12px;color:#9ca3af;">
-        You're receiving this email because you created a TapAway account for <strong>${restaurantName}</strong>.
-      </p>
-
-    </div>
-  </div>
-`;
-
-      const customerText = `
-Welcome to TapAway, ${ownerName}!
-
-Your restaurant "${restaurantName}" is now live.
-
-Plan: ${planName}
-Cards: ${cardsQty}
-Shipping: ${shippingEta}
-
-${stripeReceiptUrl ? `Stripe receipt: ${stripeReceiptUrl}\n\n` : ''}
-Dashboard:
-${dashboardUrl}
-
-Questions? Email tap@tapaway.co
-
-– TapAway
-`;
+      const customerText = generateWelcomeEmailText({
+        ownerName,
+        restaurantName,
+        dashboardUrl,
+        planName,
+        cardsQty,
+        stripeReceiptUrl,
+        shippingEta,
+      });
 
       customerEmailSent = await sendEmail({
         to: customerEmail,
         from: emailFrom,
-        subject: 'Welcome to TapAway – your cards are on the way 🎉',
+        subject: '🎉 Welcome to TapAway – Your cards are on the way!',
         html: customerHtml,
         text: customerText,
       });
