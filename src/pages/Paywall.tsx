@@ -138,23 +138,31 @@ const Paywall = () => {
   } | null>(null);
   const [isPromoActive, setIsPromoActive] = useState(Date.now() < PROMO_DEADLINE);
   const [paywallEnabled, setPaywallEnabled] = useState<boolean | null>(null);
-  const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
+  const [existingUser, setExistingUser] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
 
   // Check for existing authenticated user who needs to complete checkout
   useEffect(() => {
     const checkExistingUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (session?.user) {
         // Check if they have an active subscription
-        const { data: restaurant } = await supabase
-          .from("restaurants")
-          .select("subscription_status")
-          .eq("owner_id", session.user.id)
-          .maybeSingle();
-        
+        const {
+          data: restaurant
+        } = await supabase.from("restaurants").select("subscription_status").eq("owner_id", session.user.id).maybeSingle();
+
         // Only set as existing user if they DON'T have an active subscription
         if (!restaurant || restaurant.subscription_status !== 'active') {
-          setExistingUser({ id: session.user.id, email: session.user.email || '' });
+          setExistingUser({
+            id: session.user.id,
+            email: session.user.email || ''
+          });
         }
       }
     };
@@ -165,11 +173,9 @@ const Paywall = () => {
   useEffect(() => {
     const fetchPaywallSetting = async () => {
       try {
-        const { data } = await supabase
-          .from("app_settings")
-          .select("paywall_enabled")
-          .eq("id", "global")
-          .maybeSingle();
+        const {
+          data
+        } = await supabase.from("app_settings").select("paywall_enabled").eq("id", "global").maybeSingle();
         // Default to true if setting not found
         setPaywallEnabled(data?.paywall_enabled ?? true);
       } catch (err) {
@@ -224,20 +230,18 @@ const Paywall = () => {
       // Check if paywall is disabled
       if (paywallEnabled === false) {
         // Create restaurant directly without Stripe
-        const { error: restaurantError } = await supabase
-          .from("restaurants")
-          .insert({
-            owner_id: existingUser.id,
-            restaurant_name: "New Restaurant",
-            subscription_status: "active",
-            plan_type: "free_trial",
-          });
-
+        const {
+          error: restaurantError
+        } = await supabase.from("restaurants").insert({
+          owner_id: existingUser.id,
+          restaurant_name: "New Restaurant",
+          subscription_status: "active",
+          plan_type: "free_trial"
+        });
         if (restaurantError && !restaurantError.message.includes("duplicate")) {
           console.error("Failed to create restaurant:", restaurantError);
           throw new Error("Failed to set up account");
         }
-
         toast.success("Account activated! Redirecting to onboarding...");
         setTimeout(() => {
           navigate("/onboarding");
@@ -245,19 +249,19 @@ const Paywall = () => {
       } else {
         // Proceed with Stripe checkout
         localStorage.setItem("pending_plan_type", selectedPlan);
-
-        const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-checkout-session', {
+        const {
+          data: sessionData,
+          error: sessionError
+        } = await supabase.functions.invoke('create-checkout-session', {
           body: {
             plan: selectedPlan,
             email: existingUser.email,
-            userId: existingUser.id,
+            userId: existingUser.id
           }
         });
-
         if (sessionError || !sessionData?.url) {
           throw new Error(sessionError?.message || 'Failed to create checkout session');
         }
-
         toast.success("Redirecting to payment...");
         setTimeout(() => {
           window.location.href = sessionData.url;
@@ -268,7 +272,6 @@ const Paywall = () => {
       setLoading(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -297,7 +300,7 @@ const Paywall = () => {
       // 1. Super admin → redirect to /admin (should never sign up here, but handle it)
       // 2. Grandfathered test accounts → create test restaurant
       // 3. Normal users → go to Stripe checkout
-      
+
       if (isSuperAdmin(validated.email)) {
         // Super admin should never hit this, but if they do, just send to admin
         toast.success("Super admin account detected. Redirecting to admin dashboard...");
@@ -309,24 +312,21 @@ const Paywall = () => {
 
       // Check if user is grandfathered (test account)
       const isGrandfathered = isGrandfatheredUser(validated.email);
-
       if (isGrandfathered) {
         // For grandfathered users, create restaurant record and skip payment
-        const { error: restaurantError } = await supabase
-          .from("restaurants")
-          .insert({
-            owner_id: authData.user.id,
-            restaurant_name: "New Restaurant",
-            subscription_status: "active",
-            plan_type: "test",
-            greeting_name: validated.name.trim(),
-          });
-
+        const {
+          error: restaurantError
+        } = await supabase.from("restaurants").insert({
+          owner_id: authData.user.id,
+          restaurant_name: "New Restaurant",
+          subscription_status: "active",
+          plan_type: "test",
+          greeting_name: validated.name.trim()
+        });
         if (restaurantError) {
           console.error("Failed to create restaurant:", restaurantError);
           throw new Error("Failed to set up account");
         }
-
         toast.success("Test account created! Redirecting to onboarding...");
         setTimeout(() => {
           navigate("/onboarding");
@@ -335,21 +335,19 @@ const Paywall = () => {
         // Check if paywall is disabled - if so, skip Stripe and create restaurant directly
         if (paywallEnabled === false) {
           // Paywall is OFF - create restaurant directly without Stripe
-          const { error: restaurantError } = await supabase
-            .from("restaurants")
-            .insert({
-              owner_id: authData.user.id,
-              restaurant_name: "New Restaurant",
-              subscription_status: "active",
-              plan_type: "free_trial",
-              greeting_name: validated.name.trim(),
-            });
-
+          const {
+            error: restaurantError
+          } = await supabase.from("restaurants").insert({
+            owner_id: authData.user.id,
+            restaurant_name: "New Restaurant",
+            subscription_status: "active",
+            plan_type: "free_trial",
+            greeting_name: validated.name.trim()
+          });
           if (restaurantError) {
             console.error("Failed to create restaurant:", restaurantError);
             throw new Error("Failed to set up account");
           }
-
           toast.success("Account created! Redirecting to onboarding...");
           setTimeout(() => {
             navigate("/onboarding");
@@ -368,7 +366,7 @@ const Paywall = () => {
             body: {
               plan: selectedPlan,
               email: validated.email.trim(),
-              userId: authData.user.id,
+              userId: authData.user.id
             }
           });
           if (sessionError || !sessionData?.url) {
@@ -413,9 +411,7 @@ const Paywall = () => {
       <div className="border-b border-border/40 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
-              T
-            </div>
+            
             <span className="font-bold text-xl">TapAway</span>
           </div>
           <Button variant="ghost" onClick={() => navigate("/auth")} className="text-sm">
@@ -617,9 +613,9 @@ const Paywall = () => {
 
             {/* Signup Form or Continue Checkout */}
             <Card className="p-8">
-              {existingUser ? (
-                // Existing user - show continue checkout UI
-                <div className="space-y-6">
+              {existingUser ?
+            // Existing user - show continue checkout UI
+            <div className="space-y-6">
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold mb-2">Complete Your Subscription</h2>
                     <p className="text-sm text-muted-foreground">
@@ -634,18 +630,11 @@ const Paywall = () => {
 
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-4">
-                      {selectedPlan === "yearly" && isPromoActive 
-                        ? <>Selected: Yearly • $150 for your first year (renews at $300/year)</>
-                        : <>Selected: {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>
-                      }
+                      {selectedPlan === "yearly" && isPromoActive ? <>Selected: Yearly • $150 for your first year (renews at $300/year)</> : <>Selected: {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>}
                     </p>
                   </div>
 
-                  <Button 
-                    onClick={handleExistingUserCheckout} 
-                    className="w-full h-12 text-base font-bold" 
-                    disabled={loading}
-                  >
+                  <Button onClick={handleExistingUserCheckout} className="w-full h-12 text-base font-bold" disabled={loading}>
                     {loading ? "Processing..." : isPromoActive && selectedPlan === "yearly" ? "Activate Christmas Deal 🎁" : "Continue to Payment"}
                   </Button>
 
@@ -655,22 +644,16 @@ const Paywall = () => {
                       <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
                       <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
                     </p>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        setExistingUser(null);
-                      }}
-                      className="text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={async () => {
+                  await supabase.auth.signOut();
+                  setExistingUser(null);
+                }} className="text-xs">
                       Use a different account
                     </Button>
                   </div>
-                </div>
-              ) : (
-                // New user - show signup form
-                <form onSubmit={handleSubmit} className="space-y-6">
+                </div> :
+            // New user - show signup form
+            <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold mb-2">Create Your Account</h2>
                     <p className="text-sm text-muted-foreground">
@@ -682,9 +665,9 @@ const Paywall = () => {
                     <div>
                       <Label htmlFor="name">Your Name</Label>
                       <Input id="name" type="text" required value={formData.name} onChange={e => setFormData({
-                        ...formData,
-                        name: e.target.value
-                      })} placeholder="Jorge" maxLength={100} disabled={loading} />
+                    ...formData,
+                    name: e.target.value
+                  })} placeholder="Jorge" maxLength={100} disabled={loading} />
                       <p className="text-xs text-muted-foreground mt-1">
                         This will be used for your personalized dashboard greeting
                       </p>
@@ -693,17 +676,17 @@ const Paywall = () => {
                     <div>
                       <Label htmlFor="email">Email</Label>
                       <Input id="email" type="email" required value={formData.email} onChange={e => setFormData({
-                        ...formData,
-                        email: e.target.value
-                      })} placeholder="you@restaurant.com" disabled={loading} />
+                    ...formData,
+                    email: e.target.value
+                  })} placeholder="you@restaurant.com" disabled={loading} />
                     </div>
 
                     <div>
                       <Label htmlFor="password">Password</Label>
                       <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({
-                        ...formData,
-                        password: e.target.value
-                      })} placeholder="••••••••" disabled={loading} />
+                    ...formData,
+                    password: e.target.value
+                  })} placeholder="••••••••" disabled={loading} />
                       <p className="text-xs text-muted-foreground mt-1">
                         8+ characters, at least 1 number and 1 symbol (! ? # @ $ % ^ & *)
                       </p>
@@ -719,8 +702,7 @@ const Paywall = () => {
                     <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
                     <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
                   </p>
-                </form>
-              )}
+                </form>}
             </Card>
 
             {/* Why TapAway Pays for Itself Section */}
