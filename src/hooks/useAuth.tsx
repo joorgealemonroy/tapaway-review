@@ -122,18 +122,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       navigate("/admin");
     } else {
-      // Normal users: check if onboarding is complete
+      // Normal users: check subscription and onboarding status
       const { data: restaurant } = await supabase
         .from("restaurants")
-        .select("onboarding_completed")
+        .select("onboarding_completed, subscription_status")
         .eq("owner_id", data.user?.id)
         .maybeSingle();
       
-      if (restaurant && !restaurant.onboarding_completed) {
-        // Resume incomplete onboarding
+      if (!restaurant) {
+        // No restaurant - redirect to paywall to subscribe
+        navigate("/paywall");
+      } else if (restaurant.subscription_status !== 'active') {
+        // Has restaurant but no active subscription - redirect to paywall
+        navigate("/paywall");
+      } else if (!restaurant.onboarding_completed) {
+        // Active subscription but incomplete onboarding
         navigate("/onboarding");
       } else {
-        // Fully onboarded, go to dashboard
+        // Fully onboarded with active subscription
         navigate("/dashboard");
       }
     }
