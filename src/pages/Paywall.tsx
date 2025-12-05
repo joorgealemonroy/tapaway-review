@@ -138,6 +138,28 @@ const Paywall = () => {
   } | null>(null);
   const [isPromoActive, setIsPromoActive] = useState(Date.now() < PROMO_DEADLINE);
   const [paywallEnabled, setPaywallEnabled] = useState<boolean | null>(null);
+  const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
+
+  // Check for existing authenticated user who needs to complete checkout
+  useEffect(() => {
+    const checkExistingUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Check if they have an active subscription
+        const { data: restaurant } = await supabase
+          .from("restaurants")
+          .select("subscription_status")
+          .eq("owner_id", session.user.id)
+          .maybeSingle();
+        
+        // Only set as existing user if they DON'T have an active subscription
+        if (!restaurant || restaurant.subscription_status !== 'active') {
+          setExistingUser({ id: session.user.id, email: session.user.email || '' });
+        }
+      }
+    };
+    checkExistingUser();
+  }, []);
 
   // Fetch paywall setting on mount
   useEffect(() => {
@@ -194,6 +216,59 @@ const Paywall = () => {
         </div>
       </div>;
   }
+  // Handler for existing users to continue checkout
+  const handleExistingUserCheckout = async () => {
+    if (!existingUser) return;
+    setLoading(true);
+    try {
+      // Check if paywall is disabled
+      if (paywallEnabled === false) {
+        // Create restaurant directly without Stripe
+        const { error: restaurantError } = await supabase
+          .from("restaurants")
+          .insert({
+            owner_id: existingUser.id,
+            restaurant_name: "New Restaurant",
+            subscription_status: "active",
+            plan_type: "free_trial",
+          });
+
+        if (restaurantError && !restaurantError.message.includes("duplicate")) {
+          console.error("Failed to create restaurant:", restaurantError);
+          throw new Error("Failed to set up account");
+        }
+
+        toast.success("Account activated! Redirecting to onboarding...");
+        setTimeout(() => {
+          navigate("/onboarding");
+        }, 1000);
+      } else {
+        // Proceed with Stripe checkout
+        localStorage.setItem("pending_plan_type", selectedPlan);
+
+        const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            plan: selectedPlan,
+            email: existingUser.email,
+            userId: existingUser.id,
+          }
+        });
+
+        if (sessionError || !sessionData?.url) {
+          throw new Error(sessionError?.message || 'Failed to create checkout session');
+        }
+
+        toast.success("Redirecting to payment...");
+        setTimeout(() => {
+          window.location.href = sessionData.url;
+        }, 500);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to proceed. Please try again.");
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -540,58 +615,112 @@ const Paywall = () => {
           {/* Right: Form and Why Section */}
           <div className="space-y-8">
 
-            {/* Signup Form */}
+            {/* Signup Form or Continue Checkout */}
             <Card className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Create Your Account</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPlan === "yearly" && isPromoActive ? <>Start with Yearly • $150 for your first year (renews at $300/year)</> : <>Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>}
+              {existingUser ? (
+                // Existing user - show continue checkout UI
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Complete Your Subscription</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Welcome back! Continue to complete your subscription.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Signed in as:</p>
+                    <p className="font-medium">{existingUser.email}</p>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {selectedPlan === "yearly" && isPromoActive 
+                        ? <>Selected: Yearly • $150 for your first year (renews at $300/year)</>
+                        : <>Selected: {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>
+                      }
+                    </p>
+                  </div>
+
+                  <Button 
+                    onClick={handleExistingUserCheckout} 
+                    className="w-full h-12 text-base font-bold" 
+                    disabled={loading}
+                  >
+                    {loading ? "Processing..." : isPromoActive && selectedPlan === "yearly" ? "Activate Christmas Deal 🎁" : "Continue to Payment"}
+                  </Button>
+
+                  <div className="text-center space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      By continuing, you agree to our{" "}
+                      <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
+                      <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        setExistingUser(null);
+                      }}
+                      className="text-xs"
+                    >
+                      Use a different account
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // New user - show signup form
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold mb-2">Create Your Account</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPlan === "yearly" && isPromoActive ? <>Start with Yearly • $150 for your first year (renews at $300/year)</> : <>Start with {displayPlan.name} • ${displayPlan.price}/{displayPlan.interval}</>}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Your Name</Label>
+                      <Input id="name" type="text" required value={formData.name} onChange={e => setFormData({
+                        ...formData,
+                        name: e.target.value
+                      })} placeholder="Jorge" maxLength={100} disabled={loading} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This will be used for your personalized dashboard greeting
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" required value={formData.email} onChange={e => setFormData({
+                        ...formData,
+                        email: e.target.value
+                      })} placeholder="you@restaurant.com" disabled={loading} />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="password">Password</Label>
+                      <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({
+                        ...formData,
+                        password: e.target.value
+                      })} placeholder="••••••••" disabled={loading} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        8+ characters, at least 1 number and 1 symbol (! ? # @ $ % ^ & *)
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
+                    {loading ? "Creating account..." : isPromoActive && selectedPlan === "yearly" ? "Activate Christmas Deal 🎁" : "Continue to Payment"}
+                  </Button>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    By continuing, you agree to our{" "}
+                    <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
+                    <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
                   </p>
-                </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Your Name</Label>
-                  <Input id="name" type="text" required value={formData.name} onChange={e => setFormData({
-                    ...formData,
-                    name: e.target.value
-                  })} placeholder="Jorge" maxLength={100} disabled={loading} />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This will be used for your personalized dashboard greeting
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={formData.email} onChange={e => setFormData({
-                    ...formData,
-                    email: e.target.value
-                  })} placeholder="you@restaurant.com" disabled={loading} />
-                </div>
-
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" required value={formData.password} onChange={e => setFormData({
-                    ...formData,
-                    password: e.target.value
-                  })} placeholder="••••••••" disabled={loading} />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    8+ characters, at least 1 number and 1 symbol (! ? # @ $ % ^ & *)
-                  </p>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full h-12 text-base font-bold" disabled={loading}>
-                {loading ? "Creating account..." : isPromoActive && selectedPlan === "yearly" ? "Activate Christmas Deal 🎁" : "Continue to Payment"}
-              </Button>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  By continuing, you agree to our{" "}
-                  <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
-                  <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
-                </p>
-              </form>
+                </form>
+              )}
             </Card>
 
             {/* Why TapAway Pays for Itself Section */}
