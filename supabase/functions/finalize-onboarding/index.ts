@@ -6,12 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Email sending helper
+// TapAway logo URL for emails
+const TAPAWAY_LOGO_URL = 'https://tapaway-review.lovable.app/tapaway-logo.svg';
+
+// Email sending helper with text fallback support
 async function sendEmail(options: {
   to: string;
   from: string;
   subject: string;
   html: string;
+  text?: string;
 }): Promise<boolean> {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) {
@@ -139,7 +143,7 @@ serve(async (req) => {
       console.log('[finalize-onboarding] No fulfillment order found awaiting onboarding (may be test/grandfathered user)');
     }
 
-    // Build hub URL
+    // Build URLs
     const hubUrl = `https://tapaway-review.lovable.app/${restaurant.custom_slug}`;
     const dashboardUrl = 'https://tapaway-review.lovable.app/dashboard';
 
@@ -148,69 +152,102 @@ serve(async (req) => {
     const emailInternal = Deno.env.get('EMAIL_INTERNAL') || 'tap@tapaway.co';
     const customerEmail = restaurant.email || user.email;
     const ownerName = restaurant.owner_name || 'there';
+    const restaurantName = restaurant.restaurant_name;
+    
+    // Order details from fulfillment or defaults
+    const planName = fulfillmentOrder?.plan || restaurant.plan_type || 'TapAway';
+    const cardsQty = fulfillmentOrder?.quantity || 15;
+    const stripeReceiptUrl = (fulfillmentOrder as any)?.stripe_receipt_url || null;
+    const shippingEta = '3–5 business days';
+    const logoUrl = TAPAWAY_LOGO_URL;
 
     let customerEmailSent = false;
     let internalEmailSent = false;
 
-    // Send customer welcome email
+    // Send branded customer welcome email
     if (customerEmail) {
       const customerHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to TapAway</title>
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f9fafb;">
-  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <h1 style="color: #0d9488; margin-top: 0;">Welcome to TapAway! 🎉</h1>
-    
-    <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-      Hi ${ownerName},
-    </p>
-    
-    <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-      Congratulations! Your TapAway account is all set up. Here's what happens next:
-    </p>
-    
-    <div style="background: #f0fdfa; border-radius: 8px; padding: 20px; margin: 24px 0;">
-      <h3 style="color: #0d9488; margin-top: 0;">📦 What happens next</h3>
-      <ul style="color: #374151; padding-left: 20px; margin: 0;">
-        <li style="margin-bottom: 8px;">We're preparing your 15 TapAway NFC cards</li>
-        <li style="margin-bottom: 8px;">Cards will ship within 2-3 business days</li>
-        <li style="margin-bottom: 8px;">You can customize your hub anytime from your dashboard</li>
-      </ul>
+  <div style="background-color:#f5f5f7;padding:32px 16px;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;line-height:1.5;">
+      
+      <div style="text-align:center;margin-bottom:24px;">
+        <img src="${logoUrl}" alt="TapAway" style="height:40px;max-width:100%;object-fit:contain;" />
+      </div>
+
+      <h1 style="font-size:24px;margin:0 0 12px 0;">Welcome to TapAway, ${ownerName} 🎉</h1>
+      <p style="margin:0 0 16px 0;font-size:15px;color:#4b5563;">
+        Your restaurant <strong>${restaurantName}</strong> is now set up and ready to collect more 5-star reviews.
+      </p>
+
+      <div style="border-radius:12px;border:1px solid #e5e7eb;padding:16px 18px;margin:16px 0;background:#f9fafb;">
+        <p style="margin:0 0 8px 0;font-weight:600;font-size:14px;color:#111827;">Your order summary</p>
+        <ul style="margin:0 0 8px 18px;padding:0;font-size:14px;color:#4b5563;">
+          <li>Plan: <strong>${planName}</strong></li>
+          <li>NFC review cards: <strong>${cardsQty}</strong></li>
+          <li>Shipping: <strong>Standard (${shippingEta})</strong></li>
+        </ul>
+        ${stripeReceiptUrl ? `
+          <p style="margin:8px 0 0 0;font-size:13px;">
+            Stripe receipt:
+            <a href="${stripeReceiptUrl}" style="color:#0f766e;text-decoration:underline;">view payment details</a>
+          </p>
+        ` : ``}
+      </div>
+
+      <div style="text-align:center;margin:20px 0;">
+        <a href="${dashboardUrl}"
+           style="display:inline-block;background:#111827;color:#ffffff;padding:12px 22px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;">
+          Open my dashboard
+        </a>
+      </div>
+
+      <h2 style="font-size:16px;margin:0 0 8px 0;">What happens next</h2>
+      <ol style="margin:0 0 16px 18px;padding:0;font-size:14px;color:#4b5563;">
+        <li>We prepare and print your NFC TapAway cards.</li>
+        <li>We ship them to the address you provided at checkout.</li>
+        <li>You place them for customers and start collecting reviews automatically.</li>
+      </ol>
+
+      <p style="margin:12px 0 4px 0;font-size:14px;color:#111827;font-weight:500;">Need help?</p>
+      <p style="margin:0 0 16px 0;font-size:14px;color:#4b5563;">
+        Contact us anytime at 
+        <a href="mailto:tap@tapaway.co" style="color:#0f766e;text-decoration:underline;">tap@tapaway.co</a>.
+      </p>
+
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+
+      <p style="margin:0;font-size:12px;color:#9ca3af;">
+        You're receiving this email because you created a TapAway account for <strong>${restaurantName}</strong>.
+      </p>
+
     </div>
-    
-    <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-      <strong>Your TapAway Hub:</strong><br>
-      <a href="${hubUrl}" style="color: #0d9488; text-decoration: none;">${hubUrl}</a>
-    </p>
-    
-    <a href="${dashboardUrl}" style="display: inline-block; background: #0d9488; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0;">
-      Go to Dashboard
-    </a>
-    
-    <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
-      Need help? Reply to this email or contact <a href="mailto:support@tapaway.co" style="color: #0d9488;">support@tapaway.co</a>
-    </p>
-    
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-    
-    <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-      TapAway — Turn every visit into a Google review<br>
-      <a href="https://tapaway.co" style="color: #9ca3af;">tapaway.co</a>
-    </p>
   </div>
-</body>
-</html>`;
+`;
+
+      const customerText = `
+Welcome to TapAway, ${ownerName}!
+
+Your restaurant "${restaurantName}" is now live.
+
+Plan: ${planName}
+Cards: ${cardsQty}
+Shipping: ${shippingEta}
+
+${stripeReceiptUrl ? `Stripe receipt: ${stripeReceiptUrl}\n\n` : ''}
+Dashboard:
+${dashboardUrl}
+
+Questions? Email tap@tapaway.co
+
+– TapAway
+`;
 
       customerEmailSent = await sendEmail({
         to: customerEmail,
         from: emailFrom,
-        subject: `Welcome to TapAway, ${restaurant.restaurant_name} 🎉`,
+        subject: 'Welcome to TapAway – your cards are on the way 🎉',
         html: customerHtml,
+        text: customerText,
       });
     }
 
