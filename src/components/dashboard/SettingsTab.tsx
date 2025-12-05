@@ -11,6 +11,7 @@ import { useState as useReactState } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { SettingsGreeting } from "./SettingsGreeting";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
+import { RequestMoreCards } from "./RequestMoreCards";
 
 interface Restaurant {
   id: string;
@@ -251,9 +252,12 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           </h2>
           <p className="text-muted-foreground">Manage your restaurant information and links</p>
         </div>
-        <Button onClick={saveSettings} className="gradient-primary text-white w-full sm:w-auto">
-          Save Changes
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <RequestMoreCards restaurantId={restaurantId} />
+          <Button onClick={saveSettings} className="gradient-primary text-white flex-1 sm:flex-none">
+            Save Changes
+          </Button>
+        </div>
       </div>
 
       {/* Greeting Settings */}
