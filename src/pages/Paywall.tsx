@@ -292,7 +292,8 @@ const Paywall = () => {
           } = await supabase.functions.invoke('create-checkout-session', {
             body: {
               plan: selectedPlan,
-              email: validated.email.trim()
+              email: validated.email.trim(),
+              userId: authData.user.id,
             }
           });
           if (sessionError || !sessionData?.url) {
