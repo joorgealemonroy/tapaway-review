@@ -23,3 +23,12 @@ verify_jwt = true
 
 [functions.ai-coach-insights]
 verify_jwt = true
+
+[functions.create-checkout-session]
+verify_jwt = false
+
+[functions.finalize-onboarding]
+verify_jwt = true
+
+[functions.request-more-cards]
+verify_jwt = true

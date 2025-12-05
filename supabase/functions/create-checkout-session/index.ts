@@ -22,9 +22,9 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { plan, email } = await req.json();
+    const { plan, email, userId, restaurantId } = await req.json();
     
-    console.log('Creating checkout session:', { plan, email });
+    console.log('Creating checkout session:', { plan, email, userId, restaurantId });
 
     // Price IDs from Stripe Dashboard
     const PRICE_IDS = {
@@ -53,7 +53,7 @@ serve(async (req) => {
 
     const priceId = isYearly ? PRICE_IDS.yearly : PRICE_IDS.monthly;
 
-    // Create checkout session
+    // Create checkout session with shipping address collection
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [
@@ -66,9 +66,14 @@ serve(async (req) => {
       customer_email: email,
       success_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/paywall`,
-      billing_address_collection: 'auto',
+      billing_address_collection: 'required',
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA', 'MX'], // Adjust as needed
+      },
       metadata: {
         plan_type: plan,
+        user_id: userId || '',
+        restaurant_id: restaurantId || '',
         promo_applied: (isYearly && promoActive && promoCodeId) ? 'true' : 'false',
       },
     });

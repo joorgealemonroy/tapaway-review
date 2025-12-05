@@ -670,6 +670,22 @@ const Onboarding = () => {
         }
       }
 
+      // Call finalize-onboarding to send emails and update fulfillment status
+      // This is non-blocking - we don't want to stop the user from accessing their dashboard
+      if (restaurantId) {
+        supabase.functions.invoke('finalize-onboarding', {
+          body: { restaurantId }
+        }).then(({ data, error }) => {
+          if (error) {
+            console.log('[Onboarding] finalize-onboarding error (non-blocking):', error);
+          } else {
+            console.log('[Onboarding] finalize-onboarding result:', data);
+          }
+        }).catch(err => {
+          console.log('[Onboarding] finalize-onboarding exception (non-blocking):', err);
+        });
+      }
+
       toast.success("Restaurant setup complete!");
       navigate("/dashboard");
     } catch (error: any) {
