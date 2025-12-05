@@ -48,14 +48,22 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       
       console.log('Processing checkout session:', {
+        id: session.id,
         customer: session.customer,
         customer_email: session.customer_email,
         subscription: session.subscription,
+        metadata: session.metadata,
       });
 
       const customerEmail = session.customer_email;
       const customerId = session.customer as string;
       const subscriptionId = session.subscription as string;
+      const paymentIntentId = (session as any).payment_intent as string || null;
+      
+      // Get metadata
+      const metadataUserId = session.metadata?.user_id || null;
+      const metadataRestaurantId = session.metadata?.restaurant_id || null;
+      const metadataPlan = session.metadata?.plan_type || 'monthly';
       
       if (!customerEmail) {
         console.error('No customer email in session');
@@ -80,7 +88,7 @@ serve(async (req) => {
 
       // Get or create user
       const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-      let userId = existingUser?.users.find(u => u.email === customerEmail)?.id;
+      let userId = metadataUserId || existingUser?.users.find(u => u.email === customerEmail)?.id;
 
       if (!userId) {
         // Create new user with a random password (they'll reset it via email)
@@ -104,10 +112,10 @@ serve(async (req) => {
       }
 
       // Determine plan type (only monthly or yearly, no bundles)
-      let planType = 'monthly';
+      let planType = metadataPlan;
 
-      // Get the price ID from the session to determine plan
-      if (subscriptionId) {
+      // Get the price ID from the session to determine plan (fallback)
+      if (subscriptionId && !metadataPlan) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id;
         
@@ -131,27 +139,126 @@ serve(async (req) => {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
       const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
-      // Create single restaurant record
-      const { error: insertError } = await supabaseAdmin
+      // Check if restaurant already exists for this user
+      const { data: existingRestaurant } = await supabaseAdmin
         .from('restaurants')
-        .insert({
-          owner_id: userId,
-          restaurant_name: 'My Restaurant',
-          greeting_name: greetingName,
+        .select('id')
+        .eq('owner_id', userId)
+        .maybeSingle();
+
+      let restaurantId = metadataRestaurantId || existingRestaurant?.id;
+
+      if (existingRestaurant) {
+        // Update existing restaurant
+        const { error: updateError } = await supabaseAdmin
+          .from('restaurants')
+          .update({
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            stripe_portal_url: portalSession.url,
+            plan_type: planType,
+            subscription_status: 'active',
+          })
+          .eq('id', existingRestaurant.id);
+
+        if (updateError) {
+          console.error('Failed to update restaurant:', updateError);
+        } else {
+          console.log('Updated existing restaurant:', existingRestaurant.id);
+          restaurantId = existingRestaurant.id;
+        }
+      } else {
+        // Create new restaurant record
+        const { data: newRestaurant, error: insertError } = await supabaseAdmin
+          .from('restaurants')
+          .insert({
+            owner_id: userId,
+            restaurant_name: 'My Restaurant',
+            greeting_name: greetingName,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            stripe_portal_url: portalSession.url,
+            plan_type: planType,
+            subscription_status: 'active',
+            header_title: "How was your visit?",
+            header_subtitle: "We'd love to hear about your experience!",
+            menu_title: "Our Menu",
+          })
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.error('Failed to create restaurant:', insertError);
+        } else {
+          console.log('Created restaurant successfully:', newRestaurant?.id);
+          restaurantId = newRestaurant?.id;
+        }
+      }
+
+      // Extract shipping details from Stripe session
+      const shippingDetails = (session as any).shipping_details || (session as any).shipping || null;
+      const customerDetails = session.customer_details || null;
+      
+      const shippingName = shippingDetails?.name || customerDetails?.name || null;
+      const shippingAddress = shippingDetails?.address || null;
+
+      // Create fulfillment order if we have a restaurant
+      if (restaurantId) {
+        // Check for existing fulfillment order
+        const { data: existingFulfillment } = await supabaseAdmin
+          .from('fulfillment_orders')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('restaurant_id', restaurantId)
+          .in('status', ['awaiting_onboarding', 'pending'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const fulfillmentData = {
+          user_id: userId,
+          restaurant_id: restaurantId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          stripe_portal_url: portalSession.url,
-          plan_type: planType,
-          subscription_status: 'active',
-          header_title: "How was your visit?",
-          header_subtitle: "We'd love to hear about your experience!",
-          menu_title: "Our Menu",
-        });
+          stripe_payment_intent_id: paymentIntentId,
+          plan: planType,
+          quantity: 15,
+          status: 'awaiting_onboarding',
+          shipping_name: shippingName,
+          shipping_address_line1: shippingAddress?.line1 || null,
+          shipping_address_line2: shippingAddress?.line2 || null,
+          shipping_city: shippingAddress?.city || null,
+          shipping_state: shippingAddress?.state || null,
+          shipping_postal_code: shippingAddress?.postal_code || null,
+          shipping_country: shippingAddress?.country || null,
+        };
 
-      if (insertError) {
-        console.error('Failed to create restaurant:', insertError);
-      } else {
-        console.log('Created restaurant successfully');
+        if (existingFulfillment) {
+          // Update existing fulfillment order
+          const { error: fulfillmentUpdateError } = await supabaseAdmin
+            .from('fulfillment_orders')
+            .update(fulfillmentData)
+            .eq('id', existingFulfillment.id);
+
+          if (fulfillmentUpdateError) {
+            console.error('Failed to update fulfillment order:', fulfillmentUpdateError);
+          } else {
+            console.log('Updated fulfillment order:', existingFulfillment.id);
+          }
+        } else {
+          // Create new fulfillment order
+          const { data: newFulfillment, error: fulfillmentInsertError } = await supabaseAdmin
+            .from('fulfillment_orders')
+            .insert(fulfillmentData)
+            .select('id')
+            .single();
+
+          if (fulfillmentInsertError) {
+            console.error('Failed to create fulfillment order:', fulfillmentInsertError);
+          } else {
+            console.log('Created fulfillment order:', newFulfillment?.id);
+          }
+        }
       }
 
       console.log('Successfully processed checkout session');
