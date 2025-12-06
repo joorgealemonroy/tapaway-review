@@ -14,7 +14,7 @@ export const RealisticStats = () => {
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <section ref={ref} className="py-10 md:py-12 overflow-hidden" style={{ backgroundColor: '#0B1220' }}>
+    <section ref={ref} className="pt-0 pb-10 md:pb-12 overflow-hidden" style={{ backgroundColor: '#0B1220' }}>
       <div className="max-w-5xl mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {stats.map((stat, index) => (
