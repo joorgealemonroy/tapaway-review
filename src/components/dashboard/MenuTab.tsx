@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Menu, Upload } from "lucide-react";
+import { Plus, Trash2, Menu, Upload, Mail } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { MenuImageUpload } from "@/components/MenuImageUpload";
 
@@ -213,6 +214,20 @@ export const MenuTab = ({ restaurantId }: MenuTabProps) => {
           <MenuImageUpload restaurantId={restaurantId} onMenuParsed={handleMenuParsed} />
         </Card>
       )}
+
+      <Alert className="border-primary/20 bg-primary/5">
+        <Mail className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          <span className="font-medium">Having trouble uploading?</span> Just email us a photo of your menu and we'll input it for you!{' '}
+          <a 
+            href="mailto:tap@tapaway.co?subject=Menu Upload Request" 
+            className="text-primary font-semibold hover:underline"
+          >
+            tap@tapaway.co
+          </a>
+          {' '}with subject: <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">Menu Upload Request</span>
+        </AlertDescription>
+      </Alert>
 
       {sections.length === 0 ? (
         <Card className="p-8 text-center gradient-subtle border-none shadow-lg">
