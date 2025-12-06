@@ -360,12 +360,27 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         <h3 className="text-lg font-bold mb-4">Links & Social Media</h3>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="google" className="text-sm font-semibold">Google Place ID or Review URL</Label>
+            <Label htmlFor="google" className="text-sm font-semibold flex items-center gap-2">
+              Google Place ID or Review URL
+              {restaurant.google_place_id && !isAdmin && (
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              )}
+              {restaurant.google_place_id && isAdmin && (
+                <Edit className="w-4 h-4 text-primary" />
+              )}
+            </Label>
             <div className="flex gap-2 mt-2">
               <Input
                 id="google"
                 value={restaurant.google_place_id || ""}
-                onChange={(e) => setRestaurant({ ...restaurant, google_place_id: e.target.value })}
+                onChange={(e) => {
+                  // Only allow changes if no Place ID set yet, or if admin
+                  if (!restaurant.google_place_id || isAdmin) {
+                    setRestaurant({ ...restaurant, google_place_id: e.target.value });
+                  }
+                }}
+                disabled={!!restaurant.google_place_id && !isAdmin}
+                className={restaurant.google_place_id && !isAdmin ? 'bg-muted cursor-not-allowed' : ''}
                 placeholder="ChIJ... or https://search.google.com/local/writereview?placeid=..."
               />
               {restaurant.google_review_url && (
@@ -376,9 +391,20 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Paste either the full Google Review URL or just the Place ID (e.g., ChIJV_SjbZJMw4ARZINlm2uAaoE). Used for AI Coach insights.
-            </p>
+            {restaurant.google_place_id && !isAdmin ? (
+              <div className="mt-2 p-3 rounded-lg border bg-amber-50 border-amber-200">
+                <p className="text-xs text-amber-700">
+                  🔒 Google Place ID is locked to prevent accidental changes. Contact TapAway support if you need to update it.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                {isAdmin && restaurant.google_place_id 
+                  ? "✓ Admin: You can edit this Google Place ID."
+                  : "Paste either the full Google Review URL or just the Place ID (e.g., ChIJV_SjbZJMw4ARZINlm2uAaoE). Used for AI Coach insights."
+                }
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="yelp" className="text-sm font-semibold">Yelp URL (Optional)</Label>
