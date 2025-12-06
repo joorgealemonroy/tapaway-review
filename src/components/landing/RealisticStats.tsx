@@ -24,7 +24,7 @@ export const RealisticStats = () => {
     once: true,
     margin: "-50px"
   });
-  return <section ref={ref} className="pt-0 pb-10 md:pb-12 overflow-hidden" style={{
+  return <section ref={ref} className="pt-10 pb-10 md:pt-14 md:pb-12 overflow-hidden" style={{
     backgroundColor: '#0B1220'
   }}>
       <div className="max-w-5xl mx-auto px-4">
