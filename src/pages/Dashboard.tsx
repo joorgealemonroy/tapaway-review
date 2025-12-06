@@ -59,10 +59,12 @@ const Dashboard = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+  // Only fetch on initial mount, not on every user change
   useEffect(() => {
-    if (user) {
+    if (user && !restaurant) {
       checkAdminStatus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
   const checkAdminStatus = async () => {
     const {
