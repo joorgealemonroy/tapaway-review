@@ -636,7 +636,7 @@ const ReviewHub = () => {
               onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
               onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
             >
-              <YelpIcon className="w-5 h-5 flex-shrink-0 text-white" />
+              <YelpIcon size={20} />
               Find Us on Yelp
             </a>
           )}
