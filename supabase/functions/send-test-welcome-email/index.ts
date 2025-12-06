@@ -56,9 +56,9 @@ serve(async (req) => {
         
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
           
-          <!-- Header with logo - same gradient as welcome banner -->
+          <!-- Header with logo - black background -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:32px 32px 24px;text-align:center;">
+            <td style="background:#000000;padding:32px 32px 24px;text-align:center;">
               <img src="${LOGO_URL}" alt="TapAway" width="320" style="height:auto;max-width:320px;display:block;margin:0 auto;" />
             </td>
           </tr>
@@ -68,13 +68,8 @@ serve(async (req) => {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center">
-                    <span style="font-size:48px;">🎉</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top:16px;">
                     <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;line-height:1.3;">
-                      Welcome aboard, ${ownerName}!
+                      Welcome aboard, ${ownerName}! <span style="font-size:28px;">🎉</span>
                     </h1>
                   </td>
                 </tr>
