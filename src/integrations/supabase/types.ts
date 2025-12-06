@@ -961,42 +961,63 @@ export type Database = {
     Views: {
       restaurant_public_info: {
         Row: {
+          avm_negative_label: string | null
+          avm_positive_label: string | null
+          avm_question_subtitle: string | null
+          avm_question_title: string | null
+          custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
           google_review_url: string | null
           header_subtitle: string | null
           header_title: string | null
+          hub_background_style: string | null
           id: string | null
           instagram_url: string | null
           logo_url: string | null
           menu_title: string | null
           restaurant_name: string | null
+          type: string | null
           yelp_review_url: string | null
         }
         Insert: {
+          avm_negative_label?: string | null
+          avm_positive_label?: string | null
+          avm_question_subtitle?: string | null
+          avm_question_title?: string | null
+          custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
+          hub_background_style?: string | null
           id?: string | null
           instagram_url?: string | null
           logo_url?: string | null
           menu_title?: string | null
           restaurant_name?: string | null
+          type?: string | null
           yelp_review_url?: string | null
         }
         Update: {
+          avm_negative_label?: string | null
+          avm_positive_label?: string | null
+          avm_question_subtitle?: string | null
+          avm_question_title?: string | null
+          custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
+          hub_background_style?: string | null
           id?: string | null
           instagram_url?: string | null
           logo_url?: string | null
           menu_title?: string | null
           restaurant_name?: string | null
+          type?: string | null
           yelp_review_url?: string | null
         }
         Relationships: []
