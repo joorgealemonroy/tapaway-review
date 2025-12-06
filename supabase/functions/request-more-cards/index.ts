@@ -113,14 +113,21 @@ serve(async (req) => {
       });
     }
 
-    // Find the user's restaurant
+    // Check if user is admin
+    const isAdmin = user.email === 'tap@tapaway.co';
+
+    // Find the restaurant - admins can access any restaurant, owners only their own
     let restaurantQuery = supabaseAdmin
       .from('restaurants')
-      .select('id, restaurant_name, owner_name, email, plan_type, custom_slug')
-      .eq('owner_id', user.id);
+      .select('id, restaurant_name, owner_name, email, plan_type, custom_slug');
     
     if (restaurantId) {
       restaurantQuery = restaurantQuery.eq('id', restaurantId);
+    }
+    
+    // Non-admins can only access their own restaurants
+    if (!isAdmin) {
+      restaurantQuery = restaurantQuery.eq('owner_id', user.id);
     }
 
     const { data: restaurant, error: restaurantError } = await restaurantQuery.maybeSingle();
@@ -132,6 +139,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    console.log('[request-more-cards] Found restaurant:', restaurant.restaurant_name, 'isAdmin:', isAdmin);
 
     // Check monthly limit: sum of addon orders this month
     const { startOfMonth } = getCurrentMonthRange();
