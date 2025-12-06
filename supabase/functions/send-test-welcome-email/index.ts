@@ -56,9 +56,9 @@ serve(async (req) => {
         
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
           
-          <!-- Header with logo - black background -->
+          <!-- Header with logo - white background -->
           <tr>
-            <td style="background:#000000;padding:32px 32px 24px;text-align:center;">
+            <td style="background:#ffffff;padding:32px 32px 24px;text-align:center;">
               <img src="${LOGO_URL}" alt="TapAway" width="200" style="height:auto;max-width:200px;display:block;margin:0 auto;" />
             </td>
           </tr>
