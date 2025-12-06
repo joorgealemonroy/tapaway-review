@@ -19,16 +19,16 @@ const Index = () => {
       {/* Navigation */}
       <nav className="sticky top-0 z-30 bg-white/85 backdrop-blur-lg border-b border-border">
         <div className="max-w-[1060px] mx-auto px-4">
-          <div className="flex justify-between items-center py-3">
-            <a href="https://tapaway.co" className="font-black text-lg md:text-xl tracking-tight">
+          <div className="flex justify-between items-center py-2.5">
+            <a href="https://tapaway.co" className="font-black text-lg tracking-tight">
               TapAway
             </a>
             {user ? (
-              <a href="/dashboard" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
-                Go to Dashboard
+              <a href="/dashboard" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm bg-[#111827] text-white shadow-sm hover:shadow-md transition-all">
+                Dashboard
               </a>
             ) : (
-              <a href="/paywall" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
+              <a href="/paywall" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm bg-[#111827] text-white shadow-sm hover:shadow-md transition-all">
                 Get Started
               </a>
             )}
@@ -36,24 +36,24 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* New Black Hero */}
+      {/* Hero */}
       <NewHero />
 
-      {/* Realistic Stats */}
+      {/* Stats */}
       <RealisticStats />
 
-      {/* How TapAway Works */}
+      {/* How It Works */}
       <HowItWorks />
 
       {/* 3D Card Section */}
-      <section id="get-started" className="py-16 px-4 bg-muted/30">
+      <section id="get-started" className="py-10 md:py-14 px-4 bg-muted/30">
         <div className="max-w-[1060px] mx-auto text-center">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-3xl md:text-4xl font-black mb-4"
+            className="text-2xl md:text-3xl font-black mb-3"
           >
             One Tap. Real Reviews.
           </motion.h2>
@@ -62,9 +62,9 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-[600px] mx-auto text-muted-foreground mb-8"
+            className="max-w-md mx-auto text-sm text-muted-foreground mb-6"
           >
-            Your guests tap the card at their table — your branded review page opens instantly. No apps, no friction.
+            Your server hands the TapAway card to happy guests — one tap later, your Google review page opens.
           </motion.p>
 
           {/* 3D Card Animation */}
@@ -73,7 +73,7 @@ const Index = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="my-8"
+            className="my-6"
           >
             <TapAwayCard3D />
           </motion.div>
@@ -93,93 +93,85 @@ const Index = () => {
       <WhatYouGet />
 
       {/* Pricing */}
-      <section id="pricing" className="py-16 px-4 bg-muted/30">
+      <section id="pricing" className="py-10 md:py-14 px-4 bg-muted/30">
         <div className="max-w-[1060px] mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-black mb-4">Simple, Honest Pricing</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              No hidden fees. Choose what works for you.
-            </p>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-black mb-2">Simple, Honest Pricing</h2>
+            <p className="text-sm text-muted-foreground">No hidden fees. Choose what works for you.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className="grid gap-4 md:grid-cols-2 md:gap-6 max-w-3xl mx-auto">
             {/* Monthly Plan */}
-            <div className="bg-white rounded-2xl p-8 border border-border shadow-lg relative">
-              <h3 className="text-2xl font-bold mb-2">Monthly</h3>
-              <p className="text-sm text-muted-foreground mb-4">Flexible, cancel anytime</p>
-              <div className="text-5xl font-black mb-6">
-                $30 <span className="text-lg font-normal text-muted-foreground">/ month</span>
+            <div className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm">
+              <h3 className="text-lg font-bold mb-1">Monthly</h3>
+              <p className="text-xs text-muted-foreground mb-3">Cancel anytime</p>
+              <div className="text-3xl md:text-4xl font-black mb-4">
+                $30 <span className="text-sm font-normal text-muted-foreground">/ month</span>
               </div>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-2.5 mb-5">
                 <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   15 custom NFC cards included
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  Full dashboard access
-                </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Real-time analytics
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  Cancel anytime
+                  Unlimited reviews
                 </li>
               </ul>
-              <a href="/paywall" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-[#111827] text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
+              <a href="/paywall" className="block w-full text-center px-5 py-3 rounded-lg font-bold text-sm bg-[#111827] text-white shadow-sm hover:shadow-md transition-all">
                 Get Started
               </a>
             </div>
 
             {/* Yearly Plan - December Special */}
-            <div className="bg-gradient-to-br from-primary/5 via-white to-white rounded-2xl p-8 border-2 border-primary shadow-2xl relative transform hover:scale-[1.02] transition-transform">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-lg">
+            <div className="bg-gradient-to-br from-primary/5 via-white to-white rounded-xl p-5 md:p-6 border-2 border-primary shadow-lg relative">
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-1 rounded-full text-xs font-bold shadow-md">
                 DECEMBER SPECIAL
               </div>
-              <h3 className="text-2xl font-bold mb-2">Yearly</h3>
-              <p className="text-sm text-muted-foreground mb-4">Limited time offer</p>
-              <div className="mb-2">
-                <div className="text-5xl font-black text-primary mb-2">
-                  $150 <span className="text-lg font-normal text-muted-foreground">first year</span>
+              <h3 className="text-lg font-bold mb-1 mt-1">Yearly</h3>
+              <p className="text-xs text-muted-foreground mb-3">Best value</p>
+              <div className="mb-3">
+                <div className="text-3xl md:text-4xl font-black text-primary">
+                  $150 <span className="text-sm font-normal text-muted-foreground">first year</span>
                 </div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm line-through text-muted-foreground">$300/year</span>
-                  <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">Save $150</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs line-through text-muted-foreground">$300/year</span>
+                  <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Save $150</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Renews at $300/year after first year
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Renews at $300/year
                 </p>
               </div>
-              <ul className="space-y-3 mb-8 mt-6">
+              <ul className="space-y-2.5 mb-5">
                 <li className="flex items-start gap-2 text-sm font-medium">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  Everything in Monthly, plus:
+                  Everything in Monthly
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  Get 12 months for the cost of 5
+                  12 months for cost of 5
                 </li>
                 <li className="flex items-start gap-2 text-sm">
-                  <svg className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  December offer only — price increases after
+                  December offer only
                 </li>
               </ul>
-              <a href="/paywall" className="block w-full text-center px-6 py-4 rounded-xl font-extrabold bg-gradient-to-r from-primary to-primary/80 text-white shadow-[0_12px_34px_rgba(15,23,42,0.10)] hover:shadow-[0_20px_50px_rgba(15,23,42,0.15)] transition-all">
+              <a href="/paywall" className="block w-full text-center px-5 py-3 rounded-lg font-bold text-sm bg-primary text-white shadow-sm hover:shadow-md transition-all">
                 Start December Special
               </a>
             </div>
@@ -194,21 +186,15 @@ const Index = () => {
       <FinalCTA />
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-[#111827] text-white/60">
+      <footer className="py-8 px-4 bg-[#111827] text-white/60">
         <div className="max-w-[1060px] mx-auto text-center">
-          <p className="text-sm mb-3">© 2025 TapAway. Simple. Fast. More 5-star reviews.</p>
-          <div className="flex items-center justify-center gap-2 text-xs text-white/40">
-            <a href="/terms" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
-              Terms of Service
-            </a>
+          <p className="text-xs mb-2">© 2025 TapAway. Simple. Fast. More 5-star reviews.</p>
+          <div className="flex items-center justify-center gap-2 text-[11px] text-white/40">
+            <a href="/terms" className="hover:text-white/70 transition-colors">Terms</a>
             <span>·</span>
-            <a href="/privacy" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
-              Privacy Policy
-            </a>
+            <a href="/privacy" className="hover:text-white/70 transition-colors">Privacy</a>
             <span>·</span>
-            <a href="/refund" className="hover:text-white/70 hover:underline underline-offset-4 transition-colors">
-              Refund Policy
-            </a>
+            <a href="/refund" className="hover:text-white/70 transition-colors">Refund</a>
           </div>
         </div>
       </footer>
