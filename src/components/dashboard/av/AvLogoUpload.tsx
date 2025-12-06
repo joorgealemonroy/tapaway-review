@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AvLogoUploadProps {
@@ -14,6 +14,27 @@ interface AvLogoUploadProps {
 
 export const AvLogoUpload = ({ restaurantId, currentLogoUrl, onUpdate }: AvLogoUploadProps) => {
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  const handleRemoveLogo = async () => {
+    try {
+      setRemoving(true);
+      
+      const { error } = await supabase
+        .from('restaurants')
+        .update({ logo_url: null })
+        .eq('id', restaurantId);
+
+      if (error) throw error;
+
+      toast.success('Logo removed successfully');
+      onUpdate();
+    } catch (error: any) {
+      toast.error(`Failed to remove logo: ${error.message}`);
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -59,8 +80,17 @@ export const AvLogoUpload = ({ restaurantId, currentLogoUrl, onUpdate }: AvLogoU
       <div>
         <Label>Current Logo</Label>
         {currentLogoUrl ? (
-          <div className="mt-2">
+          <div className="mt-2 space-y-2">
             <img src={currentLogoUrl} alt="Logo" className="w-32 h-32 object-cover rounded-lg" />
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleRemoveLogo}
+              disabled={removing}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {removing ? 'Removing...' : 'Remove Logo'}
+            </Button>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground mt-2">No logo uploaded</p>
