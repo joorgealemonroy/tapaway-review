@@ -1,0 +1,29 @@
+-- Drop and recreate the view with security_invoker = true
+DROP VIEW IF EXISTS public.restaurant_public_info;
+
+CREATE VIEW public.restaurant_public_info
+WITH (security_invoker = true)
+AS SELECT 
+    id,
+    restaurant_name,
+    header_title,
+    header_subtitle,
+    menu_title,
+    google_review_url,
+    yelp_review_url,
+    directions_url,
+    instagram_url,
+    logo_url,
+    custom_slug,
+    type,
+    hub_background_style,
+    custom_background_url,
+    avm_question_title,
+    avm_question_subtitle,
+    avm_positive_label,
+    avm_negative_label
+FROM restaurants;
+
+-- Grant public access to the view (for anonymous hub visitors)
+GRANT SELECT ON public.restaurant_public_info TO anon;
+GRANT SELECT ON public.restaurant_public_info TO authenticated;
