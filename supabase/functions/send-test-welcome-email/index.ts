@@ -59,7 +59,7 @@ serve(async (req) => {
           <!-- Header with logo - black background -->
           <tr>
             <td style="background:#000000;padding:32px 32px 24px;text-align:center;">
-              <img src="${LOGO_URL}" alt="TapAway" width="320" style="height:auto;max-width:320px;display:block;margin:0 auto;" />
+              <img src="${LOGO_URL}" alt="TapAway" width="200" style="height:auto;max-width:200px;display:block;margin:0 auto;" />
             </td>
           </tr>
           <!-- Gradient welcome banner -->
