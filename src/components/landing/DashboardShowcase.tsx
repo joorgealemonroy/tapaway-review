@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { BarChart3, Star, BookOpen, Calendar, Bot } from "lucide-react";
+import { BarChart3, Star, BookOpen, Calendar, Bot, MessageSquareReply } from "lucide-react";
 
 const features = [
   { icon: BarChart3, label: "Taps per Week", desc: "See real guest engagement live" },
@@ -9,6 +9,7 @@ const features = [
   { icon: BookOpen, label: "Menu Views", desc: "Know what guests check most" },
   { icon: Calendar, label: "Peak Traffic Days", desc: "Find your busiest review windows" },
   { icon: Bot, label: "AI Coach Suggestions", desc: "Smart tips to grow faster" },
+  { icon: MessageSquareReply, label: "AI Review Replies", desc: "Reply professionally with AI" },
 ];
 
 export const DashboardShowcase = () => {
@@ -32,7 +33,7 @@ export const DashboardShowcase = () => {
           </p>
         </motion.div>
         
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {features.map((feature, index) => (
             <motion.div
               key={index}
