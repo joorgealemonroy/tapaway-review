@@ -63,7 +63,7 @@ export const NewHero = () => {
         }} whileTap={{
           scale: 0.98
         }}>
-            Start December Special
+            Start Getting Reviews
           </motion.a>
           
         </motion.div>
