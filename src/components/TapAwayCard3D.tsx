@@ -54,7 +54,7 @@ const TapAwayCard3D = () => {
                   key={logo}
                   src={logo}
                   alt="Client logo"
-                  className={`absolute w-[65%] h-auto object-contain transition-opacity duration-500 ${
+                  className={`absolute w-[85%] h-auto object-contain transition-opacity duration-500 ${
                     index === currentLogo ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
