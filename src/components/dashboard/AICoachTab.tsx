@@ -85,9 +85,10 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
     setIgnoredCategories(ignored);
   };
 
-  const handleIgnore = async (category: string) => {
+  const handleResolved = async (category: string) => {
+    // Set to 100 years from now for permanent resolution
     const ignoreUntil = new Date();
-    ignoreUntil.setDate(ignoreUntil.getDate() + 30);
+    ignoreUntil.setFullYear(ignoreUntil.getFullYear() + 100);
 
     const { error } = await supabase
       .from('coach_ignored')
@@ -100,13 +101,13 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
       });
 
     if (error) {
-      toast.error("Failed to ignore item");
-      console.error('Error ignoring category:', error);
+      toast.error("Failed to mark as resolved");
+      console.error('Error resolving category:', error);
       return;
     }
 
     setIgnoredCategories(prev => new Set([...prev, category]));
-    toast.success("Hidden for 30 days");
+    toast.success("Marked as resolved");
   };
 
   const handleRestoreIgnored = async () => {
@@ -385,10 +386,10 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleIgnore(opp.category)}
+                        onClick={() => handleResolved(opp.category)}
                         className="text-xs text-muted-foreground h-auto py-1 px-2 hover:text-foreground"
                       >
-                        Ignore
+                        ✓ Resolved
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">{opp.summary}</p>
@@ -414,14 +415,14 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
             </Card>
           ) : null}
 
-          {/* Restore hidden items button */}
+          {/* Restore resolved items button */}
           {ignoredCategories.size > 0 && (
             <button
               onClick={handleRestoreIgnored}
               className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mx-auto"
             >
               <RotateCcw className="h-3 w-3" />
-              Restore {ignoredCategories.size} hidden item{ignoredCategories.size > 1 ? 's' : ''}
+              Show {ignoredCategories.size} resolved item{ignoredCategories.size > 1 ? 's' : ''}
             </button>
           )}
 
@@ -538,7 +539,7 @@ const SentimentCard = ({
         <div className="mb-4">
           <h3 className="text-4xl font-bold mb-2">{percentagePositive}% happy guests</h3>
           <p className="text-sm text-muted-foreground">
-            Based on your last {reviewCount} Google review{reviewCount !== 1 ? 's' : ''}.
+            Based on your {reviewCount} most relevant Google review{reviewCount !== 1 ? 's' : ''} (not necessarily newest).
           </p>
         </div>
 
