@@ -58,8 +58,8 @@ serve(async (req) => {
           
           <!-- Header with logo -->
           <tr>
-            <td style="background:#ffffff;padding:32px 32px 20px;text-align:center;border-bottom:3px solid #0d9488;">
-              <img src="${LOGO_URL}" alt="TapAway" width="280" style="height:auto;max-width:280px;display:block;margin:0 auto;" />
+            <td style="background:#ffffff;padding:40px 32px 28px;text-align:center;border-bottom:3px solid #0d9488;">
+              <img src="${LOGO_URL}" alt="TapAway" width="420" style="height:auto;max-width:420px;display:block;margin:0 auto;" />
             </td>
           </tr>
           
