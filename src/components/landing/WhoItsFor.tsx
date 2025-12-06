@@ -66,6 +66,20 @@ export const WhoItsFor = () => {
             </ul>
           </motion.div>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="text-center mt-8"
+        >
+          <a
+            href="/tapaway"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors"
+          >
+            See What a Review Hub Looks Like
+          </a>
+        </motion.div>
       </div>
     </section>
   );
