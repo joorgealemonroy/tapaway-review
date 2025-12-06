@@ -6,22 +6,22 @@ import { Check } from "lucide-react";
 const items = [
   "15 custom TapAway NFC cards (to start)",
   "Printed with your logo & QR",
-  "Ships within 3–5 business days",
-  "Request more cards anytime from the dashboard"
+  "Ships in 3–5 business days",
+  "Request more cards anytime from dashboard"
 ];
 
 export const WhatYouGet = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <section ref={ref} className="py-20 px-4">
+    <section ref={ref} className="py-12 md:py-16 px-4">
       <div className="max-w-3xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5 }}
-          className="text-3xl md:text-4xl font-black text-center mb-12"
+          className="text-2xl md:text-3xl font-black text-center mb-6"
         >
           What You Get In The Mail
         </motion.h2>
@@ -29,14 +29,14 @@ export const WhatYouGet = () => {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white rounded-2xl p-6 md:p-8 border border-border shadow-sm"
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm"
         >
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {items.map((item, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">{item}</span>
+              <li key={index} className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-foreground">{item}</span>
               </li>
             ))}
           </ul>

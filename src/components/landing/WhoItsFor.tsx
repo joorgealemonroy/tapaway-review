@@ -5,46 +5,46 @@ import { Check, X } from "lucide-react";
 
 export const WhoItsFor = () => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   const forList = [
     "Dine-in restaurants",
     "Bars & cafés with table service",
-    "Service-first businesses where the guest experiences the service before paying"
+    "Service-first businesses where guests experience service before paying"
   ];
 
   const notForList = [
     "Online-only businesses",
     "Drive-through only restaurants",
-    "Businesses that don't interact with guests in person"
+    "Businesses with no in-person guest interaction"
   ];
 
   return (
-    <section ref={ref} className="py-20 px-4">
+    <section ref={ref} className="py-12 md:py-16 px-4">
       <div className="max-w-4xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5 }}
-          className="text-3xl md:text-4xl font-black text-center mb-12"
+          className="text-2xl md:text-3xl font-black text-center mb-8"
         >
           Is TapAway Right For You?
         </motion.h2>
         
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-6">
           {/* Who It's For */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-2xl p-6 md:p-8 border border-border shadow-sm"
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm"
           >
-            <h3 className="text-xl font-bold mb-6 text-primary">Who TapAway Is For</h3>
-            <ul className="space-y-4">
+            <h3 className="text-base md:text-lg font-bold mb-4 text-primary">Who TapAway Is For</h3>
+            <ul className="space-y-3">
               {forList.map((item, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground">{item}</span>
+                <li key={index} className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground leading-snug">{item}</span>
                 </li>
               ))}
             </ul>
@@ -54,15 +54,15 @@ export const WhoItsFor = () => {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            className="bg-white rounded-2xl p-6 md:p-8 border border-border shadow-sm"
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm"
           >
-            <h3 className="text-xl font-bold mb-6 text-muted-foreground">Who TapAway Is NOT For</h3>
-            <ul className="space-y-4">
+            <h3 className="text-base md:text-lg font-bold mb-4 text-muted-foreground">Who TapAway Is NOT For</h3>
+            <ul className="space-y-3">
               {notForList.map((item, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <X className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="text-muted-foreground">{item}</span>
+                <li key={index} className="flex items-start gap-2.5">
+                  <X className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-muted-foreground leading-snug">{item}</span>
                 </li>
               ))}
             </ul>
