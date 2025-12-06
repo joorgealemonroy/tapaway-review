@@ -19,14 +19,16 @@ interface RequestMoreCardsProps {
   restaurantId: string;
 }
 
+const MAX_CARDS_PER_MONTH = 10;
+
 export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
   const [open, setOpen] = useState(false);
-  const [quantity, setQuantity] = useState(15);
+  const [quantity, setQuantity] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (quantity < 1 || quantity > 500) {
-      toast.error("Please enter a quantity between 1 and 500");
+    if (quantity < 1 || quantity > MAX_CARDS_PER_MONTH) {
+      toast.error(`Please enter a quantity between 1 and ${MAX_CARDS_PER_MONTH}`);
       return;
     }
 
@@ -45,7 +47,7 @@ export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
       if (data?.success) {
         toast.success(`Request for ${quantity} cards submitted! We'll be in touch soon.`);
         setOpen(false);
-        setQuantity(15);
+        setQuantity(5);
       } else {
         toast.error(data?.error || "Failed to submit request");
       }
@@ -72,7 +74,7 @@ export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
             Request More TapAway Cards
           </DialogTitle>
           <DialogDescription>
-            Need more NFC cards for your business? Submit a request and we'll get in touch about your order.
+            Need more NFC cards for your business? You can request up to {MAX_CARDS_PER_MONTH} cards per month.
           </DialogDescription>
         </DialogHeader>
         
@@ -83,13 +85,16 @@ export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
               id="quantity"
               type="number"
               min={1}
-              max={500}
+              max={MAX_CARDS_PER_MONTH}
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 15)}
-              placeholder="15"
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 1;
+                setQuantity(Math.min(Math.max(val, 1), MAX_CARDS_PER_MONTH));
+              }}
+              placeholder="5"
             />
             <p className="text-xs text-muted-foreground">
-              Standard orders are 15 cards. Enter any quantity between 1-500.
+              Enter a quantity between 1-{MAX_CARDS_PER_MONTH}. Limit resets monthly.
             </p>
           </div>
         </div>

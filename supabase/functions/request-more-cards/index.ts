@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MAX_CARDS_PER_MONTH = 10;
+
 // Email sending helper
 async function sendInternalEmail(options: {
   subject: string;
@@ -19,6 +21,8 @@ async function sendInternalEmail(options: {
     console.error('[request-more-cards] RESEND_API_KEY not configured');
     return false;
   }
+
+  console.log('[request-more-cards] Sending email to:', emailInternal);
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -41,12 +45,23 @@ async function sendInternalEmail(options: {
       return false;
     }
 
-    console.log('[request-more-cards] Internal email sent');
+    const result = await response.json();
+    console.log('[request-more-cards] Internal email sent successfully, id:', result.id);
     return true;
   } catch (error) {
     console.error('[request-more-cards] Email send failed:', error);
     return false;
   }
+}
+
+// Get current month date range (start of month to now)
+function getCurrentMonthRange(): { startOfMonth: string; now: string } {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    startOfMonth: startOfMonth.toISOString(),
+    now: now.toISOString(),
+  };
 }
 
 serve(async (req) => {
@@ -83,9 +98,20 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { quantity = 15, restaurantId } = await req.json().catch(() => ({}));
+    const { quantity = 5, restaurantId } = await req.json().catch(() => ({}));
 
-    console.log('[request-more-cards] Request from user:', user.id, 'quantity:', quantity);
+    console.log('[request-more-cards] Request from user:', user.id, 'quantity:', quantity, 'restaurantId:', restaurantId);
+
+    // Validate quantity
+    if (typeof quantity !== 'number' || quantity < 1 || quantity > MAX_CARDS_PER_MONTH) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Quantity must be between 1 and ${MAX_CARDS_PER_MONTH}` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Find the user's restaurant
     let restaurantQuery = supabaseAdmin
@@ -100,13 +126,53 @@ serve(async (req) => {
     const { data: restaurant, error: restaurantError } = await restaurantQuery.maybeSingle();
 
     if (restaurantError || !restaurant) {
+      console.error('[request-more-cards] Restaurant not found:', restaurantError);
       return new Response(JSON.stringify({ success: false, error: 'Restaurant not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Find existing fulfillment order for plan info
+    // Check monthly limit: sum of addon orders this month
+    const { startOfMonth } = getCurrentMonthRange();
+    
+    const { data: monthlyOrders, error: monthlyError } = await supabaseAdmin
+      .from('fulfillment_orders')
+      .select('quantity')
+      .eq('restaurant_id', restaurant.id)
+      .eq('plan', 'addon')
+      .gte('created_at', startOfMonth);
+
+    if (monthlyError) {
+      console.error('[request-more-cards] Error checking monthly orders:', monthlyError);
+    }
+
+    const totalRequestedThisMonth = (monthlyOrders || []).reduce((sum, order) => sum + (order.quantity || 0), 0);
+    const remainingAllowance = MAX_CARDS_PER_MONTH - totalRequestedThisMonth;
+
+    console.log('[request-more-cards] Monthly usage:', totalRequestedThisMonth, 'Remaining:', remainingAllowance, 'Requested:', quantity);
+
+    if (remainingAllowance <= 0) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `You've already requested ${MAX_CARDS_PER_MONTH} cards this month. Your limit resets next month.` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (quantity > remainingAllowance) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `You can only request ${remainingAllowance} more card${remainingAllowance === 1 ? '' : 's'} this month.` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Find existing fulfillment order for shipping info
     const { data: existingOrder } = await supabaseAdmin
       .from('fulfillment_orders')
       .select('plan, shipping_name, shipping_address_line1, shipping_address_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country')
@@ -155,7 +221,7 @@ serve(async (req) => {
       existingOrder?.shipping_country,
     ].filter(Boolean).join('<br>') || 'No shipping address on file — please confirm with customer';
 
-    // Send internal notification email
+    // Send internal notification email to tap@tapaway.co
     const internalHtml = `
 <!DOCTYPE html>
 <html>
@@ -189,6 +255,10 @@ serve(async (req) => {
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-weight: 600; font-size: 18px;">${quantity} cards</td>
       </tr>
       <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Monthly Usage</td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827;">${totalRequestedThisMonth + quantity}/${MAX_CARDS_PER_MONTH} cards used this month</td>
+      </tr>
+      <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Hub URL</td>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><a href="https://tapaway-review.lovable.app/${restaurant.custom_slug}" style="color: #0d9488;">tapaway-review.lovable.app/${restaurant.custom_slug}</a></td>
       </tr>
@@ -219,10 +289,17 @@ serve(async (req) => {
       html: internalHtml,
     });
 
+    console.log('[request-more-cards] Email sent:', emailSent);
+
     return new Response(JSON.stringify({
       success: true,
       orderId: newOrder.id,
       emailSent,
+      monthlyUsage: {
+        used: totalRequestedThisMonth + quantity,
+        limit: MAX_CARDS_PER_MONTH,
+        remaining: remainingAllowance - quantity,
+      },
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
