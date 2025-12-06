@@ -134,6 +134,7 @@ serve(async (req) => {
     }
 
     const reviewCount = reviews.length;
+    console.log(`Fetched ${reviewCount} reviews:`, reviews.map(r => ({ author: r.author_name, rating: r.rating, date: r.review_time })));
 
     // Compute sentiment from last 5 reviews
     let positive = 0;
