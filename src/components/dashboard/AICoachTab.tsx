@@ -353,13 +353,25 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
         <div className="space-y-6">
           {/* Wins */}
           {stats.wins.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Where you're winning 🎉</CardTitle>
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <span className="text-2xl">🏆</span>
+                  Where you're winning
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 {stats.wins.slice(0, 3).map((win, idx) => (
-                  <p key={idx} className="text-sm">{win}</p>
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1, duration: 0.3 }}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30"
+                  >
+                    <span className="text-emerald-500 mt-0.5">✓</span>
+                    <p className="text-sm leading-relaxed">{win}</p>
+                  </motion.div>
                 ))}
               </CardContent>
             </Card>
