@@ -1,22 +1,21 @@
 // Test accounts for internal testing and onboarding UX verification
+// Note: Only email addresses are stored here for isTestAccount() checks
+// Passwords are NOT stored in client-side code for security reasons
 export const TEST_ACCOUNTS = [
   {
     email: "test-owner1@tapaway.co",
-    password: "TapawayTest123!",
     name: "Test Owner 1",
     restaurantName: "Test Restaurant 1 (TEST)",
     slug: "test-restaurant-1"
   },
   {
     email: "test-owner2@tapaway.co",
-    password: "TapawayTest123!",
     name: "Test Owner 2",
     restaurantName: "Test Restaurant 2 (TEST)",
     slug: "test-restaurant-2"
   },
   {
     email: "test-owner3@tapaway.co",
-    password: "TapawayTest123!",
     name: "Test Owner 3",
     restaurantName: "Test Restaurant 3 (TEST)",
     slug: "test-restaurant-3"
