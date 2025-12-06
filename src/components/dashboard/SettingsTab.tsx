@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Lock, ExternalLink, Upload, Palette, Edit } from "lucide-react";
+import { Settings, Lock, ExternalLink, Upload, Edit } from "lucide-react";
 import { validateAllUrls } from "@/lib/urlValidation";
 import { useState as useReactState } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -302,43 +302,6 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         </div>
       </Card>
 
-      {/* Hub Theme */}
-      <Card className="p-6 card-elevated">
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Palette className="w-5 h-5 text-primary" />
-          Hub Theme
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Choose between light or dark mode for your review hub
-        </p>
-        <div className="grid grid-cols-2 gap-4 max-w-md">
-          <div
-            onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: 'classic' } : null)}
-            className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-              restaurant.hub_background_style === 'classic' || !restaurant.hub_background_style
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="w-full h-16 rounded mb-2 bg-white border border-gray-200" />
-            <h4 className="font-semibold text-sm">Light</h4>
-            <p className="text-xs text-muted-foreground">Clean white background</p>
-          </div>
-          
-          <div
-            onClick={() => setRestaurant(prev => prev ? { ...prev, hub_background_style: 'dark' } : null)}
-            className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-              restaurant.hub_background_style === 'dark'
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="w-full h-16 rounded mb-2 bg-gray-900" />
-            <h4 className="font-semibold text-sm">Dark</h4>
-            <p className="text-xs text-muted-foreground">Dark theme with contrast</p>
-          </div>
-        </div>
-      </Card>
 
       <Card className="p-6 card-elevated">
         <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
