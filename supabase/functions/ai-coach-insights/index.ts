@@ -165,106 +165,74 @@ serve(async (req) => {
     let wins: string[] = [];
 
     if (LOVABLE_API_KEY && reviewCount > 0) {
-      // Extract negative themes (opportunities) from last 10 reviews
-      if (negativeReviews.length > 0) {
+      // Prepare all reviews with their ratings for a single comprehensive analysis
+      const allReviewTexts = reviews
+        .filter(r => r.text && r.text.trim().length > 5)
+        .map(r => `[${r.rating}★] "${r.text}"`);
+
+      if (allReviewTexts.length > 0) {
         try {
-          const negativeTexts = negativeReviews
-            .filter(r => r.text && r.text.trim().length > 10)
-            .map(r => `[${r.rating}★] ${r.text}`);
+          const analysisPrompt = `You are analyzing ${allReviewTexts.length} restaurant reviews. Your job is to extract ONLY what is EXPLICITLY mentioned in these reviews. DO NOT make anything up. DO NOT infer or assume anything not directly stated.
 
-          if (negativeTexts.length > 0) {
-            const negativePrompt = `Analyze these negative restaurant reviews and identify the top 2 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
+REVIEWS:
+${allReviewTexts.join('\n\n')}
 
-For each issue found, return:
-- category (one of the 6 listed above)
-- title (ULTRA short, under 50 chars, direct and blunt, e.g. "Service feels rude")
-- summary (ONE sentence max, under 80 chars, e.g. "Multiple guests report unfriendly staff.")
-- quickWin (ONE line action, under 80 chars, e.g. "Coach staff on greeting warmly.")
+INSTRUCTIONS:
+1. Read each review carefully
+2. For negative feedback (1-2★ reviews OR complaints mentioned in any review): Extract the EXACT issues mentioned. If a review says "food was cold", report "food was cold" - do NOT say "food is rotten"
+3. For positive feedback (4-5★ reviews OR praise mentioned in any review): Extract the EXACT things praised
 
-Reviews:
-${negativeTexts.join('\n\n')}
+CRITICAL RULES:
+- ONLY report what is EXPLICITLY written in the reviews
+- Use the reviewer's actual words when possible
+- If there are no negative reviews, return empty opportunities array
+- If there are no positive reviews, return empty wins array
+- DO NOT exaggerate or dramatize (e.g., "slow service" should NOT become "horrible service")
+- DO NOT invent issues that aren't mentioned
 
-Return ONLY valid JSON array of objects, no explanation. Max 2 opportunities.`;
+Return this exact JSON structure:
+{
+  "opportunities": [
+    {
+      "category": "service|food quality|price/value|cleanliness|wait time|staff attitude",
+      "title": "Short description under 50 chars using reviewer's words",
+      "summary": "What the reviewer actually said, under 80 chars",
+      "quickWin": "Simple actionable fix, under 80 chars"
+    }
+  ],
+  "wins": ["⭐ Exact thing praised from review"]
+}
 
-            const negResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [{ role: "user", content: negativePrompt }],
-                temperature: 0.3,
-                max_tokens: 600,
-              }),
-            });
+Max 2 opportunities, max 3 wins. Return ONLY valid JSON, no explanation.`;
 
-            if (negResponse.ok) {
-              const negData = await negResponse.json();
-              const negContent = negData.choices?.[0]?.message?.content ?? "";
-              try {
-                const parsed = JSON.parse(negContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
-                opportunities = Array.isArray(parsed) ? parsed.slice(0, 2) : [];
-              } catch (e) {
-                console.error("Failed to parse opportunities:", e);
-              }
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: analysisPrompt }],
+              temperature: 0.1, // Very low temperature for factual extraction
+              max_tokens: 800,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content ?? "";
+            console.log("AI response:", content);
+            try {
+              const parsed = JSON.parse(content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+              opportunities = Array.isArray(parsed.opportunities) ? parsed.opportunities.slice(0, 2) : [];
+              wins = Array.isArray(parsed.wins) ? parsed.wins.slice(0, 3) : [];
+            } catch (e) {
+              console.error("Failed to parse AI response:", e, content);
             }
           }
         } catch (e) {
-          console.error("Error extracting opportunities:", e);
-        }
-      }
-
-      // Extract positive themes (wins) from last 5 reviews
-      if (positiveReviews.length > 0) {
-        try {
-          const positiveTexts = positiveReviews
-            .filter(r => r.text && r.text.trim().length > 10)
-            .map(r => `[${r.rating}★] ${r.text}`);
-
-          if (positiveTexts.length > 0) {
-            const positivePrompt = `Analyze these positive restaurant reviews and extract the top 3 things guests LOVE most. Return ULTRA short wins (one-liners with emoji, each under 60 chars).
-
-Format: "⭐ [Thing guests love]"
-
-Examples:
-- "⭐ Guests love your ceviche"
-- "⭐ Friendly service"
-- "⭐ Clean and welcoming"
-
-Reviews:
-${positiveTexts.join('\n\n')}
-
-Return ONLY a JSON array of strings (max 3 wins), no explanation.`;
-
-            const posResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [{ role: "user", content: positivePrompt }],
-                temperature: 0.3,
-                max_tokens: 300,
-              }),
-            });
-
-            if (posResponse.ok) {
-              const posData = await posResponse.json();
-              const posContent = posData.choices?.[0]?.message?.content ?? "";
-              try {
-                const parsed = JSON.parse(posContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
-                wins = Array.isArray(parsed) ? parsed.slice(0, 3) : [];
-              } catch (e) {
-                console.error("Failed to parse wins:", e);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error extracting wins:", e);
+          console.error("Error extracting themes:", e);
         }
       }
     }
