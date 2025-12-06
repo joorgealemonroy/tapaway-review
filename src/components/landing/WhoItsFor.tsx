@@ -10,59 +10,57 @@ export const WhoItsFor = () => {
   const forList = [
     "Dine-in restaurants",
     "Bars & cafés with table service",
-    "Service-first businesses where guests experience service before paying"
+    "Service-first businesses",
   ];
 
   const notForList = [
     "Online-only businesses",
-    "Drive-through only restaurants",
-    "Businesses with no in-person guest interaction"
+    "Drive-thru-only restaurants",
+    "Businesses without in-person guest interaction",
   ];
 
   return (
-    <section ref={ref} className="py-12 md:py-16 px-4">
-      <div className="max-w-4xl mx-auto">
+    <section ref={ref} className="py-14 md:py-16 px-4 bg-muted/30">
+      <div className="max-w-3xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
           className="text-2xl md:text-3xl font-black text-center mb-8"
         >
           Is TapAway Right For You?
         </motion.h2>
         
-        <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-          {/* Who It's For */}
+        <div className="grid md:grid-cols-2 gap-4">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm"
+            initial={{ opacity: 0, x: -20 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-card rounded-xl p-5 border border-primary/20"
           >
-            <h3 className="text-base md:text-lg font-bold mb-4 text-primary">Who TapAway Is For</h3>
+            <h3 className="font-bold text-primary mb-4">Who It's For</h3>
             <ul className="space-y-3">
-              {forList.map((item, index) => (
-                <li key={index} className="flex items-start gap-2.5">
-                  <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-foreground leading-snug">{item}</span>
+              {forList.map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">{item}</span>
                 </li>
               ))}
             </ul>
           </motion.div>
 
-          {/* Who It's NOT For */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm"
+            initial={{ opacity: 0, x: 20 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-card rounded-xl p-5 border border-border"
           >
-            <h3 className="text-base md:text-lg font-bold mb-4 text-muted-foreground">Who TapAway Is NOT For</h3>
+            <h3 className="font-bold text-muted-foreground mb-4">Who It's NOT For</h3>
             <ul className="space-y-3">
-              {notForList.map((item, index) => (
-                <li key={index} className="flex items-start gap-2.5">
-                  <X className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground leading-snug">{item}</span>
+              {notForList.map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <X className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-muted-foreground">{item}</span>
                 </li>
               ))}
             </ul>
