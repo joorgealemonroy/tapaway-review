@@ -8,7 +8,7 @@ const testimonials = [
     quote: "We received our TapAway cards, put them to use, and I was honestly amazed. The very same day we started using them, we saw 5-star reviews start coming in. It really was that fast.",
     author: "Sonia",
     business: "Las Islas Marias",
-    highlight: "Same day we launched, 5-star reviews came in.",
+    highlight: "5-star reviews the same day",
   },
   {
     quote: "In just the first month with TapAway, we took one location from 3.6 to 4.0 and another from 3.8 to 4.0. Seeing that kind of growth so fast was huge—now we're already setting new goals to reach even higher.",
