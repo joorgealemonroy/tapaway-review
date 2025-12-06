@@ -3,7 +3,7 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 const stats = [{
   emoji: "✅",
-  value: "3",
+  value: "10",
   label: "Active Restaurant Locations"
 }, {
   emoji: "⭐",
