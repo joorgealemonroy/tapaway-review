@@ -7,6 +7,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Input validation
+function validateEmail(email: string): boolean {
+  if (!email || typeof email !== 'string') return false;
+  if (email.length > 255) return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePlan(plan: string): plan is 'monthly' | 'yearly' {
+  return plan === 'monthly' || plan === 'yearly';
+}
+
+function validateUuid(value: string | undefined): boolean {
+  if (!value) return true; // Optional field
+  if (typeof value !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -22,17 +41,49 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { plan, email, userId, restaurantId } = await req.json();
+    const body = await req.json();
+    const { plan, email, userId, restaurantId } = body;
     
-    console.log('Creating checkout session:', { plan, email, userId, restaurantId });
+    // Validate inputs
+    if (!validatePlan(plan)) {
+      console.error('Invalid plan value:', plan);
+      return new Response(
+        JSON.stringify({ error: 'Invalid plan. Must be "monthly" or "yearly".' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!validateEmail(email)) {
+      console.error('Invalid email format');
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!validateUuid(userId)) {
+      console.error('Invalid userId format');
+      return new Response(
+        JSON.stringify({ error: 'Invalid userId format.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!validateUuid(restaurantId)) {
+      console.error('Invalid restaurantId format');
+      return new Response(
+        JSON.stringify({ error: 'Invalid restaurantId format.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    console.log('Creating checkout session:', { plan, email: email.substring(0, 3) + '***', userId: userId ? 'provided' : 'none', restaurantId: restaurantId ? 'provided' : 'none' });
 
     // Price IDs from Stripe Dashboard
     const PRICE_IDS = {
       monthly: 'price_1SJP7CDg8DaTuVNZlcOE5Rn8',   // TapAway Monthly
       yearly: 'price_1SJPryDg8DaTuVNZBB4at0Gc'     // TapAway Yearly ($300 renewal)
     };
-
-    console.log('Using price IDs:', PRICE_IDS);
 
     // Check if December promo is active
     const PROMO_DEADLINE = new Date('2025-12-31T23:59:59-08:00').getTime();
@@ -80,7 +131,6 @@ serve(async (req) => {
 
     console.log('Checkout session created:', {
       sessionId: session.id,
-      url: session.url,
       discountsApplied: discounts.length > 0,
     });
 

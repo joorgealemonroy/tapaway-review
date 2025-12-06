@@ -34,10 +34,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.send-test-welcome-email]
-verify_jwt = false
+verify_jwt = true
 
 [functions.delete-user-complete]
 verify_jwt = true
 
 [functions.upload-email-logo]
-verify_jwt = false
+verify_jwt = true
