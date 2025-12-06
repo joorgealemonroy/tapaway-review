@@ -46,8 +46,8 @@ const ReviewHub = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [engagement, setEngagement] = useState<any>(null);
-  const [pollVotes, setPollVotes] = useState<Record<string, number>>({});
+  const [engagements, setEngagements] = useState<any[]>([]);
+  const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   
   // Visitor theme preference (light/dark)
   const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
@@ -121,15 +121,23 @@ const ReviewHub = () => {
       .select("*")
       .eq("restaurant_id", restId)
       .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order("created_at", { ascending: false });
 
-    if (data) {
-      setEngagement(data);
-      if (data.type === 'poll' && data.options && typeof data.options === 'object' && 'votes' in data.options) {
-        setPollVotes(data.options.votes as Record<string, number>);
-      }
+    if (data && data.length > 0) {
+      // Get max 1 promotion + 1 poll
+      const promotion = data.find(e => e.type === 'promotion');
+      const poll = data.find(e => e.type === 'poll');
+      const activeEngagements = [promotion, poll].filter(Boolean);
+      setEngagements(activeEngagements);
+      
+      // Set poll votes for each poll
+      const votes: Record<string, Record<string, number>> = {};
+      activeEngagements.forEach(e => {
+        if (e.type === 'poll' && e.options && typeof e.options === 'object' && 'votes' in e.options) {
+          votes[e.id] = e.options.votes as Record<string, number>;
+        }
+      });
+      setPollVotes(votes);
     }
   };
 
@@ -241,31 +249,32 @@ const ReviewHub = () => {
     return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
 
-  const handlePollVote = async (optionIndex: number) => {
-    if (!restaurant || !engagement) return;
+  const handlePollVote = async (engagementId: string, optionIndex: number, engagementOptions: any) => {
+    if (!restaurant) return;
     
     // Check if user has already voted using localStorage
-    const voteKey = `poll_vote_${engagement.id}`;
-    const hasVoted = localStorage.getItem(voteKey);
+    const voteKey = `poll_vote_${engagementId}`;
+    const hasVotedOnPoll = localStorage.getItem(voteKey);
     
-    if (hasVoted) {
+    if (hasVotedOnPoll) {
       return; // User has already voted
     }
     
     try {
-      const newVotes = { ...pollVotes };
+      const currentVotes = pollVotes[engagementId] || {};
+      const newVotes = { ...currentVotes };
       newVotes[optionIndex] = (newVotes[optionIndex] || 0) + 1;
-      setPollVotes(newVotes);
+      setPollVotes(prev => ({ ...prev, [engagementId]: newVotes }));
 
       await supabase
         .from("restaurant_engagement")
         .update({ 
           options: { 
-            ...engagement.options, 
+            ...engagementOptions, 
             votes: newVotes 
           } 
         })
-        .eq("id", engagement.id);
+        .eq("id", engagementId);
 
       // Mark as voted in localStorage
       localStorage.setItem(voteKey, 'true');
@@ -275,8 +284,8 @@ const ReviewHub = () => {
     }
   };
 
-  // Check if user has voted on current poll
-  const hasVoted = engagement ? localStorage.getItem(`poll_vote_${engagement.id}`) === 'true' : false;
+  // Helper to check if user has voted on a specific poll
+  const hasVotedOnPoll = (engagementId: string) => localStorage.getItem(`poll_vote_${engagementId}`) === 'true';
 
   // Toggle visitor theme preference
   const toggleVisitorTheme = () => {
@@ -410,9 +419,9 @@ const ReviewHub = () => {
             {restaurant.header_subtitle}
           </p>
 
-          {/* ENGAGEMENT: Promotion or Poll */}
-          {engagement && (
-            <div style={{
+          {/* ENGAGEMENT: Promotions and Polls */}
+          {engagements.map((eng) => (
+            <div key={eng.id} style={{
               background: '#2a2a2a',
               borderRadius: '20px',
               padding: '24px',
@@ -420,7 +429,7 @@ const ReviewHub = () => {
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
               textAlign: 'left'
             }}>
-              {engagement.type === 'promotion' && (
+              {eng.type === 'promotion' && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -432,16 +441,16 @@ const ReviewHub = () => {
                     color: '#ffffff', 
                     fontSize: '28px', 
                     lineHeight: '1.25', 
-                    marginBottom: engagement.options?.link ? '20px' : '0',
+                    marginBottom: eng.options?.link ? '20px' : '0',
                     fontWeight: '800',
                     textTransform: 'uppercase',
                     letterSpacing: '-0.01em'
                   }}>
-                    {engagement.content}
+                    {eng.content}
                   </p>
-                  {engagement.options?.link && (
+                  {eng.options?.link && (
                     <a
-                      href={engagement.options.link}
+                      href={eng.options.link}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackEvent('promotion_click')}
@@ -464,121 +473,126 @@ const ReviewHub = () => {
                 </>
               )}
               
-              {engagement.type === 'poll' && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
-                    </svg>
-                    <span style={{ fontWeight: '700', fontSize: '16px', color: '#a1a1aa', letterSpacing: '0.02em' }}>Quick Poll</span>
-                  </div>
-                  <p style={{ color: '#ffffff', fontSize: '32px', lineHeight: '1.2', marginBottom: '24px', fontWeight: '700' }}>
-                    {engagement.content}
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {engagement.options?.choices?.map((choice: string, index: number) => {
-                      const totalVotes = Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) as number;
-                      const votes = pollVotes[index] || 0;
-                      const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                      const isWinner = totalVotes > 0 && votes === Math.max(...Object.values(pollVotes) as number[]);
-                      
-                      return (
-                        <div
-                          key={index}
-                          style={{
-                            position: 'relative',
-                            padding: isWinner && totalVotes > 0 ? '3px' : '0',
-                            background: isWinner && totalVotes > 0 
-                              ? 'linear-gradient(90deg, #22c55e, #fb923c)' 
-                              : 'transparent',
-                            borderRadius: '50px',
-                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                          }}
-                        >
-                          <button
-                            onClick={() => handlePollVote(index)}
-                            disabled={hasVoted}
+              {eng.type === 'poll' && (() => {
+                const currentPollVotes = pollVotes[eng.id] || {};
+                const totalVotes = Object.values(currentPollVotes).reduce((a, b) => a + b, 0);
+                const hasVoted = hasVotedOnPoll(eng.id);
+                
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+                      </svg>
+                      <span style={{ fontWeight: '700', fontSize: '16px', color: '#a1a1aa', letterSpacing: '0.02em' }}>Quick Poll</span>
+                    </div>
+                    <p style={{ color: '#ffffff', fontSize: '32px', lineHeight: '1.2', marginBottom: '24px', fontWeight: '700' }}>
+                      {eng.content}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {eng.options?.choices?.map((choice: string, index: number) => {
+                        const votes = currentPollVotes[index] || 0;
+                        const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                        const isWinner = totalVotes > 0 && votes === Math.max(...Object.values(currentPollVotes));
+                        
+                        return (
+                          <div
+                            key={index}
                             style={{
                               position: 'relative',
-                              width: '100%',
-                              padding: '16px 20px',
-                              background: '#f5f5f5',
-                              border: 'none',
+                              padding: isWinner && totalVotes > 0 ? '3px' : '0',
+                              background: isWinner && totalVotes > 0 
+                                ? 'linear-gradient(90deg, #22c55e, #fb923c)' 
+                                : 'transparent',
                               borderRadius: '50px',
-                              cursor: hasVoted ? 'default' : 'pointer',
-                              textAlign: 'left',
-                              overflow: 'hidden',
-                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease',
-                              boxShadow: isWinner && totalVotes > 0 
-                                ? 'none' 
-                                : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                              transform: 'scale(1)'
-                            }}
-                            onMouseDown={(e) => {
-                              if (!hasVoted) {
-                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.98)';
-                              }
-                            }}
-                            onMouseUp={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}
                           >
-                            {/* Progress bar */}
-                            {totalVotes > 0 && (
-                              <div style={{
-                                position: 'absolute',
-                                left: 0,
-                                bottom: 0,
-                                height: '4px',
-                                width: `${percentage}%`,
-                                background: isWinner
-                                  ? 'linear-gradient(90deg, #22c55e, #fb923c)'
-                                  : '#fb923c',
-                                transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                                borderRadius: '0 0 50px 50px'
-                              }} />
-                            )}
-                            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
-                              <span style={{ fontWeight: '700', color: '#1f1f1f', fontSize: '17px', flex: 1 }}>{choice}</span>
+                            <button
+                              onClick={() => handlePollVote(eng.id, index, eng.options)}
+                              disabled={hasVoted}
+                              style={{
+                                position: 'relative',
+                                width: '100%',
+                                padding: '16px 20px',
+                                background: '#f5f5f5',
+                                border: 'none',
+                                borderRadius: '50px',
+                                cursor: hasVoted ? 'default' : 'pointer',
+                                textAlign: 'left',
+                                overflow: 'hidden',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease',
+                                boxShadow: isWinner && totalVotes > 0 
+                                  ? 'none' 
+                                  : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                transform: 'scale(1)'
+                              }}
+                              onMouseDown={(e) => {
+                                if (!hasVoted) {
+                                  (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.98)';
+                                }
+                              }}
+                              onMouseUp={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                              }}
+                              onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                              }}
+                            >
+                              {/* Progress bar */}
                               {totalVotes > 0 && (
-                                <span style={{ 
-                                  fontSize: '15px', 
-                                  color: '#6b7280', 
-                                  fontWeight: '600',
-                                  whiteSpace: 'nowrap',
-                                  opacity: 1,
-                                  transition: 'opacity 0.4s ease'
-                                }}>
-                                  <span style={{ fontWeight: '700', color: '#1f1f1f' }}>{percentage}%</span>
-                                  <span style={{ color: '#9ca3af', marginLeft: '6px' }}>
-                                    {votes === 1 ? `${votes} vote` : `${votes} votes`}
-                                  </span>
-                                </span>
+                                <div style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  bottom: 0,
+                                  height: '4px',
+                                  width: `${percentage}%`,
+                                  background: isWinner
+                                    ? 'linear-gradient(90deg, #22c55e, #fb923c)'
+                                    : '#fb923c',
+                                  transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                  borderRadius: '0 0 50px 50px'
+                                }} />
                               )}
-                            </div>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) > 0 && (
-                    <p style={{ 
-                      fontSize: '13px', 
-                      color: '#71717a', 
-                      marginTop: '20px',
-                      textAlign: 'center',
-                      fontWeight: '500'
-                    }}>
-                      Powered by <span style={{ fontWeight: '700', color: '#a1a1aa' }}>TapAway</span>
-                    </p>
-                  )}
-                </>
-              )}
+                              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
+                                <span style={{ fontWeight: '700', color: '#1f1f1f', fontSize: '17px', flex: 1 }}>{choice}</span>
+                                {totalVotes > 0 && (
+                                  <span style={{ 
+                                    fontSize: '15px', 
+                                    color: '#6b7280', 
+                                    fontWeight: '600',
+                                    whiteSpace: 'nowrap',
+                                    opacity: 1,
+                                    transition: 'opacity 0.4s ease'
+                                  }}>
+                                    <span style={{ fontWeight: '700', color: '#1f1f1f' }}>{percentage}%</span>
+                                    <span style={{ color: '#9ca3af', marginLeft: '6px' }}>
+                                      {votes === 1 ? `${votes} vote` : `${votes} votes`}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {totalVotes > 0 && (
+                      <p style={{ 
+                        fontSize: '13px', 
+                        color: '#71717a', 
+                        marginTop: '20px',
+                        textAlign: 'center',
+                        fontWeight: '500'
+                      }}>
+                        Powered by <span style={{ fontWeight: '700', color: '#a1a1aa' }}>TapAway</span>
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
-          )}
+          ))}
 
           {/* GOOGLE REVIEW */}
           {isSafeUrl(restaurant.google_review_url) && (
