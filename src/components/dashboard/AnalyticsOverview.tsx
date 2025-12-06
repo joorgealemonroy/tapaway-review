@@ -67,11 +67,13 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       if (error) throw error;
 
       if (data) {
-        const googleClicks = data.filter((e: any) => e.event_type === "google_review_clicked").length;
-        const yelpClicks = data.filter((e: any) => e.event_type === "yelp_clicked").length;
-        const instagramClicks = data.filter((e: any) => e.event_type === "instagram_clicked").length;
-        const directionsClicks = data.filter((e: any) => e.event_type === "directions_clicked").length;
-        const menuViews = data.filter((e: any) => e.event_type === "menu_viewed").length;
+        // Event types must match the edge function whitelist: tap, google_click, yelp_click, directions_click, instagram_click, menu_view, menu_close
+        const tapEvents = data.filter((e: any) => e.event_type === "tap");
+        const googleClicks = data.filter((e: any) => e.event_type === "google_click").length;
+        const yelpClicks = data.filter((e: any) => e.event_type === "yelp_click").length;
+        const instagramClicks = data.filter((e: any) => e.event_type === "instagram_click").length;
+        const directionsClicks = data.filter((e: any) => e.event_type === "directions_click").length;
+        const menuViews = data.filter((e: any) => e.event_type === "menu_view").length;
 
         const last7Days = new Date();
         last7Days.setDate(last7Days.getDate() - 7);
@@ -103,8 +105,11 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           count > (dayGroups[max] || 0) ? day : max, 'Monday'
         );
 
+        // Count taps from last 7 days (tap events specifically, not all events)
+        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= last7Days);
+        
         setAnalytics({
-          totalTaps: recentData.length,
+          totalTaps: last7DaysTaps.length,
           googleClicks,
           yelpClicks,
           instagramClicks,
