@@ -122,25 +122,35 @@ const Dashboard = () => {
     }
   };
   const fetchRestaurant = async () => {
-    const {
-      data
-    } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).single();
-    if (data) {
-      // Check if onboarding is incomplete - redirect back to onboarding
-      if (!data.onboarding_completed) {
-        console.log('[Dashboard] Onboarding incomplete, redirecting to /onboarding');
-        navigate("/onboarding");
-        return;
+    // Fetch ALL restaurants for this user (they may have multiple locations)
+    const { data: restaurants } = await (supabase as any)
+      .from("restaurants")
+      .select("*")
+      .eq("owner_id", user?.id);
+    
+    // Find a completed restaurant with active subscription, or just any completed one
+    const completedRestaurants = restaurants?.filter((r: any) => r.onboarding_completed === true) || [];
+    const activeRestaurant = completedRestaurants.find((r: any) => r.subscription_status === 'active') || completedRestaurants[0];
+    
+    if (activeRestaurant) {
+      setRestaurant(activeRestaurant as any);
+      
+      // If user has multiple restaurants, set them all for potential switcher
+      if (completedRestaurants.length > 1) {
+        setAllRestaurants(completedRestaurants);
       }
       
-      setRestaurant(data as any);
-      fetchLocations(data.id);
+      fetchLocations(activeRestaurant.id);
 
       // Check subscription status and redirect to paywall if needed
-      if (!isAdmin && data.subscription_status !== 'active') {
+      if (!isAdmin && activeRestaurant.subscription_status !== 'active') {
         navigate("/paywall");
         return;
       }
+    } else if (restaurants && restaurants.length > 0) {
+      // Has restaurants but none completed - redirect to onboarding
+      console.log('[Dashboard] Onboarding incomplete, redirecting to /onboarding');
+      navigate("/onboarding");
     } else if (user?.email === 'test@me.com') {
       // Defensive fallback for test account only - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
@@ -155,10 +165,10 @@ const Dashboard = () => {
           // Retry fetch after assignment
           const {
             data: retryData
-          } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).single();
-          if (retryData) {
-            setRestaurant(retryData as any);
-            fetchLocations(retryData.id);
+          } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).limit(1);
+          if (retryData && retryData[0]) {
+            setRestaurant(retryData[0] as any);
+            fetchLocations(retryData[0].id);
             toast.success("Test account linked successfully!");
           }
         }
