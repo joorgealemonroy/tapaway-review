@@ -56,13 +56,12 @@ serve(async (req) => {
         
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
           
-          <!-- Header with logo -->
+          <!-- Header with logo - same gradient as welcome banner -->
           <tr>
-            <td style="background:#ffffff;padding:40px 32px 28px;text-align:center;border-bottom:3px solid #0d9488;">
-              <img src="${LOGO_URL}" alt="TapAway" width="520" style="height:auto;max-width:520px;display:block;margin:0 auto;" />
+            <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:32px 32px 24px;text-align:center;">
+              <img src="${LOGO_URL}" alt="TapAway" width="320" style="height:auto;max-width:320px;display:block;margin:0 auto;" />
             </td>
           </tr>
-          
           <!-- Gradient welcome banner -->
           <tr>
             <td style="background:linear-gradient(135deg,#0d9488 0%,#14b8a6 50%,#2dd4bf 100%);padding:32px;text-align:center;">
