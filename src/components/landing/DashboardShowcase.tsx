@@ -4,11 +4,11 @@ import { useRef } from "react";
 import { BarChart3, Star, BookOpen, Calendar, Bot } from "lucide-react";
 
 const features = [
-  { icon: BarChart3, label: "Taps per Week", desc: "See guest engagement live" },
-  { icon: Star, label: "Google Reviews Sent", desc: "Track reviews generated" },
-  { icon: BookOpen, label: "Menu Views", desc: "Know what guests check" },
-  { icon: Calendar, label: "Peak Traffic Days", desc: "Find your busiest times" },
-  { icon: Bot, label: "AI Coach Suggestions", desc: "Get tips to grow faster" },
+  { icon: BarChart3, label: "Taps per Week", desc: "See real guest engagement live" },
+  { icon: Star, label: "Google Reviews Sent", desc: "Track reviews driven by TapAway" },
+  { icon: BookOpen, label: "Menu Views", desc: "Know what guests check most" },
+  { icon: Calendar, label: "Peak Traffic Days", desc: "Find your busiest review windows" },
+  { icon: Bot, label: "AI Coach Suggestions", desc: "Smart tips to grow faster" },
 ];
 
 export const DashboardShowcase = () => {
@@ -36,16 +36,21 @@ export const DashboardShowcase = () => {
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.4, delay: 0.1 + index * 0.05 }}
-              className="bg-card border border-border rounded-xl p-4 text-center hover:border-primary/30 hover:shadow-md transition-all group"
+              initial={{ opacity: 0, y: 25, scale: 0.95 }}
+              animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+              transition={{ duration: 0.4, delay: 0.1 + index * 0.06 }}
+              whileHover={{ y: -4, scale: 1.02 }}
+              className="bg-card border border-border rounded-xl p-4 text-center hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group"
             >
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-2.5 group-hover:bg-primary/20 transition-colors">
-                <feature.icon className="w-4 h-4 text-primary" />
-              </div>
-              <div className="font-semibold text-xs mb-0.5">{feature.label}</div>
-              <div className="text-[10px] text-muted-foreground">{feature.desc}</div>
+              <motion.div 
+                className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors"
+                whileHover={{ rotate: [0, -5, 5, 0] }}
+                transition={{ duration: 0.4 }}
+              >
+                <feature.icon className="w-5 h-5 text-primary" />
+              </motion.div>
+              <div className="font-semibold text-xs mb-1">{feature.label}</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">{feature.desc}</div>
             </motion.div>
           ))}
         </div>
@@ -53,14 +58,14 @@ export const DashboardShowcase = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          className="flex items-center justify-center gap-2 mt-6"
+          transition={{ duration: 0.4, delay: 0.5 }}
+          className="flex items-center justify-center gap-2 mt-8"
         >
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
           </span>
-          <span className="text-xs text-muted-foreground">Live data • Real-time updates</span>
+          <span className="text-xs text-muted-foreground font-medium">Live Data • Real-Time Updates</span>
         </motion.div>
       </div>
     </section>
