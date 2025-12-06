@@ -114,13 +114,13 @@ serve(async (req) => {
     let googleError = false;
 
     try {
-      // Get last 10 reviews (newest first)
+      // Get last 5 reviews (newest first)
       const { data: lastReviews, error: reviewsError } = await supabaseClient
         .from('google_reviews')
         .select('author_name, rating, text, review_time, relative_time_description')
         .eq('restaurant_id', restaurantId)
         .order('review_time', { ascending: false })
-        .limit(10);
+        .limit(5);
 
       if (reviewsError) {
         console.error('Error fetching reviews:', reviewsError);
@@ -135,7 +135,7 @@ serve(async (req) => {
 
     const reviewCount = reviews.length;
 
-    // Compute sentiment from last 10 reviews
+    // Compute sentiment from last 5 reviews
     let positive = 0;
     let negative = 0;
 
@@ -173,7 +173,7 @@ serve(async (req) => {
             .map(r => `[${r.rating}★] ${r.text}`);
 
           if (negativeTexts.length > 0) {
-            const negativePrompt = `Analyze these negative restaurant reviews and identify the top 3 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
+            const negativePrompt = `Analyze these negative restaurant reviews and identify the top 2 recurring issues. Use ONLY these categories: service, food quality, price/value, cleanliness, wait time, staff attitude.
 
 For each issue found, return:
 - category (one of the 6 listed above)
@@ -184,7 +184,7 @@ For each issue found, return:
 Reviews:
 ${negativeTexts.join('\n\n')}
 
-Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
+Return ONLY valid JSON array of objects, no explanation. Max 2 opportunities.`;
 
             const negResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
@@ -205,7 +205,7 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
               const negContent = negData.choices?.[0]?.message?.content ?? "";
               try {
                 const parsed = JSON.parse(negContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
-                opportunities = Array.isArray(parsed) ? parsed.slice(0, 3) : [];
+                opportunities = Array.isArray(parsed) ? parsed.slice(0, 2) : [];
               } catch (e) {
                 console.error("Failed to parse opportunities:", e);
               }
@@ -216,7 +216,7 @@ Return ONLY valid JSON array of objects, no explanation. Max 3 opportunities.`;
         }
       }
 
-      // Extract positive themes (wins) from last 10 reviews
+      // Extract positive themes (wins) from last 5 reviews
       if (positiveReviews.length > 0) {
         try {
           const positiveTexts = positiveReviews
