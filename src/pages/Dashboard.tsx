@@ -238,6 +238,7 @@ const Dashboard = () => {
       </nav>
 
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
+        {/* Admin restaurant switcher */}
         {isAdmin && allRestaurants.length > 0 && <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
@@ -251,6 +252,26 @@ const Dashboard = () => {
                 {allRestaurants.map(r => (
                   <SelectItem key={r.id} value={r.id}>
                     {r.restaurant_name} {r.is_demo_account && '(TEST)'} ({r.total_taps?.toLocaleString() ?? 0} taps)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Card>}
+
+        {/* Multi-location user switcher (non-admin users with multiple restaurants) */}
+        {!isAdmin && allRestaurants.length > 1 && <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-secondary/50 border-border">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Locations</span>
+            </div>
+            <Select value={restaurant?.id || ""} onValueChange={handleRestaurantChange}>
+              <SelectTrigger className="w-full md:w-[400px]">
+                <SelectValue placeholder="Select a location" />
+              </SelectTrigger>
+              <SelectContent>
+                {allRestaurants.map(r => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.restaurant_name}
                   </SelectItem>
                 ))}
               </SelectContent>
