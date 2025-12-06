@@ -22,7 +22,16 @@ export const NewHero = () => {
           transition={{ duration: 0.4, delay: 0.15 }}
           className="text-[clamp(16px,4vw,20px)] text-gray-300 max-w-2xl mx-auto mb-8"
         >
-          Stop chasing reviews. TapAway turns your happy customers into 5-star reviews automatically — no awkward asks, no extra work.
+          TapAway turns your happy guests into real 5-star Google reviews automatically — without awkward asks or slowing down service.
+        </motion.p>
+        
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="text-sm text-gray-400 mb-4"
+        >
+          Used by real dine-in restaurants in California
         </motion.p>
         
         <motion.div
@@ -31,20 +40,20 @@ export const NewHero = () => {
           transition={{ duration: 0.4, delay: 0.4 }}
         >
           <a
-            href="#get-started"
+            href="/paywall"
             className="inline-flex items-center gap-2 px-8 py-5 rounded-full font-bold bg-white text-black shadow-[0_20px_50px_rgba(255,255,255,0.15)] hover:shadow-[0_30px_70px_rgba(255,255,255,0.25)] hover:scale-105 transition-all text-lg"
           >
-            Start Getting Reviews
+            Start December Special
           </a>
         </motion.div>
         
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.65 }}
-          className="text-sm text-gray-400 mt-6"
+          transition={{ duration: 0.4, delay: 0.55 }}
+          className="text-sm text-gray-400 mt-4"
         >
-          Custom NFC card + setup included. No hidden fees.
+          $150 first year • Normally $300/year • Limited to December only
         </motion.p>
       </div>
     </section>
