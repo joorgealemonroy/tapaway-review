@@ -85,15 +85,17 @@ serve(async (req) => {
       }
     }
 
-    // Fetch from Google Places API (New)
+    // Fetch from Google Places API (New) - request newest reviews
     console.log('Fetching Google reviews for place:', restaurant.google_place_id);
     
+    // Use reviews.sortPreference to get newest reviews (NEWEST vs MOST_RELEVANT)
     const googleUrl = `https://places.googleapis.com/v1/places/${restaurant.google_place_id}`;
     
     const googleResponse = await fetch(googleUrl, {
       headers: {
         'X-Goog-Api-Key': googleApiKey,
-        'X-Goog-FieldMask': 'rating,userRatingCount,reviews'
+        'X-Goog-FieldMask': 'rating,userRatingCount,reviews',
+        'X-Goog-Reviews-Sort': 'NEWEST'
       }
     });
 
