@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 export const NewHero = () => {
-  return <section className="min-h-[85vh] bg-[#0B1220] flex items-center justify-center px-4 py-12 md:py-16 relative overflow-hidden">
+  return <section className="bg-[#0B1220] flex items-center justify-center px-4 py-12 md:py-16 relative overflow-hidden">
       {/* Animated gradient glow effects */}
       <motion.div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-3xl" animate={{
       scale: [1, 1.2, 1],
