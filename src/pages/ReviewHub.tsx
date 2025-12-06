@@ -413,30 +413,29 @@ const ReviewHub = () => {
           {/* ENGAGEMENT: Promotion or Poll */}
           {engagement && (
             <div style={{
-              background: visitorTheme === 'dark' ? 'rgba(42, 42, 42, 0.9)' : 'rgba(249, 250, 251, 0.95)',
-              border: `1px solid ${visitorTheme === 'dark' ? '#3f3f46' : '#e5e7eb'}`,
-              borderRadius: '12px',
-              padding: '20px',
+              background: '#2a2a2a',
+              borderRadius: '20px',
+              padding: '24px',
               marginBottom: '24px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-              animation: engagement.type === 'promotion' ? 'promotionFadeIn 0.6s ease-out' : 'none'
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              textAlign: 'left'
             }}>
               {engagement.type === 'promotion' && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
                     </svg>
-                    <span style={{ fontWeight: '700', fontSize: '15px', color: getTextColor(), letterSpacing: '0.02em' }}>Special Offer</span>
+                    <span style={{ fontWeight: '700', fontSize: '16px', color: '#ffffff', letterSpacing: '0.02em' }}>Special Offer</span>
                   </div>
                   <p style={{ 
-                    color: getTextColor(), 
-                    fontSize: '24px', 
-                    lineHeight: '1.3', 
-                    marginBottom: engagement.options?.link ? '18px' : '0',
-                    fontWeight: '700',
+                    color: '#ffffff', 
+                    fontSize: '28px', 
+                    lineHeight: '1.25', 
+                    marginBottom: engagement.options?.link ? '20px' : '0',
+                    fontWeight: '800',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.01em'
+                    letterSpacing: '-0.01em'
                   }}>
                     {engagement.content}
                   </p>
@@ -448,15 +447,15 @@ const ReviewHub = () => {
                       onClick={() => trackEvent('promotion_click')}
                       style={{
                         display: 'inline-block',
-                        padding: '12px 24px',
-                        background: visitorTheme === 'dark' ? '#ffffff' : '#000000',
-                        color: visitorTheme === 'dark' ? '#000000' : '#ffffff',
-                        borderRadius: '8px',
+                        padding: '14px 28px',
+                        background: '#ffffff',
+                        color: '#000000',
+                        borderRadius: '12px',
                         fontWeight: '700',
-                        fontSize: '14px',
+                        fontSize: '15px',
                         textDecoration: 'none',
                         transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
                       }}
                     >
                       Learn More
@@ -467,16 +466,16 @@ const ReviewHub = () => {
               
               {engagement.type === 'poll' && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={getTextColor()} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
                     </svg>
-                    <span style={{ fontWeight: '700', fontSize: '15px', color: getTextColor(), letterSpacing: '0.02em' }}>Quick Poll</span>
+                    <span style={{ fontWeight: '700', fontSize: '16px', color: '#a1a1aa', letterSpacing: '0.02em' }}>Quick Poll</span>
                   </div>
-                  <p style={{ color: getTextColor(), fontSize: '20px', lineHeight: '1.4', marginBottom: '20px', fontWeight: '700' }}>
+                  <p style={{ color: '#ffffff', fontSize: '32px', lineHeight: '1.2', marginBottom: '24px', fontWeight: '700' }}>
                     {engagement.content}
                   </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {engagement.options?.choices?.map((choice: string, index: number) => {
                       const totalVotes = Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) as number;
                       const votes = pollVotes[index] || 0;
@@ -490,48 +489,50 @@ const ReviewHub = () => {
                           disabled={hasVoted}
                           style={{
                             position: 'relative',
-                            padding: '18px 20px',
-                            background: visitorTheme === 'dark' ? '#2d2d2d' : '#f3f4f6',
-                            border: totalVotes > 0 && isWinner 
-                              ? `3px solid ${visitorTheme === 'dark' ? '#10b981' : '#10b981'}` 
+                            padding: '16px 20px',
+                            background: '#f5f5f5',
+                            border: isWinner && totalVotes > 0
+                              ? '3px solid transparent'
+                              : '3px solid transparent',
+                            borderImage: isWinner && totalVotes > 0
+                              ? 'linear-gradient(90deg, #fb923c, #22c55e) 1'
                               : 'none',
                             borderRadius: '50px',
                             cursor: hasVoted ? 'default' : 'pointer',
                             textAlign: 'left',
                             overflow: 'hidden',
                             transition: 'all 0.3s ease',
-                            boxShadow: totalVotes > 0 && isWinner
-                              ? '0 0 0 4px rgba(16, 185, 129, 0.2)'
-                              : '0 2px 8px rgba(0, 0, 0, 0.08)'
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                           }}
                         >
-                          {/* Progress bar with gradient for winner */}
+                          {/* Progress bar */}
                           {totalVotes > 0 && (
                             <div style={{
                               position: 'absolute',
                               left: 0,
-                              top: 0,
                               bottom: 0,
+                              height: '4px',
                               width: `${percentage}%`,
                               background: isWinner
-                                ? 'linear-gradient(90deg, rgba(251, 146, 60, 0.3) 0%, rgba(16, 185, 129, 0.3) 100%)'
-                                : visitorTheme === 'dark' 
-                                  ? 'rgba(255, 255, 255, 0.1)'
-                                  : 'rgba(0, 0, 0, 0.06)',
+                                ? 'linear-gradient(90deg, #22c55e, #fb923c)'
+                                : '#fb923c',
                               transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                              borderRadius: '50px'
+                              borderRadius: '0 0 50px 50px'
                             }} />
                           )}
                           <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
-                            <span style={{ fontWeight: '600', color: getTextColor(), fontSize: '16px', flex: 1 }}>{choice}</span>
+                            <span style={{ fontWeight: '700', color: '#1f1f1f', fontSize: '17px', flex: 1 }}>{choice}</span>
                             {totalVotes > 0 && (
                               <span style={{ 
                                 fontSize: '15px', 
-                                color: getTextColor(), 
-                                fontWeight: '700',
+                                color: '#6b7280', 
+                                fontWeight: '600',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {percentage}%{votes > 0 && ` (${votes})`}
+                                <span style={{ fontWeight: '700', color: '#1f1f1f' }}>{percentage}%</span>
+                                <span style={{ color: '#9ca3af', marginLeft: '6px' }}>
+                                  {votes === 1 ? `${votes} vote` : `${votes} votes`}
+                                </span>
                               </span>
                             )}
                           </div>
@@ -541,13 +542,13 @@ const ReviewHub = () => {
                   </div>
                   {Object.values(pollVotes).reduce((a: any, b: any) => a + b, 0) > 0 && (
                     <p style={{ 
-                      fontSize: '12px', 
-                      color: getMutedTextColor(), 
-                      marginTop: '16px',
+                      fontSize: '13px', 
+                      color: '#71717a', 
+                      marginTop: '20px',
                       textAlign: 'center',
                       fontWeight: '500'
                     }}>
-                      Powered by TapAway
+                      Powered by <span style={{ fontWeight: '700', color: '#a1a1aa' }}>TapAway</span>
                     </p>
                   )}
                 </>
