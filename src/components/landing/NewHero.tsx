@@ -44,7 +44,7 @@ export const NewHero = () => {
         duration: 0.5,
         delay: 0.15
       }} className="text-[clamp(15px,3.5vw,18px)] text-gray-300 max-w-lg mx-auto mb-6 leading-relaxed">
-          Your staff hands happy guests a TapAway card. One tap — no apps, no searching — and real Google reviews start coming in.
+          Simply hand the card to a happy guest. One tap later — reviews, social follows, and real traffic start coming in.
         </motion.p>
         
         <motion.div initial={{
