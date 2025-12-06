@@ -88,31 +88,38 @@ const Onboarding = () => {
 
     // Check if user has an active subscription and if they're already fully onboarded
     const checkOnboardingStatus = async () => {
-      const { data: restaurant } = await supabase
+      // Fetch ALL restaurants for this user (they may have multiple locations)
+      const { data: restaurants } = await supabase
         .from("restaurants")
         .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
-        .eq("owner_id", user.id)
-        .maybeSingle();
+        .eq("owner_id", user.id);
 
       // Grandfathered users bypass subscription check
       const isGrandfathered = isGrandfatheredUser(user.email);
 
+      // Check if ANY restaurant has completed onboarding - if so, redirect to dashboard
+      const completedRestaurant = restaurants?.find(r => r.onboarding_completed === true);
+      if (completedRestaurant) {
+        navigate("/dashboard");
+        return;
+      }
+
+      // Check if ANY restaurant has active subscription
+      const activeRestaurant = restaurants?.find(r => r.subscription_status === 'active');
+
       // If no active subscription and not grandfathered, send to paywall
-      if (!isGrandfathered && (!restaurant || !restaurant.subscription_status || restaurant.subscription_status !== 'active')) {
+      if (!isGrandfathered && !activeRestaurant) {
         navigate("/paywall");
         return;
       }
+
+      // Use the first incomplete restaurant for onboarding, or the active one
+      const restaurant = restaurants?.find(r => !r.onboarding_completed) || activeRestaurant;
 
       // If user has an existing restaurant (created by paywall), store its ID for update
       if (restaurant) {
         setExistingRestaurantId(restaurant.id);
         restaurantIdRef.current = restaurant.id;
-        
-        // If onboarding is already completed, redirect to dashboard
-        if (restaurant.onboarding_completed) {
-          navigate("/dashboard");
-          return;
-        }
         
         // Resume from saved step (default to 1)
         const savedStep = restaurant.onboarding_step || 1;
