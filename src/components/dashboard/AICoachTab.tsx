@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, Send, Unlock } from "lucide-react";
+import { Loader2, RefreshCw, Send, Unlock, RotateCcw } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -107,6 +107,22 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
 
     setIgnoredCategories(prev => new Set([...prev, category]));
     toast.success("Hidden for 30 days");
+  };
+
+  const handleRestoreIgnored = async () => {
+    const { error } = await supabase
+      .from('coach_ignored')
+      .delete()
+      .eq('restaurant_id', restaurantId);
+
+    if (error) {
+      toast.error("Failed to restore items");
+      console.error('Error restoring ignored categories:', error);
+      return;
+    }
+
+    setIgnoredCategories(new Set());
+    toast.success("Hidden items restored");
   };
 
   const loadStats = async () => {
@@ -397,6 +413,17 @@ export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
               </CardContent>
             </Card>
           ) : null}
+
+          {/* Restore hidden items button */}
+          {ignoredCategories.size > 0 && (
+            <button
+              onClick={handleRestoreIgnored}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mx-auto"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Restore {ignoredCategories.size} hidden item{ignoredCategories.size > 1 ? 's' : ''}
+            </button>
+          )}
 
         </div>
 
