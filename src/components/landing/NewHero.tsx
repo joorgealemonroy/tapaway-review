@@ -26,8 +26,8 @@ export const NewHero = () => {
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-[clamp(28px,7vw,52px)] font-black text-white leading-[1.1] mb-4"
+          transition={{ duration: 0.5 }}
+          className="text-[clamp(32px,8vw,56px)] font-black text-white leading-[1.1] mb-5"
         >
           More 5-Star Reviews.<br />
           <span className="text-primary">Without the Awkward Ask.</span>
