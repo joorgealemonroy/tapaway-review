@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Megaphone, BarChart3 } from "lucide-react";
+import { Plus, Trash2, Megaphone, BarChart3, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { Alert, AlertDescription } from "@/components/ui/alert";
 interface Engagement {
   id: string;
   type: 'promotion' | 'poll';
@@ -249,8 +249,15 @@ export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
         </div>
       </Card>
 
+      <Alert className="border-primary/20 bg-primary/5">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          <strong>Tip:</strong> You can have 1 active promotion and 1 active poll at the same time. Activating a new one will automatically deactivate the previous of the same type.
+        </AlertDescription>
+      </Alert>
+
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Active Engagements</h3>
+        <h3 className="text-lg font-semibold">Your Engagements</h3>
         {engagements.length === 0 ? (
           <Card className="p-6 text-center text-muted-foreground">
             No engagements yet. Create your first promotion or poll above.
