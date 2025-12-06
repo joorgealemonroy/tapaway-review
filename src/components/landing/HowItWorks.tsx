@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { UserCheck, Smartphone, TrendingUp } from "lucide-react";
+import { Users, Smartphone, TrendingUp } from "lucide-react";
 
 const steps = [
   {
-    icon: UserCheck,
+    icon: Users,
     title: "Server Hands the Card",
     description: "Your staff gives the TapAway card to happy guests at the perfect moment.",
     step: "01",
