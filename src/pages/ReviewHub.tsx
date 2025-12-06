@@ -483,60 +483,84 @@ const ReviewHub = () => {
                       const isWinner = totalVotes > 0 && votes === Math.max(...Object.values(pollVotes) as number[]);
                       
                       return (
-                        <button
+                        <div
                           key={index}
-                          onClick={() => handlePollVote(index)}
-                          disabled={hasVoted}
                           style={{
                             position: 'relative',
-                            padding: '16px 20px',
-                            background: '#f5f5f5',
-                            border: isWinner && totalVotes > 0
-                              ? '3px solid transparent'
-                              : '3px solid transparent',
-                            borderImage: isWinner && totalVotes > 0
-                              ? 'linear-gradient(90deg, #fb923c, #22c55e) 1'
-                              : 'none',
+                            padding: isWinner && totalVotes > 0 ? '3px' : '0',
+                            background: isWinner && totalVotes > 0 
+                              ? 'linear-gradient(90deg, #22c55e, #fb923c)' 
+                              : 'transparent',
                             borderRadius: '50px',
-                            cursor: hasVoted ? 'default' : 'pointer',
-                            textAlign: 'left',
-                            overflow: 'hidden',
-                            transition: 'all 0.3s ease',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                           }}
                         >
-                          {/* Progress bar */}
-                          {totalVotes > 0 && (
-                            <div style={{
-                              position: 'absolute',
-                              left: 0,
-                              bottom: 0,
-                              height: '4px',
-                              width: `${percentage}%`,
-                              background: isWinner
-                                ? 'linear-gradient(90deg, #22c55e, #fb923c)'
-                                : '#fb923c',
-                              transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                              borderRadius: '0 0 50px 50px'
-                            }} />
-                          )}
-                          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
-                            <span style={{ fontWeight: '700', color: '#1f1f1f', fontSize: '17px', flex: 1 }}>{choice}</span>
+                          <button
+                            onClick={() => handlePollVote(index)}
+                            disabled={hasVoted}
+                            style={{
+                              position: 'relative',
+                              width: '100%',
+                              padding: '16px 20px',
+                              background: '#f5f5f5',
+                              border: 'none',
+                              borderRadius: '50px',
+                              cursor: hasVoted ? 'default' : 'pointer',
+                              textAlign: 'left',
+                              overflow: 'hidden',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease',
+                              boxShadow: isWinner && totalVotes > 0 
+                                ? 'none' 
+                                : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                              transform: 'scale(1)'
+                            }}
+                            onMouseDown={(e) => {
+                              if (!hasVoted) {
+                                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.98)';
+                              }
+                            }}
+                            onMouseUp={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                            }}
+                          >
+                            {/* Progress bar */}
                             {totalVotes > 0 && (
-                              <span style={{ 
-                                fontSize: '15px', 
-                                color: '#6b7280', 
-                                fontWeight: '600',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                <span style={{ fontWeight: '700', color: '#1f1f1f' }}>{percentage}%</span>
-                                <span style={{ color: '#9ca3af', marginLeft: '6px' }}>
-                                  {votes === 1 ? `${votes} vote` : `${votes} votes`}
-                                </span>
-                              </span>
+                              <div style={{
+                                position: 'absolute',
+                                left: 0,
+                                bottom: 0,
+                                height: '4px',
+                                width: `${percentage}%`,
+                                background: isWinner
+                                  ? 'linear-gradient(90deg, #22c55e, #fb923c)'
+                                  : '#fb923c',
+                                transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                borderRadius: '0 0 50px 50px'
+                              }} />
                             )}
-                          </div>
-                        </button>
+                            <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px' }}>
+                              <span style={{ fontWeight: '700', color: '#1f1f1f', fontSize: '17px', flex: 1 }}>{choice}</span>
+                              {totalVotes > 0 && (
+                                <span style={{ 
+                                  fontSize: '15px', 
+                                  color: '#6b7280', 
+                                  fontWeight: '600',
+                                  whiteSpace: 'nowrap',
+                                  opacity: 1,
+                                  transition: 'opacity 0.4s ease'
+                                }}>
+                                  <span style={{ fontWeight: '700', color: '#1f1f1f' }}>{percentage}%</span>
+                                  <span style={{ color: '#9ca3af', marginLeft: '6px' }}>
+                                    {votes === 1 ? `${votes} vote` : `${votes} votes`}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
