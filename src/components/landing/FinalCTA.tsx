@@ -7,37 +7,46 @@ export const FinalCTA = () => {
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <section ref={ref} className="py-12 md:py-16 px-4 bg-black text-white">
-      <div className="max-w-3xl mx-auto text-center">
+    <section ref={ref} className="py-16 md:py-20 px-4 bg-[#0B1220] text-white">
+      <div className="max-w-2xl mx-auto text-center">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5 }}
-          className="text-2xl md:text-3xl font-black mb-5"
+          className="text-2xl md:text-3xl font-black mb-4"
         >
-          Turn Your Happy Guests Into<br className="md:hidden" /> 5-Star Reviews Automatically
+          Turn Your Guests Into 5-Star Reviews Automatically
         </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-white/70 text-sm md:text-base mb-8 max-w-md mx-auto leading-relaxed"
+        >
+          TapAway includes your dashboard, setup, and your first batch of custom cards — everything you need to start right away.
+        </motion.p>
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
           <a
             href="/paywall"
-            className="inline-flex items-center gap-2 px-7 py-4 rounded-full font-bold bg-white text-black shadow-[0_20px_50px_rgba(255,255,255,0.15)] hover:shadow-[0_30px_70px_rgba(255,255,255,0.25)] hover:scale-105 transition-all text-base"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold bg-white text-[#0B1220] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-base"
           >
-            Start December Special
+            Start With December Pricing
           </a>
         </motion.div>
         
         <motion.p
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="text-xs text-gray-400 mt-3"
+          transition={{ duration: 0.4, delay: 0.35 }}
+          className="text-xs text-white/50 mt-4"
         >
-          Includes cards, dashboard & setup.
+          $150 first year • Renews at $300/year • Limited to December availability
         </motion.p>
       </div>
     </section>

@@ -93,87 +93,90 @@ const Index = () => {
       <WhatYouGet />
 
       {/* Pricing */}
-      <section id="pricing" className="py-10 md:py-14 px-4 bg-muted/30">
+      <section id="pricing" className="py-14 md:py-20 px-4 bg-muted/30">
         <div className="max-w-[1060px] mx-auto">
-          <div className="text-center mb-6">
+          <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-black mb-2">Simple, Honest Pricing</h2>
-            <p className="text-sm text-muted-foreground">No hidden fees. Choose what works for you.</p>
+            <p className="text-sm text-muted-foreground">No hidden fees. No surprises.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 md:gap-6 max-w-3xl mx-auto">
             {/* Monthly Plan */}
-            <div className="bg-white rounded-xl p-5 md:p-6 border border-border shadow-sm">
+            <div className="bg-card rounded-2xl p-6 md:p-7 border border-border shadow-sm hover:shadow-md transition-shadow">
               <h3 className="text-lg font-bold mb-1">Monthly</h3>
-              <p className="text-xs text-muted-foreground mb-3">Cancel anytime</p>
-              <div className="text-3xl md:text-4xl font-black mb-4">
+              <p className="text-xs text-muted-foreground mb-4">Perfect for testing TapAway month-to-month.</p>
+              <div className="text-3xl md:text-4xl font-black mb-5">
                 $30 <span className="text-sm font-normal text-muted-foreground">/ month</span>
               </div>
-              <ul className="space-y-2.5 mb-5">
-                <li className="flex items-start gap-2 text-sm">
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-2.5 text-sm">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   15 custom NFC cards included
                 </li>
-                <li className="flex items-start gap-2 text-sm">
+                <li className="flex items-start gap-2.5 text-sm">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  Real-time analytics
+                  Real-time analytics dashboard
                 </li>
-                <li className="flex items-start gap-2 text-sm">
+                <li className="flex items-start gap-2.5 text-sm">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  Unlimited reviews
+                  Cancel anytime
                 </li>
               </ul>
-              <a href="/paywall" className="block w-full text-center px-5 py-3 rounded-lg font-bold text-sm bg-[#111827] text-white shadow-sm hover:shadow-md transition-all">
+              <a href="/paywall" className="block w-full text-center px-5 py-3.5 rounded-xl font-bold text-sm bg-foreground text-background shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                 Get Started
               </a>
             </div>
 
             {/* Yearly Plan - December Special */}
-            <div className="bg-gradient-to-br from-primary/5 via-white to-white rounded-xl p-5 md:p-6 border-2 border-primary shadow-lg relative">
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-1 rounded-full text-xs font-bold shadow-md">
-                DECEMBER SPECIAL
+            <div className="bg-gradient-to-br from-primary/5 via-card to-card rounded-2xl p-6 md:p-7 border-2 border-primary shadow-lg relative hover:shadow-xl transition-shadow">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-xs font-bold shadow-md">
+                SMART CHOICE
               </div>
-              <h3 className="text-lg font-bold mb-1 mt-1">Yearly</h3>
-              <p className="text-xs text-muted-foreground mb-3">Best value</p>
-              <div className="mb-3">
+              <h3 className="text-lg font-bold mb-1 mt-2">Yearly</h3>
+              <p className="text-xs text-muted-foreground mb-4">Lock in your lowest possible pricing today.</p>
+              <div className="mb-4">
                 <div className="text-3xl md:text-4xl font-black text-primary">
                   $150 <span className="text-sm font-normal text-muted-foreground">first year</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-xs line-through text-muted-foreground">$300/year</span>
-                  <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Save $150</span>
+                  <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Save 50%</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Renews at $300/year
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Renews at $300/year after first year
                 </p>
               </div>
-              <ul className="space-y-2.5 mb-5">
-                <li className="flex items-start gap-2 text-sm font-medium">
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-2.5 text-sm font-medium">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Everything in Monthly
                 </li>
-                <li className="flex items-start gap-2 text-sm">
+                <li className="flex items-start gap-2.5 text-sm">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   12 months for cost of 5
                 </li>
-                <li className="flex items-start gap-2 text-sm">
+                <li className="flex items-start gap-2.5 text-sm">
                   <svg className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  December offer only
+                  December pricing only
                 </li>
               </ul>
-              <a href="/paywall" className="block w-full text-center px-5 py-3 rounded-lg font-bold text-sm bg-primary text-white shadow-sm hover:shadow-md transition-all">
-                Start December Special
+              <a href="/paywall" className="block w-full text-center px-5 py-3.5 rounded-xl font-bold text-sm bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                Start With December Pricing
               </a>
+              <p className="text-[11px] text-muted-foreground text-center mt-3">
+                Most restaurants choose yearly after their first month of results.
+              </p>
             </div>
           </div>
           
