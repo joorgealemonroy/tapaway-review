@@ -82,6 +82,14 @@ Deno.serve(async (req) => {
 
     const ownerId = restaurant.owner_id;
 
+    // SAFETY CHECK: Prevent admin from deleting their own account
+    if (ownerId === caller.id) {
+      return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Delete related data first
     await supabaseAdmin.from("locations").delete().eq("restaurant_id", restaurantId);
     await supabaseAdmin.from("analytics_events").delete().eq("restaurant_id", restaurantId);
