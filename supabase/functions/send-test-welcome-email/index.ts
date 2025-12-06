@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// TapAway logo hosted on imgur - reliable permanent URL for emails
-const LOGO_URL = 'https://i.imgur.com/7wJOS7a.png';
+// TapAway logo hosted on imgur - cropped version
+const LOGO_URL = 'https://i.imgur.com/bc1EJv8.png';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -59,7 +59,7 @@ serve(async (req) => {
           <!-- Header with logo -->
           <tr>
             <td style="background:#ffffff;padding:40px 32px 28px;text-align:center;border-bottom:3px solid #0d9488;">
-              <img src="${LOGO_URL}" alt="TapAway" width="420" style="height:auto;max-width:420px;display:block;margin:0 auto;" />
+              <img src="${LOGO_URL}" alt="TapAway" width="520" style="height:auto;max-width:520px;display:block;margin:0 auto;" />
             </td>
           </tr>
           
