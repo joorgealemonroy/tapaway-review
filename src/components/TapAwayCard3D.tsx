@@ -13,14 +13,14 @@ const TapAwayCard3D = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentLogo((prev) => (prev + 1) % logos.length);
-    }, 3000);
+    }, 2500); // 2.5s per logo = all 4 logos shown in 10s back-facing time
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
       <div style={{ transform: "rotateZ(12deg)" }}>
-        <div className="animate-[spin-3d_12s_ease-in-out_infinite]" style={{ transformStyle: "preserve-3d" }}>
+        <div className="animate-[spin-3d_20s_ease-in-out_infinite]" style={{ transformStyle: "preserve-3d" }}>
           <div
             className="relative"
             style={{
@@ -54,7 +54,7 @@ const TapAwayCard3D = () => {
                   key={logo}
                   src={logo}
                   alt="Client logo"
-                  className={`absolute w-[85%] h-auto object-contain transition-opacity duration-500 ${
+                  className={`absolute w-[90%] h-auto object-contain transition-opacity duration-500 ${
                     index === currentLogo ? 'opacity-100' : 'opacity-0'
                   }`}
                 />
