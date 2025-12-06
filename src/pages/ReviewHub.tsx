@@ -79,7 +79,7 @@ const ReviewHub = () => {
   const fetchRestaurantBySlug = async (slug: string) => {
     const { data, error } = await (supabase as any)
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, custom_slug")
+      .select("*")
       .eq("custom_slug", slug)
       .single();
 
@@ -90,45 +90,25 @@ const ReviewHub = () => {
       return;
     }
 
-    if (data) {
-      // Fetch type and hub_background_style from restaurants table
-      const { data: restaurantData } = await (supabase as any)
-        .from("restaurants")
-        .select("type, hub_background_style")
-        .eq("id", data.id)
-        .single();
-      
-      setRestaurant({ 
-        ...data, 
-        type: restaurantData?.type || null,
-        hub_background_style: restaurantData?.hub_background_style || 'classic',
-        custom_background_url: restaurantData?.custom_background_url || null
-      });
-      fetchMenu(data.id);
-      fetchEngagement(data.id);
-    }
+    setRestaurant({ 
+      ...data, 
+      hub_background_style: data.hub_background_style || 'classic'
+    });
+    fetchMenu(data.id);
+    fetchEngagement(data.id);
   };
 
   const fetchRestaurant = async (id: string) => {
     const { data } = await (supabase as any)
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, custom_slug")
+      .select("*")
       .eq("id", id)
       .single();
 
     if (data) {
-      // Fetch type and hub_background_style from restaurants table
-      const { data: restaurantData } = await (supabase as any)
-        .from("restaurants")
-        .select("type, hub_background_style")
-        .eq("id", data.id)
-        .single();
-      
       setRestaurant({ 
         ...data, 
-        type: restaurantData?.type || null,
-        hub_background_style: restaurantData?.hub_background_style || 'classic',
-        custom_background_url: restaurantData?.custom_background_url || null
+        hub_background_style: data.hub_background_style || 'classic'
       });
       fetchMenu(data.id);
       fetchEngagement(data.id);
