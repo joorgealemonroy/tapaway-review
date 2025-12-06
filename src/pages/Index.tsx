@@ -25,25 +25,35 @@ const PricingSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="text-2xl md:text-3xl font-black text-center mb-8"
+          className="text-2xl md:text-3xl font-black text-center mb-3"
         >
           Simple, Transparent Pricing
         </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="text-xs text-muted-foreground text-center mb-8"
+        >
+          Most reputation tools cost $1,000+/year — TapAway starts at $12.50/month this December.
+        </motion.p>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* Monthly */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-card border border-border rounded-2xl p-5"
+            transition={{ duration: 0.5, delay: 0.15 }}
+            whileHover={{ y: -3 }}
+            className="bg-card border border-border rounded-2xl p-5 transition-shadow hover:shadow-md"
           >
             <h3 className="font-bold text-base mb-1">Monthly</h3>
-            <div className="flex items-baseline gap-1 mb-3">
+            <div className="flex items-baseline gap-1 mb-1">
               <span className="text-2xl font-black">$30</span>
               <span className="text-sm text-muted-foreground">/month</span>
             </div>
-            <ul className="space-y-2 mb-5">
+            <p className="text-xs text-muted-foreground mb-4">Cancel anytime</p>
+            <ul className="space-y-2.5 mb-5">
               {["Unlimited review collection", "Custom review hub", "Real-time analytics", "Cancel anytime"].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
                   <Check className="w-4 h-4 text-primary" />
@@ -64,22 +74,28 @@ const PricingSection = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
+            whileHover={{ y: -3 }}
             className="relative bg-card border-2 border-primary rounded-2xl p-5 shadow-lg shadow-primary/10"
           >
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full">
+            <motion.div 
+              className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
               BEST VALUE
-            </div>
+            </motion.div>
             <h3 className="font-bold text-base mb-1 mt-1">December Special</h3>
-            <div className="flex items-baseline gap-1 mb-0.5">
+            <div className="flex items-baseline gap-1.5 mb-0.5">
               <span className="text-2xl font-black text-primary">$150</span>
               <span className="text-sm text-muted-foreground">/first year</span>
+              <span className="text-xs text-muted-foreground/60 line-through ml-1">$300</span>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">Renews at $300/year</p>
-            <ul className="space-y-2 mb-5">
+            <p className="text-xs text-muted-foreground mb-4">Then $300/year</p>
+            <ul className="space-y-2.5 mb-5">
               {[
-                "Lock in the lowest price we will offer",
-                "Pays for itself with just 2–3 new reviews",
-                "Includes cards, dashboard, and setup",
+                "Lock in the lowest price we'll offer",
+                "Pays for itself with 2–3 new reviews",
+                "Includes cards, dashboard & setup",
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
                   <Check className="w-4 h-4 text-primary" />
@@ -87,12 +103,14 @@ const PricingSection = () => {
                 </li>
               ))}
             </ul>
-            <a
+            <motion.a
               href="/paywall"
-              className="block w-full py-3 rounded-lg bg-primary text-primary-foreground text-center font-semibold text-sm hover:opacity-90 transition-opacity"
+              className="block w-full py-3 rounded-lg bg-primary text-primary-foreground text-center font-semibold text-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Start December Special
-            </a>
+            </motion.a>
             <p className="text-[10px] text-center text-muted-foreground mt-3">
               Most restaurants choose yearly after their first month of results.
             </p>
