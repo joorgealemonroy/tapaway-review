@@ -67,6 +67,14 @@ export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
     }
 
     try {
+      // First, deactivate any existing active engagement of the same type
+      await supabase
+        .from("restaurant_engagement")
+        .update({ is_active: false })
+        .eq("restaurant_id", restaurantId)
+        .eq("type", type)
+        .eq("is_active", true);
+
       const options = type === 'promotion' 
         ? { link: promotionLink }
         : { choices: pollOptions.filter(o => o.trim()), votes: {} };
@@ -93,8 +101,18 @@ export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
     }
   };
 
-  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+  const handleToggleActive = async (id: string, currentStatus: boolean, engagementType: 'promotion' | 'poll') => {
     try {
+      // If activating, first deactivate other same-type engagements
+      if (!currentStatus) {
+        await supabase
+          .from("restaurant_engagement")
+          .update({ is_active: false })
+          .eq("restaurant_id", restaurantId)
+          .eq("type", engagementType)
+          .eq("is_active", true);
+      }
+
       const { error } = await supabase
         .from("restaurant_engagement")
         .update({ is_active: !currentStatus })
@@ -296,7 +314,7 @@ export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleToggleActive(engagement.id, engagement.is_active)}
+                      onClick={() => handleToggleActive(engagement.id, engagement.is_active, engagement.type)}
                     >
                       {engagement.is_active ? 'Deactivate' : 'Activate'}
                     </Button>
