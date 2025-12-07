@@ -54,6 +54,7 @@ const Onboarding = () => {
   
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   // Form data - phone is completely independent from Google selection
   const [formData, setFormData] = useState({
@@ -75,33 +76,43 @@ const Onboarding = () => {
   }, [existingRestaurantId]);
 
   useEffect(() => {
-    if (!user) {
-      // Preserve session_id when redirecting to auth
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session_id');
-      const redirectUrl = sessionId 
-        ? `/auth?redirect=/onboarding&session_id=${sessionId}`
-        : "/auth?redirect=/onboarding";
-      navigate(redirectUrl);
-      return;
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
 
-    // Super admin should never see onboarding - redirect to admin
-    if (isSuperAdmin(user.email)) {
-      navigate("/admin");
-      return;
-    }
-
-    // Check if user has an active subscription and if they're already fully onboarded
+    // If we have a session_id, wait for auth to hydrate OR check session directly
+    // Don't immediately redirect to /auth
     const checkOnboardingStatus = async () => {
+      // Check for session directly - more reliable than useAuth hook for initial load
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user || user;
+
+      if (!currentUser) {
+        // No user and no session_id - redirect to auth
+        if (!sessionId) {
+          navigate("/auth?redirect=/onboarding");
+          return;
+        }
+        
+        // Has session_id but no session - redirect to auth with session_id preserved
+        console.log('[Onboarding] No session but has session_id, redirecting to login...');
+        navigate(`/auth?redirect=${encodeURIComponent(`/onboarding?session_id=${sessionId}`)}`);
+        return;
+      }
+
+      // Super admin should never see onboarding - redirect to admin
+      if (isSuperAdmin(currentUser.email)) {
+        navigate("/admin");
+        return;
+      }
+
       // Fetch ALL restaurants for this user (they may have multiple locations)
       const { data: restaurants } = await supabase
         .from("restaurants")
         .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
-        .eq("owner_id", user.id);
+        .eq("owner_id", currentUser.id);
 
       // Grandfathered users bypass subscription check
-      const isGrandfathered = isGrandfatheredUser(user.email);
+      const isGrandfathered = isGrandfatheredUser(currentUser.email);
 
       // Check if ANY restaurant has completed onboarding - if so, redirect to dashboard
       const completedRestaurant = restaurants?.find(r => r.onboarding_completed === true);
@@ -115,15 +126,12 @@ const Onboarding = () => {
 
       // FALLBACK: If no restaurant exists but we have a session_id, the webhook may have failed
       // Call verify-checkout to create the restaurant from the Stripe session
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session_id');
-      
       if (!activeRestaurant && sessionId && !isGrandfathered) {
         console.log('[Onboarding] No restaurant found but session_id present - calling verify-checkout fallback');
         
         try {
           const { data, error } = await supabase.functions.invoke('verify-checkout', {
-            body: { sessionId, userId: user.id }
+            body: { sessionId, userId: currentUser.id }
           });
           
           if (error) {
@@ -136,7 +144,7 @@ const Onboarding = () => {
             const { data: refreshedRestaurants } = await supabase
               .from("restaurants")
               .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
-              .eq("owner_id", user.id);
+              .eq("owner_id", currentUser.id);
             
             activeRestaurant = refreshedRestaurants?.find(r => r.subscription_status === 'active');
           }
@@ -183,6 +191,8 @@ const Onboarding = () => {
           instagram: restaurant.instagram_url || prev.instagram,
         }));
       }
+      
+      setInitialCheckDone(true);
     };
 
     checkOnboardingStatus();
@@ -1041,6 +1051,18 @@ const Onboarding = () => {
         return null;
     }
   };
+
+  // Show loading while checking auth/onboarding status
+  if (!initialCheckDone) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
