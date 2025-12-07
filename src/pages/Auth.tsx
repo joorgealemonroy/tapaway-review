@@ -21,7 +21,6 @@ const Auth = () => {
 
   // Get redirect destination from URL params (preserves session_id if present)
   const redirectTo = searchParams.get("redirect") || "/dashboard";
-  const sessionId = searchParams.get("session_id");
 
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,15 +36,9 @@ const Auth = () => {
       if (error) throw error;
       setMessage("Logged in successfully. Redirecting…");
 
-      // Build the redirect URL with session_id if present
-      let finalRedirect = redirectTo;
-      if (sessionId && redirectTo.includes("onboarding")) {
-        // Append session_id to onboarding redirect
-        finalRedirect = `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}session_id=${sessionId}`;
-      }
-      
-      console.log("[Auth] Redirecting to:", finalRedirect);
-      window.location.href = finalRedirect;
+      // Use redirectTo as-is - it should already contain session_id if needed
+      console.log("[Auth] Redirecting to:", redirectTo);
+      window.location.href = redirectTo;
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
