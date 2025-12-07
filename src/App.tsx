@@ -15,6 +15,7 @@ import ReviewHub from "./pages/ReviewHub";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Refund from "./pages/Refund";
+import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/refund" element={<Refund />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
             <Route path="/:customSlug" element={<ReviewHub />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
