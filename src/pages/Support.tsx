@@ -222,7 +222,7 @@ export default function Support() {
       console.error('Error submitting support request:', error);
       toast({
         title: 'Something went wrong',
-        description: 'Please try again or email us directly at support@tapaway.co',
+        description: 'Please try again or email us directly at tap@tapaway.co',
         variant: 'destructive',
       });
     } finally {
@@ -417,6 +417,13 @@ export default function Support() {
             {selectedType === 'NEW_CARDS' && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-foreground">What do you need?</h3>
+                
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Note:</strong> Replacement cards are limited to 10 per month per location.
+                  </p>
+                </div>
+                
                 <div className="space-y-3">
                   {cardNeedOptions.map((option) => (
                     <label key={option.id} className="flex items-center gap-3 cursor-pointer">
@@ -436,11 +443,12 @@ export default function Support() {
                     id="quantity"
                     type="number"
                     min={1}
-                    max={500}
+                    max={10}
                     value={formData.quantityRequested}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantityRequested: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, quantityRequested: Math.min(10, parseInt(e.target.value) || 1) }))}
                     className="max-w-32"
                   />
+                  <p className="text-xs text-muted-foreground">Max 10 per month</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -592,8 +600,8 @@ export default function Support() {
         <div className="max-w-3xl mx-auto px-6 py-8 text-center">
           <p className="text-sm text-muted-foreground">
             Need immediate help? Email us at{' '}
-            <a href="mailto:support@tapaway.co" className="text-primary hover:underline">
-              support@tapaway.co
+            <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">
+              tap@tapaway.co
             </a>
           </p>
         </div>
