@@ -105,7 +105,39 @@ const Onboarding = () => {
       }
 
       // Check if ANY restaurant has active subscription
-      const activeRestaurant = restaurants?.find(r => r.subscription_status === 'active');
+      let activeRestaurant = restaurants?.find(r => r.subscription_status === 'active');
+
+      // FALLBACK: If no restaurant exists but we have a session_id, the webhook may have failed
+      // Call verify-checkout to create the restaurant from the Stripe session
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      
+      if (!activeRestaurant && sessionId && !isGrandfathered) {
+        console.log('[Onboarding] No restaurant found but session_id present - calling verify-checkout fallback');
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-checkout', {
+            body: { sessionId, userId: user.id }
+          });
+          
+          if (error) {
+            console.error('[Onboarding] verify-checkout error:', error);
+          } else if (data?.success && data?.restaurantId) {
+            console.log('[Onboarding] verify-checkout created restaurant:', data.restaurantId);
+            toast.success("Payment verified! Let's set up your account.");
+            
+            // Re-fetch restaurants after fallback creation
+            const { data: refreshedRestaurants } = await supabase
+              .from("restaurants")
+              .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
+              .eq("owner_id", user.id);
+            
+            activeRestaurant = refreshedRestaurants?.find(r => r.subscription_status === 'active');
+          }
+        } catch (fallbackError) {
+          console.error('[Onboarding] Fallback verify-checkout failed:', fallbackError);
+        }
+      }
 
       // If no active subscription and not grandfathered, send to paywall
       if (!isGrandfathered && !activeRestaurant) {
