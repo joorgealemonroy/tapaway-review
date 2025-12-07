@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 };
 
+// Hardcoded fallback - NEVER use supabaseUrl for portal return
+const DEFAULT_PORTAL_RETURN_URL = 'https://tapaway.co/dashboard';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -144,12 +147,6 @@ serve(async (req) => {
 
       console.log(`[stripe-webhook] Creating restaurant for plan: ${planType}`);
 
-      // Get customer portal URL
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${Deno.env.get('STRIPE_PORTAL_RETURN_URL') || `${supabaseUrl}/dashboard`}`,
-      });
-
       // Get user metadata for greeting_name if available
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
       const greetingName = userData?.user?.user_metadata?.greeting_name || null;
@@ -163,14 +160,14 @@ serve(async (req) => {
 
       let restaurantId = metadataRestaurantId || existingRestaurant?.id;
 
+      // CRITICAL: Create/update restaurant FIRST, before trying billing portal
       if (existingRestaurant) {
-        // Update existing restaurant
+        // Update existing restaurant (without portal URL initially)
         const { error: updateError } = await supabaseAdmin
           .from('restaurants')
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
-            stripe_portal_url: portalSession.url,
             plan_type: planType,
             subscription_status: 'active',
           })
@@ -183,7 +180,7 @@ serve(async (req) => {
           restaurantId = existingRestaurant.id;
         }
       } else {
-        // Create new restaurant record
+        // Create new restaurant record (without portal URL initially)
         const { data: newRestaurant, error: insertError } = await supabaseAdmin
           .from('restaurants')
           .insert({
@@ -192,7 +189,6 @@ serve(async (req) => {
             greeting_name: greetingName,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
-            stripe_portal_url: portalSession.url,
             plan_type: planType,
             subscription_status: 'active',
             header_title: "How was your visit?",
@@ -208,6 +204,31 @@ serve(async (req) => {
           console.log('[stripe-webhook] Created restaurant successfully:', newRestaurant?.id);
           restaurantId = newRestaurant?.id;
         }
+      }
+
+      // NOW try to get customer portal URL (non-blocking - wrapped in try/catch)
+      let portalUrl: string | null = null;
+      try {
+        const portalReturnUrl = Deno.env.get('STRIPE_PORTAL_RETURN_URL') || DEFAULT_PORTAL_RETURN_URL;
+        console.log('[stripe-webhook] Creating billing portal with return URL:', portalReturnUrl);
+        
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: portalReturnUrl,
+        });
+        portalUrl = portalSession.url;
+        
+        // Update restaurant with portal URL
+        if (restaurantId && portalUrl) {
+          await supabaseAdmin
+            .from('restaurants')
+            .update({ stripe_portal_url: portalUrl })
+            .eq('id', restaurantId);
+          console.log('[stripe-webhook] Updated restaurant with portal URL');
+        }
+      } catch (portalError) {
+        console.error('[stripe-webhook] Failed to create billing portal (non-fatal):', portalError);
+        // This is non-fatal - restaurant was already created
       }
 
       // CRITICAL: Extract shipping details from ALL possible Stripe locations
