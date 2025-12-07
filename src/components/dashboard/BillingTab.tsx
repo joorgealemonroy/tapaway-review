@@ -186,6 +186,25 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
           </div>
         </Card>
       )}
+
+      {!isAlwaysAllowed && !isTestAccount && !hasStripeSubscription && (
+        <Card className="p-6 gradient-subtle border-none">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <CreditCard className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2">Subscription Active</h3>
+              <p className="text-muted-foreground mb-4">Your TapAway subscription is active and your billing is managed through Stripe.</p>
+              <div className="text-sm space-y-1">
+                <p><strong>Status:</strong> <span className="text-green-600">Active</span></p>
+                <p><strong>Plan:</strong> {planLabel}</p>
+                <p className="text-muted-foreground mt-3">Need help with billing? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
