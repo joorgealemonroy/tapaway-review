@@ -12,7 +12,7 @@ const stats = [{
 }, {
   emoji: "🔥",
   value: "100%",
-  label: "of TapAway reviews are 5-star"
+  label: "5-Star Rated by TapAway Users"
 }, {
   emoji: "⚡",
   value: "Same-week",
