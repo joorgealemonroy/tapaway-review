@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Hardcoded fallback - NEVER use supabaseUrl for portal return
+const DEFAULT_PORTAL_RETURN_URL = 'https://tapaway.co/dashboard';
+
 /**
  * Fallback endpoint to verify and process a Stripe checkout session.
  * Called when a user lands on /onboarding with a session_id but has no restaurant record.
@@ -109,17 +112,25 @@ serve(async (req) => {
       
       // Update existing restaurant with Stripe info if needed
       if (existingRestaurant.subscription_status !== 'active') {
-        const portalSession = await stripe.billingPortal.sessions.create({
-          customer: customerId!,
-          return_url: `${Deno.env.get('STRIPE_PORTAL_RETURN_URL') || supabaseUrl}/dashboard`,
-        });
+        // Try to create portal (non-blocking)
+        let portalUrl: string | null = null;
+        try {
+          const portalReturnUrl = Deno.env.get('STRIPE_PORTAL_RETURN_URL') || DEFAULT_PORTAL_RETURN_URL;
+          const portalSession = await stripe.billingPortal.sessions.create({
+            customer: customerId!,
+            return_url: portalReturnUrl,
+          });
+          portalUrl = portalSession.url;
+        } catch (portalError) {
+          console.error('[verify-checkout] Failed to create billing portal (non-fatal):', portalError);
+        }
 
         await supabaseAdmin
           .from('restaurants')
           .update({
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
-            stripe_portal_url: portalSession.url,
+            stripe_portal_url: portalUrl,
             plan_type: planType,
             subscription_status: 'active',
           })
@@ -138,17 +149,11 @@ serve(async (req) => {
       });
     }
 
-    // Create billing portal session
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId!,
-      return_url: `${Deno.env.get('STRIPE_PORTAL_RETURN_URL') || supabaseUrl}/dashboard`,
-    });
-
     // Get user metadata for greeting name
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
     const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
-    // Create new restaurant record
+    // Create new restaurant record FIRST (without portal URL)
     const { data: newRestaurant, error: insertError } = await supabaseAdmin
       .from('restaurants')
       .insert({
@@ -157,7 +162,6 @@ serve(async (req) => {
         greeting_name: greetingName,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
-        stripe_portal_url: portalSession.url,
         plan_type: planType,
         subscription_status: 'active',
         header_title: "How was your visit?",
@@ -178,6 +182,28 @@ serve(async (req) => {
     }
 
     console.log('[verify-checkout] Created restaurant:', newRestaurant.id);
+
+    // NOW try to create billing portal session (non-blocking)
+    try {
+      const portalReturnUrl = Deno.env.get('STRIPE_PORTAL_RETURN_URL') || DEFAULT_PORTAL_RETURN_URL;
+      console.log('[verify-checkout] Creating billing portal with return URL:', portalReturnUrl);
+      
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId!,
+        return_url: portalReturnUrl,
+      });
+      
+      // Update restaurant with portal URL
+      await supabaseAdmin
+        .from('restaurants')
+        .update({ stripe_portal_url: portalSession.url })
+        .eq('id', newRestaurant.id);
+      
+      console.log('[verify-checkout] Updated restaurant with portal URL');
+    } catch (portalError) {
+      console.error('[verify-checkout] Failed to create billing portal (non-fatal):', portalError);
+      // This is non-fatal - restaurant was already created
+    }
 
     // Create fulfillment order
     const shippingDetails = (session as any).shipping_details || (session as any).shipping || null;

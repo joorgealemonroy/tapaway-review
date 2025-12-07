@@ -76,7 +76,13 @@ const Onboarding = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/auth?redirect=/onboarding");
+      // Preserve session_id when redirecting to auth
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const redirectUrl = sessionId 
+        ? `/auth?redirect=/onboarding&session_id=${sessionId}`
+        : "/auth?redirect=/onboarding";
+      navigate(redirectUrl);
       return;
     }
 
