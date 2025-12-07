@@ -42,7 +42,6 @@ export const AdminPreflight = () => {
     setLoading(false);
   };
 
-  const stagingUrl = "https://tapaway-review.lovable.app";
   const productionUrl = "https://tapaway.co";
 
   // Check for slug issues
@@ -57,8 +56,7 @@ export const AdminPreflight = () => {
         <CardHeader>
           <CardTitle>Review Hub Preflight Checklist</CardTitle>
           <CardDescription>
-            Test all review hubs before DNS cutover to tapaway.co. Each hub is currently accessible at both staging 
-            (tapaway-review.lovable.app) and will be at production (tapaway.co) after DNS migration.
+            Test all review hubs on the production domain. Each hub is accessible at tapaway.co/{'{slug}'}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,8 +140,7 @@ export const AdminPreflight = () => {
         <CardHeader>
           <CardTitle>All Review Hubs</CardTitle>
           <CardDescription>
-            Click "Test Staging" to open the hub at tapaway-review.lovable.app. 
-            After DNS cutover, these will be accessible at tapaway.co/{'{slug}'}.
+            Click "Test Hub" to open the hub at tapaway.co/{'{slug}'}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,10 +198,10 @@ export const AdminPreflight = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(`${stagingUrl}/${restaurant.custom_slug}`, "_blank")}
+                            onClick={() => window.open(`${productionUrl}/${restaurant.custom_slug}`, "_blank")}
                           >
                             <ExternalLink className="w-4 h-4 mr-1" />
-                            Test Staging
+                            Test Hub
                           </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">No slug</span>
