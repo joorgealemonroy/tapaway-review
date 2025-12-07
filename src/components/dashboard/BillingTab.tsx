@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar, Crown, Building2 } from "lucide-react";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BillingTabProps {
   restaurant: {
+    id?: string;
+    stripe_customer_id?: string | null;
     stripe_portal_url: string | null;
     subscription_status: string | null;
     plan_type: string | null;
@@ -18,23 +22,54 @@ interface BillingTabProps {
 
 export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: BillingTabProps) => {
   const { toast } = useToast();
+  const [loadingPortal, setLoadingPortal] = useState(false);
 
-  const openCustomerPortal = () => {
+  const openCustomerPortal = async () => {
+    // If we already have a portal URL, use it
     if (restaurant?.stripe_portal_url) {
       window.open(restaurant.stripe_portal_url, "_blank");
-    } else {
+      return;
+    }
+
+    // Otherwise, generate a new portal session
+    if (!restaurant?.stripe_customer_id) {
       toast({
         title: "Portal unavailable",
-        description: "Customer portal is not set up yet.",
+        description: "Billing portal is not available. Contact support@tapaway.co for help.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setLoadingPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-billing-portal', {
+        body: { customerId: restaurant.stripe_customer_id }
+      });
+
+      if (error || !data?.url) {
+        throw new Error(error?.message || 'Failed to create billing portal');
+      }
+
+      window.open(data.url, "_blank");
+    } catch (err: any) {
+      console.error('Error creating billing portal:', err);
+      toast({
+        title: "Portal unavailable",
+        description: "Could not open billing portal. Please try again or contact tap@tapaway.co",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPortal(false);
     }
   };
 
   const planType = restaurant?.plan_type || 'standard';
+  const planLabel = planType === 'monthly' ? 'Monthly Plan' : planType === 'yearly' ? 'Yearly Plan' : 'Standard Plan';
   const isBundle = planType === 'bundle';
   const isPrivateAccess = planType === 'private_access';
   const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
+  const hasStripeSubscription = !!restaurant?.stripe_customer_id;
 
   return (
     <div className="space-y-6 pb-8 animate-fade-in">
@@ -115,17 +150,17 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
         </Card>
       )}
 
-      {!isAlwaysAllowed && planType === 'standard' && !isTestAccount && restaurant?.stripe_portal_url && (
+      {!isAlwaysAllowed && !isTestAccount && hasStripeSubscription && (
         <Card className="p-6">
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-semibold mb-1">Current Plan</h3>
-                <p className="text-muted-foreground text-sm">Standard Plan</p>
+                <p className="text-muted-foreground text-sm">{planLabel}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-semibold capitalize">{restaurant?.subscription_status || 'Active'}</p>
+                <p className="font-semibold capitalize text-green-600">{restaurant?.subscription_status || 'Active'}</p>
               </div>
             </div>
             {restaurant?.next_billing_date && (
@@ -135,9 +170,18 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <span className="font-medium">{new Date(restaurant.next_billing_date).toLocaleDateString()}</span>
               </div>
             )}
-            <Button onClick={openCustomerPortal} className="w-full">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Manage Subscription
+            <Button onClick={openCustomerPortal} className="w-full" disabled={loadingPortal}>
+              {loadingPortal ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Manage Subscription
+                </>
+              )}
             </Button>
           </div>
         </Card>
