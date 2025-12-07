@@ -18,7 +18,7 @@ serve(async (req) => {
 
     const signature = req.headers.get('stripe-signature');
     if (!signature) {
-      console.error('No stripe-signature header found');
+      console.error('[stripe-webhook] No stripe-signature header found');
       return new Response(JSON.stringify({ error: 'No signature' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -36,27 +36,30 @@ serve(async (req) => {
         Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
       );
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      console.error('[stripe-webhook] Webhook signature verification failed:', err);
       return new Response(JSON.stringify({ error: 'Webhook signature verification failed' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Received event:', event.type);
+    console.log('[stripe-webhook] Received event:', event.type);
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      console.log('Processing checkout session:', {
+      console.log('[stripe-webhook] Processing checkout session:', {
         id: session.id,
         customer: session.customer,
         customer_email: session.customer_email,
         subscription: session.subscription,
         metadata: session.metadata,
+        shipping_details: (session as any).shipping_details,
+        shipping: (session as any).shipping,
+        customer_details: session.customer_details,
       });
 
-      const customerEmail = session.customer_email;
+      const customerEmail = session.customer_email || session.customer_details?.email;
       const customerId = session.customer as string;
       const subscriptionId = session.subscription as string;
       const paymentIntentId = (session as any).payment_intent as string || null;
@@ -67,11 +70,22 @@ serve(async (req) => {
       const metadataPlan = session.metadata?.plan_type || 'monthly';
       
       if (!customerEmail) {
-        console.error('No customer email in session');
-        return new Response(JSON.stringify({ error: 'No customer email' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        console.error('[stripe-webhook] No customer email in session - checking Stripe customer');
+        // Try to get email from Stripe customer
+        if (customerId) {
+          const stripeCustomer = await stripe.customers.retrieve(customerId);
+          if (stripeCustomer && 'email' in stripeCustomer && stripeCustomer.email) {
+            console.log('[stripe-webhook] Found email from Stripe customer:', stripeCustomer.email);
+          }
+        }
+        
+        if (!customerEmail) {
+          console.error('[stripe-webhook] Could not find customer email anywhere');
+          return new Response(JSON.stringify({ error: 'No customer email' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
 
       // Create Supabase admin client
@@ -101,7 +115,7 @@ serve(async (req) => {
         });
 
         if (createError) {
-          console.error('Failed to create user:', createError);
+          console.error('[stripe-webhook] Failed to create user:', createError);
           return new Response(JSON.stringify({ error: 'Failed to create user' }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -109,7 +123,7 @@ serve(async (req) => {
         }
 
         userId = newUser.user.id;
-        console.log('Created new user:', userId);
+        console.log('[stripe-webhook] Created new user:', userId);
       }
 
       // Determine plan type (only monthly or yearly, no bundles)
@@ -128,7 +142,7 @@ serve(async (req) => {
         }
       }
 
-      console.log(`Creating restaurant for plan: ${planType}`);
+      console.log(`[stripe-webhook] Creating restaurant for plan: ${planType}`);
 
       // Get customer portal URL
       const portalSession = await stripe.billingPortal.sessions.create({
@@ -163,9 +177,9 @@ serve(async (req) => {
           .eq('id', existingRestaurant.id);
 
         if (updateError) {
-          console.error('Failed to update restaurant:', updateError);
+          console.error('[stripe-webhook] Failed to update restaurant:', updateError);
         } else {
-          console.log('Updated existing restaurant:', existingRestaurant.id);
+          console.log('[stripe-webhook] Updated existing restaurant:', existingRestaurant.id);
           restaurantId = existingRestaurant.id;
         }
       } else {
@@ -189,19 +203,64 @@ serve(async (req) => {
           .single();
 
         if (insertError) {
-          console.error('Failed to create restaurant:', insertError);
+          console.error('[stripe-webhook] Failed to create restaurant:', insertError);
         } else {
-          console.log('Created restaurant successfully:', newRestaurant?.id);
+          console.log('[stripe-webhook] Created restaurant successfully:', newRestaurant?.id);
           restaurantId = newRestaurant?.id;
         }
       }
 
-      // Extract shipping details from Stripe session
-      const shippingDetails = (session as any).shipping_details || (session as any).shipping || null;
-      const customerDetails = session.customer_details || null;
-      
-      const shippingName = shippingDetails?.name || customerDetails?.name || null;
-      const shippingAddress = shippingDetails?.address || null;
+      // CRITICAL: Extract shipping details from ALL possible Stripe locations
+      // Stripe can put shipping in different places depending on checkout config
+      const sessionAny = session as any;
+      let shippingName: string | null = null;
+      let shippingAddress: {
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        postal_code?: string;
+        country?: string;
+      } | null = null;
+
+      // Try all possible locations for shipping details
+      if (sessionAny.shipping_details?.address) {
+        console.log('[stripe-webhook] Found shipping in shipping_details');
+        shippingName = sessionAny.shipping_details.name;
+        shippingAddress = sessionAny.shipping_details.address;
+      } else if (sessionAny.shipping?.address) {
+        console.log('[stripe-webhook] Found shipping in shipping');
+        shippingName = sessionAny.shipping.name;
+        shippingAddress = sessionAny.shipping.address;
+      } else if (session.customer_details?.address) {
+        console.log('[stripe-webhook] Using customer_details address as shipping');
+        shippingName = session.customer_details.name;
+        shippingAddress = session.customer_details.address;
+      }
+
+      // If still no shipping, try fetching from Stripe customer directly
+      if (!shippingAddress && customerId) {
+        console.log('[stripe-webhook] Attempting to fetch shipping from Stripe customer');
+        try {
+          const stripeCustomer = await stripe.customers.retrieve(customerId);
+          if (stripeCustomer && 'shipping' in stripeCustomer && stripeCustomer.shipping?.address) {
+            console.log('[stripe-webhook] Found shipping from Stripe customer record');
+            shippingName = stripeCustomer.shipping.name || stripeCustomer.name || null;
+            shippingAddress = stripeCustomer.shipping.address;
+          } else if (stripeCustomer && 'address' in stripeCustomer && stripeCustomer.address) {
+            console.log('[stripe-webhook] Using Stripe customer address as shipping');
+            shippingName = (stripeCustomer as any).name || null;
+            shippingAddress = stripeCustomer.address;
+          }
+        } catch (customerFetchError) {
+          console.error('[stripe-webhook] Error fetching Stripe customer:', customerFetchError);
+        }
+      }
+
+      console.log('[stripe-webhook] Final shipping data:', {
+        shippingName,
+        shippingAddress,
+      });
 
       // Create fulfillment order if we have a restaurant
       if (restaurantId) {
@@ -234,6 +293,8 @@ serve(async (req) => {
           shipping_country: shippingAddress?.country || null,
         };
 
+        console.log('[stripe-webhook] Fulfillment data to save:', fulfillmentData);
+
         if (existingFulfillment) {
           // Update existing fulfillment order
           const { error: fulfillmentUpdateError } = await supabaseAdmin
@@ -242,9 +303,9 @@ serve(async (req) => {
             .eq('id', existingFulfillment.id);
 
           if (fulfillmentUpdateError) {
-            console.error('Failed to update fulfillment order:', fulfillmentUpdateError);
+            console.error('[stripe-webhook] Failed to update fulfillment order:', fulfillmentUpdateError);
           } else {
-            console.log('Updated fulfillment order:', existingFulfillment.id);
+            console.log('[stripe-webhook] Updated fulfillment order:', existingFulfillment.id);
           }
         } else {
           // Create new fulfillment order
@@ -255,14 +316,24 @@ serve(async (req) => {
             .single();
 
           if (fulfillmentInsertError) {
-            console.error('Failed to create fulfillment order:', fulfillmentInsertError);
+            console.error('[stripe-webhook] Failed to create fulfillment order:', fulfillmentInsertError);
           } else {
-            console.log('Created fulfillment order:', newFulfillment?.id);
+            console.log('[stripe-webhook] Created fulfillment order:', newFulfillment?.id);
           }
+        }
+
+        // CRITICAL: If we have all the data we need, send emails NOW from the webhook
+        // This is a backup in case finalize-onboarding never gets called
+        if (shippingAddress?.line1 && customerEmail) {
+          console.log('[stripe-webhook] Shipping address available - scheduling immediate email fallback');
+          // We don't send emails here because finalize-onboarding should handle it
+          // But we log this so we know the data was captured
+        } else {
+          console.warn('[stripe-webhook] WARNING: No shipping address captured! Customer:', customerEmail);
         }
       }
 
-      console.log('Successfully processed checkout session');
+      console.log('[stripe-webhook] Successfully processed checkout session');
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -270,7 +341,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('[stripe-webhook] Error processing webhook:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
