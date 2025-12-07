@@ -19,6 +19,7 @@ import { CompetitorTab } from "@/components/dashboard/CompetitorTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
+import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 interface Restaurant {
@@ -33,6 +34,10 @@ interface Restaurant {
   greeting_name?: string | null;
   total_taps?: number;
   is_demo_account?: boolean;
+  created_at?: string;
+  menu_image_url?: string | null;
+  google_review_url?: string | null;
+  yelp_review_url?: string | null;
 }
 interface Location {
   id: string;
@@ -91,7 +96,7 @@ const Dashboard = () => {
     // Get all restaurants
     const { data: allRestaurantsData } = await (supabase as any)
       .from("restaurants")
-      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name, is_demo_account")
+      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name, is_demo_account, created_at, menu_image_url, google_review_url, yelp_review_url")
       .order("restaurant_name");
 
     if (!allRestaurantsData || allRestaurantsData.length === 0) return;
@@ -337,6 +342,17 @@ const Dashboard = () => {
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
+                {/* Welcome banner for new users */}
+                {!isAdmin && restaurant.created_at && (
+                  <WelcomeBanner
+                    restaurantId={restaurant.id}
+                    restaurantName={restaurant.restaurant_name}
+                    createdAt={restaurant.created_at}
+                    hasMenu={!!restaurant.menu_image_url}
+                    hasGoogleLink={!!restaurant.google_review_url}
+                    hasYelpLink={!!restaurant.yelp_review_url}
+                  />
+                )}
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} />}
               </TabsContent>
 
