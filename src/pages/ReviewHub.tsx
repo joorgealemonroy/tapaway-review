@@ -852,6 +852,23 @@ const ReviewHub = () => {
                   <p style={{ color: '#6b7280', fontSize: '15px' }}>Menu coming soon...</p>
                 </div>
               )}
+              
+              {/* Menu Disclaimers */}
+              {menuSections.length > 0 && (
+                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', marginBottom: '16px' }}>
+                    Prices may change at any time. Please refer to in-person menu for the most accurate pricing.
+                  </p>
+                  <div style={{ fontSize: '11px', color: '#6b7280', lineHeight: '1.5', background: '#fef3c7', padding: '12px', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                    <p style={{ margin: '0 0 8px 0' }}>
+                      <strong>AVISO IMPORTANTE:</strong> El comer ostras y mariscos crudos puede causar una enfermedad grave y hasta la muerte, especialmente en personas con enfermedades del hígado u otras condiciones que debilitan el sistema inmunológico. Si come ostras crudas y se enferma, busque atención médica inmediata.
+                    </p>
+                    <p style={{ margin: 0 }}>
+                      <strong>WARNING:</strong> Eating raw oysters/seafood may cause severe illness or death in individuals with liver disease or weakened immune systems. Seek immediate medical attention if you become ill.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
