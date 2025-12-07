@@ -936,6 +936,57 @@ export type Database = {
           },
         ]
       }
+      support_requests: {
+        Row: {
+          business_name: string
+          created_at: string
+          description: string | null
+          email: string
+          id: string
+          location: string | null
+          name: string
+          phone: string | null
+          quantity_requested: number | null
+          request_details: Json | null
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          business_name: string
+          created_at?: string
+          description?: string | null
+          email: string
+          id?: string
+          location?: string | null
+          name: string
+          phone?: string | null
+          quantity_requested?: number | null
+          request_details?: Json | null
+          request_type: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          business_name?: string
+          created_at?: string
+          description?: string | null
+          email?: string
+          id?: string
+          location?: string | null
+          name?: string
+          phone?: string | null
+          quantity_requested?: number | null
+          request_details?: Json | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
