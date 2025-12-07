@@ -399,8 +399,8 @@ const ReviewHub = () => {
               src={restaurant.logo_url} 
               alt="Restaurant Logo" 
               style={{ 
-                maxWidth: '200px', 
-                maxHeight: '200px', 
+                maxWidth: '280px', 
+                maxHeight: '280px', 
                 width: 'auto',
                 height: 'auto',
                 borderRadius: '16px', 
