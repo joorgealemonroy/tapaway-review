@@ -48,6 +48,9 @@ async function sendEmail(options: {
   }
 }
 
+// TapAway logo hosted on imgur - cropped version
+const LOGO_URL = 'https://i.imgur.com/bc1EJv8.png';
+
 // Generate branded welcome email HTML
 function generateWelcomeEmailHtml(params: {
   ownerName: string;
@@ -78,17 +81,10 @@ function generateWelcomeEmailHtml(params: {
         <!-- Main card -->
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(13,148,136,0.12);">
           
-          <!-- Header with white background for logo visibility -->
+          <!-- Header with logo - white background -->
           <tr>
-            <td style="background:#ffffff;padding:32px 32px 24px;text-align:center;border-bottom:3px solid #0d9488;">
-              <!-- Logo as text with styling to match brand -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td align="center">
-                    <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:36px;font-weight:900;font-style:italic;background:linear-gradient(135deg,#1E88E5 0%,#26C6DA 100%);-webkit-background-clip:text;background-clip:text;color:#1E88E5;">TAPAWAY</span>
-                  </td>
-                </tr>
-              </table>
+            <td style="background:#ffffff;padding:32px 32px 24px;text-align:center;">
+              <img src="${LOGO_URL}" alt="TapAway" width="200" style="height:auto;max-width:200px;display:block;margin:0 auto;" />
             </td>
           </tr>
           
@@ -98,13 +94,8 @@ function generateWelcomeEmailHtml(params: {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center">
-                    <span style="font-size:48px;">🎉</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding-top:16px;">
                     <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;line-height:1.3;">
-                      Welcome aboard, ${ownerName}!
+                      Welcome aboard, ${ownerName}! <span style="font-size:28px;">🎉</span>
                     </h1>
                   </td>
                 </tr>
