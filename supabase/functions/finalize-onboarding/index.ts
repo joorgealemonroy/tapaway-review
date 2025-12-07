@@ -415,9 +415,9 @@ serve(async (req) => {
       console.log('[finalize-onboarding] No fulfillment order found awaiting onboarding (may be test/grandfathered user)');
     }
 
-    // Build URLs
-    const hubUrl = `https://tapaway-review.lovable.app/${restaurant.custom_slug}`;
-    const dashboardUrl = 'https://tapaway-review.lovable.app/dashboard';
+    // Build URLs - Production domain
+    const hubUrl = `https://tapaway.co/${restaurant.custom_slug}`;
+    const dashboardUrl = 'https://tapaway.co/dashboard';
 
     // Email configuration
     const emailFrom = Deno.env.get('EMAIL_FROM') || 'TapAway <no-reply@tapaway.co>';

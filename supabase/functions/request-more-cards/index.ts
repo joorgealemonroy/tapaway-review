@@ -269,7 +269,7 @@ serve(async (req) => {
       </tr>
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Hub URL</td>
-        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><a href="https://tapaway-review.lovable.app/${restaurant.custom_slug}" style="color: #0d9488;">tapaway-review.lovable.app/${restaurant.custom_slug}</a></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;"><a href="https://tapaway.co/${restaurant.custom_slug}" style="color: #0d9488;">tapaway.co/${restaurant.custom_slug}</a></td>
       </tr>
     </table>
     

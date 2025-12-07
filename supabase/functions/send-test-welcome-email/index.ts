@@ -34,7 +34,7 @@ serve(async (req) => {
     // Test data
     const ownerName = 'Jorge';
     const restaurantName = 'Test Restaurant';
-    const dashboardUrl = 'https://tapaway-review.lovable.app/dashboard';
+    const dashboardUrl = 'https://tapaway.co/dashboard';
     const planName = 'Yearly';
     const cardsQty = 15;
     const stripeReceiptUrl = null;
