@@ -710,19 +710,35 @@ const Onboarding = () => {
       }
 
       // Call finalize-onboarding to send emails and update fulfillment status
-      // This is non-blocking - we don't want to stop the user from accessing their dashboard
+      // CRITICAL: We await this to ensure emails are sent before redirecting
       if (restaurantId) {
-        supabase.functions.invoke('finalize-onboarding', {
-          body: { restaurantId }
-        }).then(({ data, error }) => {
-          if (error) {
-            console.log('[Onboarding] finalize-onboarding error (non-blocking):', error);
+        try {
+          console.log('[Onboarding] Calling finalize-onboarding for restaurant:', restaurantId);
+          const { data: finalizeResult, error: finalizeError } = await supabase.functions.invoke('finalize-onboarding', {
+            body: { restaurantId }
+          });
+          
+          if (finalizeError) {
+            console.error('[Onboarding] finalize-onboarding error:', finalizeError);
+            // Still continue to dashboard, but log the error
           } else {
-            console.log('[Onboarding] finalize-onboarding result:', data);
+            console.log('[Onboarding] finalize-onboarding result:', finalizeResult);
+            
+            // Warn if emails weren't sent
+            if (finalizeResult && !finalizeResult.customerEmailSent) {
+              console.warn('[Onboarding] WARNING: Customer email was NOT sent!');
+            }
+            if (finalizeResult && !finalizeResult.internalEmailSent) {
+              console.warn('[Onboarding] WARNING: Internal notification was NOT sent!');
+            }
+            if (finalizeResult && !finalizeResult.hasShippingAddress) {
+              console.warn('[Onboarding] WARNING: No shipping address on file!');
+            }
           }
-        }).catch(err => {
-          console.log('[Onboarding] finalize-onboarding exception (non-blocking):', err);
-        });
+        } catch (finalizeErr) {
+          console.error('[Onboarding] finalize-onboarding exception:', finalizeErr);
+          // Still continue to dashboard even if this fails
+        }
       }
 
       toast.success("Restaurant setup complete!");

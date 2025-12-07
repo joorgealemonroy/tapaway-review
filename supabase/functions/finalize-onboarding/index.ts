@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,8 @@ async function sendEmail(options: {
   }
 
   try {
+    console.log('[finalize-onboarding] Sending email to:', options.to, 'subject:', options.subject);
+    
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -363,7 +366,7 @@ serve(async (req) => {
     // Find the user's active restaurant
     let restaurantQuery = supabaseAdmin
       .from('restaurants')
-      .select('id, restaurant_name, custom_slug, owner_name, email, plan_type')
+      .select('id, restaurant_name, custom_slug, owner_name, email, plan_type, stripe_customer_id')
       .eq('owner_id', user.id);
     
     if (restaurantIdFromBody) {
@@ -382,13 +385,14 @@ serve(async (req) => {
 
     console.log('[finalize-onboarding] Found restaurant:', restaurant.id, restaurant.restaurant_name);
 
-    // Find fulfillment order awaiting onboarding
+    // Find fulfillment order - check ALL statuses, not just awaiting_onboarding
+    // This handles cases where the order might have been created differently
     const { data: fulfillmentOrder, error: fulfillmentError } = await supabaseAdmin
       .from('fulfillment_orders')
       .select('*')
       .eq('user_id', user.id)
       .eq('restaurant_id', restaurant.id)
-      .eq('status', 'awaiting_onboarding')
+      .in('status', ['awaiting_onboarding', 'pending', 'created'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -397,22 +401,94 @@ serve(async (req) => {
       console.error('[finalize-onboarding] Fulfillment query error:', fulfillmentError);
     }
 
+    // CRITICAL: If no fulfillment order exists, try to create one from Stripe data
+    let actualFulfillmentOrder = fulfillmentOrder;
+    
+    if (!actualFulfillmentOrder && restaurant.stripe_customer_id) {
+      console.log('[finalize-onboarding] No fulfillment order found, attempting to create from Stripe customer:', restaurant.stripe_customer_id);
+      
+      try {
+        const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+          apiVersion: '2023-10-16',
+        });
+
+        const stripeCustomer = await stripe.customers.retrieve(restaurant.stripe_customer_id);
+        
+        let shippingName: string | null = null;
+        let shippingAddress: any = null;
+        
+        if (stripeCustomer && 'shipping' in stripeCustomer && stripeCustomer.shipping?.address) {
+          console.log('[finalize-onboarding] Found shipping from Stripe customer');
+          shippingName = stripeCustomer.shipping.name || (stripeCustomer as any).name || null;
+          shippingAddress = stripeCustomer.shipping.address;
+        } else if (stripeCustomer && 'address' in stripeCustomer && stripeCustomer.address) {
+          console.log('[finalize-onboarding] Using Stripe customer address as shipping');
+          shippingName = (stripeCustomer as any).name || null;
+          shippingAddress = stripeCustomer.address;
+        }
+
+        // Get subscription info
+        let subscriptionId: string | null = null;
+        if ('subscriptions' in stripeCustomer) {
+          const subscriptions = await stripe.subscriptions.list({
+            customer: restaurant.stripe_customer_id,
+            status: 'active',
+            limit: 1,
+          });
+          if (subscriptions.data.length > 0) {
+            subscriptionId = subscriptions.data[0].id;
+          }
+        }
+
+        // Create the fulfillment order
+        const { data: newFulfillment, error: createFulfillmentError } = await supabaseAdmin
+          .from('fulfillment_orders')
+          .insert({
+            user_id: user.id,
+            restaurant_id: restaurant.id,
+            stripe_customer_id: restaurant.stripe_customer_id,
+            stripe_subscription_id: subscriptionId,
+            plan: restaurant.plan_type || 'monthly',
+            quantity: 15,
+            status: 'awaiting_onboarding',
+            shipping_name: shippingName,
+            shipping_address_line1: shippingAddress?.line1 || null,
+            shipping_address_line2: shippingAddress?.line2 || null,
+            shipping_city: shippingAddress?.city || null,
+            shipping_state: shippingAddress?.state || null,
+            shipping_postal_code: shippingAddress?.postal_code || null,
+            shipping_country: shippingAddress?.country || null,
+          })
+          .select('*')
+          .single();
+
+        if (createFulfillmentError) {
+          console.error('[finalize-onboarding] Failed to create fulfillment order:', createFulfillmentError);
+        } else {
+          console.log('[finalize-onboarding] Created fulfillment order from Stripe:', newFulfillment?.id);
+          actualFulfillmentOrder = newFulfillment;
+        }
+      } catch (stripeError) {
+        console.error('[finalize-onboarding] Error fetching Stripe customer:', stripeError);
+      }
+    }
+
     let fulfillmentUpdated = false;
-    if (fulfillmentOrder) {
+    if (actualFulfillmentOrder) {
       // Update status to pending
       const { error: updateError } = await supabaseAdmin
         .from('fulfillment_orders')
         .update({ status: 'pending' })
-        .eq('id', fulfillmentOrder.id);
+        .eq('id', actualFulfillmentOrder.id);
 
       if (updateError) {
         console.error('[finalize-onboarding] Failed to update fulfillment status:', updateError);
       } else {
         fulfillmentUpdated = true;
-        console.log('[finalize-onboarding] Fulfillment order updated to pending:', fulfillmentOrder.id);
+        console.log('[finalize-onboarding] Fulfillment order updated to pending:', actualFulfillmentOrder.id);
       }
     } else {
-      console.log('[finalize-onboarding] No fulfillment order found awaiting onboarding (may be test/grandfathered user)');
+      console.warn('[finalize-onboarding] WARNING: No fulfillment order found or created! User may not receive cards.');
     }
 
     // Build URLs - Production domain
@@ -427,9 +503,9 @@ serve(async (req) => {
     const restaurantName = restaurant.restaurant_name;
     
     // Order details from fulfillment or defaults
-    const planName = fulfillmentOrder?.plan || restaurant.plan_type || 'TapAway';
-    const cardsQty = fulfillmentOrder?.quantity || 15;
-    const stripeReceiptUrl = (fulfillmentOrder as any)?.stripe_receipt_url || null;
+    const planName = actualFulfillmentOrder?.plan || restaurant.plan_type || 'TapAway';
+    const cardsQty = actualFulfillmentOrder?.quantity || 15;
+    const stripeReceiptUrl = (actualFulfillmentOrder as any)?.stripe_receipt_url || null;
     const shippingEta = '3–5 business days';
 
     let customerEmailSent = false;
@@ -464,19 +540,33 @@ serve(async (req) => {
         html: customerHtml,
         text: customerText,
       });
+      
+      if (!customerEmailSent) {
+        console.error('[finalize-onboarding] FAILED to send customer welcome email to:', customerEmail);
+      }
+    } else {
+      console.warn('[finalize-onboarding] No customer email available!');
     }
 
-    // Send internal fulfillment email if we have a fulfillment order
-    if (fulfillmentOrder) {
-      const shippingInfo = [
-        fulfillmentOrder.shipping_name,
-        fulfillmentOrder.shipping_address_line1,
-        fulfillmentOrder.shipping_address_line2,
-        [fulfillmentOrder.shipping_city, fulfillmentOrder.shipping_state, fulfillmentOrder.shipping_postal_code].filter(Boolean).join(', '),
-        fulfillmentOrder.shipping_country,
-      ].filter(Boolean).join('<br>');
+    // Send internal fulfillment email - ALWAYS send even if no fulfillment order (as alert)
+    const shippingInfo = actualFulfillmentOrder ? [
+      actualFulfillmentOrder.shipping_name,
+      actualFulfillmentOrder.shipping_address_line1,
+      actualFulfillmentOrder.shipping_address_line2,
+      [actualFulfillmentOrder.shipping_city, actualFulfillmentOrder.shipping_state, actualFulfillmentOrder.shipping_postal_code].filter(Boolean).join(', '),
+      actualFulfillmentOrder.shipping_country,
+    ].filter(Boolean).join('<br>') : null;
 
-      const internalHtml = `
+    const warningBanner = !shippingInfo ? `
+    <div style="background: #fee2e2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <h3 style="color: #dc2626; margin: 0 0 8px 0;">⚠️ MISSING SHIPPING ADDRESS</h3>
+      <p style="color: #991b1b; margin: 0;">
+        This order does not have a shipping address! Please contact the customer immediately at ${customerEmail} to get their shipping address.
+      </p>
+    </div>
+    ` : '';
+
+    const internalHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -486,6 +576,8 @@ serve(async (req) => {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f9fafb;">
   <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
     <h1 style="color: #0d9488; margin-top: 0;">📦 New TapAway Order – Ready to Ship</h1>
+    
+    ${warningBanner}
     
     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
       <tr>
@@ -502,11 +594,11 @@ serve(async (req) => {
       </tr>
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Plan</td>
-        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827;">${fulfillmentOrder.plan || restaurant.plan_type || 'N/A'}</td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827;">${actualFulfillmentOrder?.plan || restaurant.plan_type || 'N/A'}</td>
       </tr>
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Quantity</td>
-        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-weight: 600;">${fulfillmentOrder.quantity} cards</td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-weight: 600;">${actualFulfillmentOrder?.quantity || 15} cards</td>
       </tr>
       <tr>
         <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Hub URL</td>
@@ -514,36 +606,39 @@ serve(async (req) => {
       </tr>
     </table>
     
-    <div style="background: #fef3c7; border-radius: 8px; padding: 16px; margin: 20px 0;">
-      <h3 style="color: #92400e; margin: 0 0 8px 0;">📍 Shipping Address</h3>
-      <p style="color: #78350f; margin: 0; line-height: 1.6;">
-        ${shippingInfo || 'No shipping address provided'}
+    <div style="background: ${shippingInfo ? '#fef3c7' : '#fee2e2'}; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <h3 style="color: ${shippingInfo ? '#92400e' : '#dc2626'}; margin: 0 0 8px 0;">📍 Shipping Address</h3>
+      <p style="color: ${shippingInfo ? '#78350f' : '#991b1b'}; margin: 0; line-height: 1.6;">
+        ${shippingInfo || 'NO SHIPPING ADDRESS PROVIDED - CONTACT CUSTOMER!'}
       </p>
     </div>
     
     <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
       <h4 style="color: #374151; margin: 0 0 8px 0;">Stripe IDs</h4>
       <p style="color: #6b7280; font-size: 12px; margin: 0; word-break: break-all;">
-        Customer: ${fulfillmentOrder.stripe_customer_id || 'N/A'}<br>
-        Subscription: ${fulfillmentOrder.stripe_subscription_id || 'N/A'}<br>
-        Payment Intent: ${fulfillmentOrder.stripe_payment_intent_id || 'N/A'}<br>
-        Fulfillment Order ID: ${fulfillmentOrder.id}
+        Customer: ${actualFulfillmentOrder?.stripe_customer_id || restaurant.stripe_customer_id || 'N/A'}<br>
+        Subscription: ${actualFulfillmentOrder?.stripe_subscription_id || 'N/A'}<br>
+        Payment Intent: ${actualFulfillmentOrder?.stripe_payment_intent_id || 'N/A'}<br>
+        Fulfillment Order ID: ${actualFulfillmentOrder?.id || 'NOT CREATED'}
       </p>
     </div>
     
-    <p style="background: #dcfce7; color: #166534; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600;">
-      ✅ Status: PENDING (Ready to Ship)
+    <p style="background: ${shippingInfo ? '#dcfce7' : '#fef3c7'}; color: ${shippingInfo ? '#166534' : '#92400e'}; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600;">
+      ${shippingInfo ? '✅ Status: PENDING (Ready to Ship)' : '⚠️ Status: ACTION REQUIRED - Need Shipping Address'}
     </p>
   </div>
 </body>
 </html>`;
 
-      internalEmailSent = await sendEmail({
-        to: emailInternal,
-        from: emailFrom,
-        subject: `New TapAway Order – ${restaurant.restaurant_name} (${fulfillmentOrder.quantity} cards)`,
-        html: internalHtml,
-      });
+    internalEmailSent = await sendEmail({
+      to: emailInternal,
+      from: emailFrom,
+      subject: `${shippingInfo ? '📦' : '⚠️'} New TapAway Order – ${restaurant.restaurant_name} (${actualFulfillmentOrder?.quantity || 15} cards)${!shippingInfo ? ' - MISSING ADDRESS' : ''}`,
+      html: internalHtml,
+    });
+    
+    if (!internalEmailSent) {
+      console.error('[finalize-onboarding] FAILED to send internal notification email!');
     }
 
     console.log('[finalize-onboarding] Complete:', {
@@ -551,6 +646,7 @@ serve(async (req) => {
       fulfillmentUpdated,
       customerEmailSent,
       internalEmailSent,
+      hasShippingAddress: !!shippingInfo,
     });
 
     return new Response(JSON.stringify({
@@ -558,6 +654,7 @@ serve(async (req) => {
       fulfillmentUpdated,
       customerEmailSent,
       internalEmailSent,
+      hasShippingAddress: !!shippingInfo,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
