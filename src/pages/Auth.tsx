@@ -4,10 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PasswordChecklistSection from "@/components/PasswordChecklistSection";
+import { Loader2 } from "lucide-react";
 
 const PAYWALL_PATH = "/paywall";
 
-type Mode = "login" | "forgot";
+type Mode = "login" | "forgot" | "post-checkout-signup" | "post-checkout-login";
+
+interface StripeSessionData {
+  email: string;
+  alreadyHasUser: boolean;
+  customerName?: string;
+  paymentStatus?: string;
+}
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -18,9 +27,82 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Post-checkout state
+  const [checkingSession, setCheckingSession] = useState(false);
+  const [stripeSessionData, setStripeSessionData] = useState<StripeSessionData | null>(null);
+  const [validPassword, setValidPassword] = useState<string | null>(null);
 
-  // Get redirect destination from URL params (preserves session_id if present)
+  // Get redirect destination from URL params
   const redirectTo = searchParams.get("redirect") || "/dashboard";
+
+  // Check if this is a post-checkout flow
+  useEffect(() => {
+    const checkPostCheckoutFlow = async () => {
+      // Parse redirect to check for session_id
+      if (!redirectTo.includes("/onboarding")) {
+        return;
+      }
+
+      // Extract session_id from redirect param
+      let sessionId: string | null = null;
+      try {
+        // The redirect might be URL-encoded
+        const decodedRedirect = decodeURIComponent(redirectTo);
+        const redirectUrl = new URL(decodedRedirect, window.location.origin);
+        sessionId = redirectUrl.searchParams.get("session_id");
+      } catch {
+        // Try simple regex extraction
+        const match = redirectTo.match(/session_id=([^&]+)/);
+        sessionId = match ? match[1] : null;
+      }
+
+      if (!sessionId) {
+        console.log("[Auth] No session_id found in redirect, using normal login flow");
+        return;
+      }
+
+      console.log("[Auth] Detected post-checkout flow with session_id:", sessionId);
+      setCheckingSession(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("lookup-stripe-session", {
+          body: { sessionId },
+        });
+
+        if (error) {
+          console.error("[Auth] Error looking up Stripe session:", error);
+          setError("We couldn't verify your payment session. Please contact support at tap@tapaway.co");
+          setCheckingSession(false);
+          return;
+        }
+
+        if (!data?.email) {
+          console.error("[Auth] No email returned from Stripe session");
+          setError("We couldn't find your email from the payment. Please contact support at tap@tapaway.co");
+          setCheckingSession(false);
+          return;
+        }
+
+        console.log("[Auth] Stripe session lookup result:", data);
+        setStripeSessionData(data);
+        setEmail(data.email);
+
+        if (data.alreadyHasUser) {
+          setMode("post-checkout-login");
+        } else {
+          setMode("post-checkout-signup");
+        }
+      } catch (err) {
+        console.error("[Auth] Failed to check Stripe session:", err);
+        setError("We couldn't verify your payment session. Please contact support at tap@tapaway.co");
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkPostCheckoutFlow();
+  }, [redirectTo]);
 
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,11 +118,72 @@ const Auth = () => {
       if (error) throw error;
       setMessage("Logged in successfully. Redirecting…");
 
-      // Use redirectTo as-is - it should already contain session_id if needed
       console.log("[Auth] Redirecting to:", redirectTo);
       window.location.href = redirectTo;
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onPostCheckoutSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validPassword) {
+      setError("Please enter a valid password that meets all requirements.");
+      return;
+    }
+
+    if (!stripeSessionData?.email) {
+      setError("Missing email from payment session. Please contact support at tap@tapaway.co");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      // Create the user account
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: stripeSessionData.email,
+        password: validPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (signUpError) {
+        // If user already exists, switch to login mode
+        if (signUpError.message.includes("already registered")) {
+          setMode("post-checkout-login");
+          setError("This email already has an account. Please log in instead.");
+          return;
+        }
+        throw signUpError;
+      }
+
+      console.log("[Auth] User created successfully:", signUpData.user?.id);
+
+      // Sign in immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: stripeSessionData.email,
+        password: validPassword,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      setMessage("Account created! Redirecting to onboarding…");
+      
+      // Redirect to onboarding with session_id preserved
+      console.log("[Auth] Redirecting to:", redirectTo);
+      window.location.href = redirectTo;
+    } catch (e: any) {
+      console.error("[Auth] Signup error:", e);
+      setError(e.message ?? "Unable to create account. Please contact support at tap@tapaway.co");
     } finally {
       setLoading(false);
     }
@@ -66,8 +209,49 @@ const Auth = () => {
     }
   };
 
-  const title = mode === "login" ? "Welcome back" : "Reset your password";
-  const subtitle = mode === "login" ? "Log in to your TapAway dashboard." : "We'll email you a link to set a new password.";
+  // Show loading while checking Stripe session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
+        <div className="w-full max-w-md">
+          <div className="bg-card rounded-2xl shadow-sm border border-border px-6 py-8 space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Verifying your payment...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Determine title and subtitle based on mode
+  const getTitleAndSubtitle = () => {
+    switch (mode) {
+      case "post-checkout-signup":
+        return {
+          title: "Create your password",
+          subtitle: "You're almost done! Set a password to access your TapAway dashboard.",
+        };
+      case "post-checkout-login":
+        return {
+          title: "Welcome back!",
+          subtitle: "Looks like you already have an account. Log in to continue to onboarding.",
+        };
+      case "forgot":
+        return {
+          title: "Reset your password",
+          subtitle: "We'll email you a link to set a new password.",
+        };
+      default:
+        return {
+          title: "Welcome back",
+          subtitle: "Log in to your TapAway dashboard.",
+        };
+    }
+  };
+
+  const { title, subtitle } = getTitleAndSubtitle();
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-muted/30">
@@ -94,6 +278,90 @@ const Auth = () => {
             </div>
           )}
 
+          {/* Post-checkout signup form */}
+          {mode === "post-checkout-signup" && (
+            <form className="space-y-4" onSubmit={onPostCheckoutSignup}>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  disabled
+                  className="bg-muted cursor-not-allowed"
+                />
+                <p className="text-xs text-muted-foreground">This is the email from your payment.</p>
+              </div>
+
+              <PasswordChecklistSection onValidPassword={setValidPassword} />
+
+              <Button type="submit" disabled={loading || !validPassword} className="w-full">
+                {loading ? "Creating account…" : "Create account & continue"}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Already have an account?{" "}
+                <button 
+                  type="button" 
+                  onClick={() => setMode("post-checkout-login")} 
+                  className="text-foreground hover:underline"
+                >
+                  Log in instead
+                </button>
+              </p>
+            </form>
+          )}
+
+          {/* Post-checkout login form */}
+          {mode === "post-checkout-login" && (
+            <form className="space-y-4" onSubmit={onLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  autoComplete="email" 
+                  required 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  placeholder="you@restaurant.com" 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  autoComplete="current-password" 
+                  required 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder="••••••••" 
+                />
+              </div>
+
+              <div className="flex items-center justify-end text-xs text-muted-foreground">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setMode("forgot");
+                    setMessage(null);
+                    setError(null);
+                  }} 
+                  className="text-foreground hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Signing in…" : "Sign in & continue"}
+              </Button>
+            </form>
+          )}
+
+          {/* Standard login form */}
           {mode === "login" && (
             <form className="space-y-4" onSubmit={onLogin}>
               <div className="space-y-2">
@@ -164,6 +432,7 @@ const Auth = () => {
             </form>
           )}
 
+          {/* Forgot password form */}
           {mode === "forgot" && (
             <form className="space-y-4" onSubmit={onForgot}>
               <div className="space-y-2">
@@ -186,7 +455,9 @@ const Auth = () => {
               <button 
                 type="button" 
                 onClick={() => {
-                  setMode("login");
+                  // Go back to the appropriate mode
+                  setMode(stripeSessionData?.alreadyHasUser ? "post-checkout-login" : 
+                          stripeSessionData ? "post-checkout-signup" : "login");
                   setMessage(null);
                   setError(null);
                 }} 
@@ -195,22 +466,24 @@ const Auth = () => {
                 Back to login
               </button>
 
-              <button 
-                type="button" 
-                onClick={() => {
-                  window.location.href = PAYWALL_PATH;
-                }} 
-                className="w-full text-xs text-muted-foreground hover:underline text-center"
-              >
-                Create an account
-              </button>
+              {!stripeSessionData && (
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    window.location.href = PAYWALL_PATH;
+                  }} 
+                  className="w-full text-xs text-muted-foreground hover:underline text-center"
+                >
+                  Create an account
+                </button>
+              )}
             </form>
           )}
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Having trouble?{" "}
-          <a href="mailto:support@tapaway.co" className="underline decoration-dotted">tap@tapaway.co</a>
+          <a href="mailto:tap@tapaway.co" className="underline decoration-dotted">tap@tapaway.co</a>
         </p>
       </div>
     </div>

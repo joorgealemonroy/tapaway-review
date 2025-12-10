@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.verify-rep-setup-token]
 verify_jwt = false
+
+[functions.lookup-stripe-session]
+verify_jwt = false
