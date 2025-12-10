@@ -14,6 +14,8 @@ type Mode = "login" | "forgot" | "post-checkout-signup" | "post-checkout-login";
 interface StripeSessionData {
   email: string;
   alreadyHasUser: boolean;
+  mustSetPassword: boolean;
+  userId: string | null;
   customerName?: string;
   paymentStatus?: string;
 }
@@ -88,9 +90,14 @@ const Auth = () => {
         setStripeSessionData(data);
         setEmail(data.email);
 
-        if (data.alreadyHasUser) {
+        // Key logic: if mustSetPassword is true, show password setup
+        // Otherwise show login (they have a real password already)
+        if (data.mustSetPassword) {
+          setMode("post-checkout-signup");
+        } else if (data.alreadyHasUser) {
           setMode("post-checkout-login");
         } else {
+          // No user at all - this shouldn't happen if webhook ran, but handle it
           setMode("post-checkout-signup");
         }
       } catch (err) {
@@ -127,6 +134,18 @@ const Auth = () => {
     }
   };
 
+  // Extract session_id from redirect for password setting
+  const getSessionIdFromRedirect = (): string | null => {
+    try {
+      const decodedRedirect = decodeURIComponent(redirectTo);
+      const redirectUrl = new URL(decodedRedirect, window.location.origin);
+      return redirectUrl.searchParams.get("session_id");
+    } catch {
+      const match = redirectTo.match(/session_id=([^&]+)/);
+      return match ? match[1] : null;
+    }
+  };
+
   const onPostCheckoutSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -145,28 +164,48 @@ const Auth = () => {
     setMessage(null);
 
     try {
-      // Create the user account
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: stripeSessionData.email,
-        password: validPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
+      // If user already exists with must_set_password flag, update their password via edge function
+      if (stripeSessionData.alreadyHasUser && stripeSessionData.userId) {
+        console.log("[Auth] Existing user needs password - calling set-user-password");
+        
+        const sessionId = getSessionIdFromRedirect();
+        const { error: setPasswordError } = await supabase.functions.invoke("set-user-password", {
+          body: { 
+            userId: stripeSessionData.userId, 
+            password: validPassword,
+            sessionId,
+          },
+        });
 
-      if (signUpError) {
-        // If user already exists, switch to login mode
-        if (signUpError.message.includes("already registered")) {
-          setMode("post-checkout-login");
-          setError("This email already has an account. Please log in instead.");
-          return;
+        if (setPasswordError) {
+          console.error("[Auth] Failed to set password:", setPasswordError);
+          throw new Error(setPasswordError.message || "Failed to set password");
         }
-        throw signUpError;
+
+        console.log("[Auth] Password set successfully, signing in...");
+      } else {
+        // Create new user account (shouldn't happen normally if webhook worked)
+        console.log("[Auth] Creating new user account");
+        
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: stripeSessionData.email,
+          password: validPassword,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
+
+        if (signUpError) {
+          if (signUpError.message.includes("already registered")) {
+            setMode("post-checkout-login");
+            setError("This email already has an account. Please log in instead.");
+            return;
+          }
+          throw signUpError;
+        }
       }
 
-      console.log("[Auth] User created successfully:", signUpData.user?.id);
-
-      // Sign in immediately after signup
+      // Sign in with the new password
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: stripeSessionData.email,
         password: validPassword,
@@ -176,14 +215,13 @@ const Auth = () => {
         throw signInError;
       }
 
-      setMessage("Account created! Redirecting to onboarding…");
+      setMessage("Password set! Redirecting to onboarding…");
       
-      // Redirect to onboarding with session_id preserved
       console.log("[Auth] Redirecting to:", redirectTo);
       window.location.href = redirectTo;
     } catch (e: any) {
-      console.error("[Auth] Signup error:", e);
-      setError(e.message ?? "Unable to create account. Please contact support at tap@tapaway.co");
+      console.error("[Auth] Signup/password set error:", e);
+      setError(e.message ?? "Unable to set password. Please contact support at tap@tapaway.co");
     } finally {
       setLoading(false);
     }

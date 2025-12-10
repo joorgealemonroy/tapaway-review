@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.lookup-stripe-session]
 verify_jwt = false
+
+[functions.set-user-password]
+verify_jwt = false

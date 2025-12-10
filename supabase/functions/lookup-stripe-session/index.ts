@@ -83,7 +83,11 @@ serve(async (req) => {
     );
 
     const alreadyHasUser = !!existingUser;
-    console.log(`User exists for ${email}: ${alreadyHasUser}`);
+    
+    // Check if user needs to set password (created by webhook with random password)
+    const mustSetPassword = existingUser?.user_metadata?.must_set_password === true;
+    
+    console.log(`User exists for ${email}: ${alreadyHasUser}, mustSetPassword: ${mustSetPassword}`);
 
     // Also get any metadata from the session
     const metadata = session.metadata || {};
@@ -93,6 +97,8 @@ serve(async (req) => {
       JSON.stringify({
         email,
         alreadyHasUser,
+        mustSetPassword,
+        userId: existingUser?.id || null,
         customerName,
         paymentStatus: session.payment_status,
       }),
