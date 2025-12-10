@@ -155,19 +155,27 @@ serve(async (req) => {
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: "recovery",
       email: application.email,
-      options: {
-        redirectTo: redirectUrl,
-      },
     });
 
     if (resetError) {
       console.error("Error generating recovery link:", resetError);
     }
 
+    // Extract token from the action_link and build our own URL
+    // This bypasses Supabase's redirect which requires URL whitelisting
+    let setupUrl = `${baseUrl}/auth`;
+    if (linkData?.properties?.action_link) {
+      const actionLink = new URL(linkData.properties.action_link);
+      const token = actionLink.searchParams.get("token");
+      const type = actionLink.searchParams.get("type");
+      if (token) {
+        setupUrl = `${baseUrl}/rep/setup-password?token=${token}&type=${type}`;
+        console.log(`Built direct setup URL: ${setupUrl}`);
+      }
+    }
+
     // Send welcome email with password setup link
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const setupUrl = linkData?.properties?.action_link || `${baseUrl}/auth`;
-    console.log(`Setup URL being sent in email: ${setupUrl}`);
     
     const { error: emailError } = await resend.emails.send({
       from: `${Deno.env.get("EMAIL_FROM") || "TapAway <onboarding@resend.dev>"}`,
