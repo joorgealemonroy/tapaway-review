@@ -27,31 +27,38 @@ export default function RepSetupPassword() {
       }
 
       try {
+        console.log("Verifying setup token...");
+        
         const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
           body: { setupToken },
         });
 
+        console.log("Verification response:", data, invokeError);
+
         if (invokeError) {
-          console.error("Token verification error:", invokeError);
+          console.error("Token verification invoke error:", invokeError);
           setError("Failed to verify setup link. Please try again or contact support.");
           setVerifying(false);
           return;
         }
 
-        if (data.error) {
+        if (data?.error) {
+          console.error("Token verification returned error:", data.error);
           setError(data.error);
           setVerifying(false);
           return;
         }
 
-        if (data.valid) {
+        if (data?.valid) {
+          console.log("Token is valid for email:", data.email);
           setTokenValid(true);
           setUserEmail(data.email);
         } else {
-          setError("Invalid setup link.");
+          console.error("Token is not valid");
+          setError("This setup link is invalid or has expired.");
         }
       } catch (err: any) {
-        console.error("Verification error:", err);
+        console.error("Verification exception:", err);
         setError("Failed to verify setup link. Please try again or contact support.");
       }
       setVerifying(false);
@@ -66,19 +73,25 @@ export default function RepSetupPassword() {
 
     setLoading(true);
     try {
+      console.log("Setting password...");
+      
       const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
         body: { setupToken, newPassword: validPassword },
       });
+
+      console.log("Set password response:", data, invokeError);
 
       if (invokeError) {
         throw new Error("Failed to set password. Please try again.");
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
 
-      if (data.success && data.email) {
+      if (data?.success && data?.email) {
+        console.log("Password set successfully, signing in...");
+        
         // Sign in with the new password
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,

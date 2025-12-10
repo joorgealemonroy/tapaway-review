@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -7,7 +7,7 @@ const hasNumber = (value: string) => /[0-9]/.test(value);
 const hasSymbol = (value: string) => /[!?#@\$%\^&\*]/.test(value);
 
 type PasswordChecklistProps = {
-  onValidPassword?: (password: string) => void;
+  onValidPassword?: (password: string | null) => void;
 };
 
 const PasswordChecklistSection = ({
@@ -28,19 +28,12 @@ const PasswordChecklistSection = ({
   const allValid =
     checks.minLength && checks.number && checks.symbol && checks.match;
 
-  const handlePasswordChange = (value: string) => {
-    setPassword(value);
-    if (onValidPassword && allValid && value === confirm) {
-      onValidPassword(value);
+  // Use effect to properly notify parent when validity changes
+  useEffect(() => {
+    if (onValidPassword) {
+      onValidPassword(allValid ? password : null);
     }
-  };
-
-  const handleConfirmChange = (value: string) => {
-    setConfirm(value);
-    if (onValidPassword && allValid && password === value) {
-      onValidPassword(password);
-    }
-  };
+  }, [allValid, password, onValidPassword]);
 
   const renderCheck = (ok: boolean, label: string) => (
     <div className="flex items-center gap-2 text-xs">
@@ -68,7 +61,7 @@ const PasswordChecklistSection = ({
           id="create-password"
           type="password"
           value={password}
-          onChange={(e) => handlePasswordChange(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••"
         />
       </div>
@@ -79,7 +72,7 @@ const PasswordChecklistSection = ({
           id="confirm-password-checklist"
           type="password"
           value={confirm}
-          onChange={(e) => handleConfirmChange(e.target.value)}
+          onChange={(e) => setConfirm(e.target.value)}
           placeholder="••••••••••"
         />
       </div>
