@@ -268,8 +268,8 @@ const Auth = () => {
     switch (mode) {
       case "post-checkout-signup":
         return {
-          title: "Create your password",
-          subtitle: "You're almost done! Set a password to access your TapAway dashboard.",
+          title: "Payment received 🎉",
+          subtitle: "Let's create your TapAway login so you can finish setting up your review hubs.",
         };
       case "post-checkout-login":
         return {
