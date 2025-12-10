@@ -145,22 +145,22 @@ serve(async (req) => {
       console.error("Error updating application:", updateError);
     }
 
-    // Generate magic link for login
+    // Generate password recovery link for new rep to set their password
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
+      type: "recovery",
       email: application.email,
       options: {
-        redirectTo: "https://tapaway.co/rep",
+        redirectTo: "https://tapaway.co/rep/setup-password",
       },
     });
 
     if (resetError) {
-      console.error("Error generating magic link:", resetError);
+      console.error("Error generating recovery link:", resetError);
     }
 
-    // Send welcome email with login link
+    // Send welcome email with password setup link
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const loginUrl = linkData?.properties?.action_link || "https://tapaway.co/auth";
+    const setupUrl = linkData?.properties?.action_link || "https://tapaway.co/auth";
     
     const { error: emailError } = await resend.emails.send({
       from: `${Deno.env.get("EMAIL_FROM") || "TapAway <onboarding@resend.dev>"}`,
@@ -176,8 +176,8 @@ serve(async (req) => {
             You can now access the Sales Rep Portal to start closing restaurants and earning commissions.
           </p>
           <div style="margin: 32px 0;">
-            <a href="${loginUrl}" style="background-color: #99DAFF; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
-              Access Your Portal
+            <a href="${setupUrl}" style="background-color: #99DAFF; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+              Set Your Password & Get Started
             </a>
           </div>
           <p style="color: #555; font-size: 14px; line-height: 1.6;">
