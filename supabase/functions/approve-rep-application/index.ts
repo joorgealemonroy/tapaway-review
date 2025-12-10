@@ -40,14 +40,14 @@ serve(async (req) => {
       throw new Error("Unauthorized - Admin access required");
     }
 
-    const { applicationId, origin } = await req.json();
+    const { applicationId } = await req.json();
 
     if (!applicationId) {
       throw new Error("Application ID is required");
     }
 
-    // Use provided origin or fall back to production
-    const baseUrl = origin || "https://tapaway.co";
+    // ALWAYS use production URL - no dynamic origins
+    const baseUrl = "https://tapaway.co";
 
     // Fetch the application
     const { data: application, error: appError } = await supabase
@@ -76,7 +76,7 @@ serve(async (req) => {
       // User already exists, use their ID
       userId = existingUser.id;
     } else {
-      // Create a new auth user with a random password (they'll use magic link)
+      // Create a new auth user with a random password (they'll set real one)
       const tempPassword = crypto.randomUUID();
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: application.email,
@@ -148,31 +148,27 @@ serve(async (req) => {
       console.error("Error updating application:", updateError);
     }
 
-    // Generate password recovery link for new rep to set their password
+    // Generate password recovery link - use Supabase's native action_link directly
+    // This goes through Supabase's /auth/v1/verify which handles token verification properly
     const redirectUrl = `${baseUrl}/rep/setup-password`;
     console.log(`Generating recovery link with redirect to: ${redirectUrl}`);
     
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: "recovery",
       email: application.email,
+      options: {
+        redirectTo: redirectUrl,
+      },
     });
 
     if (resetError) {
       console.error("Error generating recovery link:", resetError);
+      throw new Error("Failed to generate password reset link");
     }
 
-    // Extract token from the action_link and build our own URL
-    // This bypasses Supabase's redirect which requires URL whitelisting
-    let setupUrl = `${baseUrl}/auth`;
-    if (linkData?.properties?.action_link) {
-      const actionLink = new URL(linkData.properties.action_link);
-      const token = actionLink.searchParams.get("token");
-      const type = actionLink.searchParams.get("type");
-      if (token) {
-        setupUrl = `${baseUrl}/rep/setup-password?token=${token}&type=${type}`;
-        console.log(`Built direct setup URL: ${setupUrl}`);
-      }
-    }
+    // Use Supabase's action_link directly - it goes through proper verification
+    const setupUrl = linkData?.properties?.action_link || `${baseUrl}/auth`;
+    console.log(`Using Supabase action link for setup`);
 
     // Send welcome email with password setup link
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
