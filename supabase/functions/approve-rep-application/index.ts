@@ -40,15 +40,22 @@ serve(async (req) => {
       throw new Error("Unauthorized - Admin access required");
     }
 
-    const { applicationId, origin } = await req.json();
+    const { applicationId } = await req.json();
 
     if (!applicationId) {
       throw new Error("Application ID is required");
     }
 
-    // Use the origin from the request, or fall back to production
-    const baseUrl = origin || "https://tapaway.co";
-    console.log(`Using base URL: ${baseUrl}`);
+    // CRITICAL: Use FRONTEND_URL env var only - never use origin from request
+    const frontendUrl = Deno.env.get("FRONTEND_URL");
+    if (!frontendUrl) {
+      console.error("FRONTEND_URL environment variable is not set!");
+      throw new Error("Server configuration error: FRONTEND_URL not set");
+    }
+    
+    // Ensure no trailing slash
+    const baseUrl = frontendUrl.replace(/\/+$/, "");
+    console.log(`Using FRONTEND_URL: ${baseUrl}`);
 
     // Fetch the application
     const { data: application, error: appError } = await supabase
@@ -167,7 +174,7 @@ serve(async (req) => {
       throw new Error("Failed to create setup token");
     }
 
-    // Build setup URL with our custom token using the origin from the request
+    // Build setup URL using FRONTEND_URL only
     const setupUrl = `${baseUrl}/rep/setup-password?setupToken=${setupToken}`;
     console.log(`Generated setup URL: ${setupUrl}`);
 
@@ -177,7 +184,7 @@ serve(async (req) => {
     const { error: emailError } = await resend.emails.send({
       from: `${Deno.env.get("EMAIL_FROM") || "TapAway <onboarding@resend.dev>"}`,
       to: [application.email],
-      subject: "Welcome to TapAway Sales Team! 🎉",
+      subject: "You've been approved as a TapAway Sales Partner! 🎉",
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h1 style="color: #333; margin-bottom: 24px;">Welcome aboard, ${application.name}! 🎉</h1>
@@ -207,7 +214,7 @@ serve(async (req) => {
     if (emailError) {
       console.error("Error sending welcome email:", emailError);
     } else {
-      console.log(`Sent welcome email to ${application.email}`);
+      console.log(`Sent welcome email to ${application.email} with setup URL: ${setupUrl}`);
     }
 
     console.log(`Approved rep application for ${application.email}, userId: ${userId}`);
