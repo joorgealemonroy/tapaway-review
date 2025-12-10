@@ -297,6 +297,77 @@ export type Database = {
           },
         ]
       }
+      commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          period_label: string
+          rep_id: string
+          rep_restaurant_id: string | null
+          restaurant_id: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          period_label: string
+          rep_id: string
+          rep_restaurant_id?: string | null
+          restaurant_id?: string | null
+          status?: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          period_label?: string
+          rep_id?: string
+          rep_restaurant_id?: string | null
+          restaurant_id?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_rep_id_fkey"
+            columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_rep_restaurant_id_fkey"
+            columns: ["rep_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "rep_restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competitors: {
         Row: {
           competitor_link: string | null
@@ -684,6 +755,142 @@ export type Database = {
           },
         ]
       }
+      rep_applications: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      rep_compensation_settings: {
+        Row: {
+          base_commission_per_close: number
+          bonus_amount: number
+          bonus_period: string
+          bonus_threshold_closes: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          base_commission_per_close?: number
+          bonus_amount?: number
+          bonus_period?: string
+          bonus_threshold_closes?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          base_commission_per_close?: number
+          bonus_amount?: number
+          bonus_period?: string
+          bonus_threshold_closes?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rep_restaurants: {
+        Row: {
+          closed_at: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          linked_restaurant_id: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          plan_type: string | null
+          sales_rep_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linked_restaurant_id?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          plan_type?: string | null
+          sales_rep_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linked_restaurant_id?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          plan_type?: string | null
+          sales_rep_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_restaurants_linked_restaurant_id_fkey"
+            columns: ["linked_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_restaurants_linked_restaurant_id_fkey"
+            columns: ["linked_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rep_restaurants_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_engagement: {
         Row: {
           content: string
@@ -771,6 +978,7 @@ export type Database = {
           phone: string | null
           plan_type: string | null
           restaurant_name: string
+          sales_rep_id: string | null
           settings: Json | null
           slug_locked_at: string | null
           stripe_customer_id: string | null
@@ -820,6 +1028,7 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           restaurant_name: string
+          sales_rep_id?: string | null
           settings?: Json | null
           slug_locked_at?: string | null
           stripe_customer_id?: string | null
@@ -869,6 +1078,7 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           restaurant_name?: string
+          sales_rep_id?: string | null
           settings?: Json | null
           slug_locked_at?: string | null
           stripe_customer_id?: string | null
@@ -880,7 +1090,15 @@ export type Database = {
           yelp_business_id?: string | null
           yelp_review_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "restaurants_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_sentiments: {
         Row: {
@@ -935,6 +1153,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_reps: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          payout_method: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          is_active?: boolean
+          name: string
+          payout_method?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          payout_method?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       support_requests: {
         Row: {
@@ -1087,10 +1338,11 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_clean_greeting: { Args: { input: string }; Returns: boolean }
       is_google_review_url_valid: { Args: { url: string }; Returns: boolean }
+      is_sales_rep: { Args: never; Returns: boolean }
       is_test_account: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "sales_rep"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1218,7 +1470,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "sales_rep"],
     },
   },
 } as const
