@@ -204,6 +204,8 @@ const Index = () => {
             <a href="/privacy" className="hover:text-white/70 transition-colors">Privacy</a>
             <span>·</span>
             <a href="/refund" className="hover:text-white/70 transition-colors">Refund</a>
+            <span>·</span>
+            <a href="/rep/apply" className="hover:text-white/70 transition-colors">Become a Sales Partner</a>
           </div>
         </div>
       </footer>

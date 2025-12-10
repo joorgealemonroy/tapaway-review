@@ -48,7 +48,7 @@ serve(async (req) => {
 
     console.log('[stripe-webhook] Received event:', event.type);
 
-    if (event.type === 'checkout.session.completed') {
+if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
       console.log('[stripe-webhook] Processing checkout session:', {
@@ -71,6 +71,11 @@ serve(async (req) => {
       const metadataUserId = session.metadata?.user_id || null;
       const metadataRestaurantId = session.metadata?.restaurant_id || null;
       const metadataPlan = session.metadata?.plan_type || 'monthly';
+      
+      // Sales rep portal metadata
+      const salesRepId = session.metadata?.sales_rep_id || null;
+      const repRestaurantId = session.metadata?.rep_restaurant_id || null;
+      const source = session.metadata?.source || null;
       
       if (!customerEmail) {
         console.error('[stripe-webhook] No customer email in session - checking Stripe customer');
@@ -163,14 +168,21 @@ serve(async (req) => {
       // CRITICAL: Create/update restaurant FIRST, before trying billing portal
       if (existingRestaurant) {
         // Update existing restaurant (without portal URL initially)
+        const updateData: any = {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          plan_type: planType,
+          subscription_status: 'active',
+        };
+        
+        // Link sales rep if this came from rep portal
+        if (salesRepId) {
+          updateData.sales_rep_id = salesRepId;
+        }
+        
         const { error: updateError } = await supabaseAdmin
           .from('restaurants')
-          .update({
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            plan_type: planType,
-            subscription_status: 'active',
-          })
+          .update(updateData)
           .eq('id', existingRestaurant.id);
 
         if (updateError) {
@@ -181,20 +193,27 @@ serve(async (req) => {
         }
       } else {
         // Create new restaurant record (without portal URL initially)
+        const insertData: any = {
+          owner_id: userId,
+          restaurant_name: session.metadata?.restaurant_name || 'My Restaurant',
+          greeting_name: greetingName,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          plan_type: planType,
+          subscription_status: 'active',
+          header_title: "How was your visit?",
+          header_subtitle: "We'd love to hear about your experience!",
+          menu_title: "Our Menu",
+        };
+        
+        // Link sales rep if this came from rep portal
+        if (salesRepId) {
+          insertData.sales_rep_id = salesRepId;
+        }
+        
         const { data: newRestaurant, error: insertError } = await supabaseAdmin
           .from('restaurants')
-          .insert({
-            owner_id: userId,
-            restaurant_name: 'My Restaurant',
-            greeting_name: greetingName,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            plan_type: planType,
-            subscription_status: 'active',
-            header_title: "How was your visit?",
-            header_subtitle: "We'd love to hear about your experience!",
-            menu_title: "Our Menu",
-          })
+          .insert(insertData)
           .select('id')
           .single();
 
@@ -351,6 +370,69 @@ serve(async (req) => {
           // But we log this so we know the data was captured
         } else {
           console.warn('[stripe-webhook] WARNING: No shipping address captured! Customer:', customerEmail);
+        }
+      }
+
+      // ============================================================
+      // SALES REP COMMISSION HANDLING
+      // If this checkout was initiated by a sales rep, create commission
+      // ============================================================
+      if (salesRepId && restaurantId && source === 'rep_portal') {
+        console.log(`[stripe-webhook] Processing sales rep commission for rep ${salesRepId}`);
+        
+        try {
+          // Get compensation settings
+          const { data: compSettings } = await supabaseAdmin
+            .from('rep_compensation_settings')
+            .select('base_commission_per_close')
+            .limit(1)
+            .single();
+
+          const commissionAmount = compSettings?.base_commission_per_close || 50;
+          const now = new Date();
+          const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+          // Create commission record
+          const { error: commissionError } = await supabaseAdmin
+            .from('commissions')
+            .insert({
+              rep_id: salesRepId,
+              rep_restaurant_id: repRestaurantId || null,
+              restaurant_id: restaurantId,
+              type: 'close',
+              amount: commissionAmount,
+              status: 'pending',
+              period_label: periodLabel,
+              note: `Close commission for ${session.metadata?.restaurant_name || 'restaurant'}`,
+            });
+
+          if (commissionError) {
+            console.error('[stripe-webhook] Failed to create commission:', commissionError);
+          } else {
+            console.log(`[stripe-webhook] Created $${commissionAmount} commission for rep ${salesRepId}`);
+          }
+
+          // Update rep_restaurants record to mark as closed
+          if (repRestaurantId) {
+            const { error: repRestaurantError } = await supabaseAdmin
+              .from('rep_restaurants')
+              .update({
+                status: 'closed',
+                closed_at: now.toISOString(),
+                plan_type: planType,
+                linked_restaurant_id: restaurantId,
+              })
+              .eq('id', repRestaurantId);
+
+            if (repRestaurantError) {
+              console.error('[stripe-webhook] Failed to update rep_restaurant:', repRestaurantError);
+            } else {
+              console.log('[stripe-webhook] Updated rep_restaurant as closed');
+            }
+          }
+        } catch (commissionErr) {
+          console.error('[stripe-webhook] Error processing sales rep commission:', commissionErr);
+          // Don't fail the webhook - commission can be manually added if needed
         }
       }
 
