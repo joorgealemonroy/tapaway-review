@@ -114,12 +114,15 @@ if (event.type === 'checkout.session.completed') {
       let userId = metadataUserId || existingUser?.users.find(u => u.email === customerEmail)?.id;
 
       if (!userId) {
-        // Create new user with a random password (they'll reset it via email)
+        // Create new user with a random password and mark them as needing to set password
         const randomPassword = crypto.randomUUID();
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           password: randomPassword,
           email_confirm: true,
+          user_metadata: {
+            must_set_password: true,
+          },
         });
 
         if (createError) {
@@ -131,7 +134,7 @@ if (event.type === 'checkout.session.completed') {
         }
 
         userId = newUser.user.id;
-        console.log('[stripe-webhook] Created new user:', userId);
+        console.log('[stripe-webhook] Created new user with must_set_password flag:', userId);
       }
 
       // Determine plan type (only monthly or yearly, no bundles)
