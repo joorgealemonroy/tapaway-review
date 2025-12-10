@@ -125,13 +125,52 @@ const Auth = () => {
       if (error) throw error;
       setMessage("Logged in successfully. Redirecting…");
 
-      console.log("[Auth] Redirecting to:", redirectTo);
-      window.location.href = redirectTo;
+      // Determine redirect destination based on role
+      const destination = await determineRedirectDestination();
+      console.log("[Auth] Redirecting to:", destination);
+      window.location.href = destination;
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper to determine redirect destination based on role
+  const determineRedirectDestination = async (): Promise<string> => {
+    // If there's a redirect param (e.g., from onboarding flow), always honor it
+    const hasExplicitRedirect = searchParams.get("redirect");
+    if (hasExplicitRedirect) {
+      return redirectTo;
+    }
+
+    // Get current user to check roles
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return "/dashboard";
+    }
+
+    // Check if admin (via email or app_metadata)
+    const ADMIN_EMAILS = ["tap@tapaway.co"];
+    const isAdmin = ADMIN_EMAILS.includes(user.email ?? "") || user.app_metadata?.role === "admin";
+    if (isAdmin) {
+      return "/admin";
+    }
+
+    // Check if sales rep (via sales_reps table)
+    const { data: salesRepData } = await supabase
+      .from("sales_reps")
+      .select("id")
+      .eq("id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    
+    if (salesRepData) {
+      return "/rep";
+    }
+
+    // Default: normal user goes to dashboard
+    return "/dashboard";
   };
 
   // Extract session_id from redirect for password setting
