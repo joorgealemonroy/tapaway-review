@@ -49,13 +49,19 @@ serve(async (req) => {
     }
 
     // Verify this user actually needs to set their password
-    if (user.user.user_metadata?.must_set_password !== true) {
-      console.error("[set-user-password] User does not have must_set_password flag");
+    // Check both explicit flag AND fallback (never signed in = needs password)
+    const hasExplicitFlag = user.user.user_metadata?.must_set_password === true;
+    const hasNeverSignedIn = !user.user.last_sign_in_at;
+    
+    if (!hasExplicitFlag && !hasNeverSignedIn) {
+      console.error("[set-user-password] User already has a password (has signed in before and no flag)");
       return new Response(
         JSON.stringify({ error: "This user already has a password set" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log(`[set-user-password] User needs password - explicit flag: ${hasExplicitFlag}, never signed in: ${hasNeverSignedIn}`);
 
     // If sessionId provided, verify it matches this user's email (extra security)
     if (sessionId) {
