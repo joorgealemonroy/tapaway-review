@@ -40,11 +40,14 @@ serve(async (req) => {
       throw new Error("Unauthorized - Admin access required");
     }
 
-    const { applicationId } = await req.json();
+    const { applicationId, origin } = await req.json();
 
     if (!applicationId) {
       throw new Error("Application ID is required");
     }
+
+    // Use provided origin or fall back to production
+    const baseUrl = origin || "https://tapaway.co";
 
     // Fetch the application
     const { data: application, error: appError } = await supabase
@@ -146,11 +149,14 @@ serve(async (req) => {
     }
 
     // Generate password recovery link for new rep to set their password
+    const redirectUrl = `${baseUrl}/rep/setup-password`;
+    console.log(`Generating recovery link with redirect to: ${redirectUrl}`);
+    
     const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: "recovery",
       email: application.email,
       options: {
-        redirectTo: "https://tapaway.co/rep/setup-password",
+        redirectTo: redirectUrl,
       },
     });
 
@@ -160,7 +166,8 @@ serve(async (req) => {
 
     // Send welcome email with password setup link
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const setupUrl = linkData?.properties?.action_link || "https://tapaway.co/auth";
+    const setupUrl = linkData?.properties?.action_link || `${baseUrl}/auth`;
+    console.log(`Setup URL being sent in email: ${setupUrl}`);
     
     const { error: emailError } = await resend.emails.send({
       from: `${Deno.env.get("EMAIL_FROM") || "TapAway <onboarding@resend.dev>"}`,
