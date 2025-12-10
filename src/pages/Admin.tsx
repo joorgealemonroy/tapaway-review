@@ -361,6 +361,25 @@ const Admin = () => {
         </p>
       </div>
 
+      {/* Sales Rep Portal Admin Links */}
+      <section className="bg-card border rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold">Sales Rep Portal</h2>
+        <p className="text-sm text-muted-foreground">
+          Manage 1099 sales reps, applications, and commissions.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => navigate('/admin/reps')} variant="outline">
+            Manage Reps & Applications
+          </Button>
+          <Button onClick={() => navigate('/admin/commissions')} variant="outline">
+            Commission Management
+          </Button>
+          <Button onClick={() => navigate('/admin/settings/comp')} variant="outline">
+            Compensation Settings
+          </Button>
+        </div>
+      </section>
+
       <section className="bg-card border rounded-xl p-4 space-y-3">
         <h2 className="font-semibold">Paywall Control</h2>
         <p className="text-sm text-muted-foreground">

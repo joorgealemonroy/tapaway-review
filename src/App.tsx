@@ -19,6 +19,20 @@ import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 
+// Sales Rep Portal
+import RepHome from "./pages/rep/RepHome";
+import RepRestaurants from "./pages/rep/RepRestaurants";
+import RepClose from "./pages/rep/RepClose";
+import RepCommissions from "./pages/rep/RepCommissions";
+import RepResources from "./pages/rep/RepResources";
+import RepProfile from "./pages/rep/RepProfile";
+import RepApply from "./pages/rep/RepApply";
+
+// Admin Rep Management
+import AdminReps from "./pages/admin/AdminReps";
+import AdminCommissions from "./pages/admin/AdminCommissions";
+import AdminCompSettings from "./pages/admin/AdminCompSettings";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,6 +55,21 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/support" element={<Support />} />
+            
+            {/* Sales Rep Portal */}
+            <Route path="/rep" element={<RepHome />} />
+            <Route path="/rep/restaurants" element={<RepRestaurants />} />
+            <Route path="/rep/close" element={<RepClose />} />
+            <Route path="/rep/commissions" element={<RepCommissions />} />
+            <Route path="/rep/resources" element={<RepResources />} />
+            <Route path="/rep/profile" element={<RepProfile />} />
+            <Route path="/rep/apply" element={<RepApply />} />
+            
+            {/* Admin Rep Management */}
+            <Route path="/admin/reps" element={<AdminReps />} />
+            <Route path="/admin/commissions" element={<AdminCommissions />} />
+            <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
+            
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
             <Route path="/:customSlug" element={<ReviewHub />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
