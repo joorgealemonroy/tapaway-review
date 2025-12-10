@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,8 +145,8 @@ serve(async (req) => {
       console.error("Error updating application:", updateError);
     }
 
-    // Send password reset email so they can set their password
-    const { error: resetError } = await supabase.auth.admin.generateLink({
+    // Generate magic link for login
+    const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
       type: "magiclink",
       email: application.email,
       options: {
@@ -155,7 +156,46 @@ serve(async (req) => {
 
     if (resetError) {
       console.error("Error generating magic link:", resetError);
-      // Don't throw - the account is created, they can use forgot password
+    }
+
+    // Send welcome email with login link
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const loginUrl = linkData?.properties?.action_link || "https://tapaway.co/auth";
+    
+    const { error: emailError } = await resend.emails.send({
+      from: `${Deno.env.get("EMAIL_FROM") || "TapAway <onboarding@resend.dev>"}`,
+      to: [application.email],
+      subject: "Welcome to TapAway Sales Team! 🎉",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #333; margin-bottom: 24px;">Welcome aboard, ${application.name}! 🎉</h1>
+          <p style="color: #555; font-size: 16px; line-height: 1.6;">
+            Great news! Your application to become a TapAway Sales Partner has been approved.
+          </p>
+          <p style="color: #555; font-size: 16px; line-height: 1.6;">
+            You can now access the Sales Rep Portal to start closing restaurants and earning commissions.
+          </p>
+          <div style="margin: 32px 0;">
+            <a href="${loginUrl}" style="background-color: #99DAFF; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+              Access Your Portal
+            </a>
+          </div>
+          <p style="color: #555; font-size: 14px; line-height: 1.6;">
+            <strong>Commission Structure:</strong><br>
+            • $50 per closed restaurant<br>
+            • $500 bonus for every 30 closes per month
+          </p>
+          <p style="color: #888; font-size: 14px; margin-top: 32px;">
+            Questions? Reply to this email or contact tap@tapaway.co
+          </p>
+        </div>
+      `,
+    });
+
+    if (emailError) {
+      console.error("Error sending welcome email:", emailError);
+    } else {
+      console.log(`Sent welcome email to ${application.email}`);
     }
 
     console.log(`Approved rep application for ${application.email}, userId: ${userId}`);
