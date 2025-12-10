@@ -40,11 +40,15 @@ serve(async (req) => {
       throw new Error("Unauthorized - Admin access required");
     }
 
-    const { applicationId } = await req.json();
+    const { applicationId, origin } = await req.json();
 
     if (!applicationId) {
       throw new Error("Application ID is required");
     }
+
+    // Use the origin from the request, or fall back to production
+    const baseUrl = origin || "https://tapaway.co";
+    console.log(`Using base URL: ${baseUrl}`);
 
     // Fetch the application
     const { data: application, error: appError } = await supabase
@@ -163,9 +167,9 @@ serve(async (req) => {
       throw new Error("Failed to create setup token");
     }
 
-    // Build setup URL with our custom token
-    const setupUrl = `https://tapaway.co/rep/setup-password?setupToken=${setupToken}`;
-    console.log(`Generated setup URL with custom token for ${application.email}`);
+    // Build setup URL with our custom token using the origin from the request
+    const setupUrl = `${baseUrl}/rep/setup-password?setupToken=${setupToken}`;
+    console.log(`Generated setup URL: ${setupUrl}`);
 
     // Send welcome email
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
