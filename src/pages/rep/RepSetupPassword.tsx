@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,71 +8,93 @@ import PasswordChecklistSection from "@/components/PasswordChecklistSection";
 
 export default function RepSetupPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [validPassword, setValidPassword] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
+  const [verifying, setVerifying] = useState(true);
+  const [tokenValid, setTokenValid] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Listen for auth state changes - Supabase handles the hash automatically
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth event:", event, "Session:", !!session);
-        
-        if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-          if (session) {
-            setHasSession(true);
-            setCheckingSession(false);
-          }
-        }
-      }
-    );
+  const setupToken = searchParams.get("setupToken");
 
-    // Also check for existing session on mount
-    const checkExistingSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setHasSession(true);
-        }
-      } catch (err) {
-        console.error("Error checking session:", err);
+  useEffect(() => {
+    const verifyToken = async () => {
+      if (!setupToken) {
+        setError("Invalid setup link. Please use the link from your welcome email.");
+        setVerifying(false);
+        return;
       }
-      setCheckingSession(false);
+
+      try {
+        const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
+          body: { setupToken },
+        });
+
+        if (invokeError) {
+          console.error("Token verification error:", invokeError);
+          setError("Failed to verify setup link. Please try again or contact support.");
+          setVerifying(false);
+          return;
+        }
+
+        if (data.error) {
+          setError(data.error);
+          setVerifying(false);
+          return;
+        }
+
+        if (data.valid) {
+          setTokenValid(true);
+          setUserEmail(data.email);
+        } else {
+          setError("Invalid setup link.");
+        }
+      } catch (err: any) {
+        console.error("Verification error:", err);
+        setError("Failed to verify setup link. Please try again or contact support.");
+      }
+      setVerifying(false);
     };
 
-    // Small delay to let Supabase process URL hash if present
-    setTimeout(checkExistingSession, 500);
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Check URL for error params (Supabase redirects with error in hash)
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("error=")) {
-      const params = new URLSearchParams(hash.replace("#", ""));
-      const errorDesc = params.get("error_description") || params.get("error");
-      if (errorDesc) {
-        setError(decodeURIComponent(errorDesc.replace(/\+/g, " ")));
-        setCheckingSession(false);
-      }
-    }
-  }, []);
+    verifyToken();
+  }, [setupToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validPassword) return;
+    if (!validPassword || !setupToken) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: validPassword });
-      
-      if (error) throw error;
+      const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
+        body: { setupToken, newPassword: validPassword },
+      });
 
-      toast.success("Password set successfully! Welcome to TapAway.");
-      navigate("/rep");
+      if (invokeError) {
+        throw new Error("Failed to set password. Please try again.");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.success && data.email) {
+        // Sign in with the new password
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: validPassword,
+        });
+
+        if (signInError) {
+          console.error("Sign in error:", signInError);
+          toast.success("Password set! Please log in with your new password.");
+          navigate("/auth");
+          return;
+        }
+
+        toast.success("Welcome to TapAway! 🎉");
+        navigate("/rep");
+      }
     } catch (error: any) {
       console.error("Error setting password:", error);
       toast.error(error.message || "Failed to set password");
@@ -81,13 +103,13 @@ export default function RepSetupPassword() {
     }
   };
 
-  if (checkingSession) {
+  if (verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle>Setting up your account...</CardTitle>
-            <CardDescription>Please wait while we verify your link.</CardDescription>
+            <CardTitle>Verifying your link...</CardTitle>
+            <CardDescription>Please wait while we set up your account.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -99,14 +121,14 @@ export default function RepSetupPassword() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-destructive">Link Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardTitle className="text-destructive">Setup Error</CardTitle>
+            <CardDescription className="text-base mt-2">{error}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
-              This link may have expired or already been used. Please contact support for a new invite.
+              Need help? Email us at tap@tapaway.co
             </p>
-            <Button onClick={() => navigate("/auth")} className="w-full">
+            <Button onClick={() => navigate("/auth")} className="w-full" variant="outline">
               Go to Login
             </Button>
           </CardContent>
@@ -115,20 +137,17 @@ export default function RepSetupPassword() {
     );
   }
 
-  if (!hasSession) {
+  if (!tokenValid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle>Session Not Found</CardTitle>
+            <CardTitle>Invalid Link</CardTitle>
             <CardDescription>
-              Unable to verify your invite link. This may happen if the link expired or was already used.
+              This setup link is not valid. Please use the link from your welcome email.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              If you're a new sales rep, please contact tap@tapaway.co for a new invite.
-            </p>
+          <CardContent>
             <Button onClick={() => navigate("/auth")} className="w-full">
               Go to Login
             </Button>
@@ -144,7 +163,11 @@ export default function RepSetupPassword() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Welcome to TapAway! 🎉</CardTitle>
           <CardDescription>
-            Set your password to access the Sales Rep Portal
+            {userEmail ? (
+              <>Set your password for <strong>{userEmail}</strong></>
+            ) : (
+              "Set your password to access the Sales Rep Portal"
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
