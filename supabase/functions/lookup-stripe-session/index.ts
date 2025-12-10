@@ -84,8 +84,24 @@ serve(async (req) => {
 
     const alreadyHasUser = !!existingUser;
     
-    // Check if user needs to set password (created by webhook with random password)
-    const mustSetPassword = existingUser?.user_metadata?.must_set_password === true;
+    // Check if user needs to set password
+    // Detection methods:
+    // 1. Explicit must_set_password flag in user_metadata (new webhook behavior)
+    // 2. User has never signed in (last_sign_in_at is null) - they were created by webhook with random password
+    let mustSetPassword = false;
+    
+    if (existingUser) {
+      // Check explicit flag first
+      if (existingUser.user_metadata?.must_set_password === true) {
+        mustSetPassword = true;
+        console.log(`User ${email} needs password (explicit flag)`);
+      } else if (!existingUser.last_sign_in_at) {
+        // Fallback: if user has never signed in, they need to set password
+        // This catches users created by stripe webhook with random password
+        mustSetPassword = true;
+        console.log(`User ${email} needs password (never signed in)`);
+      }
+    }
     
     console.log(`User exists for ${email}: ${alreadyHasUser}, mustSetPassword: ${mustSetPassword}`);
 
