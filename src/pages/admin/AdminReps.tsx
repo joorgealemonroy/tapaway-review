@@ -113,9 +113,12 @@ const AdminReps = () => {
 
     setProcessing(true);
     try {
-      // Create auth user via edge function
+      // Create auth user via edge function, pass origin for redirect URL
       const { data, error } = await supabase.functions.invoke('approve-rep-application', {
-        body: { applicationId: selectedApplication.id },
+        body: { 
+          applicationId: selectedApplication.id,
+          origin: window.location.origin
+        },
       });
 
       if (error) throw error;
