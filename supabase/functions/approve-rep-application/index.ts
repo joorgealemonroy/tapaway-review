@@ -46,9 +46,6 @@ serve(async (req) => {
       throw new Error("Application ID is required");
     }
 
-    // ALWAYS use production URL - no dynamic origins
-    const baseUrl = "https://tapaway.co";
-
     // Fetch the application
     const { data: application, error: appError } = await supabase
       .from("rep_applications")
@@ -73,10 +70,9 @@ serve(async (req) => {
     );
 
     if (existingUser) {
-      // User already exists, use their ID
       userId = existingUser.id;
     } else {
-      // Create a new auth user with a random password (they'll set real one)
+      // Create a new auth user with a random password
       const tempPassword = crypto.randomUUID();
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: application.email,
@@ -104,7 +100,6 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existingRep) {
-      // Create sales_reps record
       const { error: repError } = await supabase.from("sales_reps").insert({
         id: userId,
         email: application.email.toLowerCase(),
@@ -135,7 +130,7 @@ serve(async (req) => {
     }
 
     // Update application status
-    const { error: updateError } = await supabase
+    await supabase
       .from("rep_applications")
       .update({
         status: "approved",
@@ -144,33 +139,35 @@ serve(async (req) => {
       })
       .eq("id", applicationId);
 
-    if (updateError) {
-      console.error("Error updating application:", updateError);
+    // Generate our own setup token (bypasses Supabase redirect URL restrictions)
+    const setupToken = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, '');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Delete any existing tokens for this user
+    await supabase
+      .from("rep_setup_tokens")
+      .delete()
+      .eq("user_id", userId);
+
+    // Insert new token
+    const { error: tokenError } = await supabase
+      .from("rep_setup_tokens")
+      .insert({
+        user_id: userId,
+        token: setupToken,
+        expires_at: expiresAt.toISOString(),
+      });
+
+    if (tokenError) {
+      console.error("Error creating setup token:", tokenError);
+      throw new Error("Failed to create setup token");
     }
 
-    // Generate password recovery link - use Supabase's native action_link directly
-    // This goes through Supabase's /auth/v1/verify which handles token verification properly
-    const redirectUrl = `${baseUrl}/rep/setup-password`;
-    console.log(`Generating recovery link with redirect to: ${redirectUrl}`);
-    
-    const { data: linkData, error: resetError } = await supabase.auth.admin.generateLink({
-      type: "recovery",
-      email: application.email,
-      options: {
-        redirectTo: redirectUrl,
-      },
-    });
+    // Build setup URL with our custom token
+    const setupUrl = `https://tapaway.co/rep/setup-password?setupToken=${setupToken}`;
+    console.log(`Generated setup URL with custom token for ${application.email}`);
 
-    if (resetError) {
-      console.error("Error generating recovery link:", resetError);
-      throw new Error("Failed to generate password reset link");
-    }
-
-    // Use Supabase's action_link directly - it goes through proper verification
-    const setupUrl = linkData?.properties?.action_link || `${baseUrl}/auth`;
-    console.log(`Using Supabase action link for setup`);
-
-    // Send welcome email with password setup link
+    // Send welcome email
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     const { error: emailError } = await resend.emails.send({
@@ -184,7 +181,7 @@ serve(async (req) => {
             Great news! Your application to become a TapAway Sales Partner has been approved.
           </p>
           <p style="color: #555; font-size: 16px; line-height: 1.6;">
-            You can now access the Sales Rep Portal to start closing restaurants and earning commissions.
+            Click below to set your password and access the Sales Rep Portal.
           </p>
           <div style="margin: 32px 0;">
             <a href="${setupUrl}" style="background-color: #99DAFF; color: #000; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
@@ -196,8 +193,8 @@ serve(async (req) => {
             • $50 per closed restaurant<br>
             • $500 bonus for every 30 closes per month
           </p>
-          <p style="color: #888; font-size: 14px; margin-top: 32px;">
-            Questions? Reply to this email or contact tap@tapaway.co
+          <p style="color: #888; font-size: 12px; margin-top: 32px;">
+            This link expires in 24 hours. Questions? Contact tap@tapaway.co
           </p>
         </div>
       `,

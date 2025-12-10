@@ -1,0 +1,108 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { setupToken, newPassword } = await req.json();
+
+    if (!setupToken) {
+      throw new Error("Setup token is required");
+    }
+
+    // Find the token
+    const { data: tokenRecord, error: tokenError } = await supabase
+      .from("rep_setup_tokens")
+      .select("*")
+      .eq("token", setupToken)
+      .maybeSingle();
+
+    if (tokenError || !tokenRecord) {
+      console.error("Token not found:", setupToken);
+      throw new Error("Invalid or expired setup link. Please contact support for a new invite.");
+    }
+
+    // Check if already used
+    if (tokenRecord.used_at) {
+      throw new Error("This setup link has already been used. Please log in with your password, or contact support if you need help.");
+    }
+
+    // Check if expired
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      throw new Error("This setup link has expired. Please contact support for a new invite.");
+    }
+
+    // If no password provided, just validate the token
+    if (!newPassword) {
+      // Get user email for display
+      const { data: userData } = await supabase.auth.admin.getUserById(tokenRecord.user_id);
+      
+      return new Response(
+        JSON.stringify({ 
+          valid: true,
+          email: userData?.user?.email,
+          userId: tokenRecord.user_id,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Set the new password using admin API
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      tokenRecord.user_id,
+      { password: newPassword }
+    );
+
+    if (updateError) {
+      console.error("Error updating password:", updateError);
+      throw new Error("Failed to set password. Please try again.");
+    }
+
+    // Mark token as used
+    await supabase
+      .from("rep_setup_tokens")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", tokenRecord.id);
+
+    // Get user email for sign in
+    const { data: userData } = await supabase.auth.admin.getUserById(tokenRecord.user_id);
+
+    console.log(`Password set successfully for user ${tokenRecord.user_id}`);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        email: userData?.user?.email,
+        message: "Password set successfully",
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in verify-rep-setup-token:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
