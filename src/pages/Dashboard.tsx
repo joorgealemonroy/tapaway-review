@@ -54,11 +54,12 @@ const Dashboard = () => {
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isSalesRep } = useSalesRep();
+  const { isSalesRep, loading: repLoading } = useSalesRep();
   
-  // Demo mode detection
+  // Demo mode detection - check URL param synchronously
   const demoRestaurantId = searchParams.get('demo_restaurant_id');
-  const [isDemoView, setIsDemoView] = useState(false);
+  const [isDemoView, setIsDemoView] = useState(!!demoRestaurantId);
+  const [demoLoading, setDemoLoading] = useState(!!demoRestaurantId);
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
@@ -69,10 +70,13 @@ const Dashboard = () => {
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   
-  // Handle demo mode for sales reps
+  // Handle demo mode for sales reps - load demo restaurant first
   useEffect(() => {
     const loadDemoRestaurant = async () => {
-      if (!demoRestaurantId || !user) return;
+      if (!demoRestaurantId || !user) {
+        setDemoLoading(false);
+        return;
+      }
       
       // Fetch the demo restaurant
       const { data: demoRestaurant, error } = await supabase
@@ -84,6 +88,8 @@ const Dashboard = () => {
       
       if (error || !demoRestaurant) {
         toast.error("Demo restaurant not found");
+        setIsDemoView(false);
+        setDemoLoading(false);
         navigate('/rep');
         return;
       }
@@ -92,30 +98,36 @@ const Dashboard = () => {
       setIsDemoView(true);
       setRestaurant(demoRestaurant as Restaurant);
       fetchLocations(demoRestaurant.id);
+      setDemoLoading(false);
     };
     
-    if (demoRestaurantId && user && isSalesRep) {
+    if (demoRestaurantId && user) {
       loadDemoRestaurant();
+    } else if (!demoRestaurantId) {
+      setDemoLoading(false);
     }
-  }, [demoRestaurantId, user, isSalesRep, navigate]);
+  }, [demoRestaurantId, user, navigate]);
   
   useEffect(() => {
-    // Skip normal auth redirect if in demo mode
-    if (demoRestaurantId && isSalesRep) return;
+    // Skip normal auth redirect if in demo mode (sales rep viewing demo)
+    if (demoRestaurantId) return;
     
     if (!loading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate, demoRestaurantId, isSalesRep]);
-  // Only fetch on initial mount, not on every user change
-  // Skip if in demo mode (already loaded demo restaurant)
+  }, [user, loading, navigate, demoRestaurantId]);
+  
+  // Only fetch normal restaurant data if NOT in demo mode
   useEffect(() => {
-    if (isDemoView) return; // Skip if demo mode is active
+    // Wait for demo loading to complete first
+    if (demoLoading) return;
+    // Skip if in demo mode (already loaded demo restaurant)
+    if (isDemoView || demoRestaurantId) return;
     if (user && !restaurant) {
       checkAdminStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isDemoView]);
+  }, [user, isDemoView, demoLoading, demoRestaurantId]);
   const checkAdminStatus = async () => {
     const {
       data: isAdminData
@@ -256,16 +268,18 @@ const Dashboard = () => {
       fetchLocations(selected.id);
     }
   };
-  if (loading) {
+  // Show loading while demo mode or auth is loading
+  if (loading || demoLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
-  // Check if user should bypass paywall
+  // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
   const planType = restaurant?.plan_type || 'standard';
   const superAdmin = isSuperAdmin(user?.email);
-  const shouldBypassPaywall = superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+  const shouldBypassPaywall = isDemoView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
+  // But NEVER redirect in demo mode
   // If no restaurant is loaded yet, show loading
   if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
