@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ interface StripeSessionData {
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -128,7 +129,7 @@ const Auth = () => {
       // Determine redirect destination based on role
       const destination = await determineRedirectDestination();
       console.log("[Auth] Redirecting to:", destination);
-      window.location.href = destination;
+      navigate(destination);
     } catch (e: any) {
       setError(e.message ?? "Unable to log in. Please check your credentials.");
     } finally {
