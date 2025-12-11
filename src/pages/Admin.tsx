@@ -365,7 +365,7 @@ const Admin = () => {
       <section className="bg-card border rounded-xl p-4 space-y-3">
         <h2 className="font-semibold">Sales Rep Portal</h2>
         <p className="text-sm text-muted-foreground">
-          Manage 1099 sales reps, applications, and commissions.
+          Manage 1099 sales reps, applications, commissions, and tax documents.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => navigate('/admin/reps')} variant="outline">
@@ -373,6 +373,9 @@ const Admin = () => {
           </Button>
           <Button onClick={() => navigate('/admin/commissions')} variant="outline">
             Commission Management
+          </Button>
+          <Button onClick={() => navigate('/admin/tax-review')} variant="outline">
+            W-9 Tax Review
           </Button>
           <Button onClick={() => navigate('/admin/settings/comp')} variant="outline">
             Compensation Settings

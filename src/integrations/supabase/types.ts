@@ -918,6 +918,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rep_tax_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          rep_user_id: string
+          status: string
+          updated_at: string
+          w9_file_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          rep_user_id: string
+          status?: string
+          updated_at?: string
+          w9_file_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          rep_user_id?: string
+          status?: string
+          updated_at?: string
+          w9_file_path?: string | null
+        }
+        Relationships: []
+      }
       restaurant_engagement: {
         Row: {
           content: string
@@ -1291,6 +1321,30 @@ export type Database = {
       }
     }
     Views: {
+      rep_tax_status: {
+        Row: {
+          created_at: string | null
+          rejection_note: string | null
+          rep_user_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          rejection_note?: never
+          rep_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          rejection_note?: never
+          rep_user_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       restaurant_public_info: {
         Row: {
           avm_negative_label: string | null
