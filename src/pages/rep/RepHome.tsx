@@ -167,16 +167,18 @@ const RepHome = () => {
         
         {/* Hero Section */}
         <div className="flex flex-col items-start pt-3 pb-3">
-          {/* Logo - full width */}
-          <img 
-            src="/tapaway-logo.svg" 
-            alt="TapAway" 
-            className="w-full max-w-[280px] h-auto mb-2"
-            style={{ 
-              mixBlendMode: 'multiply',
-              filter: 'contrast(1.1)'
-            }} 
-          />
+          {/* Logo - cropped to remove internal whitespace */}
+          <div className="w-full max-w-[280px] h-12 overflow-hidden mb-2">
+            <img 
+              src="/tapaway-logo.svg" 
+              alt="TapAway" 
+              className="w-full h-auto -mt-[38%] -mb-[38%]"
+              style={{ 
+                mixBlendMode: 'multiply',
+                filter: 'contrast(1.1)'
+              }} 
+            />
+          </div>
           
           {/* Text block */}
           <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400 uppercase">
