@@ -259,8 +259,9 @@ Max 2 opportunities, max 3 wins. Return ONLY valid JSON, no explanation.`;
     );
   } catch (error) {
     console.error('Error in ai-coach-insights:', error);
+    // Return sanitized error message - don't expose internal details
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'An error occurred while fetching insights. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
