@@ -16,7 +16,7 @@ interface AnalyticsData {
   peakDay: string;
 }
 
-interface AnalyticsOverviewProps {
+export interface AnalyticsOverviewProps {
   restaurantId: string;
   restaurantName: string;
   restaurant: {
@@ -24,9 +24,10 @@ interface AnalyticsOverviewProps {
     restaurant_name: string;
   };
   user: any;
+  isDemoView?: boolean;
 }
 
-export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user }: AnalyticsOverviewProps) => {
+export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user, isDemoView = false }: AnalyticsOverviewProps) => {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     googleClicks: 0,

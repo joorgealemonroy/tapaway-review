@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Trophy, Mail } from "lucide-react";
 
-interface CompetitorTabProps {
+export interface CompetitorTabProps {
   restaurantId: string;
+  isDemoView?: boolean;
 }
 
-export const CompetitorTab = ({ restaurantId }: CompetitorTabProps) => {
+export const CompetitorTab = ({ restaurantId, isDemoView = false }: CompetitorTabProps) => {
   return (
     <div className="space-y-6 pb-8 animate-fade-in">
       <div>
