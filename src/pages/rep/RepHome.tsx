@@ -162,35 +162,36 @@ const RepHome = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Mobile-first container - tighter top padding */}
-      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-24 sm:max-w-3xl">
+      {/* Mobile-first container */}
+      <div className="mx-auto w-full max-w-md px-4 pb-24 sm:max-w-3xl">
         
-        {/* Logo - minimal spacing */}
-        <div className="flex justify-center mb-3">
+        {/* Hero Section */}
+        <div className="flex flex-col items-start gap-1 pt-4 pb-4">
+          {/* Logo */}
           <img 
             src="/tapaway-logo.svg" 
             alt="TapAway" 
-            className="h-24 w-auto"
+            className="h-8 w-auto mb-3"
             style={{ 
               mixBlendMode: 'multiply',
               filter: 'contrast(1.1)'
             }} 
           />
-        </div>
-
-        {/* Header - larger, bolder */}
-        <header className="mb-5">
-          <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Sales Partner Portal</p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">
+          
+          {/* Text block */}
+          <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400 uppercase">
+            Sales Partner Portal
+          </p>
+          <h1 className="text-2xl font-semibold text-slate-900 mt-1">
             Welcome back{salesRep?.name ? `, ${salesRep.name.split(' ')[0]}` : ''}
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-slate-600 mt-1 leading-snug">
             Track your closes, commissions, and show owners TapAway in action.
           </p>
-        </header>
+        </div>
 
         {/* Desktop nav - hidden on mobile */}
-        <nav className="hidden sm:flex gap-2 mb-5">
+        <nav className="hidden sm:flex gap-2 mb-4">
           {navItems.map((item) => (
             <button
               key={item.path}
@@ -207,7 +208,7 @@ const RepHome = () => {
         </nav>
 
         {/* Stats Grid - 2x2, larger cards */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mt-4 mb-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="h-5 w-5 text-slate-400" />
