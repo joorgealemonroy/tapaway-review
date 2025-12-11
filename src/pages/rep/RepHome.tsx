@@ -166,8 +166,8 @@ const RepHome = () => {
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-20 sm:max-w-3xl">
         
         {/* Logo */}
-        <div className="mb-4">
-          <img src="/tapaway-logo.svg" alt="TapAway" className="h-7" />
+        <div className="mb-6 flex justify-center">
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-10" />
         </div>
 
         {/* Header */}
