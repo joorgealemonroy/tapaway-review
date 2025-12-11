@@ -166,13 +166,13 @@ const RepHome = () => {
       <div className="mx-auto w-full max-w-md px-4 pb-24 sm:max-w-3xl">
         
         {/* Hero Section */}
-        <div className="flex flex-col items-start pt-3 pb-3">
-          {/* Logo - cropped to remove internal whitespace */}
-          <div className="w-full max-w-[280px] h-12 overflow-hidden mb-2">
+        <div className="flex flex-col items-center pt-3 pb-3">
+          {/* Logo - cropped and centered */}
+          <div className="w-full max-w-[280px] h-14 overflow-hidden mb-2">
             <img 
               src="/tapaway-logo.svg" 
               alt="TapAway" 
-              className="w-full h-auto -mt-[38%] -mb-[38%]"
+              className="w-full h-auto -mt-[38%] -mb-[32%]"
               style={{ 
                 mixBlendMode: 'multiply',
                 filter: 'contrast(1.1)'
