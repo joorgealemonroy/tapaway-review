@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, MapPin, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
 import { MenuTab } from "@/components/dashboard/MenuTab";
@@ -22,6 +22,8 @@ import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard"
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
+import { useSalesRep } from "@/hooks/useSalesRep";
+
 interface Restaurant {
   id: string;
   restaurant_name: string;
@@ -51,6 +53,13 @@ const Dashboard = () => {
     signOut
   } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { isSalesRep } = useSalesRep();
+  
+  // Demo mode detection
+  const demoRestaurantId = searchParams.get('demo_restaurant_id');
+  const [isDemoView, setIsDemoView] = useState(false);
+  
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -59,18 +68,54 @@ const Dashboard = () => {
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Handle demo mode for sales reps
   useEffect(() => {
+    const loadDemoRestaurant = async () => {
+      if (!demoRestaurantId || !user) return;
+      
+      // Fetch the demo restaurant
+      const { data: demoRestaurant, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('id', demoRestaurantId)
+        .eq('is_demo_account', true)
+        .maybeSingle();
+      
+      if (error || !demoRestaurant) {
+        toast.error("Demo restaurant not found");
+        navigate('/rep');
+        return;
+      }
+      
+      // Sales rep accessing demo - allow it
+      setIsDemoView(true);
+      setRestaurant(demoRestaurant as Restaurant);
+      fetchLocations(demoRestaurant.id);
+    };
+    
+    if (demoRestaurantId && user && isSalesRep) {
+      loadDemoRestaurant();
+    }
+  }, [demoRestaurantId, user, isSalesRep, navigate]);
+  
+  useEffect(() => {
+    // Skip normal auth redirect if in demo mode
+    if (demoRestaurantId && isSalesRep) return;
+    
     if (!loading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, demoRestaurantId, isSalesRep]);
   // Only fetch on initial mount, not on every user change
+  // Skip if in demo mode (already loaded demo restaurant)
   useEffect(() => {
+    if (isDemoView) return; // Skip if demo mode is active
     if (user && !restaurant) {
       checkAdminStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, isDemoView]);
   const checkAdminStatus = async () => {
     const {
       data: isAdminData
@@ -245,8 +290,21 @@ const Dashboard = () => {
       </nav>
 
       <div className="max-w-6xl mx-auto px-3 md:px-4 py-4 md:py-8">
+        {/* Demo Mode Banner */}
+        {isDemoView && (
+          <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-amber-50 border-amber-200">
+            <div className="flex items-center gap-2 mb-1">
+              <Eye className="w-4 h-4 text-amber-600" />
+              <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Demo Mode (Read-Only)</span>
+            </div>
+            <p className="text-sm text-amber-700">
+              You're viewing a demo restaurant. All data is read-only — no changes can be made.
+            </p>
+          </Card>
+        )}
+
         {/* Admin restaurant switcher */}
-        {isAdmin && allRestaurants.length > 0 && <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
+        {isAdmin && !isDemoView && allRestaurants.length > 0 && <Card className="p-3 md:p-4 mb-4 md:mb-6 bg-primary/5 border-primary/20">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <span className="text-xs font-semibold text-primary uppercase tracking-wide">Admin Mode</span>
@@ -317,17 +375,30 @@ const Dashboard = () => {
                 {restaurant.restaurant_name}
               </h1>
               <p className="text-sm md:text-base text-muted-foreground">
-                {isAdmin ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` : isTestAccountFlag ? "Test Account Dashboard" : "Restaurant Dashboard"}
+                {isDemoView 
+                  ? "Demo Dashboard (Read-Only)" 
+                  : isAdmin 
+                    ? `Admin Dashboard - Managing ${allRestaurants.length} restaurant${allRestaurants.length !== 1 ? 's' : ''}` 
+                    : isTestAccountFlag 
+                      ? "Test Account Dashboard" 
+                      : "Restaurant Dashboard"}
               </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
               <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
-                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-3 h-auto gap-1">
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
+                  <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-1' : 'md:grid-cols-3'} h-auto gap-1`}>
                     <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
-                    <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                    <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-                  </TabsList> : <TabsList className="inline-flex min-w-full md:grid md:w-full md:grid-cols-4 lg:grid-cols-10 h-auto gap-1">
+                    {!isDemoView && (
+                      <>
+                        <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                        <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                      </>
+                    )}
+                  </TabsList>
+                ) : (
+                  <TabsList className={`inline-flex min-w-full md:grid md:w-full md:grid-cols-4 ${isDemoView ? 'lg:grid-cols-7' : 'lg:grid-cols-10'} h-auto gap-1`}>
                     <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                     <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
                     <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
@@ -335,15 +406,20 @@ const Dashboard = () => {
                     <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
                     <TabsTrigger value="engagement" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
                     <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
-                    <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                    <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
-                    <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
-                  </TabsList>}
+                    {!isDemoView && (
+                      <>
+                        <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                        <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
+                        <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                      </>
+                    )}
+                  </TabsList>
+                )}
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
-                {/* Welcome banner for new users */}
-                {!isAdmin && restaurant.created_at && (
+                {/* Welcome banner for new users - hide in demo mode */}
+                {!isAdmin && !isDemoView && restaurant.created_at && (
                   <WelcomeBanner
                     restaurantId={restaurant.id}
                     restaurantName={restaurant.restaurant_name}
@@ -353,46 +429,52 @@ const Dashboard = () => {
                     hasYelpLink={!!restaurant.yelp_review_url}
                   />
                 )}
-                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} />}
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} isDemoView={isDemoView} />}
               </TabsContent>
 
               {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && <>
                   <TabsContent value="ai-coach">
-                    <AICoachTab restaurantId={restaurant.id} />
+                    <AICoachTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="competitors">
-                    <CompetitorTab restaurantId={restaurant.id} />
+                    <CompetitorTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="replies">
-                    <ReviewRepliesTab restaurantId={restaurant.id} />
+                    <ReviewRepliesTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="goals">
-                    <GoalsTab restaurantId={restaurant.id} />
+                    <GoalsTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="engagement">
-                    <EngagementTab restaurantId={restaurant.id} />
+                    <EngagementTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="menu">
-                    <MenuTab restaurantId={restaurant.id} />
+                    <MenuTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
-                  <TabsContent value="support">
-                    <SupportTab />
-                  </TabsContent>
+                  {!isDemoView && (
+                    <TabsContent value="support">
+                      <SupportTab />
+                    </TabsContent>
+                  )}
                 </>}
 
-              <TabsContent value="settings">
-                <SettingsTab restaurantId={restaurant.id} />
-              </TabsContent>
+              {!isDemoView && (
+                <>
+                  <TabsContent value="settings">
+                    <SettingsTab restaurantId={restaurant.id} />
+                  </TabsContent>
 
-              <TabsContent value="billing">
-                <BillingTab restaurant={restaurant} isTestAccount={isTestAccountFlag} isGrandfathered={isGrandfathered} />
-              </TabsContent>
+                  <TabsContent value="billing">
+                    <BillingTab restaurant={restaurant} isTestAccount={isTestAccountFlag} isGrandfathered={isGrandfathered} />
+                  </TabsContent>
+                </>
+              )}
             </Tabs>
           </>}
       </div>

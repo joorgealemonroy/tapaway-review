@@ -17,11 +17,12 @@ interface Engagement {
   is_active: boolean;
 }
 
-interface EngagementTabProps {
+export interface EngagementTabProps {
   restaurantId: string;
+  isDemoView?: boolean;
 }
 
-export const EngagementTab = ({ restaurantId }: EngagementTabProps) => {
+export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTabProps) => {
   const { toast } = useToast();
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading] = useState(true);

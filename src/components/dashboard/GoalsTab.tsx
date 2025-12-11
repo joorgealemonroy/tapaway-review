@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 
-interface GoalsTabProps {
+export interface GoalsTabProps {
   restaurantId: string;
+  isDemoView?: boolean;
 }
 
 interface GoalData {
@@ -28,7 +29,7 @@ interface Metrics {
   tapsLastWeek: number;
 }
 
-export const GoalsTab = ({ restaurantId }: GoalsTabProps) => {
+export const GoalsTab = ({ restaurantId, isDemoView = false }: GoalsTabProps) => {
   const [goals, setGoals] = useState<GoalData[]>([]);
   const [metrics, setMetrics] = useState<Metrics>({
     reviewsThisMonth: 0,

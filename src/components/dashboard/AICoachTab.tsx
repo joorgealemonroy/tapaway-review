@@ -44,7 +44,7 @@ const SUGGESTED_QUESTIONS = [
   "How can I get more reviews this week?",
 ];
 
-export const AICoachTab = ({ restaurantId }: { restaurantId: string }) => {
+export const AICoachTab = ({ restaurantId, isDemoView = false }: { restaurantId: string; isDemoView?: boolean }) => {
   const [stats, setStats] = useState<AiCoachStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);

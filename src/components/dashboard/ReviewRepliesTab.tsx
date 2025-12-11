@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Copy, Sparkles, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
-interface ReviewRepliesTabProps {
+export interface ReviewRepliesTabProps {
   restaurantId: string;
+  isDemoView?: boolean;
 }
 
 interface ReviewReply {
@@ -19,7 +20,7 @@ interface ReviewReply {
   aiReply: string;
 }
 
-export const ReviewRepliesTab = ({ restaurantId }: ReviewRepliesTabProps) => {
+export const ReviewRepliesTab = ({ restaurantId, isDemoView = false }: ReviewRepliesTabProps) => {
   const [reviewText, setReviewText] = useState('');
   const [reviewerName, setReviewerName] = useState('');
   const [rating, setRating] = useState(5);

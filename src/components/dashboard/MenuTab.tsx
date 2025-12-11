@@ -25,11 +25,12 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-interface MenuTabProps {
+export interface MenuTabProps {
   restaurantId: string;
+  isDemoView?: boolean;
 }
 
-export const MenuTab = ({ restaurantId }: MenuTabProps) => {
+export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
   const { toast } = useToast();
   const [sections, setSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
