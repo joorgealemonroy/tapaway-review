@@ -165,6 +165,11 @@ const RepHome = () => {
       {/* Mobile-first container */}
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-20 sm:max-w-3xl">
         
+        {/* Logo */}
+        <div className="mb-4">
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-7" />
+        </div>
+
         {/* Header */}
         <header className="mb-4">
           <p className="text-[11px] uppercase tracking-wide text-slate-400">Sales Partner Portal</p>
