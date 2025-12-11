@@ -104,7 +104,11 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const repEmail = userData.user.email;
-    const repName = payoutAccount.payee_name || "Sales Partner";
+    
+    // Get first name from payee_name or use full payee_name
+    const payeeNameParts = (payoutAccount.payee_name || "").trim().split(" ");
+    const firstName = payeeNameParts[0] || payoutAccount.payee_name || "Partner";
+    
     const amount = Number(payout.amount).toFixed(2);
     const paidAt = payout.paid_at ? new Date(payout.paid_at).toLocaleDateString("en-US", {
       year: "numeric",
@@ -118,62 +122,69 @@ serve(async (req: Request): Promise<Response> => {
 
     const emailFrom = Deno.env.get("EMAIL_FROM") || "TapAway <notifications@tapaway.co>";
 
-    // Build email HTML
+    // Build email HTML with TapAway's friendly tone
     const htmlContent = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #0F766E; margin: 0; font-size: 24px;">💰 Payout Sent!</h1>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155;">
+        
+        <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi ${firstName},</p>
+        
+        <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">Your TapAway commission payout has just been sent.</p>
+        
+        <div style="background: #F8FAFC; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="padding: 8px 0; font-size: 15px;">
+              <strong>Amount:</strong> $${amount}
+            </li>
+            <li style="padding: 8px 0; font-size: 15px;">
+              <strong>Status:</strong> <span style="color: #059669;">Sent</span>
+            </li>
+            <li style="padding: 8px 0; font-size: 15px;">
+              <strong>Date:</strong> ${paidAt}
+            </li>
+            <li style="padding: 8px 0; font-size: 15px;">
+              <strong>Bank:</strong> ending in ****${payoutAccount.account_last4}
+            </li>
+          </ul>
         </div>
         
-        <p style="color: #334155; font-size: 16px; line-height: 1.6;">Hi ${repName},</p>
-        
-        <p style="color: #334155; font-size: 16px; line-height: 1.6;">Your TapAway commission payout has been sent.</p>
-        
-        <div style="background: #F8FAFC; border-radius: 12px; padding: 20px; margin: 24px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 0; color: #64748B; font-size: 14px;">Amount</td>
-              <td style="padding: 8px 0; color: #0F172A; font-size: 16px; font-weight: 600; text-align: right;">$${amount}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #64748B; font-size: 14px;">Status</td>
-              <td style="padding: 8px 0; color: #059669; font-size: 14px; font-weight: 500; text-align: right;">✓ Sent</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #64748B; font-size: 14px;">Date</td>
-              <td style="padding: 8px 0; color: #0F172A; font-size: 14px; text-align: right;">${paidAt}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #64748B; font-size: 14px;">Bank Account</td>
-              <td style="padding: 8px 0; color: #0F172A; font-size: 14px; font-family: monospace; text-align: right;">****${payoutAccount.account_last4}</td>
-            </tr>
-            ${payout.note ? `
-            <tr>
-              <td style="padding: 8px 0; color: #64748B; font-size: 14px;">Note</td>
-              <td style="padding: 8px 0; color: #0F172A; font-size: 14px; text-align: right;">${payout.note}</td>
-            </tr>
-            ` : ""}
-          </table>
-        </div>
-        
-        <p style="color: #64748B; font-size: 14px; line-height: 1.6; margin-top: 24px;">
-          Payouts are processed weekly on Tuesdays at 12 PM Pacific and may take 1–3 business days to arrive depending on your bank.
+        <p style="font-size: 14px; line-height: 1.6; color: #64748B; margin: 0 0 24px 0;">
+          Payouts are processed every Tuesday at 12:00 PM Pacific and can take 1–3 business days to show up in your account depending on your bank.
         </p>
         
-        <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 30px 0;" />
-        
-        <p style="color: #94A3B8; font-size: 12px; text-align: center;">
-          TapAway • Commission Payout Notification
+        <p style="font-size: 14px; line-height: 1.6; color: #64748B; margin: 0 0 24px 0;">
+          If anything looks off, reply to this email and we'll check it out.
         </p>
+        
+        <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0;">
+          – TapAway
+        </p>
+        
       </div>
     `;
+
+    // Plain text version
+    const textContent = `Hi ${firstName},
+
+Your TapAway commission payout has just been sent.
+
+• Amount: $${amount}
+• Status: Sent
+• Date: ${paidAt}
+• Bank: ending in ****${payoutAccount.account_last4}
+
+Payouts are processed every Tuesday at 12:00 PM Pacific and can take 1–3 business days to show up in your account depending on your bank.
+
+If anything looks off, reply to this email and we'll check it out.
+
+– TapAway`;
 
     // Send email via Resend
     const { error: emailError } = await resend.emails.send({
       from: emailFrom,
       to: [repEmail],
-      subject: "Your TapAway payout has been sent",
+      subject: "Your TapAway payout is on the way 💸",
       html: htmlContent,
+      text: textContent,
     });
 
     if (emailError) {
@@ -190,7 +201,7 @@ serve(async (req: Request): Promise<Response> => {
       .update({ email_sent_at: new Date().toISOString() })
       .eq("id", payout_id);
 
-    console.log("Payout notification email sent successfully to:", repEmail);
+    console.log("Payout notification email sent successfully");
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent" }),
