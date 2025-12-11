@@ -162,15 +162,15 @@ const RepHome = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Mobile-first container */}
-      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-20 sm:max-w-3xl">
+      {/* Mobile-first container - tighter top padding */}
+      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-24 sm:max-w-3xl">
         
-        {/* Logo */}
-        <div className="mb-8 flex justify-center py-4">
+        {/* Logo - minimal spacing */}
+        <div className="flex justify-center mb-3">
           <img 
             src="/tapaway-logo.svg" 
             alt="TapAway" 
-            className="h-32 w-auto"
+            className="h-24 w-auto"
             style={{ 
               mixBlendMode: 'multiply',
               filter: 'contrast(1.1)'
@@ -178,19 +178,19 @@ const RepHome = () => {
           />
         </div>
 
-        {/* Header */}
-        <header className="mb-4">
-          <p className="text-[11px] uppercase tracking-wide text-slate-400">Sales Partner Portal</p>
-          <h1 className="text-xl font-semibold text-slate-900">
+        {/* Header - larger, bolder */}
+        <header className="mb-5">
+          <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Sales Partner Portal</p>
+          <h1 className="text-2xl font-bold text-slate-900 mt-1">
             Welcome back{salesRep?.name ? `, ${salesRep.name.split(' ')[0]}` : ''}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-600 mt-1">
             Track your closes, commissions, and show owners TapAway in action.
           </p>
         </header>
 
         {/* Desktop nav - hidden on mobile */}
-        <nav className="hidden sm:flex gap-2 mb-4">
+        <nav className="hidden sm:flex gap-2 mb-5">
           {navItems.map((item) => (
             <button
               key={item.path}
@@ -206,59 +206,59 @@ const RepHome = () => {
           ))}
         </nav>
 
-        {/* Stats Grid - 2x2 */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-400" />
-              <span className="text-[11px] uppercase tracking-wide text-slate-500">Today</span>
+        {/* Stats Grid - 2x2, larger cards */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-5 w-5 text-slate-400" />
+              <span className="text-xs uppercase tracking-wide text-slate-500 font-medium">Today</span>
             </div>
-            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.closesToday}</p>
+            <p className="text-2xl font-bold text-slate-900">{stats.closesToday}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-slate-400" />
-              <span className="text-[11px] uppercase tracking-wide text-slate-500">This Month</span>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-5 w-5 text-slate-400" />
+              <span className="text-xs uppercase tracking-wide text-slate-500 font-medium">This Month</span>
             </div>
-            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.closesThisMonth}</p>
+            <p className="text-2xl font-bold text-slate-900">{stats.closesThisMonth}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-slate-400" />
-              <span className="text-[11px] uppercase tracking-wide text-slate-500">Lifetime</span>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="h-5 w-5 text-slate-400" />
+              <span className="text-xs uppercase tracking-wide text-slate-500 font-medium">Lifetime</span>
             </div>
-            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.lifetimeCloses}</p>
+            <p className="text-2xl font-bold text-slate-900">{stats.lifetimeCloses}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-emerald-500" />
-              <span className="text-[11px] uppercase tracking-wide text-slate-500">Pending</span>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-5 w-5 text-emerald-500" />
+              <span className="text-xs uppercase tracking-wide text-slate-500 font-medium">Pending</span>
             </div>
-            <p className="text-lg font-semibold text-emerald-600 mt-1">${stats.pendingCommission}</p>
-            <p className="text-[11px] text-slate-400">${stats.paidCommission} paid</p>
+            <p className="text-2xl font-bold text-emerald-600">${stats.pendingCommission}</p>
+            <p className="text-xs text-slate-400 mt-1">${stats.paidCommission} paid</p>
           </div>
         </div>
 
         {/* Bonus Progress Card */}
-        <div className="rounded-2xl bg-white shadow-sm border border-slate-100 p-4 mb-4">
-          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
+        <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-4 mb-5">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-3">
             🎯 Monthly Bonus Progress
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">
+              <span className="text-slate-600 font-medium">
                 {stats.bonusProgress} / {stats.bonusThreshold} closes
               </span>
-              <span className="font-medium text-slate-700">
+              <span className="font-semibold text-slate-900">
                 {hasEarnedBonus ? '🎉 Bonus Earned!' : `$500 at ${stats.bonusThreshold}`}
               </span>
             </div>
-            <Progress value={bonusPercentage} className="h-2.5" />
+            <Progress value={bonusPercentage} className="h-3" />
             {hasEarnedBonus && (
-              <p className="text-xs text-emerald-600">
+              <p className="text-sm text-emerald-600 font-medium">
                 Congratulations! Next bonus at {nextBonusAt} closes.
               </p>
             )}
@@ -268,7 +268,7 @@ const RepHome = () => {
         {/* Primary CTA */}
         <button 
           onClick={() => navigate('/rep/close')}
-          className="w-full inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold bg-emerald-500 text-white shadow-sm mb-3 active:scale-[0.98] transition-transform"
+          className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-4 text-base font-bold bg-emerald-500 text-white shadow-md mb-3 active:scale-[0.98] transition-transform"
         >
           <Plus className="mr-2 h-5 w-5" />
           Close a Restaurant Now
@@ -277,7 +277,7 @@ const RepHome = () => {
         {/* Secondary CTA */}
         <button 
           onClick={() => navigate('/rep/restaurants')}
-          className="w-full inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-medium border border-slate-200 bg-white text-slate-900 mb-4 active:scale-[0.98] transition-transform"
+          className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-4 text-base font-semibold border border-slate-200 bg-white text-slate-900 shadow-sm mb-5 active:scale-[0.98] transition-transform"
         >
           View My Restaurants
         </button>
