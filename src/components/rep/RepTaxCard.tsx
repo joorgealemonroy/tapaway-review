@@ -165,25 +165,42 @@ export const RepTaxCard = ({ userId }: RepTaxCardProps) => {
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 <span className="text-sm font-medium">You haven't uploaded a W-9 yet.</span>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={() => setShowUploadModal(true)} className="flex-1">
+              <div className="flex flex-col gap-2">
+                <Button onClick={() => setShowUploadModal(true)} className="w-full sm:w-auto">
                   <Upload className="h-4 w-4 mr-2" />
                   Upload W-9
                 </Button>
-                <Button
-                  variant="outline"
-                  asChild
-                  className="flex-1"
-                >
-                  <a
-                    href="https://www.irs.gov/pub/irs-pdf/fw9.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    asChild
+                    size="sm"
+                    className="flex-1"
                   >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Download Blank W-9
-                  </a>
-                </Button>
+                    <a
+                      href="https://www.irs.gov/pub/irs-pdf/fw9.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Download IRS W-9
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    asChild
+                    size="sm"
+                    className="flex-1"
+                  >
+                    <a
+                      href="/TapAway_W9_Short_Instructions.pdf"
+                      download="TapAway_W9_Instructions.pdf"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      W-9 Instructions
+                    </a>
+                  </Button>
+                </div>
               </div>
             </div>
           )}
