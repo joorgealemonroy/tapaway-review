@@ -825,6 +825,7 @@ export type Database = {
         Row: {
           account_last4: string
           account_number: string
+          acknowledged_payout_policy: boolean | null
           bank_name: string | null
           created_at: string
           id: string
@@ -837,6 +838,7 @@ export type Database = {
         Insert: {
           account_last4: string
           account_number: string
+          acknowledged_payout_policy?: boolean | null
           bank_name?: string | null
           created_at?: string
           id?: string
@@ -849,6 +851,7 @@ export type Database = {
         Update: {
           account_last4?: string
           account_number?: string
+          acknowledged_payout_policy?: boolean | null
           bank_name?: string | null
           created_at?: string
           id?: string
@@ -857,6 +860,36 @@ export type Database = {
           rep_user_id?: string
           routing_number?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rep_payout_history: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          rep_user_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          rep_user_id: string
+          status: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          rep_user_id?: string
+          status?: string
         }
         Relationships: []
       }

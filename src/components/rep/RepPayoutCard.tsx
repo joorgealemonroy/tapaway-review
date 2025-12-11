@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Save, CheckCircle, Info, Eye, EyeOff } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Building2, Save, CheckCircle, Info, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -19,7 +20,22 @@ interface PayoutAccount {
   payee_type: string;
   bank_name: string | null;
   account_last4: string;
+  acknowledged_payout_policy: boolean;
 }
+
+// ABA routing number checksum validation
+const validateRoutingNumber = (routing: string): boolean => {
+  if (!/^\d{9}$/.test(routing)) return false;
+  
+  const digits = routing.split('').map(Number);
+  const checksum = (
+    3 * (digits[0] + digits[3] + digits[6]) +
+    7 * (digits[1] + digits[4] + digits[7]) +
+    (digits[2] + digits[5] + digits[8])
+  );
+  
+  return checksum % 10 === 0;
+};
 
 export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
   const [loading, setLoading] = useState(true);
@@ -37,17 +53,35 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
   const [showRouting, setShowRouting] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showConfirmAccount, setShowConfirmAccount] = useState(false);
+  const [acknowledgedPolicy, setAcknowledgedPolicy] = useState(false);
+  
+  // Validation state
+  const [routingError, setRoutingError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPayoutAccount();
   }, [userId]);
 
+  // Validate routing number on change
+  useEffect(() => {
+    if (routingNumber.length === 9) {
+      if (!validateRoutingNumber(routingNumber)) {
+        setRoutingError('Invalid routing number');
+      } else {
+        setRoutingError(null);
+      }
+    } else if (routingNumber.length > 0 && routingNumber.length < 9) {
+      setRoutingError(null); // Clear error while typing
+    } else {
+      setRoutingError(null);
+    }
+  }, [routingNumber]);
+
   const fetchPayoutAccount = async () => {
     try {
-      // Only select non-sensitive fields
       const { data, error } = await supabase
         .from('rep_payout_accounts')
-        .select('id, payee_name, payee_type, bank_name, account_last4')
+        .select('id, payee_name, payee_type, bank_name, account_last4, acknowledged_payout_policy')
         .eq('rep_user_id', userId)
         .maybeSingle();
 
@@ -58,6 +92,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
         setPayeeName(data.payee_name);
         setPayeeType(data.payee_type as 'individual' | 'business');
         setBankName(data.bank_name || '');
+        setAcknowledgedPolicy(data.acknowledged_payout_policy || false);
       }
     } catch (error) {
       // No account yet is fine
@@ -75,6 +110,10 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
       toast.error('Routing number must be 9 digits');
       return false;
     }
+    if (!validateRoutingNumber(routingNumber)) {
+      toast.error('Invalid routing number checksum');
+      return false;
+    }
     if (!/^\d{9}$/.test(routingNumber)) {
       toast.error('Routing number must contain only digits');
       return false;
@@ -89,6 +128,10 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
     }
     if (accountNumber !== confirmAccountNumber) {
       toast.error('Account numbers do not match');
+      return false;
+    }
+    if (!acknowledgedPolicy) {
+      toast.error('Please acknowledge the payout policy');
       return false;
     }
     return true;
@@ -109,10 +152,10 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
         routing_number: routingNumber.trim(),
         account_number: accountNumber.trim(),
         account_last4: accountLast4,
+        acknowledged_payout_policy: acknowledgedPolicy,
       };
 
       if (existingAccount) {
-        // Update existing
         const { error } = await supabase
           .from('rep_payout_accounts')
           .update(payoutData)
@@ -120,7 +163,6 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
 
         if (error) throw error;
       } else {
-        // Insert new
         const { error } = await supabase
           .from('rep_payout_accounts')
           .insert(payoutData);
@@ -128,7 +170,6 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
         if (error) throw error;
       }
 
-      // Refresh data
       await fetchPayoutAccount();
       
       // Clear sensitive fields
@@ -150,12 +191,22 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
       setPayeeName(existingAccount.payee_name);
       setPayeeType(existingAccount.payee_type as 'individual' | 'business');
       setBankName(existingAccount.bank_name || '');
+      setAcknowledgedPolicy(existingAccount.acknowledged_payout_policy || false);
     }
     setRoutingNumber('');
     setAccountNumber('');
     setConfirmAccountNumber('');
+    setRoutingError(null);
     setIsEditing(false);
   };
+
+  const canSave = !saving && 
+    payeeName.trim() && 
+    routingNumber.length === 9 && 
+    !routingError &&
+    accountNumber.length >= 4 && 
+    accountNumber === confirmAccountNumber &&
+    acknowledgedPolicy;
 
   if (loading) {
     return (
@@ -170,7 +221,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
               <Building2 className="h-5 w-5 text-emerald-600" />
@@ -181,9 +232,9 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
             </div>
           </div>
           {existingAccount && !isEditing && (
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              On File
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              Bank Info Verified
             </Badge>
           )}
         </div>
@@ -272,7 +323,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
                   value={routingNumber}
                   onChange={(e) => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))}
                   placeholder="9 digits"
-                  className="h-10 pr-10 font-mono"
+                  className={`h-10 pr-10 font-mono ${routingError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   maxLength={9}
                   autoComplete="off"
                 />
@@ -284,6 +335,12 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
                   {showRouting ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {routingError && (
+                <div className="flex items-center gap-1 text-red-600 text-xs">
+                  <AlertCircle className="h-3 w-3" />
+                  {routingError}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -334,13 +391,26 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
               </div>
             </div>
 
+            {/* Policy Acknowledgment Checkbox */}
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Checkbox
+                id="acknowledgePolicy"
+                checked={acknowledgedPolicy}
+                onCheckedChange={(checked) => setAcknowledgedPolicy(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="acknowledgePolicy" className="text-xs text-amber-900 leading-relaxed cursor-pointer">
+                I acknowledge payouts occur weekly every Tuesday at 12 PM Pacific, and newer commissions may appear in the following pay period.
+              </label>
+            </div>
+
             <div className="flex gap-2">
               {existingAccount && (
                 <Button variant="outline" onClick={handleCancel} className="flex-1">
                   Cancel
                 </Button>
               )}
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
+              <Button onClick={handleSave} disabled={!canSave} className="flex-1">
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : 'Save Bank Details'}
               </Button>
