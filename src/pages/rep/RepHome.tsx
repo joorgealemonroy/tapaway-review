@@ -297,14 +297,16 @@ const RepHome = () => {
 
                 <div className="flex flex-wrap gap-2">
                   {/* Open Demo Dashboard */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`/dashboard?demo_restaurant_id=${demoRestaurant.id}`, '_blank')}
+                  <a
+                    href={`/dashboard?demo_restaurant_id=${demoRestaurant.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Demo Dashboard
-                  </Button>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      View Demo Dashboard
+                    </Button>
+                  </a>
 
                   {/* Copy Review Hub Link */}
                   {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
