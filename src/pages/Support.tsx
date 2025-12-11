@@ -153,11 +153,11 @@ export default function Support() {
     }
     
     if (selectedType === 'NEW_CARDS' && formData.cardNeeds.length === 0) {
-      newErrors.cardNeeds = 'Please select at least one option' as any;
+      newErrors.cardNeeds = 'Please select at least one option';
     }
     
     if (selectedType === 'TECH_ISSUE' && formData.techIssues.length === 0) {
-      newErrors.techIssues = 'Please select at least one issue' as any;
+      newErrors.techIssues = 'Please select at least one issue';
     }
     
     setErrors(newErrors);

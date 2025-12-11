@@ -25,7 +25,7 @@ export const AdminPreflight = () => {
 
   const fetchRestaurants = async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('restaurants')
       .select('id, restaurant_name, custom_slug, is_demo_account, owner_name')
       .order('restaurant_name', { ascending: true });
