@@ -36,6 +36,7 @@ import AdminCommissions from "./pages/admin/AdminCommissions";
 import AdminCompSettings from "./pages/admin/AdminCompSettings";
 import AdminTaxReview from "./pages/admin/AdminTaxReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
+import AdminDemoRequests from "./pages/admin/AdminDemoRequests";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
             <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
             <Route path="/admin/tax-review" element={<AdminTaxReview />} />
             <Route path="/admin/payouts" element={<AdminPayouts />} />
+            <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
             
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
             <Route path="/:customSlug" element={<ReviewHub />} />

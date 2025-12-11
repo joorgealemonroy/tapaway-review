@@ -65,3 +65,6 @@ verify_jwt = true
 
 [functions.send-payout-notification]
 verify_jwt = true
+
+[functions.send-demo-request-notification]
+verify_jwt = true
