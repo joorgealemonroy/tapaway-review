@@ -821,6 +821,45 @@ export type Database = {
         }
         Relationships: []
       }
+      rep_payout_accounts: {
+        Row: {
+          account_last4: string
+          account_number: string
+          bank_name: string | null
+          created_at: string
+          id: string
+          payee_name: string
+          payee_type: string
+          rep_user_id: string
+          routing_number: string
+          updated_at: string
+        }
+        Insert: {
+          account_last4: string
+          account_number: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          payee_name: string
+          payee_type: string
+          rep_user_id: string
+          routing_number: string
+          updated_at?: string
+        }
+        Update: {
+          account_last4?: string
+          account_number?: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          payee_name?: string
+          payee_type?: string
+          rep_user_id?: string
+          routing_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rep_restaurants: {
         Row: {
           closed_at: string | null
@@ -1321,6 +1360,39 @@ export type Database = {
       }
     }
     Views: {
+      rep_payout_display: {
+        Row: {
+          account_last4: string | null
+          bank_name: string | null
+          created_at: string | null
+          id: string | null
+          payee_name: string | null
+          payee_type: string | null
+          rep_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_last4?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          payee_name?: string | null
+          payee_type?: string | null
+          rep_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_last4?: string | null
+          bank_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          payee_name?: string | null
+          payee_type?: string | null
+          rep_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rep_tax_status: {
         Row: {
           created_at: string | null

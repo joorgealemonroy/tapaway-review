@@ -4,14 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, User, CreditCard, FileText, Home, Users, Wallet, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, User, FileText, Home, Users, Wallet, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepTaxCard } from '@/components/rep/RepTaxCard';
+import { RepPayoutCard } from '@/components/rep/RepPayoutCard';
 
 const RepProfile = () => {
   const navigate = useNavigate();
@@ -21,7 +20,6 @@ const RepProfile = () => {
   
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [payoutMethod, setPayoutMethod] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -40,7 +38,6 @@ const RepProfile = () => {
     if (salesRep) {
       setName(salesRep.name || '');
       setPhone(salesRep.phone || '');
-      setPayoutMethod(salesRep.payout_method || '');
     }
   }, [salesRep]);
 
@@ -54,7 +51,6 @@ const RepProfile = () => {
         .update({
           name: name.trim(),
           phone: phone.trim() || null,
-          payout_method: payoutMethod.trim() || null,
         })
         .eq('id', salesRep.id);
 
@@ -94,7 +90,7 @@ const RepProfile = () => {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">Profile & Payments</h1>
-            <p className="text-sm text-slate-500">Manage your info and tax documents</p>
+            <p className="text-sm text-slate-500">Manage your info and payment details</p>
           </div>
         </div>
 
@@ -125,7 +121,7 @@ const RepProfile = () => {
                 </div>
                 <div>
                   <CardTitle className="text-base">Personal Information</CardTitle>
-                  <CardDescription className="text-xs">Your contact details for payouts</CardDescription>
+                  <CardDescription className="text-xs">Your contact details</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -162,31 +158,15 @@ const RepProfile = () => {
                 />
               </div>
 
-              <Separator className="my-2" />
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-slate-500" />
-                  <Label htmlFor="payout" className="text-xs font-medium text-slate-600">Payout Method</Label>
-                </div>
-                <Input
-                  id="payout"
-                  value={payoutMethod}
-                  onChange={(e) => setPayoutMethod(e.target.value)}
-                  placeholder="e.g., Zelle, CashApp, Venmo, PayPal"
-                  className="h-10"
-                />
-                <p className="text-xs text-slate-400">
-                  How you'd like to receive commission payments
-                </p>
-              </div>
-
               <Button onClick={handleSave} disabled={saving} className="w-full h-10">
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </CardContent>
           </Card>
+
+          {/* ACH Payout Card */}
+          {user && <RepPayoutCard userId={user.id} />}
 
           {/* Tax & Payments Card */}
           {user && <RepTaxCard userId={user.id} />}
