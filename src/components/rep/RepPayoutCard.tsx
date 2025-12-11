@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building2, Save, CheckCircle, Info, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Building2, Save, CheckCircle, Info, Eye, EyeOff, ShieldCheck, AlertCircle, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ interface PayoutAccount {
   bank_name: string | null;
   account_last4: string;
   acknowledged_payout_policy: boolean;
+  email_payout_notifications: boolean;
 }
 
 // ABA routing number checksum validation
@@ -54,6 +56,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
   const [showAccount, setShowAccount] = useState(false);
   const [showConfirmAccount, setShowConfirmAccount] = useState(false);
   const [acknowledgedPolicy, setAcknowledgedPolicy] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
   
   // Validation state
   const [routingError, setRoutingError] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
     try {
       const { data, error } = await supabase
         .from('rep_payout_accounts')
-        .select('id, payee_name, payee_type, bank_name, account_last4, acknowledged_payout_policy')
+        .select('id, payee_name, payee_type, bank_name, account_last4, acknowledged_payout_policy, email_payout_notifications')
         .eq('rep_user_id', userId)
         .maybeSingle();
 
@@ -93,6 +96,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
         setPayeeType(data.payee_type as 'individual' | 'business');
         setBankName(data.bank_name || '');
         setAcknowledgedPolicy(data.acknowledged_payout_policy || false);
+        setEmailNotifications(data.email_payout_notifications ?? true);
       }
     } catch (error) {
       // No account yet is fine
@@ -153,6 +157,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
         account_number: accountNumber.trim(),
         account_last4: accountLast4,
         acknowledged_payout_policy: acknowledgedPolicy,
+        email_payout_notifications: emailNotifications,
       };
 
       if (existingAccount) {
@@ -192,6 +197,7 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
       setPayeeType(existingAccount.payee_type as 'individual' | 'business');
       setBankName(existingAccount.bank_name || '');
       setAcknowledgedPolicy(existingAccount.acknowledged_payout_policy || false);
+      setEmailNotifications(existingAccount.email_payout_notifications ?? true);
     }
     setRoutingNumber('');
     setAccountNumber('');
@@ -415,6 +421,53 @@ export const RepPayoutCard = ({ userId }: RepPayoutCardProps) => {
                 {saving ? 'Saving...' : 'Save Bank Details'}
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Email Notification Toggle - only show when account exists and not editing */}
+        {existingAccount && !isEditing && (
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-3">
+              <Bell className="h-4 w-4 text-slate-600" />
+              <div>
+                <p className="text-sm font-medium text-slate-900">Email me when my payouts are sent</p>
+                <p className="text-xs text-slate-500">We'll send you an email each time a payout is marked as sent.</p>
+              </div>
+            </div>
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={async (checked) => {
+                setEmailNotifications(checked);
+                try {
+                  const { error } = await supabase
+                    .from('rep_payout_accounts')
+                    .update({ email_payout_notifications: checked })
+                    .eq('id', existingAccount.id);
+                  if (error) throw error;
+                  toast.success(checked ? 'Email notifications enabled' : 'Email notifications disabled');
+                } catch {
+                  setEmailNotifications(!checked);
+                  toast.error('Failed to update preference');
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* Email Notification Toggle - in edit mode */}
+        {isEditing && (
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-3">
+              <Bell className="h-4 w-4 text-slate-500" />
+              <div>
+                <p className="text-xs font-medium text-slate-700">Email me when my payouts are sent</p>
+                <p className="text-xs text-slate-500">Get notified each time a payout is marked as sent.</p>
+              </div>
+            </div>
+            <Switch
+              checked={emailNotifications}
+              onCheckedChange={setEmailNotifications}
+            />
           </div>
         )}
 

@@ -95,6 +95,10 @@ export const RepPayoutHistory = ({ userId }: RepPayoutHistoryProps) => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Info about email notifications */}
+        <div className="bg-slate-50 rounded-lg p-3 mb-4 text-xs text-slate-600 border border-slate-100">
+          We'll send you an email each time a payout is marked as sent if email notifications are enabled in your bank details.
+        </div>
         {payouts.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Wallet className="h-10 w-10 mx-auto mb-2 text-slate-300" />

@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.generate-payout-export]
 verify_jwt = true
+
+[functions.send-payout-notification]
+verify_jwt = true

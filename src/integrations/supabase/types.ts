@@ -828,6 +828,7 @@ export type Database = {
           acknowledged_payout_policy: boolean | null
           bank_name: string | null
           created_at: string
+          email_payout_notifications: boolean
           id: string
           payee_name: string
           payee_type: string
@@ -841,6 +842,7 @@ export type Database = {
           acknowledged_payout_policy?: boolean | null
           bank_name?: string | null
           created_at?: string
+          email_payout_notifications?: boolean
           id?: string
           payee_name: string
           payee_type: string
@@ -854,6 +856,7 @@ export type Database = {
           acknowledged_payout_policy?: boolean | null
           bank_name?: string | null
           created_at?: string
+          email_payout_notifications?: boolean
           id?: string
           payee_name?: string
           payee_type?: string
@@ -867,6 +870,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          email_sent_at: string | null
           id: string
           note: string | null
           paid_at: string | null
@@ -876,6 +880,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null
@@ -885,6 +890,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null

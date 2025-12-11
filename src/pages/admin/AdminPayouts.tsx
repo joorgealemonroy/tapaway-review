@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Building2, Users, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Download, Building2, Users, CheckCircle, Send, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -21,6 +21,7 @@ interface RepPayout {
   rep_name: string;
   rep_email: string;
   pending_amount: number;
+  email_payout_notifications: boolean;
 }
 
 const AdminPayouts = () => {
@@ -30,6 +31,7 @@ const AdminPayouts = () => {
 
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [sendingPayout, setSendingPayout] = useState<string | null>(null);
   const [payouts, setPayouts] = useState<RepPayout[]>([]);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ const AdminPayouts = () => {
       // Get all reps with payout accounts
       const { data: accounts, error: accountsError } = await supabase
         .from('rep_payout_accounts')
-        .select('id, rep_user_id, payee_name, payee_type, bank_name, account_last4, created_at');
+        .select('id, rep_user_id, payee_name, payee_type, bank_name, account_last4, created_at, email_payout_notifications');
 
       if (accountsError) throw accountsError;
 
@@ -90,6 +92,7 @@ const AdminPayouts = () => {
           rep_name: rep?.name || 'Unknown',
           rep_email: rep?.email || 'Unknown',
           pending_amount: pendingByRep[a.rep_user_id] || 0,
+          email_payout_notifications: a.email_payout_notifications ?? true,
         };
       });
 
@@ -128,6 +131,59 @@ const AdminPayouts = () => {
       toast.error('Failed to export: ' + error.message);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleMarkPayoutSent = async (payout: RepPayout) => {
+    if (payout.pending_amount <= 0) {
+      toast.error('No pending amount to pay');
+      return;
+    }
+
+    setSendingPayout(payout.rep_user_id);
+    try {
+      // Create a payout history record with status 'sent'
+      const { data: historyRecord, error: historyError } = await supabase
+        .from('rep_payout_history')
+        .insert({
+          rep_user_id: payout.rep_user_id,
+          amount: payout.pending_amount,
+          status: 'sent',
+          paid_at: new Date().toISOString(),
+          note: `ACH payout for pending commissions`,
+        })
+        .select()
+        .single();
+
+      if (historyError) throw historyError;
+
+      // Mark all pending commissions for this rep as paid
+      const { error: commissionsError } = await supabase
+        .from('commissions')
+        .update({ status: 'paid', paid_at: new Date().toISOString() })
+        .eq('rep_id', payout.rep_user_id)
+        .eq('status', 'pending');
+
+      if (commissionsError) throw commissionsError;
+
+      // Trigger payout notification email
+      try {
+        await supabase.functions.invoke('send-payout-notification', {
+          body: { payout_id: historyRecord.id },
+        });
+      } catch (emailError) {
+        // Don't fail the payout if email fails
+        console.error('Failed to send payout notification');
+      }
+
+      toast.success(`Payout of $${payout.pending_amount} marked as sent for ${payout.rep_name}`);
+      
+      // Refresh data
+      await fetchPayoutData();
+    } catch (error: any) {
+      toast.error('Failed to process payout: ' + error.message);
+    } finally {
+      setSendingPayout(null);
     }
   };
 
@@ -235,7 +291,9 @@ const AdminPayouts = () => {
                       <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Type</th>
                       <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Account</th>
                       <th className="text-right py-2 px-4 text-xs font-medium text-slate-500">Pending</th>
+                      <th className="text-center py-2 px-4 text-xs font-medium text-slate-500">Notify</th>
                       <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Added</th>
+                      <th className="text-right py-2 px-4 text-xs font-medium text-slate-500">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -266,8 +324,32 @@ const AdminPayouts = () => {
                             <span className="text-slate-400">$0</span>
                           )}
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          {payout.email_payout_notifications ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                              <Mail className="h-3 w-3 mr-1" />
+                              On
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400 text-xs">Off</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-slate-500 text-xs">
                           {format(new Date(payout.created_at), 'MMM d, yyyy')}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {payout.pending_amount > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkPayoutSent(payout)}
+                              disabled={sendingPayout === payout.rep_user_id}
+                              className="text-xs"
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              {sendingPayout === payout.rep_user_id ? 'Sending...' : 'Mark Sent'}
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
