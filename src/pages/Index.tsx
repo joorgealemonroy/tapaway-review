@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 import { NewHero } from "@/components/landing/NewHero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -130,11 +131,11 @@ const Index = () => {
             <a href="https://tapaway.co" className="font-black text-lg tracking-tight">
               TapAway
             </a>
-            {user ? <a href={dashboardLink} className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
+            {user ? <Link to={dashboardLink} className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
                 Dashboard
-              </a> : <a href="/paywall" className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
+              </Link> : <Link to="/paywall" className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
                 Get Started
-              </a>}
+              </Link>}
           </div>
         </div>
       </nav>
