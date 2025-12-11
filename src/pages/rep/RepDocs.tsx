@@ -203,42 +203,66 @@ const RepDocs = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            {[
-              {
-                objection: "We already ask for reviews.",
-                response: "TapAway gets reviews without asking — it's automatic and removes awkwardness."
-              },
-              {
-                objection: "My staff won't remember to use it.",
-                response: "That's fine — just place it at the counter, host stand, or inside every check presenter."
-              },
-              {
-                objection: "What if customers had a bad experience?",
-                response: "They usually won't tap the card. Only customers who are curious or satisfied interact with it."
-              },
-              {
-                objection: "We already have QR codes.",
-                response: "NFC tap triggers curiosity and gets dramatically more engagement than static QR codes."
-              },
-              {
-                objection: "Will this actually help ranking?",
-                response: "Yes — consistent 5-star reviews make Google show the restaurant higher in search results."
-              }
-            ].map((item, index) => (
-              <div key={index} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">
-                  "{item.objection}"
-                </p>
-                <p className="text-slate-700 dark:text-slate-300">
-                  <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
-                  {item.response}
-                </p>
-              </div>
-            ))}
+            {/* Objection 1 */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+              <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">
+                "We already ask for reviews."
+              </p>
+              <p className="text-slate-700 dark:text-slate-300">
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                TapAway gets reviews without asking — it's automatic and removes awkwardness.
+              </p>
+            </div>
+
+            {/* Objection 2 - Staff forget */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+              <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">
+                "What if my staff forget to hand it out?"
+              </p>
+              <p className="text-slate-700 dark:text-slate-300">
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                No problem — TapAway doesn't rely on staff handing it to specific customers.
+              </p>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">
+                Just place the card in consistent, high-traffic locations. Customers tap it on their own, which keeps everything natural and compliant.
+              </p>
+            </div>
+
+            {/* Objection 3 - QR codes (enhanced) */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+              <p className="font-medium text-orange-700 dark:text-orange-400 mb-2">
+                "We already use QR codes."
+              </p>
+              <p className="text-slate-700 dark:text-slate-300 mb-3">
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                Great — that means you're already ahead of the curve on digital customer engagement.
+              </p>
+              <p className="font-medium text-slate-900 dark:text-white mb-2">Here's how TapAway enhances what you're already doing:</p>
+              <ul className="space-y-1 text-slate-600 dark:text-slate-400 mb-3">
+                <li>• QR codes require effort (open camera → aim → hold still)</li>
+                <li>• NFC tap is effortless and triggers instant curiosity</li>
+                <li>• TapAway consolidates reviews, menus, and social links into one branded hub</li>
+                <li>• Because TapAway is placed in consistent locations, it increases visibility without ever steering customers in any direction</li>
+              </ul>
+              <p className="text-xs text-slate-500 dark:text-slate-500 italic border-t border-slate-200 dark:border-slate-700 pt-2">
+                TapAway does not replace or override your existing customer feedback process — it simply gives satisfied customers an easier, more modern path to engage.
+              </p>
+            </div>
+
+            {/* Objection 4 - Ranking */}
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+              <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">
+                "Will this actually help ranking?"
+              </p>
+              <p className="text-slate-700 dark:text-slate-300">
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                Yes — consistent 5-star reviews make Google show the restaurant higher in search results.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Section 5: Best Practices */}
+        {/* Section 5: Best Practices (Legally Safe) */}
         <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -246,16 +270,17 @@ const RepDocs = () => {
               Restaurant Best Practices
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-slate-700 dark:text-slate-300">
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300 space-y-4">
             <ul className="space-y-2">
               {[
-                "Place the card on every check presenter",
-                "For counter-service → put it right next to the POS",
-                "Keep one at the host stand",
-                "Add one to the pickup order area",
-                "Replace lost/damaged cards immediately",
-                "Staff do NOT need to ask customers for reviews",
-                "Cards naturally get taps — the design does the work"
+                "Place a card inside every check presenter",
+                "Place one at the counter or POS",
+                "Place one at the host stand",
+                "Place one in the pickup / to-go area",
+                "Replace lost or damaged cards immediately",
+                "No staff scripts, no awkward asks — customers tap on their own",
+                "TapAway does not influence or filter review sentiment",
+                "Cards work because they create curiosity and convenience"
               ].map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-emerald-500 font-bold">✓</span>
@@ -263,10 +288,43 @@ const RepDocs = () => {
                 </li>
               ))}
             </ul>
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
+              <p className="text-blue-800 dark:text-blue-300 text-xs">
+                <strong>Important:</strong> TapAway is a customer-initiated tool. Staff do not select which guests see the card, and TapAway does not alter or guide review outcomes.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Section 6: Trust & Credibility */}
+        {/* Section 6: How Customers Interact */}
+        <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              How Customers Interact with the Card
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300 space-y-4">
+            <p>
+              TapAway works best when placed in <strong>high-visibility locations</strong> where satisfied customers naturally interact with it.
+            </p>
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 space-y-2">
+              <p className="font-medium text-slate-900 dark:text-white">Key principles:</p>
+              <ul className="space-y-1">
+                <li>• <strong>Customer-initiated engagement</strong> — not selective distribution</li>
+                <li>• TapAway does not direct, filter, or influence review sentiment</li>
+                <li>• TapAway is a tool for <strong>visibility & convenience</strong> — not a replacement for genuine service quality</li>
+              </ul>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-800">
+              <p className="text-emerald-800 dark:text-emerald-300 text-xs">
+                <strong>TapAway does not allow or encourage selective review gating.</strong> Our cards are designed for passive, customer-initiated interaction. Restaurants simply place the card in visible locations, and customers choose whether or not to engage.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section 7: Trust & Credibility */}
         <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -293,6 +351,13 @@ const RepDocs = () => {
             </ul>
           </CardContent>
         </Card>
+
+        {/* Legal Disclaimer */}
+        <div className="text-center px-4 py-6">
+          <p className="text-[10px] text-slate-400 dark:text-slate-600 leading-relaxed">
+            <strong>Disclaimer:</strong> TapAway does not filter, gate, or influence customer reviews. All interactions are customer-initiated, and review platforms control review posting and moderation. TapAway simply provides a convenient access point for customers who wish to engage.
+          </p>
+        </div>
 
       </div>
 
