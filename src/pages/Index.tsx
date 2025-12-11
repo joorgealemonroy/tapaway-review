@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useSalesRep } from "@/hooks/useSalesRep";
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
@@ -115,9 +116,12 @@ const PricingSection = () => {
     </section>;
 };
 const Index = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const { isSalesRep } = useSalesRep();
+  
+  // Determine dashboard link based on role
+  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
+  
   return <div className="min-h-screen">
       {/* Navigation */}
       <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-lg border-b border-border">
@@ -126,7 +130,7 @@ const Index = () => {
             <a href="https://tapaway.co" className="font-black text-lg tracking-tight">
               TapAway
             </a>
-            {user ? <a href="/dashboard" className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
+            {user ? <a href={dashboardLink} className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
                 Dashboard
               </a> : <a href="/paywall" className="px-4 py-2 rounded-lg font-bold text-sm bg-foreground text-background">
                 Get Started
