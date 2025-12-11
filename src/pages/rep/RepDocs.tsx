@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, Users, Wallet, User, BookOpen, Sparkles, Target, MessageSquare, 
   AlertCircle, CheckCircle2, Shield, Mic, TrendingUp, Star, Smartphone, 
-  Clock, Brain, ClipboardList, ChevronRight, ArrowRight, Zap, Info
+  Clock, Brain, ClipboardList, ChevronRight, ArrowRight, Zap, Info, Package
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -619,6 +619,43 @@ const RepDocs = () => {
                 <li>• Never imply gating or steering reviews</li>
                 <li>• Your role is to build trust, not push</li>
               </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Section: Starter Kits */}
+        <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Package className="h-5 w-5 text-purple-500" />
+              Starter Kits & Demo Cards
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300 space-y-4">
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4">
+              <p className="font-medium text-purple-900 dark:text-purple-200 mb-3">For Restaurants:</p>
+              <ul className="space-y-2 text-purple-800 dark:text-purple-300">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 font-bold">•</span>
+                  <span>Every new restaurant receives <strong>15 TapAway cards</strong> in their starter package.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 font-bold">•</span>
+                  <span>They may request up to <strong>10 replacement cards each month</strong> at no cost.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-500 font-bold">•</span>
+                  <span>If a restaurant ever needs more, TapAway can provide them — but Sales Partners should <strong>never suggest or upsell additional card quantities</strong>.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+              <p className="font-medium text-slate-900 dark:text-white mb-2">For Sales Partners:</p>
+              <p className="text-slate-600 dark:text-slate-400">
+                Sales Partners receive <strong>8 demo cards</strong> to show owners how TapAway works. 
+                Request yours inside the <span className="font-medium text-purple-600 dark:text-purple-400">Sales Partner Portal → Profile</span>.
+              </p>
             </div>
           </CardContent>
         </Card>

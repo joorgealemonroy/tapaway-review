@@ -13,6 +13,7 @@ import { RepTaxCard } from '@/components/rep/RepTaxCard';
 import { RepPayoutCard } from '@/components/rep/RepPayoutCard';
 import { RepPayoutHistory } from '@/components/rep/RepPayoutHistory';
 import { RepAgreementCard } from '@/components/rep/RepAgreementCard';
+import { RepDemoRequestCard } from '@/components/rep/RepDemoRequestCard';
 
 const RepProfile = () => {
   const navigate = useNavigate();
@@ -179,6 +180,9 @@ const RepProfile = () => {
 
           {/* Agreement Card */}
           {user && <RepAgreementCard userId={user.id} />}
+
+          {/* Demo Request Card */}
+          {user && <RepDemoRequestCard userId={user.id} />}
 
           {/* 1099 Info Card */}
           <Card className="border-slate-200 shadow-sm bg-slate-50">
