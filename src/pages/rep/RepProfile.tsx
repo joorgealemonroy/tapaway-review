@@ -11,6 +11,7 @@ import { ArrowLeft, Save, User, FileText, Home, Users, Wallet, LogOut } from 'lu
 import { toast } from 'sonner';
 import { RepTaxCard } from '@/components/rep/RepTaxCard';
 import { RepPayoutCard } from '@/components/rep/RepPayoutCard';
+import { RepPayoutHistory } from '@/components/rep/RepPayoutHistory';
 
 const RepProfile = () => {
   const navigate = useNavigate();
@@ -167,6 +168,9 @@ const RepProfile = () => {
 
           {/* ACH Payout Card */}
           {user && <RepPayoutCard userId={user.id} />}
+
+          {/* Payout History */}
+          {user && <RepPayoutHistory userId={user.id} />}
 
           {/* Tax & Payments Card */}
           {user && <RepTaxCard userId={user.id} />}

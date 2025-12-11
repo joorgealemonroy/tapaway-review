@@ -374,6 +374,9 @@ const Admin = () => {
           <Button onClick={() => navigate('/admin/commissions')} variant="outline">
             Commission Management
           </Button>
+          <Button onClick={() => navigate('/admin/payouts')} variant="outline">
+            ACH Payouts
+          </Button>
           <Button onClick={() => navigate('/admin/tax-review')} variant="outline">
             W-9 Tax Review
           </Button>

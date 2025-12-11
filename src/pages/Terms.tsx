@@ -181,9 +181,30 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 8. SUBSCRIPTION & CANCELLATION */}
+          {/* 8. PAYOUT POLICY (Sales Rep Agreement) */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">8. Subscription & Cancellation</h2>
+            <h2 className="text-2xl font-bold mb-4">8. Payout Policy (Sales Representatives)</h2>
+            <p className="text-muted-foreground mb-4">
+              If you are a TapAway Sales Representative (independent contractor), the following payout terms apply:
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+              <li>All commission payouts are sent <strong>weekly on Tuesdays at 12:00 PM Pacific Time</strong></li>
+              <li>ACH transfers typically take <strong>1–3 business days</strong> to arrive depending on your bank</li>
+              <li>Commissions earned after the weekly cutoff may roll into the next pay period</li>
+              <li>Incorrect or missing bank information will delay payouts until corrected</li>
+              <li>You are solely responsible for keeping your payout information accurate and up-to-date</li>
+              <li>TapAway is not responsible for delays caused by incorrect bank details, bank processing times, or holidays</li>
+              <li>A valid W-9 must be on file before any payouts can be processed</li>
+            </ul>
+            <p className="text-muted-foreground">
+              By providing your ACH bank details, you acknowledge and agree to this payout schedule and take full 
+              responsibility for the accuracy of your banking information.
+            </p>
+          </section>
+
+          {/* 9. SUBSCRIPTION & CANCELLATION */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">9. Subscription & Cancellation</h2>
             <p className="text-muted-foreground mb-4">
               You may cancel your subscription at any time through your Stripe billing portal. Upon cancellation:
             </p>
@@ -198,9 +219,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 9. TERMINATION RIGHTS */}
+          {/* 10. TERMINATION RIGHTS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">9. Termination Rights</h2>
+            <h2 className="text-2xl font-bold mb-4">10. Termination Rights</h2>
             <p className="text-muted-foreground mb-4">
               <strong>WE RESERVE THE RIGHT</strong> to suspend, restrict, or terminate your account at any time, 
               with or without notice, for any reason, including but not limited to:
@@ -220,9 +241,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 10. PHYSICAL PRODUCTS */}
+          {/* 11. PHYSICAL PRODUCTS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">10. Physical Products (NFC Cards & QR Codes)</h2>
+            <h2 className="text-2xl font-bold mb-4">11. Physical Products (NFC Cards & QR Codes)</h2>
             <p className="text-muted-foreground mb-4">
               TapAway NFC cards and QR codes are physical products subject to the following:
             </p>
@@ -237,9 +258,9 @@ const Terms = () => {
             </ul>
           </section>
 
-          {/* 11. AI COACH DISCLAIMER */}
+          {/* 12. AI COACH DISCLAIMER */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">11. AI Coach & AI Features Disclaimer</h2>
+            <h2 className="text-2xl font-bold mb-4">12. AI Coach & AI Features Disclaimer</h2>
             <p className="text-muted-foreground mb-4">
               <strong>AI-GENERATED CONTENT IS FOR INFORMATIONAL PURPOSES ONLY.</strong> TapAway's AI Coach, review 
               reply suggestions, insights, and all AI-powered features are provided as-is without warranty.
@@ -260,9 +281,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 12. THIRD-PARTY SERVICES */}
+          {/* 13. THIRD-PARTY SERVICES */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">12. Third-Party Services & APIs</h2>
+            <h2 className="text-2xl font-bold mb-4">13. Third-Party Services & APIs</h2>
             <p className="text-muted-foreground mb-4">
               TapAway integrates with third-party services (Google, Yelp, Stripe, hosting providers, etc.) strictly 
               for platform functionality. We are not responsible for:
@@ -279,9 +300,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 13. DATA & PRIVACY */}
+          {/* 14. DATA & PRIVACY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">13. Data & Privacy</h2>
+            <h2 className="text-2xl font-bold mb-4">14. Data & Privacy</h2>
             <p className="text-muted-foreground mb-4">
               By using TapAway, you consent to our collection and processing of data as described in our Privacy Policy. 
               Key points:
@@ -296,9 +317,9 @@ const Terms = () => {
             </ul>
           </section>
 
-          {/* 14. DATA DELETION */}
+          {/* 15. DATA DELETION */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">14. Data Retention & Deletion</h2>
+            <h2 className="text-2xl font-bold mb-4">15. Data Retention & Deletion</h2>
             <p className="text-muted-foreground mb-4">
               <strong>DATA IS NOT AUTOMATICALLY DELETED</strong> when you cancel or stop paying. Your data remains 
               in our systems until you explicitly request deletion.
@@ -310,9 +331,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 15. INTELLECTUAL PROPERTY */}
+          {/* 16. INTELLECTUAL PROPERTY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">15. Intellectual Property</h2>
+            <h2 className="text-2xl font-bold mb-4">16. Intellectual Property</h2>
             <p className="text-muted-foreground mb-4">
               TapAway owns all rights, title, and interest in the Service, including but not limited to software, 
               algorithms, designs, branding, trademarks, and proprietary technology.
@@ -324,9 +345,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 16. LIMITATION OF LIABILITY */}
+          {/* 17. LIMITATION OF LIABILITY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">16. Limitation of Liability</h2>
+            <h2 className="text-2xl font-bold mb-4">17. Limitation of Liability</h2>
             <p className="text-muted-foreground mb-4">
               <strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW:</strong>
             </p>
@@ -353,9 +374,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 17. INDEMNIFICATION */}
+          {/* 18. INDEMNIFICATION */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">17. Indemnification</h2>
+            <h2 className="text-2xl font-bold mb-4">18. Indemnification</h2>
             <p className="text-muted-foreground">
               You agree to indemnify, defend, and hold harmless TapAway and its officers, directors, employees, 
               agents, and affiliates from and against any and all claims, damages, losses, liabilities, costs, 
@@ -366,9 +387,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 18. ARBITRATION & CLASS ACTION WAIVER */}
+          {/* 19. ARBITRATION & CLASS ACTION WAIVER */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">18. Arbitration & Class Action Waiver</h2>
+            <h2 className="text-2xl font-bold mb-4">19. Arbitration & Class Action Waiver</h2>
             <p className="text-muted-foreground mb-4">
               <strong>MANDATORY ARBITRATION:</strong> Any dispute, claim, or controversy arising out of or relating 
               to these Terms or your use of TapAway shall be resolved exclusively through binding arbitration 
@@ -385,9 +406,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 19. GOVERNING LAW */}
+          {/* 20. GOVERNING LAW */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">19. Governing Law & Jurisdiction</h2>
+            <h2 className="text-2xl font-bold mb-4">20. Governing Law & Jurisdiction</h2>
             <p className="text-muted-foreground">
               These Terms shall be governed by and construed in accordance with the laws of the State of California, 
               United States, without regard to its conflict of law provisions. Any legal action not subject to 
@@ -395,9 +416,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 20. INTERNATIONAL USERS */}
+          {/* 21. INTERNATIONAL USERS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">20. International Users</h2>
+            <h2 className="text-2xl font-bold mb-4">21. International Users</h2>
             <p className="text-muted-foreground">
               TapAway is operated from the United States. If you access the Service from outside the United States, 
               you do so at your own risk and are responsible for compliance with local laws. We make no 
@@ -405,9 +426,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 21. MODIFICATIONS */}
+          {/* 22. MODIFICATIONS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">21. Modifications to Terms</h2>
+            <h2 className="text-2xl font-bold mb-4">22. Modifications to Terms</h2>
             <p className="text-muted-foreground">
               We reserve the right to modify these Terms at any time, with or without prior notice. The "Last Updated" 
               date at the top of this page reflects the most recent revision. Your continued use of TapAway after 
@@ -416,9 +437,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 22. SEVERABILITY */}
+          {/* 23. SEVERABILITY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">22. Severability</h2>
+            <h2 className="text-2xl font-bold mb-4">23. Severability</h2>
             <p className="text-muted-foreground">
               If any provision of these Terms is found to be unenforceable or invalid by a court of competent 
               jurisdiction, that provision shall be limited or eliminated to the minimum extent necessary, and 
@@ -426,9 +447,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 23. ENTIRE AGREEMENT */}
+          {/* 24. ENTIRE AGREEMENT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">23. Entire Agreement</h2>
+            <h2 className="text-2xl font-bold mb-4">24. Entire Agreement</h2>
             <p className="text-muted-foreground">
               These Terms, together with our Privacy Policy and Refund Policy, constitute the entire agreement 
               between you and TapAway regarding the Service and supersede all prior agreements, representations, 
@@ -436,9 +457,9 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 24. CONTACT */}
+          {/* 25. CONTACT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">24. Contact</h2>
+            <h2 className="text-2xl font-bold mb-4">25. Contact</h2>
             <p className="text-muted-foreground">
               For questions about these Terms, contact us at: <strong>tap@tapaway.co</strong>
             </p>
