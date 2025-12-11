@@ -166,8 +166,16 @@ const RepHome = () => {
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-20 sm:max-w-3xl">
         
         {/* Logo */}
-        <div className="mb-6 flex justify-center">
-          <img src="/tapaway-logo.svg" alt="TapAway" className="h-16" />
+        <div className="mb-8 flex justify-center py-4">
+          <img 
+            src="/tapaway-logo.svg" 
+            alt="TapAway" 
+            className="h-32 w-auto"
+            style={{ 
+              mixBlendMode: 'multiply',
+              filter: 'contrast(1.1)'
+            }} 
+          />
         </div>
 
         {/* Header */}
