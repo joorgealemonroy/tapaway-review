@@ -2,8 +2,18 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Users, Wallet, User, BookOpen, Sparkles, Target, MessageSquare, AlertCircle, CheckCircle2, Shield } from 'lucide-react';
+import { 
+  Home, Users, Wallet, User, BookOpen, Sparkles, Target, MessageSquare, 
+  AlertCircle, CheckCircle2, Shield, Mic, TrendingUp, Star, Smartphone, 
+  Clock, Brain, ClipboardList, ChevronRight, ArrowRight, Zap, Info
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const RepDocs = () => {
   const navigate = useNavigate();
@@ -348,6 +358,268 @@ const RepDocs = () => {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+
+        {/* Section 8: Sales Scripts That Actually Work */}
+        <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Mic className="h-5 w-5 text-rose-500" />
+              Sales Scripts That Actually Work
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="mini-pitch" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-slate-900 dark:text-white hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-rose-500" />
+                    Mini Pitch (15 seconds)
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 italic">
+                    "TapAway helps restaurants get more 5-star reviews without ever asking customers. The card sparks curiosity, customers tap it, and happy guests leave reviews naturally."
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="full-pitch" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-slate-900 dark:text-white hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-rose-500" />
+                    Full Pitch (30–45 seconds)
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 italic">
+                    "Every great review boosts ranking, which brings in more customers. The TapAway card sits at checkout or gets handed to customers after a positive moment. They tap it, land on the restaurant's review hub, and leave 5-star reviews on their own. No scripts, no awkward asks, no pressure on staff."
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="handoff" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-slate-900 dark:text-white hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-rose-500" />
+                    When handing the card after a positive moment
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 italic">
+                    "Perfect! Let me show you something you're going to love — it's a TapAway card. Customers tap it out of curiosity and leave reviews naturally. No asking, no awkward moments."
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="closing" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-slate-900 dark:text-white hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-rose-500" />
+                    Closing a sale
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 italic">
+                    "TapAway works because customers initiate the tap — not staff. If you place the card where customers finish their experience and hand it out after positive moments, you'll consistently get new reviews without pushing your team."
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        {/* Section 9: Objections & High-Confidence Responses */}
+        <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Objections & High-Confidence Responses
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="staff-forget" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-orange-700 dark:text-orange-400 hover:no-underline">
+                  "My staff won't remember to use it."
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <p className="mb-2">
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                    Good news — TapAway doesn't rely on scripts or remembering lines. Staff only need to hand the card after a positive moment or keep one at checkout. Customers engage with it naturally because the design sparks curiosity.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="qr-codes" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-orange-700 dark:text-orange-400 hover:no-underline">
+                  "We already use QR codes."
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400 space-y-3">
+                  <p>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                    Love that. You're already ahead of most restaurants. TapAway isn't competing with QR — it's enhancing it.
+                  </p>
+                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <Smartphone className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                      <span>QR requires effort (open camera → aim → hold still)</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Zap className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <span>NFC tap = instant curiosity → higher interaction</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Star className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <span>TapAway looks premium → gets more attention</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                      <span>QR codes everywhere can make it easy for upset customers to leave negative reviews</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <span>TapAway avoids that because customers only interact after a genuinely positive moment</span>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="ranking" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-orange-700 dark:text-orange-400 hover:no-underline">
+                  "Does this actually help ranking?"
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <p>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                    Yes — Google ranks restaurants with consistent 5-star reviews higher. Even 1 extra review per day can massively shift search visibility over time.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="bother-tapping" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-orange-700 dark:text-orange-400 hover:no-underline">
+                  "Will customers bother tapping it?"
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <p>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                    They do — because it feels modern. NFC is the same tech people use for Apple Pay. Curiosity drives the action, not staff.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="bad-review" className="border-slate-200 dark:border-slate-700">
+                <AccordionTrigger className="text-left font-medium text-orange-700 dark:text-orange-400 hover:no-underline">
+                  "What if customers leave a bad review?"
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 dark:text-slate-400">
+                  <p>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">→ </span>
+                    TapAway doesn't filter or block anything — but because the card is used after positive experiences, restaurants naturally get more 5-star reviews without steering sentiment. It stays fully compliant.
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        {/* Section 10: Visuals & Sales-Boosting Graphics */}
+        <Card className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-sm mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-cyan-500" />
+              Visuals & Sales-Boosting Graphics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-700 dark:text-slate-300 space-y-6">
+            {/* Benefits Icon Grid */}
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white mb-3">Key Benefits</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: TrendingUp, title: "More 5-Star Reviews", desc: "Consistent positive moments + curiosity taps = more reviews", color: "text-emerald-500" },
+                  { icon: Star, title: "Higher Google Ranking", desc: "Each additional 5-star review boosts visibility", color: "text-amber-500" },
+                  { icon: Smartphone, title: "No Awkward Asking", desc: "Customers tap on their own — staff don't need scripts", color: "text-blue-500" },
+                  { icon: Clock, title: "60-Second Setup", desc: "Card placement + onboarding is instant", color: "text-violet-500" },
+                  { icon: Brain, title: "AI Coach Included", desc: "Helps restaurants improve based on real feedback", color: "text-rose-500" },
+                  { icon: ClipboardList, title: "Easy for Staff", desc: "Requires no special training or remembering lines", color: "text-cyan-500" },
+                ].map((item, index) => (
+                  <div key={index} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                    <item.icon className={`h-5 w-5 ${item.color} mb-2`} />
+                    <p className="font-medium text-slate-900 dark:text-white text-xs">{item.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* QR vs NFC Comparison */}
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white mb-3">Why TapAway Outperforms QR Codes</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
+                  <p className="font-bold text-slate-500 dark:text-slate-400 text-xs mb-2">QR Codes</p>
+                  <ul className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <li>• Requires effort</li>
+                    <li>• Easy for anyone to scan (including unhappy customers)</li>
+                    <li>• Often ignored when printed everywhere</li>
+                    <li>• Low curiosity factor</li>
+                  </ul>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800">
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 text-xs mb-2">TapAway NFC</p>
+                  <ul className="space-y-1.5 text-xs text-emerald-700 dark:text-emerald-300">
+                    <li>• One tap → instant action</li>
+                    <li>• Only used after positive moments</li>
+                    <li>• Looks premium</li>
+                    <li>• Curiosity + modern feel → more reviews</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow Diagram */}
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white mb-3">TapAway Workflow</p>
+              <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                {[
+                  { step: "1", label: "Customer enjoys the experience" },
+                  { step: "2", label: "Staff hands TapAway card after a positive comment" },
+                  { step: "3", label: "Customer taps out of curiosity" },
+                  { step: "4", label: "Leaves a 5-star review naturally" },
+                ].map((item, index, arr) => (
+                  <div key={index} className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-900/10 rounded-xl p-3 text-center">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold mb-1">
+                        {item.step}
+                      </span>
+                      <p className="text-xs text-slate-700 dark:text-slate-300">{item.label}</p>
+                    </div>
+                    {index < arr.length - 1 && (
+                      <ChevronRight className="hidden sm:block h-4 w-4 text-slate-400 flex-shrink-0" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Rep Instructions Footer */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
+              <div className="flex items-start gap-2 mb-2">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="font-medium text-blue-900 dark:text-blue-200 text-xs">How Reps Should Use These Tools</p>
+              </div>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 italic">For internal reps only:</p>
+              <ul className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                <li>• These scripts reduce friction</li>
+                <li>• The goal is to show how simple TapAway is</li>
+                <li>• Use positive-moment framing</li>
+                <li>• Never imply gating or steering reviews</li>
+                <li>• Your role is to build trust, not push</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 
