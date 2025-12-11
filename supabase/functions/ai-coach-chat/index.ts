@@ -1,9 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Sanitize error messages for client response
+function sanitizeError(error: unknown): string {
+  console.error('[ai-coach-chat] Detailed error:', error);
+  
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('not found')) return 'Resource not found';
+    if (msg.includes('unauthorized') || msg.includes('permission')) return 'Access denied';
+    if (msg.includes('rate limit')) return 'Rate limit exceeded, please try again later';
+  }
+  return 'An error occurred. Please try again.';
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,7 +25,65 @@ serve(async (req) => {
   }
 
   try {
+    // CRITICAL: Require authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { restaurantId, message, chatHistory, stats } = await req.json();
+
+    if (!restaurantId) {
+      return new Response(
+        JSON.stringify({ error: 'restaurantId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with user's auth token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify user authentication
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify restaurant ownership or admin access
+    const { data: restaurant, error: restaurantError } = await supabaseClient
+      .from('restaurants')
+      .select('owner_id')
+      .eq('id', restaurantId)
+      .single();
+
+    if (restaurantError || !restaurant) {
+      return new Response(
+        JSON.stringify({ error: 'Restaurant not found or access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is admin or owner
+    const { data: isAdminData } = await supabaseClient.rpc('is_admin');
+    const isAdmin = isAdminData || user.email === 'tap@tapaway.co';
+
+    if (!isAdmin && restaurant.owner_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized access to restaurant data' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -31,7 +103,7 @@ serve(async (req) => {
 
     let opportunitiesText = "";
     if (stats.opportunities && stats.opportunities.length > 0) {
-      const oppsList = stats.opportunities.map((o: any) => `• ${o.title} — ${o.summary}`).join('\n');
+      const oppsList = stats.opportunities.map((o: { title: string; summary: string }) => `• ${o.title} — ${o.summary}`).join('\n');
       opportunitiesText = `\n\nTOP OPPORTUNITIES:\n${oppsList}`;
     }
 
@@ -61,7 +133,7 @@ A: "Guests love your tacos and friendly staff. Keep doing what you're doing and 
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
-      ...chatHistory.map((m: any) => ({
+      ...chatHistory.map((m: { role: string; content: string }) => ({
         role: m.role,
         content: m.content,
       })),
@@ -120,7 +192,7 @@ A: "Guests love your tacos and friendly staff. Keep doing what you're doing and 
     console.error("AI Coach chat error:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: sanitizeError(error),
         reply: "No pasa nada, algo falló al responder. Pero tus datos siguen seguros y TapAway sigue contando tus taps. Intenta otra pregunta en un momento 😊"
       }),
       {
