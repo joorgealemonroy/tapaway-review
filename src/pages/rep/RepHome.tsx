@@ -6,7 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, DollarSign, TrendingUp, Target, Calendar } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface RepStats {
   closesToday: number;
@@ -16,6 +17,13 @@ interface RepStats {
   paidCommission: number;
   bonusProgress: number;
   bonusThreshold: number;
+}
+
+interface DemoRestaurant {
+  id: string;
+  restaurant_name: string;
+  review_hub_url: string | null;
+  custom_slug: string | null;
 }
 
 const RepHome = () => {
@@ -32,6 +40,30 @@ const RepHome = () => {
     bonusThreshold: 30,
   });
   const [loading, setLoading] = useState(true);
+  
+  // Demo restaurant loader
+  const [demoRestaurant, setDemoRestaurant] = useState<DemoRestaurant | null>(null);
+  const [demoLoading, setDemoLoading] = useState(true);
+
+  // Load demo restaurant
+  useEffect(() => {
+    const loadDemo = async () => {
+      setDemoLoading(true);
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('id, restaurant_name, review_hub_url, custom_slug')
+        .eq('is_demo_account', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setDemoRestaurant(data);
+      }
+      setDemoLoading(false);
+    };
+
+    loadDemo();
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -248,6 +280,59 @@ const RepHome = () => {
             View My Restaurants
           </Button>
         </div>
+
+        {/* Demo Restaurant Card */}
+        {!demoLoading && demoRestaurant && (
+          <Card className="border-border">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    Demo Restaurant Dashboard
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Use this to show owners what TapAway looks like with real data.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {/* Open Demo Dashboard */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/dashboard?demo_restaurant_id=${demoRestaurant.id}`, '_blank')}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Demo Dashboard
+                  </Button>
+
+                  {/* Copy Review Hub Link */}
+                  {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        const hubUrl = demoRestaurant.review_hub_url || 
+                          `https://tapaway.co/${demoRestaurant.custom_slug}`;
+                        await navigator.clipboard.writeText(hubUrl);
+                        toast.success("Demo review hub link copied!");
+                      }}
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy Demo Review Link
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
+                <p className="mt-3 text-xs text-muted-foreground break-all">
+                  Demo review hub: {demoRestaurant.review_hub_url || `https://tapaway.co/${demoRestaurant.custom_slug}`}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
