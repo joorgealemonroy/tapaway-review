@@ -166,12 +166,12 @@ const RepHome = () => {
       <div className="mx-auto w-full max-w-md px-4 pb-24 sm:max-w-3xl">
         
         {/* Hero Section */}
-        <div className="flex flex-col items-start gap-1 pt-4 pb-4">
-          {/* Logo */}
+        <div className="flex flex-col items-start pt-3 pb-3">
+          {/* Logo - full width */}
           <img 
             src="/tapaway-logo.svg" 
             alt="TapAway" 
-            className="h-8 w-auto mb-3"
+            className="w-full max-w-[280px] h-auto mb-2"
             style={{ 
               mixBlendMode: 'multiply',
               filter: 'contrast(1.1)'
