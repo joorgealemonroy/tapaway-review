@@ -80,12 +80,12 @@ const ReviewHub = () => {
     // Use restaurant_public_info view which is publicly accessible (no RLS restrictions)
     const { data, error } = await supabase
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label")
+      .select("*")
       .eq("custom_slug", slug)
       .single();
 
     if (error || !data) {
-      console.error("Restaurant not found for slug:", slug);
+      console.error("Restaurant not found for slug:", slug, error);
       setRestaurant(null);
       setLoading(false);
       return;
@@ -95,6 +95,7 @@ const ReviewHub = () => {
       ...data, 
       hub_background_style: data.hub_background_style || 'classic'
     } as Restaurant);
+    setLoading(false);
     if (data.id) {
       fetchMenu(data.id);
       fetchEngagement(data.id);
