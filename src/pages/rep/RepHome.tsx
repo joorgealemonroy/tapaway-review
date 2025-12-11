@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy, Home, Users, Wallet, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RepStats {
@@ -28,6 +26,7 @@ interface DemoRestaurant {
 
 const RepHome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
   const [stats, setStats] = useState<RepStats>({
@@ -85,7 +84,6 @@ const RepHome = () => {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
         // Fetch closes today
         const { count: closesToday } = await supabase
@@ -145,8 +143,8 @@ const RepHome = () => {
 
   if (authLoading || repLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse text-slate-400">Loading...</div>
       </div>
     );
   }
@@ -155,187 +153,191 @@ const RepHome = () => {
   const hasEarnedBonus = stats.bonusProgress >= stats.bonusThreshold;
   const nextBonusAt = Math.ceil(stats.bonusProgress / stats.bonusThreshold) * stats.bonusThreshold + stats.bonusThreshold;
 
+  const navItems = [
+    { icon: Home, label: 'Home', path: '/rep' },
+    { icon: Users, label: 'Restaurants', path: '/rep/restaurants' },
+    { icon: Wallet, label: 'Commissions', path: '/rep/commissions' },
+    { icon: User, label: 'Profile', path: '/rep/profile' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Welcome back, {salesRep?.name?.split(' ')[0] || 'Rep'}!</h1>
-            <p className="text-sm text-muted-foreground">TapAway Sales Partner Portal</p>
-          </div>
-          <nav className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/rep/restaurants')}>Restaurants</Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/rep/commissions')}>Commissions</Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/rep/resources')}>Resources</Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/rep/profile')}>Profile</Button>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50">
+      {/* Mobile-first container */}
+      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-20 sm:max-w-3xl">
+        
+        {/* Header */}
+        <header className="mb-4">
+          <p className="text-[11px] uppercase tracking-wide text-slate-400">Sales Partner Portal</p>
+          <h1 className="text-xl font-semibold text-slate-900">
+            Welcome back{salesRep?.name ? `, ${salesRep.name.split(' ')[0]}` : ''}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Track your closes, commissions, and show owners TapAway in action.
+          </p>
+        </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.closesToday}</p>
-                  <p className="text-xs text-muted-foreground">Closes Today</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Desktop nav - hidden on mobile */}
+        <nav className="hidden sm:flex gap-2 mb-4">
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                location.pathname === item.path
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.closesThisMonth}</p>
-                  <p className="text-xs text-muted-foreground">This Month</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.lifetimeCloses}</p>
-                  <p className="text-xs text-muted-foreground">Lifetime</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-green-600">${stats.pendingCommission}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                  <p className="text-xs text-muted-foreground">${stats.paidCommission} paid</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bonus Progress */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              🎯 Monthly Bonus Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {stats.bonusProgress} / {stats.bonusThreshold} closes
-                </span>
-                <span className="font-medium">
-                  {hasEarnedBonus ? '🎉 Bonus Earned!' : `$500 bonus at ${stats.bonusThreshold}`}
-                </span>
-              </div>
-              <Progress value={bonusPercentage} className="h-3" />
-              {hasEarnedBonus && (
-                <p className="text-sm text-green-600">
-                  Congratulations! You've hit {stats.bonusThreshold} closes this month. Next bonus at {nextBonusAt} closes.
-                </p>
-              )}
+        {/* Stats Grid - 2x2 */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-400" />
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">Today</span>
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.closesToday}</p>
+          </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button 
-            size="lg" 
-            className="h-16 text-lg"
-            onClick={() => navigate('/rep/close')}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Close a Restaurant Now
-          </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            className="h-16 text-lg"
-            onClick={() => navigate('/rep/restaurants')}
-          >
-            View My Restaurants
-          </Button>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-slate-400" />
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">This Month</span>
+            </div>
+            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.closesThisMonth}</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-slate-400" />
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">Lifetime</span>
+            </div>
+            <p className="text-lg font-semibold text-slate-900 mt-1">{stats.lifetimeCloses}</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-emerald-500" />
+              <span className="text-[11px] uppercase tracking-wide text-slate-500">Pending</span>
+            </div>
+            <p className="text-lg font-semibold text-emerald-600 mt-1">${stats.pendingCommission}</p>
+            <p className="text-[11px] text-slate-400">${stats.paidCommission} paid</p>
+          </div>
         </div>
+
+        {/* Bonus Progress Card */}
+        <div className="rounded-2xl bg-white shadow-sm border border-slate-100 p-4 mb-4">
+          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
+            🎯 Monthly Bonus Progress
+          </h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">
+                {stats.bonusProgress} / {stats.bonusThreshold} closes
+              </span>
+              <span className="font-medium text-slate-700">
+                {hasEarnedBonus ? '🎉 Bonus Earned!' : `$500 at ${stats.bonusThreshold}`}
+              </span>
+            </div>
+            <Progress value={bonusPercentage} className="h-2.5" />
+            {hasEarnedBonus && (
+              <p className="text-xs text-emerald-600">
+                Congratulations! Next bonus at {nextBonusAt} closes.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Primary CTA */}
+        <button 
+          onClick={() => navigate('/rep/close')}
+          className="w-full inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold bg-emerald-500 text-white shadow-sm mb-3 active:scale-[0.98] transition-transform"
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Close a Restaurant Now
+        </button>
+
+        {/* Secondary CTA */}
+        <button 
+          onClick={() => navigate('/rep/restaurants')}
+          className="w-full inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-medium border border-slate-200 bg-white text-slate-900 mb-4 active:scale-[0.98] transition-transform"
+        >
+          View My Restaurants
+        </button>
 
         {/* Demo Restaurant Card */}
         {!demoLoading && demoRestaurant && (
-          <Card className="border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground">
-                    Demo Restaurant Dashboard
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Use this to show owners what TapAway looks like with real data.
-                  </p>
-                </div>
+          <div className="rounded-2xl bg-white shadow-sm border border-slate-100 p-4 mb-4">
+            <h3 className="text-sm font-semibold text-slate-900">
+              Demo Restaurant Dashboard
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Use this to show owners what TapAway looks like with real data.
+            </p>
 
-                <div className="flex flex-wrap gap-2">
-                  {/* Open Demo Dashboard */}
-                  <a
-                    href={`/dashboard?demo_restaurant_id=${demoRestaurant.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      View Demo Dashboard
-                    </Button>
-                  </a>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              {/* View Demo Dashboard */}
+              <a
+                href={`/dashboard?demo_restaurant_id=${demoRestaurant.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 inline-flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold bg-slate-900 text-white active:scale-[0.98] transition-transform"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Demo Dashboard
+              </a>
 
-                  {/* Copy Review Hub Link */}
-                  {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={async () => {
-                        const hubUrl = demoRestaurant.review_hub_url || 
-                          `https://tapaway.co/${demoRestaurant.custom_slug}`;
-                        await navigator.clipboard.writeText(hubUrl);
-                        toast.success("Demo review hub link copied!");
-                      }}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy Demo Review Link
-                    </Button>
-                  )}
-                </div>
-              </div>
-
+              {/* Copy Review Hub Link */}
               {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
-                <p className="mt-3 text-xs text-muted-foreground break-all">
-                  Demo review hub: {demoRestaurant.review_hub_url || `https://tapaway.co/${demoRestaurant.custom_slug}`}
-                </p>
+                <button
+                  onClick={async () => {
+                    const hubUrl = demoRestaurant.review_hub_url || 
+                      `https://tapaway.co/${demoRestaurant.custom_slug}`;
+                    await navigator.clipboard.writeText(hubUrl);
+                    toast.success("Demo review hub link copied!");
+                  }}
+                  className="flex-1 inline-flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-medium border border-slate-200 bg-white text-slate-900 active:scale-[0.98] transition-transform"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Demo Review Link
+                </button>
               )}
-            </CardContent>
-          </Card>
+            </div>
+
+            {(demoRestaurant.review_hub_url || demoRestaurant.custom_slug) && (
+              <p className="mt-3 text-[11px] text-slate-400 break-all">
+                {demoRestaurant.review_hub_url || `https://tapaway.co/${demoRestaurant.custom_slug}`}
+              </p>
+            )}
+          </div>
         )}
-      </main>
+      </div>
+
+      {/* Bottom Navigation - Mobile only */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between px-6 py-2.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center gap-0.5 text-[11px] font-medium transition-colors ${
+                  isActive ? 'text-slate-900' : 'text-slate-500'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 };
