@@ -1,11 +1,13 @@
 import { AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface RepTaxBannerProps {
   status: 'missing' | 'submitted' | 'approved' | 'rejected';
 }
 
 export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
+  const navigate = useNavigate();
+  
   if (status === 'approved') return null;
 
   const getMessage = () => {
@@ -32,9 +34,12 @@ export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
         <div className={`text-sm ${textColor}`}>
           <span>{getMessage()}</span>
           {status !== 'submitted' && (
-            <Link to="#tax-payments" className="ml-1 font-medium underline">
-              Go to Tax & Payments →
-            </Link>
+            <button 
+              onClick={() => navigate('/rep/profile')}
+              className="ml-1 font-medium underline hover:no-underline"
+            >
+              Go to Profile →
+            </button>
           )}
         </div>
       </div>

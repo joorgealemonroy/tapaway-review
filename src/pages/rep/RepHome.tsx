@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy, Home, Users, Wallet, User } from 'lucide-react';
 import { toast } from 'sonner';
-import { RepTaxCard } from '@/components/rep/RepTaxCard';
 import { RepTaxBanner } from '@/components/rep/RepTaxBanner';
 
 interface RepStats {
@@ -360,11 +359,6 @@ const RepHome = () => {
             )}
           </div>
         )}
-
-        {/* Tax & Payments Section */}
-        <div id="tax-payments">
-          {user && <RepTaxCard userId={user.id} />}
-        </div>
       </div>
 
       {/* Bottom Navigation - Mobile only */}
