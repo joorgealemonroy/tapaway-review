@@ -3,8 +3,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
+import SalesPartnerAgreement from "@/components/rep/SalesPartnerAgreement";
+import AgreementHighlights from "@/components/rep/AgreementHighlights";
 
 export default function RepSetupPassword() {
   const navigate = useNavigate();
@@ -15,6 +20,10 @@ export default function RepSetupPassword() {
   const [tokenValid, setTokenValid] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Agreement state
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
 
   const setupToken = searchParams.get("setupToken");
 
@@ -27,38 +36,29 @@ export default function RepSetupPassword() {
       }
 
       try {
-        console.log("Verifying setup token...");
-        
         const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
           body: { setupToken },
         });
 
-        console.log("Verification response:", data, invokeError);
-
         if (invokeError) {
-          console.error("Token verification invoke error:", invokeError);
           setError("Failed to verify setup link. Please try again or contact support.");
           setVerifying(false);
           return;
         }
 
         if (data?.error) {
-          console.error("Token verification returned error:", data.error);
           setError(data.error);
           setVerifying(false);
           return;
         }
 
         if (data?.valid) {
-          console.log("Token is valid for email:", data.email);
           setTokenValid(true);
           setUserEmail(data.email);
         } else {
-          console.error("Token is not valid");
           setError("This setup link is invalid or has expired.");
         }
-      } catch (err: any) {
-        console.error("Verification exception:", err);
+      } catch {
         setError("Failed to verify setup link. Please try again or contact support.");
       }
       setVerifying(false);
@@ -67,19 +67,23 @@ export default function RepSetupPassword() {
     verifyToken();
   }, [setupToken]);
 
+  const isSignatureValid = signatureName.trim().split(/\s+/).length >= 2;
+  const canSubmit = validPassword && agreementAccepted && isSignatureValid;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validPassword || !setupToken) return;
+    if (!canSubmit || !setupToken) return;
 
     setLoading(true);
     try {
-      console.log("Setting password...");
-      
       const { data, error: invokeError } = await supabase.functions.invoke("verify-rep-setup-token", {
-        body: { setupToken, newPassword: validPassword },
+        body: { 
+          setupToken, 
+          newPassword: validPassword,
+          agreementAccepted,
+          signatureName: signatureName.trim(),
+        },
       });
-
-      console.log("Set password response:", data, invokeError);
 
       if (invokeError) {
         throw new Error("Failed to set password. Please try again.");
@@ -90,16 +94,12 @@ export default function RepSetupPassword() {
       }
 
       if (data?.success && data?.email) {
-        console.log("Password set successfully, signing in...");
-        
-        // Sign in with the new password
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: validPassword,
         });
 
         if (signInError) {
-          console.error("Sign in error:", signInError);
           toast.success("Password set! Please log in with your new password.");
           navigate("/auth");
           return;
@@ -108,9 +108,9 @@ export default function RepSetupPassword() {
         toast.success("Welcome to TapAway! 🎉");
         navigate("/rep");
       }
-    } catch (error: any) {
-      console.error("Error setting password:", error);
-      toast.error(error.message || "Failed to set password");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to set password";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -172,7 +172,7 @@ export default function RepSetupPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Welcome to TapAway! 🎉</CardTitle>
           <CardDescription>
@@ -184,16 +184,71 @@ export default function RepSetupPassword() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <PasswordChecklistSection onValidPassword={setValidPassword} />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Password Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium text-foreground">Create Your Password</h3>
+              <PasswordChecklistSection onValidPassword={setValidPassword} />
+            </div>
+
+            {/* Agreement Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-medium text-foreground">Sales Partner Agreement</h3>
+              <p className="text-sm text-muted-foreground">
+                Before activating your Sales Partner account, please review and accept the TapAway Sales Partner Agreement.
+              </p>
+              
+              <AgreementHighlights />
+              
+              <SalesPartnerAgreement />
+
+              {/* Agreement Checkbox */}
+              <div className="flex items-start gap-3 pt-2">
+                <Checkbox
+                  id="agreement"
+                  checked={agreementAccepted}
+                  onCheckedChange={(checked) => setAgreementAccepted(checked === true)}
+                  className="mt-1"
+                />
+                <Label htmlFor="agreement" className="text-sm leading-relaxed cursor-pointer">
+                  I agree to the TapAway Sales Partner Independent Contractor Agreement
+                </Label>
+              </div>
+
+              {/* Digital Signature */}
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="signature" className="text-sm font-medium">
+                  Digital Signature (type your full legal name)
+                </Label>
+                <Input
+                  id="signature"
+                  type="text"
+                  placeholder="e.g., John Michael Smith"
+                  value={signatureName}
+                  onChange={(e) => setSignatureName(e.target.value)}
+                  className="font-serif italic"
+                />
+                {signatureName && !isSignatureValid && (
+                  <p className="text-xs text-destructive">
+                    Please enter your full legal name (at least first and last name)
+                  </p>
+                )}
+              </div>
+            </div>
 
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={!validPassword || loading}
+              disabled={!canSubmit || loading}
             >
-              {loading ? "Setting up..." : "Set Password & Continue"}
+              {loading ? "Setting up..." : "Accept Agreement & Continue"}
             </Button>
+
+            {!agreementAccepted && (
+              <p className="text-xs text-center text-muted-foreground">
+                You must accept the Sales Partner Agreement to activate your account.
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>
