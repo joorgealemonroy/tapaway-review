@@ -46,12 +46,12 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from("restaurants")
-      .select("*")
+      .select("id, restaurant_name, custom_slug, logo_url, hub_background_style, custom_background_url, google_place_id, google_review_url, yelp_review_url, instagram_url, directions_url, greeting_name")
       .eq("id", restaurantId)
       .single();
 
     if (data) {
-      setRestaurant(data as any);
+      setRestaurant(data);
     }
     
     setLoading(false);

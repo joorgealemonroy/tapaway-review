@@ -129,14 +129,12 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isDemoView, demoLoading, demoRestaurantId]);
   const checkAdminStatus = async () => {
-    const {
-      data: isAdminData
-    } = await supabase.rpc('is_admin');
-    const {
-      data: isTestData
-    } = await (supabase as any).rpc('is_test_account');
+    const { data: isAdminData } = await supabase.rpc('is_admin');
+    const { data: isTestData } = await supabase.rpc('is_test_account');
     const emailAdmin = user?.email === 'tap@tapaway.co';
-    const metaAdmin = (user as any)?.app_metadata?.role === 'admin';
+    // Check app_metadata safely
+    const userMetadata = user?.app_metadata as Record<string, unknown> | undefined;
+    const metaAdmin = userMetadata?.role === 'admin';
     const effectiveAdmin = Boolean(isAdminData || emailAdmin || metaAdmin);
     const grandfathered = isGrandfatheredUser(user?.email);
     const isTestAcc = checkIsTestAccount(user?.email);
@@ -151,7 +149,7 @@ const Dashboard = () => {
   };
   const fetchAllRestaurants = async () => {
     // Get all restaurants
-    const { data: allRestaurantsData } = await (supabase as any)
+    const { data: allRestaurantsData } = await supabase
       .from("restaurants")
       .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name, is_demo_account, created_at, menu_image_url, google_review_url, yelp_review_url")
       .order("restaurant_name");
@@ -159,7 +157,7 @@ const Dashboard = () => {
     if (!allRestaurantsData || allRestaurantsData.length === 0) return;
 
     // Get tap counts
-    const restaurantIds = allRestaurantsData.map((r: Restaurant) => r.id);
+    const restaurantIds = allRestaurantsData.map((r) => r.id);
     const { data: tapCounts } = await supabase
       .from("analytics_events")
       .select("restaurant_id")
@@ -168,13 +166,26 @@ const Dashboard = () => {
 
     // Count taps per restaurant
     const tapsMap: Record<string, number> = {};
-    (tapCounts ?? []).forEach((event: any) => {
+    (tapCounts ?? []).forEach((event) => {
       tapsMap[event.restaurant_id] = (tapsMap[event.restaurant_id] ?? 0) + 1;
     });
 
     // Add tap counts to ALL restaurants (no filtering)
-    const restaurantsWithTaps = allRestaurantsData.map((r: Restaurant) => ({
-      ...r,
+    const restaurantsWithTaps: Restaurant[] = allRestaurantsData.map((r) => ({
+      id: r.id,
+      restaurant_name: r.restaurant_name,
+      custom_slug: r.custom_slug,
+      stripe_portal_url: r.stripe_portal_url,
+      subscription_status: r.subscription_status,
+      plan_type: r.plan_type,
+      next_billing_date: r.next_billing_date,
+      type: r.type,
+      greeting_name: r.greeting_name,
+      is_demo_account: r.is_demo_account ?? false,
+      created_at: r.created_at,
+      menu_image_url: r.menu_image_url,
+      google_review_url: r.google_review_url,
+      yelp_review_url: r.yelp_review_url,
       total_taps: tapsMap[r.id] ?? 0
     }));
 
@@ -187,21 +198,52 @@ const Dashboard = () => {
   };
   const fetchRestaurant = async () => {
     // Fetch ALL restaurants for this user (they may have multiple locations)
-    const { data: restaurants } = await (supabase as any)
+    const { data: restaurants } = await supabase
       .from("restaurants")
       .select("*")
-      .eq("owner_id", user?.id);
+      .eq("owner_id", user?.id ?? '');
     
     // Find a completed restaurant with active subscription, or just any completed one
-    const completedRestaurants = restaurants?.filter((r: any) => r.onboarding_completed === true) || [];
-    const activeRestaurant = completedRestaurants.find((r: any) => r.subscription_status === 'active') || completedRestaurants[0];
+    const completedRestaurants = restaurants?.filter((r) => r.onboarding_completed === true) || [];
+    const activeRestaurant = completedRestaurants.find((r) => r.subscription_status === 'active') || completedRestaurants[0];
     
     if (activeRestaurant) {
-      setRestaurant(activeRestaurant as any);
+      const mapped: Restaurant = {
+        id: activeRestaurant.id,
+        restaurant_name: activeRestaurant.restaurant_name,
+        custom_slug: activeRestaurant.custom_slug,
+        stripe_portal_url: activeRestaurant.stripe_portal_url,
+        subscription_status: activeRestaurant.subscription_status,
+        plan_type: activeRestaurant.plan_type,
+        next_billing_date: activeRestaurant.next_billing_date,
+        type: activeRestaurant.type,
+        greeting_name: activeRestaurant.greeting_name,
+        is_demo_account: activeRestaurant.is_demo_account ?? false,
+        created_at: activeRestaurant.created_at,
+        menu_image_url: activeRestaurant.menu_image_url,
+        google_review_url: activeRestaurant.google_review_url,
+        yelp_review_url: activeRestaurant.yelp_review_url,
+      };
+      setRestaurant(mapped);
       
       // If user has multiple restaurants, set them all for potential switcher
       if (completedRestaurants.length > 1) {
-        setAllRestaurants(completedRestaurants);
+        setAllRestaurants(completedRestaurants.map((r) => ({
+          id: r.id,
+          restaurant_name: r.restaurant_name,
+          custom_slug: r.custom_slug,
+          stripe_portal_url: r.stripe_portal_url,
+          subscription_status: r.subscription_status,
+          plan_type: r.plan_type,
+          next_billing_date: r.next_billing_date,
+          type: r.type,
+          greeting_name: r.greeting_name,
+          is_demo_account: r.is_demo_account ?? false,
+          created_at: r.created_at,
+          menu_image_url: r.menu_image_url,
+          google_review_url: r.google_review_url,
+          yelp_review_url: r.yelp_review_url,
+        })));
       }
       
       fetchLocations(activeRestaurant.id);
@@ -219,20 +261,32 @@ const Dashboard = () => {
       // Defensive fallback for test account only - auto-assign if no restaurant found
       console.log('[Dashboard] Test account has no restaurant, attempting auto-assignment');
       try {
-        const {
-          error: assignError
-        } = await supabase.functions.invoke('assign-test-owner');
+        const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
         if (assignError) {
           console.error('[Dashboard] Failed to assign test restaurant:', assignError);
           toast.error("Failed to link test account. Please contact support.");
         } else {
           // Retry fetch after assignment
-          const {
-            data: retryData
-          } = await (supabase as any).from("restaurants").select("*").eq("owner_id", user?.id).limit(1);
+          const { data: retryData } = await supabase.from("restaurants").select("*").eq("owner_id", user?.id ?? '').limit(1);
           if (retryData && retryData[0]) {
-            setRestaurant(retryData[0] as any);
-            fetchLocations(retryData[0].id);
+            const r = retryData[0];
+            setRestaurant({
+              id: r.id,
+              restaurant_name: r.restaurant_name,
+              custom_slug: r.custom_slug,
+              stripe_portal_url: r.stripe_portal_url,
+              subscription_status: r.subscription_status,
+              plan_type: r.plan_type,
+              next_billing_date: r.next_billing_date,
+              type: r.type,
+              greeting_name: r.greeting_name,
+              is_demo_account: r.is_demo_account ?? false,
+              created_at: r.created_at,
+              menu_image_url: r.menu_image_url,
+              google_review_url: r.google_review_url,
+              yelp_review_url: r.yelp_review_url,
+            });
+            fetchLocations(r.id);
             toast.success("Test account linked successfully!");
           }
         }
@@ -253,9 +307,12 @@ const Dashboard = () => {
     }
   };
   const fetchLocations = async (restaurantId: string) => {
-    const {
-      data
-    } = await (supabase as any).from("locations").select("id, name, custom_slug").eq("restaurant_id", restaurantId).eq("is_active", true).order("name");
+    const { data } = await supabase
+      .from("locations")
+      .select("id, name, custom_slug")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true)
+      .order("name");
     if (data && data.length > 0) {
       setLocations(data);
       setSelectedLocation(data[0].id);
