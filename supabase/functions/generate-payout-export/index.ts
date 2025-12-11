@@ -13,8 +13,8 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get auth user from JWT
     const authHeader = req.headers.get("Authorization");
@@ -25,8 +25,12 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Create client with user's auth context for admin check
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     
     if (authError || !user) {
       return new Response(
@@ -35,14 +39,17 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is admin
-    const { data: isAdminResult } = await supabase.rpc("is_admin");
+    // Check if user is admin using user's context
+    const { data: isAdminResult } = await supabaseUser.rpc("is_admin");
     if (!isAdminResult) {
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Use service role for data access (bypasses RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get all payout accounts with full details (admin only!)
     const { data: accounts, error: accountsError } = await supabase
@@ -89,13 +96,15 @@ serve(async (req) => {
 
     const csv = rows.join("\n");
 
+    console.log(`ACH export generated with ${exportCount} records`);
+
     return new Response(
       JSON.stringify({ csv, count: exportCount }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
-    console.error("Error in generate-payout-export:", error);
+    console.error("Error in generate-payout-export:", error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
