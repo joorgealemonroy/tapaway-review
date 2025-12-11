@@ -74,6 +74,9 @@ const RepClose = () => {
           setSelectedRestaurantId(restaurantId);
           setSelectedRestaurant(found);
         }
+      } else {
+        // Auto-select "Add a new restaurant" by default
+        setIsNewRestaurant(true);
       }
     };
 
