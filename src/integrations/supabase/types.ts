@@ -1005,6 +1005,7 @@ export type Database = {
           phone: string | null
           plan_type: string | null
           restaurant_name: string
+          review_hub_url: string | null
           sales_rep_id: string | null
           settings: Json | null
           slug_locked_at: string | null
@@ -1055,6 +1056,7 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           restaurant_name: string
+          review_hub_url?: string | null
           sales_rep_id?: string | null
           settings?: Json | null
           slug_locked_at?: string | null
@@ -1105,6 +1107,7 @@ export type Database = {
           phone?: string | null
           plan_type?: string | null
           restaurant_name?: string
+          review_hub_url?: string | null
           sales_rep_id?: string | null
           settings?: Json | null
           slug_locked_at?: string | null
