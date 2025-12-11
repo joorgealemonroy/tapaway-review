@@ -25,6 +25,7 @@ import RepRestaurants from "./pages/rep/RepRestaurants";
 import RepClose from "./pages/rep/RepClose";
 import RepCommissions from "./pages/rep/RepCommissions";
 import RepResources from "./pages/rep/RepResources";
+import RepDocs from "./pages/rep/RepDocs";
 import RepProfile from "./pages/rep/RepProfile";
 import RepApply from "./pages/rep/RepApply";
 import RepSetupPassword from "./pages/rep/RepSetupPassword";
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/rep/close" element={<RepClose />} />
             <Route path="/rep/commissions" element={<RepCommissions />} />
             <Route path="/rep/resources" element={<RepResources />} />
+            <Route path="/rep/docs" element={<RepDocs />} />
             <Route path="/rep/profile" element={<RepProfile />} />
             <Route path="/rep/apply" element={<RepApply />} />
             <Route path="/rep/setup-password" element={<RepSetupPassword />} />

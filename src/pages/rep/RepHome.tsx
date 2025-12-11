@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy, Home, Users, Wallet, User } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy, Home, Users, Wallet, User, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepTaxBanner } from '@/components/rep/RepTaxBanner';
 
@@ -182,6 +182,7 @@ const RepHome = () => {
     { icon: Home, label: 'Home', path: '/rep' },
     { icon: Users, label: 'Restaurants', path: '/rep/restaurants' },
     { icon: Wallet, label: 'Commissions', path: '/rep/commissions' },
+    { icon: BookOpen, label: 'Docs', path: '/rep/docs' },
     { icon: User, label: 'Profile', path: '/rep/profile' },
   ];
 

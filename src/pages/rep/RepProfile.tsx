@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, User, FileText, Home, Users, Wallet, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, User, FileText, Home, Users, Wallet, LogOut, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepTaxCard } from '@/components/rep/RepTaxCard';
 import { RepPayoutCard } from '@/components/rep/RepPayoutCard';
@@ -68,6 +68,7 @@ const RepProfile = () => {
     { icon: Home, label: 'Home', path: '/rep' },
     { icon: Users, label: 'Restaurants', path: '/rep/restaurants' },
     { icon: Wallet, label: 'Commissions', path: '/rep/commissions' },
+    { icon: BookOpen, label: 'Docs', path: '/rep/docs' },
     { icon: User, label: 'Profile', path: '/rep/profile' },
   ];
 
