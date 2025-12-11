@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, DollarSign, TrendingUp, Target, Calendar, ExternalLink, Copy, Home, Users, Wallet, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { RepTaxCard } from '@/components/rep/RepTaxCard';
+import { RepTaxBanner } from '@/components/rep/RepTaxBanner';
 
 interface RepStats {
   closesToday: number;
@@ -40,6 +42,9 @@ const RepHome = () => {
   });
   const [loading, setLoading] = useState(true);
   
+  // Tax profile status
+  const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
+  
   // Demo restaurant loader
   const [demoRestaurant, setDemoRestaurant] = useState<DemoRestaurant | null>(null);
   const [demoLoading, setDemoLoading] = useState(true);
@@ -63,6 +68,27 @@ const RepHome = () => {
 
     loadDemo();
   }, []);
+
+  // Load tax profile status
+  useEffect(() => {
+    const loadTaxStatus = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('rep_tax_profiles')
+        .select('status')
+        .eq('rep_user_id', user.id)
+        .maybeSingle();
+      
+      if (data?.status) {
+        setTaxStatus(data.status as typeof taxStatus);
+      }
+    };
+
+    if (user) {
+      loadTaxStatus();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -209,6 +235,9 @@ const RepHome = () => {
           ))}
         </nav>
 
+        {/* Tax Banner - show if not approved */}
+        <RepTaxBanner status={taxStatus} />
+
         {/* Stats Grid - 2x2, larger cards */}
         <div className="grid grid-cols-2 gap-3 mt-4 mb-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -331,6 +360,11 @@ const RepHome = () => {
             )}
           </div>
         )}
+
+        {/* Tax & Payments Section */}
+        <div id="tax-payments">
+          {user && <RepTaxCard userId={user.id} />}
+        </div>
       </div>
 
       {/* Bottom Navigation - Mobile only */}
