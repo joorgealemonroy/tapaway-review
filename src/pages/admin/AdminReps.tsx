@@ -30,6 +30,8 @@ interface SalesRep {
   phone: string | null;
   is_active: boolean;
   created_at: string;
+  agreement_accepted: boolean | null;
+  agreement_accepted_at: string | null;
   lifetime_closes?: number;
   pending_commission?: number;
   paid_commission?: number;
@@ -298,6 +300,7 @@ const AdminReps = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Agreement</TableHead>
                       <TableHead>Closes</TableHead>
                       <TableHead>Pending</TableHead>
                       <TableHead>Paid</TableHead>
@@ -307,7 +310,7 @@ const AdminReps = () => {
                   <TableBody>
                     {reps.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           No reps yet
                         </TableCell>
                       </TableRow>
@@ -316,6 +319,13 @@ const AdminReps = () => {
                         <TableRow key={rep.id}>
                           <TableCell className="font-medium">{rep.name}</TableCell>
                           <TableCell>{rep.email}</TableCell>
+                          <TableCell>
+                            {rep.agreement_accepted ? (
+                              <Badge variant="default" className="bg-green-600 text-xs">Signed</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Not signed</Badge>
+                            )}
+                          </TableCell>
                           <TableCell>{rep.lifetime_closes}</TableCell>
                           <TableCell className="text-yellow-600">${rep.pending_commission}</TableCell>
                           <TableCell className="text-green-600">${rep.paid_commission}</TableCell>

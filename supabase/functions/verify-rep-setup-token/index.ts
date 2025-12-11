@@ -16,7 +16,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { setupToken, newPassword } = await req.json();
+    const { setupToken, newPassword, agreementAccepted, signatureName } = await req.json();
 
     if (!setupToken) {
       throw new Error("Setup token is required");
@@ -62,6 +62,15 @@ serve(async (req) => {
       );
     }
 
+    // Validate agreement acceptance
+    if (!agreementAccepted) {
+      throw new Error("You must accept the Sales Partner Agreement to continue.");
+    }
+    
+    if (!signatureName || signatureName.trim().split(/\s+/).length < 2) {
+      throw new Error("Please enter your full legal name (first and last name).");
+    }
+
     // Set the new password using admin API
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       tokenRecord.user_id,
@@ -73,10 +82,28 @@ serve(async (req) => {
       throw new Error("Failed to set password. Please try again.");
     }
 
+    // Update sales_reps with agreement acceptance
+    const now = new Date().toISOString();
+    const { error: repUpdateError } = await supabase
+      .from("sales_reps")
+      .update({
+        agreement_accepted: true,
+        agreement_accepted_at: now,
+        agreement_version: "1.0",
+        signature_name: signatureName.trim(),
+        signature_at: now,
+      })
+      .eq("id", tokenRecord.user_id);
+
+    if (repUpdateError) {
+      console.error("Error updating sales_reps agreement:", repUpdateError);
+      // Don't throw - password was set successfully
+    }
+
     // Mark token as used
     await supabase
       .from("rep_setup_tokens")
-      .update({ used_at: new Date().toISOString() })
+      .update({ used_at: now })
       .eq("id", tokenRecord.id);
 
     // Get user email for sign in

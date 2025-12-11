@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { RepTaxCard } from '@/components/rep/RepTaxCard';
 import { RepPayoutCard } from '@/components/rep/RepPayoutCard';
 import { RepPayoutHistory } from '@/components/rep/RepPayoutHistory';
+import { RepAgreementCard } from '@/components/rep/RepAgreementCard';
 
 const RepProfile = () => {
   const navigate = useNavigate();
@@ -175,6 +176,9 @@ const RepProfile = () => {
 
           {/* Tax & Payments Card */}
           {user && <RepTaxCard userId={user.id} />}
+
+          {/* Agreement Card */}
+          {user && <RepAgreementCard userId={user.id} />}
 
           {/* 1099 Info Card */}
           <Card className="border-slate-200 shadow-sm bg-slate-50">

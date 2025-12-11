@@ -1294,6 +1294,9 @@ export type Database = {
       }
       sales_reps: {
         Row: {
+          agreement_accepted: boolean | null
+          agreement_accepted_at: string | null
+          agreement_version: string | null
           created_at: string
           email: string
           id: string
@@ -1301,9 +1304,14 @@ export type Database = {
           name: string
           payout_method: string | null
           phone: string | null
+          signature_at: string | null
+          signature_name: string | null
           updated_at: string
         }
         Insert: {
+          agreement_accepted?: boolean | null
+          agreement_accepted_at?: string | null
+          agreement_version?: string | null
           created_at?: string
           email: string
           id: string
@@ -1311,9 +1319,14 @@ export type Database = {
           name: string
           payout_method?: string | null
           phone?: string | null
+          signature_at?: string | null
+          signature_name?: string | null
           updated_at?: string
         }
         Update: {
+          agreement_accepted?: boolean | null
+          agreement_accepted_at?: string | null
+          agreement_version?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1321,6 +1334,8 @@ export type Database = {
           name?: string
           payout_method?: string | null
           phone?: string | null
+          signature_at?: string | null
+          signature_name?: string | null
           updated_at?: string
         }
         Relationships: []
