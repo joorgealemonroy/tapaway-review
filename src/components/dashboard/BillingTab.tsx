@@ -246,6 +246,19 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Plan:</strong> {planLabel}</p>
                 <p className="text-muted-foreground mt-3">Need help with billing? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
+              <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
+                {loadingPortal ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Manage Subscription
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </Card>
