@@ -95,6 +95,21 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Managed Manually</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
+              {hasStripeSubscription && (
+                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
+                  {loadingPortal ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Manage Subscription
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -114,6 +129,21 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Managed Directly with TapAway</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
+              {hasStripeSubscription && (
+                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
+                  {loadingPortal ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Manage Subscription
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -133,6 +163,21 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Custom Arrangement</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
+              {hasStripeSubscription && (
+                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
+                  {loadingPortal ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Manage Subscription
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
