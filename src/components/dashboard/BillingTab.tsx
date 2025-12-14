@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar, Crown, Building2, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2 } from "lucide-react";
 
 interface BillingTabProps {
   restaurant: {
@@ -20,48 +17,11 @@ interface BillingTabProps {
   isGrandfathered?: boolean;
 }
 
+const STRIPE_BILLING_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
+
 export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: BillingTabProps) => {
-  const { toast } = useToast();
-  const [loadingPortal, setLoadingPortal] = useState(false);
-
-  const openCustomerPortal = async () => {
-    // If we already have a portal URL, use it
-    if (restaurant?.stripe_portal_url) {
-      window.open(restaurant.stripe_portal_url, "_blank");
-      return;
-    }
-
-    // Otherwise, generate a new portal session
-    if (!restaurant?.stripe_customer_id) {
-      toast({
-        title: "Portal unavailable",
-        description: "Billing portal is not available. Contact support@tapaway.co for help.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoadingPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-billing-portal', {
-        body: { customerId: restaurant.stripe_customer_id }
-      });
-
-      if (error || !data?.url) {
-        throw new Error(error?.message || 'Failed to create billing portal');
-      }
-
-      window.open(data.url, "_blank");
-    } catch (err: any) {
-      console.error('Error creating billing portal:', err);
-      toast({
-        title: "Portal unavailable",
-        description: "Could not open billing portal. Please try again or contact tap@tapaway.co",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPortal(false);
-    }
+  const openCustomerPortal = () => {
+    window.open(STRIPE_BILLING_PORTAL_URL, "_blank");
   };
 
   const planType = restaurant?.plan_type || 'standard';
@@ -69,7 +29,13 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
   const isBundle = planType === 'bundle';
   const isPrivateAccess = planType === 'private_access';
   const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
-  const hasStripeSubscription = !!restaurant?.stripe_customer_id;
+
+  const ManageSubscriptionButton = ({ className = "" }: { className?: string }) => (
+    <Button onClick={openCustomerPortal} className={className}>
+      <ExternalLink className="w-4 h-4 mr-2" />
+      Manage Subscription
+    </Button>
+  );
 
   return (
     <div className="space-y-6 pb-8 animate-fade-in">
@@ -95,21 +61,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Managed Manually</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
-              {hasStripeSubscription && (
-                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
-                  {loadingPortal ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Manage Subscription
-                    </>
-                  )}
-                </Button>
-              )}
+              <ManageSubscriptionButton className="mt-4" />
             </div>
           </div>
         </Card>
@@ -129,21 +81,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Managed Directly with TapAway</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
-              {hasStripeSubscription && (
-                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
-                  {loadingPortal ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Manage Subscription
-                    </>
-                  )}
-                </Button>
-              )}
+              <ManageSubscriptionButton className="mt-4" />
             </div>
           </div>
         </Card>
@@ -163,21 +101,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <p><strong>Billing:</strong> Custom Arrangement</p>
                 <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
               </div>
-              {hasStripeSubscription && (
-                <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
-                  {loadingPortal ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Manage Subscription
-                    </>
-                  )}
-                </Button>
-              )}
+              <ManageSubscriptionButton className="mt-4" />
             </div>
           </div>
         </Card>
@@ -195,7 +119,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
         </Card>
       )}
 
-      {!isAlwaysAllowed && !isTestAccount && hasStripeSubscription && (
+      {!isAlwaysAllowed && !isTestAccount && (
         <Card className="p-6">
           <div className="space-y-4">
             <div className="flex justify-between items-start">
@@ -215,51 +139,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <span className="font-medium">{new Date(restaurant.next_billing_date).toLocaleDateString()}</span>
               </div>
             )}
-            <Button onClick={openCustomerPortal} className="w-full" disabled={loadingPortal}>
-              {loadingPortal ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Manage Subscription
-                </>
-              )}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {!isAlwaysAllowed && !isTestAccount && !hasStripeSubscription && (
-        <Card className="p-6 gradient-subtle border-none">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-2">Subscription Active</h3>
-              <p className="text-muted-foreground mb-4">Your TapAway subscription is active and your billing is managed through Stripe.</p>
-              <div className="text-sm space-y-1">
-                <p><strong>Status:</strong> <span className="text-green-600">Active</span></p>
-                <p><strong>Plan:</strong> {planLabel}</p>
-                <p className="text-muted-foreground mt-3">Need help with billing? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
-              </div>
-              <Button onClick={openCustomerPortal} className="mt-4" disabled={loadingPortal}>
-                {loadingPortal ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Manage Subscription
-                  </>
-                )}
-              </Button>
-            </div>
+            <ManageSubscriptionButton className="w-full" />
           </div>
         </Card>
       )}
