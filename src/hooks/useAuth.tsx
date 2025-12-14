@@ -148,9 +148,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear local state immediately
+    setUser(null);
+    setSession(null);
+    
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      // Session may already be expired/invalid - that's fine
+      console.log('Sign out completed (session may have been expired)');
+    }
+    
     toast.success("Signed out successfully");
-    navigate("/");
+    navigate("/auth");
   };
 
   return (
