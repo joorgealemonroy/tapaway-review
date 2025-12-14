@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar, Crown, Building2 } from "lucide-react";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2, CheckCircle2, Sparkles } from "lucide-react";
 
 interface BillingTabProps {
   restaurant: {
@@ -30,119 +30,115 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
   const isPrivateAccess = planType === 'private_access';
   const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
 
-  const ManageSubscriptionButton = ({ className = "" }: { className?: string }) => (
-    <Button onClick={openCustomerPortal} className={className}>
-      <ExternalLink className="w-4 h-4 mr-2" />
-      Manage Subscription
-    </Button>
-  );
-
   return (
-    <div className="space-y-6 pb-8 animate-fade-in">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
-          <CreditCard className="w-7 h-7 text-primary" />
+    <div className="space-y-8 pb-8 animate-fade-in max-w-2xl">
+      {/* Header */}
+      <div className="space-y-1">
+        <h2 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <CreditCard className="w-6 h-6 text-primary" />
+          </div>
           Billing & Subscription
         </h2>
-        <p className="text-muted-foreground">Manage your subscription and billing information</p>
+        <p className="text-muted-foreground ml-12">Manage your subscription and billing</p>
       </div>
 
-      {isGrandfathered && (
-        <Card className="p-6 gradient-subtle border-none">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Crown className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-2">Grandfathered Plan</h3>
-              <p className="text-muted-foreground mb-4">Your account has special grandfathered access with billing managed directly by TapAway.</p>
-              <div className="text-sm space-y-1">
-                <p><strong>Status:</strong> Active (Lifetime Access)</p>
-                <p><strong>Billing:</strong> Managed Manually</p>
-                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
-              </div>
-              <ManageSubscriptionButton className="mt-4" />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {!isGrandfathered && isBundle && (
-        <Card className="p-6 gradient-subtle border-none">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-2">Multi-Location Bundle Plan</h3>
-              <p className="text-muted-foreground mb-4">Your locations are part of a bundle with billing managed directly by TapAway.</p>
-              <div className="text-sm space-y-1">
-                <p><strong>Status:</strong> Active</p>
-                <p><strong>Billing:</strong> Managed Directly with TapAway</p>
-                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
-              </div>
-              <ManageSubscriptionButton className="mt-4" />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {!isGrandfathered && isPrivateAccess && (
-        <Card className="p-6 gradient-subtle border-none">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Crown className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-2">Private Access Plan</h3>
-              <p className="text-muted-foreground mb-4">Your billing is handled manually by TapAway.</p>
-              <div className="text-sm space-y-1">
-                <p><strong>Status:</strong> Active</p>
-                <p><strong>Billing:</strong> Custom Arrangement</p>
-                <p className="text-muted-foreground mt-3">Questions? Email <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a></p>
-              </div>
-              <ManageSubscriptionButton className="mt-4" />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {!isAlwaysAllowed && isTestAccount && (
-        <Card className="p-6 bg-primary/5 border-primary">
-          <div className="flex items-start gap-3">
-            <CreditCard className="w-6 h-6 text-primary flex-shrink-0" />
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Test Account</h3>
-              <p className="text-sm text-muted-foreground">This is a test account for demonstration purposes.</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {!isAlwaysAllowed && !isTestAccount && (
-        <Card className="p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-start">
+      {/* Status Card */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        {/* Gradient Header */}
+        <div className="bg-gradient-to-r from-primary/90 to-primary p-6 text-primary-foreground">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isGrandfathered ? (
+                <Crown className="w-8 h-8" />
+              ) : isBundle ? (
+                <Building2 className="w-8 h-8" />
+              ) : isPrivateAccess ? (
+                <Sparkles className="w-8 h-8" />
+              ) : (
+                <CreditCard className="w-8 h-8" />
+              )}
               <div>
-                <h3 className="text-lg font-semibold mb-1">Current Plan</h3>
-                <p className="text-muted-foreground text-sm">{planLabel}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Status</p>
-                <p className="font-semibold capitalize text-green-600">{restaurant?.subscription_status || 'Active'}</p>
+                <h3 className="text-xl font-bold">
+                  {isGrandfathered ? 'Grandfathered Plan' : 
+                   isBundle ? 'Multi-Location Bundle' : 
+                   isPrivateAccess ? 'Private Access' : 
+                   isTestAccount ? 'Test Account' : planLabel}
+                </h3>
+                <p className="text-primary-foreground/80 text-sm">
+                  {isGrandfathered ? 'Lifetime Access' : 
+                   isBundle ? 'Bundle Pricing' : 
+                   isPrivateAccess ? 'Custom Arrangement' :
+                   isTestAccount ? 'Demo Purposes' : 'TapAway Subscription'}
+                </p>
               </div>
             </div>
-            {restaurant?.next_billing_date && (
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Next billing:</span>
-                <span className="font-medium">{new Date(restaurant.next_billing_date).toLocaleDateString()}</span>
-              </div>
-            )}
-            <ManageSubscriptionButton className="w-full" />
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="font-semibold">Active</span>
+            </div>
           </div>
-        </Card>
-      )}
+        </div>
+
+        {/* Card Body */}
+        <div className="p-6 space-y-6 bg-card">
+          {/* Plan Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Plan Type</p>
+              <p className="font-semibold text-foreground">
+                {isGrandfathered ? 'Legacy Access' : 
+                 isBundle ? 'Bundle' : 
+                 isPrivateAccess ? 'Private' : 
+                 isTestAccount ? 'Test' : planLabel}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Billing</p>
+              <p className="font-semibold text-foreground">
+                {isGrandfathered || isBundle || isPrivateAccess ? 'Managed by TapAway' : 'Via Stripe'}
+              </p>
+            </div>
+          </div>
+
+          {/* Next Billing Date - only for standard subscriptions */}
+          {!isAlwaysAllowed && !isTestAccount && restaurant?.next_billing_date && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50">
+              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Next billing date</p>
+                <p className="font-semibold">{new Date(restaurant.next_billing_date).toLocaleDateString('en-US', { 
+                  month: 'long', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="border-t border-border" />
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={openCustomerPortal} 
+              className="flex-1 h-12 text-base font-semibold shadow-md hover:shadow-lg transition-all"
+            >
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Manage Subscription
+            </Button>
+          </div>
+
+          {/* Help Text */}
+          <p className="text-center text-sm text-muted-foreground">
+            Need help? Email{' '}
+            <a href="mailto:tap@tapaway.co" className="text-primary hover:underline font-medium">
+              tap@tapaway.co
+            </a>
+          </p>
+        </div>
+      </Card>
     </div>
   );
 };
