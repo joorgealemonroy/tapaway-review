@@ -78,6 +78,15 @@ const Admin = () => {
   const [loadingPaywallSetting, setLoadingPaywallSetting] = useState(true);
   const [updatingPaywall, setUpdatingPaywall] = useState(false);
 
+  // Legacy client creation state
+  const [legacyClientEmail, setLegacyClientEmail] = useState("");
+  const [legacyClientPassword, setLegacyClientPassword] = useState("");
+  const [legacyClientName, setLegacyClientName] = useState("");
+  const [legacyRestaurantName, setLegacyRestaurantName] = useState("");
+  const [legacyStripeCustomerId, setLegacyStripeCustomerId] = useState("");
+  const [legacyStripePriceId, setLegacyStripePriceId] = useState("");
+  const [creatingLegacyClient, setCreatingLegacyClient] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -337,6 +346,47 @@ const Admin = () => {
     setUpdatingPaywall(false);
   };
 
+  const handleCreateLegacyClient = async () => {
+    if (!legacyClientEmail || !legacyClientPassword || !legacyRestaurantName) {
+      toast.error("Email, password, and restaurant name are required");
+      return;
+    }
+
+    setCreatingLegacyClient(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-legacy-client-account", {
+        body: {
+          email: legacyClientEmail,
+          password: legacyClientPassword,
+          restaurantName: legacyRestaurantName,
+          ownerName: legacyClientName,
+          stripeCustomerId: legacyStripeCustomerId || null,
+          stripePriceId: legacyStripePriceId || null,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Account created for ${legacyClientEmail}`);
+      
+      // Reset form
+      setLegacyClientEmail("");
+      setLegacyClientPassword("");
+      setLegacyClientName("");
+      setLegacyRestaurantName("");
+      setLegacyStripeCustomerId("");
+      setLegacyStripePriceId("");
+
+      // Reload restaurants list
+      window.location.reload();
+    } catch (e: any) {
+      toast.error("Failed to create account: " + e.message);
+    } finally {
+      setCreatingLegacyClient(false);
+    }
+  };
+
   if (authLoading || adminLoading) {
     return <div className="p-6">Loading...</div>;
   }
@@ -408,6 +458,71 @@ const Admin = () => {
         <p className="text-xs text-muted-foreground">
           Note: AI Coach remains locked until 1,000 taps regardless of this setting.
         </p>
+      </section>
+
+      {/* Create Legacy Client Account */}
+      <section className="bg-card border rounded-xl p-4 space-y-3">
+        <h2 className="font-semibold">Create Legacy Client Account</h2>
+        <p className="text-sm text-muted-foreground">
+          Create a portal account for an existing Stripe customer who doesn't have a login yet.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Email *</Label>
+            <Input
+              placeholder="client@example.com"
+              value={legacyClientEmail}
+              onChange={(e) => setLegacyClientEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Password *</Label>
+            <Input
+              type="text"
+              placeholder="Permanent password"
+              value={legacyClientPassword}
+              onChange={(e) => setLegacyClientPassword(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Owner Name</Label>
+            <Input
+              placeholder="John Doe"
+              value={legacyClientName}
+              onChange={(e) => setLegacyClientName(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Restaurant Name *</Label>
+            <Input
+              placeholder="Joe's Pizza"
+              value={legacyRestaurantName}
+              onChange={(e) => setLegacyRestaurantName(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Stripe Customer ID</Label>
+            <Input
+              placeholder="cus_XXXXXX"
+              value={legacyStripeCustomerId}
+              onChange={(e) => setLegacyStripeCustomerId(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Stripe Price ID</Label>
+            <Input
+              placeholder="price_XXXXXX"
+              value={legacyStripePriceId}
+              onChange={(e) => setLegacyStripePriceId(e.target.value)}
+            />
+          </div>
+        </div>
+        <Button
+          onClick={handleCreateLegacyClient}
+          disabled={creatingLegacyClient || !legacyClientEmail || !legacyClientPassword || !legacyRestaurantName}
+        >
+          {creatingLegacyClient ? "Creating..." : "Create Account"}
+        </Button>
       </section>
 
       <section className="bg-card border rounded-xl p-4 space-y-3">
