@@ -49,11 +49,11 @@ const ReviewHub = () => {
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   
-  // Visitor theme preference (light/dark)
+  // Visitor theme preference (light/dark) - defaults to light, respects saved preference
   const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('tapaway_hub_theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   });
 
   // Track when a restaurant is loaded (tap event)
