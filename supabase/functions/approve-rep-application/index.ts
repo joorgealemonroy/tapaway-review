@@ -152,7 +152,7 @@ serve(async (req) => {
 
     // Generate our own setup token (bypasses Supabase redirect URL restrictions)
     const setupToken = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, '');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days for better UX
 
     // Delete any existing tokens for this user
     await supabase
@@ -205,7 +205,7 @@ serve(async (req) => {
             • $500 bonus for every 30 closes per month
           </p>
           <p style="color: #888; font-size: 12px; margin-top: 32px;">
-            This link expires in 24 hours. Questions? Contact tap@tapaway.co
+            This link expires in 7 days. Questions? Contact tap@tapaway.co
           </p>
         </div>
       `,

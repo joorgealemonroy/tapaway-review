@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -46,6 +46,7 @@ const AdminReps = () => {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<RepApplication | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
@@ -183,6 +184,26 @@ const AdminReps = () => {
     }
   };
 
+  const handleResendInvite = async (repId: string, repEmail: string) => {
+    setResendingInvite(repId);
+    try {
+      const { data, error } = await supabase.functions.invoke('resend-rep-invite', {
+        body: { repId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`New invite sent to ${repEmail}`);
+    } catch (error) {
+      console.error('Error resending invite:', error);
+      const message = error instanceof Error ? error.message : 'Failed to resend invite';
+      toast.error(message);
+    } finally {
+      setResendingInvite(null);
+    }
+  };
+
   if (adminLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -305,12 +326,13 @@ const AdminReps = () => {
                       <TableHead>Pending</TableHead>
                       <TableHead>Paid</TableHead>
                       <TableHead>Active</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {reps.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           No reps yet
                         </TableCell>
                       </TableRow>
@@ -334,6 +356,19 @@ const AdminReps = () => {
                               checked={rep.is_active}
                               onCheckedChange={(checked) => handleToggleActive(rep.id, checked)}
                             />
+                          </TableCell>
+                          <TableCell>
+                            {!rep.agreement_accepted && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleResendInvite(rep.id, rep.email)}
+                                disabled={resendingInvite === rep.id}
+                              >
+                                <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
+                                {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
