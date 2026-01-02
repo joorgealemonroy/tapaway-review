@@ -2,16 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
-import OnboardingStartPublic from "./pages/OnboardingStartPublic";
-import OnboardingStartRedirect from "./pages/OnboardingStartRedirect";
-import Start from "./pages/Start";
 import Paywall from "./pages/Paywall";
 import TrialConfirmed from "./pages/TrialConfirmed";
 import Dashboard from "./pages/Dashboard";
@@ -57,11 +54,12 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/onboarding-start" element={<OnboardingStartPublic />} />
-            <Route path="/onboarding/start" element={<OnboardingStartRedirect />} />
-            <Route path="/start" element={<Start />} />
+            {/* Redirect old routes to unified /onboarding */}
+            <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+            <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+            <Route path="/start" element={<Navigate to="/onboarding" replace />} />
             <Route path="/paywall" element={<Paywall />} />
-            <Route path="/trial-confirmed" element={<TrialConfirmed />} />
+            <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/terms" element={<Terms />} />
