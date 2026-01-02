@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
 
 export const FooterCTA = () => {
   return (
@@ -35,13 +34,13 @@ export const FooterCTA = () => {
           whileTap={{ scale: 0.98 }}
           className="inline-block"
         >
-          <Link
-            to="/paywall"
+          <a
+            href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
-            Claim Free 30-Day Setup
+            Start Free 30-Day Trial
             <ArrowRight className="w-5 h-5" />
-          </Link>
+          </a>
         </motion.div>
 
         <motion.p

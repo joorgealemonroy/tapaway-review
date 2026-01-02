@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Shield, ArrowRight, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
 
 export const RiskReversalSection = () => {
   const ref = useRef(null);
@@ -51,13 +50,13 @@ export const RiskReversalSection = () => {
             whileTap={{ scale: 0.98 }}
             className="inline-block"
           >
-            <Link
-              to="/paywall"
+            <a
+              href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
             >
-              Claim Free 30-Day Setup
+              Start Free 30-Day Trial
               <ArrowRight className="w-5 h-5" />
-            </Link>
+            </a>
           </motion.div>
 
           <p className="text-sm text-muted-foreground mt-6">

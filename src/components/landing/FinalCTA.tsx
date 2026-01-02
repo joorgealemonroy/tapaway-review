@@ -42,12 +42,12 @@ export const FinalCTA = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <motion.a
-            href="/paywall"
+            href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold bg-white text-[#0B1220] shadow-lg text-base"
             whileHover={{ scale: 1.03, boxShadow: "0 20px 40px -10px rgba(255,255,255,0.2)" }}
             whileTap={{ scale: 0.98 }}
           >
-            Start December Special
+            Start Free 30-Day Trial
             <ArrowRight className="w-4 h-4" />
           </motion.a>
         </motion.div>
@@ -58,7 +58,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.4, delay: 0.35 }}
           className="text-xs text-white/40 mt-5"
         >
-          $150 first year • Renews at $300/year
+          No charge today • Cancel anytime before day 30
         </motion.p>
       </div>
     </section>
