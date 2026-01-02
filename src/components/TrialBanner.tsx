@@ -10,14 +10,15 @@ export const TrialBanner = () => {
 
   useEffect(() => {
     // Check if user has trial intent but hasn't completed onboarding
+    const hasPendingTrial = localStorage.getItem('tapaway_pending_trial') === 'true';
     const hasTrialIntent = localStorage.getItem('tapaway_trial_intent') === 'true';
     const onboardingComplete = localStorage.getItem('tapaway_onboarding_complete') === 'true';
     
-    // Don't show on paywall or onboarding pages
-    const excludedPaths = ['/paywall', '/onboarding', '/auth', '/dashboard'];
+    // Don't show on start, paywall, or onboarding pages
+    const excludedPaths = ['/start', '/paywall', '/onboarding', '/auth', '/dashboard'];
     const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
     
-    if (hasTrialIntent && !onboardingComplete && !isExcludedPath && !dismissed) {
+    if ((hasPendingTrial || hasTrialIntent) && !onboardingComplete && !isExcludedPath && !dismissed) {
       setShowBanner(true);
     } else {
       setShowBanner(false);

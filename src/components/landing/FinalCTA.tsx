@@ -42,7 +42,7 @@ export const FinalCTA = () => {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Link to="/paywall">
+          <Link to="/start">
             <motion.span
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold bg-white text-[#0B1220] shadow-lg text-base"
               whileHover={{ scale: 1.03, boxShadow: "0 20px 40px -10px rgba(255,255,255,0.2)" }}

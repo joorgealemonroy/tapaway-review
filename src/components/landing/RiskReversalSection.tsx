@@ -52,7 +52,7 @@ export const RiskReversalSection = () => {
             className="inline-block"
           >
             <Link
-              to="/paywall"
+              to="/start"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
             >
               Start Free 30-Day Trial

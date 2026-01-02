@@ -36,7 +36,7 @@ export const FooterCTA = () => {
           className="inline-block"
         >
           <Link
-            to="/paywall"
+            to="/start"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Start Free 30-Day Trial
