@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// SINGLE SOURCE OF TRUTH - Trial Price ID
+const TRIAL_PRICE_ID = "price_1Sl3aCDg8DaTuVNZtL0SAQrl";
+
 /**
  * Lookup and verify a Stripe Payment Link checkout session.
  * Called from /onboarding when user arrives with session_id from Stripe.
@@ -131,20 +134,30 @@ serve(async (req) => {
     });
 
     // Determine plan type from subscription
-    let planType = 'monthly';
+    let planType = 'trial';
+    let usedTrialPrice = false;
     if (subscriptionId) {
       try {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price.id || '';
-        if (priceId.toLowerCase().includes('year')) {
+        
+        // Check if using the trial price
+        if (priceId === TRIAL_PRICE_ID) {
+          usedTrialPrice = true;
+          planType = 'trial';
+          console.log('[lookup-stripe-session] Verified trial price:', TRIAL_PRICE_ID);
+        } else if (priceId.toLowerCase().includes('year')) {
           planType = 'yearly';
+        } else {
+          planType = 'monthly';
         }
-        // Check if it's a trial
+        
+        // Check if it's a trial (backup check)
         if (subscription.trial_end) {
           planType = 'trial';
         }
       } catch (e) {
-        console.log('[lookup-stripe-session] Could not determine plan type, defaulting to monthly');
+        console.log('[lookup-stripe-session] Could not determine plan type, defaulting to trial');
       }
     }
 

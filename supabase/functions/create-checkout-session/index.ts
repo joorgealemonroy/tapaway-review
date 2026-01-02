@@ -7,16 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// SINGLE SOURCE OF TRUTH - Trial Price ID
+// 30-day free trial, card required, $0 due today, $30/month after trial
+const TRIAL_PRICE_ID = "price_1Sl3aCDg8DaTuVNZtL0SAQrl";
+
 // Input validation
 function validateEmail(email: string): boolean {
   if (!email || typeof email !== 'string') return false;
   if (email.length > 255) return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-}
-
-function validatePlan(plan: string): plan is 'monthly' | 'yearly' {
-  return plan === 'monthly' || plan === 'yearly';
 }
 
 function validateUuid(value: string | undefined): boolean {
@@ -42,13 +42,13 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { plan, email, userId, restaurantId } = body;
+    const { email, userId, restaurantId, priceId } = body;
     
-    // Validate inputs
-    if (!validatePlan(plan)) {
-      console.error('Invalid plan value:', plan);
+    // SAFETY CHECK: Only allow the trial price ID
+    if (priceId && priceId !== TRIAL_PRICE_ID) {
+      console.error('[create-checkout-session] BLOCKED: Invalid price ID attempted:', priceId);
       return new Response(
-        JSON.stringify({ error: 'Invalid plan. Must be "monthly" or "yearly".' }),
+        JSON.stringify({ error: 'Invalid price configuration. Please use the trial signup.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -77,61 +77,41 @@ serve(async (req) => {
       );
     }
     
-    console.log('Creating checkout session:', { plan, email: email.substring(0, 3) + '***', userId: userId ? 'provided' : 'none', restaurantId: restaurantId ? 'provided' : 'none' });
+    console.log('[create-checkout-session] Creating trial checkout:', { 
+      email: email.substring(0, 3) + '***', 
+      priceId: TRIAL_PRICE_ID,
+      userId: userId ? 'provided' : 'none', 
+      restaurantId: restaurantId ? 'provided' : 'none' 
+    });
 
-    // Price IDs from Stripe Dashboard
-    const PRICE_IDS = {
-      monthly: 'price_1SJP7CDg8DaTuVNZlcOE5Rn8',   // TapAway Monthly
-      yearly: 'price_1SJPryDg8DaTuVNZBB4at0Gc'     // TapAway Yearly ($300 renewal)
-    };
-
-    // Check if December promo is active
-    const PROMO_DEADLINE = new Date('2025-12-31T23:59:59-08:00').getTime();
-    const promoActive = Date.now() < PROMO_DEADLINE;
-    const isYearly = plan === 'yearly';
-
-    // Get promo code ID from environment
-    const promoCodeId = Deno.env.get('STRIPE_PROMO_CHRISTMAS150');
-    
-    // Apply discount only for yearly plan during promo period
-    const discounts = isYearly && promoActive && promoCodeId
-      ? [{ promotion_code: promoCodeId }]
-      : [];
-
-    if (isYearly && promoActive && !promoCodeId) {
-      console.warn('STRIPE_PROMO_CHRISTMAS150 not configured - proceeding without discount');
-    }
-
-    const priceId = isYearly ? PRICE_IDS.yearly : PRICE_IDS.monthly;
-
-    // Create checkout session with shipping address collection
+    // Create checkout session using ONLY the trial price
+    // Trial settings are configured on the price in Stripe - DO NOT override
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [
         {
-          price: priceId,
+          price: TRIAL_PRICE_ID,
           quantity: 1,
         },
       ],
-      discounts,
       customer_email: email,
-      success_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin') || 'https://app.tapaway.co'}/paywall`,
+      success_url: `${req.headers.get('origin') || 'https://tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}&source=stripe&price_id=${TRIAL_PRICE_ID}`,
+      cancel_url: `${req.headers.get('origin') || 'https://tapaway.co'}/start`,
       billing_address_collection: 'required',
       shipping_address_collection: {
-        allowed_countries: ['US', 'CA', 'MX'], // Adjust as needed
+        allowed_countries: ['US', 'CA', 'MX'],
       },
       metadata: {
-        plan_type: plan,
+        plan_type: 'trial',
+        price_id: TRIAL_PRICE_ID,
         user_id: userId || '',
         restaurant_id: restaurantId || '',
-        promo_applied: (isYearly && promoActive && promoCodeId) ? 'true' : 'false',
       },
     });
 
-    console.log('Checkout session created:', {
+    console.log('[create-checkout-session] Session created:', {
       sessionId: session.id,
-      discountsApplied: discounts.length > 0,
+      priceId: TRIAL_PRICE_ID,
     });
 
     return new Response(
@@ -142,7 +122,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('[create-checkout-session] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ error: errorMessage }),
