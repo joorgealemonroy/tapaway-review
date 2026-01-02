@@ -35,9 +35,15 @@ export const HeroSection = () => {
             </h1>
 
             {/* Subheadline */}
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-4 max-w-xl mx-auto lg:mx-0">
               We install everything for you: NFC cards, review page, tracking, and support.{" "}
               <span className="font-semibold text-foreground">No contracts. Cancel anytime.</span>
+            </p>
+
+            {/* NFC Card Customization */}
+            <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0">
+              <span className="text-primary font-medium">Free custom NFC cards with your logo</span>{" "}
+              (optional — unbranded available).
             </p>
 
             {/* CTAs */}
@@ -67,8 +73,9 @@ export const HeroSection = () => {
             </div>
 
             {/* Micro-copy */}
-            <p className="text-sm text-muted-foreground">
-              No credit card required to start • $30/month after trial
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Card required to keep service live after 60 days.{" "}
+              <span className="text-foreground font-medium">You won't be charged during the trial.</span>
             </p>
           </motion.div>
 

@@ -3,6 +3,7 @@ import { useSalesRep } from "@/hooks/useSalesRep";
 import { Link } from "react-router-dom";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
+import { QRComparisonSection } from "@/components/landing/QRComparisonSection";
 import { HowItWorksNew } from "@/components/landing/HowItWorksNew";
 import { ProofSection } from "@/components/landing/ProofSection";
 import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
@@ -47,6 +48,7 @@ const Index = () => {
       {/* Main Content */}
       <HeroSection />
       <ComparisonSection />
+      <QRComparisonSection />
       <HowItWorksNew />
       <ProofSection />
       <RiskReversalSection />

@@ -26,9 +26,25 @@ export const RiskReversalSection = () => {
             Try TapAway Risk-Free
           </h2>
 
-          <p className="text-xl text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto">
-            Use TapAway for 60 days. If you don't love it, cancel — you won't be charged.
-          </p>
+          <div className="space-y-4 mb-8 max-w-xl mx-auto">
+            <p className="text-xl text-muted-foreground leading-relaxed">
+              Use TapAway for <span className="font-semibold text-foreground">60 full days</span> — completely free.
+            </p>
+            <ul className="text-base text-muted-foreground space-y-2">
+              <li className="flex items-center justify-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                No charges during your trial period
+              </li>
+              <li className="flex items-center justify-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Cancel anytime before day 60 to avoid billing
+              </li>
+              <li className="flex items-center justify-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Card on file keeps your service running after trial
+              </li>
+            </ul>
+          </div>
 
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -45,7 +61,7 @@ export const RiskReversalSection = () => {
           </motion.div>
 
           <p className="text-sm text-muted-foreground mt-6">
-            We require a card on file to keep the system live after the trial.
+            After trial: $30/month • Cancel with one click
           </p>
         </motion.div>
       </div>
