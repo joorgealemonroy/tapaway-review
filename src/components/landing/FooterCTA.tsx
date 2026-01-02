@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { TRIAL_URL } from "@/lib/constants";
 
 export const FooterCTA = () => {
   return (
@@ -35,7 +36,7 @@ export const FooterCTA = () => {
           className="inline-block"
         >
           <a
-            href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+            href={TRIAL_URL}
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Start Free 30-Day Trial

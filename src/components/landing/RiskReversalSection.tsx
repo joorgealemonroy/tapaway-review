@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Shield, ArrowRight, CheckCircle } from "lucide-react";
+import { TRIAL_URL } from "@/lib/constants";
 
 export const RiskReversalSection = () => {
   const ref = useRef(null);
@@ -51,7 +52,7 @@ export const RiskReversalSection = () => {
             className="inline-block"
           >
             <a
-              href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+              href={TRIAL_URL}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
             >
               Start Free 30-Day Trial

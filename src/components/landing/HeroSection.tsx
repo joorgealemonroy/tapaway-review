@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Play, Star, Truck, Shield, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import { TRIAL_URL } from "@/lib/constants";
 
 const cities = [
   "San Diego",
@@ -91,7 +92,7 @@ export const HeroSection = () => {
                 whileTap={{ scale: 0.98 }}
               >
                 <a
-                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+                  href={TRIAL_URL}
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
                   Start Free 30-Day Trial

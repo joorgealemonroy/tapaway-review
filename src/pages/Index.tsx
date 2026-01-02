@@ -11,6 +11,7 @@ import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import { TRIAL_URL } from "@/lib/constants";
 
 const Index = () => {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ const Index = () => {
               </Link>
             ) : (
               <a
-                href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+                href={TRIAL_URL}
                 className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
               >
                 Start Free Trial
