@@ -23,6 +23,7 @@ import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
+import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 
 interface Restaurant {
   id: string;
@@ -203,9 +204,9 @@ const Dashboard = () => {
       .select("*")
       .eq("owner_id", user?.id ?? '');
     
-    // Find a completed restaurant with active subscription, or just any completed one
+    // Find a completed restaurant with allowed subscription, or just any completed one
     const completedRestaurants = restaurants?.filter((r) => r.onboarding_completed === true) || [];
-    const activeRestaurant = completedRestaurants.find((r) => r.subscription_status === 'active') || completedRestaurants[0];
+    const activeRestaurant = completedRestaurants.find((r) => isSubscriptionAllowed(r.subscription_status)) || completedRestaurants[0];
     
     if (activeRestaurant) {
       const mapped: Restaurant = {
@@ -248,8 +249,8 @@ const Dashboard = () => {
       
       fetchLocations(activeRestaurant.id);
 
-      // Check subscription status and redirect to paywall if needed
-      if (!isAdmin && activeRestaurant.subscription_status !== 'active') {
+      // Check subscription status and redirect to paywall if blocked
+      if (!isAdmin && !isSubscriptionAllowed(activeRestaurant.subscription_status)) {
         navigate("/paywall");
         return;
       }

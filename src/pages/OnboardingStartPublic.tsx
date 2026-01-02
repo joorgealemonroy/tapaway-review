@@ -83,11 +83,9 @@ const OnboardingStartPublic = () => {
   useEffect(() => {
     document.title = "Finish setting up TapAway | Free Trial";
 
-    // Stripe return safety flag
-    if (source === "stripe") {
-      localStorage.setItem("tapaway_pending_setup", "true");
-      document.cookie = `tapaway_pending_setup=true; path=/; max-age=${60 * 60 * 24 * 14}`;
-    }
+    // Set pending setup flag on any visit to this page (ensures paywall doesn't kick them out)
+    localStorage.setItem("tapaway_pending_setup", "true");
+    document.cookie = `tapaway_pending_setup=true; path=/; max-age=${60 * 60 * 24 * 14}`;
 
     // Pre-fill from localStorage
     const pendingEmail = localStorage.getItem("tapaway_pending_email");
