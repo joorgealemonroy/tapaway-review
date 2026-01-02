@@ -17,7 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, ShieldCheck } from "lucide-react";
+import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
+import { 
+  getOnboardingData, 
+  saveOnboardingData, 
+  setEmailVerified,
+  setPendingSetup,
+  generateSlug,
+  type OnboardingData 
+} from "@/lib/onboardingData";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
@@ -83,25 +92,23 @@ const OnboardingStartPublic = () => {
   useEffect(() => {
     document.title = "Finish setting up TapAway | Free Trial";
 
-    // Set pending setup flag on any visit to this page (ensures paywall doesn't kick them out)
-    localStorage.setItem("tapaway_pending_setup", "true");
+    // Set pending setup flag
+    setPendingSetup(true);
     document.cookie = `tapaway_pending_setup=true; path=/; max-age=${60 * 60 * 24 * 14}`;
 
-    // Pre-fill from localStorage
-    const pendingEmail = localStorage.getItem("tapaway_pending_email");
-    const pendingBusiness = localStorage.getItem("tapaway_pending_business");
-    const pendingCity = localStorage.getItem("tapaway_pending_city");
-    const pendingState = localStorage.getItem("tapaway_pending_state");
-    const pendingType = localStorage.getItem("tapaway_pending_type");
-
-    setForm((prev) => ({
-      ...prev,
-      email: pendingEmail || prev.email,
-      businessName: pendingBusiness || prev.businessName,
-      city: pendingCity || prev.city,
-      state: pendingState || prev.state,
-      businessType: pendingType || prev.businessType,
-    }));
+    // Pre-fill from unified onboarding data
+    const savedData = getOnboardingData();
+    if (savedData.email || savedData.businessName) {
+      setForm({
+        email: savedData.email || "",
+        businessName: savedData.businessName || "",
+        city: savedData.city || "",
+        state: savedData.state || "",
+        businessType: savedData.businessType || "",
+        shippingAddress: savedData.shippingAddress || "",
+      });
+      setUseUnbranded(savedData.unbrandedCards || false);
+    }
 
     // If already authenticated, skip straight to onboarding
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -143,12 +150,7 @@ const OnboardingStartPublic = () => {
   };
 
   const upsertWorkspaceBasics = async (userId: string) => {
-    // Keep this non-sensitive: DO NOT store shipping address in restaurants.
-    const slug = form.businessName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 50);
+    const slug = generateSlug(form.businessName);
 
     const { data: existing } = await supabase
       .from("restaurants")
@@ -185,7 +187,6 @@ const OnboardingStartPublic = () => {
         email: form.email.toLowerCase().trim(),
         onboarding_step: 1,
         onboarding_completed: false,
-        // Note: we do NOT mark subscription as active here.
       })
       .select("id")
       .single();
@@ -206,16 +207,18 @@ const OnboardingStartPublic = () => {
 
     setSubmitting(true);
     try {
-      // Save local fallback (also used by /onboarding)
-      localStorage.setItem("tapaway_pending_setup", "true");
-      localStorage.setItem("tapaway_pending_email", form.email.toLowerCase().trim());
-      localStorage.setItem("tapaway_pending_business", form.businessName.trim());
-      localStorage.setItem("tapaway_pending_city", form.city.trim());
-      localStorage.setItem("tapaway_pending_state", form.state);
-      localStorage.setItem("tapaway_pending_type", form.businessType);
-      localStorage.setItem("tapaway_pending_shipping_address", form.shippingAddress.trim());
-      localStorage.setItem("tapaway_pending_unbranded", useUnbranded ? "true" : "false");
-      localStorage.setItem("tapaway_pending_logo_selected", logoFile ? "true" : "false");
+      // Save to unified onboarding data store
+      saveOnboardingData({
+        email: form.email.toLowerCase().trim(),
+        businessName: form.businessName.trim(),
+        city: form.city.trim(),
+        state: form.state,
+        businessType: form.businessType,
+        shippingAddress: form.shippingAddress.trim(),
+        unbrandedCards: useUnbranded,
+        logoUploaded: !!logoFile,
+        customSlug: generateSlug(form.businessName),
+      });
 
       await startOtp();
       setView("otp");
@@ -247,17 +250,28 @@ const OnboardingStartPublic = () => {
       if (error) throw error;
       if (!data.user) throw new Error("Could not verify email");
 
+      // Mark email as verified
+      setEmailVerified();
       setView("saving");
 
       await upsertWorkspaceBasics(data.user.id);
 
-      // Do NOT upload logo or save shipping here (shipping is sensitive; handled in /onboarding).
+      // Navigate to onboarding (data is already saved in localStorage)
       navigate("/onboarding");
     } catch (err: any) {
       console.error("[onboarding-start] verify error", err);
       toast.error(err?.message || "Invalid code. Please try again.");
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const resendCode = async () => {
+    try {
+      await startOtp();
+      toast.success("New code sent!");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not resend code");
     }
   };
 
@@ -271,7 +285,15 @@ const OnboardingStartPublic = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-10">
+      <main className="mx-auto max-w-lg px-4 py-6">
+        {/* Progress indicator */}
+        <div className="mb-8">
+          <OnboardingProgress 
+            currentStep={1} 
+            steps={["Business details", "Connect Google", "Review & finish"]}
+          />
+        </div>
+
         {view === "saving" ? (
           <section className="flex flex-col items-center justify-center py-16 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -285,19 +307,22 @@ const OnboardingStartPublic = () => {
             <Card className="p-6">
               <div className="mb-6 text-center">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <Mail className="h-6 w-6 text-primary" />
+                  <ShieldCheck className="h-6 w-6 text-primary" />
                 </div>
                 <h1 id="otp-title" className="text-2xl font-bold text-foreground">
-                  Enter your code
+                  Confirm your email to finish setup
                 </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  We sent a 6-digit code to <span className="font-medium text-foreground">{form.email}</span>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This helps us ship your cards and protect your account.
+                </p>
+                <p className="mt-3 text-sm text-foreground">
+                  We sent a code to <span className="font-medium">{form.email}</span>
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="otp">Verification code</Label>
+                  <Label htmlFor="otp">6-digit code</Label>
                   <Input
                     id="otp"
                     value={otp}
@@ -306,6 +331,7 @@ const OnboardingStartPublic = () => {
                     maxLength={6}
                     placeholder="123456"
                     className="text-center text-2xl tracking-widest"
+                    autoFocus
                   />
                 </div>
 
@@ -319,17 +345,25 @@ const OnboardingStartPublic = () => {
                   )}
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setView("form");
-                    setOtp("");
-                  }}
-                >
-                  Change email
-                </Button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={resendCode}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Didn't get it? Resend code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setView("form");
+                      setOtp("");
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Use a different email
+                  </button>
+                </div>
               </div>
             </Card>
           </section>
@@ -426,7 +460,7 @@ const OnboardingStartPublic = () => {
                       required
                     />
                     <p className="text-xs text-muted-foreground">
-                      We’ll confirm the rest of the shipping details on the next step.
+                      We'll confirm the rest of the shipping details on the next step.
                     </p>
                   </div>
 
@@ -479,13 +513,23 @@ const OnboardingStartPublic = () => {
                       "Continue"
                     )}
                   </Button>
-
-                  <p className="text-xs text-center text-muted-foreground">
-                    No password needed — we’ll email you a one-time code.
-                  </p>
                 </form>
               </Card>
             </article>
+
+            <footer className="mt-8 text-center text-xs text-muted-foreground">
+              <p>
+                By continuing, you agree to our{" "}
+                <a href="/terms" className="underline hover:text-foreground">
+                  Terms
+                </a>{" "}
+                &amp;{" "}
+                <a href="/privacy" className="underline hover:text-foreground">
+                  Privacy Policy
+                </a>
+                .
+              </p>
+            </footer>
           </section>
         )}
       </main>
