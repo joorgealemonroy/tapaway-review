@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Package, Smartphone, Star } from "lucide-react";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
 const steps = [
   {
@@ -91,6 +92,16 @@ export const HowItWorksNew = () => {
         >
           No apps. No passwords. No staff training.
         </motion.p>
+
+        {/* Rotating NFC Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="mt-12"
+        >
+          <TapAwayCard3D />
+        </motion.div>
       </div>
     </section>
   );

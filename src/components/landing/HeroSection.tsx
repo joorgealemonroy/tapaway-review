@@ -126,10 +126,6 @@ export const HeroSection = () => {
             className="relative"
           >
             <div className="flex flex-col items-center gap-6">
-              {/* Rotating NFC Card Component */}
-              <div className="relative">
-                <TapAwayCard3D />
-              </div>
 
               {/* iPhone Mockup - Realistic Design */}
               <div className="relative mx-auto max-w-[280px]">
