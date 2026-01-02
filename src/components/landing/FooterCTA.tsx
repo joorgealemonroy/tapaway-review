@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { TRIAL_URL } from "@/lib/constants";
+import { Link } from "react-router-dom";
 
 export const FooterCTA = () => {
   return (
@@ -35,13 +35,13 @@ export const FooterCTA = () => {
           whileTap={{ scale: 0.98 }}
           className="inline-block"
         >
-          <a
-            href={TRIAL_URL}
+          <Link
+            to="/paywall"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Start Free 30-Day Trial
             <ArrowRight className="w-5 h-5" />
-          </a>
+          </Link>
         </motion.div>
 
         <motion.p
