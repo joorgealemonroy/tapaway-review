@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Play, Smartphone, Star } from "lucide-react";
+import { ArrowRight, Play, Smartphone, Star, Truck, Shield, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const HeroSection = () => {
@@ -31,14 +31,26 @@ export const HeroSection = () => {
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.1] mb-6">
               Get More 5-Star Google Reviews —{" "}
-              <span className="text-primary">Free for 60 Days.</span>
+              <span className="text-primary">Free for 30 Days.</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-4 max-w-xl mx-auto lg:mx-0">
               We install everything for you: NFC cards, review page, tracking, and support.{" "}
-              <span className="font-semibold text-foreground">No contracts. Cancel anytime.</span>
+              <span className="font-semibold text-foreground">Done-for-you setup. No risk.</span>
             </p>
+
+            {/* Trust Points */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-center lg:justify-start">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Truck className="w-4 h-4 text-primary" />
+                <span>Ships in 1–2 business days</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Shield className="w-4 h-4 text-primary" />
+                <span>No contracts. Cancel anytime.</span>
+              </div>
+            </div>
 
             {/* NFC Card Customization */}
             <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0">
@@ -56,7 +68,7 @@ export const HeroSection = () => {
                   to="/paywall"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
-                  Claim Free 60-Day Setup
+                  Claim Free 30-Day Setup
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
@@ -74,12 +86,12 @@ export const HeroSection = () => {
 
             {/* Micro-copy */}
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Card required to keep service live after 60 days.{" "}
-              <span className="text-foreground font-medium">You won't be charged during the trial.</span>
+              No charge during the trial.{" "}
+              <span className="text-foreground font-medium">Cancel anytime.</span>
             </p>
           </motion.div>
 
-          {/* Right: Visual */}
+          {/* Right: Visual - Animated NFC Card Tap */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -132,19 +144,53 @@ export const HeroSection = () => {
                 </div>
               </div>
 
-              {/* NFC Card floating */}
+              {/* Rotating NFC Card with Tap Animation */}
               <motion.div
-                initial={{ opacity: 0, x: -30, rotate: -5 }}
-                animate={{ opacity: 1, x: 0, rotate: -5 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="absolute -left-8 top-1/3 bg-white rounded-xl shadow-2xl p-4 border border-border"
+                initial={{ opacity: 0, x: -50, y: 20 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: [-50, -20, -50],
+                  y: [20, 0, 20],
+                  rotateY: [0, 15, 0],
+                }}
+                transition={{ 
+                  opacity: { duration: 0.5, delay: 0.3 },
+                  x: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                  y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                  rotateY: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                }}
+                className="absolute -left-6 top-1/3"
+                style={{ perspective: "1000px" }}
               >
-                <div className="flex items-center gap-3">
-                  <Smartphone className="w-8 h-8 text-primary" />
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">NFC Tap</p>
-                    <p className="text-[10px] text-muted-foreground">Instant review page</p>
+                {/* NFC Card Design */}
+                <div className="relative w-32 h-20 bg-gradient-to-br from-foreground to-foreground/80 rounded-xl shadow-2xl p-3 border border-white/10">
+                  {/* Card Content */}
+                  <div className="flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-white/90 tracking-wider">TAPAWAY</span>
+                      <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                        <Smartphone className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-primary/80" />
+                      <span className="text-[7px] text-white/70">NFC Enabled</span>
+                    </div>
                   </div>
+                  
+                  {/* Tap Ripple Effect */}
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.5, 1],
+                      opacity: [0.5, 0, 0.5],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeOut",
+                    }}
+                    className="absolute inset-0 rounded-xl border-2 border-primary"
+                  />
                 </div>
               </motion.div>
 
@@ -165,7 +211,36 @@ export const HeroSection = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* Social Proof Indicator */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+                className="absolute -right-2 top-1/4 bg-white rounded-lg shadow-lg p-2.5 border border-border"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-[10px] font-medium text-foreground">Done-for-you</span>
+                </div>
+              </motion.div>
             </div>
+
+            {/* Trust Indicators Below Visual */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              className="flex flex-wrap justify-center gap-4 mt-8 text-xs text-muted-foreground"
+            >
+              <span>San Diego</span>
+              <span>•</span>
+              <span>Los Angeles</span>
+              <span>•</span>
+              <span>Austin</span>
+              <span>•</span>
+              <span>Miami</span>
+            </motion.div>
           </motion.div>
         </div>
       </div>

@@ -23,7 +23,7 @@ export const FooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-xl text-background/70 mb-10"
         >
-          Start your free 60-day trial today. No credit card required.
+          Start your free 30-day trial today. No charge during the trial. Cancel anytime.
         </motion.p>
 
         <motion.div
@@ -39,7 +39,7 @@ export const FooterCTA = () => {
             to="/paywall"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
-            Claim Free 60-Day Setup
+            Claim Free 30-Day Setup
             <ArrowRight className="w-5 h-5" />
           </Link>
         </motion.div>

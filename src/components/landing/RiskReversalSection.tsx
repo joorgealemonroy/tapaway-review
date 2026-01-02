@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { Shield, ArrowRight } from "lucide-react";
+import { Shield, ArrowRight, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const RiskReversalSection = () => {
@@ -28,19 +28,19 @@ export const RiskReversalSection = () => {
 
           <div className="space-y-4 mb-8 max-w-xl mx-auto">
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Use TapAway for <span className="font-semibold text-foreground">60 full days</span> — completely free.
+              Use TapAway for <span className="font-semibold text-foreground">30 full days</span> — completely free.
             </p>
-            <ul className="text-base text-muted-foreground space-y-2">
+            <ul className="text-base text-muted-foreground space-y-3">
               <li className="flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
                 No charges during your trial period
               </li>
               <li className="flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Cancel anytime before day 60 to avoid billing
+                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                Cancel anytime before day 30 to avoid billing
               </li>
               <li className="flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
                 Card on file keeps your service running after trial
               </li>
             </ul>
@@ -55,7 +55,7 @@ export const RiskReversalSection = () => {
               to="/paywall"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
             >
-              Claim Free 60-Day Setup
+              Claim Free 30-Day Setup
               <ArrowRight className="w-5 h-5" />
             </Link>
           </motion.div>
