@@ -14,6 +14,7 @@ import { urlValidationSchemas } from "@/lib/urlValidation";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
+import { isSubscriptionAllowed, hasPendingSetupFlags } from "@/lib/subscriptionStatus";
 
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
@@ -128,8 +129,8 @@ const Onboarding = () => {
         return;
       }
 
-      // Check if ANY restaurant has active subscription
-      let activeRestaurant = restaurants?.find(r => r.subscription_status === 'active');
+      // Check if ANY restaurant has an allowed subscription status
+      let activeRestaurant = restaurants?.find(r => isSubscriptionAllowed(r.subscription_status));
 
       // FALLBACK: If no restaurant exists but we have a session_id, the webhook may have failed
       // Call verify-checkout to create the restaurant from the Stripe session
@@ -153,15 +154,15 @@ const Onboarding = () => {
               .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
               .eq("owner_id", currentUser.id);
             
-            activeRestaurant = refreshedRestaurants?.find(r => r.subscription_status === 'active');
+            activeRestaurant = refreshedRestaurants?.find(r => isSubscriptionAllowed(r.subscription_status));
           }
         } catch (fallbackError) {
           console.error('[Onboarding] Fallback verify-checkout failed:', fallbackError);
         }
       }
 
-      // If no active subscription and not grandfathered, send to paywall
-      if (!isGrandfathered && !activeRestaurant) {
+      // If no allowed subscription and not grandfathered and no pending setup flags, send to paywall
+      if (!isGrandfathered && !activeRestaurant && !hasPendingSetupFlags()) {
         navigate("/paywall");
         return;
       }

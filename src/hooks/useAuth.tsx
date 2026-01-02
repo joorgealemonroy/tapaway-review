@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 
 interface AuthContextType {
   user: User | null;
@@ -132,14 +133,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!restaurant) {
         // No restaurant - redirect to paywall to subscribe
         navigate("/paywall");
-      } else if (restaurant.subscription_status !== 'active') {
-        // Has restaurant but no active subscription - redirect to paywall
+      } else if (!isSubscriptionAllowed(restaurant.subscription_status)) {
+        // Has restaurant but blocked subscription - redirect to paywall
         navigate("/paywall");
       } else if (!restaurant.onboarding_completed) {
-        // Active subscription but incomplete onboarding
+        // Allowed subscription but incomplete onboarding
         navigate("/onboarding");
       } else {
-        // Fully onboarded with active subscription
+        // Fully onboarded with allowed subscription
         navigate("/dashboard");
       }
     }
