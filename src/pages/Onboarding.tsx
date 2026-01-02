@@ -15,7 +15,9 @@ import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete"
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 import { isSubscriptionAllowed, hasPendingSetupFlags } from "@/lib/subscriptionStatus";
-
+import { getOnboardingData, saveOnboardingData, clearOnboardingData, generateSlug } from "@/lib/onboardingData";
+import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
+import { OnboardingSuccess } from "@/components/onboarding/OnboardingSuccess";
 const onboardingSchema = z.object({
   restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
   ownerName: z.string().trim().min(1, "Owner/contact name is required").max(100),
@@ -29,6 +31,8 @@ const onboardingSchema = z.object({
   menuTitle: z.string().trim().max(50).optional(),
 });
 
+const ONBOARDING_STEPS = ["Business details", "Connect Google", "Details", "Review & finish"];
+
 const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +40,7 @@ const Onboarding = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [addYelp, setAddYelp] = useState(true);
   const [existingRestaurantId, setExistingRestaurantId] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   // Use ref to always have the latest restaurantId in callbacks
   const restaurantIdRef = useRef<string | null>(null);
@@ -57,15 +62,16 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const [initialCheckDone, setInitialCheckDone] = useState(false);
 
-  // Form data - phone is completely independent from Google selection
+  // Form data - pre-filled from onboarding data store
+  const savedOnboardingData = getOnboardingData();
   const [formData, setFormData] = useState({
-    restaurantName: "",
-    ownerName: "",
-    customSlug: "",
-    instagram: "",
+    restaurantName: savedOnboardingData.businessName || "",
+    ownerName: savedOnboardingData.ownerName || "",
+    customSlug: savedOnboardingData.customSlug || generateSlug(savedOnboardingData.businessName || ""),
+    instagram: savedOnboardingData.instagram || "",
     directionsUrl: "",
-    address: "",
-    phone: "",
+    address: `${savedOnboardingData.city || ""}, ${savedOnboardingData.state || ""}`.replace(/^, |, $/g, ""),
+    phone: savedOnboardingData.phone || "",
     headerTitle: "How was your visit?",
     headerSubtitle: "We'd love to hear about your experience!",
     menuTitle: "Our Menu",
@@ -765,8 +771,13 @@ const Onboarding = () => {
         }
       }
 
+      // Clear onboarding data from localStorage
+      clearOnboardingData();
+
       toast.success("Restaurant setup complete!");
-      navigate("/dashboard");
+      
+      // Show success screen instead of navigating immediately
+      setShowSuccess(true);
     } catch (error: any) {
       console.error('[Onboarding] Submit error:', error);
       if (error instanceof z.ZodError) {
@@ -1072,6 +1083,11 @@ const Onboarding = () => {
     );
   }
 
+  // Show success screen after completion
+  if (showSuccess) {
+    return <OnboardingSuccess businessName={formData.restaurantName} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl p-8">
@@ -1081,28 +1097,11 @@ const Onboarding = () => {
             <span className="text-2xl font-bold">TapAway</span>
           </div>
           
-          <div className="flex items-center justify-between mb-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    i <= step
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {i < step ? <Check className="w-4 h-4" /> : i}
-                </div>
-                {i < 4 && (
-                  <div
-                    className={`h-0.5 w-16 ${
-                      i < step ? "bg-primary" : "bg-muted"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+          <OnboardingProgress 
+            currentStep={step} 
+            totalSteps={4}
+            steps={ONBOARDING_STEPS}
+          />
         </div>
 
         {renderStep()}
