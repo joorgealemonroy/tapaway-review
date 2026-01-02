@@ -1,76 +1,15 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Check, CreditCard, Shield, Truck, Headphones, BarChart3, Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { z } from "zod";
+import { Check, CreditCard, Truck, Headphones, BarChart3, Sparkles, Info, Shield } from "lucide-react";
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion } from "framer-motion";
-import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
-
-// Simplified schema - no password required at signup
-const signupSchema = z.object({
-  name: z.string().trim().min(1, "First name is required").max(100),
-  email: z.string().email("Please enter a valid email"),
-});
+import { TRIAL_URL } from "@/lib/constants";
 
 const Paywall = () => {
   const navigate = useNavigate();
   const { checking } = usePaywallGuard();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-  });
-  const [paywallEnabled, setPaywallEnabled] = useState<boolean | null>(null);
-  const [existingUser, setExistingUser] = useState<{
-    id: string;
-    email: string;
-  } | null>(null);
-
-  // Check for existing authenticated user who needs to complete checkout
-  useEffect(() => {
-    const checkExistingUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: restaurant } = await supabase
-          .from("restaurants")
-          .select("subscription_status")
-          .eq("owner_id", session.user.id)
-          .maybeSingle();
-
-        if (!restaurant || restaurant.subscription_status !== 'active') {
-          setExistingUser({
-            id: session.user.id,
-            email: session.user.email || ''
-          });
-        }
-      }
-    };
-    checkExistingUser();
-  }, []);
-
-  // Fetch paywall setting on mount
-  useEffect(() => {
-    const fetchPaywallSetting = async () => {
-      try {
-        const { data } = await supabase
-          .from("app_settings")
-          .select("paywall_enabled")
-          .eq("id", "global")
-          .maybeSingle();
-        setPaywallEnabled(data?.paywall_enabled ?? true);
-      } catch (err) {
-        console.error("Failed to fetch paywall setting:", err);
-        setPaywallEnabled(true);
-      }
-    };
-    fetchPaywallSetting();
-  }, []);
 
   if (checking) {
     return (
@@ -82,133 +21,6 @@ const Paywall = () => {
       </div>
     );
   }
-
-  const handleExistingUserCheckout = async () => {
-    if (!existingUser) return;
-    setLoading(true);
-    try {
-      if (paywallEnabled === false) {
-        const { error: restaurantError } = await supabase
-          .from("restaurants")
-          .insert({
-            owner_id: existingUser.id,
-            restaurant_name: "New Restaurant",
-            subscription_status: "active",
-            plan_type: "free_trial"
-          });
-        if (restaurantError && !restaurantError.message.includes("duplicate")) {
-          throw new Error("Failed to set up account");
-        }
-        navigate("/trial-confirmed");
-      } else {
-        localStorage.setItem("pending_plan_type", "monthly");
-        const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-checkout-session', {
-          body: {
-            plan: "monthly",
-            email: existingUser.email,
-            userId: existingUser.id
-          }
-        });
-        if (sessionError || !sessionData?.url) {
-          throw new Error(sessionError?.message || 'Failed to create checkout session');
-        }
-        toast.success("Redirecting to secure payment...");
-        setTimeout(() => {
-          window.location.href = sessionData.url;
-        }, 500);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to proceed. Please try again.");
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const validated = signupSchema.parse(formData);
-
-      // Generate a temporary password for the user (they'll set it later)
-      const tempPassword = `TapAway${Date.now()}!`;
-
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: validated.email.trim(),
-        password: tempPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            greeting_name: validated.name.trim()
-          }
-        }
-      });
-
-      if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("Failed to create account");
-
-      if (isSuperAdmin(validated.email)) {
-        toast.success("Super admin account detected. Redirecting...");
-        setTimeout(() => navigate("/admin"), 1000);
-        return;
-      }
-
-      const isGrandfathered = isGrandfatheredUser(validated.email);
-      if (isGrandfathered) {
-        const { error: restaurantError } = await supabase
-          .from("restaurants")
-          .insert({
-            owner_id: authData.user.id,
-            restaurant_name: "New Restaurant",
-            subscription_status: "active",
-            plan_type: "test",
-            greeting_name: validated.name.trim()
-          });
-        if (restaurantError) throw new Error("Failed to set up account");
-        navigate("/trial-confirmed");
-      } else {
-        if (paywallEnabled === false) {
-          const { error: restaurantError } = await supabase
-            .from("restaurants")
-            .insert({
-              owner_id: authData.user.id,
-              restaurant_name: "New Restaurant",
-              subscription_status: "active",
-              plan_type: "free_trial",
-              greeting_name: validated.name.trim()
-            });
-          if (restaurantError) throw new Error("Failed to set up account");
-          navigate("/trial-confirmed");
-        } else {
-          localStorage.setItem("pending_greeting_name", validated.name.trim());
-          localStorage.setItem("pending_plan_type", "monthly");
-
-          const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-checkout-session', {
-            body: {
-              plan: "monthly",
-              email: validated.email.trim(),
-              userId: authData.user.id
-            }
-          });
-          if (sessionError || !sessionData?.url) {
-            throw new Error(sessionError?.message || 'Failed to create checkout session');
-          }
-          toast.success("Redirecting to secure payment...");
-          setTimeout(() => {
-            window.location.href = sessionData.url;
-          }, 1000);
-        }
-      }
-    } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else if (error.message?.includes("already registered")) {
-        toast.error("This email is already registered. Please log in instead.");
-      } else {
-        toast.error(error.message || "Failed to create account. Please try again.");
-      }
-      setLoading(false);
-    }
-  };
 
   const topBenefits = [
     { icon: CreditCard, text: "Free custom NFC cards (logo optional)" },
@@ -280,187 +92,97 @@ const Paywall = () => {
             </ul>
           </Card>
 
-          {/* Signup Form Card */}
+          {/* CTA Card */}
           <Card className="p-6 md:p-8 shadow-lg border-border">
-            {existingUser ? (
-              // Existing user - continue checkout
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-xl font-bold mb-2">Welcome Back</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Continue to start your free trial.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-muted/50 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Signed in as:</p>
-                  <p className="font-medium">{existingUser.email}</p>
-                </div>
-
-                {/* Inline Benefits */}
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                  <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                    Included in your free trial
-                  </p>
-                  <ul className="space-y-2">
-                    {inlineBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm">
-                        <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Done-for-you reassurance */}
-                <p className="text-center text-sm text-muted-foreground">
-                  We'll set everything up for you after signup.
+            <div className="space-y-6">
+              {/* Inline Benefits */}
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                  Included in your free trial
                 </p>
-
-                <a
-                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
-                  className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  Start Free 30-Day Trial
-                </a>
-
-                <div className="text-center space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    No charge today • Cancel anytime before day 30
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={async () => {
-                      await supabase.auth.signOut();
-                      setExistingUser(null);
-                    }}
-                    className="text-xs"
-                  >
-                    Use a different account
-                  </Button>
-                </div>
+                <ul className="grid grid-cols-2 gap-2">
+                  {inlineBenefits.map((benefit, index) => (
+                    <li key={index} className="flex items-center gap-2 text-xs">
+                      <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ) : (
-              // New user signup form
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Form Fields */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name" className="text-sm font-medium">
-                      First Name
-                    </Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Jorge"
-                      maxLength={100}
-                      disabled={loading}
-                      className="h-12 mt-1.5"
-                    />
-                  </div>
 
-                  <div>
-                    <Label htmlFor="email" className="text-sm font-medium">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="you@restaurant.com"
-                      disabled={loading}
-                      className="h-12 mt-1.5"
-                    />
-                  </div>
+              {/* Payment Section */}
+              <div className="pt-4 border-t border-border/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold">
+                    Payment Method
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    (for after your free trial)
+                  </span>
                 </div>
-
-                {/* Inline Benefits - inside form */}
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                  <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                    Included in your free trial
-                  </p>
-                  <ul className="grid grid-cols-2 gap-2">
-                    {inlineBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-primary flex-shrink-0" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Payment Section */}
-                <div className="pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CreditCard className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold">
-                      Payment Method
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      (for after your free trial)
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    You won't be charged today. Your card keeps the service live after the 30-day trial.
-                  </p>
-                  <p className="text-xs text-muted-foreground/80">
-                    Cancel anytime before day 30 to avoid billing.
-                  </p>
-                </div>
-
-                {/* Done-for-you reassurance */}
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span>We'll set everything up for you after signup.</span>
-                </div>
-
-                {/* CTA Button */}
-                <a
-                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
-                  className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  Start Free 30-Day Trial
-                </a>
-
-                {/* Under CTA */}
-                <p className="text-xs text-center text-muted-foreground">
-                  No charge today • Cancel anytime before day 30
+                <p className="text-sm text-muted-foreground mb-2">
+                  You won't be charged today. Your card keeps the service live after the 30-day trial.
                 </p>
-
-                {/* Post-trial pricing */}
-                <div className="text-center pt-2 border-t border-border/30">
-                  <p className="text-sm text-muted-foreground">
-                    After the trial: <span className="font-semibold text-foreground">$30/month</span>. No contracts.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Save with yearly billing after signup.
-                  </p>
-                </div>
-
-                {/* Terms */}
-                <p className="text-xs text-center text-muted-foreground pt-2">
-                  By continuing, you agree to our{" "}
-                  <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
-                  <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
+                <p className="text-xs text-muted-foreground/80">
+                  Cancel anytime before day 30 to avoid billing.
                 </p>
-              </form>
-            )}
+              </div>
+
+              {/* Done-for-you reassurance */}
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span>We'll set everything up for you after signup.</span>
+              </div>
+
+              {/* Sanity check note */}
+              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <Info className="w-4 h-4 text-primary flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  You'll see <span className="font-semibold text-foreground">$0 due today</span> and a 30-day free trial at checkout.
+                </p>
+              </div>
+
+              {/* CTA Button - links directly to Stripe Payment Link */}
+              <a
+                href={TRIAL_URL}
+                className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Start Free 30-Day Trial
+              </a>
+
+              {/* Under CTA */}
+              <p className="text-xs text-center text-muted-foreground">
+                No charge today • Cancel anytime before day 30
+              </p>
+
+              {/* Post-trial pricing */}
+              <div className="text-center pt-2 border-t border-border/30">
+                <p className="text-sm text-muted-foreground">
+                  After the trial: <span className="font-semibold text-foreground">$30/month</span>. No contracts.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Save with yearly billing after signup.
+                </p>
+              </div>
+
+              {/* Terms */}
+              <p className="text-xs text-center text-muted-foreground pt-2">
+                By continuing, you agree to our{" "}
+                <a href="/terms" className="underline hover:text-foreground">Terms</a> and{" "}
+                <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
+              </p>
+            </div>
           </Card>
 
-          {/* Trust Indicators */}
+          {/* Trust indicators */}
           <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4" />
+              <Shield className="w-3.5 h-3.5" />
               <span>Secure checkout</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Headphones className="w-4 h-4" />
+              <Headphones className="w-3.5 h-3.5" />
               <span>Personal support</span>
             </div>
           </div>

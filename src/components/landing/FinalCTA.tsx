@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
+import { TRIAL_URL } from "@/lib/constants";
 
 export const FinalCTA = () => {
   const ref = useRef(null);
@@ -42,7 +43,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <motion.a
-            href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+            href={TRIAL_URL}
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold bg-white text-[#0B1220] shadow-lg text-base"
             whileHover={{ scale: 1.03, boxShadow: "0 20px 40px -10px rgba(255,255,255,0.2)" }}
             whileTap={{ scale: 0.98 }}
