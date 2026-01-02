@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,14 +22,7 @@ function generateOtpEmailHtml(token: string): string {
     </tr>
     <tr>
       <td>
-        <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 700; margin: 0 0 24px 0;">Your TapAway setup code</h1>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <p style="color: #4a4a4a; font-size: 16px; line-height: 24px; margin: 0 0 16px 0;">
-          Use this code to continue setting up your account:
-        </p>
+        <p style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">Your TapAway setup code is:</p>
       </td>
     </tr>
     <tr>
@@ -67,6 +59,8 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
     return false;
   }
 
+  const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
+
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -75,7 +69,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "TapAway <no-reply@tapaway.co>",
+        from: fromEmail,
         to: [to],
         subject,
         html,
@@ -104,35 +98,20 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  const hookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
-  if (!hookSecret) {
-    console.error("[send-auth-email] SEND_EMAIL_HOOK_SECRET not configured");
-    return new Response(
-      JSON.stringify({ error: { message: "Hook secret not configured" } }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  const payload = await req.text();
-  const headers = Object.fromEntries(req.headers);
-
   try {
-    const wh = new Webhook(hookSecret);
-    const {
-      user,
-      email_data: { token, email_action_type },
-    } = wh.verify(payload, headers) as {
-      user: {
-        email: string;
-      };
-      email_data: {
-        token: string;
-        token_hash: string;
-        redirect_to: string;
-        email_action_type: string;
-        site_url: string;
-      };
-    };
+    const payload = await req.json();
+    
+    // Extract user and email_data from the auth hook payload
+    const { user, email_data } = payload;
+    const { token, email_action_type } = email_data || {};
+    
+    if (!user?.email || !token) {
+      console.error("[send-auth-email] Missing required fields:", { hasUser: !!user, hasToken: !!token });
+      return new Response(
+        JSON.stringify({ error: { message: "Missing required fields" } }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("[send-auth-email] Sending OTP email to:", user.email, "type:", email_action_type);
 
