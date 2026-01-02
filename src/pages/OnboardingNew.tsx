@@ -101,7 +101,9 @@ const Onboarding = () => {
   // Verify session on mount
   useEffect(() => {
     const verifySession = async () => {
-      // Check for trial intent flag (set on /paywall before Stripe redirect)
+      // Check for trial intent flags (set on /start before Stripe redirect)
+      const hasPendingTrial = localStorage.getItem('tapaway_pending_trial') === 'true';
+      const pendingEmail = localStorage.getItem('tapaway_pending_email');
       const hasTrialIntent = localStorage.getItem('tapaway_trial_intent') === 'true';
       
       if (!sessionId) {
@@ -119,6 +121,8 @@ const Onboarding = () => {
             // Mark onboarding complete in localStorage
             localStorage.setItem('tapaway_onboarding_complete', 'true');
             localStorage.removeItem('tapaway_trial_intent');
+            localStorage.removeItem('tapaway_pending_trial');
+            localStorage.removeItem('tapaway_pending_email');
             navigate("/dashboard");
             return;
           }
@@ -148,9 +152,12 @@ const Onboarding = () => {
           }
         }
         
-        // If we have trial intent (came from Stripe) but no session ID, show recovery UI
-        if (hasTrialIntent || source === 'stripe' || source === 'resume') {
-          setError("We couldn't confirm your checkout yet. Enter the email you used in Stripe to continue setup.");
+        // If we have pending trial or trial intent (came from Stripe), show recovery UI with pre-filled email
+        if (hasPendingTrial || hasTrialIntent || source === 'stripe' || source === 'resume') {
+          if (pendingEmail) {
+            setUserEmail(pendingEmail);
+          }
+          setError("We're finishing your setup. Enter the email you used at checkout to continue.");
           setState('error');
           return;
         }
@@ -430,29 +437,102 @@ const Onboarding = () => {
     );
   }
 
-  // Error state
+  // Error state with email recovery
   if (state === 'error') {
+    const [recoveryEmail, setRecoveryEmail] = useState(userEmail || '');
+    const [isRecovering, setIsRecovering] = useState(false);
+    
+    const handleEmailRecovery = async () => {
+      if (!recoveryEmail.trim()) {
+        toast.error("Please enter your email");
+        return;
+      }
+      
+      setIsRecovering(true);
+      try {
+        // Try to find pending trial by email
+        const { data: pendingTrial } = await supabase
+          .from("pending_trials")
+          .select("*")
+          .eq("email", recoveryEmail.toLowerCase().trim())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (pendingTrial) {
+          // Found pending trial - pre-fill data and proceed
+          setStep1Data({
+            businessName: pendingTrial.business_name,
+            city: pendingTrial.city,
+            state: pendingTrial.state,
+            category: pendingTrial.business_type,
+          });
+          setUserEmail(recoveryEmail.toLowerCase().trim());
+          toast.success("Found your trial! Continuing setup...");
+          setState('step1');
+        } else {
+          toast.error("No trial found for this email. Please start a new trial.");
+        }
+      } catch (err) {
+        console.error('[Onboarding] Recovery error:', err);
+        toast.error("Something went wrong. Please try again.");
+      } finally {
+        setIsRecovering(false);
+      }
+    };
+    
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          <div className="flex flex-col gap-3">
-            <Button onClick={() => window.location.reload()} variant="default" className="w-full">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
-            <Button onClick={() => navigate('/start')} variant="outline" className="w-full">
-              Start Over
-            </Button>
-            <a 
-              href="mailto:support@tapaway.co" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        <Card className="max-w-md w-full p-8">
+          <div className="text-center mb-6">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Activating Your Trial</h1>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="recoveryEmail">Email used at checkout</Label>
+              <Input
+                id="recoveryEmail"
+                type="email"
+                value={recoveryEmail}
+                onChange={(e) => setRecoveryEmail(e.target.value)}
+                placeholder="you@business.com"
+                className="mt-1.5"
+              />
+            </div>
+            
+            <Button 
+              onClick={handleEmailRecovery} 
+              disabled={isRecovering}
+              className="w-full"
             >
-              <Mail className="w-4 h-4 inline mr-1" />
-              Contact Support
-            </a>
+              {isRecovering ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Looking up...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Continue Setup
+                </>
+              )}
+            </Button>
+            
+            <div className="flex flex-col gap-2 pt-4 border-t border-border">
+              <Button onClick={() => navigate('/start')} variant="outline" className="w-full">
+                Start New Trial
+              </Button>
+              <a 
+                href="mailto:support@tapaway.co" 
+                className="text-sm text-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="w-4 h-4 inline mr-1" />
+                Contact Support
+              </a>
+            </div>
           </div>
         </Card>
       </div>
@@ -465,9 +545,17 @@ const Onboarding = () => {
       localStorage.setItem('tapaway_onboarding_complete', 'true');
       localStorage.removeItem('tapaway_trial_intent');
       localStorage.removeItem('tapaway_trial_started_at');
+      localStorage.removeItem('tapaway_pending_trial');
+      localStorage.removeItem('tapaway_pending_email');
+      localStorage.removeItem('tapaway_pending_business');
+      localStorage.removeItem('tapaway_pending_city');
+      localStorage.removeItem('tapaway_pending_state');
+      localStorage.removeItem('tapaway_pending_type');
       // Clear cookies
       document.cookie = 'tapaway_trial_intent=; path=/; max-age=0';
       document.cookie = 'tapaway_trial_started_at=; path=/; max-age=0';
+      document.cookie = 'tapaway_pending_trial=; path=/; max-age=0';
+      document.cookie = 'tapaway_pending_email=; path=/; max-age=0';
     }
   }, [state]);
 

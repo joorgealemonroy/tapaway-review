@@ -40,7 +40,7 @@ const Index = () => {
               </Link>
             ) : (
               <Link
-                to="/paywall"
+                to="/start"
                 className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
               >
                 Start Free Trial

@@ -92,7 +92,7 @@ export const HeroSection = () => {
                 whileTap={{ scale: 0.98 }}
               >
                 <Link
-                  to="/paywall"
+                  to="/start"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
                   Start Free 30-Day Trial

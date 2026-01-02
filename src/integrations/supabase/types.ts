@@ -755,6 +755,66 @@ export type Database = {
           },
         ]
       }
+      pending_trials: {
+        Row: {
+          business_name: string
+          business_type: string
+          city: string
+          created_at: string
+          email: string
+          id: string
+          linked_restaurant_id: string | null
+          state: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_name: string
+          business_type: string
+          city: string
+          created_at?: string
+          email: string
+          id?: string
+          linked_restaurant_id?: string | null
+          state: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string
+          business_type?: string
+          city?: string
+          created_at?: string
+          email?: string
+          id?: string
+          linked_restaurant_id?: string | null
+          state?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_trials_linked_restaurant_id_fkey"
+            columns: ["linked_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_trials_linked_restaurant_id_fkey"
+            columns: ["linked_restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rep_applications: {
         Row: {
           created_at: string
