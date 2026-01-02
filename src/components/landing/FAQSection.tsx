@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "Do I need staff training?",
     answer:
-      "No. TapAway is designed to be completely self-serve for your customers. Just place the NFC card on your counter or hand it to happy guests — one tap and they're on your Google review page. No apps, no passwords, no explanation needed.",
+      "No. TapAway is completely done-for-you. We ship your cards, set up your review page, and handle everything. Just place the NFC card on your counter or hand it to happy guests — one tap and they're on your Google review page. No apps, no passwords, no explanation needed.",
   },
   {
     question: "Is my logo printed on the cards?",
@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "Why NFC instead of QR codes?",
     answer:
-      "NFC is faster and has higher completion rates. With QR codes, customers have to open their camera, scan, wait for the link, then tap. With TapAway, it's just one tap — instant. No friction, more reviews.",
+      "NFC has a much higher completion rate. With QR codes, customers have to open their camera, scan, wait for the link, then tap — multiple friction points. With TapAway, it's just one tap and they're instantly on your review page. No friction, more reviews.",
   },
   {
     question: "Does this violate Google policies?",
@@ -30,9 +30,9 @@ const faqs = [
       "No. TapAway is 100% compliant with Google's review policies. We never offer incentives for reviews — we simply make it faster and easier for happy customers to leave honest feedback. Google encourages businesses to ask for reviews.",
   },
   {
-    question: "What happens after 60 days?",
+    question: "What happens after 30 days?",
     answer:
-      "After your 60-day free trial, TapAway is just $30/month. You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically — no action needed.",
+      "After your 30-day free trial, TapAway is just $30/month. You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 31 — no action needed.",
   },
   {
     question: "Can I add more locations later?",
@@ -40,9 +40,9 @@ const faqs = [
       "Yes! You can add additional locations at any time. Each location gets its own set of NFC cards and a custom review page. Multi-location businesses get volume discounts.",
   },
   {
-    question: "How do customers use the NFC card?",
+    question: "How fast do the cards ship?",
     answer:
-      "Customers simply tap their iPhone or Android phone on the TapAway card. It instantly opens your Google review page — no app download required. Works with any smartphone from the last 5 years.",
+      "Cards ship within 1–2 business days. Most customers receive their TapAway cards within 5 business days of signing up.",
   },
   {
     question: "What if my cards get lost or damaged?",
