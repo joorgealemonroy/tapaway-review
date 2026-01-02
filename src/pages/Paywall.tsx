@@ -317,13 +317,12 @@ const Paywall = () => {
                   We'll set everything up for you after signup.
                 </p>
 
-                <Button
-                  onClick={handleExistingUserCheckout}
-                  className="w-full h-14 text-lg font-bold"
-                  disabled={loading}
+                <a
+                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+                  className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  {loading ? "Processing..." : "Start Free 30-Day Trial"}
-                </Button>
+                  Start Free 30-Day Trial
+                </a>
 
                 <div className="text-center space-y-3">
                   <p className="text-xs text-muted-foreground">
@@ -422,13 +421,12 @@ const Paywall = () => {
                 </div>
 
                 {/* CTA Button */}
-                <Button
-                  type="submit"
-                  className="w-full h-14 text-lg font-bold"
-                  disabled={loading}
+                <a
+                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
+                  className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  {loading ? "Setting up your trial..." : "Start Free 30-Day Trial"}
-                </Button>
+                  Start Free 30-Day Trial
+                </a>
 
                 {/* Under CTA */}
                 <p className="text-xs text-center text-muted-foreground">
