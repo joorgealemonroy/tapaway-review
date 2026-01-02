@@ -71,3 +71,9 @@ verify_jwt = true
 
 [functions.send-auth-email]
 verify_jwt = false
+
+[functions.send-custom-otp]
+verify_jwt = false
+
+[functions.verify-custom-otp]
+verify_jwt = false
