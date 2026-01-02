@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Check, CreditCard, Shield, Truck, Headphones, BarChart3 } from "lucide-react";
+import { Check, CreditCard, Shield, Truck, Headphones, BarChart3, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { usePaywallGuard } from "./PaywallGuard";
@@ -99,8 +99,7 @@ const Paywall = () => {
         if (restaurantError && !restaurantError.message.includes("duplicate")) {
           throw new Error("Failed to set up account");
         }
-        toast.success("Account activated! Redirecting to onboarding...");
-        setTimeout(() => navigate("/onboarding"), 1000);
+        navigate("/trial-confirmed");
       } else {
         localStorage.setItem("pending_plan_type", "monthly");
         const { data: sessionData, error: sessionError } = await supabase.functions.invoke('create-checkout-session', {
@@ -165,8 +164,7 @@ const Paywall = () => {
             greeting_name: validated.name.trim()
           });
         if (restaurantError) throw new Error("Failed to set up account");
-        toast.success("Test account created! Redirecting...");
-        setTimeout(() => navigate("/onboarding"), 1000);
+        navigate("/trial-confirmed");
       } else {
         if (paywallEnabled === false) {
           const { error: restaurantError } = await supabase
@@ -179,8 +177,7 @@ const Paywall = () => {
               greeting_name: validated.name.trim()
             });
           if (restaurantError) throw new Error("Failed to set up account");
-          toast.success("Account created! Redirecting...");
-          setTimeout(() => navigate("/onboarding"), 1000);
+          navigate("/trial-confirmed");
         } else {
           localStorage.setItem("pending_greeting_name", validated.name.trim());
           localStorage.setItem("pending_plan_type", "monthly");
@@ -213,12 +210,19 @@ const Paywall = () => {
     }
   };
 
-  const benefits = [
+  const topBenefits = [
     { icon: CreditCard, text: "Free custom NFC cards (logo optional)" },
     { icon: Truck, text: "Ships in 1–2 business days" },
     { icon: BarChart3, text: "Review + social hub included" },
     { icon: Headphones, text: "Full tracking & support" },
     { icon: Shield, text: "Cancel anytime during the trial" },
+  ];
+
+  const inlineBenefits = [
+    "Custom NFC cards (logo optional)",
+    "Ships in 1–2 business days",
+    "Review + social hub",
+    "Full tracking & support",
   ];
 
   return (
@@ -259,7 +263,7 @@ const Paywall = () => {
               What's included
             </p>
             <ul className="space-y-3">
-              {benefits.map((benefit, index) => (
+              {topBenefits.map((benefit, index) => (
                 <motion.li
                   key={index}
                   initial={{ opacity: 0, x: -10 }}
@@ -293,6 +297,26 @@ const Paywall = () => {
                   <p className="font-medium">{existingUser.email}</p>
                 </div>
 
+                {/* Inline Benefits */}
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    Included in your free trial
+                  </p>
+                  <ul className="space-y-2">
+                    {inlineBenefits.map((benefit, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm">
+                        <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Done-for-you reassurance */}
+                <p className="text-center text-sm text-muted-foreground">
+                  We'll set everything up for you after signup.
+                </p>
+
                 <Button
                   onClick={handleExistingUserCheckout}
                   className="w-full h-14 text-lg font-bold"
@@ -303,7 +327,7 @@ const Paywall = () => {
 
                 <div className="text-center space-y-3">
                   <p className="text-xs text-muted-foreground">
-                    No charge today • Cancel anytime
+                    No charge today • Cancel anytime before day 30
                   </p>
                   <Button
                     variant="ghost"
@@ -357,6 +381,21 @@ const Paywall = () => {
                   </div>
                 </div>
 
+                {/* Inline Benefits - inside form */}
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+                    Included in your free trial
+                  </p>
+                  <ul className="grid grid-cols-2 gap-2">
+                    {inlineBenefits.map((benefit, index) => (
+                      <li key={index} className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-primary flex-shrink-0" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 {/* Payment Section */}
                 <div className="pt-4 border-t border-border/50">
                   <div className="flex items-center gap-2 mb-3">
@@ -365,7 +404,7 @@ const Paywall = () => {
                       Payment Method
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      (required to continue after trial)
+                      (for after your free trial)
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">
@@ -374,6 +413,12 @@ const Paywall = () => {
                   <p className="text-xs text-muted-foreground/80">
                     Cancel anytime before day 30 to avoid billing.
                   </p>
+                </div>
+
+                {/* Done-for-you reassurance */}
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span>We'll set everything up for you after signup.</span>
                 </div>
 
                 {/* CTA Button */}
@@ -387,7 +432,7 @@ const Paywall = () => {
 
                 {/* Under CTA */}
                 <p className="text-xs text-center text-muted-foreground">
-                  No charge today • Cancel anytime
+                  No charge today • Cancel anytime before day 30
                 </p>
 
                 {/* Post-trial pricing */}
