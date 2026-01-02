@@ -15,6 +15,16 @@ const faqs = [
       "No. TapAway is designed to be completely self-serve for your customers. Just place the NFC card on your counter or hand it to happy guests — one tap and they're on your Google review page. No apps, no passwords, no explanation needed.",
   },
   {
+    question: "Is my logo printed on the cards?",
+    answer:
+      "Yes! We include free custom logo printing on your NFC cards at no extra charge. Want something simpler? Unbranded cards are also available. Just let us know your preference during setup.",
+  },
+  {
+    question: "Why NFC instead of QR codes?",
+    answer:
+      "NFC is faster and has higher completion rates. With QR codes, customers have to open their camera, scan, wait for the link, then tap. With TapAway, it's just one tap — instant. No friction, more reviews.",
+  },
+  {
     question: "Does this violate Google policies?",
     answer:
       "No. TapAway is 100% compliant with Google's review policies. We never offer incentives for reviews — we simply make it faster and easier for happy customers to leave honest feedback. Google encourages businesses to ask for reviews.",
@@ -22,7 +32,7 @@ const faqs = [
   {
     question: "What happens after 60 days?",
     answer:
-      "After your free trial, TapAway is just $30/month. Cancel anytime with one click — no contracts, no fees, no hassle. Most restaurants see results within the first 30 days and choose to stay.",
+      "After your 60-day free trial, TapAway is just $30/month. You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically — no action needed.",
   },
   {
     question: "Can I add more locations later?",
