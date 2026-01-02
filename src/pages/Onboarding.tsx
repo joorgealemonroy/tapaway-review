@@ -78,6 +78,8 @@ const Onboarding = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
+    const source = urlParams.get('source');
+    const hasPendingSetup = localStorage.getItem('tapaway_pending_setup') === 'true';
 
     // If we have a session_id, wait for auth to hydrate OR check session directly
     // Don't immediately redirect to /auth
@@ -87,9 +89,14 @@ const Onboarding = () => {
       const currentUser = session?.user || user;
 
       if (!currentUser) {
-        // No user and no session_id - redirect to auth
+        // No user and no session_id
         if (!sessionId) {
-          navigate("/auth?redirect=/onboarding");
+          // If this looks like a post-checkout return, start on the public entry step.
+          if (source === 'stripe' || hasPendingSetup) {
+            navigate(`/onboarding-start?source=${source || 'stripe'}`);
+          } else {
+            navigate("/auth?redirect=/onboarding");
+          }
           return;
         }
         
