@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { Link } from "react-router-dom";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { QRComparisonSection } from "@/components/landing/QRComparisonSection";
 import { HowItWorksNew } from "@/components/landing/HowItWorksNew";
@@ -9,6 +10,7 @@ import { ProofSection } from "@/components/landing/ProofSection";
 import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
 const Index = () => {
   const { user } = useAuth();
@@ -47,8 +49,11 @@ const Index = () => {
 
       {/* Main Content */}
       <HeroSection />
+      <DoneForYouSection />
       <ComparisonSection />
       <QRComparisonSection />
+      
+      {/* How It Works with secondary NFC Card appearance */}
       <HowItWorksNew />
       <ProofSection />
       <RiskReversalSection />

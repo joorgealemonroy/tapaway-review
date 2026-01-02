@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Check, X } from "lucide-react";
 
 const tapAwayFeatures = [
-  "Free 60-day trial",
+  "Free 30-day trial",
   "Done-for-you setup",
   "Monthly review tracking",
   "Multi-link review hub",
@@ -103,13 +103,6 @@ export const ComparisonSection = () => {
                 </motion.li>
               ))}
             </ul>
-
-            <div className="mt-8 p-4 bg-muted/50 rounded-lg border border-border">
-              <p className="text-sm text-muted-foreground italic">
-                "We bought NFC plates 6 months ago. They're sitting in a drawer."
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">— Common restaurant owner</p>
-            </div>
           </motion.div>
         </div>
       </div>
