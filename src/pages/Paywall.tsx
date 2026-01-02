@@ -28,10 +28,12 @@ const Paywall = () => {
     const timestamp = Date.now().toString();
     localStorage.setItem('tapaway_trial_intent', 'true');
     localStorage.setItem('tapaway_trial_started_at', timestamp);
+    localStorage.setItem('tapaway_pending_setup', 'true');
     
     // Also set cookie for cross-tab support
     document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`; // 7 days
     document.cookie = `tapaway_trial_started_at=${timestamp}; path=/; max-age=604800`;
+    document.cookie = `tapaway_pending_setup=true; path=/; max-age=604800`;
     
     // Redirect to Stripe Payment Link (same tab for iOS reliability)
     window.location.href = TRIAL_URL;

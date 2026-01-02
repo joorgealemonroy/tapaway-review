@@ -12,13 +12,14 @@ export const TrialBanner = () => {
     // Check if user has trial intent but hasn't completed onboarding
     const hasPendingTrial = localStorage.getItem('tapaway_pending_trial') === 'true';
     const hasTrialIntent = localStorage.getItem('tapaway_trial_intent') === 'true';
+    const hasPendingSetup = localStorage.getItem('tapaway_pending_setup') === 'true';
     const onboardingComplete = localStorage.getItem('tapaway_onboarding_complete') === 'true';
     
     // Don't show on start, paywall, or onboarding pages
     const excludedPaths = ['/start', '/paywall', '/onboarding', '/auth', '/dashboard'];
     const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
     
-    if ((hasPendingTrial || hasTrialIntent) && !onboardingComplete && !isExcludedPath && !dismissed) {
+    if ((hasPendingTrial || hasTrialIntent || hasPendingSetup) && !onboardingComplete && !isExcludedPath && !dismissed) {
       setShowBanner(true);
     } else {
       setShowBanner(false);
@@ -46,10 +47,10 @@ export const TrialBanner = () => {
                 You started your TapAway trial — let's finish setup!
               </span>
               <Link
-                to="/onboarding?source=resume"
+                to="/onboarding/start?source=resume"
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary-foreground text-primary font-bold text-sm hover:bg-primary-foreground/90 transition-colors"
               >
-                Finish Setting Up TapAway
+                Finish Setup
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

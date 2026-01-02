@@ -496,8 +496,20 @@ const Auth = () => {
                   {loading ? "Signing in…" : "Sign in"}
                 </Button>
 
+                {/* Continue setup button for new users coming from onboarding redirect */}
+                {redirectTo.includes('/onboarding') && (
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.location.href = '/onboarding/start?source=resume'}
+                    className="w-full"
+                  >
+                    Don't have an account? Continue setup
+                  </Button>
+                )}
+
                 <Button 
-                  type="button" 
+                  type="button"
                   variant="outline" 
                   onClick={() => {
                     window.location.href = PAYWALL_PATH;
