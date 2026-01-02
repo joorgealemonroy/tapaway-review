@@ -52,6 +52,8 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const source = searchParams.get('source');
+  const priceId = searchParams.get('price_id');
   
   const [state, setState] = useState<OnboardingState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -403,8 +405,13 @@ const Onboarding = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         <div className="text-center max-w-md">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Setting up your TapAway trial…</h1>
+          <h1 className="text-2xl font-bold mb-2">Setting up your free 30-day TapAway trial…</h1>
           <p className="text-muted-foreground">This usually takes just a moment.</p>
+          {source === 'stripe' && (
+            <p className="text-xs text-muted-foreground mt-4">
+              Verifying your $0 checkout • 30-day free trial
+            </p>
+          )}
         </div>
       </div>
     );
