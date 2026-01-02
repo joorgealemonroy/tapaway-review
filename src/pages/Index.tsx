@@ -36,12 +36,12 @@ const Index = () => {
                 Dashboard
               </Link>
             ) : (
-              <Link
-                to="/paywall"
+              <a
+                href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
                 className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
               >
-                Get Started
-              </Link>
+                Start Free Trial
+              </a>
             )}
           </div>
         </div>

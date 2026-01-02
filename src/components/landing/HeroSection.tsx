@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Play, Star, Truck, Shield, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 
@@ -91,13 +90,13 @@ export const HeroSection = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Link
-                  to="/paywall"
+                <a
+                  href="https://buy.stripe.com/3cIdR98y34vp31v0wagYU0b"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
-                  Claim Free 30-Day Setup
+                  Start Free 30-Day Trial
                   <ArrowRight className="w-5 h-5" />
-                </Link>
+                </a>
               </motion.div>
 
               <motion.button
