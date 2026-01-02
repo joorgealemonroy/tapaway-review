@@ -101,6 +101,9 @@ const Onboarding = () => {
   // Verify session on mount
   useEffect(() => {
     const verifySession = async () => {
+      // Check for trial intent flag (set on /paywall before Stripe redirect)
+      const hasTrialIntent = localStorage.getItem('tapaway_trial_intent') === 'true';
+      
       if (!sessionId) {
         // No session ID - check if user is already authenticated
         const { data: { session } } = await supabase.auth.getSession();
@@ -113,11 +116,14 @@ const Onboarding = () => {
             .maybeSingle();
           
           if (restaurant?.onboarding_completed) {
+            // Mark onboarding complete in localStorage
+            localStorage.setItem('tapaway_onboarding_complete', 'true');
+            localStorage.removeItem('tapaway_trial_intent');
             navigate("/dashboard");
             return;
           }
           
-          if (restaurant?.subscription_status === 'active') {
+          if (restaurant?.subscription_status === 'active' || restaurant?.subscription_status === 'trialing') {
             setUserId(session.user.id);
             setRestaurantId(restaurant.id);
             restaurantIdRef.current = restaurant.id;
@@ -140,6 +146,13 @@ const Onboarding = () => {
             }
             return;
           }
+        }
+        
+        // If we have trial intent (came from Stripe) but no session ID, show recovery UI
+        if (hasTrialIntent || source === 'stripe' || source === 'resume') {
+          setError("We couldn't confirm your checkout yet. Enter the email you used in Stripe to continue setup.");
+          setState('error');
+          return;
         }
         
         setError("No checkout session found. Please start from the beginning.");
@@ -445,6 +458,18 @@ const Onboarding = () => {
       </div>
     );
   }
+
+  // Clear trial intent on completion
+  useEffect(() => {
+    if (state === 'complete') {
+      localStorage.setItem('tapaway_onboarding_complete', 'true');
+      localStorage.removeItem('tapaway_trial_intent');
+      localStorage.removeItem('tapaway_trial_started_at');
+      // Clear cookies
+      document.cookie = 'tapaway_trial_intent=; path=/; max-age=0';
+      document.cookie = 'tapaway_trial_started_at=; path=/; max-age=0';
+    }
+  }, [state]);
 
   // Complete state
   if (state === 'complete') {

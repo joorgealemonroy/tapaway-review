@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Play, Star, Truck, Shield, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
-import { TRIAL_URL } from "@/lib/constants";
+import { Link } from "react-router-dom";
 
 const cities = [
   "San Diego",
@@ -91,13 +91,13 @@ export const HeroSection = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <a
-                  href={TRIAL_URL}
+                <Link
+                  to="/paywall"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
                   Start Free 30-Day Trial
                   <ArrowRight className="w-5 h-5" />
-                </a>
+                </Link>
               </motion.div>
 
               <motion.button

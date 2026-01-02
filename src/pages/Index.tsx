@@ -11,7 +11,7 @@ import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
-import { TRIAL_URL } from "@/lib/constants";
+import { TrialBanner } from "@/components/TrialBanner";
 
 const Index = () => {
   const { user } = useAuth();
@@ -22,6 +22,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Trial Resume Banner */}
+      <TrialBanner />
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-border">
         <div className="max-w-6xl mx-auto px-4">
@@ -37,12 +39,12 @@ const Index = () => {
                 Dashboard
               </Link>
             ) : (
-              <a
-                href={TRIAL_URL}
+              <Link
+                to="/paywall"
                 className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
               >
                 Start Free Trial
-              </a>
+              </Link>
             )}
           </div>
         </div>

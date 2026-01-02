@@ -1,14 +1,15 @@
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, CreditCard, Truck, Headphones, BarChart3, Sparkles, Info, Shield } from "lucide-react";
+import { Check, CreditCard, Truck, Headphones, Shield, Info, ArrowRight, Sparkles } from "lucide-react";
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion } from "framer-motion";
 import { TRIAL_URL } from "@/lib/constants";
 
 const Paywall = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const canceled = searchParams.get('canceled') === 'true';
   const { checking } = usePaywallGuard();
 
   if (checking) {
@@ -22,19 +23,26 @@ const Paywall = () => {
     );
   }
 
-  const topBenefits = [
+  const handleContinueToCheckout = () => {
+    // Set local flags for trial intent
+    const timestamp = Date.now().toString();
+    localStorage.setItem('tapaway_trial_intent', 'true');
+    localStorage.setItem('tapaway_trial_started_at', timestamp);
+    
+    // Also set cookie for cross-tab support
+    document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`; // 7 days
+    document.cookie = `tapaway_trial_started_at=${timestamp}; path=/; max-age=604800`;
+    
+    // Redirect to Stripe Payment Link (same tab for iOS reliability)
+    window.location.href = TRIAL_URL;
+  };
+
+  const benefits = [
     { icon: CreditCard, text: "Free custom NFC cards (logo optional)" },
     { icon: Truck, text: "Ships in 1–2 business days" },
-    { icon: BarChart3, text: "Review + social hub included" },
+    { icon: Sparkles, text: "Done-for-you setup" },
     { icon: Headphones, text: "Full tracking & support" },
     { icon: Shield, text: "Cancel anytime during the trial" },
-  ];
-
-  const inlineBenefits = [
-    "Custom NFC cards (logo optional)",
-    "Ships in 1–2 business days",
-    "Review + social hub",
-    "Full tracking & support",
   ];
 
   return (
@@ -59,6 +67,15 @@ const Paywall = () => {
           transition={{ duration: 0.5 }}
           className="space-y-8"
         >
+          {/* Canceled Banner */}
+          {canceled && (
+            <Card className="p-4 bg-amber-50 border-amber-200 text-amber-800">
+              <p className="text-sm font-medium text-center">
+                Checkout canceled. Ready to try again when you are!
+              </p>
+            </Card>
+          )}
+
           {/* Headline */}
           <div className="text-center space-y-3">
             <h1 className="text-3xl md:text-4xl font-black tracking-tight">
@@ -69,13 +86,24 @@ const Paywall = () => {
             </p>
           </div>
 
-          {/* Value Checklist */}
+          {/* Offer Recap Card */}
           <Card className="p-6 bg-muted/30 border-border/50">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="text-center p-4 bg-background rounded-lg border border-border/50">
+                <p className="text-2xl font-black text-primary">$0</p>
+                <p className="text-xs text-muted-foreground">Due today</p>
+              </div>
+              <div className="text-center p-4 bg-background rounded-lg border border-border/50">
+                <p className="text-2xl font-black">30 days</p>
+                <p className="text-xs text-muted-foreground">Free trial</p>
+              </div>
+            </div>
+
             <p className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wide">
               What's included
             </p>
             <ul className="space-y-3">
-              {topBenefits.map((benefit, index) => (
+              {benefits.map((benefit, index) => (
                 <motion.li
                   key={index}
                   initial={{ opacity: 0, x: -10 }}
@@ -95,61 +123,23 @@ const Paywall = () => {
           {/* CTA Card */}
           <Card className="p-6 md:p-8 shadow-lg border-border">
             <div className="space-y-6">
-              {/* Inline Benefits */}
-              <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-                  Included in your free trial
-                </p>
-                <ul className="grid grid-cols-2 gap-2">
-                  {inlineBenefits.map((benefit, index) => (
-                    <li key={index} className="flex items-center gap-2 text-xs">
-                      <Check className="w-3 h-3 text-primary flex-shrink-0" />
-                      <span>{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Payment Section */}
-              <div className="pt-4 border-t border-border/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-semibold">
-                    Payment Method
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    (for after your free trial)
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  You won't be charged today. Your card keeps the service live after the 30-day trial.
-                </p>
-                <p className="text-xs text-muted-foreground/80">
-                  Cancel anytime before day 30 to avoid billing.
-                </p>
-              </div>
-
-              {/* Done-for-you reassurance */}
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span>We'll set everything up for you after signup.</span>
-              </div>
-
               {/* Sanity check note */}
               <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
                 <Info className="w-4 h-4 text-primary flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   You'll see <span className="font-semibold text-foreground">$0 due today</span> and a 30-day free trial at checkout.
                 </p>
               </div>
 
-              {/* CTA Button - links directly to Stripe Payment Link */}
-              <a
-                href={TRIAL_URL}
-                className="w-full h-14 text-lg font-bold inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              {/* CTA Button */}
+              <Button
+                onClick={handleContinueToCheckout}
+                className="w-full h-14 text-lg font-bold"
+                size="lg"
               >
-                Start Free 30-Day Trial
-              </a>
+                Continue to Secure Checkout
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
 
               {/* Under CTA */}
               <p className="text-xs text-center text-muted-foreground">
@@ -157,12 +147,9 @@ const Paywall = () => {
               </p>
 
               {/* Post-trial pricing */}
-              <div className="text-center pt-2 border-t border-border/30">
+              <div className="text-center pt-4 border-t border-border/30">
                 <p className="text-sm text-muted-foreground">
                   After the trial: <span className="font-semibold text-foreground">$30/month</span>. No contracts.
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Save with yearly billing after signup.
                 </p>
               </div>
 
