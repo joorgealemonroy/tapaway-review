@@ -72,7 +72,7 @@ const Onboarding = () => {
   });
   
   // Step 2: Review + Social setup
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<{\
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string;
     name: string;
     address: string;
