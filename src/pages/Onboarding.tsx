@@ -1,234 +1,230 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle } from "lucide-react";
+import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { z } from "zod";
-import { urlValidationSchemas } from "@/lib/urlValidation";
+import { motion } from "framer-motion";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
-import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
+import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
-import { isSubscriptionAllowed, hasPendingSetupFlags } from "@/lib/subscriptionStatus";
-import { getOnboardingData, saveOnboardingData, clearOnboardingData, generateSlug } from "@/lib/onboardingData";
+import { 
+  getOnboardingData, 
+  saveOnboardingData, 
+  clearOnboardingData, 
+  generateSlug,
+  setEmailVerified,
+  isEmailVerified,
+  setPendingSetup,
+} from "@/lib/onboardingData";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
-import { OnboardingSuccess } from "@/components/onboarding/OnboardingSuccess";
-const onboardingSchema = z.object({
-  restaurantName: z.string().trim().min(1, "Restaurant name is required").max(100),
-  ownerName: z.string().trim().min(1, "Owner/contact name is required").max(100),
-  customSlug: z.string().trim().min(1, "Custom URL is required").max(50).regex(/^[a-z0-9-]+$/, "Custom URL must contain only lowercase letters, numbers, and hyphens"),
-  instagram: urlValidationSchemas.instagram,
-  directionsUrl: urlValidationSchemas.directions,
-  address: z.string().trim().max(200).optional(),
-  phone: z.string().trim().max(20).optional(),
-  headerTitle: z.string().trim().max(100).optional(),
-  headerSubtitle: z.string().trim().max(200).optional(),
-  menuTitle: z.string().trim().max(50).optional(),
+
+// Validation schemas
+const step1Schema = z.object({
+  email: z.string().trim().email("Please enter a valid email").max(255),
+  businessName: z.string().trim().min(1, "Business name is required").max(100),
+  city: z.string().trim().min(1, "City is required").max(100),
+  state: z.string().trim().min(2, "State is required").max(50),
+  businessType: z.string().min(1, "Please select a business type"),
+  shippingAddress: z.string().trim().min(1, "Shipping address is required").max(200),
 });
 
-const ONBOARDING_STEPS = ["Business details", "Connect Google", "Details", "Review & finish"];
+const BUSINESS_TYPES = [
+  "Restaurant",
+  "Cafe / Coffee Shop",
+  "Bar / Brewery",
+  "Barber / Salon",
+  "Food Truck",
+  "Bakery",
+  "Fast Casual",
+  "Fine Dining",
+  "Spa / Wellness",
+  "Auto / Detailing",
+  "Other",
+];
+
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+];
+
+const ONBOARDING_STEPS = ["Your info", "Verify email", "Connect Google", "Finish"];
+
+type ViewState = "form" | "otp" | "google" | "finishing" | "success";
 
 const Onboarding = () => {
-  const [step, setStep] = useState(1);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const source = searchParams.get("source");
+  
+  const [viewState, setViewState] = useState<ViewState>("form");
   const [isLoading, setIsLoading] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    email: "",
+    businessName: "",
+    city: "",
+    state: "",
+    businessType: "",
+    shippingAddress: "",
+    ownerName: "",
+    customSlug: "",
+    instagram: "",
+    phone: "",
+  });
+  
+  // OTP state
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  
+  // Logo state
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [addYelp, setAddYelp] = useState(true);
-  const [existingRestaurantId, setExistingRestaurantId] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [useUnbranded, setUseUnbranded] = useState(false);
   
-  // Use ref to always have the latest restaurantId in callbacks
-  const restaurantIdRef = useRef<string | null>(null);
-  
-  // Selected Google place - single source of truth for Google connection
+  // Google state
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string;
     name: string;
     address: string;
   } | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [addYelp, setAddYelp] = useState(true);
   
-  // Step 2 validation error
-  const [step2Error, setStep2Error] = useState<string | null>(null);
-  
-  // Manual Google input for edge cases
-  const [manualGoogleInput, setManualGoogleInput] = useState("");
-  
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  // User/restaurant IDs (set after auth)
+  const [userId, setUserId] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-  // Form data - pre-filled from onboarding data store
-  const savedOnboardingData = getOnboardingData();
-  const [formData, setFormData] = useState({
-    restaurantName: savedOnboardingData.businessName || "",
-    ownerName: savedOnboardingData.ownerName || "",
-    customSlug: savedOnboardingData.customSlug || generateSlug(savedOnboardingData.businessName || ""),
-    instagram: savedOnboardingData.instagram || "",
-    directionsUrl: "",
-    address: `${savedOnboardingData.city || ""}, ${savedOnboardingData.state || ""}`.replace(/^, |, $/g, ""),
-    phone: savedOnboardingData.phone || "",
-    headerTitle: "How was your visit?",
-    headerSubtitle: "We'd love to hear about your experience!",
-    menuTitle: "Our Menu",
-  });
-
-  // Keep ref in sync with state
+  // Initial setup - check for existing session and pre-fill data
   useEffect(() => {
-    restaurantIdRef.current = existingRestaurantId;
-  }, [existingRestaurantId]);
+    const init = async () => {
+      // Set pending setup flag
+      setPendingSetup(true);
+      
+      // Pre-fill from saved onboarding data
+      const savedData = getOnboardingData();
+      if (savedData.email || savedData.businessName) {
+        setFormData(prev => ({
+          ...prev,
+          email: savedData.email || prev.email,
+          businessName: savedData.businessName || prev.businessName,
+          city: savedData.city || prev.city,
+          state: savedData.state || prev.state,
+          businessType: savedData.businessType || prev.businessType,
+          shippingAddress: savedData.shippingAddress || prev.shippingAddress,
+          ownerName: savedData.ownerName || prev.ownerName,
+          customSlug: savedData.customSlug || generateSlug(savedData.businessName || ""),
+          instagram: savedData.instagram || prev.instagram,
+          phone: savedData.phone || prev.phone,
+        }));
+        setUseUnbranded(savedData.unbrandedCards || false);
+      }
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    const source = urlParams.get('source');
-    const hasPendingSetup = localStorage.getItem('tapaway_pending_setup') === 'true';
-
-    // If we have a session_id, wait for auth to hydrate OR check session directly
-    // Don't immediately redirect to /auth
-    const checkOnboardingStatus = async () => {
-      // Check for session directly - more reliable than useAuth hook for initial load
+      // Check for existing session
       const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user || user;
-
-      if (!currentUser) {
-        // No user and no session_id
-        if (!sessionId) {
-          // If this looks like a post-checkout return, start on the public entry step.
-          if (source === 'stripe' || hasPendingSetup) {
-            navigate(`/onboarding-start?source=${source || 'stripe'}`);
-          } else {
-            navigate("/auth?redirect=/onboarding");
-          }
+      
+      if (session?.user) {
+        // Super admin bypass
+        if (isSuperAdmin(session.user.email)) {
+          navigate("/admin");
           return;
         }
         
-        // Has session_id but no session - redirect to auth with session_id preserved
-        console.log('[Onboarding] No session but has session_id, redirecting to login...');
-        navigate(`/auth?redirect=${encodeURIComponent(`/onboarding?session_id=${sessionId}`)}`);
-        return;
-      }
-
-      // Super admin should never see onboarding - redirect to admin
-      if (isSuperAdmin(currentUser.email)) {
-        navigate("/admin");
-        return;
-      }
-
-      // Fetch ALL restaurants for this user (they may have multiple locations)
-      const { data: restaurants } = await supabase
-        .from("restaurants")
-        .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
-        .eq("owner_id", currentUser.id);
-
-      // Grandfathered users bypass subscription check
-      const isGrandfathered = isGrandfatheredUser(currentUser.email);
-
-      // Check if ANY restaurant has completed onboarding - if so, redirect to dashboard
-      const completedRestaurant = restaurants?.find(r => r.onboarding_completed === true);
-      if (completedRestaurant) {
-        navigate("/dashboard");
-        return;
-      }
-
-      // Check if ANY restaurant has an allowed subscription status
-      let activeRestaurant = restaurants?.find(r => isSubscriptionAllowed(r.subscription_status));
-
-      // FALLBACK: If no restaurant exists but we have a session_id, the webhook may have failed
-      // Call verify-checkout to create the restaurant from the Stripe session
-      if (!activeRestaurant && sessionId && !isGrandfathered) {
-        console.log('[Onboarding] No restaurant found but session_id present - calling verify-checkout fallback');
+        setUserId(session.user.id);
         
-        try {
-          const { data, error } = await supabase.functions.invoke('verify-checkout', {
-            body: { sessionId, userId: currentUser.id }
-          });
+        // Check for existing restaurant
+        const { data: restaurant } = await supabase
+          .from("restaurants")
+          .select("id, onboarding_completed, google_place_id, restaurant_name, owner_name, custom_slug")
+          .eq("owner_id", session.user.id)
+          .maybeSingle();
+        
+        if (restaurant?.onboarding_completed) {
+          navigate("/dashboard");
+          return;
+        }
+        
+        if (restaurant) {
+          setRestaurantId(restaurant.id);
           
-          if (error) {
-            console.error('[Onboarding] verify-checkout error:', error);
-          } else if (data?.success && data?.restaurantId) {
-            console.log('[Onboarding] verify-checkout created restaurant:', data.restaurantId);
-            toast.success("Payment verified! Let's set up your account.");
-            
-            // Re-fetch restaurants after fallback creation
-            const { data: refreshedRestaurants } = await supabase
-              .from("restaurants")
-              .select("id, subscription_status, plan_type, custom_slug, restaurant_name, owner_name, address, phone, greeting_name, google_place_id, google_review_url, directions_url, instagram_url, onboarding_step, onboarding_completed")
-              .eq("owner_id", currentUser.id);
-            
-            activeRestaurant = refreshedRestaurants?.find(r => isSubscriptionAllowed(r.subscription_status));
+          // Pre-fill from restaurant data
+          if (restaurant.restaurant_name) {
+            setFormData(prev => ({
+              ...prev,
+              businessName: restaurant.restaurant_name || prev.businessName,
+              ownerName: restaurant.owner_name || prev.ownerName,
+              customSlug: restaurant.custom_slug || prev.customSlug,
+            }));
           }
-        } catch (fallbackError) {
-          console.error('[Onboarding] Fallback verify-checkout failed:', fallbackError);
-        }
-      }
-
-      // If no allowed subscription and not grandfathered and no pending setup flags, send to paywall
-      if (!isGrandfathered && !activeRestaurant && !hasPendingSetupFlags()) {
-        navigate("/paywall");
-        return;
-      }
-
-      // Use the first incomplete restaurant for onboarding, or the active one
-      const restaurant = restaurants?.find(r => !r.onboarding_completed) || activeRestaurant;
-
-      // If user has an existing restaurant (created by paywall), store its ID for update
-      if (restaurant) {
-        setExistingRestaurantId(restaurant.id);
-        restaurantIdRef.current = restaurant.id;
-        
-        // Resume from saved step (default to 1)
-        const savedStep = restaurant.onboarding_step || 1;
-        setStep(savedStep);
-        
-        // Track if Google is already connected in DB
-        if (restaurant.google_place_id) {
-          setSelectedGooglePlace({
-            placeId: restaurant.google_place_id,
-            name: restaurant.restaurant_name || "",
-            address: restaurant.address || "",
-          });
+          
+          // If Google is already connected, skip to finishing step
+          if (restaurant.google_place_id) {
+            setViewState("finishing");
+          } else if (isEmailVerified()) {
+            // Email already verified, go to Google step
+            setViewState("google");
+          }
+        } else if (isEmailVerified()) {
+          // Has session but no restaurant, email verified - go to Google step
+          setViewState("google");
         }
         
-        // Pre-fill form with any existing data
-        setFormData(prev => ({
-          ...prev,
-          restaurantName: (restaurant.restaurant_name && restaurant.restaurant_name !== "New Restaurant") ? restaurant.restaurant_name : prev.restaurantName,
-          ownerName: restaurant.owner_name || restaurant.greeting_name || prev.ownerName,
-          address: restaurant.address || prev.address,
-          phone: restaurant.phone || prev.phone,
-          directionsUrl: restaurant.directions_url || prev.directionsUrl,
-          instagram: restaurant.instagram_url || prev.instagram,
-        }));
+        // Pre-fill email from session
+        if (!formData.email && session.user.email) {
+          setFormData(prev => ({ ...prev, email: session.user.email! }));
+        }
       }
       
       setInitialCheckDone(true);
     };
+    
+    init();
+  }, [navigate]);
 
-    checkOnboardingStatus();
-  }, [user, navigate]);
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2097152) {
-        toast.error("Logo must be less than 2MB");
-        return;
-      }
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  // Form handlers
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-generate slug from business name
+    if (field === "businessName") {
+      setFormData(prev => ({ ...prev, customSlug: generateSlug(value) }));
     }
   };
 
-  // Phone handler is completely separate - won't affect Google selection
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be less than 2MB");
+      return;
+    }
+
+    setLogoFile(file);
+    setUseUnbranded(false);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handlePhoneChange = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 10);
     let formatted = digits;
@@ -239,715 +235,775 @@ const Onboarding = () => {
     } else if (digits.length > 0) {
       formatted = `(${digits}`;
     }
-    setFormData((prev) => ({ ...prev, phone: formatted }));
+    setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Save Google place data to DB - this is the ONLY place we persist Google data
-  const saveGooglePlaceToDb = async (placeId: string, name: string, address: string): Promise<boolean> => {
-    const currentRestaurantId = restaurantIdRef.current;
+  // Step 1: Submit form and send OTP
+  const handleStep1Submit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    console.log('[Onboarding] saveGooglePlaceToDb called:', { 
-      placeId, 
-      name, 
-      address, 
-      currentRestaurantId,
-      refValue: restaurantIdRef.current 
-    });
-    
-    if (!currentRestaurantId) {
-      console.warn('[Onboarding] No restaurant ID available yet - data will be saved on Next click');
-      return false;
-    }
-
-    if (!placeId) {
-      console.error('[Onboarding] No place ID provided');
-      return false;
-    }
-
     try {
-      // Normalize the place ID (handle both "places/ChIJ..." and bare "ChIJ..." formats)
-      const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
-      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
-      
-      if (!googleReviewUrl) {
-        console.error('[Onboarding] Could not build Google review URL from:', normalizedPlaceId);
-        return false;
-      }
-      
-      // Build Apple Maps URL from address
-      let directionsUrl: string | null = null;
-      if (address) {
-        const encodedAddress = encodeURIComponent(address);
-        const encodedName = encodeURIComponent(name || 'Business');
-        directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-      }
-      
-      const updatePayload: Record<string, any> = {
-        google_place_id: normalizedPlaceId,
-        google_review_url: googleReviewUrl,
-      };
-      
-      if (address) updatePayload.address = address;
-      if (directionsUrl) updatePayload.directions_url = directionsUrl;
-      
-      console.log('[Onboarding] Saving Google data to restaurants:', {
-        ...updatePayload,
-        restaurant_id: currentRestaurantId
-      });
-      
-      const { error } = await supabase
-        .from("restaurants")
-        .update(updatePayload)
-        .eq("id", currentRestaurantId);
-
-      if (error) {
-        console.error('[Onboarding] Error saving Google place:', error);
-        return false;
-      }
-      
-      console.log('[Onboarding] Google place saved successfully!');
-      
-      // Update form data with the directions URL
-      if (directionsUrl) {
-        setFormData(prev => ({ ...prev, directionsUrl, address: address || prev.address }));
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('[Onboarding] Exception saving Google place:', err);
-      return false;
-    }
-  };
-
-  // Memoized callback for Google place selection - ONLY source of Google data from autocomplete
-  const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
-    console.log('[Onboarding] handleGooglePlaceSelected received from Google API:', { 
-      placeId, 
-      name, 
-      address,
-      hasRestaurantId: !!restaurantIdRef.current 
-    });
-    
-    if (!placeId) {
-      console.error('[Onboarding] handleGooglePlaceSelected called with empty placeId');
-      setStep2Error('Invalid place selected. Please try again.');
-      return;
-    }
-    
-    // Normalize the place ID immediately
-    const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
-    
-    console.log('[Onboarding] Normalized place ID:', normalizedPlaceId);
-    
-    // Update local state immediately - this is our source of truth until saved
-    setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
-    setStep2Error(null);
-    setManualGoogleInput(""); // Clear manual input since we have autocomplete selection
-    
-    // Update form data with name/address from Google
-    setFormData(prev => ({
-      ...prev,
-      address: address || prev.address,
-      restaurantName: prev.restaurantName || name || '',
-    }));
-
-    // Try to save to DB immediately if we have a restaurant ID
-    if (restaurantIdRef.current) {
-      const saved = await saveGooglePlaceToDb(normalizedPlaceId, name, address);
-      if (saved) {
-        toast.success("Google Business connected!");
-      } else {
-        // Not a fatal error - will try again on Next click
-        console.log('[Onboarding] Could not save immediately, will save on Next');
-      }
-    } else {
-      console.log('[Onboarding] No restaurant ID yet - will save Google data on Next click');
-    }
-  }, []);
-
-  // Compute if we have a valid Google selection
-  const computeGoogleSelection = (): { source: 'place' | 'manual'; placeId: string; name: string; address: string } | null => {
-    // Priority 1: Autocomplete selection
-    if (selectedGooglePlace && selectedGooglePlace.placeId) {
-      return {
-        source: 'place',
-        placeId: selectedGooglePlace.placeId,
-        name: selectedGooglePlace.name,
-        address: selectedGooglePlace.address
-      };
-    }
-    
-    // Priority 2: Manual input (URL or bare Place ID)
-    if (manualGoogleInput.trim()) {
-      const normalized = normalizeGooglePlaceId(manualGoogleInput.trim());
-      if (normalized) {
-        return {
-          source: 'manual',
-          placeId: normalized,
-          name: formData.restaurantName || "Business",
-          address: formData.address || ""
-        };
-      }
-    }
-    
-    return null;
-  };
-
-  const handleNext = async () => {
-    // Step 1 validation and save
-    if (step === 1) {
-      if (!formData.restaurantName || !formData.ownerName || !formData.customSlug) {
-        toast.error("Please complete all required fields");
+      step1Schema.parse(formData);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        toast.error(err.errors[0].message);
         return;
       }
-      
-      // Save Step 1 data to DB
-      if (restaurantIdRef.current) {
-        const { error } = await supabase
-          .from("restaurants")
-          .update({
-            restaurant_name: formData.restaurantName,
-            owner_name: formData.ownerName,
-            greeting_name: formData.ownerName,
-            custom_slug: formData.customSlug.toLowerCase().trim(),
-            instagram_url: formData.instagram || null,
-            onboarding_step: 2, // Save progress
-          })
-          .eq("id", restaurantIdRef.current);
-        
-        if (error) {
-          console.error('[Onboarding] Failed to save Step 1:', error);
-          toast.error("Failed to save. Please try again.");
-          return;
-        }
-        console.log('[Onboarding] Step 1 saved, moving to step 2');
-      }
     }
-    
-    // Step 2 validation - GOOGLE IS MANDATORY
-    if (step === 2) {
-      const selection = computeGoogleSelection();
-      
-      if (!selection) {
-        setStep2Error("Please search and select your business from Google to continue.");
-        return;
-      }
-      
-      // Validate the selection
-      const normalizedPlaceId = normalizeGooglePlaceId(selection.placeId);
-      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
-      
-      if (!normalizedPlaceId || !googleReviewUrl) {
-        setStep2Error("The Google link/ID you provided is invalid. Please try again.");
-        return;
-      }
-      
-      // Save to DB
-      if (restaurantIdRef.current) {
-        try {
-          // Build directions URL
-          const encodedAddress = encodeURIComponent(selection.address || formData.address || "");
-          const encodedName = encodeURIComponent(selection.name || formData.restaurantName);
-          const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-          
-          console.log('[Onboarding] Step 2 saving to DB:', {
-            google_place_id: normalizedPlaceId,
-            google_review_url: googleReviewUrl,
-            address: selection.address || formData.address,
-            directions_url: directionsUrl,
-            phone: formData.phone,
-            restaurant_id: restaurantIdRef.current
-          });
-          
-          const { error } = await supabase
-            .from("restaurants")
-            .update({
-              google_place_id: normalizedPlaceId,
-              google_review_url: googleReviewUrl,
-              phone: formData.phone || null,
-              address: selection.address || formData.address || null,
-              directions_url: directionsUrl,
-              onboarding_step: 3, // Save progress
-            })
-            .eq("id", restaurantIdRef.current);
-
-          if (error) {
-            console.error('[Onboarding] Failed to save Step 2 data:', error);
-            setStep2Error("There was a problem saving your Google business. Please try again.");
-            return;
-          }
-          
-          // VERIFY the save by reading back the data
-          const { data: verifyData, error: verifyError } = await supabase
-            .from("restaurants")
-            .select("id, google_place_id, google_review_url")
-            .eq("id", restaurantIdRef.current)
-            .single();
-          
-          if (verifyError || !verifyData?.google_place_id || !verifyData?.google_review_url) {
-            console.error('[Onboarding] Verification failed:', { verifyError, verifyData });
-            setStep2Error("Failed to verify Google connection. Please try again.");
-            return;
-          }
-          
-          console.log('[Onboarding] Step 2 save VERIFIED:', verifyData);
-          
-          // Update local state to match what we saved
-          setSelectedGooglePlace({
-            placeId: normalizedPlaceId,
-            name: selection.name,
-            address: selection.address
-          });
-          
-          setFormData(prev => ({ ...prev, directionsUrl }));
-          
-        } catch (err) {
-          console.error('[Onboarding] Error saving Step 2:', err);
-          setStep2Error("Failed to save. Please try again.");
-          return;
-        }
-      } else {
-        console.error('[Onboarding] No restaurant ID available for Step 2 save');
-        setStep2Error("Setup error - no restaurant found. Please refresh and try again.");
-        return;
-      }
-      
-      setStep2Error(null);
-    }
-    
-    // Step 3 - just save progress (Yelp checkbox preference)
-    if (step === 3 && restaurantIdRef.current) {
-      await supabase
-        .from("restaurants")
-        .update({ onboarding_step: 4 })
-        .eq("id", restaurantIdRef.current);
-      console.log('[Onboarding] Step 3 saved, moving to step 4');
-    }
-    
-    setStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setStep((prev) => prev - 1);
-  };
-
-  const handleSubmit = async () => {
-    if (!user) return;
 
     setIsLoading(true);
+    const email = formData.email.toLowerCase().trim();
+
     try {
-      // Validate and transform form data first
-      let validatedData;
-      try {
-        validatedData = onboardingSchema.parse(formData);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          toast.error(validationError.errors[0].message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // CRITICAL: Verify Google is connected before allowing completion
-      // Refresh the restaurant from DB to get the most current google_place_id
-      let currentRestaurant = null;
-      if (existingRestaurantId) {
-        const { data } = await supabase
-          .from("restaurants")
-          .select("id, google_place_id, google_review_url, directions_url")
-          .eq("id", existingRestaurantId)
-          .maybeSingle();
-        currentRestaurant = data;
-      }
-
-      // Check if Google is connected
-      const hasGoogleInDb = currentRestaurant?.google_place_id && currentRestaurant?.google_review_url;
-      const hasGoogleInState = selectedGooglePlace?.placeId;
+      // Check if already logged in with this email
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!hasGoogleInDb && !hasGoogleInState) {
-        toast.error("You must connect your Google Business before finishing setup. Please go back to Step 2.");
-        setIsLoading(false);
+      if (session?.user && session.user.email?.toLowerCase() === email) {
+        // Already authenticated - save data and skip to Google step
+        setUserId(session.user.id);
+        await saveFormDataAndCreateRestaurant(session.user.id);
+        setEmailVerified();
+        setViewState("google");
         return;
       }
 
-      // Use DB value if available, fall back to local state
-      const placeId = currentRestaurant?.google_place_id || selectedGooglePlace?.placeId || null;
+      // Save form data to localStorage
+      saveOnboardingData({
+        email,
+        businessName: formData.businessName.trim(),
+        city: formData.city.trim(),
+        state: formData.state,
+        businessType: formData.businessType,
+        shippingAddress: formData.shippingAddress.trim(),
+        ownerName: formData.ownerName.trim(),
+        customSlug: formData.customSlug || generateSlug(formData.businessName),
+        instagram: formData.instagram,
+        phone: formData.phone,
+        unbrandedCards: useUnbranded,
+        logoUploaded: !!logoFile,
+      });
 
-      // Check slug uniqueness (excluding current user's restaurant)
-      const slugToUse = validatedData.customSlug.toLowerCase().trim();
-      
-      const { data: existingSlugRestaurant, error: slugCheckError } = await supabase
-        .from("restaurants")
-        .select("id, owner_id")
-        .eq("custom_slug", slugToUse)
-        .maybeSingle();
+      // Send custom OTP via TapAway branded email
+      const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
+        body: { email },
+      });
 
-      if (slugCheckError && slugCheckError.code !== "PGRST116") {
-        console.error("[Onboarding] Error checking slug uniqueness:", slugCheckError);
-        toast.error("Failed to verify URL availability. Please try again.");
-        setIsLoading(false);
-        return;
+      if (otpError || otpResponse?.error) {
+        throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
       }
 
-      // If slug exists and belongs to someone else, block
-      if (existingSlugRestaurant && existingSlugRestaurant.owner_id !== user.id) {
-        toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
-        setIsLoading(false);
-        return;
-      }
-
-      // Auto-generate Apple Maps URL from address if not already set
-      let directionsUrl = currentRestaurant?.directions_url || validatedData.directionsUrl || '';
-      if (!directionsUrl && (selectedGooglePlace?.address || validatedData.address)) {
-        const addr = selectedGooglePlace?.address || validatedData.address || '';
-        const name = selectedGooglePlace?.name || validatedData.restaurantName;
-        const encodedAddress = encodeURIComponent(addr);
-        const encodedName = encodeURIComponent(name);
-        directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-      }
-
-      // Build restaurant data - use auth email as contact email
-      const restaurantData = {
-        owner_id: user.id,
-        restaurant_name: validatedData.restaurantName,
-        owner_name: validatedData.ownerName,
-        greeting_name: validatedData.ownerName,
-        custom_slug: slugToUse,
-        slug_locked_at: new Date().toISOString(),
-        instagram_url: validatedData.instagram || null,
-        google_review_url: placeId ? buildGoogleReviewUrl(placeId) : null,
-        google_place_id: placeId || null,
-        directions_url: directionsUrl || null,
-        address: selectedGooglePlace?.address || validatedData.address || null,
-        phone: validatedData.phone || null,
-        email: user.email || null,
-        header_title: validatedData.headerTitle || "How was your visit?",
-        header_subtitle: validatedData.headerSubtitle || "We'd love to hear about your experience!",
-        menu_title: validatedData.menuTitle || "Our Menu",
-        onboarding_completed: true, // Mark as complete
-        onboarding_step: 4, // Final step
-      };
-
-      let restaurantId: string | null = existingRestaurantId;
-
-      // Always try UPDATE first if we have an existing restaurant ID
-      if (existingRestaurantId) {
-        const { error: updateError } = await supabase
-          .from("restaurants")
-          .update(restaurantData)
-          .eq("id", existingRestaurantId)
-          .eq("owner_id", user.id);
-
-        if (updateError) {
-          console.error('[Onboarding] Update error:', updateError);
-          if ((updateError as any).code === "23505") {
-            toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
-            setIsLoading(false);
-            return;
-          }
-          throw updateError;
-        }
-      } else {
-        // No existing restaurant - try to find one by owner_id first
-        const { data: userRestaurant } = await supabase
-          .from("restaurants")
-          .select("id")
-          .eq("owner_id", user.id)
-          .maybeSingle();
-
-        if (userRestaurant) {
-          restaurantId = userRestaurant.id;
-          const { error: updateError } = await supabase
-            .from("restaurants")
-            .update(restaurantData)
-            .eq("id", userRestaurant.id);
-
-          if (updateError) {
-            console.error('[Onboarding] Update error:', updateError);
-            throw updateError;
-          }
-        } else {
-          const { data: newRestaurant, error: insertError } = await supabase
-            .from("restaurants")
-            .insert(restaurantData)
-            .select("id")
-            .single();
-
-          if (insertError) {
-            console.error('[Onboarding] Insert error:', insertError);
-            if ((insertError as any).code === "23505") {
-              toast.error(`The custom link (tapaway.co/${slugToUse}) is already taken. Please choose a unique name.`);
-              setIsLoading(false);
-              return;
-            }
-            throw insertError;
-          }
-          restaurantId = newRestaurant?.id || null;
-        }
-      }
-
-      // Upload logo AFTER we have a restaurant ID (use restaurant ID as folder name)
-      if (logoFile && restaurantId) {
-        try {
-          const fileExt = logoFile.name.split(".").pop();
-          const fileName = `${restaurantId}/logo.${fileExt}`;
-          const { error: uploadError } = await supabase.storage
-            .from("restaurant-logos")
-            .upload(fileName, logoFile, { upsert: true });
-
-          if (uploadError) {
-            console.error('[Onboarding] Logo upload error:', uploadError);
-            // Don't block onboarding for logo upload failure
-          } else {
-            const { data: urlData } = supabase.storage
-              .from("restaurant-logos")
-              .getPublicUrl(fileName);
-            
-            // Update restaurant with logo URL
-            await supabase
-              .from("restaurants")
-              .update({ logo_url: urlData.publicUrl })
-              .eq("id", restaurantId);
-          }
-        } catch (logoError) {
-          console.error('[Onboarding] Logo upload failed:', logoError);
-          // Continue without logo
-        }
-      }
-
-      // Auto-detect Yelp if checkbox is checked and we have a Google Place ID
-      if (addYelp && placeId && restaurantId) {
-        try {
-          const { data: yelpData, error: yelpError } = await supabase.functions.invoke('auto-yelp-from-place', {
-            body: { restaurantId }
-          });
-
-          if (yelpError) {
-            toast.info("Couldn't auto-find Yelp, you can add it later in Settings.");
-          } else if (yelpData?.success && yelpData?.restaurant?.yelp_review_url) {
-            toast.success("Yelp page found automatically!");
-          } else if (yelpData?.success === false) {
-            toast.info("Couldn't auto-find Yelp, you can add it later in Settings.");
-          }
-        } catch (error) {
-          // Non-blocking - just log it
-          console.log('[Onboarding] Yelp auto-detect error (non-blocking):', error);
-        }
-      }
-
-      // Call finalize-onboarding to send emails and update fulfillment status
-      // CRITICAL: We await this to ensure emails are sent before redirecting
-      if (restaurantId) {
-        try {
-          console.log('[Onboarding] Calling finalize-onboarding for restaurant:', restaurantId);
-          const { data: finalizeResult, error: finalizeError } = await supabase.functions.invoke('finalize-onboarding', {
-            body: { restaurantId }
-          });
-          
-          if (finalizeError) {
-            console.error('[Onboarding] finalize-onboarding error:', finalizeError);
-            // Still continue to dashboard, but log the error
-          } else {
-            console.log('[Onboarding] finalize-onboarding result:', finalizeResult);
-            
-            // Warn if emails weren't sent
-            if (finalizeResult && !finalizeResult.customerEmailSent) {
-              console.warn('[Onboarding] WARNING: Customer email was NOT sent!');
-            }
-            if (finalizeResult && !finalizeResult.internalEmailSent) {
-              console.warn('[Onboarding] WARNING: Internal notification was NOT sent!');
-            }
-            if (finalizeResult && !finalizeResult.hasShippingAddress) {
-              console.warn('[Onboarding] WARNING: No shipping address on file!');
-            }
-          }
-        } catch (finalizeErr) {
-          console.error('[Onboarding] finalize-onboarding exception:', finalizeErr);
-          // Still continue to dashboard even if this fails
-        }
-      }
-
-      // Clear onboarding data from localStorage
-      clearOnboardingData();
-
-      toast.success("Restaurant setup complete!");
-      
-      // Show success screen instead of navigating immediately
-      setShowSuccess(true);
-    } catch (error: any) {
-      console.error('[Onboarding] Submit error:', error);
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        const errorMessage = error?.message || "Failed to complete setup. Please try again.";
-        toast.error(errorMessage);
-      }
+      setViewState("otp");
+      toast.success("Check your email for a verification code");
+    } catch (err: any) {
+      console.error('[Onboarding] Step 1 error:', err);
+      toast.error(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check if Google is connected
-  const isGoogleConnected = !!selectedGooglePlace || !!manualGoogleInput.trim();
+  // Step 2: Verify OTP
+  const handleVerifyOtp = async () => {
+    if (!otpCode.trim() || otpCode.length < 6) {
+      setOtpError("Please enter the 6-digit code from your email");
+      return;
+    }
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Basic Information</h2>
-              <p className="text-muted-foreground">Let's start with the essentials</p>
-            </div>
+    setIsLoading(true);
+    setOtpError(null);
 
-            <div className="space-y-4">
+    try {
+      const email = formData.email.toLowerCase().trim();
+      
+      // Verify OTP via our custom function
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
+        body: { email, code: otpCode.trim() },
+      });
+
+      if (verifyError || verifyData?.error) {
+        setOtpError(verifyData?.error || verifyError?.message || "Invalid code. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // If new user, sign them in with the temp password
+      if (verifyData.isNewUser && verifyData.tempPassword) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: verifyData.tempPassword,
+        });
+
+        if (signInError) {
+          console.error('[Onboarding] Sign in error:', signInError);
+          setOtpError("Account created but login failed. Please try signing in.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Wait for session
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get session and create/update restaurant
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id || verifyData.userId;
+      
+      if (!currentUserId) {
+        setOtpError("Could not verify your account. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      setUserId(currentUserId);
+      setEmailVerified();
+      
+      // Create or update restaurant
+      await saveFormDataAndCreateRestaurant(currentUserId);
+      
+      // Move to Google step
+      setViewState("google");
+      toast.success("Email verified! Let's connect your Google Business.");
+    } catch (err: any) {
+      console.error('[Onboarding] OTP verification error:', err);
+      setOtpError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper: Save form data and create/update restaurant
+  const saveFormDataAndCreateRestaurant = async (uid: string) => {
+    const slug = formData.customSlug || generateSlug(formData.businessName);
+    
+    // Check for existing restaurant
+    const { data: existing } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("owner_id", uid)
+      .maybeSingle();
+
+    if (existing?.id) {
+      // Update existing
+      await supabase
+        .from("restaurants")
+        .update({
+          restaurant_name: formData.businessName.trim(),
+          owner_name: formData.ownerName.trim() || null,
+          address: `${formData.city.trim()}, ${formData.state}`,
+          type: formData.businessType.toLowerCase().replace(/\s+/g, "_"),
+          custom_slug: slug,
+          email: formData.email.toLowerCase().trim(),
+          instagram_url: formData.instagram || null,
+          phone: formData.phone || null,
+          onboarding_step: 2,
+        })
+        .eq("id", existing.id);
+      
+      setRestaurantId(existing.id);
+    } else {
+      // Create new
+      const { data: created, error } = await supabase
+        .from("restaurants")
+        .insert({
+          owner_id: uid,
+          restaurant_name: formData.businessName.trim(),
+          owner_name: formData.ownerName.trim() || null,
+          address: `${formData.city.trim()}, ${formData.state}`,
+          type: formData.businessType.toLowerCase().replace(/\s+/g, "_"),
+          custom_slug: slug,
+          email: formData.email.toLowerCase().trim(),
+          instagram_url: formData.instagram || null,
+          phone: formData.phone || null,
+          subscription_status: 'trialing',
+          onboarding_step: 2,
+        })
+        .select("id")
+        .single();
+
+      if (!error && created) {
+        setRestaurantId(created.id);
+      }
+    }
+  };
+
+  // Step 3: Google place selection
+  const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
+    if (!placeId) {
+      setGoogleError("Invalid place selected. Please try again.");
+      return;
+    }
+    
+    const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
+    
+    setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
+    setGoogleError(null);
+    
+    // Update business name if not set
+    if (!formData.businessName && name) {
+      setFormData(prev => ({ ...prev, businessName: name }));
+    }
+  }, [formData.businessName]);
+
+  // Step 3: Save Google and proceed
+  const handleGoogleSubmit = async () => {
+    if (!selectedGooglePlace) {
+      setGoogleError("Please search and select your business from Google.");
+      return;
+    }
+
+    if (!restaurantId) {
+      setGoogleError("No restaurant found. Please refresh and try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    setGoogleError(null);
+
+    try {
+      const normalizedPlaceId = normalizeGooglePlaceId(selectedGooglePlace.placeId);
+      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
+      
+      if (!googleReviewUrl) {
+        setGoogleError("Invalid Google place. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Build directions URL
+      const encodedAddress = encodeURIComponent(selectedGooglePlace.address || formData.city);
+      const encodedName = encodeURIComponent(selectedGooglePlace.name || formData.businessName);
+      const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
+
+      // Save to database
+      const { error } = await supabase
+        .from("restaurants")
+        .update({
+          google_place_id: normalizedPlaceId,
+          google_review_url: googleReviewUrl,
+          address: selectedGooglePlace.address || `${formData.city}, ${formData.state}`,
+          directions_url: directionsUrl,
+          onboarding_step: 3,
+        })
+        .eq("id", restaurantId);
+
+      if (error) {
+        console.error('[Onboarding] Google save error:', error);
+        setGoogleError("Failed to save. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success("Google Business connected!");
+      setViewState("finishing");
+    } catch (err: any) {
+      console.error('[Onboarding] Google submit error:', err);
+      setGoogleError(err.message || "Failed to connect Google. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Final step: Complete onboarding
+  const handleComplete = async () => {
+    if (!restaurantId || !userId) {
+      toast.error("Setup error. Please refresh and try again.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Upload logo if provided
+      if (logoFile && !useUnbranded) {
+        try {
+          const fileExt = logoFile.name.split(".").pop();
+          const fileName = `${restaurantId}/logo.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from("restaurant-logos")
+            .upload(fileName, logoFile, { upsert: true });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from("restaurant-logos")
+              .getPublicUrl(fileName);
+            
+            await supabase
+              .from("restaurants")
+              .update({ logo_url: urlData.publicUrl })
+              .eq("id", restaurantId);
+          }
+        } catch (logoErr) {
+          console.error('[Onboarding] Logo upload failed:', logoErr);
+        }
+      }
+
+      // Auto-detect Yelp if checkbox is checked
+      if (addYelp) {
+        try {
+          await supabase.functions.invoke('auto-yelp-from-place', {
+            body: { restaurantId }
+          });
+        } catch (yelpErr) {
+          console.log('[Onboarding] Yelp auto-detect skipped:', yelpErr);
+        }
+      }
+
+      // Mark onboarding as complete
+      await supabase
+        .from("restaurants")
+        .update({
+          onboarding_completed: true,
+          onboarding_step: 4,
+        })
+        .eq("id", restaurantId);
+
+      // Create fulfillment order
+      await supabase
+        .from("fulfillment_orders")
+        .upsert({
+          user_id: userId,
+          restaurant_id: restaurantId,
+          plan: 'trial',
+          shipping_name: formData.ownerName || formData.businessName,
+          shipping_address_line1: formData.shippingAddress,
+          shipping_city: formData.city,
+          shipping_state: formData.state,
+          shipping_country: 'US',
+          status: 'ready_to_ship',
+        }, { onConflict: 'user_id,restaurant_id' });
+
+      // Call finalize-onboarding
+      try {
+        await supabase.functions.invoke('finalize-onboarding', {
+          body: { restaurantId }
+        });
+      } catch (finalizeErr) {
+        console.error('[Onboarding] finalize-onboarding error:', finalizeErr);
+      }
+
+      // Clear localStorage
+      clearOnboardingData();
+
+      // Show success
+      setViewState("success");
+    } catch (err: any) {
+      console.error('[Onboarding] Complete error:', err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOtp = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-custom-otp', {
+        body: { email: formData.email.toLowerCase().trim() },
+      });
+      
+      if (error) throw error;
+      toast.success("New code sent!");
+    } catch (err: any) {
+      toast.error(err.message || "Could not resend code");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Loading state
+  if (!initialCheckDone) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state
+  if (viewState === "success") {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md"
+        >
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-3xl font-black mb-2">You're all set 🎉</h1>
+          <div className="space-y-2 text-muted-foreground mb-8">
+            <p className="text-lg">Your 30-day trial is now active.</p>
+            <p>Cards are being prepared and will ship in 1–2 business days.</p>
+            <p>We'll email you tracking info when they're on the way.</p>
+          </div>
+          <Button 
+            size="lg" 
+            className="w-full max-w-xs"
+            onClick={() => navigate("/dashboard")}
+          >
+            Go to Dashboard
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Get current step number for progress indicator
+  const getStepNumber = () => {
+    switch (viewState) {
+      case "form": return 1;
+      case "otp": return 2;
+      case "google": return 3;
+      case "finishing": return 4;
+      default: return 1;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">
+        <div className="max-w-lg mx-auto px-4">
+          <div className="flex justify-between items-center py-3">
+            <a href="/" className="font-black text-xl tracking-tight text-foreground">
+              TapAway
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-lg mx-auto px-4 py-8">
+        {/* Progress */}
+        <div className="mb-8">
+          <OnboardingProgress 
+            currentStep={getStepNumber()} 
+            totalSteps={4}
+            steps={ONBOARDING_STEPS}
+          />
+        </div>
+
+        {/* Header copy */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-3xl font-black mb-2">You're almost there</h1>
+          <p className="text-muted-foreground text-lg">
+            Just a couple quick steps and we'll ship your TapAway cards.
+          </p>
+        </motion.div>
+
+        {/* Step 1: Form */}
+        {viewState === "form" && (
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onSubmit={handleStep1Submit}
+            className="space-y-5"
+          >
+            <Card className="p-6 space-y-5">
               <div>
-                <Label htmlFor="restaurantName">Restaurant Name *</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
-                  id="restaurantName"
-                  value={formData.restaurantName}
-                  onChange={(e) => handleInputChange("restaurantName", e.target.value)}
-                  placeholder="Your Restaurant Name"
-                  maxLength={100}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="you@business.com"
+                  required
                 />
               </div>
 
               <div>
-                <Label htmlFor="ownerName">Owner / Contact Name *</Label>
+                <Label htmlFor="businessName">Business Name *</Label>
+                <Input
+                  id="businessName"
+                  value={formData.businessName}
+                  onChange={(e) => handleInputChange("businessName", e.target.value)}
+                  placeholder="e.g. Joe's Pizza"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="ownerName">Your Name</Label>
                 <Input
                   id="ownerName"
                   value={formData.ownerName}
                   onChange={(e) => handleInputChange("ownerName", e.target.value)}
-                  placeholder="Your Name"
-                  maxLength={100}
+                  placeholder="Your name"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="customSlug">Custom Page URL *</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">tapaway.co/</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city">City *</Label>
                   <Input
-                    id="customSlug"
-                    value={formData.customSlug}
-                    onChange={(e) => {
-                      const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                      handleInputChange("customSlug", slug);
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    placeholder="City"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>State *</Label>
+                  <Select 
+                    value={formData.state} 
+                    onValueChange={(v) => handleInputChange("state", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {US_STATES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Business Type *</Label>
+                <Select
+                  value={formData.businessType}
+                  onValueChange={(v) => handleInputChange("businessType", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your business type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="shippingAddress">Shipping Address *</Label>
+                <Input
+                  id="shippingAddress"
+                  value={formData.shippingAddress}
+                  onChange={(e) => handleInputChange("shippingAddress", e.target.value)}
+                  placeholder="Street address for card delivery"
+                  required
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  We'll ship your NFC cards to this address.
+                </p>
+              </div>
+
+              {/* Logo upload */}
+              <div className="space-y-3 pt-2 border-t border-border">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="unbranded"
+                    checked={useUnbranded}
+                    onCheckedChange={(v) => {
+                      setUseUnbranded(v === true);
+                      if (v === true) {
+                        setLogoFile(null);
+                        setLogoPreview(null);
+                      }
                     }}
-                    placeholder="your-restaurant"
-                    maxLength={50}
                   />
+                  <div>
+                    <Label htmlFor="unbranded">Send unbranded cards</Label>
+                    <p className="text-xs text-muted-foreground">You can upload a logo later.</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This will be your unique review page URL
-                </p>
-              </div>
 
-              <div>
-                <Label htmlFor="logo">Restaurant Logo</Label>
-                <div className="mt-2">
-                  {logoPreview ? (
-                    <div className="relative w-32 h-32 border-2 border-border rounded-lg overflow-hidden">
-                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setLogoFile(null);
-                          setLogoPreview(null);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors">
-                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">Upload</span>
-                      <input
-                        type="file"
-                        id="logo"
-                        className="hidden"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        onChange={handleLogoChange}
-                      />
-                    </label>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Max 2MB. JPG, PNG, WEBP, or GIF</p>
-              </div>
-
-              <div>
-                <Label htmlFor="instagram">Instagram Handle</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">@</span>
-                  <Input
-                    id="instagram"
-                    value={formData.instagram}
-                    onChange={(e) => handleInputChange("instagram", e.target.value)}
-                    placeholder="yourrestaurant"
-                    maxLength={50}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Search Your Business on Google *</h2>
-              <p className="text-muted-foreground">This is required to set up your review hub</p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Google Places Autocomplete */}
-              <div>
-                <GooglePlacesAutocomplete
-                  onPlaceSelected={handleGooglePlaceSelected}
-                  defaultValue={selectedGooglePlace?.address || ""}
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Start typing to search your business, then select it from the dropdown
-                </p>
-                
-                {/* Success state */}
-                {selectedGooglePlace && (
-                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-                      <Check className="w-4 h-4" /> 
-                      <span><strong>Connected:</strong> {selectedGooglePlace.name}</span>
-                    </p>
-                    {selectedGooglePlace.address && (
-                      <p className="text-xs text-green-600 dark:text-green-500 mt-1 ml-6">
-                        {selectedGooglePlace.address}
-                      </p>
+                {!useUnbranded && (
+                  <div>
+                    <Label>Logo (optional)</Label>
+                    {logoPreview ? (
+                      <div className="relative w-20 h-20 mt-2 border border-border rounded-lg overflow-hidden">
+                        <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => { setLogoFile(null); setLogoPreview(null); }}
+                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-20 h-20 mt-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors">
+                        <Upload className="w-5 h-5 text-muted-foreground" />
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                        />
+                      </label>
                     )}
                   </div>
                 )}
               </div>
+            </Card>
 
+            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Sending code...</>
+              ) : (
+                <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
+              )}
+            </Button>
+          </motion.form>
+        )}
 
-              {/* Error message */}
-              {step2Error && (
+        {/* Step 2: OTP Verification */}
+        {viewState === "otp" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="p-6">
+              <div className="text-center mb-6">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold">Confirm your email to finish setup</h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  We sent a code to <span className="font-medium text-foreground">{formData.email}</span>
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="otp">6-digit code</Label>
+                  <Input
+                    id="otp"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="123456"
+                    className="text-center text-2xl tracking-widest"
+                    autoFocus
+                  />
+                </div>
+
+                {otpError && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <p className="text-sm text-destructive flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      {otpError}
+                    </p>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleVerifyOtp} 
+                  disabled={isLoading || otpCode.length < 6} 
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Verifying...</>
+                  ) : (
+                    "Verify & Continue"
+                  )}
+                </Button>
+
+                <div className="flex flex-col gap-2 pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={isLoading}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Didn't get it? Resend code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setViewState("form"); setOtpCode(""); setOtpError(null); }}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Use a different email
+                  </button>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Step 3: Google Business */}
+        {viewState === "google" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <Card className="p-6 space-y-5">
+              <div>
+                <h2 className="text-xl font-bold mb-1">Connect your Google Business</h2>
+                <p className="text-sm text-muted-foreground">
+                  This powers your review link and helps customers find you.
+                </p>
+              </div>
+
+              <div>
+                <GooglePlacesAutocomplete
+                  onPlaceSelected={handleGooglePlaceSelected}
+                  defaultValue=""
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Start typing your business name to search
+                </p>
+              </div>
+
+              {selectedGooglePlace && (
+                <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                    <Check className="w-4 h-4" /> 
+                    <span><strong>Connected:</strong> {selectedGooglePlace.name}</span>
+                  </p>
+                  {selectedGooglePlace.address && (
+                    <p className="text-xs text-green-600 dark:text-green-500 mt-1 ml-6">
+                      {selectedGooglePlace.address}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {googleError && (
                 <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
                   <p className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="w-4 h-4" />
-                    {step2Error}
+                    {googleError}
                   </p>
                 </div>
               )}
 
-              {/* Phone number - secondary */}
-              <div className="pt-4 border-t border-border">
+              {/* Yelp option */}
+              <div className="flex items-start gap-3 pt-2 border-t border-border">
+                <Checkbox
+                  id="addYelp"
+                  checked={addYelp}
+                  onCheckedChange={(v) => setAddYelp(v === true)}
+                />
+                <div>
+                  <Label htmlFor="addYelp">Also add Yelp (recommended)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    We'll auto-find your Yelp page.
+                  </p>
+                </div>
+              </div>
+
+              {/* Phone (optional) */}
+              <div>
                 <Label htmlFor="phone">Phone Number (optional)</Label>
                 <Input
                   id="phone"
@@ -957,178 +1013,80 @@ const Onboarding = () => {
                   placeholder="(555) 123-4567"
                   maxLength={14}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Enter 10 digits (auto-formatted)
-                </p>
               </div>
+            </Card>
 
-              {/* Email info */}
-              <div className="p-3 bg-muted/50 rounded-lg">
+            <Button 
+              onClick={handleGoogleSubmit} 
+              disabled={isLoading || !selectedGooglePlace} 
+              className="w-full h-12 text-lg"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
+              ) : (
+                <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
+              )}
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Step 4: Finishing */}
+        {viewState === "finishing" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <Card className="p-6 space-y-4">
+              <div>
+                <h2 className="text-xl font-bold mb-1">Almost done!</h2>
                 <p className="text-sm text-muted-foreground">
-                  <span className="font-medium">Contact email:</span>{" "}
-                  <span className="text-foreground">{user?.email}</span>
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  We'll use your account email. You can change this later in Settings.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Review Platforms</h2>
-              <p className="text-muted-foreground">Set up your review collection</p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Google status - always show positive since it's mandatory */}
-              <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-sm text-green-800 dark:text-green-200 flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  Google Business connected: {selectedGooglePlace?.name || "Connected"}
+                  Review your details and we'll get your cards shipped.
                 </p>
               </div>
 
-              {/* Yelp checkbox - auto-detect */}
-              <div className="flex items-start space-x-3 p-4 border border-border rounded-lg">
-                <Checkbox
-                  id="addYelp"
-                  checked={addYelp}
-                  onCheckedChange={(checked) => setAddYelp(checked === true)}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="addYelp" className="text-base font-medium cursor-pointer">
-                    Add Yelp (recommended)
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    We'll automatically find your Yelp page using your Google listing.
-                  </p>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Business</span>
+                  <span className="font-medium">{formData.businessName}</span>
                 </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Location</span>
+                  <span className="font-medium">{formData.city}, {formData.state}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Ship to</span>
+                  <span className="font-medium text-right max-w-[200px]">{formData.shippingAddress}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-muted-foreground">Google Business</span>
+                  <span className="font-medium text-green-600 flex items-center gap-1">
+                    <Check className="w-4 h-4" /> Connected
+                  </span>
+                </div>
+                {logoPreview && !useUnbranded && (
+                  <div className="flex justify-between py-2 border-b border-border items-center">
+                    <span className="text-muted-foreground">Logo</span>
+                    <img src={logoPreview} alt="Logo" className="w-10 h-10 rounded object-cover" />
+                  </div>
+                )}
               </div>
+            </Card>
 
-              {/* Directions info */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  Apple Maps directions will be auto-created from your address
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Customize Messages</h2>
-              <p className="text-muted-foreground">Personalize your customer experience</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="headerTitle">Review Page Header</Label>
-                <Input
-                  id="headerTitle"
-                  value={formData.headerTitle}
-                  onChange={(e) => handleInputChange("headerTitle", e.target.value)}
-                  placeholder="How was your visit?"
-                  maxLength={100}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="headerSubtitle">Review Page Subtitle</Label>
-                <Input
-                  id="headerSubtitle"
-                  value={formData.headerSubtitle}
-                  onChange={(e) => handleInputChange("headerSubtitle", e.target.value)}
-                  placeholder="We'd love to hear about your experience!"
-                  maxLength={200}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="menuTitle">Menu Section Title</Label>
-                <Input
-                  id="menuTitle"
-                  value={formData.menuTitle}
-                  onChange={(e) => handleInputChange("menuTitle", e.target.value)}
-                  placeholder="Our Menu"
-                  maxLength={50}
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // Show loading while checking auth/onboarding status
-  if (!initialCheckDone) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show success screen after completion
-  if (showSuccess) {
-    return <OnboardingSuccess businessName={formData.restaurantName} />;
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl p-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-gradient-primary"></div>
-            <span className="text-2xl font-bold">TapAway</span>
-          </div>
-          
-          <OnboardingProgress 
-            currentStep={step} 
-            totalSteps={4}
-            steps={ONBOARDING_STEPS}
-          />
-        </div>
-
-        {renderStep()}
-
-        <div className="flex justify-between mt-8">
-          {step > 1 ? (
-            <Button variant="outline" onClick={handleBack} disabled={isLoading}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+            <Button 
+              onClick={handleComplete} 
+              disabled={isLoading} 
+              className="w-full h-12 text-lg"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Finishing setup...</>
+              ) : (
+                <>Complete Setup <Check className="w-5 h-5 ml-2" /></>
+              )}
             </Button>
-          ) : (
-            <div />
-          )}
-
-          {step < 4 ? (
-            <Button onClick={handleNext} disabled={isLoading}>
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? "Setting up..." : "Complete Setup"}
-              <Check className="w-4 h-4 ml-2" />
-            </Button>
-          )}
-        </div>
-      </Card>
+          </motion.div>
+        )}
+      </main>
     </div>
   );
 };
