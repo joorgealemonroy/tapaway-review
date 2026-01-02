@@ -194,17 +194,13 @@ const OnboardingStart = () => {
         return;
       }
 
-      // Send OTP magic link
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/onboarding/start?source=otp`,
-        },
+      // Send custom OTP via our branded email
+      const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
+        body: { email },
       });
 
-      if (otpError) {
-        throw otpError;
+      if (otpError || otpResponse?.error) {
+        throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
       }
 
       // Save form data to localStorage for resumption
@@ -234,19 +230,58 @@ const OnboardingStart = () => {
     setOtpError(null);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: formData.email.toLowerCase().trim(),
-        token: otpCode.trim(),
-        type: 'email',
+      const email = formData.email.toLowerCase().trim();
+      
+      // Verify OTP via our custom function
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
+        body: { email, code: otpCode.trim() },
       });
 
-      if (error) {
-        setOtpError(error.message);
+      if (verifyError || verifyData?.error) {
+        setOtpError(verifyData?.error || verifyError?.message || "Invalid code. Please try again.");
         return;
       }
 
-      if (data.user) {
-        await completeOnboarding(data.user.id);
+      // If new user, sign them in with the temp password
+      if (verifyData.isNewUser && verifyData.tempPassword) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: verifyData.tempPassword,
+        });
+
+        if (signInError) {
+          console.error('[OnboardingStart] Sign in error:', signInError);
+          // Try magic link as fallback
+          await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+          setOtpError("Account created! Check your email for a login link.");
+          return;
+        }
+      } else {
+        // Existing user - use magic link to sign in
+        const { error: magicError } = await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: false },
+        });
+
+        if (magicError) {
+          console.error('[OnboardingStart] Magic link error:', magicError);
+        }
+        
+        // For existing users, we'll proceed with onboarding anyway
+        // They're verified via our custom OTP
+      }
+
+      // Wait a moment for session to be established
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        await completeOnboarding(session.user.id);
+      } else {
+        // If no session yet, use the userId from verify response
+        await completeOnboarding(verifyData.userId);
       }
     } catch (err: any) {
       setOtpError(err.message || "Invalid code. Please try again.");
