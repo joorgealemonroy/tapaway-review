@@ -9,7 +9,8 @@ import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
-import OnboardingStart from "./pages/OnboardingStart";
+import OnboardingStartPublic from "./pages/OnboardingStartPublic";
+import OnboardingStartRedirect from "./pages/OnboardingStartRedirect";
 import Start from "./pages/Start";
 import Paywall from "./pages/Paywall";
 import TrialConfirmed from "./pages/TrialConfirmed";
@@ -56,7 +57,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/onboarding/start" element={<OnboardingStart />} />
+            <Route path="/onboarding-start" element={<OnboardingStartPublic />} />
+            <Route path="/onboarding/start" element={<OnboardingStartRedirect />} />
             <Route path="/start" element={<Start />} />
             <Route path="/paywall" element={<Paywall />} />
             <Route path="/trial-confirmed" element={<TrialConfirmed />} />

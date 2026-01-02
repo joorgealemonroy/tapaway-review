@@ -16,7 +16,7 @@ export const TrialBanner = () => {
     const onboardingComplete = localStorage.getItem('tapaway_onboarding_complete') === 'true';
     
     // Don't show on start, paywall, or onboarding pages
-    const excludedPaths = ['/start', '/paywall', '/onboarding', '/auth', '/dashboard'];
+    const excludedPaths = ['/start', '/paywall', '/onboarding', '/onboarding-start', '/auth', '/dashboard'];
     const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
     
     if ((hasPendingTrial || hasTrialIntent || hasPendingSetup) && !onboardingComplete && !isExcludedPath && !dismissed) {
@@ -47,7 +47,7 @@ export const TrialBanner = () => {
                 You started your TapAway trial — let's finish setup!
               </span>
               <Link
-                to="/onboarding/start?source=resume"
+                to="/onboarding-start?source=resume"
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary-foreground text-primary font-bold text-sm hover:bg-primary-foreground/90 transition-colors"
               >
                 Finish Setup
