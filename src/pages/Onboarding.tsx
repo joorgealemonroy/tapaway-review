@@ -41,6 +41,13 @@ const step1Schema = z.object({
   shippingAddress: z.string().trim().min(1, "Shipping address is required").max(200),
 });
 
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password is too long")
+  .regex(/[A-Za-z]/, "Password must include a letter")
+  .regex(/[0-9]/, "Password must include a number");
+
 const BUSINESS_TYPES = [
   "Restaurant",
   "Cafe / Coffee Shop",
@@ -89,6 +96,10 @@ const Onboarding = () => {
     instagram: "",
     phone: "",
   });
+  
+  // Password state (collected at OTP step)
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   
   // OTP state
   const [otpCode, setOtpCode] = useState("");
@@ -308,6 +319,14 @@ const Onboarding = () => {
       setOtpError("Please enter the 6-digit code from your email");
       return;
     }
+    
+    // Validate password
+    const pwResult = passwordSchema.safeParse(password);
+    if (!pwResult.success) {
+      setPasswordError(pwResult.error.errors[0].message);
+      return;
+    }
+    setPasswordError(null);
 
     setIsLoading(true);
     setOtpError(null);
@@ -315,9 +334,9 @@ const Onboarding = () => {
     try {
       const email = formData.email.toLowerCase().trim();
       
-      // Verify OTP via our custom function
+      // Verify OTP via our custom function (pass password for account creation)
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
-        body: { email, code: otpCode.trim() },
+        body: { email, code: otpCode.trim(), password },
       });
 
       if (verifyError || verifyData?.error) {
@@ -326,21 +345,23 @@ const Onboarding = () => {
         return;
       }
 
-      // Create a session without triggering any Supabase email flow
-      if (verifyData?.tempPassword) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: verifyData.tempPassword,
-        });
-
-        if (signInError) {
-          console.error("[Onboarding] Sign in error:", signInError);
-          setOtpError("We verified your code, but couldn't log you in. Please try again.");
-          setIsLoading(false);
-          return;
-        }
-      } else {
+      // Sign in with the password the user just set
+      const signInPassword = verifyData?.usedProvidedPassword ? password : verifyData?.tempPassword;
+      
+      if (!signInPassword) {
         setOtpError("We verified your code, but couldn't start your session. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: signInPassword,
+      });
+
+      if (signInError) {
+        console.error("[Onboarding] Sign in error:", signInError);
+        setOtpError("We verified your code, but couldn't log you in. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -898,6 +919,24 @@ const Onboarding = () => {
                     autoFocus
                   />
                 </div>
+                
+                <div>
+                  <Label htmlFor="password">Create a password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
+                    placeholder="At least 8 characters"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Must be 8+ characters with a letter and number
+                  </p>
+                  {passwordError && (
+                    <p className="text-sm text-destructive mt-1">{passwordError}</p>
+                  )}
+                </div>
 
                 {otpError && (
                   <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
@@ -910,7 +949,7 @@ const Onboarding = () => {
 
                 <Button 
                   onClick={handleVerifyOtp} 
-                  disabled={isLoading || otpCode.length < 6} 
+                  disabled={isLoading || otpCode.length < 6 || password.length < 8} 
                   className="w-full"
                 >
                   {isLoading ? (
