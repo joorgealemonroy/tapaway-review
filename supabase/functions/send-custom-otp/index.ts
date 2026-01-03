@@ -18,37 +18,13 @@ function generateOtpEmailHtml(token: string): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 400px; margin: 0 auto; padding: 40px 20px;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <tr>
-      <td>
-        <img src="https://tapaway.co/tapaway-logo-email.png" width="120" alt="TapAway" style="margin-bottom: 24px; display: block;">
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <p style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">Your TapAway setup code is:</p>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <div style="display: inline-block; padding: 16px 24px; background-color: #f4f4f4; border-radius: 8px; border: 1px solid #e0e0e0;">
-          <span style="color: #1a1a1a; font-size: 32px; font-weight: 700; letter-spacing: 4px; font-family: monospace;">${token}</span>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <p style="color: #888888; font-size: 14px; line-height: 20px; margin: 16px 0 0 0;">
-          This code expires in 10 minutes.
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <p style="color: #888888; font-size: 14px; margin-top: 32px;">
-          — TapAway
-        </p>
+      <td style="color:#1a1a1a;font-size:16px;line-height:24px;">
+        <p style="margin:0 0 16px 0;">Your TapAway setup code is: <strong>${token}</strong></p>
+        <p style="margin:0 0 24px 0;color:#555;">This code expires in 10 minutes.</p>
+        <p style="margin:0;color:#555;">— TapAway</p>
       </td>
     </tr>
   </table>

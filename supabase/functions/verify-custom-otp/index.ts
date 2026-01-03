@@ -65,48 +65,48 @@ serve(async (req) => {
       .eq("id", otpRecord.id);
 
     // Check if user already exists
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+
+    if (listError) {
+      console.error("[verify-custom-otp] Error listing users:", listError);
+      throw new Error("Failed to verify account");
+    }
+
     const existingUser = existingUsers?.users?.find(
       (u) => u.email?.toLowerCase() === normalizedEmail
     );
 
     let userId: string;
-    let accessToken: string;
-    let refreshToken: string;
 
     if (existingUser) {
-      // User exists - generate magic link session
+      // User exists - rotate a server-generated password and sign them in on the client
+      // (this does NOT send any emails and avoids Supabase OTP/magic-link pipelines)
       console.log("[verify-custom-otp] Existing user found:", existingUser.id);
-      
-      // Generate a session for the existing user
-      const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
-        type: "magiclink",
-        email: normalizedEmail,
-        options: {
-          redirectTo: `${Deno.env.get("FRONTEND_URL") || "https://tapaway.co"}/onboarding/start`,
-        },
+
+      const tempPassword = crypto.randomUUID();
+
+      const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
+        password: tempPassword,
+        email_confirm: true,
       });
 
-      if (sessionError) {
-        console.error("[verify-custom-otp] Error generating session:", sessionError);
+      if (updateError) {
+        console.error("[verify-custom-otp] Error updating user password:", updateError);
         throw new Error("Failed to create session");
       }
 
-      // Extract the token from the link and verify it to get session
-      const tokenHash = sessionData.properties?.hashed_token;
-      
-      // Use signInWithOtp to create a session - we'll return special data for frontend
       userId = existingUser.id;
-      
-      // Return user info - frontend will use this to sign in
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           userId,
           email: normalizedEmail,
           isNewUser: false,
-          // Include a one-time token for frontend to use
-          verificationToken: tokenHash,
+          tempPassword, // Frontend will use this to sign in immediately
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
