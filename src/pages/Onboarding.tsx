@@ -285,7 +285,7 @@ const Onboarding = () => {
 
       // Send custom OTP via TapAway branded email
       const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email },
+        body: { email, businessName: formData.businessName?.trim() || undefined },
       });
 
       if (otpError || otpResponse?.error) {
@@ -326,19 +326,23 @@ const Onboarding = () => {
         return;
       }
 
-      // If new user, sign them in with the temp password
-      if (verifyData.isNewUser && verifyData.tempPassword) {
+      // Create a session without triggering any Supabase email flow
+      if (verifyData?.tempPassword) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password: verifyData.tempPassword,
         });
 
         if (signInError) {
-          console.error('[Onboarding] Sign in error:', signInError);
-          setOtpError("Account created but login failed. Please try signing in.");
+          console.error("[Onboarding] Sign in error:", signInError);
+          setOtpError("We verified your code, but couldn't log you in. Please try again.");
           setIsLoading(false);
           return;
         }
+      } else {
+        setOtpError("We verified your code, but couldn't start your session. Please try again.");
+        setIsLoading(false);
+        return;
       }
 
       // Wait for session
