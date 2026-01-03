@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { email, code } = await req.json();
+    const { email, code, password } = await req.json();
 
     if (!email || !code) {
       return new Response(
@@ -24,6 +24,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Password is required for new users but optional for returning users
+    const userPassword = typeof password === "string" && password.length >= 8 ? password : null;
 
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedCode = code.trim();
@@ -82,14 +85,14 @@ serve(async (req) => {
     let userId: string;
 
     if (existingUser) {
-      // User exists - rotate a server-generated password and sign them in on the client
-      // (this does NOT send any emails and avoids Supabase OTP/magic-link pipelines)
+      // User exists - update their password if provided, else use a temp password
       console.log("[verify-custom-otp] Existing user found:", existingUser.id);
 
-      const tempPassword = crypto.randomUUID();
+      const passwordToSet = userPassword || crypto.randomUUID();
+      const usedProvidedPassword = !!userPassword;
 
       const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
-        password: tempPassword,
+        password: passwordToSet,
         email_confirm: true,
       });
 
@@ -106,7 +109,8 @@ serve(async (req) => {
           userId,
           email: normalizedEmail,
           isNewUser: false,
-          tempPassword, // Frontend will use this to sign in immediately
+          usedProvidedPassword,
+          tempPassword: passwordToSet, // Frontend will use this to sign in immediately
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -114,12 +118,17 @@ serve(async (req) => {
       // Create new user with auto-confirmed email
       console.log("[verify-custom-otp] Creating new user:", normalizedEmail);
       
-      // Generate a random password (user won't need it - they use OTP)
-      const tempPassword = crypto.randomUUID();
+      // Use user-provided password or generate a temp one
+      if (!userPassword) {
+        return new Response(
+          JSON.stringify({ error: "Password is required to create your account" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: normalizedEmail,
-        password: tempPassword,
+        password: userPassword,
         email_confirm: true, // Auto-confirm since they verified OTP
       });
 
@@ -137,7 +146,8 @@ serve(async (req) => {
           userId,
           email: normalizedEmail,
           isNewUser: true,
-          tempPassword, // Frontend will use this to sign in immediately
+          usedProvidedPassword: true,
+          tempPassword: userPassword, // Frontend will use this to sign in immediately
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
