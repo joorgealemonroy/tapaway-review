@@ -6,7 +6,7 @@ const PersonalCard3D = () => {
           <div
             className="relative"
             style={{
-              width: "min(260px, 80vw)",
+              width: "min(220px, 70vw)",
               aspectRatio: "1 / 1.586",
               transformStyle: "preserve-3d",
             }}
