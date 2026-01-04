@@ -36,6 +36,11 @@ const Auth = () => {
   const [stripeSessionData, setStripeSessionData] = useState<StripeSessionData | null>(null);
   const [validPassword, setValidPassword] = useState<string | null>(null);
 
+  // Forgot-password (custom OTP) state
+  const [forgotStep, setForgotStep] = useState<"send" | "verify">("send");
+  const [forgotCode, setForgotCode] = useState("");
+  const [forgotValidPassword, setForgotValidPassword] = useState<string | null>(null);
+
   // Get redirect destination from URL params
   const redirectTo = searchParams.get("redirect") || "/dashboard";
 
@@ -224,25 +229,10 @@ const Auth = () => {
 
         console.log("[Auth] Password set successfully, signing in...");
       } else {
-        // Create new user account (shouldn't happen normally if webhook worked)
-        console.log("[Auth] Creating new user account");
-        
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: stripeSessionData.email,
-          password: validPassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-          },
-        });
-
-        if (signUpError) {
-          if (signUpError.message.includes("already registered")) {
-            setMode("post-checkout-login");
-            setError("This email already has an account. Please log in instead.");
-            return;
-          }
-          throw signUpError;
-        }
+        // Never create users via client signUp here (it can trigger default auth emails)
+        console.warn("[Auth] No user found after checkout; redirecting to onboarding for custom verification");
+        window.location.href = `/onboarding?source=stripe&email=${encodeURIComponent(stripeSessionData.email)}`;
+        return;
       }
 
       // Sign in with the new password
@@ -272,16 +262,72 @@ const Auth = () => {
     setLoading(true);
     setError(null);
     setMessage(null);
-    
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     try {
-      const redirectToReset = `${window.location.origin}/auth/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: redirectToReset
+      if (!normalizedEmail) {
+        setError("Please enter your email address.");
+        return;
+      }
+
+      if (forgotStep === "send") {
+        console.info("[Auth][OTP] send-custom-otp (password reset)", {
+          email: normalizedEmail,
+          ts: new Date().toISOString(),
+          provider: "resend",
+        });
+
+        const { data, error } = await supabase.functions.invoke("send-custom-otp", {
+          body: { email: normalizedEmail },
+        });
+
+        if (error || (data as any)?.error) {
+          throw new Error((data as any)?.error || error?.message || "Failed to send code");
+        }
+
+        setForgotStep("verify");
+        setMessage("Check your email for a 6-digit code.");
+        return;
+      }
+
+      // Verify step
+      if (!forgotCode.trim() || forgotCode.trim().length < 6) {
+        setError("Enter the 6-digit code we emailed you.");
+        return;
+      }
+
+      if (!forgotValidPassword) {
+        setError("Please enter a valid password that meets all requirements.");
+        return;
+      }
+
+      console.info("[Auth][OTP] verify-custom-otp (password reset)", {
+        email: normalizedEmail,
+        ts: new Date().toISOString(),
       });
-      if (error) throw error;
-      setMessage("If an account exists with that email, we've sent a reset link.");
+
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke("verify-custom-otp", {
+        body: { email: normalizedEmail, code: forgotCode.trim(), password: forgotValidPassword },
+      });
+
+      if (verifyError || (verifyData as any)?.error) {
+        throw new Error((verifyData as any)?.error || verifyError?.message || "Invalid or expired code");
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: forgotValidPassword,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      setMessage("Password updated. Redirecting…");
+      navigate("/dashboard");
     } catch (e: any) {
-      setError(e.message ?? "Unable to send reset email right now.");
+      setError(e.message ?? "Unable to reset password right now.");
     } finally {
       setLoading(false);
     }
@@ -424,6 +470,9 @@ const Auth = () => {
                   type="button" 
                   onClick={() => {
                     setMode("forgot");
+                    setForgotStep("send");
+                    setForgotCode("");
+                    setForgotValidPassword(null);
                     setMessage(null);
                     setError(null);
                   }} 
@@ -482,6 +531,9 @@ const Auth = () => {
                   type="button" 
                   onClick={() => {
                     setMode("forgot");
+                    setForgotStep("send");
+                    setForgotCode("");
+                    setForgotValidPassword(null);
                     setMessage(null);
                     setError(null);
                   }} 
@@ -500,7 +552,7 @@ const Auth = () => {
                 {redirectTo.includes('/onboarding') && (
                   <Button 
                     type="button"
-                    onClick={() => window.location.href = '/onboarding-start?source=resume'}
+                    onClick={() => window.location.href = '/onboarding?source=resume'}
                     className="w-full"
                   >
                     Continue setup
@@ -521,7 +573,7 @@ const Auth = () => {
             </form>
           )}
 
-          {/* Forgot password form */}
+          {/* Forgot password form (custom OTP; no default auth emails) */}
           {mode === "forgot" && (
             <form className="space-y-4" onSubmit={onForgot}>
               <div className="space-y-2">
@@ -534,12 +586,50 @@ const Auth = () => {
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
                   placeholder="you@restaurant.com" 
+                  disabled={forgotStep === "verify"}
                 />
               </div>
 
+              {forgotStep === "verify" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-code">6-digit code</Label>
+                    <Input
+                      id="forgot-code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={forgotCode}
+                      onChange={(e) => setForgotCode(e.target.value)}
+                      placeholder="123456"
+                      required
+                    />
+                  </div>
+
+                  <PasswordChecklistSection onValidPassword={setForgotValidPassword} />
+                </>
+              )}
+
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Sending link…" : "Send reset link"}
+                {forgotStep === "send"
+                  ? (loading ? "Sending code…" : "Send reset code")
+                  : (loading ? "Resetting…" : "Verify code & reset password")}
               </Button>
+
+              {forgotStep === "verify" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotStep("send");
+                    setForgotCode("");
+                    setForgotValidPassword(null);
+                    setMessage(null);
+                    setError(null);
+                  }}
+                  className="w-full text-xs text-muted-foreground hover:underline text-center"
+                >
+                  Use a different email
+                </button>
+              )}
 
               <button 
                 type="button" 

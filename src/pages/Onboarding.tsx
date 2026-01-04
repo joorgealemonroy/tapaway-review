@@ -131,6 +131,13 @@ const Onboarding = () => {
       
       // Pre-fill from saved onboarding data
       const savedData = getOnboardingData();
+
+      // Also allow prefill from query param (used by post-checkout recovery flows)
+      const emailFromQuery = searchParams.get("email");
+      if (emailFromQuery && !savedData.email) {
+        setFormData((prev) => ({ ...prev, email: emailFromQuery.toLowerCase().trim() }));
+      }
+
       if (savedData.email || savedData.businessName) {
         setFormData(prev => ({
           ...prev,
@@ -208,6 +215,32 @@ const Onboarding = () => {
     
     init();
   }, [navigate]);
+
+  // Fail-fast guard: onboarding must never trigger default auth email flows
+  useEffect(() => {
+    const blockedMethods = ["signInWithOtp", "signUp", "resetPasswordForEmail", "verifyOtp"] as const;
+    const originals: Partial<Record<(typeof blockedMethods)[number], unknown>> = {};
+
+    blockedMethods.forEach((method) => {
+      const authAny = supabase.auth as any;
+      if (typeof authAny[method] !== "function") return;
+
+      originals[method] = authAny[method];
+      authAny[method] = () => {
+        console.error(`[Onboarding][AUTH_GUARD] Blocked supabase.auth.${method}`, {
+          ts: new Date().toISOString(),
+        });
+        throw new Error("Default OTP/verification email flow is disabled in onboarding.");
+      };
+    });
+
+    return () => {
+      const authAny = supabase.auth as any;
+      blockedMethods.forEach((method) => {
+        if (originals[method]) authAny[method] = originals[method];
+      });
+    };
+  }, []);
 
   // Form handlers
   const handleInputChange = (field: string, value: string) => {
@@ -294,10 +327,17 @@ const Onboarding = () => {
         logoUploaded: !!logoFile,
       });
 
-      // Send custom OTP via TapAway branded email
-      const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email, businessName: formData.businessName?.trim() || undefined },
-      });
+       // Send custom OTP via TapAway branded email
+       console.info("[Onboarding][OTP] send-custom-otp", {
+         email,
+         ts: new Date().toISOString(),
+         provider: "resend",
+         from: "TapAway <no-reply@tapaway.co>",
+       });
+
+       const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
+         body: { email, businessName: formData.businessName?.trim() || undefined },
+       });
 
       if (otpError || otpResponse?.error) {
         throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
@@ -334,10 +374,15 @@ const Onboarding = () => {
     try {
       const email = formData.email.toLowerCase().trim();
       
-      // Verify OTP via our custom function (pass password for account creation)
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
-        body: { email, code: otpCode.trim(), password },
-      });
+       // Verify OTP via our custom function (pass password for account creation)
+       console.info("[Onboarding][OTP] verify-custom-otp", {
+         email,
+         ts: new Date().toISOString(),
+       });
+
+       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
+         body: { email, code: otpCode.trim(), password },
+       });
 
       if (verifyError || verifyData?.error) {
         setOtpError(verifyData?.error || verifyError?.message || "Invalid code. Please try again.");
@@ -379,15 +424,21 @@ const Onboarding = () => {
         return;
       }
 
-      setUserId(currentUserId);
-      setEmailVerified();
-      
-      // Create or update restaurant
-      await saveFormDataAndCreateRestaurant(currentUserId);
-      
-      // Move to Google step
-      setViewState("google");
-      toast.success("Email verified! Let's connect your Google Business.");
+       setUserId(currentUserId);
+       setEmailVerified();
+
+       console.info("[Onboarding][OTP] verified", {
+         email,
+         ts: new Date().toISOString(),
+         success: true,
+       });
+       
+       // Create or update restaurant
+       await saveFormDataAndCreateRestaurant(currentUserId);
+       
+       // Move to Google step
+       setViewState("google");
+       toast.success("Email verified! Let's connect your Google Business.");
     } catch (err: any) {
       console.error('[Onboarding] OTP verification error:', err);
       setOtpError(err.message || "Verification failed. Please try again.");
@@ -624,8 +675,16 @@ const Onboarding = () => {
   const handleResendOtp = async () => {
     setIsLoading(true);
     try {
+      const email = formData.email.toLowerCase().trim();
+      console.info("[Onboarding][OTP] resend send-custom-otp", {
+        email,
+        ts: new Date().toISOString(),
+        provider: "resend",
+        from: "TapAway <no-reply@tapaway.co>",
+      });
+
       const { error } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email: formData.email.toLowerCase().trim() },
+        body: { email },
       });
       
       if (error) throw error;

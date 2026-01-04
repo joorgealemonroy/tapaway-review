@@ -10,6 +10,14 @@ function generateOtpCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function generateOtpEmailHtml(token: string): string {
   return `
 <!DOCTYPE html>
@@ -99,6 +107,7 @@ serve(async (req) => {
 
     // Generate OTP code
     const code = generateOtpCode();
+    const codeHash = await sha256Hex(code);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Delete any existing OTPs for this email
@@ -107,12 +116,12 @@ serve(async (req) => {
       .delete()
       .eq("email", normalizedEmail);
 
-    // Insert new OTP
+    // Insert new OTP (store hashed code)
     const { error: insertError } = await supabase
       .from("pending_otps")
       .insert({
         email: normalizedEmail,
-        code,
+        code: codeHash,
         expires_at: expiresAt.toISOString(),
       });
 
@@ -122,6 +131,14 @@ serve(async (req) => {
     }
 
     // Send email
+    const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
+    console.log("[send-custom-otp] Dispatching email", {
+      email: normalizedEmail,
+      ts: new Date().toISOString(),
+      provider: "resend",
+      from: fromEmail,
+    });
+
     const html = generateOtpEmailHtml(code);
     const sent = await sendEmail(normalizedEmail, "Your TapAway setup code", html);
 

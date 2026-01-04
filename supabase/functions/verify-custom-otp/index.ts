@@ -6,6 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,12 +46,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find valid OTP
+    // Find valid OTP (stored as SHA-256 hash)
+    const codeHash = await sha256Hex(normalizedCode);
+
     const { data: otpRecord, error: fetchError } = await supabase
       .from("pending_otps")
       .select("*")
       .eq("email", normalizedEmail)
-      .eq("code", normalizedCode)
+      .eq("code", codeHash)
       .is("verified_at", null)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
@@ -103,6 +113,13 @@ serve(async (req) => {
 
       userId = existingUser.id;
 
+      console.log("[verify-custom-otp] success", {
+        email: normalizedEmail,
+        ts: new Date().toISOString(),
+        success: true,
+        isNewUser: false,
+      });
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -140,6 +157,13 @@ serve(async (req) => {
       userId = newUser.user.id;
       console.log("[verify-custom-otp] Created new user:", userId);
       
+      console.log("[verify-custom-otp] success", {
+        email: normalizedEmail,
+        ts: new Date().toISOString(),
+        success: true,
+        isNewUser: true,
+      });
+
       return new Response(
         JSON.stringify({ 
           success: true, 
