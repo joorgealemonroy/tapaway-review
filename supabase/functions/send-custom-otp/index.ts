@@ -18,30 +18,53 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function generateOtpEmailHtml(token: string): string {
-  return `
-<!DOCTYPE html>
+function generateOtpEmailHtml(code: string): string {
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#f0fdfa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <tr>
-      <td style="color:#1a1a1a;font-size:16px;line-height:24px;">
-        <p style="margin:0 0 16px 0;">Your TapAway setup code is: <strong>${token}</strong></p>
-        <p style="margin:0 0 24px 0;color:#555;">This code expires in 10 minutes.</p>
-        <p style="margin:0;color:#555;">— TapAway</p>
+      <td style="text-align:center;padding-bottom:24px;">
+        <span style="font-size:24px;font-weight:800;color:#0d9488;">TapAway</span><br/>
+        <span style="font-size:14px;color:#6b7280;">Finish setting up your trial</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#ffffff;border-radius:16px;padding:32px;text-align:center;box-shadow:0 4px 24px rgba(13,148,136,0.10);">
+        <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#111827;">Your verification code</h1>
+        <p style="margin:0 0 24px 0;font-size:15px;color:#6b7280;">Enter this code to continue your TapAway setup:</p>
+        <div style="background:#f0fdfa;border:2px dashed #0d9488;border-radius:12px;padding:20px;margin-bottom:24px;">
+          <span style="font-size:36px;font-weight:800;letter-spacing:6px;color:#0d9488;">${code}</span>
+        </div>
+        <p style="margin:0 0 24px 0;font-size:13px;color:#9ca3af;">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+        <p style="margin:0;font-size:14px;color:#6b7280;">
+          Need help? Reply to this email — we'll take care of you.<br/>
+          — TapAway
+        </p>
       </td>
     </tr>
   </table>
 </body>
-</html>
-  `;
+</html>`;
 }
 
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+function generateOtpEmailText(code: string): string {
+  return `TapAway — Verification code
+
+Your TapAway verification code is: ${code}
+
+This code expires in 10 minutes.
+If you didn't request this, ignore this email.
+
+Need help? Reply to this email.
+— TapAway`;
+}
+
+async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
     console.error("[send-custom-otp] RESEND_API_KEY not configured");
@@ -62,6 +85,8 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
         to: [to],
         subject,
         html,
+        text,
+        reply_to: "tap@tapaway.co",
       }),
     });
 
@@ -71,6 +96,8 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
       return false;
     }
 
+    const data = await response.json();
+    console.log("[send-custom-otp] Email sent via Resend:", data.id);
     return true;
   } catch (error) {
     console.error("[send-custom-otp] Error sending email:", error);
@@ -135,18 +162,25 @@ serve(async (req) => {
     console.log("[send-custom-otp] Dispatching email", {
       email: normalizedEmail,
       ts: new Date().toISOString(),
+      type: "otp",
       provider: "resend",
       from: fromEmail,
     });
 
     const html = generateOtpEmailHtml(code);
-    const sent = await sendEmail(normalizedEmail, "Your TapAway setup code", html);
+    const text = generateOtpEmailText(code);
+    const sent = await sendEmail(normalizedEmail, "Your TapAway verification code", html, text);
 
     if (!sent) {
       throw new Error("Failed to send verification email");
     }
 
-    console.log("[send-custom-otp] OTP sent successfully to:", normalizedEmail);
+    console.log("[send-custom-otp] OTP sent successfully", {
+      email: normalizedEmail,
+      ts: new Date().toISOString(),
+      type: "otp",
+      from: fromEmail,
+    });
 
     return new Response(
       JSON.stringify({ success: true }),
