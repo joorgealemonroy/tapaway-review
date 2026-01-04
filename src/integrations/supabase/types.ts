@@ -842,6 +842,124 @@ export type Database = {
           },
         ]
       }
+      personal_analytics: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          profile_id: string
+          visitor_info: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          profile_id: string
+          visitor_info?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          profile_id?: string
+          visitor_info?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_analytics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          link_type: string
+          profile_id: string
+          sort_order: number | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          link_type: string
+          profile_id: string
+          sort_order?: number | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          link_type?: string
+          profile_id?: string
+          sort_order?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_links_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          plan_type: string | null
+          profile_photo_url: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          updated_at: string | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          plan_type?: string | null
+          profile_photo_url?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          plan_type?: string | null
+          profile_photo_url?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       rep_applications: {
         Row: {
           created_at: string
@@ -1676,6 +1794,10 @@ export type Database = {
       is_google_review_url_valid: { Args: { url: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
       is_test_account: { Args: never; Returns: boolean }
+      is_username_available: {
+        Args: { check_username: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "sales_rep"

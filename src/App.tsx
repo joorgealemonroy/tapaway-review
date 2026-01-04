@@ -21,6 +21,12 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Personal from "./pages/Personal";
 
+// Personal TapAway
+import PersonalSignup from "./pages/personal/PersonalSignup";
+import PersonalSignupComplete from "./pages/personal/PersonalSignupComplete";
+import PersonalDashboard from "./pages/personal/PersonalDashboard";
+import PersonalProfile from "./pages/personal/PersonalProfile";
+
 // Sales Rep Portal
 import RepHome from "./pages/rep/RepHome";
 import RepRestaurants from "./pages/rep/RepRestaurants";
@@ -53,6 +59,11 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/business" element={<Index />} />
             <Route path="/personal" element={<Personal />} />
+            <Route path="/personal/signup" element={<PersonalSignup />} />
+            <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
+            <Route path="/personal/dashboard" element={<PersonalDashboard />} />
+            {/* Personal order redirects to signup */}
+            <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
@@ -90,6 +101,11 @@ const App = () => (
             <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
             
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
+            
+            {/* Personal Profile Public Page - must be before catch-all */}
+            <Route path="/u/:username" element={<PersonalProfile />} />
+            
+            {/* Custom slug for restaurants - must be near end */}
             <Route path="/:customSlug" element={<ReviewHub />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
