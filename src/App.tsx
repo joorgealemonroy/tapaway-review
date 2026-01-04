@@ -19,6 +19,7 @@ import Refund from "./pages/Refund";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import Personal from "./pages/Personal";
 
 // Sales Rep Portal
 import RepHome from "./pages/rep/RepHome";
@@ -50,6 +51,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/business" element={<Index />} />
+            <Route path="/personal" element={<Personal />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
