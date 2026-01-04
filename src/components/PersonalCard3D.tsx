@@ -20,7 +20,7 @@ const PersonalCard3D = () => {
               }}
             >
               <img 
-                src="/tapaway-personal-front.svg" 
+                src="/tapaway-personal-front.png" 
                 alt="TapAway personal card front" 
                 loading="lazy" 
                 className="w-full h-full object-cover" 
