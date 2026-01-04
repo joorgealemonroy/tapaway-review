@@ -42,49 +42,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = email === "test@me.com" 
-      ? `${window.location.origin}/dashboard`
-      : `${window.location.origin}/onboarding`;
-    
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
-    });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Account created! Redirecting...");
-      
-      // If this is the master admin email, assign admin role
-      if (data.user && email === "tap@tapaway.co") {
-        await supabase
-          .from("user_roles")
-          .insert({ user_id: data.user.id, role: "admin" });
-      }
-      
-      // If test account, link to test restaurant using backend function
-      if (data.user && email === "test@me.com") {
-        try {
-          const { error: assignError } = await supabase.functions.invoke('assign-test-owner');
-          if (assignError) {
-            console.error('[signUp] Failed to assign test restaurant:', assignError);
-            toast.error("Failed to link test account");
-          }
-        } catch (err) {
-          console.error('[signUp] Error calling assign-test-owner:', err);
-        }
-        navigate("/dashboard");
-      } else {
-        navigate("/onboarding");
-      }
-    }
-
-    return { error };
+  const signUp = async (email: string, _password: string) => {
+    // IMPORTANT: We do not use the default auth email pipeline for signups.
+    // Signup + verification happens inside /onboarding via our custom OTP flow.
+    console.warn("[Auth] signUp blocked; redirecting to /onboarding for custom verification");
+    toast.message("Continue setup in onboarding to verify your email.");
+    navigate("/onboarding");
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
