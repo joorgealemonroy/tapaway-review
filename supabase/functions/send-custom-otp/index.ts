@@ -6,6 +6,29 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting: max 5 sends per 10 minutes per email
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(email: string): { allowed: boolean; retryAfterSeconds?: number } {
+  const now = Date.now();
+  const entry = rateLimitMap.get(email);
+
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(email, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true };
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
+  }
+
+  entry.count++;
+  return { allowed: true };
+}
+
 function generateOtpCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -126,6 +149,19 @@ serve(async (req) => {
 
     const normalizedEmail = email.toLowerCase().trim();
     console.log("[send-custom-otp] Generating OTP for:", normalizedEmail);
+
+    // Check rate limit
+    const rateCheck = checkRateLimit(normalizedEmail);
+    if (!rateCheck.allowed) {
+      console.log("[send-custom-otp] Rate limit exceeded for:", normalizedEmail);
+      return new Response(
+        JSON.stringify({ 
+          error: "Too many requests. Please try again later.", 
+          retryAfterSeconds: rateCheck.retryAfterSeconds 
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
