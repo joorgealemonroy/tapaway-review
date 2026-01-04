@@ -31,7 +31,7 @@ const Personal = () => {
               </Link>
             ) : (
               <Link
-                to="/personal/order"
+                to="/personal/signup"
                 className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
               >
                 Get Your Card
