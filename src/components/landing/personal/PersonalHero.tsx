@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Smartphone, Truck, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import TapAwayCard3D from "@/components/TapAwayCard3D";
+import PersonalCard3D from "@/components/PersonalCard3D";
 
 export const PersonalHero = () => {
   return (
@@ -82,7 +82,7 @@ export const PersonalHero = () => {
             className="relative"
           >
             <div className="flex flex-col items-center gap-6">
-              <TapAwayCard3D />
+              <PersonalCard3D />
               
               {/* Handle Example */}
               <motion.div
