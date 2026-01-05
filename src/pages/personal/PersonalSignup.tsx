@@ -53,6 +53,7 @@ const PersonalSignup = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [completedUsername, setCompletedUsername] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   const { 
@@ -127,6 +128,8 @@ const PersonalSignup = () => {
   };
 
   const handleCheckoutComplete = () => {
+    // Capture username BEFORE clearing draft
+    setCompletedUsername(formData.username);
     setSignupComplete(true);
     clearDraft();
   };
@@ -147,8 +150,8 @@ const PersonalSignup = () => {
     4: "Finish your order",
   };
 
-  if (signupComplete) {
-    return <SuccessScreen username={formData.username} />;
+  if (signupComplete && completedUsername) {
+    return <SuccessScreen username={completedUsername} />;
   }
 
   return (

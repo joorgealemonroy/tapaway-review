@@ -39,8 +39,14 @@ interface PersonalBlock {
   alignment: string | null;
 }
 
-const PersonalProfilePage = () => {
-  const { username } = useParams<{ username: string }>();
+interface Props {
+  usernameOverride?: string;
+}
+
+const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
+  const { username: paramUsername, slug } = useParams<{ username?: string; slug?: string }>();
+  // Support both direct route (/u/:username) and UsernameResolver (/:slug)
+  const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
