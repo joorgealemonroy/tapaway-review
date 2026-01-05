@@ -120,18 +120,42 @@ const ProfileBlock = memo(function ProfileBlock({
     }
     case "image": {
       // Apply Supabase image transformation for faster loading
-      const imageUrl = getOptimizedImageUrl(content.url, 640, 85);
-      return (
-        <div className="w-full">
-          <img 
-            src={imageUrl} 
-            alt="Content" 
-            loading="lazy"
-            decoding="async"
-            className="w-full rounded-xl object-cover max-h-80"
-          />
-        </div>
+      const size = content.size || "large";
+      const imageWidth = size === "small" ? 400 : 640;
+      const imageUrl = getOptimizedImageUrl(content.url, imageWidth, 85);
+      const linkUrl = content.linkUrl;
+      
+      const imageElement = (
+        <img 
+          src={imageUrl} 
+          alt="Content" 
+          loading="lazy"
+          decoding="async"
+          className={`rounded-xl object-cover ${
+            size === "small" 
+              ? "max-h-48 w-auto mx-auto" 
+              : "w-full max-h-80"
+          }`}
+        />
       );
+      
+      // Wrap in link if linkUrl exists
+      if (linkUrl) {
+        return (
+          <motion.a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            {imageElement}
+          </motion.a>
+        );
+      }
+      
+      return <div className="w-full">{imageElement}</div>;
     }
     case "text":
       return (
