@@ -1,0 +1,337 @@
+import { useState } from "react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Plus,
+  GripVertical,
+  Trash2,
+  Edit,
+  Loader2
+} from "lucide-react";
+import { LinkModal } from "@/components/personal/LinkModal";
+import { getPlatformConfig } from "@/lib/platformLinks";
+import { toast } from "sonner";
+
+interface DbPersonalLink {
+  id: string;
+  link_type: string;
+  label: string;
+  url: string;
+  sort_order: number;
+  pill_color: string | null;
+}
+
+interface PersonalLink {
+  id: string;
+  type: string;
+  label: string;
+  value: string;
+  url: string;
+  pillColor?: string | null;
+}
+
+interface Props {
+  profileId: string;
+  links: DbPersonalLink[];
+  onLinksChange: (links: DbPersonalLink[]) => void;
+}
+
+export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props) => {
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
+
+  const convertToPersonalLink = (dbLink: DbPersonalLink): PersonalLink => ({
+    id: dbLink.id,
+    type: dbLink.link_type,
+    label: dbLink.label,
+    value: getPlatformConfig(dbLink.link_type)?.extractValue(dbLink.url) || dbLink.url,
+    url: dbLink.url,
+    pillColor: dbLink.pill_color,
+  });
+
+  const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
+    setSaving(true);
+    try {
+      const newLink = {
+        profile_id: profileId,
+        link_type: link.type,
+        label: link.label,
+        url: link.url,
+        sort_order: links.length,
+        pill_color: link.pillColor || null,
+      };
+
+      const { data, error } = await supabase
+        .from("personal_links")
+        .insert(newLink)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      onLinksChange([...links, data]);
+      setLinkModalOpen(false);
+      toast.success("Link added!");
+    } catch (err) {
+      console.error("Error adding link:", err);
+      toast.error("Failed to add link");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateLink = async (id: string, updates: Partial<PersonalLink>) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("personal_links")
+        .update({
+          link_type: updates.type,
+          label: updates.label,
+          url: updates.url,
+          pill_color: updates.pillColor || null,
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      onLinksChange(links.map(l => 
+        l.id === id 
+          ? { 
+              ...l, 
+              link_type: updates.type || l.link_type, 
+              label: updates.label || l.label, 
+              url: updates.url || l.url,
+              pill_color: updates.pillColor !== undefined ? updates.pillColor : l.pill_color,
+            }
+          : l
+      ));
+      setLinkModalOpen(false);
+      setEditingLink(null);
+      toast.success("Link updated!");
+    } catch (err) {
+      console.error("Error updating link:", err);
+      toast.error("Failed to update link");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeLink = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("personal_links")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      onLinksChange(links.filter(l => l.id !== id));
+      setDeleteId(null);
+      toast.success("Link removed");
+    } catch (err) {
+      console.error("Error removing link:", err);
+      toast.error("Failed to remove link");
+    }
+  };
+
+  // Desktop drag handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newLinks = [...links];
+    const [draggedLink] = newLinks.splice(draggedIndex, 1);
+    newLinks.splice(index, 0, draggedLink);
+    
+    onLinksChange(newLinks);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
+    setDraggedIndex(null);
+
+    // Persist new order
+    try {
+      const updates = links.map((link, i) => ({
+        id: link.id,
+        sort_order: i,
+      }));
+
+      for (const update of updates) {
+        await supabase
+          .from("personal_links")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id);
+      }
+    } catch (err) {
+      console.error("Reorder error:", err);
+      toast.error("Failed to save order");
+    }
+  };
+
+  // Mobile touch handlers
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    setTouchStartY(e.touches[0].clientY);
+    setTouchCurrentIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY === null || touchCurrentIndex === null) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+    const itemHeight = 60;
+    const indexDiff = Math.round(diff / itemHeight);
+    const newIndex = Math.max(0, Math.min(links.length - 1, touchCurrentIndex + indexDiff));
+
+    if (newIndex !== draggedIndex && draggedIndex !== null) {
+      const newLinks = [...links];
+      const [draggedLink] = newLinks.splice(draggedIndex, 1);
+      newLinks.splice(newIndex, 0, draggedLink);
+      onLinksChange(newLinks);
+      setDraggedIndex(newIndex);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    setTouchStartY(null);
+    setTouchCurrentIndex(null);
+    await handleDragEnd();
+  };
+
+  // Don't filter by existing types - allow multiple of same type
+  const existingTypes: string[] = [];
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-medium text-foreground">Links</Label>
+      
+      {links.length > 0 && (
+        <div className="space-y-2">
+          {links.map((link, index) => {
+            const config = getPlatformConfig(link.link_type);
+            const Icon = config?.icon;
+            
+            return (
+              <div
+                key={link.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                onTouchStart={(e) => handleTouchStart(e, index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none ${
+                  draggedIndex === index ? "opacity-50 scale-95 shadow-lg" : ""
+                }`}
+              >
+                <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
+                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div 
+                  className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
+                  {...(!link.pill_color && {
+                    className: `h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`
+                  })}
+                >
+                  {Icon && <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground">{link.label}</p>
+                  <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingLink(convertToPersonalLink(link));
+                    setLinkModalOpen(true);
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <Edit className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => setDeleteId(link.id)}
+                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <button 
+        onClick={() => {
+          setEditingLink(null);
+          setLinkModalOpen(true);
+        }}
+        className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+      >
+        <Plus className="h-5 w-5 text-muted-foreground" />
+        <span className="text-sm font-medium text-muted-foreground">Add a link</span>
+      </button>
+
+      {links.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-2">
+          Add your first link to get started
+        </p>
+      )}
+
+      {/* Link Modal */}
+      <LinkModal
+        open={linkModalOpen}
+        onOpenChange={setLinkModalOpen}
+        onAdd={handleAddLink}
+        editingLink={editingLink}
+        onUpdate={handleUpdateLink}
+        existingTypes={existingTypes}
+      />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && removeLink(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};

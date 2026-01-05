@@ -5,35 +5,22 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from "@/components/ui/alert-dialog";
-import { 
   Link2, 
   BarChart3, 
   CreditCard,
   LogOut,
-  Plus,
-  GripVertical,
-  Trash2,
   Camera,
   Loader2,
   Eye,
   Copy,
   Check,
-  Edit
+  Palette
 } from "lucide-react";
-import { LinkModal } from "@/components/personal/LinkModal";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
-import { getPlatformConfig } from "@/lib/platformLinks";
-import { PersonalLink } from "@/hooks/usePersonalOnboarding";
+import { DashboardLinksManager } from "@/components/personal/DashboardLinksManager";
+import DashboardBlocksManager from "@/components/personal/DashboardBlocksManager";
+import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 
 interface PersonalProfile {
   id: string;
@@ -41,6 +28,11 @@ interface PersonalProfile {
   full_name: string;
   email: string;
   profile_photo_url: string | null;
+  header_type: string;
+  header_color: string | null;
+  header_image_url: string | null;
+  background_color: string | null;
+  pfp_position: string;
 }
 
 interface DbPersonalLink {
@@ -49,6 +41,15 @@ interface DbPersonalLink {
   label: string;
   url: string;
   sort_order: number;
+  pill_color: string | null;
+}
+
+interface PersonalBlock {
+  id: string;
+  block_type: string;
+  content: unknown;
+  sort_order: number;
+  alignment: string | null;
 }
 
 type TimeRange = "3d" | "7d" | "30d" | "12m" | "all";
@@ -58,6 +59,7 @@ const PersonalDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
+  const [blocks, setBlocks] = useState<PersonalBlock[]>([]);
   const [analytics, setAnalytics] = useState<Record<TimeRange, number>>({
     "3d": 0,
     "7d": 0,
@@ -65,11 +67,7 @@ const PersonalDashboard = () => {
     "12m": 0,
     "all": 0,
   });
-  const [linkModalOpen, setLinkModalOpen] = useState(false);
-  const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [savingLinks, setSavingLinks] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
@@ -104,7 +102,13 @@ const PersonalDashboard = () => {
         return;
       }
 
-      setProfile(profileData);
+      setProfile({
+        ...profileData,
+        header_type: profileData.header_type || "color",
+        header_color: profileData.header_color || "#6BCB77",
+        background_color: profileData.background_color || "#ffffff",
+        pfp_position: profileData.pfp_position || "left",
+      });
 
       const { data: linksData } = await supabase
         .from("personal_links")
@@ -113,6 +117,14 @@ const PersonalDashboard = () => {
         .order("sort_order", { ascending: true });
 
       setLinks(linksData || []);
+
+      const { data: blocksData } = await supabase
+        .from("personal_blocks")
+        .select("*")
+        .eq("profile_id", profileData.id)
+        .order("sort_order", { ascending: true });
+
+      setBlocks(blocksData || []);
     } catch (err) {
       console.error("Error loading data:", err);
       toast.error("Failed to load your profile");
@@ -159,7 +171,47 @@ const PersonalDashboard = () => {
     setAnalytics(results);
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 1024;
+        let { width, height } = img;
+        
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = (height / width) * maxDim;
+            width = maxDim;
+          } else {
+            width = (width / height) * maxDim;
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No 2d context"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Compression failed"));
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -168,16 +220,28 @@ const PersonalDashboard = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+    // Allow up to 15MB, compress if needed
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Image must be less than 15MB");
       return;
     }
 
-    setRawImageUrl(URL.createObjectURL(file));
+    // Compress if > 5MB
+    let processedFile: Blob = file;
+    if (file.size > 5 * 1024 * 1024) {
+      try {
+        processedFile = await compressImage(file);
+      } catch {
+        toast.error("Failed to process image");
+        return;
+      }
+    }
+
+    setRawImageUrl(URL.createObjectURL(processedFile));
     setCropperOpen(true);
   };
 
-  const handleCropComplete = async (croppedBlob: Blob, previewUrl: string) => {
+  const handleCropComplete = async (croppedBlob: Blob) => {
     if (!profile) return;
 
     setUploadingPhoto(true);
@@ -218,86 +282,6 @@ const PersonalDashboard = () => {
     }
   };
 
-  const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
-    if (!profile) return;
-
-    setSavingLinks(true);
-    try {
-      const newLink = {
-        profile_id: profile.id,
-        link_type: link.type,
-        label: link.label,
-        url: link.url,
-        sort_order: links.length,
-      };
-
-      const { data, error } = await supabase
-        .from("personal_links")
-        .insert(newLink)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setLinks([...links, data]);
-      setLinkModalOpen(false);
-      toast.success("Link added!");
-    } catch (err) {
-      console.error("Error adding link:", err);
-      toast.error("Failed to add link");
-    } finally {
-      setSavingLinks(false);
-    }
-  };
-
-  const handleUpdateLink = async (id: string, updates: Partial<PersonalLink>) => {
-    setSavingLinks(true);
-    try {
-      const { error } = await supabase
-        .from("personal_links")
-        .update({
-          link_type: updates.type,
-          label: updates.label,
-          url: updates.url,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setLinks(links.map(l => 
-        l.id === id 
-          ? { ...l, link_type: updates.type || l.link_type, label: updates.label || l.label, url: updates.url || l.url }
-          : l
-      ));
-      setLinkModalOpen(false);
-      setEditingLink(null);
-      toast.success("Link updated!");
-    } catch (err) {
-      console.error("Error updating link:", err);
-      toast.error("Failed to update link");
-    } finally {
-      setSavingLinks(false);
-    }
-  };
-
-  const removeLink = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("personal_links")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setLinks(links.filter(l => l.id !== id));
-      setDeleteId(null);
-      toast.success("Link removed");
-    } catch (err) {
-      console.error("Error removing link:", err);
-      toast.error("Failed to remove link");
-    }
-  };
-
   const copyProfileUrl = async () => {
     if (!profile) return;
     try {
@@ -305,7 +289,7 @@ const PersonalDashboard = () => {
       setCopied(true);
       toast.success("Link copied!");
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast.error("Failed to copy");
     }
   };
@@ -315,15 +299,24 @@ const PersonalDashboard = () => {
     navigate("/personal");
   };
 
-  const convertToPersonalLink = (dbLink: DbPersonalLink): PersonalLink => ({
-    id: dbLink.id,
-    type: dbLink.link_type,
-    label: dbLink.label,
-    value: getPlatformConfig(dbLink.link_type)?.extractValue(dbLink.url) || dbLink.url,
-    url: dbLink.url,
-  });
-
-  const existingTypes = links.map(l => l.link_type);
+  const handleDesignUpdate = (updates: {
+    headerType?: string;
+    headerColor?: string | null;
+    headerImageUrl?: string | null;
+    backgroundColor?: string | null;
+    pfpPosition?: string;
+  }) => {
+    if (profile) {
+      setProfile({ 
+        ...profile, 
+        header_type: updates.headerType ?? profile.header_type,
+        header_color: updates.headerColor !== undefined ? updates.headerColor : profile.header_color,
+        header_image_url: updates.headerImageUrl !== undefined ? updates.headerImageUrl : profile.header_image_url,
+        background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
+        pfp_position: updates.pfpPosition ?? profile.pfp_position,
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -360,7 +353,7 @@ const PersonalDashboard = () => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingPhoto}
-            className="relative h-16 w-16 rounded-full overflow-hidden group"
+            className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
           >
             {profile.profile_photo_url ? (
               <img
@@ -390,7 +383,7 @@ const PersonalDashboard = () => {
             onChange={handlePhotoSelect}
             className="hidden"
           />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="font-bold text-lg text-foreground">{profile.full_name}</h1>
             <button
               onClick={copyProfileUrl}
@@ -407,7 +400,7 @@ const PersonalDashboard = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/u/${profile.username}`, "_blank")}
+            onClick={() => window.open(`/${profile.username}`, "_blank")}
           >
             <Eye className="h-4 w-4 mr-1" />
             View
@@ -416,14 +409,18 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="links" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="links" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
               <span className="hidden sm:inline">Links</span>
             </TabsTrigger>
+            <TabsTrigger value="design" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Design</span>
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
+              <span className="hidden sm:inline">Stats</span>
             </TabsTrigger>
             <TabsTrigger value="card" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
@@ -432,63 +429,30 @@ const PersonalDashboard = () => {
           </TabsList>
 
           {/* Links Tab */}
-          <TabsContent value="links" className="space-y-4">
-            {links.length > 0 && (
-              <div className="space-y-2">
-                {links.map((link) => {
-                  const config = getPlatformConfig(link.link_type);
-                  const Icon = config?.icon;
-                  
-                  return (
-                    <div
-                      key={link.id}
-                      className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border"
-                    >
-                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
-                        {Icon && <Icon className={`h-5 w-5 ${config?.color || "text-primary"}`} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground">{link.label}</p>
-                        <p className="text-xs text-muted-foreground truncate">{link.url}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setEditingLink(convertToPersonalLink(link));
-                          setLinkModalOpen(true);
-                        }}
-                        className="p-2 hover:bg-muted rounded-lg transition-colors"
-                      >
-                        <Edit className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteId(link.id)}
-                        className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <TabsContent value="links" className="space-y-6">
+            <DashboardLinksManager
+              profileId={profile.id}
+              links={links}
+              onLinksChange={setLinks}
+            />
+            <DashboardBlocksManager
+              profileId={profile.id}
+              blocks={blocks}
+              onBlocksChange={setBlocks}
+            />
+          </TabsContent>
 
-            <button 
-              onClick={() => {
-                setEditingLink(null);
-                setLinkModalOpen(true);
-              }}
-              className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
-            >
-              <Plus className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Add a link</span>
-            </button>
-
-            {links.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Add your first link to get started
-              </p>
-            )}
+          {/* Design Tab */}
+          <TabsContent value="design" className="space-y-4">
+            <DashboardDesignTab
+              profileId={profile.id}
+              headerType={profile.header_type}
+              headerColor={profile.header_color}
+              headerImageUrl={profile.header_image_url}
+              backgroundColor={profile.background_color}
+              pfpPosition={profile.pfp_position}
+              onUpdate={handleDesignUpdate}
+            />
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -529,16 +493,6 @@ const PersonalDashboard = () => {
         </Tabs>
       </main>
 
-      {/* Link Modal */}
-      <LinkModal
-        open={linkModalOpen}
-        onOpenChange={setLinkModalOpen}
-        onAdd={handleAddLink}
-        editingLink={editingLink}
-        onUpdate={handleUpdateLink}
-        existingTypes={existingTypes}
-      />
-
       {/* Image Cropper */}
       {rawImageUrl && (
         <ImageCropper
@@ -548,27 +502,6 @@ const PersonalDashboard = () => {
           onCropComplete={handleCropComplete}
         />
       )}
-
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove this link?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteId && removeLink(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
