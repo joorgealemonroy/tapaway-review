@@ -48,7 +48,7 @@ export const TapAwayCardPreview = ({
 
       {/* Card - EXACT 2.3" x 3.35" aspect ratio (0.687) */}
       <div 
-        className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg mx-auto"
+        className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg mx-auto border border-black/20"
         style={{ 
           aspectRatio: "2.3/3.35",
           maxWidth: "280px",
