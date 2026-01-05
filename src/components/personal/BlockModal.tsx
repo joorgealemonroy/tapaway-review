@@ -728,6 +728,7 @@ export const BlockModal = ({
                 <>
                   <div className="space-y-2">
                     <Label>Images (max 9)</Label>
+                    <p className="text-xs text-muted-foreground">Scrolls left-to-right on your profile</p>
                     <input
                       ref={collageFileInputRef}
                       type="file"
@@ -735,9 +736,9 @@ export const BlockModal = ({
                       onChange={handleCollageImageSelect}
                       className="hidden"
                     />
-                    <div className={`grid gap-2 ${collageColumns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
                       {collageImages.map((imgUrl, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                        <div key={idx} className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
                           <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                           <button
                             onClick={() => handleRemoveCollageImage(idx)}
@@ -751,7 +752,7 @@ export const BlockModal = ({
                         <button
                           onClick={() => collageFileInputRef.current?.click()}
                           disabled={uploadingCollageImage}
-                          className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
+                          className="w-20 h-20 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
                         >
                           {uploadingCollageImage ? (
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -763,35 +764,6 @@ export const BlockModal = ({
                           )}
                         </button>
                       )}
-                    </div>
-                  </div>
-                  
-                  {/* Columns toggle */}
-                  <div className="space-y-2">
-                    <Label>Columns</Label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCollageColumns(2)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          collageColumns === 2 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-muted hover:bg-muted/80 text-foreground"
-                        }`}
-                      >
-                        2 Columns
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCollageColumns(3)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          collageColumns === 3 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-muted hover:bg-muted/80 text-foreground"
-                        }`}
-                      >
-                        3 Columns
-                      </button>
                     </div>
                   </div>
                 </>
