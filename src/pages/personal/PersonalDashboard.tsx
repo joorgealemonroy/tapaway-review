@@ -44,6 +44,8 @@ interface DbPersonalLink {
   url: string;
   sort_order: number;
   pill_color: string | null;
+  is_active: boolean | null;
+  is_featured: boolean | null;
 }
 
 interface PersonalBlock {

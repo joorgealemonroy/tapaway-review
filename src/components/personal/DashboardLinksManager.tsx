@@ -16,7 +16,9 @@ import {
   GripVertical,
   Trash2,
   Edit,
-  Loader2
+  Star,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { LinkModal } from "@/components/personal/LinkModal";
 import { getPlatformConfig } from "@/lib/platformLinks";
@@ -29,6 +31,8 @@ interface DbPersonalLink {
   url: string;
   sort_order: number;
   pill_color: string | null;
+  is_active: boolean | null;
+  is_featured: boolean | null;
 }
 
 interface PersonalLink {
@@ -129,6 +133,59 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
       toast.error("Failed to update link");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Toggle link visibility (show/hide)
+  const toggleLinkVisibility = async (id: string, currentState: boolean | null) => {
+    const newState = !(currentState ?? true);
+    try {
+      const { error } = await supabase
+        .from("personal_links")
+        .update({ is_active: newState })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      onLinksChange(links.map(l => 
+        l.id === id ? { ...l, is_active: newState } : l
+      ));
+      toast.success(newState ? "Link visible" : "Link hidden");
+    } catch (err) {
+      console.error("Error toggling visibility:", err);
+      toast.error("Failed to update link");
+    }
+  };
+
+  // Toggle featured status (only one can be featured)
+  const toggleFeatured = async (id: string, currentState: boolean | null) => {
+    const newState = !(currentState ?? false);
+    try {
+      // If setting as featured, first unset any other featured links
+      if (newState) {
+        await supabase
+          .from("personal_links")
+          .update({ is_featured: false })
+          .eq("profile_id", profileId)
+          .neq("id", id);
+      }
+
+      const { error } = await supabase
+        .from("personal_links")
+        .update({ is_featured: newState })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      onLinksChange(links.map(l => 
+        l.id === id 
+          ? { ...l, is_featured: newState }
+          : newState ? { ...l, is_featured: false } : l
+      ));
+      toast.success(newState ? "Link featured!" : "Link unfeatured");
+    } catch (err) {
+      console.error("Error toggling featured:", err);
+      toast.error("Failed to update link");
     }
   };
 
@@ -233,6 +290,8 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
           {links.map((link, index) => {
             const config = getPlatformConfig(link.link_type);
             const Icon = config?.icon;
+            const isActive = link.is_active !== false;
+            const isFeatured = link.is_featured === true;
             
             return (
               <div
@@ -244,26 +303,49 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 onTouchStart={(e) => handleTouchStart(e, index)}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none ${
+                className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none ${
                   draggedIndex === index ? "opacity-50 scale-95 shadow-lg" : ""
-                }`}
+                } ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
               >
                 <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div 
-                  className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${!link.pill_color ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
                   style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
-                  {...(!link.pill_color && {
-                    className: `h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`
-                  })}
                 >
                   {Icon && <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground">{link.label}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground">{link.label}</p>
+                    {isFeatured && (
+                      <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                        FEATURED
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">{link.url}</p>
                 </div>
+                
+                {/* Feature toggle */}
+                <button
+                  onClick={() => toggleFeatured(link.id, link.is_featured)}
+                  className={`p-2 rounded-lg transition-colors ${isFeatured ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted"}`}
+                  title={isFeatured ? "Remove from featured" : "Make featured"}
+                >
+                  <Star className={`h-4 w-4 ${isFeatured ? "fill-current" : ""}`} />
+                </button>
+                
+                {/* Visibility toggle */}
+                <button
+                  onClick={() => toggleLinkVisibility(link.id, link.is_active)}
+                  className={`p-2 rounded-lg transition-colors ${isActive ? "text-muted-foreground hover:bg-muted" : "text-muted-foreground/50 bg-muted"}`}
+                  title={isActive ? "Hide link" : "Show link"}
+                >
+                  {isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </button>
+                
                 <button
                   onClick={() => {
                     setEditingLink(convertToPersonalLink(link));

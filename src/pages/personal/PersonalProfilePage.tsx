@@ -19,26 +19,66 @@ interface Props {
 
 // Memoized link component to prevent re-renders
 const ProfileLink = memo(function ProfileLink({ 
-  link 
+  link,
+  isFeatured = false
 }: { 
-  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null } 
+  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null };
+  isFeatured?: boolean;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
   const customColor = link.pill_color;
   
-  const baseClasses = "flex items-center gap-4 p-4 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg";
+  // Featured links are larger and more prominent
+  if (isFeatured) {
+    return (
+      <motion.a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`block p-5 rounded-2xl transition-all shadow-lg ${
+          customColor 
+            ? "" 
+            : config?.gradient || config?.bgColor || "bg-primary"
+        }`}
+        style={customColor ? { backgroundColor: customColor } : undefined}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex items-center gap-4">
+          <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
+            customColor ? "bg-white/20" : "bg-white/20"
+          }`}>
+            {Icon && <Icon className={`h-7 w-7 ${customColor ? "text-white" : config?.color || "text-white"}`} />}
+          </div>
+          <div className="flex-1">
+            <span className={`text-lg font-semibold ${customColor ? "text-white" : config?.color || "text-white"}`}>
+              {link.label}
+            </span>
+            <p className={`text-sm opacity-80 ${customColor ? "text-white" : config?.color || "text-white"}`}>
+              Tap to open
+            </p>
+          </div>
+          <ExternalLink className={`h-5 w-5 ${customColor ? "text-white" : config?.color || "text-white"} opacity-70`} />
+        </div>
+      </motion.a>
+    );
+  }
   
+  // Regular links
   return (
-    <a
+    <motion.a
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={customColor 
-        ? baseClasses 
-        : `${baseClasses} ${config?.gradient || config?.bgColor || "bg-card border border-border"}`
-      }
+      className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+        customColor 
+          ? "" 
+          : config?.gradient || config?.bgColor || "bg-card border border-border"
+      }`}
       style={customColor ? { backgroundColor: customColor } : undefined}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
     >
       <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
         customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
@@ -49,7 +89,7 @@ const ProfileLink = memo(function ProfileLink({
         {link.label}
       </span>
       <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
-    </a>
+    </motion.a>
   );
 });
 
@@ -251,14 +291,32 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
 
-        {/* Links - rendered with memoization */}
-        {links.length > 0 && (
-          <div className="space-y-3">
-            {links.map(link => (
-              <ProfileLink key={link.id} link={link} />
-            ))}
-          </div>
-        )}
+        {/* Links - filter hidden, separate featured */}
+        {(() => {
+          const activeLinks = links.filter((l: any) => l.is_active !== false);
+          const featuredLink = activeLinks.find((l: any) => l.is_featured === true);
+          const regularLinks = activeLinks.filter((l: any) => l.is_featured !== true);
+          
+          return (
+            <>
+              {/* Featured link - rendered prominently */}
+              {featuredLink && (
+                <div className="mb-4">
+                  <ProfileLink link={featuredLink} isFeatured />
+                </div>
+              )}
+              
+              {/* Regular links */}
+              {regularLinks.length > 0 && (
+                <div className="space-y-3">
+                  {regularLinks.map((link: any) => (
+                    <ProfileLink key={link.id} link={link} />
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {links.length === 0 && blocks.length === 0 && (
           <p className="text-muted-foreground text-center py-8">
