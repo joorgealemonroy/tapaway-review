@@ -266,24 +266,49 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </p>
         )}
 
-        {/* Footer CTA - delayed animation for perceived performance */}
+        {/* Premium Footer CTA */}
         <motion.div 
-          className="mt-12 pt-8 border-t border-border/50"
-          initial={{ opacity: 0, y: 10 }}
+          className="mt-12"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
         >
           <a
             href="/personal"
-            className="group flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="group block relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 shadow-xl hover:shadow-2xl transition-all duration-500"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span className="relative">
-              Create your own TapAway page
-              <span className="absolute bottom-0 left-0 w-0 h-px bg-current transition-all duration-300 group-hover:w-full" />
-            </span>
+            {/* Animated gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            {/* Sparkle effects */}
+            <div className="absolute top-3 right-4 w-2 h-2 bg-white/40 rounded-full animate-pulse" />
+            <div className="absolute top-6 right-8 w-1 h-1 bg-white/30 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+            <div className="absolute bottom-4 left-6 w-1.5 h-1.5 bg-primary/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }} />
+            
+            <div className="relative flex items-center gap-4">
+              {/* Logo mark */}
+              <div className="flex-shrink-0 h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-base group-hover:text-primary transition-colors duration-300">
+                  Get your TapAway
+                </p>
+                <p className="text-slate-400 text-sm mt-0.5">
+                  One tap. All your links. ✨
+                </p>
+              </div>
+              
+              {/* Arrow */}
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:translate-x-1 transition-all duration-300">
+                <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </a>
         </motion.div>
       </div>
