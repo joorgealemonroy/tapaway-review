@@ -16,7 +16,8 @@ import {
   Copy,
   Check,
   Palette,
-  Smartphone
+  Smartphone,
+  Mail
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
@@ -28,6 +29,7 @@ import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
+import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 
 interface PersonalProfile {
   id: string;
@@ -433,7 +435,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="links" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="links" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
               <span className="hidden sm:inline">Links</span>
@@ -441,6 +443,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="design" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
               <span className="hidden sm:inline">Design</span>
+            </TabsTrigger>
+            <TabsTrigger value="leads" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Leads</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -490,6 +496,11 @@ const PersonalDashboard = () => {
               pfpPosition={profile.pfp_position}
               onUpdate={handleDesignUpdate}
             />
+          </TabsContent>
+
+          {/* Leads Tab */}
+          <TabsContent value="leads" className="space-y-4">
+            <EmailLeadsTab profileId={profile.id} />
           </TabsContent>
 
           {/* Analytics Tab */}
