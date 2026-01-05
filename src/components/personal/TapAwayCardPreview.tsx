@@ -56,7 +56,7 @@ export const TapAwayCardPreview = ({
       >
         {side === "front" ? (
           /* Front of card - PIXEL-PERFECT match to reference */
-          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center pt-[8%] px-[8%] pb-[6%]">
+          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center pt-[6%] px-[6%] pb-[4%] overflow-hidden">
             {/* Top row: Name + Verified checkmark - same line */}
             <div className="w-full flex items-center justify-center gap-2 mb-[4%]">
               {fullName && (
@@ -92,7 +92,7 @@ export const TapAwayCardPreview = ({
 
             {/* Headline text - exactly matching reference typography */}
             <p 
-              className="text-center mt-[12%] px-2 leading-tight"
+              className="text-center mt-[6%] px-2 leading-tight"
               style={{
                 fontSize: "clamp(13px, 4vw, 16px)",
                 fontWeight: 700,
