@@ -45,30 +45,38 @@ export const TapAwayCardPreview = ({
         </button>
       </div>
 
-      {/* Card - EXACT match to reference: 2x3.5 aspect ratio */}
+      {/* Card - EXACT 2.3" x 3.35" aspect ratio (0.687) */}
       <div 
         className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg mx-auto"
         style={{ 
-          aspectRatio: "2/3.5",
+          aspectRatio: "2.3/3.35",
           maxWidth: "280px",
           width: "100%",
         }}
       >
         {side === "front" ? (
           /* Front of card - PIXEL-PERFECT match to reference */
-          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center">
-            {/* Verified badge - top right positioned exactly like reference */}
-            <div className="absolute top-4 right-4">
-              <div className="h-8 w-8 bg-[#1DA1F2] rounded-full flex items-center justify-center shadow-sm">
-                <Check className="h-5 w-5 text-white" strokeWidth={3} />
+          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center pt-[8%] px-[8%] pb-[6%]">
+            {/* Top row: Name + Verified checkmark - same line */}
+            <div className="w-full flex items-center justify-center gap-2 mb-[4%]">
+              {fullName && (
+                <span 
+                  className="font-semibold text-[#1a1a1a] truncate"
+                  style={{ fontSize: "clamp(11px, 3.5vw, 14px)" }}
+                >
+                  {fullName}
+                </span>
+              )}
+              <div className="h-6 w-6 bg-[#1DA1F2] rounded-full flex items-center justify-center flex-shrink-0">
+                <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
               </div>
             </div>
 
-            {/* Large green circle - centered, matching reference size ratio */}
+            {/* Large green circle with profile photo - centered */}
             <div 
-              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-12"
+              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
               style={{
-                width: "55%",
+                width: "58%",
                 aspectRatio: "1/1",
                 backgroundColor: "#6BCB77",
               }}
@@ -84,9 +92,9 @@ export const TapAwayCardPreview = ({
 
             {/* Headline text - exactly matching reference typography */}
             <p 
-              className="text-center mt-6 px-6 leading-tight"
+              className="text-center mt-[8%] px-2 leading-tight"
               style={{
-                fontSize: "clamp(14px, 4.5vw, 18px)",
+                fontSize: "clamp(13px, 4vw, 16px)",
                 fontWeight: 700,
                 color: "#1a1a1a",
                 whiteSpace: "pre-line",
@@ -95,18 +103,17 @@ export const TapAwayCardPreview = ({
               {cardHeadline}
             </p>
 
-            {/* Spacer to push bottom content down */}
-            <div className="flex-1 min-h-4" />
+            {/* Spacer */}
+            <div className="flex-1 min-h-[4%]" />
 
-            {/* NFC + QR icons row - exact positioning from reference */}
-            <div className="flex items-center justify-center gap-4 mb-3">
+            {/* NFC + QR icons row with center divider */}
+            <div className="flex items-center justify-center gap-[6%] mb-[4%]">
               {/* NFC/Phone tap icon - matching reference illustration style */}
               <svg 
-                width="56" 
-                height="56" 
                 viewBox="0 0 80 80" 
                 fill="none" 
                 className="text-[#1a1a1a]"
+                style={{ width: "18%", aspectRatio: "1/1" }}
               >
                 {/* Hand outline */}
                 <ellipse cx="28" cy="68" rx="18" ry="8" stroke="currentColor" strokeWidth="2" fill="none"/>
@@ -122,26 +129,31 @@ export const TapAwayCardPreview = ({
                 <path d="M58 26c7 4 12 12 12 20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
               </svg>
               
-              {/* Vertical divider - matching reference */}
-              <div className="h-12 w-px bg-[#ccc]" />
+              {/* Vertical divider - matching reference thickness */}
+              <div 
+                className="bg-[#ccc]" 
+                style={{ width: "1px", height: "15%" }}
+              />
               
               {/* QR Code - matching reference size */}
-              <div className="bg-white p-1 rounded">
+              <div className="bg-white p-[3%] rounded" style={{ width: "18%" }}>
                 <QRCode 
                   value={`https://${profileUrl}`}
-                  size={48}
+                  size={100}
                   level="L"
+                  style={{ width: "100%", height: "auto" }}
                 />
               </div>
             </div>
 
             {/* Bottom tagline - exact match */}
             <p 
-              className="text-center mb-2"
+              className="text-center"
               style={{
-                fontSize: "clamp(12px, 3.5vw, 14px)",
+                fontSize: "clamp(11px, 3.2vw, 13px)",
                 fontWeight: 700,
                 color: "#1a1a1a",
+                marginBottom: "2%",
               }}
             >
               All your links. One tap.
@@ -149,9 +161,9 @@ export const TapAwayCardPreview = ({
 
             {/* TapAway.co footer - matching reference opacity/style */}
             <p 
-              className="text-center mb-4"
+              className="text-center"
               style={{
-                fontSize: "clamp(10px, 3vw, 12px)",
+                fontSize: "clamp(9px, 2.8vw, 11px)",
                 fontWeight: 500,
                 color: "#888",
               }}
@@ -160,19 +172,28 @@ export const TapAwayCardPreview = ({
             </p>
           </div>
         ) : (
-          /* Back of card - clean QR focus */
-          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center justify-center gap-5 p-6">
+          /* Back of card - clean QR focus, same aspect ratio */
+          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center justify-center gap-[6%] p-[10%]">
             {/* Large QR Code */}
-            <div className="bg-white p-4 rounded-xl shadow-sm">
+            <div className="bg-white p-[4%] rounded-xl shadow-sm" style={{ width: "65%" }}>
               <QRCode 
                 value={`https://${profileUrl}`}
-                size={140}
+                size={200}
                 level="M"
+                style={{ width: "100%", height: "auto" }}
               />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-[#1a1a1a] mb-1">Scan to connect</p>
-              <p className="text-xs text-[#888]">
+              <p 
+                className="font-semibold text-[#1a1a1a]"
+                style={{ fontSize: "clamp(12px, 3.5vw, 14px)" }}
+              >
+                Scan to connect
+              </p>
+              <p 
+                className="text-[#888] mt-1"
+                style={{ fontSize: "clamp(10px, 3vw, 12px)" }}
+              >
                 {profileUrl}
               </p>
             </div>

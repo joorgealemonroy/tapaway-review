@@ -24,8 +24,11 @@ export interface PersonalOnboardingData {
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
   croppedPhotoBlob: Blob | null;
+  headerType: "color" | "image";
   headerImageUrl: string | null;
   headerColor: string | null;
+  backgroundColor: string | null;
+  cardHeadline: string;
   links: PersonalLink[];
   blocks: PersonalBlock[];
   addExtraCard: boolean;
@@ -43,8 +46,11 @@ const initialData: PersonalOnboardingData = {
   profilePhoto: null,
   profilePhotoUrl: null,
   croppedPhotoBlob: null,
+  headerType: "color",
   headerImageUrl: null,
-  headerColor: null,
+  headerColor: "#6BCB77",
+  backgroundColor: "#ffffff",
+  cardHeadline: "Tap to Connect &\nCollaborate",
   links: [],
   blocks: [],
   addExtraCard: false,
