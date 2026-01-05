@@ -8,7 +8,8 @@ import {
   Check,
   CreditCard,
   Loader2,
-  Shield
+  Shield,
+  Sparkles
 } from "lucide-react";
 
 interface Props {
@@ -38,7 +39,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const calculateTotal = () => {
     let total = formData.planType === "yearly" ? yearlyPrice : monthlyPrice;
     if (formData.addExtraCard) {
-      total += extraCardPrice;
+      total += extraCardPrice * formData.extraCardCount;
     }
     return total;
   };
@@ -56,8 +57,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           username: formData.username,
           planType: formData.planType,
           addExtraCard: formData.addExtraCard,
+          extraCardCount: formData.extraCardCount,
           links: formData.links,
-          // Photo will be uploaded after account creation
+          blocks: formData.blocks,
         },
       });
 
@@ -67,7 +69,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         // Store form data in sessionStorage for after checkout
         sessionStorage.setItem("personal_signup_data", JSON.stringify({
           ...formData,
-          profilePhoto: null, // Can't store File in sessionStorage
+          profilePhoto: null,
+          croppedPhotoBlob: null,
         }));
         
         // Redirect to Stripe
@@ -88,29 +91,32 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     <div className="space-y-6">
       {/* Plan Selection */}
       <div className="space-y-3">
-        {/* Yearly Plan */}
+        {/* Yearly Plan - Highlighted */}
         <button
           onClick={() => updateFormData({ planType: "yearly" })}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+          className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
             formData.planType === "yearly"
-              ? "border-primary bg-primary/5"
+              ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
               : "border-border hover:border-primary/50"
           }`}
         >
-          <div className="flex items-start justify-between">
+          {/* Best value badge */}
+          <div className="absolute -top-3 left-4">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
+              <Sparkles className="h-3 w-3" />
+              Best Value — 2 months free
+            </span>
+          </div>
+          
+          <div className="flex items-start justify-between pt-2">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">$99/year</span>
-                <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded-full">
-                  Best Value — 2 months free
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Save $9 compared to monthly</p>
+              <span className="font-bold text-xl text-foreground">$99/year</span>
+              <p className="text-sm text-muted-foreground mt-1">That's only $8.25/month</p>
             </div>
-            <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
               formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
             }`}>
-              {formData.planType === "yearly" && <Check className="h-3 w-3 text-primary-foreground" />}
+              {formData.planType === "yearly" && <Check className="h-4 w-4 text-primary-foreground" />}
             </div>
           </div>
         </button>
@@ -129,10 +135,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               <span className="font-bold text-foreground">$9/month</span>
               <p className="text-sm text-muted-foreground mt-1">Flexible monthly billing</p>
             </div>
-            <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
               formData.planType === "monthly" ? "border-primary bg-primary" : "border-muted-foreground"
             }`}>
-              {formData.planType === "monthly" && <Check className="h-3 w-3 text-primary-foreground" />}
+              {formData.planType === "monthly" && <Check className="h-4 w-4 text-primary-foreground" />}
             </div>
           </div>
         </button>
@@ -151,18 +157,26 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </ul>
       </div>
 
-      {/* Extra Card Add-on */}
-      {formData.addExtraCard && (
-        <div className="flex items-center justify-between text-sm p-3 bg-muted/30 rounded-lg">
-          <span className="text-muted-foreground">Extra card</span>
-          <span className="font-medium">+${extraCardPrice}</span>
+      {/* Order Summary */}
+      <div className="space-y-2 py-4 border-t border-border">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">
+            {formData.planType === "yearly" ? "Annual plan" : "Monthly plan"}
+          </span>
+          <span className="font-medium">${formData.planType === "yearly" ? yearlyPrice : monthlyPrice}</span>
         </div>
-      )}
-
-      {/* Total */}
-      <div className="flex items-center justify-between py-4 border-t border-border">
-        <span className="text-lg font-semibold text-foreground">Total due today</span>
-        <span className="text-2xl font-bold text-foreground">${calculateTotal()}</span>
+        {formData.addExtraCard && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              Extra card{formData.extraCardCount > 1 ? `s (×${formData.extraCardCount})` : ""}
+            </span>
+            <span className="font-medium">+${extraCardPrice * formData.extraCardCount}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <span className="text-lg font-semibold text-foreground">Total due today</span>
+          <span className="text-2xl font-bold text-foreground">${calculateTotal()}</span>
+        </div>
       </div>
 
       {/* CTA Button */}

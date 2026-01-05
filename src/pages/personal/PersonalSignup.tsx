@@ -3,6 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { X } from "lucide-react";
 
 // Step components
 import { IdentityStep } from "@/components/personal/signup/IdentityStep";
@@ -11,12 +22,11 @@ import { PreviewStep } from "@/components/personal/signup/PreviewStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
-export interface PersonalLink {
-  id: string;
-  type: string;
-  label: string;
-  url: string;
-}
+// Hooks and types
+import { usePersonalOnboarding, PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
+
+// Re-export types for backward compatibility
+export type { PersonalLink, PersonalBlock };
 
 export interface SignupData {
   fullName: string;
@@ -24,8 +34,13 @@ export interface SignupData {
   username: string;
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
+  croppedPhotoBlob: Blob | null;
+  headerImageUrl: string | null;
+  headerColor: string | null;
   links: PersonalLink[];
+  blocks: PersonalBlock[];
   addExtraCard: boolean;
+  extraCardCount: number;
   planType: "monthly" | "yearly";
 }
 
@@ -34,17 +49,43 @@ const PersonalSignup = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   
-  const [formData, setFormData] = useState<SignupData>({
-    fullName: "",
-    email: "",
-    username: "",
-    profilePhoto: null,
-    profilePhotoUrl: null,
-    links: [],
-    addExtraCard: false,
-    planType: "yearly", // Preselected as best value
-  });
+  const { 
+    data: onboardingData, 
+    update, 
+    addLink, 
+    updateLink, 
+    removeLink, 
+    reorderLinks,
+    addBlock,
+    updateBlock,
+    removeBlock,
+    reorderBlocks,
+    clearDraft,
+    hasDraft 
+  } = usePersonalOnboarding();
+
+  // Convert onboarding data to SignupData format for components
+  const formData: SignupData = {
+    fullName: onboardingData.fullName,
+    email: onboardingData.email,
+    username: onboardingData.username,
+    profilePhoto: onboardingData.profilePhoto,
+    profilePhotoUrl: onboardingData.profilePhotoUrl,
+    croppedPhotoBlob: onboardingData.croppedPhotoBlob,
+    headerImageUrl: onboardingData.headerImageUrl,
+    headerColor: onboardingData.headerColor,
+    links: onboardingData.links,
+    blocks: onboardingData.blocks,
+    addExtraCard: onboardingData.addExtraCard,
+    extraCardCount: onboardingData.extraCardCount,
+    planType: onboardingData.planType,
+  };
+
+  const updateFormData = (updates: Partial<SignupData>) => {
+    update(updates);
+  };
 
   // Check if user is already authenticated and has a profile
   useEffect(() => {
@@ -65,10 +106,6 @@ const PersonalSignup = () => {
     checkExistingProfile();
   }, [navigate]);
 
-  const updateFormData = (updates: Partial<SignupData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
-  };
-
   const nextStep = () => {
     if (currentStep < 4) {
       setCurrentStep(prev => prev + 1);
@@ -83,6 +120,16 @@ const PersonalSignup = () => {
 
   const handleCheckoutComplete = () => {
     setSignupComplete(true);
+    clearDraft();
+  };
+
+  const handleCancel = () => {
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancel = () => {
+    clearDraft();
+    navigate("/personal");
   };
 
   const stepTitles = {
@@ -105,19 +152,28 @@ const PersonalSignup = () => {
             <a href="/personal" className="font-black text-xl tracking-tight text-foreground">
               TapAway
             </a>
-            <div className="flex items-center gap-1.5">
-              {[1, 2, 3, 4].map((step) => (
-                <div
-                  key={step}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    step === currentStep
-                      ? "w-8 bg-primary"
-                      : step < currentStep
-                      ? "w-4 bg-primary/50"
-                      : "w-4 bg-muted"
-                  }`}
-                />
-              ))}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4].map((step) => (
+                  <div
+                    key={step}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      step === currentStep
+                        ? "w-8 bg-primary"
+                        : step < currentStep
+                        ? "w-4 bg-primary/50"
+                        : "w-4 bg-muted"
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={handleCancel}
+                className="p-2 -mr-2 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cancel"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
             </div>
           </div>
         </div>
@@ -156,6 +212,14 @@ const PersonalSignup = () => {
                 onBack={prevStep}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
+                addLink={addLink}
+                updateLink={updateLink}
+                removeLink={removeLink}
+                reorderLinks={reorderLinks}
+                addBlock={addBlock}
+                updateBlock={updateBlock}
+                removeBlock={removeBlock}
+                reorderBlocks={reorderBlocks}
               />
             )}
 
@@ -181,6 +245,27 @@ const PersonalSignup = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Cancel confirmation dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Nothing will be saved. You'll need to start over if you come back.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
