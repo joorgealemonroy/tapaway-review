@@ -113,17 +113,17 @@ export const TapAwayCardPreview = ({
               <img 
                 src={nfcTapIcon} 
                 alt="Tap to connect" 
-                style={{ width: "22%", height: "auto" }}
+                style={{ width: "28%", height: "auto" }}
               />
               
               {/* Vertical divider - matching reference thickness */}
               <div 
                 className="bg-[#ccc]" 
-                style={{ width: "1px", height: "15%" }}
+                style={{ width: "1px", height: "18%" }}
               />
               
               {/* QR Code - matching reference size */}
-              <div className="bg-white p-[3%] rounded" style={{ width: "18%" }}>
+              <div className="bg-white p-[3%] rounded" style={{ width: "24%" }}>
                 <QRCode 
                   value={`https://${profileUrl}`}
                   size={100}
