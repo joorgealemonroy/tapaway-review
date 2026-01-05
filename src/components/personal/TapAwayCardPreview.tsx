@@ -119,7 +119,7 @@ export const TapAwayCardPreview = ({
               {/* Vertical divider - matching reference thickness */}
               <div 
                 className="bg-[#ccc]" 
-                style={{ width: "1px", height: "18%" }}
+                style={{ width: "3px", height: "54%" }}
               />
               
               {/* QR Code - matching reference size */}
