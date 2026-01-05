@@ -1,15 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import PersonalProfilePage from "./personal/PersonalProfilePage";
-import ReviewHub from "./ReviewHub";
-import NotFound from "./NotFound";
+import { lazy, Suspense } from "react";
+
+// Lazy load ReviewHub since it's less common and heavier
+const ReviewHub = lazy(() => import("./ReviewHub"));
+const NotFound = lazy(() => import("./NotFound"));
+
+// Minimal loading state
+const MinimalLoader = memo(() => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+));
 
 /**
- * UsernameResolver - Determines if /:slug is a personal profile or restaurant hub
+ * UsernameResolver - Optimized to determine if /:slug is a personal profile or restaurant hub
  * Priority: personal profiles > restaurant slugs
+ * 
+ * Optimizations:
+ * - Single query for personal profiles (most common case)
+ * - Memoized components
+ * - Lazy loaded fallback routes
  */
 const UsernameResolver = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -24,52 +39,43 @@ const UsernameResolver = () => {
         return;
       }
 
+      const lowerSlug = slug.toLowerCase();
+
       // Reserved usernames should not match personal profiles
       if (isUsernameReserved(slug)) {
-        // Could still be a restaurant slug
+        // Check restaurant slug
         const { data: restaurant } = await supabase
           .from("restaurants")
           .select("id")
-          .eq("custom_slug", slug.toLowerCase())
-          .single();
+          .eq("custom_slug", lowerSlug)
+          .maybeSingle();
 
-        if (restaurant) {
-          setResolvedType("restaurant");
-        } else {
-          setResolvedType("notfound");
-        }
+        setResolvedType(restaurant ? "restaurant" : "notfound");
         setLoading(false);
         return;
       }
 
-      // Check if it's a personal profile username first (priority)
+      // Check personal profile first (most common, optimized with index)
       const { data: profile } = await supabase
         .from("personal_profiles")
         .select("id, subscription_status")
-        .eq("username", slug.toLowerCase())
-        .single();
+        .eq("username", lowerSlug)
+        .maybeSingle();
 
-      if (profile && profile.subscription_status === "active") {
+      if (profile?.subscription_status === "active") {
         setResolvedType("personal");
         setLoading(false);
         return;
       }
 
-      // Check if it's a restaurant slug
+      // Check restaurant slug as fallback
       const { data: restaurant } = await supabase
         .from("restaurants")
         .select("id")
-        .eq("custom_slug", slug.toLowerCase())
-        .single();
+        .eq("custom_slug", lowerSlug)
+        .maybeSingle();
 
-      if (restaurant) {
-        setResolvedType("restaurant");
-        setLoading(false);
-        return;
-      }
-
-      // Not found
-      setResolvedType("notfound");
+      setResolvedType(restaurant ? "restaurant" : "notfound");
       setLoading(false);
     };
 
@@ -77,11 +83,7 @@ const UsernameResolver = () => {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <MinimalLoader />;
   }
 
   if (resolvedType === "personal") {
@@ -89,10 +91,18 @@ const UsernameResolver = () => {
   }
 
   if (resolvedType === "restaurant") {
-    return <ReviewHub />;
+    return (
+      <Suspense fallback={<MinimalLoader />}>
+        <ReviewHub />
+      </Suspense>
+    );
   }
 
-  return <NotFound />;
+  return (
+    <Suspense fallback={<MinimalLoader />}>
+      <NotFound />
+    </Suspense>
+  );
 };
 
-export default UsernameResolver;
+export default memo(UsernameResolver);

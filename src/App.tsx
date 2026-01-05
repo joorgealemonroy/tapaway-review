@@ -4,54 +4,75 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
+
+// Critical routes - loaded immediately
 import Index from "./pages/Index";
-import Demo from "./pages/Demo";
+import Personal from "./pages/Personal";
+import UsernameResolver from "./pages/UsernameResolver";
+import NotFound from "./pages/NotFound";
+
+// Auth routes - relatively lightweight
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/Onboarding";
-import Paywall from "./pages/Paywall";
-import TrialConfirmed from "./pages/TrialConfirmed";
-import Dashboard from "./pages/Dashboard";
-import ReviewHub from "./pages/ReviewHub";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import Refund from "./pages/Refund";
-import Support from "./pages/Support";
-import NotFound from "./pages/NotFound";
-import Admin from "./pages/Admin";
-import Personal from "./pages/Personal";
 
-// Personal TapAway
-import PersonalSignup from "./pages/personal/PersonalSignup";
-import PersonalSignupComplete from "./pages/personal/PersonalSignupComplete";
-import PersonalDashboard from "./pages/personal/PersonalDashboard";
-import PersonalProfilePage from "./pages/personal/PersonalProfilePage";
-import LegacyProfileRedirect from "./pages/personal/LegacyProfileRedirect";
+// Personal TapAway - code split for fast public profile loads
+const PersonalSignup = lazy(() => import("./pages/personal/PersonalSignup"));
+const PersonalSignupComplete = lazy(() => import("./pages/personal/PersonalSignupComplete"));
+const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
+const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileRedirect"));
 
-// Sales Rep Portal
-import RepHome from "./pages/rep/RepHome";
-import RepRestaurants from "./pages/rep/RepRestaurants";
-import RepClose from "./pages/rep/RepClose";
-import RepCommissions from "./pages/rep/RepCommissions";
-import RepResources from "./pages/rep/RepResources";
-import RepDocs from "./pages/rep/RepDocs";
-import RepProfile from "./pages/rep/RepProfile";
-import RepApply from "./pages/rep/RepApply";
-import RepSetupPassword from "./pages/rep/RepSetupPassword";
+// Business routes - lazy loaded
+const Demo = lazy(() => import("./pages/Demo"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Paywall = lazy(() => import("./pages/Paywall"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ReviewHub = lazy(() => import("./pages/ReviewHub"));
+const Admin = lazy(() => import("./pages/Admin"));
 
-// Admin Rep Management
-import AdminReps from "./pages/admin/AdminReps";
-import AdminCommissions from "./pages/admin/AdminCommissions";
-import AdminCompSettings from "./pages/admin/AdminCompSettings";
-import AdminTaxReview from "./pages/admin/AdminTaxReview";
-import AdminPayouts from "./pages/admin/AdminPayouts";
-import AdminDemoRequests from "./pages/admin/AdminDemoRequests";
-import AdminPersonalAccounts from "./pages/admin/AdminPersonalAccounts";
+// Legal pages - rarely visited
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Refund = lazy(() => import("./pages/Refund"));
+const Support = lazy(() => import("./pages/Support"));
 
-// Username resolver component
-import UsernameResolver from "./pages/UsernameResolver";
+// Sales Rep Portal - lazy loaded
+const RepHome = lazy(() => import("./pages/rep/RepHome"));
+const RepRestaurants = lazy(() => import("./pages/rep/RepRestaurants"));
+const RepClose = lazy(() => import("./pages/rep/RepClose"));
+const RepCommissions = lazy(() => import("./pages/rep/RepCommissions"));
+const RepResources = lazy(() => import("./pages/rep/RepResources"));
+const RepDocs = lazy(() => import("./pages/rep/RepDocs"));
+const RepProfile = lazy(() => import("./pages/rep/RepProfile"));
+const RepApply = lazy(() => import("./pages/rep/RepApply"));
+const RepSetupPassword = lazy(() => import("./pages/rep/RepSetupPassword"));
 
-const queryClient = new QueryClient();
+// Admin Rep Management - lazy loaded
+const AdminReps = lazy(() => import("./pages/admin/AdminReps"));
+const AdminCommissions = lazy(() => import("./pages/admin/AdminCommissions"));
+const AdminCompSettings = lazy(() => import("./pages/admin/AdminCompSettings"));
+const AdminTaxReview = lazy(() => import("./pages/admin/AdminTaxReview"));
+const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts"));
+const AdminDemoRequests = lazy(() => import("./pages/admin/AdminDemoRequests"));
+const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAccounts"));
+
+// Minimal loading spinner
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      gcTime: 1000 * 60 * 5, // 5 minutes (formerly cacheTime)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -60,63 +81,63 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/business" element={<Index />} />
-            <Route path="/personal" element={<Personal />} />
-            <Route path="/personal/signup" element={<PersonalSignup />} />
-            <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
-            <Route path="/personal/dashboard" element={<PersonalDashboard />} />
-            {/* Personal order redirects to signup */}
-            <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
-            <Route path="/demo" element={<Demo />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            {/* Redirect old routes to unified /onboarding */}
-            <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-            <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-            <Route path="/start" element={<Navigate to="/onboarding" replace />} />
-            <Route path="/paywall" element={<Paywall />} />
-            <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/refund" element={<Refund />} />
-            <Route path="/support" element={<Support />} />
-            
-            {/* Sales Rep Portal */}
-            <Route path="/rep" element={<RepHome />} />
-            <Route path="/rep/restaurants" element={<RepRestaurants />} />
-            <Route path="/rep/close" element={<RepClose />} />
-            <Route path="/rep/commissions" element={<RepCommissions />} />
-            <Route path="/rep/resources" element={<RepResources />} />
-            <Route path="/rep/docs" element={<RepDocs />} />
-            <Route path="/rep/profile" element={<RepProfile />} />
-            <Route path="/rep/apply" element={<RepApply />} />
-            <Route path="/rep/setup-password" element={<RepSetupPassword />} />
-            
-            {/* Admin Rep Management */}
-            <Route path="/admin/reps" element={<AdminReps />} />
-            <Route path="/admin/commissions" element={<AdminCommissions />} />
-            <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
-            <Route path="/admin/tax-review" element={<AdminTaxReview />} />
-            <Route path="/admin/payouts" element={<AdminPayouts />} />
-            <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
-            <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
-            
-            <Route path="/hub/:restaurantId" element={<ReviewHub />} />
-            
-            {/* Legacy Personal Profile URL - 301 redirect to /:username */}
-            <Route path="/u/:username" element={<LegacyProfileRedirect />} />
-            
-            {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
-            <Route path="/:slug" element={<UsernameResolver />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/business" element={<Index />} />
+              <Route path="/personal" element={<Personal />} />
+              <Route path="/personal/signup" element={<PersonalSignup />} />
+              <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
+              <Route path="/personal/dashboard" element={<PersonalDashboard />} />
+              <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
+              <Route path="/demo" element={<Demo />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+              <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+              <Route path="/start" element={<Navigate to="/onboarding" replace />} />
+              <Route path="/paywall" element={<Paywall />} />
+              <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/refund" element={<Refund />} />
+              <Route path="/support" element={<Support />} />
+              
+              {/* Sales Rep Portal */}
+              <Route path="/rep" element={<RepHome />} />
+              <Route path="/rep/restaurants" element={<RepRestaurants />} />
+              <Route path="/rep/close" element={<RepClose />} />
+              <Route path="/rep/commissions" element={<RepCommissions />} />
+              <Route path="/rep/resources" element={<RepResources />} />
+              <Route path="/rep/docs" element={<RepDocs />} />
+              <Route path="/rep/profile" element={<RepProfile />} />
+              <Route path="/rep/apply" element={<RepApply />} />
+              <Route path="/rep/setup-password" element={<RepSetupPassword />} />
+              
+              {/* Admin Rep Management */}
+              <Route path="/admin/reps" element={<AdminReps />} />
+              <Route path="/admin/commissions" element={<AdminCommissions />} />
+              <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
+              <Route path="/admin/tax-review" element={<AdminTaxReview />} />
+              <Route path="/admin/payouts" element={<AdminPayouts />} />
+              <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
+              <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
+              
+              <Route path="/hub/:restaurantId" element={<ReviewHub />} />
+              
+              {/* Legacy Personal Profile URL - 301 redirect to /:username */}
+              <Route path="/u/:username" element={<LegacyProfileRedirect />} />
+              
+              {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
+              <Route path="/:slug" element={<UsernameResolver />} />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

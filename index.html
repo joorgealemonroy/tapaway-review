@@ -8,26 +8,56 @@
     <title>TapAway - NFC Review Cards for Restaurants</title>
     <meta name="description" content="Get more 5-star Google reviews with TapAway's NFC tap-to-review cards. Simple, automated, and effective for restaurants." />
     <meta name="author" content="TapAway" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="font" type="font/woff2" href="https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="https://xfrvckdcrqvkqdwjzopt.supabase.co" />
+    <link rel="preconnect" href="https://xfrvckdcrqvkqdwjzopt.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Preload critical font -->
+    <link rel="preload" as="font" type="font/woff2" href="https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" crossorigin />
+    
+    <!-- Load fonts with optimal strategy -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
+    <!-- Open Graph -->
     <meta property="og:title" content="TapAway - NFC Review Cards for Restaurants" />
     <meta property="og:description" content="Get more 5-star Google reviews with TapAway's NFC tap-to-review cards." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tapaway.co" />
     <meta property="og:image" content="https://tapaway.co/tapaway-logo.svg" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@TapAway" />
     <meta name="twitter:image" content="https://tapaway.co/tapaway-logo.svg" />
+    
+    <!-- Performance hints -->
+    <meta name="theme-color" content="#ffffff" />
+    
+    <!-- Critical CSS for instant first paint -->
+    <style>
+      /* Minimal inline styles for instant render */
+      :root { --background: 0 0% 100%; --foreground: 222.2 84% 4.9%; --primary: 222.2 47.4% 11.2%; }
+      body { margin: 0; font-family: Inter, system-ui, -apple-system, sans-serif; background: hsl(var(--background)); }
+      #root { min-height: 100vh; }
+      /* Loading skeleton styles */
+      .skeleton-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background: hsl(222.2 84% 4.9% / 0.1); }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline loading skeleton for instant first paint -->
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 32px; height: 32px; border: 3px solid hsl(222.2 84% 4.9% / 0.2); border-top-color: hsl(222.2 47.4% 11.2%); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
