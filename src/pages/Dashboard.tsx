@@ -20,6 +20,7 @@ import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
+import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
@@ -352,6 +353,7 @@ const Dashboard = () => {
             <span className="font-bold text-xl">TapAway</span>
           </button>
           <div className="flex items-center gap-3">
+            <DashboardSwitcher currentType="business" />
             {restaurant?.custom_slug && <Button variant="outline" size="sm" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
