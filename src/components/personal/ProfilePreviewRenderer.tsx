@@ -3,6 +3,17 @@ import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig } from "@/lib/platformLinks";
 
+// Helper to determine if a color is dark
+function isColorDark(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  if (hex.length !== 6) return false;
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
+}
+
 interface ProfileData {
   id: string;
   full_name: string;
@@ -56,6 +67,12 @@ function ProfilePreviewRendererComponent({
   const headerColor = profile.header_color || "#6366f1";
   const headerImageUrl = profile.header_image_url;
   const backgroundColor = profile.background_color || "#ffffff";
+  const isDarkBg = useMemo(() => isColorDark(backgroundColor), [backgroundColor]);
+  
+  // Dynamic text classes
+  const headingClass = isDarkBg ? "text-white" : "text-gray-900";
+  const textClass = isDarkBg ? "text-white/80" : "text-gray-600";
+  const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
   const pfpPosition = profile.pfp_position || "center";
 
   const activeLinks = useMemo(
@@ -141,19 +158,19 @@ function ProfilePreviewRendererComponent({
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
-        className="flex items-center gap-3 rounded-xl border bg-white/80 px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01]"
-        style={{ borderColor: `${headerColor}30` }}
+        className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`}
+        style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
       >
         {Icon && (
           <div
             className="flex h-10 w-10 items-center justify-center rounded-lg"
-            style={{ backgroundColor: `${headerColor}15` }}
+            style={{ backgroundColor: isDarkBg ? 'rgba(255,255,255,0.1)' : `${headerColor}15` }}
           >
-            <Icon className="h-5 w-5" style={{ color: headerColor }} />
+            <Icon className="h-5 w-5" style={{ color: isDarkBg ? 'white' : headerColor }} />
           </div>
         )}
-        <span className="flex-1 font-medium text-gray-800">{link.label}</span>
-        <ExternalLink className="h-4 w-4 text-gray-400" />
+        <span className={`flex-1 font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`}>{link.label}</span>
+        <ExternalLink className={`h-4 w-4 ${isDarkBg ? 'text-white/50' : 'text-gray-400'}`} />
       </a>
     );
   };
@@ -173,7 +190,7 @@ function ProfilePreviewRendererComponent({
         const text = (content.text as string) || "";
         return (
           <div key={block.id} className={`px-1 ${alignClass}`}>
-            <p className="text-gray-700 whitespace-pre-wrap">{text}</p>
+            <p className={`whitespace-pre-wrap ${textClass}`}>{text}</p>
           </div>
         );
       }
@@ -181,7 +198,7 @@ function ProfilePreviewRendererComponent({
         const headingText = (content.text as string) || "";
         return (
           <div key={block.id} className={`px-1 ${alignClass}`}>
-            <h2 className="text-xl font-bold text-gray-900">{headingText}</h2>
+            <h2 className={`text-xl font-bold ${headingClass}`}>{headingText}</h2>
           </div>
         );
       }
@@ -190,7 +207,7 @@ function ProfilePreviewRendererComponent({
           <div key={block.id} className="py-2">
             <hr
               className="border-t-2"
-              style={{ borderColor: `${headerColor}30` }}
+              style={{ borderColor: isDarkBg ? 'rgba(255,255,255,0.2)' : `${headerColor}30` }}
             />
           </div>
         );
@@ -263,18 +280,19 @@ function ProfilePreviewRendererComponent({
         const showName = content.collectName === "true";
         const showMessage = content.collectMessage === "true";
         
+        const inputBg = isDarkBg ? 'bg-white/10 border-white/20' : 'bg-gray-100 border-gray-200';
         return (
-          <div key={block.id} className="w-full p-4 bg-white/80 rounded-xl border shadow-sm space-y-2" style={{ borderColor: `${headerColor}30` }}>
+          <div key={block.id} className={`w-full p-4 rounded-xl border shadow-sm space-y-2 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`} style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}>
             <div className="text-center">
-              <h3 className="font-semibold text-gray-900 text-sm">{headline}</h3>
-              <p className="text-xs text-gray-600 mt-0.5">{description}</p>
+              <h3 className={`font-semibold text-sm ${headingClass}`}>{headline}</h3>
+              <p className={`text-xs mt-0.5 ${textClass}`}>{description}</p>
             </div>
             {showName && (
-              <div className="h-9 rounded-lg bg-gray-100 border border-gray-200" />
+              <div className={`h-9 rounded-lg border ${inputBg}`} />
             )}
-            <div className="h-9 rounded-lg bg-gray-100 border border-gray-200" />
+            <div className={`h-9 rounded-lg border ${inputBg}`} />
             {showMessage && (
-              <div className="h-16 rounded-lg bg-gray-100 border border-gray-200" />
+              <div className={`h-16 rounded-lg border ${inputBg}`} />
             )}
             <button
               className="w-full py-2 text-sm rounded-lg font-semibold text-white"
@@ -286,7 +304,15 @@ function ProfilePreviewRendererComponent({
         );
       }
       case "photo_collage": {
-        const images: string[] = content.images ? JSON.parse(content.images as string) : [];
+        // Handle both string (from DB) and array (from state) formats
+        let images: string[] = [];
+        try {
+          images = content.images 
+            ? (typeof content.images === 'string' ? JSON.parse(content.images) : content.images as string[])
+            : [];
+        } catch {
+          images = [];
+        }
         
         if (images.length === 0) return null;
         
@@ -377,11 +403,11 @@ function ProfilePreviewRendererComponent({
             pfpPosition === "left" ? "flex-1 pt-2" : "mt-4"
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className={`text-xl font-bold ${headingClass}`}>
             {profile.full_name}
           </h1>
           {profile.headline && (
-            <p className="mt-1 text-sm text-gray-600">{profile.headline}</p>
+            <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
           )}
         </div>
       </div>
@@ -390,7 +416,7 @@ function ProfilePreviewRendererComponent({
       {profile.bio && (
         <div className="mt-4 px-6">
           <p
-            className={`text-sm text-gray-600 whitespace-pre-wrap ${
+            className={`text-sm whitespace-pre-wrap ${textClass} ${
               pfpPosition === "center" ? "text-center" : ""
             }`}
           >
