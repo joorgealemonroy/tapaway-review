@@ -39,6 +39,7 @@ interface DbPersonalLink {
   pill_color: string | null;
   is_active: boolean | null;
   is_featured: boolean | null;
+  display_style?: string | null;
 }
 
 interface PersonalBlock {
@@ -57,6 +58,7 @@ interface PersonalLink {
   value: string;
   url: string;
   pillColor?: string | null;
+  displayStyle?: string | null;
 }
 
 type UnifiedItem = 
@@ -161,6 +163,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     value: getPlatformConfig(dbLink.link_type)?.extractValue(dbLink.url) || dbLink.url,
     url: dbLink.url,
     pillColor: dbLink.pill_color,
+    displayStyle: dbLink.display_style,
   });
 
   // Save all pending changes to DB
@@ -187,6 +190,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           pill_color: link.pill_color,
           is_active: link.is_active,
           is_featured: link.is_featured,
+          display_style: link.display_style || 'pill',
         });
       }
       for (const block of pendingChanges.addedBlocks) {
@@ -353,7 +357,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   };
 
   // Link handlers - now update local state only
-  const handleAddLink = (link: Omit<PersonalLink, "id">) => {
+  const handleAddLink = (link: Omit<PersonalLink, "id"> & { displayStyle?: string }) => {
     const maxOrder = Math.max(...unifiedItems.map(i => i.data.sort_order), -1);
     const newLink: DbPersonalLink = {
       id: crypto.randomUUID(),
@@ -364,6 +368,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       pill_color: link.pillColor || null,
       is_active: true,
       is_featured: false,
+      display_style: link.displayStyle || 'pill',
     };
 
     onLinksChange([...links, newLink]);
@@ -371,7 +376,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     setLinkModalOpen(false);
   };
 
-  const handleUpdateLink = (id: string, updates: Partial<PersonalLink>) => {
+  const handleUpdateLink = (id: string, updates: Partial<PersonalLink & { displayStyle?: string }>) => {
     // Check if this is a pending add (not yet in DB)
     const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
     
@@ -380,6 +385,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       label: updates.label,
       url: updates.url,
       pill_color: updates.pillColor || null,
+      display_style: updates.displayStyle,
     };
 
     onLinksChange(links.map(l => 

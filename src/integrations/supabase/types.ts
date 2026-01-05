@@ -983,6 +983,7 @@ export type Database = {
       personal_links: {
         Row: {
           created_at: string | null
+          display_style: string | null
           id: string
           is_active: boolean | null
           is_featured: boolean | null
@@ -995,6 +996,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          display_style?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
@@ -1007,6 +1009,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          display_style?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null

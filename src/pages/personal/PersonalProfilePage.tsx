@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState, useMemo } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageLightbox } from "@/components/personal/ImageLightbox";
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
 function isColorDark(hexColor: string | null | undefined): boolean {
@@ -47,7 +48,7 @@ const ProfileLink = memo(function ProfileLink({
   link,
   isFeatured = false
 }: { 
-  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null };
+  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null };
   isFeatured?: boolean;
 }) {
   const config = getPlatformConfig(link.link_type);
@@ -115,6 +116,83 @@ const ProfileLink = memo(function ProfileLink({
       </span>
       <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
     </motion.a>
+  );
+});
+
+// Collage with lightbox component
+const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { images: string[] }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const handleImageClick = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  return (
+    <>
+      <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
+        <div className="flex gap-2" style={{ width: 'max-content' }}>
+          {images.map((imgUrl, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleImageClick(idx)}
+              className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <img 
+                src={getOptimizedImageUrl(imgUrl, 200, 85)} 
+                alt="" 
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+      <ImageLightbox
+        images={images}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={setLightboxIndex}
+      />
+    </>
+  );
+});
+
+// Social icon bar for icon-style links
+const SocialIconBar = memo(function SocialIconBar({ 
+  links, 
+  isDarkBg 
+}: { 
+  links: { id: string; link_type: string; url: string }[];
+  isDarkBg?: boolean;
+}) {
+  if (links.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap justify-center gap-2 mt-3">
+      {links.map((link) => {
+        const config = getPlatformConfig(link.link_type);
+        const Icon = config?.icon;
+        if (!Icon) return null;
+        
+        return (
+          <a
+            key={link.id}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`h-10 w-10 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
+              isDarkBg ? 'bg-white/15 hover:bg-white/25' : 'bg-black/5 hover:bg-black/10'
+            }`}
+            title={config?.label}
+          >
+            <Icon className={`h-5 w-5 ${isDarkBg ? 'text-white' : config?.color || 'text-foreground'}`} />
+          </a>
+        );
+      })}
+    </div>
   );
 });
 
@@ -341,20 +419,7 @@ const ProfileBlock = memo(function ProfileBlock({
       if (images.length === 0) return null;
       
       return (
-        <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-2" style={{ width: 'max-content' }}>
-            {images.map((imgUrl, idx) => (
-              <div key={idx} className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-                <img 
-                  src={getOptimizedImageUrl(imgUrl, 200, 85)} 
-                  alt="" 
-                  loading="lazy"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <CollageWithLightbox images={images} />
       );
     }
     default:
@@ -446,15 +511,18 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     | { kind: "link"; data: typeof links[0] }
     | { kind: "block"; data: typeof blocks[0] };
 
+  // Separate icon-style links from pill-style links
+  const iconLinks = links.filter((l: any) => l.is_active !== false && l.display_style === 'icon');
+  const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
+
   const unifiedItems: UnifiedItem[] = [
-    ...links
-      .filter((l: any) => l.is_active !== false)
+    ...pillLinks
       .map((link): UnifiedItem => ({ kind: "link", data: link })),
     ...blocks.map((block): UnifiedItem => ({ kind: "block", data: block })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
   // Extract featured link (renders at top separately)
-  const featuredLink = links.find((l: any) => l.is_active !== false && l.is_featured === true);
+  const featuredLink = pillLinks.find((l: any) => l.is_featured === true);
   const itemsWithoutFeatured = unifiedItems.filter(
     item => !(item.kind === "link" && (item.data as any).is_featured === true)
   );
@@ -518,6 +586,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
         )}
         <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
+        
+        {/* Social icon bar - shows icon-style links */}
+        <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
+        
         {profile.bio && (
           <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
         )}
