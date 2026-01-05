@@ -32,6 +32,7 @@ export interface SignupData {
   fullName: string;
   email: string;
   username: string;
+  password: string;
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
   croppedPhotoBlob: Blob | null;
@@ -74,6 +75,7 @@ const PersonalSignup = () => {
     fullName: onboardingData.fullName,
     email: onboardingData.email,
     username: onboardingData.username,
+    password: onboardingData.password,
     profilePhoto: onboardingData.profilePhoto,
     profilePhotoUrl: onboardingData.profilePhotoUrl,
     croppedPhotoBlob: onboardingData.croppedPhotoBlob,

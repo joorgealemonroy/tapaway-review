@@ -21,6 +21,7 @@ export interface PersonalOnboardingData {
   fullName: string;
   email: string;
   username: string;
+  password: string;
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
   croppedPhotoBlob: Blob | null;
@@ -43,6 +44,7 @@ const initialData: PersonalOnboardingData = {
   fullName: "",
   email: "",
   username: "",
+  password: "",
   profilePhoto: null,
   profilePhotoUrl: null,
   croppedPhotoBlob: null,
@@ -89,6 +91,7 @@ export const usePersonalOnboarding = () => {
         ...data,
         profilePhoto: null,
         croppedPhotoBlob: null,
+        password: "", // Never save password to localStorage
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     }, DEBOUNCE_MS);

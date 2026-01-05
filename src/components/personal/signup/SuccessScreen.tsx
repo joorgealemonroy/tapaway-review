@@ -36,18 +36,18 @@ export const SuccessScreen = ({ username }: Props) => {
   const nextSteps = [
     {
       icon: Package,
-      title: "Card ships in 1–2 business days",
-      description: "We'll email you tracking info",
+      title: "Your card is being prepared",
+      description: "Ships in 1–2 business days with tracking",
     },
     {
       icon: Smartphone,
       title: "Tap to share in person",
-      description: "Just hold your card to any phone",
+      description: "Just hold your card to any phone — no app needed",
     },
     {
       icon: RefreshCw,
       title: "Update links anytime",
-      description: "Changes appear instantly",
+      description: "Changes appear instantly on your profile",
     },
   ];
 
