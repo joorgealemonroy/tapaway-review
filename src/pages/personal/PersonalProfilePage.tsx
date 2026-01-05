@@ -13,15 +13,29 @@ import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
 
-// Helper to determine if a color is dark
-function isColorDark(hexColor: string): boolean {
-  const hex = hexColor.replace('#', '');
-  if (hex.length !== 6) return false;
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance < 0.5;
+// Helper to determine if a color is dark (handles null, undefined, shorthand hex)
+function isColorDark(hexColor: string | null | undefined): boolean {
+  if (!hexColor) return false;
+  try {
+    const hex = hexColor.replace('#', '');
+    if (hex.length === 3) {
+      // Handle shorthand hex like #fff
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance < 0.5;
+    }
+    if (hex.length !== 6) return false;
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return false;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5;
+  } catch {
+    return false;
+  }
 }
 
 interface Props {

@@ -139,7 +139,17 @@ export const BlockModal = ({
           setCollectName(content.collectName === "true");
           setCollectMessage(content.collectMessage === "true");
         } else if (editingBlock.block_type === "photo_collage") {
-          const images = content.images ? JSON.parse(content.images) : [];
+          let images: string[] = [];
+          try {
+            const rawImages = content.images;
+            if (Array.isArray(rawImages)) {
+              images = rawImages;
+            } else if (typeof rawImages === 'string' && rawImages) {
+              images = JSON.parse(rawImages);
+            }
+          } catch {
+            images = [];
+          }
           setCollageImages(images);
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         }
