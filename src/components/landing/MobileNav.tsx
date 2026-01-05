@@ -16,7 +16,8 @@ export const MobileNav = () => {
   const [open, setOpen] = useState(false);
   
   const isPersonal = location.pathname === "/personal";
-  const dashboardLink = isSalesRep ? "/rep" : isPersonal ? "/me" : "/dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
+  const personalDashboardLink = "/personal/dashboard";
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,20 +56,12 @@ export const MobileNav = () => {
                 {user ? (
                   <>
                     <Link
-                      to={dashboardLink}
+                      to={isPersonal ? personalDashboardLink : dashboardLink}
                       onClick={() => setOpen(false)}
                       className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-foreground font-medium hover:bg-muted/50 active:bg-muted transition-colors"
                     >
                       <LayoutDashboard className="w-5 h-5" />
                       Dashboard
-                    </Link>
-                    <Link
-                      to="/me"
-                      onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-foreground font-medium hover:bg-muted/50 active:bg-muted transition-colors"
-                    >
-                      <User className="w-5 h-5" />
-                      Edit Profile
                     </Link>
                     <button
                       onClick={handleSignOut}
