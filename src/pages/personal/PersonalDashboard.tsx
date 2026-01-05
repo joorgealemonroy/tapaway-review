@@ -18,8 +18,7 @@ import {
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
-import { DashboardLinksManager } from "@/components/personal/DashboardLinksManager";
-import DashboardBlocksManager from "@/components/personal/DashboardBlocksManager";
+import { DashboardUnifiedContent } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
 import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
@@ -431,17 +430,14 @@ const PersonalDashboard = () => {
             />
             
             <div className="border-t pt-6">
-              <DashboardLinksManager
+              <DashboardUnifiedContent
                 profileId={profile.id}
                 links={links}
+                blocks={blocks}
                 onLinksChange={setLinks}
+                onBlocksChange={setBlocks}
               />
             </div>
-            <DashboardBlocksManager
-              profileId={profile.id}
-              blocks={blocks}
-              onBlocksChange={setBlocks}
-            />
           </TabsContent>
 
           {/* Design Tab */}
