@@ -22,6 +22,7 @@ import { DashboardLinksManager } from "@/components/personal/DashboardLinksManag
 import DashboardBlocksManager from "@/components/personal/DashboardBlocksManager";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
+import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 
@@ -324,9 +325,12 @@ const PersonalDashboard = () => {
             <a href="/personal" className="font-black text-xl tracking-tight text-foreground">
               TapAway
             </a>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <DashboardSwitcher currentType="personal" />
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
