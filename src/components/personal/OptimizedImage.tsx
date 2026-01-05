@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * Transform Supabase storage URL to request optimized image
+ * For pre-optimized images (webp, already compressed), return as-is
+ * Only apply Supabase transforms for legacy large images
  */
 export function getOptimizedImageUrl(
   url: string | null | undefined,
@@ -10,9 +12,19 @@ export function getOptimizedImageUrl(
   quality = 85
 ): string {
   if (!url) return '';
-  // Only transform Supabase storage URLs
+  
+  // Non-Supabase URLs - return as-is
   if (!url.includes('supabase.co/storage')) return url;
+  
+  // Clean any existing query params
   const baseUrl = url.split('?')[0];
+  
+  // Pre-optimized images (webp) - skip Supabase transforms for faster loading
+  if (baseUrl.endsWith('.webp')) {
+    return baseUrl;
+  }
+  
+  // Legacy images - use Supabase transforms
   return `${baseUrl}?width=${width}&quality=${quality}`;
 }
 
@@ -26,6 +38,12 @@ export function generateSrcSet(
 ): string {
   if (!url || !url.includes('supabase.co/storage')) return '';
   const baseUrl = url.split('?')[0];
+  
+  // Pre-optimized webp images - no srcset needed, already optimized
+  if (baseUrl.endsWith('.webp')) {
+    return '';
+  }
+  
   return sizes
     .map(size => `${baseUrl}?width=${size}&quality=${quality} ${size}w`)
     .join(', ');
