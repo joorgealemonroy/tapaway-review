@@ -14,7 +14,7 @@ export const TapAwayCardPreview = ({
   fullName, 
   username, 
   profilePhotoUrl,
-  cardHeadline = "Tap to Connect &\nCollaborate"
+  cardHeadline = "Tap to Connect\n& Collaborate"
 }: Props) => {
   const [side, setSide] = useState<"front" | "back">("front");
 
