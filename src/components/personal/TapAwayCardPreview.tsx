@@ -108,22 +108,22 @@ export const TapAwayCardPreview = ({
             <div className="flex-1 min-h-[4%]" />
 
             {/* NFC + QR icons row with center divider */}
-            <div className="flex items-center justify-center gap-[8%] mb-[4%]">
+            <div className="flex items-center justify-center gap-[7%] mb-[4%]">
               {/* NFC/Phone tap icon - using uploaded image */}
               <img 
                 src={nfcTapIcon} 
                 alt="Tap to connect" 
-                style={{ width: "38%", height: "auto" }}
+                style={{ width: "34%", height: "auto" }}
               />
               
               {/* Vertical divider - matching reference thickness */}
               <div 
                 className="bg-[#ccc]" 
-                style={{ width: "3px", height: "70%" }}
+                style={{ width: "3px", height: "62%" }}
               />
               
               {/* QR Code - matching reference size */}
-              <div className="bg-white p-[3%] rounded" style={{ width: "32%" }}>
+              <div className="bg-white p-[3%] rounded" style={{ width: "29%" }}>
                 <QRCode 
                   value={`https://${profileUrl}`}
                   size={100}
