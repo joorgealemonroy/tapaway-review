@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,6 @@ import {
   Truck,
   ExternalLink,
   Settings,
-  GripVertical,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -34,10 +33,81 @@ interface Props {
 
 export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  // Drag state for links
+  const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null);
+  const [linkTouchStart, setLinkTouchStart] = useState<{ index: number; y: number } | null>(null);
+  const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  // Drag state for blocks
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
+  const [blockTouchStart, setBlockTouchStart] = useState<{ index: number; y: number } | null>(null);
+  const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const handleBlockDragStart = (index: number) => {
+  // Link drag handlers (mouse)
+  const handleLinkDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedLinkIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleLinkDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedLinkIndex === null || draggedLinkIndex === index) return;
+
+    const newLinks = [...formData.links];
+    const [draggedLink] = newLinks.splice(draggedLinkIndex, 1);
+    newLinks.splice(index, 0, draggedLink);
+    
+    updateFormData({ links: newLinks });
+    setDraggedLinkIndex(index);
+  };
+
+  const handleLinkDragEnd = () => {
+    setDraggedLinkIndex(null);
+  };
+
+  // Link touch handlers (mobile hold-and-drag)
+  const handleLinkTouchStart = (e: React.TouchEvent, index: number) => {
+    const touch = e.touches[0];
+    setLinkTouchStart({ index, y: touch.clientY });
+  };
+
+  const handleLinkTouchMove = (e: React.TouchEvent, currentIndex: number) => {
+    if (!linkTouchStart) return;
+    
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - linkTouchStart.y;
+    
+    // Only start dragging after a threshold
+    if (Math.abs(deltaY) < 20) return;
+    
+    setDraggedLinkIndex(linkTouchStart.index);
+    
+    // Find which element we're over
+    const targetIndex = linkRefs.current.findIndex((ref, i) => {
+      if (!ref || i === linkTouchStart.index) return false;
+      const rect = ref.getBoundingClientRect();
+      return touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+    });
+    
+    if (targetIndex !== -1 && targetIndex !== linkTouchStart.index) {
+      const newLinks = [...formData.links];
+      const [draggedLink] = newLinks.splice(linkTouchStart.index, 1);
+      newLinks.splice(targetIndex, 0, draggedLink);
+      updateFormData({ links: newLinks });
+      setLinkTouchStart({ ...linkTouchStart, index: targetIndex });
+    }
+  };
+
+  const handleLinkTouchEnd = () => {
+    setLinkTouchStart(null);
+    setDraggedLinkIndex(null);
+  };
+
+  // Block drag handlers (mouse)
+  const handleBlockDragStart = (e: React.DragEvent, index: number) => {
     setDraggedBlockIndex(index);
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleBlockDragOver = (e: React.DragEvent, index: number) => {
@@ -53,6 +123,42 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
   };
 
   const handleBlockDragEnd = () => {
+    setDraggedBlockIndex(null);
+  };
+
+  // Block touch handlers (mobile hold-and-drag)
+  const handleBlockTouchStart = (e: React.TouchEvent, index: number) => {
+    const touch = e.touches[0];
+    setBlockTouchStart({ index, y: touch.clientY });
+  };
+
+  const handleBlockTouchMove = (e: React.TouchEvent) => {
+    if (!blockTouchStart) return;
+    
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - blockTouchStart.y;
+    
+    if (Math.abs(deltaY) < 20) return;
+    
+    setDraggedBlockIndex(blockTouchStart.index);
+    
+    const targetIndex = blockRefs.current.findIndex((ref, i) => {
+      if (!ref || i === blockTouchStart.index) return false;
+      const rect = ref.getBoundingClientRect();
+      return touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+    });
+    
+    if (targetIndex !== -1 && targetIndex !== blockTouchStart.index) {
+      const newBlocks = [...formData.blocks];
+      const [draggedBlock] = newBlocks.splice(blockTouchStart.index, 1);
+      newBlocks.splice(targetIndex, 0, draggedBlock);
+      updateFormData({ blocks: newBlocks.map((b, i) => ({ ...b, sortOrder: i })) });
+      setBlockTouchStart({ ...blockTouchStart, index: targetIndex });
+    }
+  };
+
+  const handleBlockTouchEnd = () => {
+    setBlockTouchStart(null);
     setDraggedBlockIndex(null);
   };
 
@@ -106,6 +212,11 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Reorder hint */}
+      <p className="text-xs text-muted-foreground text-center">
+        Hold and drag links or blocks to reorder them
+      </p>
+
       {/* Profile Preview */}
       <div 
         className="rounded-2xl border border-border overflow-hidden"
@@ -153,27 +264,34 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
             <p className="text-sm text-muted-foreground">@{formData.username}</p>
           </div>
 
-          {/* Links */}
+          {/* Links - Draggable */}
           {formData.links.length > 0 && (
             <div className="mt-4 space-y-2">
-              {formData.links.map((link) => {
+              {formData.links.map((link, index) => {
                 const config = getPlatformConfig(link.type);
                 const Icon = config?.icon;
                 
                 return (
-                  <a
+                  <div
                     key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${config?.gradient || config?.bgColor || "bg-muted/50"}`}
+                    ref={(el) => (linkRefs.current[index] = el)}
+                    draggable
+                    onDragStart={(e) => handleLinkDragStart(e, index)}
+                    onDragOver={(e) => handleLinkDragOver(e, index)}
+                    onDragEnd={handleLinkDragEnd}
+                    onTouchStart={(e) => handleLinkTouchStart(e, index)}
+                    onTouchMove={(e) => handleLinkTouchMove(e, index)}
+                    onTouchEnd={handleLinkTouchEnd}
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-grab active:cursor-grabbing select-none ${
+                      config?.gradient || config?.bgColor || "bg-muted/50"
+                    } ${draggedLinkIndex === index ? "opacity-50 scale-95 shadow-lg" : "hover:scale-[1.01]"}`}
                   >
                     {Icon && <Icon className={`h-5 w-5 ${config?.color || "text-foreground"}`} />}
                     <span className={`text-sm font-medium flex-1 ${config?.color || "text-foreground"}`}>
                       {link.label}
                     </span>
                     <ExternalLink className={`h-4 w-4 ${config?.color || "text-foreground"} opacity-60`} />
-                  </a>
+                  </div>
                 );
               })}
             </div>
@@ -190,43 +308,42 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                 return (
                   <div
                     key={block.id}
+                    ref={(el) => (blockRefs.current[index] = el)}
                     draggable
-                    onDragStart={() => handleBlockDragStart(index)}
+                    onDragStart={(e) => handleBlockDragStart(e, index)}
                     onDragOver={(e) => handleBlockDragOver(e, index)}
                     onDragEnd={handleBlockDragEnd}
-                    className={`relative group transition-all ${
-                      draggedBlockIndex === index ? "opacity-50 scale-95" : ""
+                    onTouchStart={(e) => handleBlockTouchStart(e, index)}
+                    onTouchMove={handleBlockTouchMove}
+                    onTouchEnd={handleBlockTouchEnd}
+                    className={`relative group transition-all cursor-grab active:cursor-grabbing select-none ${
+                      draggedBlockIndex === index ? "opacity-50 scale-95 shadow-lg" : ""
                     }`}
                   >
-                    {/* Drag handle + alignment controls overlay */}
-                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-                      <GripVertical className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    
-                    {/* Alignment controls */}
-                    <div className="absolute -right-2 top-0 translate-x-full opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-0.5 bg-background rounded-lg border border-border p-1 shadow-sm">
+                    {/* Alignment controls - show on hover/focus */}
+                    <div className="absolute -right-1 top-0 translate-x-full opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex flex-col gap-0.5 bg-background rounded-lg border border-border p-1 shadow-sm z-10">
                       <button
-                        onClick={() => updateBlockAlignment(block.id, "left")}
-                        className={`p-1 rounded ${alignment === "left" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                        onClick={(e) => { e.stopPropagation(); updateBlockAlignment(block.id, "left"); }}
+                        className={`p-1.5 rounded ${alignment === "left" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                       >
                         <AlignLeft className="h-3 w-3" />
                       </button>
                       <button
-                        onClick={() => updateBlockAlignment(block.id, "center")}
-                        className={`p-1 rounded ${alignment === "center" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                        onClick={(e) => { e.stopPropagation(); updateBlockAlignment(block.id, "center"); }}
+                        className={`p-1.5 rounded ${alignment === "center" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                       >
                         <AlignCenter className="h-3 w-3" />
                       </button>
                       <button
-                        onClick={() => updateBlockAlignment(block.id, "right")}
-                        className={`p-1 rounded ${alignment === "right" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                        onClick={(e) => { e.stopPropagation(); updateBlockAlignment(block.id, "right"); }}
+                        className={`p-1.5 rounded ${alignment === "right" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                       >
                         <AlignRight className="h-3 w-3" />
                       </button>
                       {block.type === "button" && (
                         <button
-                          onClick={() => updateBlockAlignment(block.id, "full")}
-                          className={`p-1 rounded ${alignment === "full" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                          onClick={(e) => { e.stopPropagation(); updateBlockAlignment(block.id, "full"); }}
+                          className={`p-1.5 rounded ${alignment === "full" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                         >
                           <Maximize2 className="h-3 w-3" />
                         </button>
@@ -235,7 +352,7 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
 
                     {/* Block content */}
                     {block.type === "youtube" && (
-                      <div className="aspect-video rounded-xl overflow-hidden bg-black">
+                      <div className="aspect-video rounded-xl overflow-hidden bg-black pointer-events-none">
                         <iframe
                           src={`https://www.youtube.com/embed/${block.content.videoId}`}
                           className="w-full h-full"
@@ -249,7 +366,7 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                         <img 
                           src={block.content.url} 
                           alt="Block" 
-                          className="rounded-xl max-w-full"
+                          className="rounded-xl max-w-full pointer-events-none"
                           style={{ 
                             borderRadius: block.content.cornerRadius === "small" ? "8px" : block.content.cornerRadius === "large" ? "20px" : "12px"
                           }}
@@ -257,7 +374,7 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                       </div>
                     )}
                     {block.type === "text" && (
-                      <div className={`space-y-1 ${textAlignClass}`}>
+                      <div className={`space-y-1 ${textAlignClass} p-2 rounded-lg hover:bg-muted/30`}>
                         <h3 className="font-semibold text-foreground">{block.content.title}</h3>
                         {block.content.body && (
                           <p className="text-sm text-muted-foreground">{block.content.body}</p>
@@ -265,17 +382,14 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                       </div>
                     )}
                     {block.type === "button" && (
-                      <div className={`flex ${alignment === "full" ? "" : flexAlignClass}`}>
-                        <a
-                          href={block.content.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`py-4 px-6 bg-primary text-primary-foreground rounded-xl text-center font-semibold hover:bg-primary/90 transition-colors ${
+                      <div className={`flex ${alignment === "full" ? "" : flexAlignClass} p-1 rounded-lg hover:bg-muted/30`}>
+                        <span
+                          className={`py-4 px-6 bg-primary text-primary-foreground rounded-xl text-center font-semibold pointer-events-none ${
                             alignment === "full" ? "w-full" : ""
                           }`}
                         >
                           {block.content.label}
-                        </a>
+                        </span>
                       </div>
                     )}
                   </div>
