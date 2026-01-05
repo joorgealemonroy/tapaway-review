@@ -275,7 +275,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         >
           <a
             href="/personal"
-            className="group block relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 shadow-xl hover:shadow-2xl transition-all duration-500"
+            className="group block relative overflow-hidden rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 p-6 shadow-xl hover:shadow-2xl hover:bg-white/15 transition-all duration-500"
           >
             {/* Animated gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
