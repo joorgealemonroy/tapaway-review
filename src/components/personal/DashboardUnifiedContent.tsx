@@ -168,16 +168,17 @@ export const DashboardUnifiedContent = ({
     const [removed] = newItems.splice(draggedItem.index, 1);
     newItems.splice(index, 0, removed);
 
-    // Update sort_order in memory
-    newItems.forEach((item, i) => {
-      item.data.sort_order = i;
-    });
+    // Update sort_order with new object references (critical for React memoization)
+    const updatedItems = newItems.map((item, i) => ({
+      ...item,
+      data: { ...item.data, sort_order: i }
+    }));
 
-    // Separate back to links and blocks
-    const newLinks = newItems
+    // Separate back to links and blocks with new references
+    const newLinks = updatedItems
       .filter((item): item is { kind: "link"; data: DbPersonalLink } => item.kind === "link")
       .map(item => item.data);
-    const newBlocks = newItems
+    const newBlocks = updatedItems
       .filter((item): item is { kind: "block"; data: PersonalBlock } => item.kind === "block")
       .map(item => item.data);
 
@@ -216,14 +217,16 @@ export const DashboardUnifiedContent = ({
       const [removed] = newItems.splice(draggedItem.index, 1);
       newItems.splice(newIndex, 0, removed);
 
-      newItems.forEach((item, i) => {
-        item.data.sort_order = i;
-      });
+      // Update sort_order with new object references (critical for React memoization)
+      const updatedItems = newItems.map((item, i) => ({
+        ...item,
+        data: { ...item.data, sort_order: i }
+      }));
 
-      const newLinks = newItems
+      const newLinks = updatedItems
         .filter((item): item is { kind: "link"; data: DbPersonalLink } => item.kind === "link")
         .map(item => item.data);
-      const newBlocks = newItems
+      const newBlocks = updatedItems
         .filter((item): item is { kind: "block"; data: PersonalBlock } => item.kind === "block")
         .map(item => item.data);
 
