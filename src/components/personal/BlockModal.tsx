@@ -19,9 +19,14 @@ import {
   AlignRight,
   Crop,
   Link as LinkIcon,
-  Smartphone
+  Smartphone,
+  Mail,
+  Grid,
+  X,
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 interface PersonalBlock {
   id: string;
@@ -48,6 +53,8 @@ const BLOCK_TYPES = [
   { type: "image", label: "Image", icon: ImageIcon, description: "Upload an image" },
   { type: "text", label: "Text", icon: Type, description: "Title and body text" },
   { type: "button", label: "Featured Button", icon: MousePointerClick, description: "Big CTA button" },
+  { type: "email_capture", label: "Email Capture", icon: Mail, description: "Collect visitor emails" },
+  { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
 ] as const;
 
 export const BlockModal = ({ 
@@ -82,11 +89,26 @@ export const BlockModal = ({
   const [overlaySubtitle, setOverlaySubtitle] = useState("");
   const [overlayCta, setOverlayCta] = useState("");
   
+  // Email capture block options
+  const [emailHeadline, setEmailHeadline] = useState("");
+  const [emailDescription, setEmailDescription] = useState("");
+  const [emailButtonText, setEmailButtonText] = useState("Submit");
+  const [collectName, setCollectName] = useState(false);
+  const [collectMessage, setCollectMessage] = useState(false);
+  
+  // Photo collage options
+  const [collageImages, setCollageImages] = useState<string[]>([]);
+  const [collageColumns, setCollageColumns] = useState<2 | 3>(3);
+  const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
+  
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
+  const [collageRawImage, setCollageRawImage] = useState<string | null>(null);
+  const [showCollageCropper, setShowCollageCropper] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const collageFileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset/populate form when modal opens or editingBlock changes
   useEffect(() => {
@@ -110,6 +132,16 @@ export const BlockModal = ({
         } else if (editingBlock.block_type === "button") {
           setButtonLabel(content.label || "");
           setButtonUrl(content.url || "");
+        } else if (editingBlock.block_type === "email_capture") {
+          setEmailHeadline(content.headline || "");
+          setEmailDescription(content.description || "");
+          setEmailButtonText(content.buttonText || "Submit");
+          setCollectName(content.collectName === "true");
+          setCollectMessage(content.collectMessage === "true");
+        } else if (editingBlock.block_type === "photo_collage") {
+          const images = content.images ? JSON.parse(content.images) : [];
+          setCollageImages(images);
+          setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         }
       } else {
         resetForm();
@@ -132,6 +164,16 @@ export const BlockModal = ({
     setOverlayTitle("");
     setOverlaySubtitle("");
     setOverlayCta("");
+    // Email capture
+    setEmailHeadline("");
+    setEmailDescription("");
+    setEmailButtonText("Submit");
+    setCollectName(false);
+    setCollectMessage(false);
+    // Photo collage
+    setCollageImages([]);
+    setCollageColumns(3);
+    setCollageRawImage(null);
   };
 
   const handleClose = () => {
@@ -234,6 +276,53 @@ export const BlockModal = ({
     }
   };
 
+  // Collage image handlers
+  const handleCollageImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+    setCollageRawImage(objectUrl);
+    setShowCollageCropper(true);
+  };
+
+  const handleCollageCropComplete = async (croppedBlob: Blob) => {
+    setShowCollageCropper(false);
+    setUploadingCollageImage(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const extension = croppedBlob.type === 'image/webp' ? 'webp' : 'jpg';
+      const filePath = `${user.id}/collage/${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, croppedBlob, { contentType: croppedBlob.type });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+
+      setCollageImages(prev => [...prev, publicUrl]);
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingCollageImage(false);
+      if (collageRawImage) {
+        URL.revokeObjectURL(collageRawImage);
+        setCollageRawImage(null);
+      }
+    }
+  };
+
+  const handleRemoveCollageImage = (index: number) => {
+    setCollageImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     if (!selectedType) return;
 
@@ -278,6 +367,27 @@ export const BlockModal = ({
           return;
         }
         content = { label: buttonLabel, url: buttonUrl.startsWith("http") ? buttonUrl : `https://${buttonUrl}` };
+        break;
+      }
+      case "email_capture": {
+        content = {
+          headline: emailHeadline.trim() || "Stay Connected 💌",
+          description: emailDescription.trim() || "Leave your email and I'll reach out!",
+          buttonText: emailButtonText.trim() || "Submit",
+          collectName: collectName.toString(),
+          collectMessage: collectMessage.toString(),
+        };
+        break;
+      }
+      case "photo_collage": {
+        if (collageImages.length === 0) {
+          toast.error("Please add at least one image");
+          return;
+        }
+        content = {
+          images: JSON.stringify(collageImages),
+          columns: collageColumns.toString(),
+        };
         break;
       }
     }
@@ -495,19 +605,19 @@ export const BlockModal = ({
                       <Label className="text-sm font-medium">Text Overlay (optional)</Label>
                       <div className="space-y-2">
                         <Input
-                          placeholder="Title (e.g., Best Snacks To Sell 🤑)"
+                          placeholder="Title (e.g., NEW DROP 🔥)"
                           value={overlayTitle}
                           onChange={(e) => setOverlayTitle(e.target.value)}
                           className="h-10"
                         />
                         <Input
-                          placeholder="Subtitle (e.g., Profits $$)"
+                          placeholder="Subtitle (e.g., Limited availability)"
                           value={overlaySubtitle}
                           onChange={(e) => setOverlaySubtitle(e.target.value)}
                           className="h-10"
                         />
                         <Input
-                          placeholder="CTA text (e.g., Click Here)"
+                          placeholder="CTA text (e.g., Shop Now →)"
                           value={overlayCta}
                           onChange={(e) => setOverlayCta(e.target.value)}
                           className="h-10"
@@ -561,6 +671,128 @@ export const BlockModal = ({
                       onChange={(e) => setButtonUrl(e.target.value)}
                       className="h-12"
                     />
+                  </div>
+                </>
+              )}
+
+              {selectedType === "email_capture" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Headline</Label>
+                    <Input
+                      placeholder="Stay Connected 💌"
+                      value={emailHeadline}
+                      onChange={(e) => setEmailHeadline(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      placeholder="Leave your email and I'll reach out!"
+                      value={emailDescription}
+                      onChange={(e) => setEmailDescription(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Button Text</Label>
+                    <Input
+                      placeholder="Submit"
+                      value={emailButtonText}
+                      onChange={(e) => setEmailButtonText(e.target.value)}
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <Label className="text-sm font-medium">Optional Fields</Label>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Collect Name</p>
+                        <p className="text-xs text-muted-foreground">Ask visitors for their name</p>
+                      </div>
+                      <Switch checked={collectName} onCheckedChange={setCollectName} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Collect Message</p>
+                        <p className="text-xs text-muted-foreground">Let visitors add a message</p>
+                      </div>
+                      <Switch checked={collectMessage} onCheckedChange={setCollectMessage} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedType === "photo_collage" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Images (max 9)</Label>
+                    <input
+                      ref={collageFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCollageImageSelect}
+                      className="hidden"
+                    />
+                    <div className={`grid gap-2 ${collageColumns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                      {collageImages.map((imgUrl, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                          <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => handleRemoveCollageImage(idx)}
+                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                          >
+                            <X className="h-3 w-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {collageImages.length < 9 && (
+                        <button
+                          onClick={() => collageFileInputRef.current?.click()}
+                          disabled={uploadingCollageImage}
+                          className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
+                        >
+                          {uploadingCollageImage ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          ) : (
+                            <>
+                              <Plus className="h-5 w-5 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">Add</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Columns toggle */}
+                  <div className="space-y-2">
+                    <Label>Columns</Label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCollageColumns(2)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          collageColumns === 2 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        }`}
+                      >
+                        2 Columns
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCollageColumns(3)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          collageColumns === 3 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        }`}
+                      >
+                        3 Columns
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -646,6 +878,24 @@ export const BlockModal = ({
           imageSrc={rawImageForCrop}
           onCropComplete={handleCropComplete}
           aspectRatio={imageSize === "small" ? 1 : 16/9}
+          cropShape="rect"
+        />
+      )}
+
+      {/* Collage Image Cropper */}
+      {collageRawImage && (
+        <ImageCropper
+          open={showCollageCropper}
+          onOpenChange={(open) => {
+            setShowCollageCropper(open);
+            if (!open && collageRawImage) {
+              URL.revokeObjectURL(collageRawImage);
+              setCollageRawImage(null);
+            }
+          }}
+          imageSrc={collageRawImage}
+          onCropComplete={handleCollageCropComplete}
+          aspectRatio={1}
           cropShape="rect"
         />
       )}

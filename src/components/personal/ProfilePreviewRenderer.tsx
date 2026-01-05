@@ -256,6 +256,56 @@ function ProfilePreviewRendererComponent({
           </div>
         );
       }
+      case "email_capture": {
+        const headline = (content.headline as string) || "Stay Connected 💌";
+        const description = (content.description as string) || "Leave your email and I'll reach out!";
+        const buttonText = (content.buttonText as string) || "Submit";
+        const showName = content.collectName === "true";
+        const showMessage = content.collectMessage === "true";
+        
+        return (
+          <div key={block.id} className="w-full p-4 bg-white/80 rounded-xl border shadow-sm space-y-2" style={{ borderColor: `${headerColor}30` }}>
+            <div className="text-center">
+              <h3 className="font-semibold text-gray-900 text-sm">{headline}</h3>
+              <p className="text-xs text-gray-600 mt-0.5">{description}</p>
+            </div>
+            {showName && (
+              <div className="h-9 rounded-lg bg-gray-100 border border-gray-200" />
+            )}
+            <div className="h-9 rounded-lg bg-gray-100 border border-gray-200" />
+            {showMessage && (
+              <div className="h-16 rounded-lg bg-gray-100 border border-gray-200" />
+            )}
+            <button
+              className="w-full py-2 text-sm rounded-lg font-semibold text-white"
+              style={{ backgroundColor: headerColor }}
+            >
+              {buttonText}
+            </button>
+          </div>
+        );
+      }
+      case "photo_collage": {
+        const images: string[] = content.images ? JSON.parse(content.images as string) : [];
+        const columns = parseInt((content.columns as string) || "3") as 2 | 3;
+        
+        if (images.length === 0) return null;
+        
+        return (
+          <div key={block.id} className={`w-full grid gap-1.5 ${columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {images.map((imgUrl, idx) => (
+              <div key={idx} className="aspect-square rounded-lg overflow-hidden">
+                <img 
+                  src={getOptimizedImageUrl(imgUrl, 150)} 
+                  alt="" 
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        );
+      }
       default:
         return null;
     }

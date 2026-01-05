@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   usernameOverride?: string;
@@ -94,12 +95,46 @@ const ProfileLink = memo(function ProfileLink({
 
 // Memoized block renderer
 const ProfileBlock = memo(function ProfileBlock({ 
-  block 
+  block,
+  profileId
 }: { 
-  block: { id: string; block_type: string; content: unknown; alignment: string | null } 
+  block: { id: string; block_type: string; content: unknown; alignment: string | null };
+  profileId?: string;
 }) {
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [messageInput, setMessageInput] = useState("");
+  
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
+  
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileId || !emailInput.trim()) return;
+    
+    setEmailSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("personal_email_captures")
+        .insert({
+          profile_id: profileId,
+          email: emailInput.trim(),
+          name: nameInput.trim() || null,
+          message: messageInput.trim() || null,
+        });
+      
+      if (error) throw error;
+      setEmailSubmitted(true);
+      toast.success("Thanks! Your info has been submitted.");
+    } catch (err) {
+      console.error("Email capture error:", err);
+      toast.error("Failed to submit. Please try again.");
+    } finally {
+      setEmailSubmitting(false);
+    }
+  };
   
   switch (block.block_type) {
     case "youtube": {
@@ -197,6 +232,86 @@ const ProfileBlock = memo(function ProfileBlock({
           >
             {content.label}
           </a>
+        </div>
+      );
+    }
+    case "email_capture": {
+      const headline = content.headline || "Stay Connected 💌";
+      const description = content.description || "Leave your email and I'll reach out!";
+      const buttonText = content.buttonText || "Submit";
+      const showName = content.collectName === "true";
+      const showMessage = content.collectMessage === "true";
+      
+      if (emailSubmitted) {
+        return (
+          <div className="w-full p-6 bg-card rounded-xl border border-border text-center">
+            <CheckCircle2 className="h-10 w-10 text-primary mx-auto mb-3" />
+            <h3 className="font-semibold text-foreground">Thanks!</h3>
+            <p className="text-sm text-muted-foreground">Your info has been submitted.</p>
+          </div>
+        );
+      }
+      
+      return (
+        <form onSubmit={handleEmailSubmit} className="w-full p-5 bg-card rounded-xl border border-border space-y-3">
+          <div className="text-center">
+            <h3 className="font-semibold text-foreground">{headline}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          </div>
+          {showName && (
+            <input
+              type="text"
+              placeholder="Your name (optional)"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          )}
+          <input
+            type="email"
+            placeholder="your@email.com"
+            required
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          {showMessage && (
+            <textarea
+              placeholder="Message (optional)"
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            />
+          )}
+          <button
+            type="submit"
+            disabled={emailSubmitting}
+            className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {emailSubmitting ? "Submitting..." : buttonText}
+          </button>
+        </form>
+      );
+    }
+    case "photo_collage": {
+      const images: string[] = content.images ? JSON.parse(content.images) : [];
+      const columns = parseInt(content.columns || "3") as 2 | 3;
+      
+      if (images.length === 0) return null;
+      
+      return (
+        <div className={`w-full grid gap-2 ${columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+          {images.map((imgUrl, idx) => (
+            <div key={idx} className="aspect-square rounded-lg overflow-hidden">
+              <img 
+                src={getOptimizedImageUrl(imgUrl, 200, 85)} 
+                alt="" 
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
         </div>
       );
     }
@@ -373,7 +488,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               if (item.kind === "link") {
                 return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
               } else {
-                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} />;
+                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} />;
               }
             })}
           </div>

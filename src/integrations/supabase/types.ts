@@ -945,6 +945,41 @@ export type Database = {
           },
         ]
       }
+      personal_email_captures: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string | null
+          name: string | null
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          name?: string | null
+          profile_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_email_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_links: {
         Row: {
           created_at: string | null
