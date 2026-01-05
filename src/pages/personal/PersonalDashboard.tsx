@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
 import { DashboardLinksManager } from "@/components/personal/DashboardLinksManager";
 import DashboardBlocksManager from "@/components/personal/DashboardBlocksManager";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
+import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { compressImage } from "@/lib/imageOptimization";
 
 interface PersonalProfile {
   id: string;
@@ -52,7 +54,7 @@ interface PersonalBlock {
   alignment: string | null;
 }
 
-type TimeRange = "3d" | "7d" | "30d" | "12m" | "all";
+type TimeRange = "7d" | "30d" | "all";
 
 const PersonalDashboard = () => {
   const navigate = useNavigate();
@@ -61,10 +63,8 @@ const PersonalDashboard = () => {
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
   const [blocks, setBlocks] = useState<PersonalBlock[]>([]);
   const [analytics, setAnalytics] = useState<Record<TimeRange, number>>({
-    "3d": 0,
     "7d": 0,
     "30d": 0,
-    "12m": 0,
     "all": 0,
   });
   const [copied, setCopied] = useState(false);
@@ -72,18 +72,10 @@ const PersonalDashboard = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analyticsLoadedRef = useRef(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (profile) {
-      loadAllAnalytics();
-    }
-  }, [profile]);
-
-  const loadData = async () => {
+  // Load profile data - optimized with parallel fetches
+  const loadData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -91,6 +83,7 @@ const PersonalDashboard = () => {
         return;
       }
 
+      // Single profile query
       const { data: profileData, error: profileError } = await supabase
         .from("personal_profiles")
         .select("*")
@@ -102,57 +95,69 @@ const PersonalDashboard = () => {
         return;
       }
 
-      setProfile({
+      const normalizedProfile = {
         ...profileData,
         header_type: profileData.header_type || "color",
         header_color: profileData.header_color || "#6BCB77",
         background_color: profileData.background_color || "#ffffff",
         pfp_position: profileData.pfp_position || "left",
-      });
+      };
 
-      const { data: linksData } = await supabase
-        .from("personal_links")
-        .select("*")
-        .eq("profile_id", profileData.id)
-        .order("sort_order", { ascending: true });
+      setProfile(normalizedProfile);
 
-      setLinks(linksData || []);
+      // Parallel fetch links and blocks
+      const [linksResult, blocksResult] = await Promise.all([
+        supabase
+          .from("personal_links")
+          .select("*")
+          .eq("profile_id", profileData.id)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("personal_blocks")
+          .select("*")
+          .eq("profile_id", profileData.id)
+          .order("sort_order", { ascending: true }),
+      ]);
 
-      const { data: blocksData } = await supabase
-        .from("personal_blocks")
-        .select("*")
-        .eq("profile_id", profileData.id)
-        .order("sort_order", { ascending: true });
-
-      setBlocks(blocksData || []);
+      setLinks(linksResult.data || []);
+      setBlocks(blocksResult.data || []);
     } catch (err) {
       console.error("Error loading data:", err);
       toast.error("Failed to load your profile");
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const loadAllAnalytics = async () => {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Load analytics lazily after initial render
+  useEffect(() => {
+    if (profile && !analyticsLoadedRef.current) {
+      analyticsLoadedRef.current = true;
+      // Defer analytics loading
+      const timer = setTimeout(() => loadAllAnalytics(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
+
+  const loadAllAnalytics = useCallback(async () => {
     if (!profile) return;
 
-    const ranges: TimeRange[] = ["3d", "7d", "30d", "12m", "all"];
-    const results: Record<TimeRange, number> = { "3d": 0, "7d": 0, "30d": 0, "12m": 0, "all": 0 };
+    const ranges: TimeRange[] = ["7d", "30d", "all"];
+    const results: Record<TimeRange, number> = { "7d": 0, "30d": 0, "all": 0 };
 
-    for (const range of ranges) {
+    // Parallel analytics queries
+    const promises = ranges.map(async (range) => {
       let startDate = new Date();
       switch (range) {
-        case "3d":
-          startDate.setDate(startDate.getDate() - 3);
-          break;
         case "7d":
           startDate.setDate(startDate.getDate() - 7);
           break;
         case "30d":
           startDate.setDate(startDate.getDate() - 30);
-          break;
-        case "12m":
-          startDate.setMonth(startDate.getMonth() - 12);
           break;
         case "all":
           startDate = new Date(0);
@@ -165,51 +170,18 @@ const PersonalDashboard = () => {
         .eq("profile_id", profile.id)
         .gte("created_at", startDate.toISOString());
 
-      results[range] = count || 0;
-    }
+      return { range, count: count || 0 };
+    });
+
+    const counts = await Promise.all(promises);
+    counts.forEach(({ range, count }) => {
+      results[range] = count;
+    });
 
     setAnalytics(results);
-  };
+  }, [profile]);
 
-  const compressImage = (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxDim = 1024;
-        let { width, height } = img;
-        
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = (height / width) * maxDim;
-            width = maxDim;
-          } else {
-            width = (width / height) * maxDim;
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("No 2d context"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Compression failed"));
-          },
-          "image/jpeg",
-          0.85
-        );
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
-  };
+  // compressImage moved to lib/imageOptimization.ts - imported at top
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -241,7 +213,7 @@ const PersonalDashboard = () => {
     setCropperOpen(true);
   };
 
-  const handleCropComplete = async (croppedBlob: Blob) => {
+  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
     if (!profile) return;
 
     setUploadingPhoto(true);
@@ -273,6 +245,10 @@ const PersonalDashboard = () => {
       if (updateError) throw updateError;
 
       setProfile({ ...profile, profile_photo_url: urlWithCacheBust });
+      
+      // Invalidate public profile cache
+      invalidateProfileCache(profile.username);
+      
       toast.success("Photo updated!");
     } catch (err) {
       console.error("Error uploading photo:", err);
@@ -280,9 +256,9 @@ const PersonalDashboard = () => {
     } finally {
       setUploadingPhoto(false);
     }
-  };
+  }, [profile]);
 
-  const copyProfileUrl = async () => {
+  const copyProfileUrl = useCallback(async () => {
     if (!profile) return;
     try {
       await navigator.clipboard.writeText(`https://tapaway.co/${profile.username}`);
@@ -292,14 +268,14 @@ const PersonalDashboard = () => {
     } catch {
       toast.error("Failed to copy");
     }
-  };
+  }, [profile]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
     navigate("/personal");
-  };
+  }, [navigate]);
 
-  const handleDesignUpdate = (updates: {
+  const handleDesignUpdate = useCallback((updates: {
     headerType?: string;
     headerColor?: string | null;
     headerImageUrl?: string | null;
@@ -307,16 +283,20 @@ const PersonalDashboard = () => {
     pfpPosition?: string;
   }) => {
     if (profile) {
-      setProfile({ 
+      const updatedProfile = { 
         ...profile, 
         header_type: updates.headerType ?? profile.header_type,
         header_color: updates.headerColor !== undefined ? updates.headerColor : profile.header_color,
         header_image_url: updates.headerImageUrl !== undefined ? updates.headerImageUrl : profile.header_image_url,
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
-      });
+      };
+      setProfile(updatedProfile);
+      
+      // Invalidate public profile cache
+      invalidateProfileCache(profile.username);
     }
-  };
+  }, [profile]);
 
   if (loading) {
     return (
@@ -457,12 +437,10 @@ const PersonalDashboard = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { label: "Last 3 days", key: "3d" as TimeRange },
                 { label: "Last 7 days", key: "7d" as TimeRange },
                 { label: "Last 30 days", key: "30d" as TimeRange },
-                { label: "Last 12 months", key: "12m" as TimeRange },
                 { label: "All time", key: "all" as TimeRange },
               ].map((item) => (
                 <div
@@ -506,4 +484,4 @@ const PersonalDashboard = () => {
   );
 };
 
-export default PersonalDashboard;
+export default memo(PersonalDashboard);
