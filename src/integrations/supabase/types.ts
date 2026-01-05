@@ -995,12 +995,14 @@ export type Database = {
       personal_profiles: {
         Row: {
           background_color: string | null
+          bio: string | null
           created_at: string | null
           email: string
           full_name: string
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
+          headline: string | null
           id: string
           pfp_position: string | null
           plan_type: string | null
@@ -1014,12 +1016,14 @@ export type Database = {
         }
         Insert: {
           background_color?: string | null
+          bio?: string | null
           created_at?: string | null
           email: string
           full_name: string
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
+          headline?: string | null
           id?: string
           pfp_position?: string | null
           plan_type?: string | null
@@ -1033,12 +1037,14 @@ export type Database = {
         }
         Update: {
           background_color?: string | null
+          bio?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
+          headline?: string | null
           id?: string
           pfp_position?: string | null
           plan_type?: string | null

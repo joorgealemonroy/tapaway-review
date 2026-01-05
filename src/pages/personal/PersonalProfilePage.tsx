@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
   ExternalLink,
-  Loader2,
-  Share2
+  Share2,
+  Smartphone
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
@@ -278,9 +278,27 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         </div>
 
-        {/* Name & Username */}
+        {/* NFC indicator - subtle card connection */}
+        <motion.div 
+          className={`flex items-center gap-1.5 mb-3 ${pfpCentered ? "justify-center" : ""}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Smartphone className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Tap-enabled</span>
+        </motion.div>
+
+        {/* Name & Username & Headline/Bio */}
         <h1 className="text-2xl font-bold text-foreground">{profile.full_name}</h1>
-        <p className="text-muted-foreground mb-6">@{profile.username}</p>
+        {profile.headline && (
+          <p className="text-sm text-foreground/80 mt-1">{profile.headline}</p>
+        )}
+        <p className="text-muted-foreground text-sm mt-1">@{profile.username}</p>
+        {profile.bio && (
+          <p className="text-muted-foreground text-sm mt-2 max-w-xs mx-auto">{profile.bio}</p>
+        )}
+        <div className="mb-6" />
 
         {/* Blocks - rendered with memoization */}
         {blocks.length > 0 && (
