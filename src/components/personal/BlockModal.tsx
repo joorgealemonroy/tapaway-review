@@ -194,11 +194,13 @@ export const BlockModal = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const filePath = `${user.id}/blocks/${Date.now()}.jpg`;
+      // Use webp extension for smaller files (cropper outputs webp when supported)
+      const extension = croppedBlob.type === 'image/webp' ? 'webp' : 'jpg';
+      const filePath = `${user.id}/blocks/${Date.now()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { contentType: 'image/jpeg' });
+        .upload(filePath, croppedBlob, { contentType: croppedBlob.type });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage

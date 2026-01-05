@@ -23,6 +23,18 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
+const MAX_IMAGE_DIMENSION = 1024;
+const IMAGE_QUALITY = 0.8;
+
+// Check WebP support once
+const supportsWebP = (() => {
+  if (typeof document === 'undefined') return false;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  return canvas.toDataURL('image/webp').startsWith('data:image/webp');
+})();
+
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area
@@ -35,9 +47,23 @@ async function getCroppedImg(
     throw new Error("No 2d context");
   }
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  // Calculate output dimensions - resize if too large
+  let outputWidth = pixelCrop.width;
+  let outputHeight = pixelCrop.height;
+  
+  if (outputWidth > MAX_IMAGE_DIMENSION || outputHeight > MAX_IMAGE_DIMENSION) {
+    const scale = MAX_IMAGE_DIMENSION / Math.max(outputWidth, outputHeight);
+    outputWidth = Math.round(outputWidth * scale);
+    outputHeight = Math.round(outputHeight * scale);
+  }
 
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
+
+  // Draw with high quality scaling
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -46,12 +72,13 @@ async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    outputWidth,
+    outputHeight
   );
 
-  // Get data URL for localStorage persistence
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+  // Use WebP if supported (30% smaller), fallback to JPEG
+  const mimeType = supportsWebP ? 'image/webp' : 'image/jpeg';
+  const dataUrl = canvas.toDataURL(mimeType, IMAGE_QUALITY);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -60,7 +87,7 @@ async function getCroppedImg(
       } else {
         reject(new Error("Canvas is empty"));
       }
-    }, "image/jpeg", 0.9);
+    }, mimeType, IMAGE_QUALITY);
   });
 }
 
