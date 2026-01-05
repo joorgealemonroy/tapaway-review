@@ -1,14 +1,20 @@
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 import QRCode from "react-qr-code";
 
 interface Props {
   fullName: string;
   username: string;
   profilePhotoUrl: string | null;
+  cardHeadline?: string;
 }
 
-export const TapAwayCardPreview = ({ fullName, username, profilePhotoUrl }: Props) => {
+export const TapAwayCardPreview = ({ 
+  fullName, 
+  username, 
+  profilePhotoUrl,
+  cardHeadline = "Tap to Connect &\nCollaborate"
+}: Props) => {
   const [side, setSide] = useState<"front" | "back">("front");
 
   const profileUrl = `tapaway.co/${username || "yourname"}`;
@@ -39,107 +45,134 @@ export const TapAwayCardPreview = ({ fullName, username, profilePhotoUrl }: Prop
         </button>
       </div>
 
-      {/* Card - matching reference design exactly */}
+      {/* Card - EXACT match to reference: 2x3.5 aspect ratio */}
       <div 
-        className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg"
+        className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg mx-auto"
         style={{ 
-          aspectRatio: "2.5/3.5",
+          aspectRatio: "2/3.5",
+          maxWidth: "280px",
+          width: "100%",
         }}
       >
         {side === "front" ? (
-          /* Front of card - matching uploaded reference exactly */
-          <div className="absolute inset-0 bg-[#f0f0f0] rounded-2xl flex flex-col items-center px-6 pt-6 pb-8">
-            {/* Top row: Name + Verified badge */}
-            <div className="w-full flex items-center justify-end gap-2 mb-4">
-              <span className="text-sm font-semibold text-foreground truncate max-w-[60%]">
-                {fullName || "Your Name"}
-              </span>
-              <div className="h-7 w-7 bg-[#1DA1F2] rounded-full flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="h-4 w-4 text-white" strokeWidth={3} />
+          /* Front of card - PIXEL-PERFECT match to reference */
+          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center">
+            {/* Verified badge - top right positioned exactly like reference */}
+            <div className="absolute top-4 right-4">
+              <div className="h-8 w-8 bg-[#1DA1F2] rounded-full flex items-center justify-center shadow-sm">
+                <Check className="h-5 w-5 text-white" strokeWidth={3} />
               </div>
             </div>
 
-            {/* Large circular profile photo - replaces green circle */}
+            {/* Large green circle - centered, matching reference size ratio */}
             <div 
-              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-12"
               style={{
-                width: "clamp(120px, 45vw, 160px)",
-                height: "clamp(120px, 45vw, 160px)",
-                backgroundColor: profilePhotoUrl ? "transparent" : "#6BCB77",
+                width: "55%",
+                aspectRatio: "1/1",
+                backgroundColor: "#6BCB77",
               }}
             >
               {profilePhotoUrl ? (
                 <img
                   src={profilePhotoUrl}
-                  alt={fullName}
+                  alt={fullName || "Profile"}
                   className="w-full h-full object-cover"
                 />
-              ) : (
-                <span className="text-4xl font-bold text-white">
-                  {fullName ? fullName.charAt(0).toUpperCase() : "?"}
-                </span>
-              )}
+              ) : null}
             </div>
 
-            {/* Tagline */}
-            <p className="text-base font-bold text-foreground text-center mt-6 mb-auto leading-tight">
-              Tap to Connect &<br />Collaborate
+            {/* Headline text - exactly matching reference typography */}
+            <p 
+              className="text-center mt-6 px-6 leading-tight"
+              style={{
+                fontSize: "clamp(14px, 4.5vw, 18px)",
+                fontWeight: 700,
+                color: "#1a1a1a",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {cardHeadline}
             </p>
 
-            {/* NFC + QR icons row */}
-            <div className="flex items-center justify-center gap-3 mb-4">
-              {/* NFC/Phone tap icon - simplified version matching reference */}
-              <svg width="52" height="52" viewBox="0 0 64 64" fill="none" className="text-foreground">
+            {/* Spacer to push bottom content down */}
+            <div className="flex-1 min-h-4" />
+
+            {/* NFC + QR icons row - exact positioning from reference */}
+            <div className="flex items-center justify-center gap-4 mb-3">
+              {/* NFC/Phone tap icon - matching reference illustration style */}
+              <svg 
+                width="56" 
+                height="56" 
+                viewBox="0 0 80 80" 
+                fill="none" 
+                className="text-[#1a1a1a]"
+              >
+                {/* Hand outline */}
+                <ellipse cx="28" cy="68" rx="18" ry="8" stroke="currentColor" strokeWidth="2" fill="none"/>
                 {/* Phone body */}
-                <rect x="8" y="12" width="28" height="44" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-                {/* Screen */}
-                <rect x="12" y="18" width="20" height="30" rx="1" stroke="currentColor" strokeWidth="1" fill="none"/>
-                {/* Checkmark in circle on screen */}
-                <circle cx="22" cy="33" r="8" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                <path d="M18 33l3 3 6-6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="12" y="14" width="32" height="50" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                {/* Screen area */}
+                <rect x="16" y="20" width="24" height="36" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                {/* Checkmark circle on screen */}
+                <circle cx="28" cy="38" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <path d="M23 38l4 4 8-8" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                 {/* NFC waves */}
-                <path d="M42 28c4 2 6 6 6 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
-                <path d="M46 24c6 3 10 10 10 18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
-                {/* Hand holding phone */}
-                <ellipse cx="22" cy="58" rx="14" ry="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                <path d="M52 32c5 3 8 8 8 14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                <path d="M58 26c7 4 12 12 12 20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
               </svg>
               
-              <div className="h-10 w-px bg-gray-300" />
+              {/* Vertical divider - matching reference */}
+              <div className="h-12 w-px bg-[#ccc]" />
               
-              {/* QR Code */}
-              <div className="bg-white p-1.5 rounded">
+              {/* QR Code - matching reference size */}
+              <div className="bg-white p-1 rounded">
                 <QRCode 
                   value={`https://${profileUrl}`}
-                  size={42}
+                  size={48}
                   level="L"
                 />
               </div>
             </div>
 
-            {/* Bottom tagline */}
-            <p className="text-sm font-bold text-foreground mb-1">
+            {/* Bottom tagline - exact match */}
+            <p 
+              className="text-center mb-2"
+              style={{
+                fontSize: "clamp(12px, 3.5vw, 14px)",
+                fontWeight: 700,
+                color: "#1a1a1a",
+              }}
+            >
               All your links. One tap.
             </p>
 
-            {/* TapAway.co */}
-            <p className="text-xs text-muted-foreground font-medium">
+            {/* TapAway.co footer - matching reference opacity/style */}
+            <p 
+              className="text-center mb-4"
+              style={{
+                fontSize: "clamp(10px, 3vw, 12px)",
+                fontWeight: 500,
+                color: "#888",
+              }}
+            >
               TapAway.co
             </p>
           </div>
         ) : (
-          /* Back of card */
-          <div className="absolute inset-0 bg-background border border-border rounded-2xl flex flex-col items-center justify-center gap-5 p-8">
-            {/* Larger QR Code */}
+          /* Back of card - clean QR focus */
+          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center justify-center gap-5 p-6">
+            {/* Large QR Code */}
             <div className="bg-white p-4 rounded-xl shadow-sm">
               <QRCode 
                 value={`https://${profileUrl}`}
-                size={120}
+                size={140}
                 level="M"
               />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground mb-1">Scan to connect</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm font-semibold text-[#1a1a1a] mb-1">Scan to connect</p>
+              <p className="text-xs text-[#888]">
                 {profileUrl}
               </p>
             </div>
