@@ -296,22 +296,23 @@ const ProfileBlock = memo(function ProfileBlock({
     }
     case "photo_collage": {
       const images: string[] = content.images ? JSON.parse(content.images) : [];
-      const columns = parseInt(content.columns || "3") as 2 | 3;
       
       if (images.length === 0) return null;
       
       return (
-        <div className={`w-full grid gap-2 ${columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-          {images.map((imgUrl, idx) => (
-            <div key={idx} className="aspect-square rounded-lg overflow-hidden">
-              <img 
-                src={getOptimizedImageUrl(imgUrl, 200, 85)} 
-                alt="" 
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
+        <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="flex gap-2" style={{ width: 'max-content' }}>
+            {images.map((imgUrl, idx) => (
+              <div key={idx} className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
+                <img 
+                  src={getOptimizedImageUrl(imgUrl, 200, 85)} 
+                  alt="" 
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       );
     }

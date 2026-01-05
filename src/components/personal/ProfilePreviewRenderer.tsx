@@ -287,22 +287,23 @@ function ProfilePreviewRendererComponent({
       }
       case "photo_collage": {
         const images: string[] = content.images ? JSON.parse(content.images as string) : [];
-        const columns = parseInt((content.columns as string) || "3") as 2 | 3;
         
         if (images.length === 0) return null;
         
         return (
-          <div key={block.id} className={`w-full grid gap-1.5 ${columns === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-            {images.map((imgUrl, idx) => (
-              <div key={idx} className="aspect-square rounded-lg overflow-hidden">
-                <img 
-                  src={getOptimizedImageUrl(imgUrl, 150)} 
-                  alt="" 
-                  loading="lazy"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
+          <div key={block.id} className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6">
+            <div className="flex gap-1.5" style={{ width: 'max-content' }}>
+              {images.map((imgUrl, idx) => (
+                <div key={idx} className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                  <img 
+                    src={getOptimizedImageUrl(imgUrl, 150)} 
+                    alt="" 
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         );
       }
