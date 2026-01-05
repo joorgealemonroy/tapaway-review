@@ -20,11 +20,12 @@ import {
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
-import { DashboardUnifiedContent } from "@/components/personal/DashboardUnifiedContent";
+import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
 import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
+import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 
@@ -80,8 +81,12 @@ const PersonalDashboard = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analyticsLoadedRef = useRef(false);
+  const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -189,8 +194,6 @@ const PersonalDashboard = () => {
 
     setAnalytics(results);
   }, [profile]);
-
-  // compressImage moved to lib/imageOptimization.ts - imported at top
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -307,6 +310,26 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
+  // Save bar handlers
+  const handleSaveChanges = useCallback(async () => {
+    if (!unifiedContentRef.current) return;
+    setSaving(true);
+    try {
+      await unifiedContentRef.current.saveAllChanges();
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const handleDiscardChanges = useCallback(() => {
+    if (!unifiedContentRef.current) return;
+    unifiedContentRef.current.discardChanges();
+  }, []);
+
+  const handleOpenPreview = useCallback(() => {
+    setPreviewSheetOpen(true);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -348,7 +371,7 @@ const PersonalDashboard = () => {
       {/* Main Layout: Dashboard + Preview Panel */}
       <div className="max-w-7xl mx-auto flex">
         {/* Dashboard Content */}
-        <main className="flex-1 max-w-2xl px-4 py-6">
+        <main className="flex-1 max-w-2xl px-4 py-6 pb-32">
           {/* Profile Header */}
           <div className="flex items-center gap-4 mb-6">
             <button
@@ -444,12 +467,14 @@ const PersonalDashboard = () => {
             
             <div className="border-t pt-6">
               <DashboardUnifiedContent
+                ref={unifiedContentRef}
                 profileId={profile.id}
                 username={profile.username}
                 links={links}
                 blocks={blocks}
                 onLinksChange={setLinks}
                 onBlocksChange={setBlocks}
+                onPendingChangesChange={setHasPendingChanges}
               />
             </div>
           </TabsContent>
@@ -514,11 +539,12 @@ const PersonalDashboard = () => {
       </div>
 
       {/* Mobile Preview Button + Sheet */}
-      <Sheet>
+      <Sheet open={previewSheetOpen} onOpenChange={setPreviewSheetOpen}>
         <SheetTrigger asChild>
           <Button
             className="fixed bottom-6 right-6 xl:hidden rounded-full h-14 w-14 shadow-lg z-40"
             size="icon"
+            style={{ bottom: hasPendingChanges ? "7rem" : "1.5rem" }}
           >
             <Smartphone className="h-6 w-6" />
           </Button>
@@ -536,6 +562,15 @@ const PersonalDashboard = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Unsaved Changes Bar */}
+      <UnsavedChangesBar
+        hasPendingChanges={hasPendingChanges}
+        onPreview={handleOpenPreview}
+        onSave={handleSaveChanges}
+        onDiscard={handleDiscardChanges}
+        saving={saving}
+      />
 
       {/* Image Cropper */}
       {rawImageUrl && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { 
@@ -13,7 +13,6 @@ import {
   Image as ImageIcon,
   Type,
   MousePointerClick,
-  Smartphone
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -64,6 +63,23 @@ type UnifiedItem =
   | { kind: "link"; data: DbPersonalLink }
   | { kind: "block"; data: PersonalBlock };
 
+// Track what's been changed
+interface PendingChanges {
+  addedLinks: DbPersonalLink[];
+  updatedLinks: Map<string, Partial<DbPersonalLink>>;
+  deletedLinkIds: Set<string>;
+  addedBlocks: PersonalBlock[];
+  updatedBlocks: Map<string, Partial<PersonalBlock>>;
+  deletedBlockIds: Set<string>;
+  orderChanged: boolean;
+}
+
+export interface DashboardUnifiedContentHandle {
+  saveAllChanges: () => Promise<void>;
+  discardChanges: () => void;
+  hasPendingChanges: boolean;
+}
+
 interface Props {
   profileId: string;
   username: string;
@@ -71,27 +87,28 @@ interface Props {
   blocks: PersonalBlock[];
   onLinksChange: (links: DbPersonalLink[]) => void;
   onBlocksChange: (blocks: PersonalBlock[]) => void;
+  onPendingChangesChange: (hasPending: boolean) => void;
 }
 
-// Show a toast prompting user to check preview
-const showPreviewHint = () => {
-  toast.success(
-    <div className="flex items-center gap-2">
-      <Smartphone className="h-4 w-4" />
-      <span>Saved! Check the preview to see your changes.</span>
-    </div>,
-    { duration: 3000 }
-  );
-};
+const createEmptyPendingChanges = (): PendingChanges => ({
+  addedLinks: [],
+  updatedLinks: new Map(),
+  deletedLinkIds: new Set(),
+  addedBlocks: [],
+  updatedBlocks: new Map(),
+  deletedBlockIds: new Set(),
+  orderChanged: false,
+});
 
-export const DashboardUnifiedContent = ({ 
+export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle, Props>(({ 
   profileId, 
   username,
   links, 
   blocks, 
   onLinksChange, 
-  onBlocksChange 
-}: Props) => {
+  onBlocksChange,
+  onPendingChangesChange,
+}, ref) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
@@ -99,7 +116,37 @@ export const DashboardUnifiedContent = ({
   const [deleteItem, setDeleteItem] = useState<{ kind: "link" | "block"; id: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ index: number; item: UnifiedItem } | null>(null);
-  const [showAddMenu, setShowAddMenu] = useState(false);
+  
+  // Track pending changes - these haven't been saved to DB yet
+  const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
+
+  const hasPendingChanges = pendingChanges.addedLinks.length > 0 ||
+    pendingChanges.updatedLinks.size > 0 ||
+    pendingChanges.deletedLinkIds.size > 0 ||
+    pendingChanges.addedBlocks.length > 0 ||
+    pendingChanges.updatedBlocks.size > 0 ||
+    pendingChanges.deletedBlockIds.size > 0 ||
+    pendingChanges.orderChanged;
+
+  // Notify parent when pending changes state changes
+  const markPendingChange = useCallback((changes: Partial<PendingChanges>) => {
+    setPendingChanges(prev => {
+      const updated = { ...prev, ...changes };
+      // Check if has pending after update
+      const hasChanges = updated.addedLinks.length > 0 ||
+        updated.updatedLinks.size > 0 ||
+        updated.deletedLinkIds.size > 0 ||
+        updated.addedBlocks.length > 0 ||
+        updated.updatedBlocks.size > 0 ||
+        updated.deletedBlockIds.size > 0 ||
+        updated.orderChanged;
+      
+      // Use setTimeout to avoid state update during render
+      setTimeout(() => onPendingChangesChange(hasChanges), 0);
+      
+      return updated;
+    });
+  }, [onPendingChangesChange]);
 
   // Combine and sort all items by sort_order
   const unifiedItems: UnifiedItem[] = [
@@ -116,58 +163,109 @@ export const DashboardUnifiedContent = ({
     pillColor: dbLink.pill_color,
   });
 
-  // Persist the new unified order to both tables
-  const persistOrder = async (items: UnifiedItem[]) => {
+  // Save all pending changes to DB
+  const saveAllChanges = async () => {
+    setSaving(true);
     try {
-      const linkUpdates: { id: string; sort_order: number }[] = [];
-      const blockUpdates: { id: string; sort_order: number }[] = [];
+      // Save deleted items first
+      for (const id of pendingChanges.deletedLinkIds) {
+        await supabase.from("personal_links").delete().eq("id", id);
+      }
+      for (const id of pendingChanges.deletedBlockIds) {
+        await supabase.from("personal_blocks").delete().eq("id", id);
+      }
 
-      items.forEach((item, index) => {
-        if (item.kind === "link") {
-          linkUpdates.push({ id: item.data.id, sort_order: index });
-        } else {
-          blockUpdates.push({ id: item.data.id, sort_order: index });
+      // Save added items
+      for (const link of pendingChanges.addedLinks) {
+        await supabase.from("personal_links").insert({
+          id: link.id,
+          profile_id: profileId,
+          link_type: link.link_type,
+          label: link.label,
+          url: link.url,
+          sort_order: link.sort_order,
+          pill_color: link.pill_color,
+          is_active: link.is_active,
+          is_featured: link.is_featured,
+        });
+      }
+      for (const block of pendingChanges.addedBlocks) {
+        const { error } = await supabase.from("personal_blocks").insert({
+          profile_id: profileId,
+          block_type: block.block_type,
+          content: block.content as any,
+          sort_order: block.sort_order,
+          alignment: block.alignment,
+          is_active: block.is_active,
+        });
+        if (error) console.error("Block insert error:", error);
+      }
+
+      // Save updated items
+      for (const [id, updates] of pendingChanges.updatedLinks) {
+        await supabase.from("personal_links").update(updates).eq("id", id);
+      }
+      for (const [id, updates] of pendingChanges.updatedBlocks) {
+        await supabase.from("personal_blocks").update(updates as any).eq("id", id);
+      }
+
+      // Save order changes if any
+      if (pendingChanges.orderChanged) {
+        for (const link of links) {
+          await supabase
+            .from("personal_links")
+            .update({ sort_order: link.sort_order })
+            .eq("id", link.id);
         }
-      });
-
-      // Update links
-      for (const update of linkUpdates) {
-        await supabase
-          .from("personal_links")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id);
+        for (const block of blocks) {
+          await supabase
+            .from("personal_blocks")
+            .update({ sort_order: block.sort_order })
+            .eq("id", block.id);
+        }
       }
 
-      // Update blocks
-      for (const update of blockUpdates) {
-        await supabase
-          .from("personal_blocks")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id);
-      }
-
-      // Update local state with new sort orders
-      const updatedLinks = links.map(link => {
-        const update = linkUpdates.find(u => u.id === link.id);
-        return update ? { ...link, sort_order: update.sort_order } : link;
-      });
-      const updatedBlocks = blocks.map(block => {
-        const update = blockUpdates.find(u => u.id === block.id);
-        return update ? { ...block, sort_order: update.sort_order } : block;
-      });
-
-      onLinksChange(updatedLinks);
-      onBlocksChange(updatedBlocks);
-      
-      // Invalidate cache so live profile shows new order
+      // Invalidate cache
       invalidateProfileCache(username);
+      
+      // Clear pending changes
+      setPendingChanges(createEmptyPendingChanges());
+      onPendingChangesChange(false);
+      
+      toast.success("Changes saved!");
     } catch (err) {
-      console.error("Reorder error:", err);
-      toast.error("Failed to save order");
+      console.error("Save error:", err);
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Drag handlers
+  // Discard all pending changes - reload from DB
+  const discardChanges = useCallback(() => {
+    // Remove locally added items from state
+    const cleanedLinks = links.filter(l => !pendingChanges.addedLinks.find(al => al.id === l.id));
+    const cleanedBlocks = blocks.filter(b => !pendingChanges.addedBlocks.find(ab => ab.id === b.id));
+    
+    // Restore deleted items - we need to reload from DB, so just trigger a refresh
+    // For now, we'll clear pending and the parent should refetch
+    setPendingChanges(createEmptyPendingChanges());
+    onPendingChangesChange(false);
+    
+    // Signal parent to reload data
+    toast.info("Changes discarded");
+    // Trigger page reload to reset state
+    window.location.reload();
+  }, [links, blocks, pendingChanges, onPendingChangesChange]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    saveAllChanges,
+    discardChanges,
+    hasPendingChanges,
+  }), [hasPendingChanges]);
+
+  // Drag handlers (update local state, mark order as changed)
   const handleDragStart = (index: number, item: UnifiedItem) => {
     setDraggedItem({ index, item });
   };
@@ -180,13 +278,11 @@ export const DashboardUnifiedContent = ({
     const [removed] = newItems.splice(draggedItem.index, 1);
     newItems.splice(index, 0, removed);
 
-    // Update sort_order with new object references (critical for React memoization)
     const updatedItems = newItems.map((item, i) => ({
       ...item,
       data: { ...item.data, sort_order: i }
     }));
 
-    // Separate back to links and blocks with new references
     const newLinks = updatedItems
       .filter((item): item is { kind: "link"; data: DbPersonalLink } => item.kind === "link")
       .map(item => item.data);
@@ -199,10 +295,10 @@ export const DashboardUnifiedContent = ({
     setDraggedItem({ index, item: draggedItem.item });
   };
 
-  const handleDragEnd = async () => {
+  const handleDragEnd = () => {
     if (!draggedItem) return;
     setDraggedItem(null);
-    await persistOrder(unifiedItems);
+    markPendingChange({ orderChanged: true });
   };
 
   // Touch handlers for mobile
@@ -229,7 +325,6 @@ export const DashboardUnifiedContent = ({
       const [removed] = newItems.splice(draggedItem.index, 1);
       newItems.splice(newIndex, 0, removed);
 
-      // Update sort_order with new object references (critical for React memoization)
       const updatedItems = newItems.map((item, i) => ({
         ...item,
         data: { ...item.data, sort_order: i }
@@ -248,158 +343,166 @@ export const DashboardUnifiedContent = ({
     }
   };
 
-  const handleTouchEnd = async () => {
+  const handleTouchEnd = () => {
     setTouchStartY(null);
     setTouchCurrentIndex(null);
-    await handleDragEnd();
-  };
-
-  // Link handlers
-  const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
-    setSaving(true);
-    try {
-      const maxOrder = Math.max(...unifiedItems.map(i => i.data.sort_order), -1);
-      const newLink = {
-        profile_id: profileId,
-        link_type: link.type,
-        label: link.label,
-        url: link.url,
-        sort_order: maxOrder + 1,
-        pill_color: link.pillColor || null,
-      };
-
-      const { data, error } = await supabase
-        .from("personal_links")
-        .insert(newLink)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      onLinksChange([...links, data]);
-      setLinkModalOpen(false);
-      showPreviewHint();
-    } catch (err) {
-      console.error("Error adding link:", err);
-      toast.error("Failed to add link");
-    } finally {
-      setSaving(false);
+    if (draggedItem) {
+      setDraggedItem(null);
+      markPendingChange({ orderChanged: true });
     }
   };
 
-  const handleUpdateLink = async (id: string, updates: Partial<PersonalLink>) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("personal_links")
-        .update({
-          link_type: updates.type,
-          label: updates.label,
-          url: updates.url,
-          pill_color: updates.pillColor || null,
-        })
-        .eq("id", id);
+  // Link handlers - now update local state only
+  const handleAddLink = (link: Omit<PersonalLink, "id">) => {
+    const maxOrder = Math.max(...unifiedItems.map(i => i.data.sort_order), -1);
+    const newLink: DbPersonalLink = {
+      id: crypto.randomUUID(),
+      link_type: link.type,
+      label: link.label,
+      url: link.url,
+      sort_order: maxOrder + 1,
+      pill_color: link.pillColor || null,
+      is_active: true,
+      is_featured: false,
+    };
 
-      if (error) throw error;
-
-      onLinksChange(links.map(l => 
-        l.id === id 
-          ? { 
-              ...l, 
-              link_type: updates.type || l.link_type, 
-              label: updates.label || l.label, 
-              url: updates.url || l.url,
-              pill_color: updates.pillColor !== undefined ? updates.pillColor : l.pill_color,
-            }
-          : l
-      ));
-      setLinkModalOpen(false);
-      setEditingLink(null);
-      showPreviewHint();
-    } catch (err) {
-      console.error("Error updating link:", err);
-      toast.error("Failed to update link");
-    } finally {
-      setSaving(false);
-    }
+    onLinksChange([...links, newLink]);
+    markPendingChange({ addedLinks: [...pendingChanges.addedLinks, newLink] });
+    setLinkModalOpen(false);
   };
 
-  const toggleLinkVisibility = async (id: string, currentState: boolean | null) => {
+  const handleUpdateLink = (id: string, updates: Partial<PersonalLink>) => {
+    // Check if this is a pending add (not yet in DB)
+    const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
+    
+    const dbUpdates: Partial<DbPersonalLink> = {
+      link_type: updates.type,
+      label: updates.label,
+      url: updates.url,
+      pill_color: updates.pillColor || null,
+    };
+
+    onLinksChange(links.map(l => 
+      l.id === id 
+        ? { ...l, ...dbUpdates }
+        : l
+    ));
+
+    if (isPendingAdd) {
+      // Update the pending add
+      markPendingChange({
+        addedLinks: pendingChanges.addedLinks.map(l => 
+          l.id === id ? { ...l, ...dbUpdates } : l
+        ),
+      });
+    } else {
+      // Track as update
+      const existingUpdates = pendingChanges.updatedLinks.get(id) || {};
+      const newUpdates = new Map(pendingChanges.updatedLinks);
+      newUpdates.set(id, { ...existingUpdates, ...dbUpdates });
+      markPendingChange({ updatedLinks: newUpdates });
+    }
+
+    setLinkModalOpen(false);
+    setEditingLink(null);
+  };
+
+  const toggleLinkVisibility = (id: string, currentState: boolean | null) => {
     const newState = !(currentState ?? true);
-    try {
-      const { error } = await supabase
-        .from("personal_links")
-        .update({ is_active: newState })
-        .eq("id", id);
+    
+    onLinksChange(links.map(l => 
+      l.id === id ? { ...l, is_active: newState } : l
+    ));
 
-      if (error) throw error;
-
-      onLinksChange(links.map(l => 
-        l.id === id ? { ...l, is_active: newState } : l
-      ));
-      toast.success(newState ? "Link visible" : "Link hidden");
-    } catch (err) {
-      console.error("Error toggling visibility:", err);
-      toast.error("Failed to update link");
+    const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
+    if (isPendingAdd) {
+      markPendingChange({
+        addedLinks: pendingChanges.addedLinks.map(l => 
+          l.id === id ? { ...l, is_active: newState } : l
+        ),
+      });
+    } else {
+      const existingUpdates = pendingChanges.updatedLinks.get(id) || {};
+      const newUpdates = new Map(pendingChanges.updatedLinks);
+      newUpdates.set(id, { ...existingUpdates, is_active: newState });
+      markPendingChange({ updatedLinks: newUpdates });
     }
   };
 
-  const toggleFeatured = async (id: string, currentState: boolean | null) => {
+  const toggleFeatured = (id: string, currentState: boolean | null) => {
     const newState = !(currentState ?? false);
-    try {
-      if (newState) {
-        await supabase
-          .from("personal_links")
-          .update({ is_featured: false })
-          .eq("profile_id", profileId)
-          .neq("id", id);
+    
+    // Unfeatured all others if setting to featured
+    const updatedLinks = links.map(l => 
+      l.id === id 
+        ? { ...l, is_featured: newState }
+        : newState ? { ...l, is_featured: false } : l
+    );
+    onLinksChange(updatedLinks);
+
+    // Track all the changes
+    const newUpdates = new Map(pendingChanges.updatedLinks);
+    for (const link of updatedLinks) {
+      if (link.id === id || newState) {
+        const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === link.id);
+        if (!isPendingAdd) {
+          const existingUpdates = newUpdates.get(link.id) || {};
+          newUpdates.set(link.id, { ...existingUpdates, is_featured: link.is_featured });
+        }
       }
-
-      const { error } = await supabase
-        .from("personal_links")
-        .update({ is_featured: newState })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      onLinksChange(links.map(l => 
-        l.id === id 
-          ? { ...l, is_featured: newState }
-          : newState ? { ...l, is_featured: false } : l
-      ));
-      toast.success(newState ? "Link featured!" : "Link unfeatured");
-    } catch (err) {
-      console.error("Error toggling featured:", err);
-      toast.error("Failed to update link");
+    }
+    
+    // Update pending adds too
+    if (newState) {
+      markPendingChange({
+        updatedLinks: newUpdates,
+        addedLinks: pendingChanges.addedLinks.map(l => ({
+          ...l,
+          is_featured: l.id === id ? newState : false
+        })),
+      });
+    } else {
+      markPendingChange({ updatedLinks: newUpdates });
     }
   };
 
-  // Delete handler
-  const handleDelete = async () => {
+  // Delete handler - now marks for deletion, doesn't delete immediately
+  const handleDelete = () => {
     if (!deleteItem) return;
 
-    try {
-      if (deleteItem.kind === "link") {
-        const { error } = await supabase
-          .from("personal_links")
-          .delete()
-          .eq("id", deleteItem.id);
-        if (error) throw error;
-        onLinksChange(links.filter(l => l.id !== deleteItem.id));
+    if (deleteItem.kind === "link") {
+      const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === deleteItem.id);
+      
+      if (isPendingAdd) {
+        // Just remove from pending adds
+        markPendingChange({
+          addedLinks: pendingChanges.addedLinks.filter(l => l.id !== deleteItem.id),
+        });
       } else {
-        const { error } = await supabase
-          .from("personal_blocks")
-          .delete()
-          .eq("id", deleteItem.id);
-        if (error) throw error;
-        onBlocksChange(blocks.filter(b => b.id !== deleteItem.id));
+        // Mark for deletion
+        const newDeletedIds = new Set(pendingChanges.deletedLinkIds);
+        newDeletedIds.add(deleteItem.id);
+        markPendingChange({ deletedLinkIds: newDeletedIds });
       }
-      setDeleteItem(null);
-      showPreviewHint();
-    } catch (err) {
-      console.error("Delete error:", err);
-      toast.error("Failed to delete");
+      
+      onLinksChange(links.filter(l => l.id !== deleteItem.id));
+    } else {
+      const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === deleteItem.id);
+      
+      if (isPendingAdd) {
+        markPendingChange({
+          addedBlocks: pendingChanges.addedBlocks.filter(b => b.id !== deleteItem.id),
+        });
+      } else {
+        const newDeletedIds = new Set(pendingChanges.deletedBlockIds);
+        newDeletedIds.add(deleteItem.id);
+        markPendingChange({ deletedBlockIds: newDeletedIds });
+      }
+      
+      onBlocksChange(blocks.filter(b => b.id !== deleteItem.id));
     }
+    
+    setDeleteItem(null);
   };
 
   const renderBlockIcon = (blockType: string) => {
@@ -431,6 +534,36 @@ export const DashboardUnifiedContent = ({
       default:
         return "Block";
     }
+  };
+
+  // Handle block saved from modal - now tracks as pending
+  const handleBlockSaved = (block: PersonalBlock) => {
+    if (editingBlock) {
+      // Update existing
+      onBlocksChange(blocks.map(b => b.id === block.id ? block : b));
+      
+      const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === block.id);
+      if (isPendingAdd) {
+        markPendingChange({
+          addedBlocks: pendingChanges.addedBlocks.map(b => 
+            b.id === block.id ? block : b
+          ),
+        });
+      } else {
+        const newUpdates = new Map(pendingChanges.updatedBlocks);
+        newUpdates.set(block.id, { content: block.content, alignment: block.alignment });
+        markPendingChange({ updatedBlocks: newUpdates });
+      }
+    } else {
+      // Add new - block already has DB-assigned id from BlockModal
+      onBlocksChange([...blocks, block]);
+      markPendingChange({
+        addedBlocks: [...pendingChanges.addedBlocks, block],
+      });
+    }
+    
+    setBlockModalOpen(false);
+    setEditingBlock(null);
   };
 
   return (
@@ -605,7 +738,7 @@ export const DashboardUnifiedContent = ({
         existingTypes={[]}
       />
 
-      {/* Block Modal */}
+      {/* Block Modal - now doesn't save to DB directly */}
       <BlockModal
         open={blockModalOpen}
         onOpenChange={setBlockModalOpen}
@@ -613,15 +746,8 @@ export const DashboardUnifiedContent = ({
         username={username}
         editingBlock={editingBlock}
         currentMaxOrder={Math.max(...unifiedItems.map(i => i.data.sort_order), -1)}
-        onBlockSaved={(block) => {
-          if (editingBlock) {
-            onBlocksChange(blocks.map(b => b.id === block.id ? block : b));
-          } else {
-            onBlocksChange([...blocks, block]);
-          }
-          setBlockModalOpen(false);
-          setEditingBlock(null);
-        }}
+        onBlockSaved={handleBlockSaved}
+        deferSave={true}
       />
 
       {/* Delete confirmation */}
@@ -646,4 +772,6 @@ export const DashboardUnifiedContent = ({
       </AlertDialog>
     </div>
   );
-};
+});
+
+DashboardUnifiedContent.displayName = "DashboardUnifiedContent";

@@ -40,6 +40,7 @@ interface Props {
   editingBlock: PersonalBlock | null;
   currentMaxOrder: number;
   onBlockSaved: (block: PersonalBlock) => void;
+  deferSave?: boolean; // If true, don't save to DB, just return the block data
 }
 
 const BLOCK_TYPES = [
@@ -56,7 +57,8 @@ export const BlockModal = ({
   username,
   editingBlock, 
   currentMaxOrder,
-  onBlockSaved 
+  onBlockSaved,
+  deferSave = false,
 }: Props) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -264,6 +266,26 @@ export const BlockModal = ({
         content = { label: buttonLabel, url: buttonUrl.startsWith("http") ? buttonUrl : `https://${buttonUrl}` };
         break;
       }
+    }
+
+    // If deferSave is true, just return the block data without saving to DB
+    if (deferSave) {
+      if (editingBlock) {
+        onBlockSaved({ ...editingBlock, content, alignment });
+      } else {
+        // Create a new block with a temporary ID
+        const newBlock: PersonalBlock = {
+          id: crypto.randomUUID(),
+          block_type: selectedType,
+          content,
+          alignment,
+          sort_order: currentMaxOrder + 1,
+          is_active: true,
+        };
+        onBlockSaved(newBlock);
+      }
+      handleClose();
+      return;
     }
 
     setSaving(true);
