@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Link2, 
   BarChart3, 
@@ -14,7 +15,8 @@ import {
   Eye,
   Copy,
   Check,
-  Palette
+  Palette,
+  Smartphone
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
@@ -22,6 +24,7 @@ import { DashboardUnifiedContent } from "@/components/personal/DashboardUnifiedC
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
 import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
+import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 
@@ -57,6 +60,7 @@ interface PersonalBlock {
   content: unknown;
   sort_order: number;
   alignment: string | null;
+  is_active?: boolean | null;
 }
 
 type TimeRange = "7d" | "30d" | "all";
@@ -315,11 +319,18 @@ const PersonalDashboard = () => {
     return null;
   }
 
+  // Prepare blocks for preview with proper typing
+  const previewBlocks = blocks.map(b => ({
+    ...b,
+    content: b.content as Record<string, unknown>,
+    is_active: b.is_active ?? true,
+  }));
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <a href="/personal" className="font-black text-xl tracking-tight text-foreground">
               TapAway
@@ -334,66 +345,68 @@ const PersonalDashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Profile Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
-          >
-            {profile.profile_photo_url ? (
-              <img
-                src={profile.profile_photo_url}
-                alt={profile.full_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center">
-                <span className="text-xl font-bold text-muted-foreground">
-                  {profile.full_name.charAt(0)}
-                </span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              {uploadingPhoto ? (
-                <Loader2 className="h-5 w-5 text-white animate-spin" />
-              ) : (
-                <Camera className="h-5 w-5 text-white" />
-              )}
-            </div>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoSelect}
-            className="hidden"
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-lg text-foreground">{profile.full_name}</h1>
+      {/* Main Layout: Dashboard + Preview Panel */}
+      <div className="max-w-7xl mx-auto flex">
+        {/* Dashboard Content */}
+        <main className="flex-1 max-w-2xl px-4 py-6">
+          {/* Profile Header */}
+          <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={copyProfileUrl}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
             >
-              tapaway.co/{profile.username}
-              {copied ? (
-                <Check className="h-3 w-3 text-primary" />
+              {profile.profile_photo_url ? (
+                <img
+                  src={profile.profile_photo_url}
+                  alt={profile.full_name}
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <Copy className="h-3 w-3" />
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <span className="text-xl font-bold text-muted-foreground">
+                    {profile.full_name.charAt(0)}
+                  </span>
+                </div>
               )}
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploadingPhoto ? (
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-5 w-5 text-white" />
+                )}
+              </div>
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-lg text-foreground">{profile.full_name}</h1>
+              <button
+                onClick={copyProfileUrl}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                tapaway.co/{profile.username}
+                {copied ? (
+                  <Check className="h-3 w-3 text-primary" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`/${profile.username}`, "_blank")}
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              View
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(`/${profile.username}`, "_blank")}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            View
-          </Button>
-        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="links" className="space-y-6">
@@ -489,6 +502,40 @@ const PersonalDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+        {/* Desktop Preview Panel */}
+        <aside className="hidden xl:block w-[340px] sticky top-20 h-[calc(100vh-5rem)] py-6 pr-4">
+          <ProfilePreviewPanel
+            profile={profile}
+            links={links}
+            blocks={previewBlocks}
+          />
+        </aside>
+      </div>
+
+      {/* Mobile Preview Button + Sheet */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            className="fixed bottom-6 right-6 xl:hidden rounded-full h-14 w-14 shadow-lg z-40"
+            size="icon"
+          >
+            <Smartphone className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Preview</SheetTitle>
+          </SheetHeader>
+          <div className="flex justify-center pt-4 pb-8 overflow-y-auto h-full">
+            <ProfilePreviewPanel
+              profile={profile}
+              links={links}
+              blocks={previewBlocks}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Image Cropper */}
       {rawImageUrl && (
