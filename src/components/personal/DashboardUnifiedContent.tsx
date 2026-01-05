@@ -12,7 +12,8 @@ import {
   Youtube,
   Image as ImageIcon,
   Type,
-  MousePointerClick
+  MousePointerClick,
+  Smartphone
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -71,6 +72,17 @@ interface Props {
   onLinksChange: (links: DbPersonalLink[]) => void;
   onBlocksChange: (blocks: PersonalBlock[]) => void;
 }
+
+// Show a toast prompting user to check preview
+const showPreviewHint = () => {
+  toast.success(
+    <div className="flex items-center gap-2">
+      <Smartphone className="h-4 w-4" />
+      <span>Saved! Check the preview to see your changes.</span>
+    </div>,
+    { duration: 3000 }
+  );
+};
 
 export const DashboardUnifiedContent = ({ 
   profileId, 
@@ -266,7 +278,7 @@ export const DashboardUnifiedContent = ({
 
       onLinksChange([...links, data]);
       setLinkModalOpen(false);
-      toast.success("Link added!");
+      showPreviewHint();
     } catch (err) {
       console.error("Error adding link:", err);
       toast.error("Failed to add link");
@@ -303,7 +315,7 @@ export const DashboardUnifiedContent = ({
       ));
       setLinkModalOpen(false);
       setEditingLink(null);
-      toast.success("Link updated!");
+      showPreviewHint();
     } catch (err) {
       console.error("Error updating link:", err);
       toast.error("Failed to update link");
@@ -383,7 +395,7 @@ export const DashboardUnifiedContent = ({
         onBlocksChange(blocks.filter(b => b.id !== deleteItem.id));
       }
       setDeleteItem(null);
-      toast.success("Item removed");
+      showPreviewHint();
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Failed to delete");

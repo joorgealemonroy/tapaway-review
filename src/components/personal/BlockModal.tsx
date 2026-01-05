@@ -18,7 +18,8 @@ import {
   AlignCenter,
   AlignRight,
   Crop,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Smartphone
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -276,7 +277,13 @@ export const BlockModal = ({
         if (error) throw error;
 
         onBlockSaved({ ...editingBlock, content, alignment });
-        toast.success("Block updated!");
+        toast.success(
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4" />
+            <span>Saved! Check the preview to see your changes.</span>
+          </div>,
+          { duration: 3000 }
+        );
       } else {
         const { data, error } = await supabase
           .from("personal_blocks")
@@ -293,7 +300,13 @@ export const BlockModal = ({
         if (error) throw error;
 
         onBlockSaved(data);
-        toast.success("Block added!");
+        toast.success(
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4" />
+            <span>Saved! Check the preview to see your changes.</span>
+          </div>,
+          { duration: 3000 }
+        );
       }
       
       // Invalidate cache
