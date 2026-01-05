@@ -62,7 +62,7 @@ export const LinksStep = ({
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -71,15 +71,62 @@ export const LinksStep = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+    // Allow up to 15MB - we'll compress it
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Image must be less than 15MB");
       return;
     }
 
-    // Store the file and open cropper
-    updateFormData({ profilePhoto: file });
-    setRawImageUrl(URL.createObjectURL(file));
-    setCropperOpen(true);
+    setUploadingPhoto(true);
+    
+    try {
+      // Compress large images before cropping
+      let processedFile = file;
+      if (file.size > 2 * 1024 * 1024) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = url;
+        });
+        
+        // Resize to max 1200px
+        const maxDim = 1200;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = (height / width) * maxDim;
+            width = maxDim;
+          } else {
+            width = (width / height) * maxDim;
+            height = maxDim;
+          }
+        }
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85);
+        });
+        processedFile = new File([blob], file.name, { type: "image/jpeg" });
+        URL.revokeObjectURL(url);
+      }
+      
+      // Store the file and open cropper
+      updateFormData({ profilePhoto: processedFile });
+      setRawImageUrl(URL.createObjectURL(processedFile));
+      setCropperOpen(true);
+    } catch (err) {
+      console.error("Error processing image:", err);
+      toast.error("Failed to process image");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleCropComplete = (croppedBlob: Blob, previewUrl: string) => {
