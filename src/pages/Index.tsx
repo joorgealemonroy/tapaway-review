@@ -1,5 +1,3 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useSalesRep } from "@/hooks/useSalesRep";
 import { Link } from "react-router-dom";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
@@ -11,58 +9,19 @@ import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
 import { TrialBanner } from "@/components/TrialBanner";
-import { ProductNavToggle } from "@/components/landing/ProductNavToggle";
+import { LandingNav } from "@/components/landing/LandingNav";
 
 const Index = () => {
-  const { user } = useAuth();
-  const { isSalesRep } = useSalesRep();
-
-  // Determine dashboard link based on role
-  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* SEO Title */}
       <title>TapAway for Businesses — Get More 5-Star Google Reviews</title>
       
       {/* Trial Resume Banner */}
       <TrialBanner />
+      
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-border">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex justify-between items-center py-3">
-            <div className="flex items-center gap-6">
-              <a href="https://tapaway.co" className="font-black text-xl tracking-tight text-foreground">
-                TapAway
-              </a>
-              <ProductNavToggle />
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/personal"
-                className="hidden sm:inline-flex px-4 py-2 rounded-lg font-medium text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Personal Cards
-              </Link>
-              {user ? (
-                <Link
-                  to={dashboardLink}
-                  className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
-                >
-                  Dashboard
-                </Link>
-              ) : (
-                <Link
-                  to="/start"
-                  className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
-                >
-                  Start Free Trial
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <LandingNav />
 
       {/* For Businesses Label */}
       <div className="bg-primary/5 border-b border-primary/10">
