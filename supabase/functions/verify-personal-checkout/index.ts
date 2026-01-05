@@ -103,6 +103,9 @@ serve(async (req) => {
       .eq('user_id', userId)
       .single();
 
+    let profileId: string;
+    let isNewProfile = false;
+
     if (existingProfile) {
       // Update existing profile
       await supabase
@@ -115,6 +118,7 @@ serve(async (req) => {
         })
         .eq('id', existingProfile.id);
         
+      profileId = existingProfile.id;
       console.log('[verify-personal-checkout] Updated existing profile');
     } else {
       // Create new profile
@@ -137,6 +141,8 @@ serve(async (req) => {
         throw new Error(`Failed to create profile: ${profileError.message}`);
       }
 
+      profileId = profile.id;
+      isNewProfile = true;
       console.log('[verify-personal-checkout] Created profile:', profile.id);
 
       // Create links if provided
@@ -161,6 +167,46 @@ serve(async (req) => {
         } catch (e) {
           console.error('[verify-personal-checkout] Failed to parse links:', e);
         }
+      }
+    }
+
+    // Send welcome emails for NEW profiles only
+    if (isNewProfile) {
+      try {
+        // Fetch the full profile to get any additional data
+        const { data: fullProfile } = await supabase
+          .from('personal_profiles')
+          .select('*')
+          .eq('id', profileId)
+          .single();
+
+        const emailPayload = {
+          fullName: metadata.full_name || fullProfile?.full_name || 'TapAway User',
+          username,
+          email: customerEmail,
+          profilePhotoUrl: fullProfile?.profile_photo_url || undefined,
+          headerImageUrl: fullProfile?.header_image_url || undefined,
+          accentColor: fullProfile?.header_color || undefined,
+          profileId,
+        };
+
+        console.log('[verify-personal-checkout] Sending welcome emails...');
+
+        // Call the welcome emails function
+        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-personal-welcome-emails`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify(emailPayload),
+        });
+
+        const emailResult = await emailResponse.json();
+        console.log('[verify-personal-checkout] Email result:', emailResult);
+      } catch (emailError) {
+        // Don't fail the whole flow if emails fail
+        console.error('[verify-personal-checkout] Failed to send welcome emails:', emailError);
       }
     }
 
