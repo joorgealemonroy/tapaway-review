@@ -93,12 +93,13 @@ export const TapAwayCardPreview = ({
 
             {/* Headline text - exactly matching reference typography */}
             <p 
-              className="text-center mt-[6%] px-2 leading-tight"
+              className="text-center mt-[6%] leading-tight"
               style={{
                 fontSize: "clamp(13px, 4vw, 16px)",
                 fontWeight: 700,
                 color: "#1a1a1a",
                 whiteSpace: "pre-line",
+                maxWidth: "70%",
               }}
             >
               {cardHeadline}
