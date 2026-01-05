@@ -1,13 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
 import { 
   CheckCircle2,
   ExternalLink,
-  Loader2
+  Loader2,
+  Share2
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import { toast } from "sonner";
 
 interface PersonalProfile {
   id: string;
@@ -29,6 +30,28 @@ const PersonalProfile = () => {
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
   const [links, setLinks] = useState<PersonalLink[]>([]);
   const [notFound, setNotFound] = useState(false);
+
+  const handleShare = async () => {
+    const shareUrl = `https://tapaway.co/${profile?.username}`;
+    const shareData = {
+      title: `${profile?.full_name} | TapAway`,
+      text: `Check out ${profile?.full_name}'s TapAway profile`,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // User cancelled or share failed - copy to clipboard instead
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard");
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -115,7 +138,16 @@ const PersonalProfile = () => {
       <div className="h-32 bg-gradient-to-br from-primary to-primary/70" />
       
       {/* Profile Content */}
-      <div className="max-w-md mx-auto px-4 -mt-16 pb-12">
+      <div className="max-w-md mx-auto px-4 -mt-16 pb-12 relative">
+        {/* Share button - top right */}
+        <button
+          onClick={handleShare}
+          className="absolute top-0 right-4 h-10 w-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+          aria-label="Share profile"
+        >
+          <Share2 className="h-4 w-4 text-foreground" />
+        </button>
+
         {/* Avatar */}
         <div className="relative inline-block mb-4">
           {profile.profile_photo_url ? (
@@ -176,14 +208,16 @@ const PersonalProfile = () => {
           </p>
         )}
 
-        {/* Footer */}
-        <div className="mt-12 text-center">
+        {/* Subtle Footer with Create CTA */}
+        <div className="mt-12 pt-8 border-t border-border">
           <a
             href="/personal"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span className="font-black text-xs">TapAway</span>
-            <span>Get your own</span>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            <span>Create your own TapAway page</span>
           </a>
         </div>
       </div>
