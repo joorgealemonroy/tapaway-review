@@ -237,6 +237,24 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   const { profile, links, blocks } = data;
 
+  // Combine links and blocks into unified sorted list
+  type UnifiedItem = 
+    | { kind: "link"; data: typeof links[0] }
+    | { kind: "block"; data: typeof blocks[0] };
+
+  const unifiedItems: UnifiedItem[] = [
+    ...links
+      .filter((l: any) => l.is_active !== false)
+      .map((link): UnifiedItem => ({ kind: "link", data: link })),
+    ...blocks.map((block): UnifiedItem => ({ kind: "block", data: block })),
+  ].sort((a, b) => a.data.sort_order - b.data.sort_order);
+
+  // Extract featured link (renders at top separately)
+  const featuredLink = links.find((l: any) => l.is_active !== false && l.is_featured === true);
+  const itemsWithoutFeatured = unifiedItems.filter(
+    item => !(item.kind === "link" && (item.data as any).is_featured === true)
+  );
+
   const headerStyle = profile.header_type === "image" && profile.header_image_url
     ? { backgroundImage: `url(${profile.header_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
@@ -300,41 +318,25 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         )}
         <div className="mb-6" />
 
-        {/* Blocks - rendered with memoization */}
-        {blocks.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {blocks.map(block => (
-              <ProfileBlock key={block.id} block={block} />
-            ))}
+        {/* Featured link - rendered prominently at top */}
+        {featuredLink && (
+          <div className="mb-4">
+            <ProfileLink link={featuredLink} isFeatured />
           </div>
         )}
 
-        {/* Links - filter hidden, separate featured */}
-        {(() => {
-          const activeLinks = links.filter((l: any) => l.is_active !== false);
-          const featuredLink = activeLinks.find((l: any) => l.is_featured === true);
-          const regularLinks = activeLinks.filter((l: any) => l.is_featured !== true);
-          
-          return (
-            <>
-              {/* Featured link - rendered prominently */}
-              {featuredLink && (
-                <div className="mb-4">
-                  <ProfileLink link={featuredLink} isFeatured />
-                </div>
-              )}
-              
-              {/* Regular links */}
-              {regularLinks.length > 0 && (
-                <div className="space-y-3">
-                  {regularLinks.map((link: any) => (
-                    <ProfileLink key={link.id} link={link} />
-                  ))}
-                </div>
-              )}
-            </>
-          );
-        })()}
+        {/* Unified content - interleaved links and blocks */}
+        {itemsWithoutFeatured.length > 0 && (
+          <div className="space-y-3">
+            {itemsWithoutFeatured.map((item) => {
+              if (item.kind === "link") {
+                return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
+              } else {
+                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} />;
+              }
+            })}
+          </div>
+        )}
 
         {links.length === 0 && blocks.length === 0 && (
           <p className="text-muted-foreground text-center py-8">
