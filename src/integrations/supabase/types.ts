@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -874,6 +904,47 @@ export type Database = {
           },
         ]
       }
+      personal_blocks: {
+        Row: {
+          alignment: string | null
+          block_type: string
+          content: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          profile_id: string
+          sort_order: number
+        }
+        Insert: {
+          alignment?: string | null
+          block_type: string
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          profile_id: string
+          sort_order?: number
+        }
+        Update: {
+          alignment?: string | null
+          block_type?: string
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          profile_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_blocks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_links: {
         Row: {
           created_at: string | null
@@ -881,6 +952,7 @@ export type Database = {
           is_active: boolean | null
           label: string
           link_type: string
+          pill_color: string | null
           profile_id: string
           sort_order: number | null
           url: string
@@ -891,6 +963,7 @@ export type Database = {
           is_active?: boolean | null
           label: string
           link_type: string
+          pill_color?: string | null
           profile_id: string
           sort_order?: number | null
           url: string
@@ -901,6 +974,7 @@ export type Database = {
           is_active?: boolean | null
           label?: string
           link_type?: string
+          pill_color?: string | null
           profile_id?: string
           sort_order?: number | null
           url?: string
@@ -917,10 +991,15 @@ export type Database = {
       }
       personal_profiles: {
         Row: {
+          background_color: string | null
           created_at: string | null
           email: string
           full_name: string
+          header_color: string | null
+          header_image_url: string | null
+          header_type: string | null
           id: string
+          pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
           stripe_customer_id: string | null
@@ -931,10 +1010,15 @@ export type Database = {
           username: string
         }
         Insert: {
+          background_color?: string | null
           created_at?: string | null
           email: string
           full_name: string
+          header_color?: string | null
+          header_image_url?: string | null
+          header_type?: string | null
           id?: string
+          pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           stripe_customer_id?: string | null
@@ -945,10 +1029,15 @@ export type Database = {
           username: string
         }
         Update: {
+          background_color?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
+          header_color?: string | null
+          header_image_url?: string | null
+          header_type?: string | null
           id?: string
+          pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           stripe_customer_id?: string | null

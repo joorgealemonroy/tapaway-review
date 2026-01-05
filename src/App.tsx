@@ -25,7 +25,8 @@ import Personal from "./pages/Personal";
 import PersonalSignup from "./pages/personal/PersonalSignup";
 import PersonalSignupComplete from "./pages/personal/PersonalSignupComplete";
 import PersonalDashboard from "./pages/personal/PersonalDashboard";
-import PersonalProfile from "./pages/personal/PersonalProfile";
+import PersonalProfilePage from "./pages/personal/PersonalProfilePage";
+import LegacyProfileRedirect from "./pages/personal/LegacyProfileRedirect";
 
 // Sales Rep Portal
 import RepHome from "./pages/rep/RepHome";
@@ -45,6 +46,10 @@ import AdminCompSettings from "./pages/admin/AdminCompSettings";
 import AdminTaxReview from "./pages/admin/AdminTaxReview";
 import AdminPayouts from "./pages/admin/AdminPayouts";
 import AdminDemoRequests from "./pages/admin/AdminDemoRequests";
+import AdminPersonalAccounts from "./pages/admin/AdminPersonalAccounts";
+
+// Username resolver component
+import UsernameResolver from "./pages/UsernameResolver";
 
 const queryClient = new QueryClient();
 
@@ -99,14 +104,16 @@ const App = () => (
             <Route path="/admin/tax-review" element={<AdminTaxReview />} />
             <Route path="/admin/payouts" element={<AdminPayouts />} />
             <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
+            <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
             
             <Route path="/hub/:restaurantId" element={<ReviewHub />} />
             
-            {/* Personal Profile Public Page - must be before catch-all */}
-            <Route path="/u/:username" element={<PersonalProfile />} />
+            {/* Legacy Personal Profile URL - 301 redirect to /:username */}
+            <Route path="/u/:username" element={<LegacyProfileRedirect />} />
             
-            {/* Custom slug for restaurants - must be near end */}
-            <Route path="/:customSlug" element={<ReviewHub />} />
+            {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
+            <Route path="/:slug" element={<UsernameResolver />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

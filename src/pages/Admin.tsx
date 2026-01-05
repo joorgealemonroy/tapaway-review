@@ -436,6 +436,9 @@ const Admin = () => {
           <Button onClick={() => navigate('/admin/demo-requests')} variant="outline">
             Demo Kit Requests
           </Button>
+          <Button onClick={() => navigate('/admin/personal-accounts')} variant="outline">
+            Personal Accounts
+          </Button>
         </div>
       </section>
 
