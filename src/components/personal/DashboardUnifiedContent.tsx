@@ -747,7 +747,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         editingBlock={editingBlock}
         currentMaxOrder={Math.max(...unifiedItems.map(i => i.data.sort_order), -1)}
         onBlockSaved={handleBlockSaved}
-        deferSave={true}
+        deferSave={false}
       />
 
       {/* Delete confirmation */}
