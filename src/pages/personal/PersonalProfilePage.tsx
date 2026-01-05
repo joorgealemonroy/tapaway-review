@@ -283,7 +283,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </svg>
             
             <span className="font-medium text-foreground/90">
-              Get your TapAway
+              Start using TapAway
             </span>
           </a>
         </motion.div>
