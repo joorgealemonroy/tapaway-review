@@ -2,39 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { SignupData } from "@/pages/personal/PersonalSignup";
+import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
+import { getPlatformConfig } from "@/lib/platformLinks";
 import { 
-  Instagram, 
-  Youtube, 
-  Globe, 
-  Mail, 
-  DollarSign, 
-  Music,
   ArrowLeft,
   CheckCircle2,
-  Wifi,
-  QrCode,
-  Truck
+  Truck,
+  ExternalLink
 } from "lucide-react";
-
-// TikTok icon
-const TikTokIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-  </svg>
-);
-
-const getLinkIcon = (type: string) => {
-  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-    instagram: Instagram,
-    tiktok: TikTokIcon,
-    youtube: Youtube,
-    website: Globe,
-    email: Mail,
-    payments: DollarSign,
-    music: Music,
-  };
-  return icons[type] || Globe;
-};
 
 interface Props {
   formData: SignupData;
@@ -49,7 +24,16 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
       {/* Profile Preview */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         {/* Header/Cover */}
-        <div className="h-20 bg-gradient-to-br from-primary to-primary/70" />
+        <div 
+          className="h-20"
+          style={{
+            background: formData.headerColor 
+              ? formData.headerColor 
+              : formData.headerImageUrl 
+              ? `url(${formData.headerImageUrl}) center/cover`
+              : "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
+          }}
+        />
         
         {/* Profile Content */}
         <div className="px-6 pb-6 -mt-10">
@@ -83,16 +67,77 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
           {formData.links.length > 0 && (
             <div className="mt-4 space-y-2">
               {formData.links.map((link) => {
-                const Icon = getLinkIcon(link.type);
+                const config = getPlatformConfig(link.type);
+                const Icon = config?.icon;
+                
                 return (
-                  <div
+                  <a
                     key={link.id}
-                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl"
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] ${config?.gradient || config?.bgColor || "bg-muted/50"}`}
                   >
-                    <Icon className="h-5 w-5 text-foreground" />
-                    <span className="text-sm font-medium">{link.label}</span>
-                  </div>
+                    {Icon && <Icon className={`h-5 w-5 ${config?.color || "text-foreground"}`} />}
+                    <span className={`text-sm font-medium flex-1 ${config?.color || "text-foreground"}`}>
+                      {link.label}
+                    </span>
+                    <ExternalLink className={`h-4 w-4 ${config?.color || "text-foreground"} opacity-60`} />
+                  </a>
                 );
+              })}
+            </div>
+          )}
+
+          {/* Blocks preview */}
+          {formData.blocks.length > 0 && (
+            <div className="mt-4 space-y-3">
+              {formData.blocks.map((block) => {
+                switch (block.type) {
+                  case "youtube":
+                    return (
+                      <div key={block.id} className="aspect-video rounded-xl overflow-hidden bg-black">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${block.content.videoId}`}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    );
+                  case "image":
+                    return (
+                      <img 
+                        key={block.id}
+                        src={block.content.url} 
+                        alt="Block" 
+                        className="w-full rounded-xl"
+                      />
+                    );
+                  case "text":
+                    return (
+                      <div key={block.id} className="space-y-1">
+                        <h3 className="font-semibold text-foreground">{block.content.title}</h3>
+                        {block.content.body && (
+                          <p className="text-sm text-muted-foreground">{block.content.body}</p>
+                        )}
+                      </div>
+                    );
+                  case "button":
+                    return (
+                      <a
+                        key={block.id}
+                        href={block.content.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full py-4 px-6 bg-primary text-primary-foreground rounded-xl text-center font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        {block.content.label}
+                      </a>
+                    );
+                  default:
+                    return null;
+                }
               })}
             </div>
           )}
@@ -102,45 +147,11 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
       {/* Card Preview */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-foreground">Your TapAway card</Label>
-        <div className="flex gap-4">
-          {/* Front of card */}
-          <div className="flex-1 aspect-[1.586/1] bg-foreground rounded-2xl p-4 flex flex-col justify-between text-background relative overflow-hidden">
-            <div className="absolute top-3 right-3">
-              <div className="flex items-center gap-1">
-                <Wifi className="h-4 w-4 opacity-60" />
-                <QrCode className="h-4 w-4 opacity-60" />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {formData.profilePhotoUrl ? (
-                <img
-                  src={formData.profilePhotoUrl}
-                  alt={formData.fullName}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-background/20 flex items-center justify-center">
-                  <span className="text-sm font-bold">{formData.fullName.charAt(0)}</span>
-                </div>
-              )}
-              <div>
-                <p className="font-bold text-sm flex items-center gap-1">
-                  {formData.fullName}
-                  <CheckCircle2 className="h-3 w-3 text-primary" />
-                </p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs opacity-70">Tap to Connect & Collaborate</p>
-              <p className="text-xs opacity-50">tapaway.co/{formData.username}</p>
-            </div>
-          </div>
-
-          {/* Back of card */}
-          <div className="flex-1 aspect-[1.586/1] bg-background rounded-2xl border border-border flex items-center justify-center">
-            <p className="text-xs text-muted-foreground">Back</p>
-          </div>
-        </div>
+        <TapAwayCardPreview
+          fullName={formData.fullName}
+          username={formData.username}
+          profilePhotoUrl={formData.profilePhotoUrl}
+        />
       </div>
 
       {/* Extra Card Option */}
@@ -151,9 +162,31 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
         </div>
         <Switch
           checked={formData.addExtraCard}
-          onCheckedChange={(checked) => updateFormData({ addExtraCard: checked })}
+          onCheckedChange={(checked) => updateFormData({ addExtraCard: checked, extraCardCount: checked ? 1 : 0 })}
         />
       </div>
+
+      {/* Extra card quantity */}
+      {formData.addExtraCard && (
+        <div className="flex items-center justify-between px-4">
+          <span className="text-sm text-muted-foreground">Extra cards</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => updateFormData({ extraCardCount: Math.max(1, formData.extraCardCount - 1) })}
+              className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+            >
+              -
+            </button>
+            <span className="font-medium w-6 text-center">{formData.extraCardCount}</span>
+            <button
+              onClick={() => updateFormData({ extraCardCount: Math.min(10, formData.extraCardCount + 1) })}
+              className="h-8 w-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Shipping Note */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">

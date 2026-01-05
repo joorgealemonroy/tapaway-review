@@ -3,36 +3,11 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { 
-  Instagram, 
-  Youtube, 
-  Globe, 
-  Mail, 
-  DollarSign, 
-  Music,
   CheckCircle2,
   ExternalLink,
   Loader2
 } from "lucide-react";
-
-// TikTok icon
-const TikTokIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-  </svg>
-);
-
-const getLinkIcon = (type: string) => {
-  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-    instagram: Instagram,
-    tiktok: TikTokIcon,
-    youtube: Youtube,
-    website: Globe,
-    email: Mail,
-    payments: DollarSign,
-    music: Music,
-  };
-  return icons[type] || Globe;
-};
+import { getPlatformConfig } from "@/lib/platformLinks";
 
 interface PersonalProfile {
   id: string;
@@ -165,24 +140,32 @@ const PersonalProfile = () => {
         <h1 className="text-2xl font-bold text-foreground">{profile.full_name}</h1>
         <p className="text-muted-foreground mb-6">@{profile.username}</p>
 
-        {/* Links */}
+        {/* Links with platform styling */}
         {links.length > 0 ? (
           <div className="space-y-3">
             {links.map((link) => {
-              const Icon = getLinkIcon(link.link_type);
+              const config = getPlatformConfig(link.link_type);
+              const Icon = config?.icon;
+              
               return (
                 <a
                   key={link.id}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border hover:border-primary hover:shadow-md transition-all group"
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg ${
+                    config?.gradient || config?.bgColor || "bg-card border border-border"
+                  }`}
                 >
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <Icon className="h-6 w-6 text-primary" />
+                  <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                    config ? "bg-white/20" : "bg-primary/10"
+                  }`}>
+                    {Icon && <Icon className={`h-6 w-6 ${config?.color || "text-primary"}`} />}
                   </div>
-                  <span className="flex-1 font-medium text-foreground">{link.label}</span>
-                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className={`flex-1 font-medium ${config?.color || "text-foreground"}`}>
+                    {link.label}
+                  </span>
+                  <ExternalLink className={`h-4 w-4 ${config?.color || "text-muted-foreground"} opacity-60`} />
                 </a>
               );
             })}
