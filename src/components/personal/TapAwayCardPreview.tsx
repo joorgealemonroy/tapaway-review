@@ -77,7 +77,7 @@ export const TapAwayCardPreview = ({
             <div 
               className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-2"
               style={{
-                width: "72%",
+                width: "60%",
                 aspectRatio: "1/1",
                 backgroundColor: "#6BCB77",
               }}
