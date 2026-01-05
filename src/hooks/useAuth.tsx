@@ -87,25 +87,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       navigate("/admin");
     } else {
-      // Normal users: check subscription and onboarding status
-      const { data: restaurant } = await supabase
-        .from("restaurants")
-        .select("onboarding_completed, subscription_status")
-        .eq("owner_id", data.user?.id)
-        .maybeSingle();
+      // Normal users: check for both business and personal accounts
+      const [restaurantResult, personalResult] = await Promise.all([
+        supabase
+          .from("restaurants")
+          .select("onboarding_completed, subscription_status")
+          .eq("owner_id", data.user?.id)
+          .maybeSingle(),
+        supabase
+          .from("personal_profiles")
+          .select("id")
+          .eq("user_id", data.user?.id)
+          .maybeSingle()
+      ]);
+
+      const restaurant = restaurantResult.data;
+      const personal = personalResult.data;
       
-      if (!restaurant) {
-        // No restaurant - redirect to paywall to subscribe
+      const hasValidBusiness = restaurant && 
+        isSubscriptionAllowed(restaurant.subscription_status) && 
+        restaurant.onboarding_completed;
+      const hasPersonal = !!personal;
+
+      // If user has both, let them choose
+      if (hasValidBusiness && hasPersonal) {
+        navigate("/select-dashboard");
+      } else if (hasValidBusiness) {
+        navigate("/dashboard");
+      } else if (hasPersonal) {
+        navigate("/personal/dashboard");
+      } else if (restaurant && !isSubscriptionAllowed(restaurant.subscription_status)) {
+        // Has restaurant but blocked subscription
         navigate("/paywall");
-      } else if (!isSubscriptionAllowed(restaurant.subscription_status)) {
-        // Has restaurant but blocked subscription - redirect to paywall
-        navigate("/paywall");
-      } else if (!restaurant.onboarding_completed) {
-        // Allowed subscription but incomplete onboarding
+      } else if (restaurant && !restaurant.onboarding_completed) {
+        // Has restaurant but incomplete onboarding
         navigate("/onboarding");
       } else {
-        // Fully onboarded with allowed subscription
-        navigate("/dashboard");
+        // No accounts at all
+        navigate("/paywall");
       }
     }
 
