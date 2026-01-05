@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   CheckCircle2,
@@ -12,6 +12,17 @@ import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
+
+// Helper to determine if a color is dark
+function isColorDark(hexColor: string): boolean {
+  const hex = hexColor.replace('#', '');
+  if (hex.length !== 6) return false;
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
+}
 
 interface Props {
   usernameOverride?: string;
@@ -96,10 +107,12 @@ const ProfileLink = memo(function ProfileLink({
 // Memoized block renderer
 const ProfileBlock = memo(function ProfileBlock({ 
   block,
-  profileId
+  profileId,
+  isDarkBg
 }: { 
   block: { id: string; block_type: string; content: unknown; alignment: string | null };
   profileId?: string;
+  isDarkBg?: boolean;
 }) {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -109,6 +122,8 @@ const ProfileBlock = memo(function ProfileBlock({
   
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
+  const textClass = isDarkBg ? "text-white" : "text-foreground";
+  const mutedClass = isDarkBg ? "text-white/70" : "text-muted-foreground";
   
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,8 +229,8 @@ const ProfileBlock = memo(function ProfileBlock({
     case "text":
       return (
         <div className={`w-full ${alignClass}`}>
-          <h3 className="text-lg font-bold text-foreground">{content.title}</h3>
-          {content.body && <p className="text-muted-foreground mt-1">{content.body}</p>}
+          <h3 className={`text-lg font-bold ${textClass}`}>{content.title}</h3>
+          {content.body && <p className={`${mutedClass} mt-1`}>{content.body}</p>}
         </div>
       );
     case "button": {
@@ -244,19 +259,23 @@ const ProfileBlock = memo(function ProfileBlock({
       
       if (emailSubmitted) {
         return (
-          <div className="w-full p-6 bg-card rounded-xl border border-border text-center">
+          <div className={`w-full p-6 rounded-xl border text-center ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
             <CheckCircle2 className="h-10 w-10 text-primary mx-auto mb-3" />
-            <h3 className="font-semibold text-foreground">Thanks!</h3>
-            <p className="text-sm text-muted-foreground">Your info has been submitted.</p>
+            <h3 className={`font-semibold ${textClass}`}>Thanks!</h3>
+            <p className={`text-sm ${mutedClass}`}>Your info has been submitted.</p>
           </div>
         );
       }
       
+      const inputClass = isDarkBg 
+        ? "w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30"
+        : "w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50";
+      
       return (
-        <form onSubmit={handleEmailSubmit} className="w-full p-5 bg-card rounded-xl border border-border space-y-3">
+        <form onSubmit={handleEmailSubmit} className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
           <div className="text-center">
-            <h3 className="font-semibold text-foreground">{headline}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+            <h3 className={`font-semibold ${textClass}`}>{headline}</h3>
+            <p className={`text-sm ${mutedClass} mt-1`}>{description}</p>
           </div>
           {showName && (
             <input
@@ -264,7 +283,7 @@ const ProfileBlock = memo(function ProfileBlock({
               placeholder="Your name (optional)"
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={inputClass}
             />
           )}
           <input
@@ -273,7 +292,7 @@ const ProfileBlock = memo(function ProfileBlock({
             required
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className={inputClass}
           />
           {showMessage && (
             <textarea
@@ -281,7 +300,7 @@ const ProfileBlock = memo(function ProfileBlock({
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               rows={2}
-              className="w-full px-4 py-3 rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              className={`${inputClass} resize-none`}
             />
           )}
           <button
@@ -295,7 +314,15 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     case "photo_collage": {
-      const images: string[] = content.images ? JSON.parse(content.images) : [];
+      // Handle both string (from DB) and array (from state) formats
+      let images: string[] = [];
+      try {
+        images = content.images 
+          ? (typeof content.images === 'string' ? JSON.parse(content.images) : content.images as unknown as string[])
+          : [];
+      } catch {
+        images = [];
+      }
       
       if (images.length === 0) return null;
       
@@ -427,8 +454,15 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
-  const bgStyle = { backgroundColor: profile.background_color || "#ffffff" };
+  const bgColor = profile.background_color || "#ffffff";
+  const bgStyle = { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
+  const isDarkBg = useMemo(() => isColorDark(bgColor), [bgColor]);
+  
+  // Dynamic text classes based on background
+  const headingClass = isDarkBg ? "text-white" : "text-foreground";
+  const textClass = isDarkBg ? "text-white/80" : "text-foreground/80";
+  const mutedClass = isDarkBg ? "text-white/60" : "text-muted-foreground";
 
   return (
     <div className="min-h-screen" style={bgStyle}>
@@ -443,10 +477,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         {/* Share button */}
         <button
           onClick={handleShare}
-          className="absolute top-0 right-4 h-10 w-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+          className={`absolute top-0 right-4 h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
           aria-label="Share profile"
         >
-          <Share2 className="h-4 w-4 text-foreground" />
+          <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
         </button>
 
         {/* Avatar - priority loaded */}
@@ -465,13 +499,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         </div>
 
         {/* Name & Username & Headline/Bio */}
-        <h1 className="text-2xl font-bold text-foreground">{profile.full_name}</h1>
+        <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
         {profile.headline && (
-          <p className="text-sm text-foreground/80 mt-1">{profile.headline}</p>
+          <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
         )}
-        <p className="text-muted-foreground text-sm mt-1">@{profile.username}</p>
+        <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
         {profile.bio && (
-          <p className="text-muted-foreground text-sm mt-2 max-w-xs mx-auto">{profile.bio}</p>
+          <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
         )}
         <div className="mb-6" />
 
@@ -489,14 +523,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               if (item.kind === "link") {
                 return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
               } else {
-                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} />;
+                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
               }
             })}
           </div>
         )}
 
         {links.length === 0 && blocks.length === 0 && (
-          <p className="text-muted-foreground text-center py-8">
+          <p className={`${mutedClass} text-center py-8`}>
             No links yet
           </p>
         )}
@@ -512,19 +546,19 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           >
             <a
               href="/personal"
-              className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-2xl border border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] hover:bg-white/30 transition-all duration-300 text-sm"
+              className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-2xl border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-all duration-300 text-sm ${isDarkBg ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-white/20 border-white/30 hover:bg-white/30'}`}
             >
-              <svg className="h-3.5 w-3.5 text-foreground/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span className="font-medium text-foreground/80">
+              <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-foreground/80'}`}>
                 Start using TapAway
               </span>
             </a>
           </motion.div>
           
           {/* Subtle tap-enabled indicator */}
-          <p className="text-xs text-muted-foreground/50 flex items-center justify-center gap-1">
+          <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-muted-foreground/50'}`}>
             <Smartphone className="h-3 w-3" />
             Tap-enabled
           </p>
