@@ -26,7 +26,7 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area
-): Promise<Blob> {
+): Promise<{ blob: Blob; dataUrl: string }> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -50,10 +50,13 @@ async function getCroppedImg(
     pixelCrop.height
   );
 
+  // Get data URL for localStorage persistence
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) {
-        resolve(blob);
+        resolve({ blob, dataUrl });
       } else {
         reject(new Error("Canvas is empty"));
       }
@@ -89,9 +92,9 @@ export const ImageCropper = ({
     if (!croppedAreaPixels) return;
 
     try {
-      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      const previewUrl = URL.createObjectURL(croppedBlob);
-      onCropComplete(croppedBlob, previewUrl);
+      const { blob, dataUrl } = await getCroppedImg(imageSrc, croppedAreaPixels);
+      // Return data URL for localStorage persistence instead of blob URL
+      onCropComplete(blob, dataUrl);
       onOpenChange(false);
     } catch (e) {
       console.error("Error cropping image:", e);

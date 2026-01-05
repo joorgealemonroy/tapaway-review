@@ -70,11 +70,27 @@ export const usePersonalOnboarding = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        
+        // Reconstruct the croppedPhotoBlob from the saved profilePhotoUrl (base64)
+        let restoredBlob: Blob | null = null;
+        if (parsed.profilePhotoUrl && parsed.profilePhotoUrl.startsWith("data:")) {
+          // Convert data URL to Blob
+          const arr = parsed.profilePhotoUrl.split(",");
+          const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          restoredBlob = new Blob([u8arr], { type: mime });
+        }
+        
         setData(prev => ({
           ...prev,
           ...parsed,
           profilePhoto: null, // Can't restore File objects
-          croppedPhotoBlob: null,
+          croppedPhotoBlob: restoredBlob, // Restore from data URL
         }));
       } catch (err) {
         console.error("Failed to restore draft:", err);
