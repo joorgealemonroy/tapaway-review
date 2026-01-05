@@ -276,7 +276,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               </span>
             </div>
           )}
-          <div className="absolute bottom-0 right-0 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
+          <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
             <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
           </div>
         </div>
