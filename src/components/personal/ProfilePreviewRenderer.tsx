@@ -1,7 +1,8 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import { ImageLightbox } from "./ImageLightbox";
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
 function isColorDark(hexColor: string | null | undefined): boolean {
@@ -50,6 +51,7 @@ interface LinkData {
   is_featured?: boolean | null;
   sort_order?: number | null;
   pill_color?: string | null;
+  display_style?: string | null;
 }
 
 interface BlockData {
@@ -93,17 +95,28 @@ function ProfilePreviewRendererComponent({
     [links]
   );
 
-  const featuredLink = useMemo(
-    () => activeLinks.find((l) => l.is_featured),
+  // Separate icon-style links from pill-style links
+  const iconLinks = useMemo(
+    () => activeLinks.filter((l) => l.display_style === 'icon'),
     [activeLinks]
+  );
+
+  const pillLinks = useMemo(
+    () => activeLinks.filter((l) => l.display_style !== 'icon'),
+    [activeLinks]
+  );
+
+  const featuredLink = useMemo(
+    () => pillLinks.find((l) => l.is_featured),
+    [pillLinks]
   );
 
   const regularLinks = useMemo(
     () =>
-      activeLinks
+      pillLinks
         .filter((l) => !l.is_featured)
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
-    [activeLinks]
+    [pillLinks]
   );
 
   const activeBlocks = useMemo(
@@ -138,6 +151,82 @@ function ProfilePreviewRendererComponent({
       e.preventDefault();
       onLinkClick?.(url);
     }
+  };
+
+  // Collage preview with lightbox
+  const CollagePreview = ({ images, isPreview, onLinkClick }: { images: string[]; isPreview: boolean; onLinkClick?: (url: string) => void }) => {
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+
+    const handleImageClick = (index: number) => {
+      if (isPreview) {
+        onLinkClick?.("#collage");
+        return;
+      }
+      setLightboxIndex(index);
+      setLightboxOpen(true);
+    };
+
+    return (
+      <>
+        <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6">
+          <div className="flex gap-1.5" style={{ width: 'max-content' }}>
+            {images.map((imgUrl, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleImageClick(idx)}
+                className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                <img 
+                  src={getOptimizedImageUrl(imgUrl, 150)} 
+                  alt="" 
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+        <ImageLightbox
+          images={images}
+          currentIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={setLightboxIndex}
+        />
+      </>
+    );
+  };
+
+  // Social icon bar for icon-style links
+  const renderIconBar = () => {
+    if (iconLinks.length === 0) return null;
+    
+    return (
+      <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+        {iconLinks.map((link) => {
+          const config = getPlatformConfig(link.link_type);
+          const Icon = config?.icon;
+          if (!Icon) return null;
+          
+          return (
+            <a
+              key={link.id}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => handleLinkClick(e, link.url)}
+              className={`h-8 w-8 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
+                isDarkBg ? 'bg-white/15 hover:bg-white/25' : 'bg-black/5 hover:bg-black/10'
+              }`}
+              title={config?.label}
+            >
+              <Icon className={`h-4 w-4 ${isDarkBg ? 'text-white' : config?.color || 'text-foreground'}`} />
+            </a>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderLink = (link: LinkData, isFeatured = false) => {
@@ -330,20 +419,7 @@ function ProfilePreviewRendererComponent({
         if (images.length === 0) return null;
         
         return (
-          <div key={block.id} className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6">
-            <div className="flex gap-1.5" style={{ width: 'max-content' }}>
-              {images.map((imgUrl, idx) => (
-                <div key={idx} className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                  <img 
-                    src={getOptimizedImageUrl(imgUrl, 150)} 
-                    alt="" 
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <CollagePreview key={block.id} images={images} isPreview={isPreview} onLinkClick={onLinkClick} />
         );
       }
       default:
@@ -422,6 +498,8 @@ function ProfilePreviewRendererComponent({
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
           )}
+          {/* Social icon bar */}
+          {renderIconBar()}
         </div>
       </div>
 

@@ -55,6 +55,7 @@ interface DbPersonalLink {
   pill_color: string | null;
   is_active: boolean | null;
   is_featured: boolean | null;
+  display_style?: string | null;
 }
 
 interface PersonalBlock {

@@ -28,6 +28,7 @@ export interface CachedLink {
   sort_order: number;
   is_active: boolean | null;
   is_featured: boolean | null;
+  display_style?: string | null;
 }
 
 export interface CachedBlock {

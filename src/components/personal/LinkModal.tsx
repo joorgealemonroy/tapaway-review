@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft, Check, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, LayoutList, Circle } from "lucide-react";
 
 // Preset colors for custom links
 const COLOR_PRESETS = [
@@ -25,9 +25,9 @@ const COLOR_PRESETS = [
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (link: Omit<PersonalLink, "id">) => void;
-  editingLink?: PersonalLink | null;
-  onUpdate?: (id: string, updates: Partial<PersonalLink>) => void;
+  onAdd: (link: Omit<PersonalLink, "id"> & { displayStyle?: string }) => void;
+  editingLink?: (PersonalLink & { displayStyle?: string }) | null;
+  onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string }>) => void;
   existingTypes?: string[];
 }
 
@@ -46,6 +46,7 @@ export const LinkModal = ({
   const [pillColor, setPillColor] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformConfig | null>(null);
+  const [displayStyle, setDisplayStyle] = useState<"pill" | "icon">("pill");
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -57,6 +58,7 @@ export const LinkModal = ({
       setPillColor(null);
       setShowColorPicker(false);
       setDetectedPlatform(null);
+      setDisplayStyle("pill");
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
@@ -64,6 +66,7 @@ export const LinkModal = ({
         setInputValue(editingLink.value);
         setCustomLabel(editingLink.label !== config.label ? editingLink.label : "");
         setPillColor(editingLink.pillColor || null);
+        setDisplayStyle((editingLink.displayStyle as "pill" | "icon") || "pill");
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -100,6 +103,7 @@ export const LinkModal = ({
     setCustomLabel("");
     setPillColor(null);
     setShowColorPicker(false);
+    setDisplayStyle("pill");
     setDetectedPlatform(null);
   };
 
@@ -124,9 +128,9 @@ export const LinkModal = ({
     const label = customLabel.trim() || selectedPlatform.label;
 
     if (editingLink && onUpdate) {
-      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor });
+      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle });
     } else {
-      onAdd({ type: selectedPlatform.type, value, url, label, pillColor });
+      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle });
     }
     onOpenChange(false);
   };
@@ -262,6 +266,44 @@ export const LinkModal = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Display style toggle - only for social platforms */}
+        {config.type !== "website" && config.type !== "email" && (
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Display style</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDisplayStyle("pill")}
+                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  displayStyle === "pill" 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <LayoutList className="h-4 w-4" />
+                <span className="text-sm font-medium">Button</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayStyle("icon")}
+                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  displayStyle === "icon" 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <Circle className="h-4 w-4" />
+                <span className="text-sm font-medium">Icon only</span>
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {displayStyle === "icon" 
+                ? "Shows as a small icon in the social bar at the top" 
+                : "Shows as a full button with label"}
+            </p>
           </div>
         )}
 
