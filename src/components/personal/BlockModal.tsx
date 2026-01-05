@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { ImageCropper } from "@/components/personal/ImageCropper";
 import { 
   Youtube, 
   Image as ImageIcon, 
@@ -14,7 +16,9 @@ import {
   Loader2,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Crop,
+  Link as LinkIcon
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +35,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   profileId: string;
+  username?: string;
   editingBlock: PersonalBlock | null;
   currentMaxOrder: number;
   onBlockSaved: (block: PersonalBlock) => void;
@@ -47,6 +52,7 @@ export const BlockModal = ({
   open, 
   onOpenChange, 
   profileId, 
+  username,
   editingBlock, 
   currentMaxOrder,
   onBlockSaved 
@@ -64,6 +70,14 @@ export const BlockModal = ({
   const [buttonUrl, setButtonUrl] = useState("");
   const [alignment, setAlignment] = useState("center");
   
+  // New image block options
+  const [imageLinkUrl, setImageLinkUrl] = useState("");
+  const [imageSize, setImageSize] = useState<"small" | "large">("large");
+  
+  // Cropper state
+  const [showCropper, setShowCropper] = useState(false);
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset/populate form when modal opens or editingBlock changes
@@ -77,6 +91,8 @@ export const BlockModal = ({
           setYoutubeUrl(content.url || "");
         } else if (editingBlock.block_type === "image") {
           setImageUrl(content.url || "");
+          setImageLinkUrl(content.linkUrl || "");
+          setImageSize((content.size as "small" | "large") || "large");
         } else if (editingBlock.block_type === "text") {
           setTextTitle(content.title || "");
           setTextBody(content.body || "");
@@ -99,6 +115,9 @@ export const BlockModal = ({
     setButtonLabel("");
     setButtonUrl("");
     setAlignment("center");
+    setImageLinkUrl("");
+    setImageSize("large");
+    setRawImageForCrop(null);
   };
 
   const handleClose = () => {
@@ -157,33 +176,29 @@ export const BlockModal = ({
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    let processedFile: File | Blob = file;
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadingImage(true);
-      try {
-        processedFile = await compressImage(file);
-      } catch {
-        toast.error("Failed to process image");
-        setUploadingImage(false);
-        return;
-      }
-    }
+    // Create object URL for cropper
+    const objectUrl = URL.createObjectURL(file);
+    setRawImageForCrop(objectUrl);
+    setShowCropper(true);
+  };
 
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false);
     setUploadingImage(true);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const ext = file.name.split('.').pop() || 'jpg';
-      const filePath = `${user.id}/blocks/${Date.now()}.${ext}`;
+      const filePath = `${user.id}/blocks/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, processedFile, { contentType: processedFile instanceof Blob ? 'image/jpeg' : file.type });
+        .upload(filePath, croppedBlob, { contentType: 'image/jpeg' });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
@@ -196,6 +211,10 @@ export const BlockModal = ({
       toast.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
+      if (rawImageForCrop) {
+        URL.revokeObjectURL(rawImageForCrop);
+        setRawImageForCrop(null);
+      }
     }
   };
 
@@ -219,7 +238,11 @@ export const BlockModal = ({
           toast.error("Please select an image");
           return;
         }
-        content = { url: imageUrl };
+        content = { 
+          url: imageUrl,
+          linkUrl: imageLinkUrl.trim() ? (imageLinkUrl.startsWith("http") ? imageLinkUrl : `https://${imageLinkUrl}`) : "",
+          size: imageSize,
+        };
         break;
       }
       case "text": {
@@ -270,6 +293,12 @@ export const BlockModal = ({
         onBlockSaved(data);
         toast.success("Block added!");
       }
+      
+      // Invalidate cache
+      if (username) {
+        invalidateProfileCache(username);
+      }
+      
       handleClose();
     } catch (err) {
       console.error("Save error:", err);
@@ -280,200 +309,267 @@ export const BlockModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-4">
-        <DialogHeader>
-          <DialogTitle>
-            {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
+            </DialogTitle>
+          </DialogHeader>
 
-        {!selectedType ? (
-          <div className="space-y-2 pt-2">
-            {BLOCK_TYPES.map((type) => (
-              <button
-                key={type.type}
-                onClick={() => setSelectedType(type.type)}
-                className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
-              >
-                <type.icon className="h-5 w-5 text-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{type.label}</p>
-                  <p className="text-xs text-muted-foreground">{type.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4 pt-2">
-            {selectedType === "youtube" && (
-              <div className="space-y-2">
-                <Label>YouTube URL</Label>
-                <Input
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  className="h-12"
-                />
-              </div>
-            )}
-
-            {selectedType === "image" && (
-              <div className="space-y-2">
-                <Label>Image</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                {imageUrl ? (
-                  <div className="relative">
-                    <img 
-                      src={imageUrl} 
-                      alt="Preview" 
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="absolute bottom-2 right-2"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      Change
-                    </Button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:bg-muted/50 transition-colors"
-                  >
-                    {uploadingImage ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    ) : (
-                      <>
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Click to upload</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {selectedType === "text" && (
-              <>
-                <div className="space-y-2">
-                  <Label>Title</Label>
-                  <Input
-                    placeholder="Section title"
-                    value={textTitle}
-                    onChange={(e) => setTextTitle(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Body (optional)</Label>
-                  <Textarea
-                    placeholder="Add some details..."
-                    value={textBody}
-                    onChange={(e) => setTextBody(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-              </>
-            )}
-
-            {selectedType === "button" && (
-              <>
-                <div className="space-y-2">
-                  <Label>Button Label</Label>
-                  <Input
-                    placeholder="Book Now"
-                    value={buttonLabel}
-                    onChange={(e) => setButtonLabel(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Link URL</Label>
-                  <Input
-                    placeholder="https://..."
-                    value={buttonUrl}
-                    onChange={(e) => setButtonUrl(e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Alignment picker */}
-            <div className="space-y-2">
-              <Label>Alignment</Label>
-              <RadioGroup 
-                value={alignment} 
-                onValueChange={setAlignment}
-                className="flex gap-2"
-              >
-                <div className="flex items-center">
-                  <RadioGroupItem value="left" id="align-left" className="sr-only" />
-                  <Label
-                    htmlFor="align-left"
-                    className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                      alignment === "left" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                    }`}
-                  >
-                    <AlignLeft className="h-4 w-4" />
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <RadioGroupItem value="center" id="align-center" className="sr-only" />
-                  <Label
-                    htmlFor="align-center"
-                    className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                      alignment === "center" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                    }`}
-                  >
-                    <AlignCenter className="h-4 w-4" />
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <RadioGroupItem value="right" id="align-right" className="sr-only" />
-                  <Label
-                    htmlFor="align-right"
-                    className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                      alignment === "right" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                    }`}
-                  >
-                    <AlignRight className="h-4 w-4" />
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              {!editingBlock && (
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => setSelectedType(null)}
+          {!selectedType ? (
+            <div className="space-y-2 pt-2">
+              {BLOCK_TYPES.map((type) => (
+                <button
+                  key={type.type}
+                  onClick={() => setSelectedType(type.type)}
+                  className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
                 >
-                  Back
-                </Button>
-              )}
-              <Button 
-                className="flex-1"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingBlock ? "Save" : "Add"}
-              </Button>
+                  <type.icon className="h-5 w-5 text-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{type.label}</p>
+                    <p className="text-xs text-muted-foreground">{type.description}</p>
+                  </div>
+                </button>
+              ))}
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          ) : (
+            <div className="space-y-4 pt-2">
+              {selectedType === "youtube" && (
+                <div className="space-y-2">
+                  <Label>YouTube URL</Label>
+                  <Input
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              )}
+
+              {selectedType === "image" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Image</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    {imageUrl ? (
+                      <div className="relative">
+                        <img 
+                          src={imageUrl} 
+                          alt="Preview" 
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-1">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            Change
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:bg-muted/50 transition-colors"
+                      >
+                        {uploadingImage ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            <Crop className="h-6 w-6 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Click to upload & crop</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Size toggle */}
+                  <div className="space-y-2">
+                    <Label>Display Size</Label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setImageSize("small")}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          imageSize === "small" 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        }`}
+                      >
+                        Small
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageSize("large")}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          imageSize === "large" 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        }`}
+                      >
+                        Large
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Link URL (optional) */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      Link URL (optional)
+                    </Label>
+                    <Input
+                      placeholder="https://example.com"
+                      value={imageLinkUrl}
+                      onChange={(e) => setImageLinkUrl(e.target.value)}
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">Make image clickable</p>
+                  </div>
+                </>
+              )}
+
+              {selectedType === "text" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Title</Label>
+                    <Input
+                      placeholder="Section title"
+                      value={textTitle}
+                      onChange={(e) => setTextTitle(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Body (optional)</Label>
+                    <Textarea
+                      placeholder="Add some details..."
+                      value={textBody}
+                      onChange={(e) => setTextBody(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
+
+              {selectedType === "button" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Button Label</Label>
+                    <Input
+                      placeholder="Book Now"
+                      value={buttonLabel}
+                      onChange={(e) => setButtonLabel(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link URL</Label>
+                    <Input
+                      placeholder="https://..."
+                      value={buttonUrl}
+                      onChange={(e) => setButtonUrl(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Alignment picker */}
+              <div className="space-y-2">
+                <Label>Alignment</Label>
+                <RadioGroup 
+                  value={alignment} 
+                  onValueChange={setAlignment}
+                  className="flex gap-2"
+                >
+                  <div className="flex items-center">
+                    <RadioGroupItem value="left" id="align-left" className="sr-only" />
+                    <Label
+                      htmlFor="align-left"
+                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                        alignment === "left" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                      }`}
+                    >
+                      <AlignLeft className="h-4 w-4" />
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <RadioGroupItem value="center" id="align-center" className="sr-only" />
+                    <Label
+                      htmlFor="align-center"
+                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                        alignment === "center" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                      }`}
+                    >
+                      <AlignCenter className="h-4 w-4" />
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <RadioGroupItem value="right" id="align-right" className="sr-only" />
+                    <Label
+                      htmlFor="align-right"
+                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                        alignment === "right" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                      }`}
+                    >
+                      <AlignRight className="h-4 w-4" />
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {!editingBlock && (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setSelectedType(null)}
+                  >
+                    Back
+                  </Button>
+                )}
+                <Button 
+                  className="flex-1"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingBlock ? "Save" : "Add"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Cropper */}
+      {rawImageForCrop && (
+        <ImageCropper
+          open={showCropper}
+          onOpenChange={(open) => {
+            setShowCropper(open);
+            if (!open && rawImageForCrop) {
+              URL.revokeObjectURL(rawImageForCrop);
+              setRawImageForCrop(null);
+            }
+          }}
+          imageSrc={rawImageForCrop}
+          onCropComplete={handleCropComplete}
+          aspectRatio={imageSize === "small" ? 1 : 16/9}
+          cropShape="rect"
+        />
+      )}
+    </>
   );
 };

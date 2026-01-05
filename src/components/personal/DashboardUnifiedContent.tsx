@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { 
   GripVertical, 
   Trash2, 
@@ -64,6 +65,7 @@ type UnifiedItem =
 
 interface Props {
   profileId: string;
+  username: string;
   links: DbPersonalLink[];
   blocks: PersonalBlock[];
   onLinksChange: (links: DbPersonalLink[]) => void;
@@ -72,6 +74,7 @@ interface Props {
 
 export const DashboardUnifiedContent = ({ 
   profileId, 
+  username,
   links, 
   blocks, 
   onLinksChange, 
@@ -143,6 +146,9 @@ export const DashboardUnifiedContent = ({
 
       onLinksChange(updatedLinks);
       onBlocksChange(updatedBlocks);
+      
+      // Invalidate cache so live profile shows new order
+      invalidateProfileCache(username);
     } catch (err) {
       console.error("Reorder error:", err);
       toast.error("Failed to save order");
@@ -589,6 +595,7 @@ export const DashboardUnifiedContent = ({
         open={blockModalOpen}
         onOpenChange={setBlockModalOpen}
         profileId={profileId}
+        username={username}
         editingBlock={editingBlock}
         currentMaxOrder={Math.max(...unifiedItems.map(i => i.data.sort_order), -1)}
         onBlockSaved={(block) => {

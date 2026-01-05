@@ -432,6 +432,7 @@ const PersonalDashboard = () => {
             <div className="border-t pt-6">
               <DashboardUnifiedContent
                 profileId={profile.id}
+                username={profile.username}
                 links={links}
                 blocks={blocks}
                 onLinksChange={setLinks}
