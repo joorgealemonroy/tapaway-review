@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, Eye, EyeOff } from "lucide-react";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { z } from "zod";
 
@@ -14,6 +14,9 @@ const identitySchema = z.object({
     .min(3, "Username must be at least 3 characters")
     .max(30, "Username must be 30 characters or less")
     .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores allowed"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be 72 characters or less"),
 });
 
 interface Props {
@@ -28,6 +31,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   // Debounced username check
   useEffect(() => {
@@ -73,7 +77,8 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
 
   const handleBlur = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    validateField(field as keyof typeof identitySchema.shape, formData[field as keyof SignupData] as string);
+    const value = field === 'password' ? formData.password : formData[field as keyof SignupData] as string;
+    validateField(field as keyof typeof identitySchema.shape, value || '');
   };
 
   const handleSubmit = () => {
@@ -81,6 +86,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       fullName: formData.fullName,
       email: formData.email,
       username: formData.username,
+      password: formData.password,
     });
 
     if (!result.success) {
@@ -91,7 +97,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         }
       });
       setErrors(newErrors);
-      setTouched({ fullName: true, email: true, username: true });
+      setTouched({ fullName: true, email: true, username: true, password: true });
       return;
     }
 
@@ -102,6 +108,13 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
 
     onNext();
   };
+
+  const isFormValid = 
+    formData.fullName.length >= 2 &&
+    formData.email.includes('@') &&
+    formData.username.length >= 3 &&
+    (formData.password?.length || 0) >= 8 &&
+    usernameStatus === "available";
 
   return (
     <div className="space-y-6">
@@ -180,15 +193,43 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         {touched.username && errors.username && usernameStatus !== "taken" && (
           <p className="text-sm text-destructive">{errors.username}</p>
         )}
+      </div>
+
+      {/* Password */}
+      <div className="space-y-2">
+        <Label htmlFor="password" className="text-sm font-medium text-foreground">
+          Create a password
+        </Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="At least 8 characters"
+            value={formData.password || ""}
+            onChange={(e) => updateFormData({ password: e.target.value })}
+            onBlur={() => handleBlur("password")}
+            className="h-12 text-base pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {touched.password && errors.password && (
+          <p className="text-sm text-destructive">{errors.password}</p>
+        )}
         <p className="text-sm text-muted-foreground">
-          This is how people will find you. You can change it anytime.
+          You'll use this to log in to your dashboard.
         </p>
       </div>
 
       {/* Continue Button */}
       <Button
         onClick={handleSubmit}
-        disabled={isLoading || usernameStatus !== "available"}
+        disabled={isLoading || !isFormValid}
         className="w-full h-14 text-base font-semibold"
       >
         Continue
