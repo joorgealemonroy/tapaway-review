@@ -74,9 +74,9 @@ export const TapAwayCardPreview = ({
 
             {/* Large green circle with profile photo - centered */}
             <div 
-              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-6"
               style={{
-                width: "58%",
+                width: "65%",
                 aspectRatio: "1/1",
                 backgroundColor: "#6BCB77",
               }}
