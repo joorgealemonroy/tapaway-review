@@ -198,6 +198,10 @@ function ProfilePreviewRendererComponent({
         const imageUrl = content.url as string;
         const linkUrl = content.linkUrl as string | undefined;
         const size = (content.size as string) || "large";
+        const overlayTitle = content.overlayTitle as string | undefined;
+        const overlaySubtitle = content.overlaySubtitle as string | undefined;
+        const overlayCta = content.overlayCta as string | undefined;
+        const hasOverlay = overlayTitle || overlaySubtitle || overlayCta;
 
         if (!imageUrl) return null;
 
@@ -210,13 +214,28 @@ function ProfilePreviewRendererComponent({
             ? "max-h-48 w-auto mx-auto"
             : "w-full max-h-80 object-cover";
 
-        const imgElement = (
-          <img
-            src={optimizedUrl}
-            alt=""
-            className={`rounded-xl ${sizeClasses}`}
-            loading="lazy"
-          />
+        const imageWithOverlay = (
+          <div className="relative rounded-xl overflow-hidden">
+            <img
+              src={optimizedUrl}
+              alt=""
+              className={sizeClasses}
+              loading="lazy"
+            />
+            {hasOverlay && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-center p-4">
+                {overlayTitle && (
+                  <h3 className="text-lg font-bold mb-0.5 drop-shadow-lg">{overlayTitle}</h3>
+                )}
+                {overlaySubtitle && (
+                  <p className="text-xs font-medium mb-0.5 drop-shadow-md">{overlaySubtitle}</p>
+                )}
+                {overlayCta && (
+                  <p className="text-xs font-semibold text-emerald-400 drop-shadow-md">{overlayCta}</p>
+                )}
+              </div>
+            )}
+          </div>
         );
 
         return (
@@ -229,10 +248,10 @@ function ProfilePreviewRendererComponent({
                 onClick={(e) => handleLinkClick(e, linkUrl)}
                 className="block"
               >
-                {imgElement}
+                {imageWithOverlay}
               </a>
             ) : (
-              imgElement
+              imageWithOverlay
             )}
           </div>
         );

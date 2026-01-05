@@ -77,6 +77,11 @@ export const BlockModal = ({
   const [imageLinkUrl, setImageLinkUrl] = useState("");
   const [imageSize, setImageSize] = useState<"small" | "large">("large");
   
+  // Text overlay options for image blocks
+  const [overlayTitle, setOverlayTitle] = useState("");
+  const [overlaySubtitle, setOverlaySubtitle] = useState("");
+  const [overlayCta, setOverlayCta] = useState("");
+  
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
@@ -96,6 +101,9 @@ export const BlockModal = ({
           setImageUrl(content.url || "");
           setImageLinkUrl(content.linkUrl || "");
           setImageSize((content.size as "small" | "large") || "large");
+          setOverlayTitle(content.overlayTitle || "");
+          setOverlaySubtitle(content.overlaySubtitle || "");
+          setOverlayCta(content.overlayCta || "");
         } else if (editingBlock.block_type === "text") {
           setTextTitle(content.title || "");
           setTextBody(content.body || "");
@@ -121,6 +129,9 @@ export const BlockModal = ({
     setImageLinkUrl("");
     setImageSize("large");
     setRawImageForCrop(null);
+    setOverlayTitle("");
+    setOverlaySubtitle("");
+    setOverlayCta("");
   };
 
   const handleClose = () => {
@@ -247,6 +258,9 @@ export const BlockModal = ({
           url: imageUrl,
           linkUrl: imageLinkUrl.trim() ? (imageLinkUrl.startsWith("http") ? imageLinkUrl : `https://${imageLinkUrl}`) : "",
           size: imageSize,
+          overlayTitle: overlayTitle.trim(),
+          overlaySubtitle: overlaySubtitle.trim(),
+          overlayCta: overlayCta.trim(),
         };
         break;
       }
@@ -474,6 +488,34 @@ export const BlockModal = ({
                     />
                     <p className="text-xs text-muted-foreground">Make image clickable</p>
                   </div>
+                  
+                  {/* Text Overlay (optional) */}
+                  {imageUrl && (
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <Label className="text-sm font-medium">Text Overlay (optional)</Label>
+                      <div className="space-y-2">
+                        <Input
+                          placeholder="Title (e.g., Best Snacks To Sell 🤑)"
+                          value={overlayTitle}
+                          onChange={(e) => setOverlayTitle(e.target.value)}
+                          className="h-10"
+                        />
+                        <Input
+                          placeholder="Subtitle (e.g., Profits $$)"
+                          value={overlaySubtitle}
+                          onChange={(e) => setOverlaySubtitle(e.target.value)}
+                          className="h-10"
+                        />
+                        <Input
+                          placeholder="CTA text (e.g., Click Here)"
+                          value={overlayCta}
+                          onChange={(e) => setOverlayCta(e.target.value)}
+                          className="h-10"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Text will appear on top of the image</p>
+                    </div>
+                  )}
                 </>
               )}
 

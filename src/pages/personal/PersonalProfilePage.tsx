@@ -124,19 +124,38 @@ const ProfileBlock = memo(function ProfileBlock({
       const imageWidth = size === "small" ? 400 : 640;
       const imageUrl = getOptimizedImageUrl(content.url, imageWidth, 85);
       const linkUrl = content.linkUrl;
+      const overlayTitle = content.overlayTitle;
+      const overlaySubtitle = content.overlaySubtitle;
+      const overlayCta = content.overlayCta;
+      const hasOverlay = overlayTitle || overlaySubtitle || overlayCta;
       
-      const imageElement = (
-        <img 
-          src={imageUrl} 
-          alt="Content" 
-          loading="lazy"
-          decoding="async"
-          className={`rounded-xl object-cover ${
-            size === "small" 
-              ? "max-h-48 w-auto mx-auto" 
-              : "w-full max-h-80"
-          }`}
-        />
+      const imageWithOverlay = (
+        <div className="relative rounded-xl overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt="Content" 
+            loading="lazy"
+            decoding="async"
+            className={`object-cover ${
+              size === "small" 
+                ? "max-h-48 w-auto mx-auto" 
+                : "w-full max-h-80"
+            }`}
+          />
+          {hasOverlay && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-center p-4">
+              {overlayTitle && (
+                <h3 className="text-xl font-bold mb-1 drop-shadow-lg">{overlayTitle}</h3>
+              )}
+              {overlaySubtitle && (
+                <p className="text-sm font-medium mb-1 drop-shadow-md">{overlaySubtitle}</p>
+              )}
+              {overlayCta && (
+                <p className="text-sm font-semibold text-emerald-400 drop-shadow-md">{overlayCta}</p>
+              )}
+            </div>
+          )}
+        </div>
       );
       
       // Wrap in link if linkUrl exists
@@ -150,12 +169,12 @@ const ProfileBlock = memo(function ProfileBlock({
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >
-            {imageElement}
+            {imageWithOverlay}
           </motion.a>
         );
       }
       
-      return <div className="w-full">{imageElement}</div>;
+      return <div className="w-full">{imageWithOverlay}</div>;
     }
     case "text":
       return (
