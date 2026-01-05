@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.send-test-emails]
 verify_jwt = false
+
+[functions.send-personal-welcome-emails]
+verify_jwt = false
