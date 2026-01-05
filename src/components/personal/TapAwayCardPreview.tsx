@@ -39,94 +39,90 @@ export const TapAwayCardPreview = ({ fullName, username, profilePhotoUrl }: Prop
         </button>
       </div>
 
-      {/* Card - matching reference design */}
+      {/* Card - matching reference design exactly */}
       <div 
-        className="relative rounded-2xl overflow-hidden transition-transform duration-300"
+        className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg"
         style={{ 
           aspectRatio: "2.5/3.5",
-          perspective: "1000px" 
         }}
       >
         {side === "front" ? (
-          /* Front of card - matching reference design exactly */
-          <div className="absolute inset-0 bg-[#f5f5f5] rounded-2xl flex flex-col items-center px-6 py-8">
-            {/* Verified badge in top right */}
-            <div className="absolute top-6 right-6">
-              <div className="h-8 w-8 bg-[#1DA1F2] rounded-full flex items-center justify-center shadow-sm">
-                <CheckCircle2 className="h-5 w-5 text-white" strokeWidth={2.5} />
-              </div>
-            </div>
-
-            {/* Large circular profile photo area - green circle like reference */}
-            <div className="mt-4 mb-6">
-              <div 
-                className="rounded-full overflow-hidden flex items-center justify-center"
-                style={{
-                  width: "min(55vw, 180px)",
-                  height: "min(55vw, 180px)",
-                  backgroundColor: "#6BCB77",
-                }}
-              >
-                {profilePhotoUrl ? (
-                  <img
-                    src={profilePhotoUrl}
-                    alt={fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-5xl font-bold text-white">
-                    {fullName ? fullName.charAt(0).toUpperCase() : "?"}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Name with verified badge inline */}
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-bold text-foreground">
+          /* Front of card - matching uploaded reference exactly */
+          <div className="absolute inset-0 bg-[#f0f0f0] rounded-2xl flex flex-col items-center px-6 pt-6 pb-8">
+            {/* Top row: Name + Verified badge */}
+            <div className="w-full flex items-center justify-end gap-2 mb-4">
+              <span className="text-sm font-semibold text-foreground truncate max-w-[60%]">
                 {fullName || "Your Name"}
-              </h2>
-              <CheckCircle2 className="h-5 w-5 text-[#1DA1F2]" />
+              </span>
+              <div className="h-7 w-7 bg-[#1DA1F2] rounded-full flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="h-4 w-4 text-white" strokeWidth={3} />
+              </div>
+            </div>
+
+            {/* Large circular profile photo - replaces green circle */}
+            <div 
+              className="rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+              style={{
+                width: "clamp(120px, 45vw, 160px)",
+                height: "clamp(120px, 45vw, 160px)",
+                backgroundColor: profilePhotoUrl ? "transparent" : "#6BCB77",
+              }}
+            >
+              {profilePhotoUrl ? (
+                <img
+                  src={profilePhotoUrl}
+                  alt={fullName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-4xl font-bold text-white">
+                  {fullName ? fullName.charAt(0).toUpperCase() : "?"}
+                </span>
+              )}
             </div>
 
             {/* Tagline */}
-            <p className="text-base font-semibold text-foreground text-center mb-6">
+            <p className="text-base font-bold text-foreground text-center mt-6 mb-auto leading-tight">
               Tap to Connect &<br />Collaborate
             </p>
 
             {/* NFC + QR icons row */}
-            <div className="flex items-center gap-4 mb-4">
-              {/* NFC/Phone tap icon */}
-              <div className="flex items-center">
-                <svg width="48" height="48" viewBox="0 0 64 64" fill="none" className="opacity-80">
-                  <rect x="16" y="8" width="24" height="44" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
-                  <circle cx="28" cy="30" r="6" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path d="M22 30a6 6 0 0 1 12 0" stroke="currentColor" strokeWidth="2" fill="none" transform="rotate(-45 28 30)" />
-                  <path d="M18 30a10 10 0 0 1 20 0" stroke="currentColor" strokeWidth="2" fill="none" transform="rotate(-45 28 30)" />
-                  <path d="M14 30a14 14 0 0 1 28 0" stroke="currentColor" strokeWidth="1.5" fill="none" transform="rotate(-45 28 30)" />
-                  <circle cx="28" cy="16" r="2" fill="currentColor"/>
-                </svg>
-              </div>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              {/* NFC/Phone tap icon - simplified version matching reference */}
+              <svg width="52" height="52" viewBox="0 0 64 64" fill="none" className="text-foreground">
+                {/* Phone body */}
+                <rect x="8" y="12" width="28" height="44" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
+                {/* Screen */}
+                <rect x="12" y="18" width="20" height="30" rx="1" stroke="currentColor" strokeWidth="1" fill="none"/>
+                {/* Checkmark in circle on screen */}
+                <circle cx="22" cy="33" r="8" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                <path d="M18 33l3 3 6-6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                {/* NFC waves */}
+                <path d="M42 28c4 2 6 6 6 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                <path d="M46 24c6 3 10 10 10 18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                {/* Hand holding phone */}
+                <ellipse cx="22" cy="58" rx="14" ry="4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+              </svg>
               
-              <div className="h-12 w-px bg-border" />
+              <div className="h-10 w-px bg-gray-300" />
               
               {/* QR Code */}
-              <div className="bg-white p-2 rounded-lg">
+              <div className="bg-white p-1.5 rounded">
                 <QRCode 
                   value={`https://${profileUrl}`}
-                  size={44}
+                  size={42}
                   level="L"
                 />
               </div>
             </div>
 
-            {/* Tagline text */}
-            <p className="text-sm font-semibold text-foreground mb-2">
+            {/* Bottom tagline */}
+            <p className="text-sm font-bold text-foreground mb-1">
               All your links. One tap.
             </p>
 
             {/* TapAway.co */}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground font-medium">
               TapAway.co
             </p>
           </div>
