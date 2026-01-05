@@ -3,12 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeftRight, Building2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface DashboardSwitcherProps {
   currentType: "business" | "personal";
@@ -62,23 +56,16 @@ export const DashboardSwitcher = ({ currentType, variant = "default" }: Dashboar
 
   if (variant === "header") {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-white/80 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeftRight className="w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => navigate(switchTo)} className="cursor-pointer">
-            <SwitchIcon className="w-4 h-4 mr-2" />
-            <span>Switch to {switchLabel}</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate(switchTo)}
+        className="bg-white/10 border-white/20 text-white hover:bg-white/20 gap-2"
+      >
+        <SwitchIcon className="w-4 h-4" />
+        <span className="hidden sm:inline">Switch to {switchLabel}</span>
+        <ArrowLeftRight className="w-4 h-4 sm:hidden" />
+      </Button>
     );
   }
 
