@@ -49,38 +49,72 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setIsLoading(true);
 
     try {
-      // Call the edge function to create checkout session
-      const { data, error } = await supabase.functions.invoke("create-personal-checkout", {
-        body: {
-          email: formData.email,
-          fullName: formData.fullName,
-          username: formData.username,
-          planType: formData.planType,
-          addExtraCard: formData.addExtraCard,
-          extraCardCount: formData.extraCardCount,
-          links: formData.links,
-          blocks: formData.blocks,
+      // TEMPORARY: Bypass payment for testing - create account directly
+      // Generate a random password for the user
+      const tempPassword = crypto.randomUUID();
+      
+      // Sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: tempPassword,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          },
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error("No user returned from signup");
 
-      if (data?.url) {
-        // Store form data in sessionStorage for after checkout
-        sessionStorage.setItem("personal_signup_data", JSON.stringify({
-          ...formData,
-          profilePhoto: null,
-          croppedPhotoBlob: null,
+      // Create the personal profile
+      const { error: profileError } = await supabase
+        .from("personal_profiles")
+        .insert({
+          user_id: authData.user.id,
+          email: formData.email,
+          full_name: formData.fullName,
+          username: formData.username,
+          plan_type: formData.planType,
+          subscription_status: "active", // Bypass payment - mark as active
+          profile_photo_url: formData.profilePhotoUrl,
+        });
+
+      if (profileError) throw profileError;
+
+      // Create the links
+      if (formData.links.length > 0) {
+        const linksToInsert = formData.links.map((link, index) => ({
+          profile_id: authData.user!.id,
+          link_type: link.type,
+          label: link.label,
+          url: link.url,
+          sort_order: index,
+          is_active: true,
         }));
-        
-        // Redirect to Stripe
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
+
+        // Get the profile ID first
+        const { data: profileData } = await supabase
+          .from("personal_profiles")
+          .select("id")
+          .eq("user_id", authData.user.id)
+          .single();
+
+        if (profileData) {
+          const linksWithProfileId = linksToInsert.map(link => ({
+            ...link,
+            profile_id: profileData.id,
+          }));
+
+          await supabase.from("personal_links").insert(linksWithProfileId);
+        }
       }
+
+      toast.success("Account created successfully! (Test mode - no payment required)");
+      onComplete();
     } catch (err) {
       console.error("Checkout error:", err);
-      toast.error("Failed to start checkout. Please try again.");
+      toast.error("Failed to create account. Please try again.");
     } finally {
       setProcessing(false);
       setIsLoading(false);
