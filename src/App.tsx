@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -82,64 +83,66 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/business" element={<Index />} />
-              <Route path="/personal" element={<Personal />} />
-              <Route path="/personal/signup" element={<PersonalSignup />} />
-              <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
-              <Route path="/personal/dashboard" element={<PersonalDashboard />} />
-              <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/select-dashboard" element={<DashboardSelector />} />
-              <Route path="/auth/reset-password" element={<ResetPassword />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-              <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-              <Route path="/start" element={<Navigate to="/onboarding" replace />} />
-              <Route path="/paywall" element={<Paywall />} />
-              <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/refund" element={<Refund />} />
-              <Route path="/support" element={<Support />} />
-              
-              {/* Sales Rep Portal */}
-              <Route path="/rep" element={<RepHome />} />
-              <Route path="/rep/restaurants" element={<RepRestaurants />} />
-              <Route path="/rep/close" element={<RepClose />} />
-              <Route path="/rep/commissions" element={<RepCommissions />} />
-              <Route path="/rep/resources" element={<RepResources />} />
-              <Route path="/rep/docs" element={<RepDocs />} />
-              <Route path="/rep/profile" element={<RepProfile />} />
-              <Route path="/rep/apply" element={<RepApply />} />
-              <Route path="/rep/setup-password" element={<RepSetupPassword />} />
-              
-              {/* Admin Rep Management */}
-              <Route path="/admin/reps" element={<AdminReps />} />
-              <Route path="/admin/commissions" element={<AdminCommissions />} />
-              <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
-              <Route path="/admin/tax-review" element={<AdminTaxReview />} />
-              <Route path="/admin/payouts" element={<AdminPayouts />} />
-              <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
-              <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
-              
-              <Route path="/hub/:restaurantId" element={<ReviewHub />} />
-              
-              {/* Legacy Personal Profile URL - 301 redirect to /:username */}
-              <Route path="/u/:username" element={<LegacyProfileRedirect />} />
-              
-              {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
-              <Route path="/:slug" element={<UsernameResolver />} />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/business" element={<Index />} />
+                <Route path="/personal" element={<Personal />} />
+                <Route path="/personal/signup" element={<PersonalSignup />} />
+                <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
+                <Route path="/personal/dashboard" element={<PersonalDashboard />} />
+                <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/select-dashboard" element={<DashboardSelector />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+                <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
+                <Route path="/start" element={<Navigate to="/onboarding" replace />} />
+                <Route path="/paywall" element={<Paywall />} />
+                <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/refund" element={<Refund />} />
+                <Route path="/support" element={<Support />} />
+                
+                {/* Sales Rep Portal */}
+                <Route path="/rep" element={<RepHome />} />
+                <Route path="/rep/restaurants" element={<RepRestaurants />} />
+                <Route path="/rep/close" element={<RepClose />} />
+                <Route path="/rep/commissions" element={<RepCommissions />} />
+                <Route path="/rep/resources" element={<RepResources />} />
+                <Route path="/rep/docs" element={<RepDocs />} />
+                <Route path="/rep/profile" element={<RepProfile />} />
+                <Route path="/rep/apply" element={<RepApply />} />
+                <Route path="/rep/setup-password" element={<RepSetupPassword />} />
+                
+                {/* Admin Rep Management */}
+                <Route path="/admin/reps" element={<AdminReps />} />
+                <Route path="/admin/commissions" element={<AdminCommissions />} />
+                <Route path="/admin/settings/comp" element={<AdminCompSettings />} />
+                <Route path="/admin/tax-review" element={<AdminTaxReview />} />
+                <Route path="/admin/payouts" element={<AdminPayouts />} />
+                <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
+                <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
+                
+                <Route path="/hub/:restaurantId" element={<ReviewHub />} />
+                
+                {/* Legacy Personal Profile URL - 301 redirect to /:username */}
+                <Route path="/u/:username" element={<LegacyProfileRedirect />} />
+                
+                {/* Dynamic username/slug resolver - handles both personal profiles and restaurant slugs */}
+                <Route path="/:slug" element={<UsernameResolver />} />
+                
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

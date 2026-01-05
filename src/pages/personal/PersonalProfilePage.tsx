@@ -471,7 +471,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const bgColor = profile.background_color || "#ffffff";
   const bgStyle = { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
-  const isDarkBg = useMemo(() => isColorDark(bgColor), [bgColor]);
+  const isDarkBg = isColorDark(bgColor);
   
   // Dynamic text classes based on background
   const headingClass = isDarkBg ? "text-white" : "text-foreground";
