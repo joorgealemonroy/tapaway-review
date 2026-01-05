@@ -10,8 +10,7 @@ import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
-import { OptimizedAvatar } from "@/components/personal/OptimizedImage";
-import { preloadImages } from "@/components/personal/OptimizedImage";
+import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 
 interface Props {
   usernameOverride?: string;
@@ -119,11 +118,13 @@ const ProfileBlock = memo(function ProfileBlock({
         </div>
       );
     }
-    case "image":
+    case "image": {
+      // Apply Supabase image transformation for faster loading
+      const imageUrl = getOptimizedImageUrl(content.url, 640, 85);
       return (
         <div className="w-full">
           <img 
-            src={content.url} 
+            src={imageUrl} 
             alt="Content" 
             loading="lazy"
             decoding="async"
@@ -131,6 +132,7 @@ const ProfileBlock = memo(function ProfileBlock({
           />
         </div>
       );
+    }
     case "text":
       return (
         <div className={`w-full ${alignClass}`}>
@@ -175,10 +177,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [data?.profile?.id]);
 
-  // Preload header image when profile loads
+  // Preload optimized header image when profile loads
   useEffect(() => {
     if (data?.profile?.header_image_url) {
-      preloadImages([data.profile.header_image_url]);
+      const optimizedUrl = getOptimizedImageUrl(data.profile.header_image_url, 640, 85);
+      const img = new Image();
+      img.src = optimizedUrl;
     }
   }, [data?.profile?.header_image_url]);
 
@@ -255,8 +259,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     item => !(item.kind === "link" && (item.data as any).is_featured === true)
   );
 
-  const headerStyle = profile.header_type === "image" && profile.header_image_url
-    ? { backgroundImage: `url(${profile.header_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+  // Use optimized header image URL for faster loading
+  const optimizedHeaderUrl = profile.header_type === "image" && profile.header_image_url
+    ? getOptimizedImageUrl(profile.header_image_url, 640, 85)
+    : null;
+  
+  const headerStyle = optimizedHeaderUrl
+    ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
   const bgStyle = { backgroundColor: profile.background_color || "#ffffff" };
