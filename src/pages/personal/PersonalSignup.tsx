@@ -35,8 +35,11 @@ export interface SignupData {
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
   croppedPhotoBlob: Blob | null;
+  headerType: "color" | "image";
   headerImageUrl: string | null;
   headerColor: string | null;
+  backgroundColor: string | null;
+  cardHeadline: string;
   links: PersonalLink[];
   blocks: PersonalBlock[];
   addExtraCard: boolean;
@@ -74,8 +77,11 @@ const PersonalSignup = () => {
     profilePhoto: onboardingData.profilePhoto,
     profilePhotoUrl: onboardingData.profilePhotoUrl,
     croppedPhotoBlob: onboardingData.croppedPhotoBlob,
+    headerType: onboardingData.headerType,
     headerImageUrl: onboardingData.headerImageUrl,
     headerColor: onboardingData.headerColor,
+    backgroundColor: onboardingData.backgroundColor,
+    cardHeadline: onboardingData.cardHeadline,
     links: onboardingData.links,
     blocks: onboardingData.blocks,
     addExtraCard: onboardingData.addExtraCard,
