@@ -21,6 +21,7 @@ import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
 import { DashboardLinksManager } from "@/components/personal/DashboardLinksManager";
 import DashboardBlocksManager from "@/components/personal/DashboardBlocksManager";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
+import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 
@@ -35,6 +36,8 @@ interface PersonalProfile {
   header_image_url: string | null;
   background_color: string | null;
   pfp_position: string;
+  headline: string | null;
+  bio: string | null;
 }
 
 interface DbPersonalLink {
@@ -412,11 +415,24 @@ const PersonalDashboard = () => {
 
           {/* Links Tab */}
           <TabsContent value="links" className="space-y-6">
-            <DashboardLinksManager
+            {/* Hero Editor */}
+            <DashboardHeroEditor
               profileId={profile.id}
-              links={links}
-              onLinksChange={setLinks}
+              username={profile.username}
+              fullName={profile.full_name}
+              headline={profile.headline}
+              bio={profile.bio}
+              pfpPosition={profile.pfp_position}
+              onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
             />
+            
+            <div className="border-t pt-6">
+              <DashboardLinksManager
+                profileId={profile.id}
+                links={links}
+                onLinksChange={setLinks}
+              />
+            </div>
             <DashboardBlocksManager
               profileId={profile.id}
               blocks={blocks}

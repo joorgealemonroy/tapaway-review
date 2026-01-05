@@ -36,7 +36,7 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
   // First fetch profile to get ID
   const { data: profileData, error: profileError } = await supabase
     .from('personal_profiles')
-    .select('id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position')
+    .select('id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio')
     .eq('username', username.toLowerCase())
     .single();
 
@@ -48,9 +48,8 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
   const [linksResult, blocksResult] = await Promise.all([
     supabase
       .from('personal_links')
-      .select('id, link_type, label, url, pill_color, sort_order')
+      .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured')
       .eq('profile_id', profileData.id)
-      .eq('is_active', true)
       .order('sort_order', { ascending: true }),
     supabase
       .from('personal_blocks')

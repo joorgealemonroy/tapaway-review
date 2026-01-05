@@ -15,6 +15,8 @@ export interface CachedProfile {
   header_image_url: string | null;
   background_color: string | null;
   pfp_position: string | null;
+  headline: string | null;
+  bio: string | null;
 }
 
 export interface CachedLink {
@@ -24,6 +26,8 @@ export interface CachedLink {
   url: string;
   pill_color: string | null;
   sort_order: number;
+  is_active: boolean | null;
+  is_featured: boolean | null;
 }
 
 export interface CachedBlock {
