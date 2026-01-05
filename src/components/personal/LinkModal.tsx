@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
+import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Sparkles } from "lucide-react";
 
 // Preset colors for custom links
 const COLOR_PRESETS = [
@@ -45,6 +45,7 @@ export const LinkModal = ({
   const [customLabel, setCustomLabel] = useState("");
   const [pillColor, setPillColor] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [detectedPlatform, setDetectedPlatform] = useState<PlatformConfig | null>(null);
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -55,6 +56,7 @@ export const LinkModal = ({
       setCustomLabel("");
       setPillColor(null);
       setShowColorPicker(false);
+      setDetectedPlatform(null);
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
@@ -69,6 +71,25 @@ export const LinkModal = ({
     }
   }, [open, editingLink]);
 
+  // Auto-detect platform from URL input
+  useEffect(() => {
+    if (selectedPlatform?.type === "website" && inputValue.includes(".")) {
+      const detected = detectPlatformFromUrl(inputValue);
+      if (detected && detected !== "website") {
+        const config = getPlatformConfig(detected);
+        if (config && !existingTypes.includes(detected)) {
+          setDetectedPlatform(config);
+        } else {
+          setDetectedPlatform(null);
+        }
+      } else {
+        setDetectedPlatform(null);
+      }
+    } else {
+      setDetectedPlatform(null);
+    }
+  }, [inputValue, selectedPlatform, existingTypes]);
+
   const availablePlatforms = PLATFORM_CONFIGS.filter(
     p => !existingTypes.includes(p.type) || editingLink?.type === p.type
   );
@@ -79,6 +100,15 @@ export const LinkModal = ({
     setCustomLabel("");
     setPillColor(null);
     setShowColorPicker(false);
+    setDetectedPlatform(null);
+  };
+
+  const handleSwitchToDetected = () => {
+    if (!detectedPlatform) return;
+    const extractedValue = detectedPlatform.extractValue(inputValue);
+    setSelectedPlatform(detectedPlatform);
+    setInputValue(extractedValue);
+    setDetectedPlatform(null);
   };
 
   const handleBack = () => {
@@ -235,8 +265,28 @@ export const LinkModal = ({
           </div>
         )}
 
+        {/* Detected platform banner */}
+        {detectedPlatform && (
+          <button
+            type="button"
+            onClick={handleSwitchToDetected}
+            className="flex items-center gap-3 w-full p-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors text-left"
+          >
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${detectedPlatform.gradient || detectedPlatform.bgColor}`}>
+              <detectedPlatform.icon className={`h-4 w-4 ${detectedPlatform.color}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                {detectedPlatform.label} detected
+              </p>
+              <p className="text-xs text-muted-foreground">Tap to use branded styling</p>
+            </div>
+          </button>
+        )}
+
         {/* Preview URL */}
-        {inputValue && (
+        {inputValue && !detectedPlatform && (
           <p className="text-xs text-muted-foreground truncate">
             → {selectedPlatform.generateUrl(inputValue)}
           </p>
