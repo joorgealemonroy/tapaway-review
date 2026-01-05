@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import QRCode from "react-qr-code";
+import nfcTapIcon from "@/assets/nfc-tap-icon.png";
 
 interface Props {
   fullName: string;
@@ -108,26 +109,12 @@ export const TapAwayCardPreview = ({
 
             {/* NFC + QR icons row with center divider */}
             <div className="flex items-center justify-center gap-[6%] mb-[4%]">
-              {/* NFC/Phone tap icon - matching reference illustration style */}
-              <svg 
-                viewBox="0 0 80 80" 
-                fill="none" 
-                className="text-[#1a1a1a]"
-                style={{ width: "18%", aspectRatio: "1/1" }}
-              >
-                {/* Hand outline */}
-                <ellipse cx="28" cy="68" rx="18" ry="8" stroke="currentColor" strokeWidth="2" fill="none"/>
-                {/* Phone body */}
-                <rect x="12" y="14" width="32" height="50" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-                {/* Screen area */}
-                <rect x="16" y="20" width="24" height="36" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                {/* Checkmark circle on screen */}
-                <circle cx="28" cy="38" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
-                <path d="M23 38l4 4 8-8" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                {/* NFC waves */}
-                <path d="M52 32c5 3 8 8 8 14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                <path d="M58 26c7 4 12 12 12 20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-              </svg>
+              {/* NFC/Phone tap icon - using uploaded image */}
+              <img 
+                src={nfcTapIcon} 
+                alt="Tap to connect" 
+                style={{ width: "22%", height: "auto" }}
+              />
               
               {/* Vertical divider - matching reference thickness */}
               <div 
