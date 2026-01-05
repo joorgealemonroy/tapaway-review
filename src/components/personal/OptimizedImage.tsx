@@ -1,6 +1,36 @@
 import { useState, useEffect, memo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Transform Supabase storage URL to request optimized image
+ */
+export function getOptimizedImageUrl(
+  url: string | null | undefined,
+  width: number,
+  quality = 85
+): string {
+  if (!url) return '';
+  // Only transform Supabase storage URLs
+  if (!url.includes('supabase.co/storage')) return url;
+  const baseUrl = url.split('?')[0];
+  return `${baseUrl}?width=${width}&quality=${quality}`;
+}
+
+/**
+ * Generate srcset for responsive images
+ */
+export function generateSrcSet(
+  url: string | null | undefined,
+  sizes: number[],
+  quality = 85
+): string {
+  if (!url || !url.includes('supabase.co/storage')) return '';
+  const baseUrl = url.split('?')[0];
+  return sizes
+    .map(size => `${baseUrl}?width=${size}&quality=${quality} ${size}w`)
+    .join(', ');
+}
+
 interface OptimizedImageProps {
   src: string | null | undefined;
   alt: string;
@@ -11,6 +41,7 @@ interface OptimizedImageProps {
   fallback?: React.ReactNode;
   aspectRatio?: number;
   objectFit?: 'cover' | 'contain' | 'fill';
+  width?: number;
 }
 
 /**
@@ -30,6 +61,7 @@ export const OptimizedImage = memo(function OptimizedImage({
   fallback,
   aspectRatio,
   objectFit = 'cover',
+  width,
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -61,6 +93,10 @@ export const OptimizedImage = memo(function OptimizedImage({
     return fallback ? <>{fallback}</> : null;
   }
 
+  // Apply Supabase image transformation if width specified
+  const optimizedSrc = width ? getOptimizedImageUrl(src, width) : src;
+  const srcSet = width ? generateSrcSet(src, [width, width * 2]) : undefined;
+
   const containerStyle = aspectRatio
     ? { paddingBottom: `${(1 / aspectRatio) * 100}%` }
     : undefined;
@@ -86,10 +122,12 @@ export const OptimizedImage = memo(function OptimizedImage({
       
       <img
         ref={imgRef}
-        src={src}
+        src={optimizedSrc}
+        srcSet={srcSet}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        fetchPriority={priority ? 'high' : undefined}
         sizes={sizes}
         onLoad={handleLoad}
         onError={handleError}
@@ -141,8 +179,12 @@ export const OptimizedAvatar = memo(function OptimizedAvatar({
     }
   }, [src]);
 
-  const sizeClasses = `h-${size} w-${size}`;
   const sizeStyle = { width: size * 4, height: size * 4 }; // Tailwind units are 4px
+  const pixelSize = size * 4;
+  
+  // Optimized image URLs for 1x and 2x displays
+  const optimizedSrc = getOptimizedImageUrl(src, pixelSize, 90);
+  const srcSet = src ? `${getOptimizedImageUrl(src, pixelSize, 90)} 1x, ${getOptimizedImageUrl(src, pixelSize * 2, 85)} 2x` : undefined;
 
   if (!src || hasError) {
     return (
@@ -172,10 +214,12 @@ export const OptimizedAvatar = memo(function OptimizedAvatar({
       )}
       <img
         ref={imgRef}
-        src={src}
+        src={optimizedSrc}
+        srcSet={srcSet}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        fetchPriority={priority ? 'high' : undefined}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className={cn(
