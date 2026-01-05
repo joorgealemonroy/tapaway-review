@@ -950,6 +950,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
           label: string
           link_type: string
           pill_color: string | null
@@ -961,6 +962,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           label: string
           link_type: string
           pill_color?: string | null
@@ -972,6 +974,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           label?: string
           link_type?: string
           pill_color?: string | null

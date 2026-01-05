@@ -4,9 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig } from "@/lib/platformLinks";
+import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
+
+// Preset colors for custom links
+const COLOR_PRESETS = [
+  "#000000", // Black
+  "#ffffff", // White
+  "#ef4444", // Red
+  "#f97316", // Orange
+  "#eab308", // Yellow
+  "#22c55e", // Green
+  "#06b6d4", // Cyan
+  "#3b82f6", // Blue
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+];
 
 interface Props {
   open: boolean;
@@ -29,6 +43,8 @@ export const LinkModal = ({
   const [inputValue, setInputValue] = useState("");
   const [youtubeType, setYoutubeType] = useState<"handle" | "channel">("handle");
   const [customLabel, setCustomLabel] = useState("");
+  const [pillColor, setPillColor] = useState<string | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -37,12 +53,15 @@ export const LinkModal = ({
       setInputValue("");
       setYoutubeType("handle");
       setCustomLabel("");
+      setPillColor(null);
+      setShowColorPicker(false);
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
         setSelectedPlatform(config);
         setInputValue(editingLink.value);
         setCustomLabel(editingLink.label !== config.label ? editingLink.label : "");
+        setPillColor(editingLink.pillColor || null);
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -58,6 +77,8 @@ export const LinkModal = ({
     setSelectedPlatform(platform);
     setInputValue("");
     setCustomLabel("");
+    setPillColor(null);
+    setShowColorPicker(false);
   };
 
   const handleBack = () => {
@@ -73,9 +94,9 @@ export const LinkModal = ({
     const label = customLabel.trim() || selectedPlatform.label;
 
     if (editingLink && onUpdate) {
-      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type });
+      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor });
     } else {
-      onAdd({ type: selectedPlatform.type, value, url, label });
+      onAdd({ type: selectedPlatform.type, value, url, label, pillColor });
     }
     onOpenChange(false);
   };
@@ -163,6 +184,56 @@ export const LinkModal = ({
             className="h-12"
           />
         </div>
+
+        {/* Custom color (for website/custom links) */}
+        {(config.type === "website" || config.type === "email") && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <div 
+                className="h-5 w-5 rounded-full border border-border"
+                style={{ backgroundColor: pillColor || config.bgColor.replace("bg-", "") }}
+              />
+              <span>Custom button color</span>
+            </button>
+            
+            {showColorPicker && (
+              <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
+                {/* Reset to default */}
+                <button
+                  type="button"
+                  onClick={() => setPillColor(null)}
+                  className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                    pillColor === null ? "border-primary" : "border-transparent"
+                  }`}
+                  style={{ background: config.gradient || config.bgColor.replace("bg-[", "").replace("]", "").replace("bg-", "") }}
+                  title="Default"
+                >
+                  {pillColor === null && <Check className="h-4 w-4 text-white" />}
+                </button>
+                
+                {COLOR_PRESETS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setPillColor(color)}
+                    className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                      pillColor === color ? "border-primary scale-110" : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: color }}
+                  >
+                    {pillColor === color && (
+                      <Check className={`h-4 w-4 ${color === "#ffffff" ? "text-black" : "text-white"}`} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Preview URL */}
         {inputValue && (

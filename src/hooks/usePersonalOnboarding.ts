@@ -8,6 +8,8 @@ export interface PersonalLink {
   label: string;
   value: string; // username/handle/email
   url: string; // generated full URL
+  pillColor?: string | null; // custom button color
+  isFeatured?: boolean; // highlighted/featured link
 }
 
 export interface PersonalBlock {

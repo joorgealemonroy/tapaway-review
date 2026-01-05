@@ -55,7 +55,24 @@ export interface PlatformConfig {
   color: string;
   bgColor: string;
   gradient?: string;
+  // For button text color when using custom pill colors
+  textOnCustom?: string;
 }
+
+// Platform color presets for custom link styling
+export const PLATFORM_COLORS = {
+  instagram: "#E4405F",
+  instagramGradient: "linear-gradient(135deg, #833AB4, #E4405F, #FCAF45)",
+  tiktok: "#000000",
+  youtube: "#FF0000",
+  x: "#000000",
+  venmo: "#008CFF",
+  cashapp: "#00D632",
+  spotify: "#1DB954",
+  applemusic: "#FC3C44",
+  website: "#475569",
+  email: "#64748b",
+} as const;
 
 export const PLATFORM_CONFIGS: PlatformConfig[] = [
   {
