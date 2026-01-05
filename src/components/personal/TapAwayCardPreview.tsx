@@ -92,7 +92,7 @@ export const TapAwayCardPreview = ({
 
             {/* Headline text - exactly matching reference typography */}
             <p 
-              className="text-center mt-[8%] px-2 leading-tight"
+              className="text-center mt-[12%] px-2 leading-tight"
               style={{
                 fontSize: "clamp(13px, 4vw, 16px)",
                 fontWeight: 700,
