@@ -61,14 +61,14 @@ export const TapAwayCardPreview = ({
             <div className="w-full flex items-center justify-center gap-2 mb-[4%]">
               {fullName && (
                 <span 
-                  className="font-semibold text-[#1a1a1a] truncate"
-                  style={{ fontSize: "clamp(11px, 3.5vw, 14px)" }}
+                  className="font-bold text-[#1a1a1a] truncate"
+                  style={{ fontSize: "clamp(16px, 5vw, 22px)" }}
                 >
                   {fullName}
                 </span>
               )}
-              <div className="h-6 w-6 bg-[#1DA1F2] rounded-full flex items-center justify-center flex-shrink-0">
-                <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+              <div className="h-8 w-8 bg-[#1DA1F2] rounded-full flex items-center justify-center flex-shrink-0">
+                <Check className="h-5 w-5 text-white" strokeWidth={3} />
               </div>
             </div>
 
