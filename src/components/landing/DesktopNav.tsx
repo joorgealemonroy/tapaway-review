@@ -9,7 +9,7 @@ export const DesktopNav = () => {
   const location = useLocation();
   
   const isPersonal = location.pathname === "/personal";
-  const dashboardLink = isSalesRep ? "/rep" : isPersonal ? "/me" : "/dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : isPersonal ? "/personal/dashboard" : "/dashboard";
 
   return (
     <nav className="hidden md:block sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">
