@@ -329,17 +329,6 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         </div>
 
-        {/* NFC indicator - subtle card connection */}
-        <motion.div 
-          className={`flex items-center gap-1.5 mb-3 ${pfpCentered ? "justify-center" : ""}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Smartphone className="h-3 w-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Tap-enabled</span>
-        </motion.div>
-
         {/* Name & Username & Headline/Bio */}
         <h1 className="text-2xl font-bold text-foreground">{profile.full_name}</h1>
         {profile.headline && (
@@ -377,26 +366,34 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </p>
         )}
 
-        {/* Glass Pill Footer CTA */}
-        <motion.div 
-          className="mt-12 flex justify-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-        >
-          <a
-            href="/personal"
-            className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-2xl border border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] hover:bg-white/30 transition-all duration-300 text-sm"
+        {/* Footer */}
+        <footer className="mt-12 pb-6 text-center space-y-3">
+          {/* Glass Pill CTA */}
+          <motion.div 
+            className="flex justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
           >
-            <svg className="h-3.5 w-3.5 text-foreground/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            
-            <span className="font-medium text-foreground/80">
-              Start using TapAway
-            </span>
-          </a>
-        </motion.div>
+            <a
+              href="/personal"
+              className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-2xl border border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] hover:bg-white/30 transition-all duration-300 text-sm"
+            >
+              <svg className="h-3.5 w-3.5 text-foreground/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span className="font-medium text-foreground/80">
+                Start using TapAway
+              </span>
+            </a>
+          </motion.div>
+          
+          {/* Subtle tap-enabled indicator */}
+          <p className="text-xs text-muted-foreground/50 flex items-center justify-center gap-1">
+            <Smartphone className="h-3 w-3" />
+            Tap-enabled
+          </p>
+        </footer>
       </div>
     </div>
   );
