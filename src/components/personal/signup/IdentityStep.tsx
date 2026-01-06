@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Loader2, Eye, EyeOff } from "lucide-react";
+import { Check, X, Loader2, Eye, EyeOff, Info } from "lucide-react";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { z } from "zod";
 
@@ -25,9 +25,10 @@ interface Props {
   onNext: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  selectedPlan?: "free" | "monthly" | "yearly";
 }
 
-export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setIsLoading }: Props) => {
+export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setIsLoading, selectedPlan = "free" }: Props) => {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -43,8 +44,13 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
     const timer = setTimeout(async () => {
       setUsernameStatus("checking");
       try {
+        // For free users, also check with "tap" prefix to ensure both are available
+        const usernameToCheck = selectedPlan === "free" 
+          ? `tap${formData.username.toLowerCase()}`
+          : formData.username.toLowerCase();
+        
         const { data, error } = await supabase.rpc("is_username_available", {
-          check_username: formData.username.toLowerCase(),
+          check_username: usernameToCheck,
         });
         
         if (error) throw error;
@@ -56,7 +62,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [formData.username]);
+  }, [formData.username, selectedPlan]);
 
   const validateField = (field: keyof typeof identitySchema.shape, value: string) => {
     try {
@@ -164,7 +170,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         </Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            tapaway.co/
+            tapaway.co/{selectedPlan === "free" ? "tap" : ""}
           </span>
           <Input
             id="username"
@@ -173,7 +179,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
             value={formData.username}
             onChange={(e) => updateFormData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
             onBlur={() => handleBlur("username")}
-            className="h-12 text-base pl-28"
+            className={`h-12 text-base ${selectedPlan === "free" ? "pl-36" : "pl-28"}`}
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {usernameStatus === "checking" && (
@@ -194,9 +200,17 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
           <p className="text-sm text-destructive">{errors.username}</p>
         )}
         {usernameStatus === "available" && (
-          <p className="text-sm text-amber-600">
-            ⚠️ Your username cannot be changed after signup
-          </p>
+          <>
+            <p className="text-sm text-amber-600">
+              ⚠️ Your username cannot be changed after signup
+            </p>
+            {selectedPlan === "free" && (
+              <p className="text-xs text-blue-600 flex items-center gap-1">
+                <Info className="h-3 w-3" />
+                Upgrade to Pro to remove the "tap" prefix from your URL
+              </p>
+            )}
+          </>
         )}
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,9 @@ import {
   Palette,
   Smartphone,
   Mail,
-  Lock
+  Lock,
+  Sparkles,
+  Star
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview, TapAwayCardPreviewHandle } from "@/components/personal/TapAwayCardPreview";
@@ -80,6 +82,7 @@ type TimeRange = "7d" | "30d" | "all";
 
 const PersonalDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
@@ -106,6 +109,10 @@ const PersonalDashboard = () => {
   const [editableCardName, setEditableCardName] = useState("");
   const [editableFrontHeadline, setEditableFrontHeadline] = useState("");
   const [editableBackText, setEditableBackText] = useState("");
+  const [editableCardPhotoUrl, setEditableCardPhotoUrl] = useState<string | null>(null);
+  const [isCardPhotoEdit, setIsCardPhotoEdit] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -172,9 +179,47 @@ const PersonalDashboard = () => {
       setEditableCardName(profile.full_name);
       setEditableFrontHeadline(profile.card_front_headline || "Tap to Connect\n& Collaborate");
       setEditableBackText(profile.card_back_text || "Tap to Connect");
+      setEditableCardPhotoUrl(null); // Reset to use profile photo
       setShowCardConfirmModal(true);
     }
   }, [profile]);
+
+  // Handle upgrade success from URL param
+  useEffect(() => {
+    const upgradeStatus = searchParams.get("upgrade");
+    const sessionId = searchParams.get("session_id");
+    
+    if (upgradeStatus === "success" && sessionId && profile) {
+      // Verify the upgrade
+      const verifyUpgrade = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-personal-upgrade", {
+            body: { sessionId },
+          });
+          
+          if (error) throw error;
+          
+          if (data?.success) {
+            toast.success("Welcome to Pro! 🎉", {
+              description: data.newUsername !== profile.username 
+                ? `Your new URL is tapaway.co/${data.newUsername}`
+                : "Your upgrade is complete.",
+            });
+            
+            // Reload profile to get updated data
+            loadData();
+          }
+        } catch (err) {
+          console.error("Error verifying upgrade:", err);
+        } finally {
+          // Clear URL params
+          setSearchParams({});
+        }
+      };
+      
+      verifyUpgrade();
+    }
+  }, [searchParams, profile, setSearchParams, loadData]);
 
   // Load analytics lazily after initial render
   useEffect(() => {
@@ -287,6 +332,12 @@ const PersonalDashboard = () => {
 
       setProfile({ ...profile, profile_photo_url: urlWithCacheBust });
       
+      // If this was a card photo edit, update the editable card photo URL
+      if (isCardPhotoEdit) {
+        setEditableCardPhotoUrl(urlWithCacheBust);
+        setIsCardPhotoEdit(false);
+      }
+      
       // Invalidate public profile cache
       invalidateProfileCache(profile.username);
       
@@ -296,6 +347,48 @@ const PersonalDashboard = () => {
       toast.error("Failed to upload photo");
     } finally {
       setUploadingPhoto(false);
+    }
+  }, [profile, isCardPhotoEdit]);
+
+  const handleModalPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setIsCardPhotoEdit(true);
+    setRawImageUrl(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleUpgrade = useCallback(async (planType: "monthly" | "yearly") => {
+    if (!profile) return;
+    
+    setUpgrading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-personal-upgrade", {
+        body: {
+          profileId: profile.id,
+          email: profile.email,
+          planType,
+          currentUsername: profile.username,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (err) {
+      console.error("Error creating upgrade checkout:", err);
+      toast.error("Failed to start upgrade. Please try again.");
+      setUpgrading(false);
     }
   }, [profile]);
 
@@ -637,13 +730,58 @@ const PersonalDashboard = () => {
                 />
               </>
             ) : profile.plan_type === "free" ? (
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg mb-2">Upgrade to Pro</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  Get a custom NFC card with your profile by upgrading to Pro
-                </p>
-                <Button>Upgrade to Pro</Button>
+              <div className="text-center py-8 space-y-6">
+                <div className="space-y-2">
+                  <CreditCard className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <h3 className="font-semibold text-lg">Get Your Custom NFC Card</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                    Upgrade to Pro to get a personalized TapAway card and remove the "tap" prefix from your URL
+                  </p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 space-y-3 border border-primary/20">
+                  <div className="flex items-center justify-center gap-2 text-primary font-medium">
+                    <Star className="h-4 w-4 fill-primary" />
+                    <span>Pro Benefits</span>
+                  </div>
+                  <ul className="text-sm text-left space-y-2 max-w-xs mx-auto">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>Custom NFC card with your photo</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>Clean URL (no "tap" prefix)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>Unlimited links & blocks</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span>Email lead capture</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    onClick={() => handleUpgrade("yearly")}
+                    disabled={upgrading}
+                    className="relative"
+                  >
+                    {upgrading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    Yearly — $99/year
+                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">Save 8%</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleUpgrade("monthly")}
+                    disabled={upgrading}
+                  >
+                    Monthly — $9/mo
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -747,6 +885,38 @@ const PersonalDashboard = () => {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {/* Editable Photo */}
+            <div className="space-y-2">
+              <Label>Profile Photo</Label>
+              <button
+                onClick={() => modalFileInputRef.current?.click()}
+                className="relative w-20 h-20 rounded-full overflow-hidden mx-auto group block"
+              >
+                {(editableCardPhotoUrl || profile.profile_photo_url) ? (
+                  <img 
+                    src={editableCardPhotoUrl || profile.profile_photo_url || ""} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <span className="text-xl font-bold text-muted-foreground">{editableCardName.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="h-5 w-5 text-white" />
+                </div>
+              </button>
+              <input
+                ref={modalFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleModalPhotoSelect}
+                className="hidden"
+              />
+              <p className="text-xs text-muted-foreground text-center">Click to change</p>
+            </div>
+
             {/* Editable Name */}
             <div className="space-y-2">
               <Label htmlFor="cardName">Name on Card</Label>
@@ -789,7 +959,7 @@ const PersonalDashboard = () => {
                 ref={cardModalPreviewRef}
                 fullName={editableCardName}
                 username={profile.username}
-                profilePhotoUrl={profile.profile_photo_url}
+                profilePhotoUrl={editableCardPhotoUrl || profile.profile_photo_url}
                 cardHeadline={editableFrontHeadline}
                 cardBackText={editableBackText}
               />
