@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Smartphone, Truck, Zap } from "lucide-react";
+import { ArrowRight, Smartphone, Truck, Package, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import PersonalCard3D from "@/components/PersonalCard3D";
 
@@ -25,7 +25,7 @@ export const PersonalHero = () => {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-5"
             >
               <Zap className="w-4 h-4 fill-primary" />
-              <span>For Creators & Professionals</span>
+              <span>Custom NFC Card Included</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -36,19 +36,23 @@ export const PersonalHero = () => {
 
             {/* Subheadline */}
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-6 max-w-xl mx-auto lg:mx-0">
-              One tap opens your links — Instagram, TikTok, YouTube, merch, music, payments.{" "}
-              <span className="font-semibold text-foreground">No app required. Works instantly.</span>
+              Get a custom NFC card with your name. One tap opens all your links — Instagram, TikTok, YouTube, website, payments.{" "}
+              <span className="font-semibold text-foreground">We ship it free, all set up for you.</span>
             </p>
 
             {/* Trust Points */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6 justify-center lg:justify-start">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Truck className="w-4 h-4 text-primary" />
-                <span>Ships in 1–2 business days</span>
+                <span className="font-medium">Free shipping</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Package className="w-4 h-4 text-primary" />
+                <span>Ships in 1–2 days</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Smartphone className="w-4 h-4 text-primary" />
-                <span>iPhone & Android compatible</span>
+                <span>iPhone & Android</span>
               </div>
             </div>
 
@@ -59,18 +63,18 @@ export const PersonalHero = () => {
                 whileTap={{ scale: 0.98 }}
               >
                 <Link
-                  to="/personal/order"
+                  to="/personal/pricing"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
-                  Get Your Personal TapAway Card
+                  Get Your Custom NFC Card
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
             </div>
 
-            {/* Micro-copy */}
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Free shipping. Change your links anytime.
+            {/* Pricing teaser */}
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Starting at <span className="font-semibold text-foreground">$99/year</span> — or try free without a card
             </p>
           </motion.div>
 
@@ -92,7 +96,7 @@ export const PersonalHero = () => {
                 className="bg-white rounded-xl shadow-lg border border-border px-6 py-3"
               >
                 <p className="text-sm text-muted-foreground">Your links open instantly</p>
-                <p className="text-lg font-bold text-foreground">@yourname</p>
+                <p className="text-lg font-bold text-foreground">tapaway.co/yourname</p>
               </motion.div>
             </div>
           </motion.div>

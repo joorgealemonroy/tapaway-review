@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { X } from "lucide-react";
+import { X, Check, Truck, CreditCard } from "lucide-react";
 
 // Step components
 import { IdentityStep } from "@/components/personal/signup/IdentityStep";
@@ -50,6 +50,7 @@ export interface SignupData {
 
 const PersonalSignup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
@@ -70,6 +71,17 @@ const PersonalSignup = () => {
     clearDraft,
     hasDraft 
   } = usePersonalOnboarding();
+
+  // Set plan type from URL param on mount
+  useEffect(() => {
+    const planParam = searchParams.get("plan");
+    if (planParam === "free" || planParam === "monthly" || planParam === "yearly") {
+      update({ planType: planParam });
+    }
+  }, [searchParams, update]);
+
+  const selectedPlan = onboardingData.planType;
+  const isPaidPlan = selectedPlan === "monthly" || selectedPlan === "yearly";
 
   // Convert onboarding data to SignupData format for components
   const formData: SignupData = {
@@ -158,7 +170,7 @@ const PersonalSignup = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <a href="/personal" className="font-black text-xl tracking-tight text-foreground">
               TapAway
@@ -187,6 +199,20 @@ const PersonalSignup = () => {
               </button>
             </div>
           </div>
+          
+          {/* Plan badge */}
+          {isPaidPlan && (
+            <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-primary" />
+                <span>Custom NFC card included</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-primary" />
+                <span>Free shipping</span>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -212,6 +238,7 @@ const PersonalSignup = () => {
                 onNext={nextStep}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
+                selectedPlan={selectedPlan}
               />
             )}
 
