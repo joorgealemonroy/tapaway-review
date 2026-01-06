@@ -20,7 +20,7 @@ export const PERSONAL_PLANS = {
   paid: {
     name: 'Pro',
     maxLinks: -1, // unlimited
-    price: '$9',
+    price: '$10',
     priceSubtext: '/month',
     features: {
       nfcCard: true,

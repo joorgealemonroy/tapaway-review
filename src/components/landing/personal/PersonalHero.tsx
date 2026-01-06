@@ -74,7 +74,7 @@ export const PersonalHero = () => {
 
             {/* Pricing teaser */}
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Starting at <span className="font-semibold text-foreground">$99/year</span> — or try free without a card
+              Starting at <span className="font-semibold text-foreground">$75/year</span> — or try free without a card
             </p>
           </motion.div>
 
