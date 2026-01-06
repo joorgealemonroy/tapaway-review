@@ -1034,6 +1034,10 @@ export type Database = {
         Row: {
           background_color: string | null
           bio: string | null
+          card_back_text: string | null
+          card_confirmed: boolean | null
+          card_confirmed_at: string | null
+          card_front_headline: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -1055,6 +1059,10 @@ export type Database = {
         Insert: {
           background_color?: string | null
           bio?: string | null
+          card_back_text?: string | null
+          card_confirmed?: boolean | null
+          card_confirmed_at?: string | null
+          card_front_headline?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -1076,6 +1084,10 @@ export type Database = {
         Update: {
           background_color?: string | null
           bio?: string | null
+          card_back_text?: string | null
+          card_confirmed?: boolean | null
+          card_confirmed_at?: string | null
+          card_front_headline?: string | null
           created_at?: string | null
           email?: string
           full_name?: string

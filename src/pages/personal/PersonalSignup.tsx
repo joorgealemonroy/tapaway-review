@@ -45,7 +45,7 @@ export interface SignupData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "monthly" | "yearly";
+  planType: "free" | "monthly" | "yearly";
 }
 
 const PersonalSignup = () => {
