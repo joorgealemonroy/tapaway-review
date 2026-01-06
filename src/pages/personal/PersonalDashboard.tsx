@@ -20,7 +20,7 @@ import {
   Mail
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
+import { TapAwayCardPreview, TapAwayCardPreviewHandle } from "@/components/personal/TapAwayCardPreview";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
@@ -90,6 +90,8 @@ const PersonalDashboard = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analyticsLoadedRef = useRef(false);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
+  const cardPreviewRef = useRef<TapAwayCardPreviewHandle>(null);
+  const [sendingCardApproval, setSendingCardApproval] = useState(false);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -333,6 +335,42 @@ const PersonalDashboard = () => {
     setPreviewSheetOpen(true);
   }, []);
 
+  const handleConfirmCardDesign = useCallback(async () => {
+    if (!profile || !cardPreviewRef.current) return;
+
+    setSendingCardApproval(true);
+    try {
+      // Capture both sides of the card
+      const { front, back } = await cardPreviewRef.current.captureScreenshots();
+
+      // Send to edge function
+      const response = await supabase.functions.invoke("send-card-approval", {
+        body: {
+          fullName: profile.full_name,
+          username: profile.username,
+          email: profile.email,
+          profileId: profile.id,
+          frontImageBase64: front,
+          backImageBase64: back,
+          cardHeadline: profile.headline,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast.success("Card design confirmed! We'll start printing soon.", {
+        description: "You'll receive an email when your card ships.",
+      });
+    } catch (err) {
+      console.error("Error sending card approval:", err);
+      toast.error("Failed to confirm card design. Please try again.");
+    } finally {
+      setSendingCardApproval(false);
+    }
+  }, [profile]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -529,12 +567,32 @@ const PersonalDashboard = () => {
           {/* Card Tab */}
           <TabsContent value="card" className="space-y-4">
             <TapAwayCardPreview
+              ref={cardPreviewRef}
               fullName={profile.full_name}
               username={profile.username}
               profilePhotoUrl={profile.profile_photo_url}
+              cardHeadline={profile.headline || undefined}
             />
+            <Button
+              onClick={handleConfirmCardDesign}
+              disabled={sendingCardApproval}
+              className="w-full"
+              size="lg"
+            >
+              {sendingCardApproval ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Confirm This is My Card Design
+                </>
+              )}
+            </Button>
             <p className="text-sm text-muted-foreground text-center">
-              Your TapAway card is connected to your profile
+              Once confirmed, we'll print and ship your card
             </p>
           </TabsContent>
         </Tabs>

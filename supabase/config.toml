@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.send-personal-welcome-emails]
 verify_jwt = false
+
+[functions.send-card-approval]
+verify_jwt = false

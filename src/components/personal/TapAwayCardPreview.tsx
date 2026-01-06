@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle, useRef } from "react";
 import { Check } from "lucide-react";
 import QRCode from "react-qr-code";
 import nfcTapIcon from "@/assets/nfc-tap-icon.png";
@@ -10,13 +10,56 @@ interface Props {
   cardHeadline?: string;
 }
 
-export const TapAwayCardPreview = ({ 
+export interface TapAwayCardPreviewHandle {
+  captureScreenshots: () => Promise<{ front: string; back: string }>;
+}
+
+export const TapAwayCardPreview = forwardRef<TapAwayCardPreviewHandle, Props>(({ 
   fullName, 
   username, 
   profilePhotoUrl,
   cardHeadline = "Tap to Connect\n& Collaborate"
-}: Props) => {
+}, ref) => {
   const [side, setSide] = useState<"front" | "back">("front");
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Expose capture method to parent
+  useImperativeHandle(ref, () => ({
+    captureScreenshots: async () => {
+      const html2canvas = (await import("html2canvas")).default;
+      
+      if (!cardRef.current) {
+        throw new Error("Card element not found");
+      }
+
+      // Capture front
+      setSide("front");
+      await new Promise(r => setTimeout(r, 100)); // Wait for render
+      const frontCanvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const front = frontCanvas.toDataURL("image/png");
+
+      // Capture back
+      setSide("back");
+      await new Promise(r => setTimeout(r, 100)); // Wait for render
+      const backCanvas = await html2canvas(cardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const back = backCanvas.toDataURL("image/png");
+
+      // Reset to front
+      setSide("front");
+
+      return { front, back };
+    }
+  }));
 
   const profileUrl = `tapaway.co/${username || "yourname"}`;
 
@@ -48,6 +91,7 @@ export const TapAwayCardPreview = ({
 
       {/* Card - EXACT 2.3" x 3.35" aspect ratio (0.687) */}
       <div 
+        ref={cardRef}
         className="relative rounded-2xl overflow-hidden transition-transform duration-300 shadow-lg mx-auto border border-black/20"
         style={{ 
           aspectRatio: "2.3/3.35",
@@ -190,4 +234,6 @@ export const TapAwayCardPreview = ({
       </div>
     </div>
   );
-};
+});
+
+TapAwayCardPreview.displayName = "TapAwayCardPreview";
