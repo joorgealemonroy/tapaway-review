@@ -1,76 +1,141 @@
+import { useState, useRef } from "react";
 import QRCode from "react-qr-code";
 
 const PersonalCard3D = () => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const startXRef = useRef(0);
+  const isDraggingRef = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    isDraggingRef.current = true;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - startXRef.current;
+    
+    if (Math.abs(diff) > 50) {
+      setIsFlipped(prev => !prev);
+    }
+    isDraggingRef.current = false;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    startXRef.current = e.clientX;
+    isDraggingRef.current = true;
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current) return;
+    const diff = e.clientX - startXRef.current;
+    
+    if (Math.abs(diff) > 50) {
+      setIsFlipped(prev => !prev);
+    }
+    isDraggingRef.current = false;
+  };
+
+  const handleClick = () => {
+    // Only flip on tap if no significant drag occurred
+    if (Math.abs(startXRef.current) < 5 || !isDraggingRef.current) {
+      setIsFlipped(prev => !prev);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setIsFlipped(prev => !prev);
+    }
+  };
+
   return (
-    <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
-      <div style={{ transform: "rotateZ(12deg)" }}>
-        <div className="animate-[spin-3d_12s_ease-in-out_infinite]" style={{ transformStyle: "preserve-3d" }}>
-          <div
-            className="relative"
-            style={{
-              width: "min(220px, 70vw)",
-              aspectRatio: "1 / 1.586",
+    <div className="flex flex-col justify-center items-center">
+      <div 
+        className="cursor-pointer select-none"
+        style={{ perspective: "1100px" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={isFlipped ? "Card showing QR code. Tap or swipe to see front." : "Card showing front. Tap or swipe to see QR code."}
+      >
+        <div style={{ transform: "rotateZ(12deg)" }}>
+          <div 
+            style={{ 
               transformStyle: "preserve-3d",
+              transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+              transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
             }}
           >
-            {/* FRONT */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden"
+              className="relative"
               style={{
-                backfaceVisibility: "hidden",
-                boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                width: "min(220px, 70vw)",
+                aspectRatio: "1 / 1.586",
+                transformStyle: "preserve-3d",
               }}
             >
-              <img 
-                src="/tapaway-personal-front.png" 
-                alt="TapAway personal card front" 
-                loading="lazy" 
-                className="w-full h-full object-cover" 
-              />
-            </div>
-
-            {/* BACK */}
-            <div
-              className="absolute inset-0 rounded-2xl overflow-hidden bg-[#f5f5f5] flex flex-col items-center justify-center gap-3 p-4"
-              style={{
-                backfaceVisibility: "hidden",
-                transform: "rotateY(180deg)",
-                boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
-              }}
-            >
-              {/* QR Code */}
-              <div className="bg-white p-2.5 rounded-xl shadow-sm" style={{ width: "55%" }}>
-                <QRCode 
-                  value="https://tapaway.co/yourname"
-                  size={120}
-                  level="M"
-                  style={{ width: "100%", height: "auto" }}
+              {/* FRONT */}
+              <div
+                className="absolute inset-0 rounded-2xl overflow-hidden"
+                style={{
+                  backfaceVisibility: "hidden",
+                  boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                }}
+              >
+                <img 
+                  src="/tapaway-personal-front.png" 
+                  alt="TapAway personal card front" 
+                  loading="lazy" 
+                  className="w-full h-full object-cover pointer-events-none" 
                 />
               </div>
-              
-              {/* Text */}
-              <div className="text-center">
-                <p className="font-semibold text-[#1a1a1a] text-xs">
-                  Tap to Connect
-                </p>
-                <p className="text-[#888] text-[10px] mt-0.5">
-                  tapaway.co/yourname
-                </p>
+
+              {/* BACK */}
+              <div
+                className="absolute inset-0 rounded-2xl overflow-hidden bg-[#f5f5f5] flex flex-col items-center justify-center gap-3 p-4"
+                style={{
+                  backfaceVisibility: "hidden",
+                  transform: "rotateY(180deg)",
+                  boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                }}
+              >
+                {/* QR Code */}
+                <div className="bg-white p-2.5 rounded-xl shadow-sm" style={{ width: "55%" }}>
+                  <QRCode 
+                    value="https://tapaway.co/yourname"
+                    size={120}
+                    level="M"
+                    style={{ width: "100%", height: "auto" }}
+                  />
+                </div>
+                
+                {/* Text */}
+                <div className="text-center">
+                  <p className="font-semibold text-[#1a1a1a] text-xs">
+                    Tap to Connect
+                  </p>
+                  <p className="text-[#888] text-[10px] mt-0.5">
+                    tapaway.co/yourname
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <style>
-        {`
-          @keyframes spin-3d {
-            0% { transform: rotateY(0deg); }
-            70% { transform: rotateY(180deg); }
-            100% { transform: rotateY(360deg); }
-          }
-        `}
-      </style>
+      
+      {/* Hint */}
+      <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5 animate-pulse">
+        <span>👆</span> Tap or swipe to flip
+      </p>
     </div>
   );
 };
