@@ -129,6 +129,7 @@ serve(async (req) => {
           username,
           full_name: metadata.full_name || 'TapAway User',
           email: customerEmail,
+          headline: metadata.card_headline || null,
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: 'active',
@@ -188,6 +189,7 @@ serve(async (req) => {
           headerImageUrl: fullProfile?.header_image_url || undefined,
           accentColor: fullProfile?.header_color || undefined,
           profileId,
+          cardHeadline: metadata.card_headline || fullProfile?.headline || undefined,
         };
 
         console.log('[verify-personal-checkout] Sending welcome emails...');
