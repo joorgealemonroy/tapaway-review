@@ -210,11 +210,16 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       // Step 4: Create the personal profile
       logCheckpoint("Creating personal profile");
       
+      // For free plan, add "tap" prefix to username
+      const finalUsername = formData.planType === "free" 
+        ? `tap${formData.username.toLowerCase()}`
+        : formData.username.toLowerCase();
+      
       const profileData = {
         user_id: signInData.user.id,
         email: formData.email,
         full_name: formData.fullName,
-        username: formData.username.toLowerCase(),
+        username: finalUsername,
         plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
         subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
