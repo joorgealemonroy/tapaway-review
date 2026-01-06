@@ -134,7 +134,7 @@ const PersonalCard3D = () => {
       
       {/* Hint */}
       <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5 animate-pulse">
-        <span>👆</span> Tap or swipe to flip
+        <span>👆</span> Tap to flip
       </p>
     </div>
   );
