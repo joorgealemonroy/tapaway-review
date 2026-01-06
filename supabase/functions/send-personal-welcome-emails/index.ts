@@ -219,11 +219,15 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                   </p>
                   
                   <p style="margin: 0 0 24px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    Thanks for joining TapAway. Your personal profile is now live and your custom NFC card is being prepared.
+                    Thanks for joining TapAway! Your personal profile is now live and your custom NFC card is being prepared.
+                  </p>
+                  
+                  <p style="margin: 0 0 16px; color: #52525b; font-size: 16px; line-height: 1.7;">
+                    <strong style="color: #18181b;">Good news:</strong> You don't have to wait for your card to start using TapAway. Your link is ready now — add it to your Instagram bio, LinkedIn, email signature, or anywhere you connect with people.
                   </p>
                   
                   <p style="margin: 0 0 32px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    In the meantime, make sure your profile is ready for when your card arrives.
+                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${data.username}</a>
                   </p>
                   
                   <!-- Profile Card Preview -->
@@ -262,18 +266,24 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                           <tr>
                             <td style="padding: 8px 0;">
                               <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">1</span>
-                              <span style="color: #52525b; font-size: 14px;">We print your custom TapAway card</span>
+                              <span style="color: #52525b; font-size: 14px;">Start sharing your link in bios and signatures now!</span>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding: 8px 0;">
                               <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">2</span>
-                              <span style="color: #52525b; font-size: 14px;">Your card ships within 3-5 business days</span>
+                              <span style="color: #52525b; font-size: 14px;">We print your custom TapAway card</span>
                             </td>
                           </tr>
                           <tr>
                             <td style="padding: 8px 0;">
                               <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">3</span>
+                              <span style="color: #52525b; font-size: 14px;">Your card ships within 3-5 business days</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0;">
+                              <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">4</span>
                               <span style="color: #52525b; font-size: 14px;">Tap your card to share your profile instantly</span>
                             </td>
                           </tr>
