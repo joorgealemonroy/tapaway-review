@@ -186,7 +186,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
 
 const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => {
   const profileUrl = `${FRONTEND_URL}/${data.username}`;
-  const dashboardUrl = `${FRONTEND_URL}/personal/dashboard`;
+  const dashboardUrl = `${FRONTEND_URL}/auth`;
 
   return `
     <!DOCTYPE html>
