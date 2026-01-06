@@ -17,10 +17,11 @@ interface PersonalWelcomeEmailRequest {
   accentColor?: string;
   profileId: string;
   isTest?: boolean;
+  cardHeadline?: string;
 }
 
-// Internal notification email recipient (for testing, can be changed)
-const INTERNAL_EMAIL_RECIPIENT = "jorgealemonroy@gmail.com";
+// Internal notification email recipient
+const INTERNAL_EMAIL_RECIPIENT = Deno.env.get("EMAIL_INTERNAL") || "tap@tapaway.co";
 const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
 const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://tapaway.co";
 
@@ -33,6 +34,9 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
 
   const profileUrl = `${FRONTEND_URL}/${data.username}`;
   const adminUrl = `${FRONTEND_URL}/admin?tab=personal-accounts`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(profileUrl)}&bgcolor=ffffff&color=18181b`;
+  const accentColor = data.accentColor || '#0FB5BA';
+  const headline = data.cardHeadline || 'Tap to Connect';
 
   return `
     <!DOCTYPE html>
@@ -53,72 +57,107 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
                     🎉 New TapAway Personal Card Order
                   </h1>
+                  <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${timestamp}</p>
                 </td>
               </tr>
               
-              <!-- Profile Photo Section -->
-              ${data.profilePhotoUrl ? `
+              <!-- Visual Card Preview -->
               <tr>
-                <td style="padding: 32px 32px 16px; text-align: center;">
-                  <img src="${data.profilePhotoUrl}" alt="Profile Photo" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid ${data.accentColor || '#6366f1'};" />
-                </td>
-              </tr>
-              ` : ''}
-              
-              <!-- User Details -->
-              <tr>
-                <td style="padding: 16px 32px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+                <td style="padding: 32px; text-align: center;">
+                  <p style="margin: 0 0 16px; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Card Design Preview</p>
+                  
+                  <!-- Card Container -->
+                  <table cellpadding="0" cellspacing="0" style="margin: 0 auto; background-color: #18181b; border-radius: 16px; overflow: hidden; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
                     <tr>
-                      <td style="padding: 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;">
-                        <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Full Name</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 16px; font-weight: 600;">${data.fullName}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 16px; background-color: #ffffff; border-bottom: 1px solid #e4e4e7;">
-                        <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Username</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 16px; font-weight: 600;">@${data.username}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;">
-                        <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Email</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 16px;">${data.email}</p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 16px; background-color: #ffffff; border-bottom: 1px solid #e4e4e7;">
-                        <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Accent Color</strong>
-                        <p style="margin: 4px 0 0;">
-                          <span style="display: inline-block; width: 24px; height: 24px; background-color: ${data.accentColor || '#6366f1'}; border-radius: 4px; vertical-align: middle; border: 1px solid #e4e4e7;"></span>
-                          <span style="color: #18181b; font-size: 14px; margin-left: 8px; vertical-align: middle;">${data.accentColor || 'Default (#6366f1)'}</span>
+                      <td style="padding: 24px 20px 16px; text-align: center;">
+                        <!-- Name with verified badge -->
+                        <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
+                          ${data.fullName}
+                          <span style="display: inline-block; width: 16px; height: 16px; background-color: ${accentColor}; border-radius: 50%; vertical-align: middle; margin-left: 6px; text-align: center; line-height: 16px; font-size: 10px;">✓</span>
                         </p>
                       </td>
                     </tr>
                     <tr>
-                      <td style="padding: 16px; background-color: #fafafa;">
-                        <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Signup Time</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${timestamp}</p>
+                      <td style="padding: 0 20px; text-align: center;">
+                        <!-- Profile Photo -->
+                        ${data.profilePhotoUrl ? `
+                        <img src="${data.profilePhotoUrl}" alt="${data.fullName}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid ${accentColor};" />
+                        ` : `
+                        <div style="width: 100px; height: 100px; border-radius: 50%; background-color: #27272a; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                          <span style="color: #71717a; font-size: 36px;">${data.fullName.charAt(0)}</span>
+                        </div>
+                        `}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 16px 20px 8px; text-align: center;">
+                        <!-- Headline -->
+                        <p style="margin: 0; color: #e4e4e7; font-size: 14px; font-style: italic;">${headline}</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 16px 20px; text-align: center;">
+                        <!-- NFC + QR Section -->
+                        <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                          <tr>
+                            <td style="padding: 0 12px; vertical-align: middle;">
+                              <!-- NFC Icon -->
+                              <div style="width: 40px; height: 40px; background-color: #27272a; border-radius: 50%; text-align: center; line-height: 40px;">
+                                <span style="color: ${accentColor}; font-size: 18px;">📶</span>
+                              </div>
+                            </td>
+                            <td style="padding: 0 12px; vertical-align: middle;">
+                              <!-- QR Code -->
+                              <img src="${qrCodeUrl}" alt="QR Code" style="width: 60px; height: 60px; border-radius: 8px; background: #ffffff; padding: 4px;" />
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 20px 20px; text-align: center;">
+                        <p style="margin: 0 0 4px; color: #71717a; font-size: 11px;">All your links. One tap.</p>
+                        <p style="margin: 0; color: ${accentColor}; font-size: 12px; font-weight: 600;">TapAway.co</p>
                       </td>
                     </tr>
                   </table>
                 </td>
               </tr>
               
-              <!-- Header Image (if present) -->
-              ${data.headerImageUrl ? `
+              <!-- User Details -->
               <tr>
-                <td style="padding: 16px 32px;">
-                  <strong style="color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">Header Image</strong>
-                  <img src="${data.headerImageUrl}" alt="Header Image" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; border: 1px solid #e4e4e7;" />
+                <td style="padding: 0 32px 24px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+                    <tr>
+                      <td style="padding: 12px 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;" width="50%">
+                        <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Username</strong>
+                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px; font-weight: 600;">@${data.username}</p>
+                      </td>
+                      <td style="padding: 12px 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;" width="50%">
+                        <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Email</strong>
+                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${data.email}</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px 16px; background-color: #ffffff;" width="50%">
+                        <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Accent Color</strong>
+                        <p style="margin: 4px 0 0;">
+                          <span style="display: inline-block; width: 16px; height: 16px; background-color: ${accentColor}; border-radius: 4px; vertical-align: middle;"></span>
+                          <span style="color: #18181b; font-size: 12px; margin-left: 6px; vertical-align: middle;">${accentColor}</span>
+                        </p>
+                      </td>
+                      <td style="padding: 12px 16px; background-color: #ffffff;" width="50%">
+                        <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Profile ID</strong>
+                        <p style="margin: 4px 0 0; color: #71717a; font-size: 11px; font-family: monospace;">${data.profileId.substring(0, 8)}...</p>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
-              ` : ''}
               
               <!-- Actions -->
               <tr>
-                <td style="padding: 24px 32px;">
+                <td style="padding: 0 32px 32px;">
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="padding-right: 8px;" width="50%">
@@ -133,16 +172,6 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                       </td>
                     </tr>
                   </table>
-                </td>
-              </tr>
-              
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 24px 32px; background-color: #fafafa; border-top: 1px solid #e4e4e7; text-align: center;">
-                  <p style="margin: 0; color: #71717a; font-size: 13px;">
-                    This is an automated notification from TapAway.<br/>
-                    Profile ID: ${data.profileId}
-                  </p>
                 </td>
               </tr>
             </table>

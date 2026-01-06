@@ -22,6 +22,7 @@ import ResetPassword from "./pages/ResetPassword";
 const PersonalSignup = lazy(() => import("./pages/personal/PersonalSignup"));
 const PersonalSignupComplete = lazy(() => import("./pages/personal/PersonalSignupComplete"));
 const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
+const PersonalPricing = lazy(() => import("./pages/personal/PersonalPricing"));
 const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileRedirect"));
 
 // Business routes - lazy loaded
@@ -92,6 +93,7 @@ const App = () => (
                 <Route path="/personal/signup" element={<PersonalSignup />} />
                 <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
                 <Route path="/personal/dashboard" element={<PersonalDashboard />} />
+                <Route path="/personal/pricing" element={<PersonalPricing />} />
                 <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/auth" element={<Auth />} />
