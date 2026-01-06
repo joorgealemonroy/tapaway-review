@@ -109,16 +109,6 @@ export const MobileNav = () => {
       <div className="px-4 pb-3">
         <div className="flex p-1 rounded-xl bg-muted/60">
           <Link
-            to="/"
-            className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
-              !isPersonal
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Business
-          </Link>
-          <Link
             to="/personal"
             className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
               isPersonal
@@ -127,6 +117,16 @@ export const MobileNav = () => {
             }`}
           >
             Personal
+          </Link>
+          <Link
+            to="/"
+            className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
+              !isPersonal
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Business
           </Link>
         </div>
       </div>
