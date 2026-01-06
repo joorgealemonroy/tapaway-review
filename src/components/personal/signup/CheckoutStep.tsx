@@ -310,6 +310,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           extraCardCount: formData.extraCardCount,
           links: formData.links,
           blocks: formData.blocks,
+          cardHeadline: formData.cardHeadline,
         },
       });
 

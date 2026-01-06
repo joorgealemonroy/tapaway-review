@@ -32,7 +32,7 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { email, fullName, username, planType, addExtraCard, links } = body;
+    const { email, fullName, username, planType, addExtraCard, links, cardHeadline } = body;
 
     if (!email || !fullName || !username || !planType) {
       return new Response(
@@ -160,6 +160,7 @@ serve(async (req) => {
         plan_type: planType,
         add_extra_card: addExtraCard ? 'true' : 'false',
         links_json: JSON.stringify(links || []),
+        card_headline: cardHeadline || '',
       },
       subscription_data: {
         metadata: {

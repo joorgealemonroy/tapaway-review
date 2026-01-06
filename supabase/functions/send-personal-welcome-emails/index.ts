@@ -24,6 +24,7 @@ interface PersonalWelcomeEmailRequest {
 const INTERNAL_EMAIL_RECIPIENT = Deno.env.get("EMAIL_INTERNAL") || "tap@tapaway.co";
 const EMAIL_FROM = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
 const FRONTEND_URL = Deno.env.get("FRONTEND_URL") || "https://tapaway.co";
+const LOGO_URL = "https://i.imgur.com/bc1EJv8.png";
 
 const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): string => {
   const timestamp = new Date().toLocaleString('en-US', { 
@@ -203,7 +204,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
               <!-- Header with Logo -->
               <tr>
                 <td style="background-color: #18181b; padding: 32px; text-align: center;">
-                  <img src="${FRONTEND_URL}/tapaway-logo.svg" alt="TapAway" style="height: 32px; margin-bottom: 16px;" />
+                  <img src="${LOGO_URL}" alt="TapAway" style="height: 32px; margin-bottom: 16px;" />
                   <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                     Welcome to TapAway 👋
                   </h1>
