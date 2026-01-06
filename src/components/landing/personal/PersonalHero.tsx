@@ -72,9 +72,9 @@ export const PersonalHero = () => {
               </motion.div>
             </div>
 
-            {/* Pricing teaser */}
+            {/* Value reinforcement */}
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Starting at <span className="font-semibold text-foreground">$75/year</span> — or try free without a card
+              Includes custom NFC card & free shipping
             </p>
           </motion.div>
 
