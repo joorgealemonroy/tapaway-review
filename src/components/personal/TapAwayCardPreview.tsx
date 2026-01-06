@@ -8,6 +8,7 @@ interface Props {
   username: string;
   profilePhotoUrl: string | null;
   cardHeadline?: string;
+  cardBackText?: string;
 }
 
 export interface TapAwayCardPreviewHandle {
@@ -18,7 +19,8 @@ export const TapAwayCardPreview = forwardRef<TapAwayCardPreviewHandle, Props>(({
   fullName, 
   username, 
   profilePhotoUrl,
-  cardHeadline = "Tap to Connect\n& Collaborate"
+  cardHeadline = "Tap to Connect\n& Collaborate",
+  cardBackText = "Tap to Connect"
 }, ref) => {
   const [side, setSide] = useState<"front" | "back">("front");
   const cardRef = useRef<HTMLDivElement>(null);
@@ -220,7 +222,7 @@ export const TapAwayCardPreview = forwardRef<TapAwayCardPreviewHandle, Props>(({
                 className="font-semibold text-[#1a1a1a]"
                 style={{ fontSize: "clamp(12px, 3.5vw, 14px)" }}
               >
-                Scan to connect
+                {cardBackText}
               </p>
               <p 
                 className="text-[#888] mt-1"

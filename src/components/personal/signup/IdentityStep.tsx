@@ -193,6 +193,11 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         {touched.username && errors.username && usernameStatus !== "taken" && (
           <p className="text-sm text-destructive">{errors.username}</p>
         )}
+        {usernameStatus === "available" && (
+          <p className="text-sm text-amber-600">
+            ⚠️ Your username cannot be changed after signup
+          </p>
+        )}
       </div>
 
       {/* Password */}

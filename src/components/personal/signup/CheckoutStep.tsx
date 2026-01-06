@@ -32,6 +32,7 @@ interface Props {
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating";
+type PlanType = "free" | "monthly" | "yearly";
 
 export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading }: Props) => {
   const navigate = useNavigate();
@@ -42,11 +43,19 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const includedFeatures = [
-    "1 custom TapAway NFC card",
+  const freeFeatures = [
+    "Up to 5 links",
+    "Basic profile page",
+    "No NFC card included",
+  ];
+
+  const proFeatures = [
+    "1 custom TapAway NFC card included",
     "Unlimited links & updates",
-    "Personal dashboard",
-    "Basic analytics (profile visits)",
+    "Advanced analytics",
+    "Email lead capture",
+    "Custom header images",
+    "Priority support",
     "Free shipping",
   ];
 
@@ -59,12 +68,15 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   }, [resendCooldown]);
 
   const calculateTotal = () => {
+    if (formData.planType === "free") return 0;
     let total = formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
     if (formData.addExtraCard) {
       total += PERSONAL_PRICING.extraCard * formData.extraCardCount;
     }
     return total;
   };
+
+  const isFreePlan = formData.planType === "free";
 
   const logCheckpoint = (checkpoint: string, data?: Record<string, any>) => {
     const logData = {
@@ -254,6 +266,24 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         } else {
           logCheckpoint("Links created successfully");
         }
+      }
+
+      // Step 6: Send welcome email
+      logCheckpoint("Sending welcome email");
+      try {
+        await supabase.functions.invoke("send-personal-welcome-emails", {
+          body: {
+            fullName: formData.fullName,
+            username: formData.username,
+            email: formData.email,
+            profilePhotoUrl: profilePhotoUrl,
+            profileId: profileResult.id,
+          }
+        });
+        logCheckpoint("Welcome email sent");
+      } catch (emailErr) {
+        console.warn("Welcome email failed:", emailErr);
+        // Non-fatal, continue
       }
 
       logCheckpoint("Account creation complete");
@@ -498,26 +528,26 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       {/* Plan Selection */}
       <div className="space-y-3">
-        {/* Yearly Plan - Highlighted */}
+        {/* Pro Yearly Plan - Most Prominent */}
         <button
           onClick={() => updateFormData({ planType: "yearly" })}
           className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
             formData.planType === "yearly"
-              ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+              ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/20"
               : "border-border hover:border-primary/50"
           }`}
         >
           <div className="absolute -top-3 left-4">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
               <Sparkles className="h-3 w-3" />
-              Best Value — 2 months free
+              RECOMMENDED — NFC Card Included
             </span>
           </div>
           
           <div className="flex items-start justify-between pt-2">
             <div>
-              <span className="font-bold text-xl text-foreground">${PERSONAL_PRICING.yearly}/year</span>
-              <p className="text-sm text-muted-foreground mt-1">That's only $8.25/month</p>
+              <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
+              <p className="text-sm text-primary font-medium mt-1">Only $8.25/month • Save $20/year</p>
             </div>
             <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
               formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -527,7 +557,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           </div>
         </button>
 
-        {/* Monthly Plan */}
+        {/* Pro Monthly Plan */}
         <button
           onClick={() => updateFormData({ planType: "monthly" })}
           className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
@@ -538,8 +568,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         >
           <div className="flex items-center justify-between">
             <div>
-              <span className="font-bold text-foreground">${PERSONAL_PRICING.monthly}/month</span>
-              <p className="text-sm text-muted-foreground mt-1">Flexible monthly billing</p>
+              <span className="font-bold text-foreground">Pro — ${PERSONAL_PRICING.monthly}/month</span>
+              <p className="text-sm text-muted-foreground mt-1">NFC Card included • Flexible billing</p>
             </div>
             <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
               formData.planType === "monthly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -548,19 +578,48 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             </div>
           </div>
         </button>
+
+        {/* Free Plan - Less Prominent */}
+        <button
+          onClick={() => updateFormData({ planType: "free" as any })}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+            formData.planType === "free"
+              ? "border-muted bg-muted/30"
+              : "border-border/50 hover:border-border opacity-70"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-medium text-muted-foreground">Free — $0</span>
+              <p className="text-sm text-muted-foreground mt-1">No NFC card • Limited features</p>
+            </div>
+            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
+              formData.planType === "free" ? "border-muted-foreground bg-muted" : "border-muted"
+            }`}>
+              {formData.planType === "free" && <Check className="h-4 w-4 text-muted-foreground" />}
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* What's Included */}
       <div className="p-4 bg-muted/50 rounded-xl">
-        <h3 className="font-semibold text-foreground mb-3">What's included</h3>
+        <h3 className="font-semibold text-foreground mb-3">
+          {isFreePlan ? "Free plan includes" : "Pro plan includes"}
+        </h3>
         <ul className="space-y-2">
-          {includedFeatures.map((feature, index) => (
+          {(isFreePlan ? freeFeatures : proFeatures).map((feature, index) => (
             <li key={index} className="flex items-center gap-2 text-sm">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="text-foreground">{feature}</span>
+              <Check className={`h-4 w-4 flex-shrink-0 ${isFreePlan ? "text-muted-foreground" : "text-primary"}`} />
+              <span className={isFreePlan ? "text-muted-foreground" : "text-foreground"}>{feature}</span>
             </li>
           ))}
         </ul>
+        {isFreePlan && (
+          <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+            Upgrade to Pro anytime to get your NFC card and unlock all features
+          </p>
+        )}
       </div>
 
       {/* Order Summary */}
@@ -605,6 +664,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             Processing...
           </>
+        ) : isFreePlan ? (
+          "Create Free Account"
         ) : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />

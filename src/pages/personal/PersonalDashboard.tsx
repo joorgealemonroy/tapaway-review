@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Link2, 
   BarChart3, 
@@ -17,7 +20,8 @@ import {
   Check,
   Palette,
   Smartphone,
-  Mail
+  Mail,
+  Lock
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { TapAwayCardPreview, TapAwayCardPreviewHandle } from "@/components/personal/TapAwayCardPreview";
@@ -44,6 +48,11 @@ interface PersonalProfile {
   pfp_position: string;
   headline: string | null;
   bio: string | null;
+  card_confirmed: boolean | null;
+  card_confirmed_at: string | null;
+  card_front_headline: string | null;
+  card_back_text: string | null;
+  plan_type: string | null;
 }
 
 interface DbPersonalLink {
@@ -91,7 +100,12 @@ const PersonalDashboard = () => {
   const analyticsLoadedRef = useRef(false);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const cardPreviewRef = useRef<TapAwayCardPreviewHandle>(null);
+  const cardModalPreviewRef = useRef<TapAwayCardPreviewHandle>(null);
   const [sendingCardApproval, setSendingCardApproval] = useState(false);
+  const [showCardConfirmModal, setShowCardConfirmModal] = useState(false);
+  const [editableCardName, setEditableCardName] = useState("");
+  const [editableFrontHeadline, setEditableFrontHeadline] = useState("");
+  const [editableBackText, setEditableBackText] = useState("");
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -151,6 +165,16 @@ const PersonalDashboard = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Show card confirmation modal on first visit if not confirmed and has a paid plan
+  useEffect(() => {
+    if (profile && !profile.card_confirmed && profile.plan_type && profile.plan_type !== "free") {
+      setEditableCardName(profile.full_name);
+      setEditableFrontHeadline(profile.card_front_headline || "Tap to Connect\n& Collaborate");
+      setEditableBackText(profile.card_back_text || "Tap to Connect");
+      setShowCardConfirmModal(true);
+    }
+  }, [profile]);
 
   // Load analytics lazily after initial render
   useEffect(() => {
@@ -335,24 +359,43 @@ const PersonalDashboard = () => {
     setPreviewSheetOpen(true);
   }, []);
 
-  const handleConfirmCardDesign = useCallback(async () => {
-    if (!profile || !cardPreviewRef.current) return;
+  const handleConfirmCardDesign = useCallback(async (fromModal = false) => {
+    const previewRef = fromModal ? cardModalPreviewRef : cardPreviewRef;
+    if (!profile || !previewRef.current) return;
 
     setSendingCardApproval(true);
     try {
       // Capture both sides of the card
-      const { front, back } = await cardPreviewRef.current.captureScreenshots();
+      const { front, back } = await previewRef.current.captureScreenshots();
+
+      // First update the profile with card text settings and confirmation
+      const cardFrontHeadline = fromModal ? editableFrontHeadline : (profile.card_front_headline || "Tap to Connect\n& Collaborate");
+      const cardBackText = fromModal ? editableBackText : (profile.card_back_text || "Tap to Connect");
+      const cardName = fromModal ? editableCardName : profile.full_name;
+
+      const { error: updateError } = await supabase
+        .from("personal_profiles")
+        .update({
+          card_confirmed: true,
+          card_confirmed_at: new Date().toISOString(),
+          card_front_headline: cardFrontHeadline,
+          card_back_text: cardBackText,
+          full_name: cardName,
+        })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
 
       // Send to edge function
       const response = await supabase.functions.invoke("send-card-approval", {
         body: {
-          fullName: profile.full_name,
+          fullName: cardName,
           username: profile.username,
           email: profile.email,
           profileId: profile.id,
           frontImageBase64: front,
           backImageBase64: back,
-          cardHeadline: profile.headline,
+          cardHeadline: cardFrontHeadline,
         },
       });
 
@@ -360,6 +403,18 @@ const PersonalDashboard = () => {
         throw new Error(response.error.message);
       }
 
+      // Update local state
+      setProfile({
+        ...profile,
+        card_confirmed: true,
+        card_confirmed_at: new Date().toISOString(),
+        card_front_headline: cardFrontHeadline,
+        card_back_text: cardBackText,
+        full_name: cardName,
+      });
+      
+      setShowCardConfirmModal(false);
+      
       toast.success("Card design confirmed! We'll start printing soon.", {
         description: "You'll receive an email when your card ships.",
       });
@@ -369,7 +424,7 @@ const PersonalDashboard = () => {
     } finally {
       setSendingCardApproval(false);
     }
-  }, [profile]);
+  }, [profile, editableCardName, editableFrontHeadline, editableBackText]);
 
   if (loading) {
     return (
@@ -566,34 +621,63 @@ const PersonalDashboard = () => {
 
           {/* Card Tab */}
           <TabsContent value="card" className="space-y-4">
-            <TapAwayCardPreview
-              ref={cardPreviewRef}
-              fullName={profile.full_name}
-              username={profile.username}
-              profilePhotoUrl={profile.profile_photo_url}
-              cardHeadline={profile.headline || undefined}
-            />
-            <Button
-              onClick={handleConfirmCardDesign}
-              disabled={sendingCardApproval}
-              className="w-full"
-              size="lg"
-            >
-              {sendingCardApproval ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Confirm This is My Card Design
-                </>
-              )}
-            </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Once confirmed, we'll print and ship your card
-            </p>
+            {profile.card_confirmed ? (
+              <>
+                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg text-sm text-primary">
+                  <Lock className="h-4 w-4" />
+                  <span>Your card design is confirmed and being printed</span>
+                </div>
+                <TapAwayCardPreview
+                  ref={cardPreviewRef}
+                  fullName={profile.full_name}
+                  username={profile.username}
+                  profilePhotoUrl={profile.profile_photo_url}
+                  cardHeadline={profile.card_front_headline || undefined}
+                  cardBackText={profile.card_back_text || undefined}
+                />
+              </>
+            ) : profile.plan_type === "free" ? (
+              <div className="text-center py-8">
+                <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg mb-2">Upgrade to Pro</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Get a custom NFC card with your profile by upgrading to Pro
+                </p>
+                <Button>Upgrade to Pro</Button>
+              </div>
+            ) : (
+              <>
+                <TapAwayCardPreview
+                  ref={cardPreviewRef}
+                  fullName={profile.full_name}
+                  username={profile.username}
+                  profilePhotoUrl={profile.profile_photo_url}
+                  cardHeadline={profile.card_front_headline || undefined}
+                  cardBackText={profile.card_back_text || undefined}
+                />
+                <Button
+                  onClick={() => handleConfirmCardDesign(false)}
+                  disabled={sendingCardApproval}
+                  className="w-full"
+                  size="lg"
+                >
+                  {sendingCardApproval ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Confirm This is My Card Design
+                    </>
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground text-center">
+                  Once confirmed, we'll print and ship your card
+                </p>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </main>
@@ -651,6 +735,91 @@ const PersonalDashboard = () => {
           onCropComplete={handleCropComplete}
         />
       )}
+
+      {/* Card Confirmation Modal */}
+      <Dialog open={showCardConfirmModal} onOpenChange={setShowCardConfirmModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Confirm Your Card Design</DialogTitle>
+            <DialogDescription>
+              Review and customize your TapAway card before we print it. You won't be able to change it after confirmation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Editable Name */}
+            <div className="space-y-2">
+              <Label htmlFor="cardName">Name on Card</Label>
+              <Input
+                id="cardName"
+                value={editableCardName}
+                onChange={(e) => setEditableCardName(e.target.value)}
+                placeholder="Your name"
+              />
+            </div>
+
+            {/* Editable Front Headline */}
+            <div className="space-y-2">
+              <Label htmlFor="frontHeadline">Front Text</Label>
+              <Input
+                id="frontHeadline"
+                value={editableFrontHeadline.replace("\n", " ")}
+                onChange={(e) => setEditableFrontHeadline(e.target.value)}
+                placeholder="Tap to Connect & Collaborate"
+              />
+              <p className="text-xs text-muted-foreground">Text shown below your photo</p>
+            </div>
+
+            {/* Editable Back Text */}
+            <div className="space-y-2">
+              <Label htmlFor="backText">Back Text</Label>
+              <Input
+                id="backText"
+                value={editableBackText}
+                onChange={(e) => setEditableBackText(e.target.value)}
+                placeholder="Tap to Connect"
+              />
+              <p className="text-xs text-muted-foreground">Text shown with QR code on back</p>
+            </div>
+
+            {/* Live Preview */}
+            <div className="pt-2">
+              <Label className="mb-2 block">Preview</Label>
+              <TapAwayCardPreview
+                ref={cardModalPreviewRef}
+                fullName={editableCardName}
+                username={profile.username}
+                profilePhotoUrl={profile.profile_photo_url}
+                cardHeadline={editableFrontHeadline}
+                cardBackText={editableBackText}
+              />
+            </div>
+
+            <Button
+              onClick={() => handleConfirmCardDesign(true)}
+              disabled={sendingCardApproval || !editableCardName.trim()}
+              className="w-full"
+              size="lg"
+            >
+              {sendingCardApproval ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Confirm & Print My Card
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              ⚠️ Your card design cannot be changed after confirmation
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

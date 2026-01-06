@@ -36,7 +36,7 @@ export interface PersonalOnboardingData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "monthly" | "yearly";
+  planType: "free" | "monthly" | "yearly";
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
