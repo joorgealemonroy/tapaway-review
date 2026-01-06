@@ -102,16 +102,29 @@ const PersonalPricing = () => {
                 Pro Card
               </h2>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-black text-foreground">$99</span>
+                <span className="text-4xl font-black text-foreground">$75</span>
                 <span className="text-muted-foreground">/year</span>
-                <span className="text-sm text-muted-foreground line-through ml-2">$108</span>
+                <span className="text-sm text-muted-foreground line-through ml-2">$120</span>
               </div>
               <p className="text-sm text-primary font-medium">
-                Save $9 with yearly — or $9/month
+                Save $45/year vs monthly — that's only $6.25/mo
               </p>
               <p className="text-muted-foreground mt-3 text-sm">
                 Custom NFC card with your name, shipped free to your door.
               </p>
+            </div>
+
+            {/* Yearly Bonus - Card Stand */}
+            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎁</span>
+                <div>
+                  <p className="font-bold text-foreground text-sm">YEARLY BONUS</p>
+                  <p className="text-muted-foreground text-sm">
+                    FREE Card Stand included ($15 value)
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Key benefit callout */}
@@ -144,7 +157,7 @@ const PersonalPricing = () => {
                 className="w-full text-base font-bold h-14"
                 onClick={() => navigate("/personal/signup?plan=yearly")}
               >
-                Get Your Pro Card — $99/year
+                Get Your Pro Card — $75/year
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button 
@@ -153,7 +166,7 @@ const PersonalPricing = () => {
                 className="w-full"
                 onClick={() => navigate("/personal/signup?plan=monthly")}
               >
-                Or $9/month
+                Or $10/month (no card stand)
               </Button>
             </div>
           </motion.div>

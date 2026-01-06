@@ -49,7 +49,16 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     "No NFC card included",
   ];
 
-  const proFeatures = [
+  const proFeatures = formData.planType === "yearly" ? [
+    "1 custom TapAway NFC card included",
+    "FREE Card Stand included ($15 value)",
+    "Unlimited links & updates",
+    "Advanced analytics",
+    "Email lead capture",
+    "Custom header images",
+    "Priority support",
+    "Free shipping",
+  ] : [
     "1 custom TapAway NFC card included",
     "Unlimited links & updates",
     "Advanced analytics",
@@ -545,14 +554,15 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           <div className="absolute -top-3 left-4">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
               <Sparkles className="h-3 w-3" />
-              RECOMMENDED — NFC Card Included
+              BEST VALUE — NFC Card + FREE Stand
             </span>
           </div>
           
           <div className="flex items-start justify-between pt-2">
             <div>
               <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
-              <p className="text-sm text-primary font-medium mt-1">Only $8.25/month • Save $20/year</p>
+              <p className="text-sm text-primary font-medium mt-1">Only $6.25/month • Save $45/year</p>
+              <p className="text-xs text-amber-600 font-medium mt-1">🎁 + FREE Card Stand included</p>
             </div>
             <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
               formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"

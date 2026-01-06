@@ -66,7 +66,7 @@ export const PersonalFooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-background/50 text-sm mt-6"
         >
-          Starting at $99/year — or try free without a card
+          Starting at $75/year — or try free without a card
         </motion.p>
       </div>
     </section>
