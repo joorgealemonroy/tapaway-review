@@ -902,6 +902,13 @@ export type Database = {
             referencedRelation: "personal_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "personal_analytics_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       personal_blocks: {
@@ -943,6 +950,13 @@ export type Database = {
             referencedRelation: "personal_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "personal_blocks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       personal_email_captures: {
@@ -976,6 +990,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_email_captures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1026,6 +1047,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_links_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1806,6 +1834,54 @@ export type Database = {
       }
     }
     Views: {
+      personal_profiles_public: {
+        Row: {
+          background_color: string | null
+          bio: string | null
+          full_name: string | null
+          header_color: string | null
+          header_image_url: string | null
+          header_type: string | null
+          headline: string | null
+          id: string | null
+          pfp_position: string | null
+          plan_type: string | null
+          profile_photo_url: string | null
+          subscription_status: string | null
+          username: string | null
+        }
+        Insert: {
+          background_color?: string | null
+          bio?: string | null
+          full_name?: string | null
+          header_color?: string | null
+          header_image_url?: string | null
+          header_type?: string | null
+          headline?: string | null
+          id?: string | null
+          pfp_position?: string | null
+          plan_type?: string | null
+          profile_photo_url?: string | null
+          subscription_status?: string | null
+          username?: string | null
+        }
+        Update: {
+          background_color?: string | null
+          bio?: string | null
+          full_name?: string | null
+          header_color?: string | null
+          header_image_url?: string | null
+          header_type?: string | null
+          headline?: string | null
+          id?: string | null
+          pfp_position?: string | null
+          plan_type?: string | null
+          profile_photo_url?: string | null
+          subscription_status?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       rep_payout_display: {
         Row: {
           account_last4: string | null
