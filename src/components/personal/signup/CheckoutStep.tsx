@@ -33,7 +33,7 @@ interface Props {
   planLocked?: boolean; // If true, skip plan selection (plan was chosen from pricing page)
 }
 
-type FlowStep = "plan" | "otp_sent" | "verifying" | "creating";
+type FlowStep = "plan" | "otp_sent" | "verifying" | "creating" | "existing_account";
 type PlanType = "free" | "monthly" | "yearly";
 
 export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false }: Props) => {
@@ -44,6 +44,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [otpError, setOtpError] = useState<string | null>(null);
   const [detailedError, setDetailedError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [existingPassword, setExistingPassword] = useState("");
+  const [existingUserId, setExistingUserId] = useState<string | null>(null);
 
   const freeFeatures = [
     "Up to 5 links",
@@ -167,10 +169,22 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       logCheckpoint("OTP verified", { 
         userId: verifyData.userId, 
-        isNewUser: verifyData.isNewUser 
+        isNewUser: verifyData.isNewUser,
+        existingAccount: verifyData.existingAccount,
       });
 
-      // Step 2: Sign in with the password
+      // Handle existing account - user needs to sign in with their existing password
+      if (verifyData.existingAccount) {
+        logCheckpoint("Existing account detected - prompting for existing password");
+        setExistingUserId(verifyData.userId);
+        setFlowStep("existing_account");
+        setProcessing(false);
+        setIsLoading(false);
+        toast.info("You already have an account! Please sign in with your existing password.");
+        return;
+      }
+
+      // Step 2: Sign in with the password (new users only)
       setFlowStep("creating");
       logCheckpoint("Signing in user");
       
@@ -432,6 +446,274 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       setIsLoading(false);
     }
   };
+
+  // Handle existing account sign-in with their current password
+  const handleExistingAccountSignIn = async () => {
+    if (!existingPassword) {
+      setOtpError("Please enter your password");
+      return;
+    }
+
+    setProcessing(true);
+    setIsLoading(true);
+    setOtpError(null);
+    logCheckpoint("Signing in existing user with their password");
+
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: existingPassword,
+      });
+
+      if (signInError) {
+        logCheckpoint("Existing account sign in failed", { error: signInError.message });
+        setOtpError("Incorrect password. Please try again.");
+        setProcessing(false);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!signInData.user) {
+        throw new Error("No user returned from sign in");
+      }
+
+      logCheckpoint("Existing user signed in", { userId: signInData.user.id });
+      setFlowStep("creating");
+
+      // Check if this user already has a personal profile
+      const { data: existingProfile } = await supabase
+        .from("personal_profiles")
+        .select("id, username")
+        .eq("user_id", signInData.user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // They already have a personal profile - just redirect them
+        logCheckpoint("User already has personal profile", { profileId: existingProfile.id });
+        toast.success("Welcome back! You already have a TapAway profile.");
+        localStorage.removeItem("tapaway_personal_draft");
+        navigate(`/personal/dashboard`);
+        return;
+      }
+
+      // Continue with creating their personal profile
+      // Step 3: Upload profile photo if exists
+      let profilePhotoUrl = formData.profilePhotoUrl;
+      if (formData.croppedPhotoBlob) {
+        logCheckpoint("Uploading profile photo");
+        try {
+          const filePath = `${signInData.user.id}/profile.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from("personal-photos")
+            .upload(filePath, formData.croppedPhotoBlob, { 
+              upsert: true, 
+              contentType: "image/jpeg" 
+            });
+
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("personal-photos")
+              .getPublicUrl(filePath);
+            profilePhotoUrl = `${publicUrl}?t=${Date.now()}`;
+          }
+        } catch (photoErr) {
+          console.warn("Photo upload error:", photoErr);
+        }
+      }
+
+      // Step 4: Upload header image if custom image was selected
+      let headerImageUrl = null;
+      if (formData.headerType === "image" && formData.headerImageUrl) {
+        try {
+          let headerBlob: Blob;
+          if (formData.headerImageUrl.startsWith("data:")) {
+            const arr = formData.headerImageUrl.split(",");
+            const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+            }
+            headerBlob = new Blob([u8arr], { type: mime });
+          } else {
+            headerImageUrl = formData.headerImageUrl;
+            headerBlob = null as any;
+          }
+
+          if (headerBlob) {
+            const headerPath = `${signInData.user.id}/header.jpg`;
+            const { error: headerUploadError } = await supabase.storage
+              .from("personal-photos")
+              .upload(headerPath, headerBlob, { 
+                upsert: true, 
+                contentType: "image/jpeg" 
+              });
+
+            if (!headerUploadError) {
+              const { data: { publicUrl } } = supabase.storage
+                .from("personal-photos")
+                .getPublicUrl(headerPath);
+              headerImageUrl = `${publicUrl}?t=${Date.now()}`;
+            }
+          }
+        } catch (headerErr) {
+          console.warn("Header upload error:", headerErr);
+        }
+      }
+
+      // Step 5: Create the personal profile
+      const finalUsername = getPublicUsername(formData.planType, formData.username);
+      
+      const profileData = {
+        user_id: signInData.user.id,
+        email: formData.email,
+        full_name: formData.fullName,
+        username: finalUsername,
+        plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
+        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        profile_photo_url: profilePhotoUrl,
+        header_type: formData.headerType || "color",
+        header_color: formData.headerColor || "#6BCB77",
+        header_image_url: headerImageUrl,
+        background_color: formData.backgroundColor || "#ffffff",
+        card_front_headline: formData.cardHeadline || "Tap to Connect &\nCollaborate",
+      };
+
+      const { data: profileResult, error: profileError } = await supabase
+        .from("personal_profiles")
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (profileError) {
+        if (profileError.code === "23505" || profileError.message?.includes("unique")) {
+          throw new Error("This username is already taken. Please go back and choose a different one.");
+        }
+        throw new Error(`Failed to create profile: ${profileError.message}`);
+      }
+
+      // Create links
+      if (formData.links.length > 0) {
+        const linksToInsert = formData.links.map((link, index) => ({
+          profile_id: profileResult.id,
+          link_type: link.type,
+          label: link.label,
+          url: link.url,
+          sort_order: index,
+          is_active: true,
+        }));
+
+        await supabase.from("personal_links").insert(linksToInsert);
+      }
+
+      // Send welcome email
+      try {
+        await supabase.functions.invoke("send-personal-welcome-emails", {
+          body: {
+            fullName: formData.fullName,
+            username: finalUsername,
+            email: formData.email,
+            profilePhotoUrl: profilePhotoUrl,
+            profileId: profileResult.id,
+          }
+        });
+      } catch (emailErr) {
+        console.warn("Welcome email failed:", emailErr);
+      }
+
+      toast.success("Personal profile created! Welcome to TapAway!");
+      localStorage.removeItem("tapaway_personal_draft");
+      onComplete();
+
+    } catch (err: any) {
+      console.error("Existing account sign-in error:", err);
+      const errorMessage = err?.message || "Something went wrong";
+      setOtpError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setProcessing(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Existing Account Sign-In View
+  if (flowStep === "existing_account") {
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+            <Shield className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">You already have an account!</h2>
+          <p className="text-muted-foreground">
+            Sign in with your existing password to add a Personal profile to your account.
+          </p>
+        </div>
+
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <p className="text-sm text-muted-foreground mb-1">Signing in as:</p>
+          <p className="font-medium">{formData.email}</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Your existing password</label>
+          <Input
+            type="password"
+            value={existingPassword}
+            onChange={(e) => setExistingPassword(e.target.value)}
+            placeholder="Enter your password"
+            disabled={processing}
+            autoFocus
+          />
+          {otpError && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {otpError}
+            </p>
+          )}
+        </div>
+
+        <Button
+          onClick={handleExistingAccountSignIn}
+          disabled={processing || !existingPassword}
+          className="w-full h-14 text-base font-semibold"
+        >
+          {processing ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in & Continue"
+          )}
+        </Button>
+
+        <div className="text-center space-y-2">
+          <a 
+            href="/auth?tab=login" 
+            className="text-sm text-primary hover:underline"
+          >
+            Forgot your password?
+          </a>
+        </div>
+
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setFlowStep("plan");
+            setExistingPassword("");
+            setOtpError(null);
+          }}
+          className="w-full"
+          disabled={processing}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Use a different email
+        </Button>
+      </div>
+    );
+  }
 
   // OTP Entry View
   if (flowStep === "otp_sent" || flowStep === "verifying" || flowStep === "creating") {
