@@ -92,3 +92,6 @@ verify_jwt = true
 
 [functions.verify-personal-upgrade]
 verify_jwt = false
+
+[functions.create-personal-account]
+verify_jwt = true

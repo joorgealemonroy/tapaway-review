@@ -5,6 +5,15 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -15,6 +24,13 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
   ArrowLeft, 
@@ -22,7 +38,11 @@ import {
   Trash2, 
   Loader2, 
   User,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Copy,
+  Check,
+  X
 } from "lucide-react";
 
 interface PersonalAccount {
@@ -33,8 +53,26 @@ interface PersonalAccount {
   email: string;
   profile_photo_url: string | null;
   subscription_status: string | null;
+  plan_type: string | null;
   created_at: string;
 }
+
+interface QuickLink {
+  type: string;
+  label: string;
+  url: string;
+}
+
+const PLATFORM_PREFIXES: Record<string, { prefix: string; label: string }> = {
+  instagram: { prefix: "https://instagram.com/", label: "Instagram" },
+  tiktok: { prefix: "https://tiktok.com/@", label: "TikTok" },
+  youtube: { prefix: "https://youtube.com/@", label: "YouTube" },
+  twitter: { prefix: "https://x.com/", label: "X (Twitter)" },
+  linkedin: { prefix: "https://linkedin.com/in/", label: "LinkedIn" },
+  snapchat: { prefix: "https://snapchat.com/add/", label: "Snapchat" },
+  facebook: { prefix: "https://facebook.com/", label: "Facebook" },
+  threads: { prefix: "https://threads.net/@", label: "Threads" },
+};
 
 const AdminPersonalAccounts = () => {
   const navigate = useNavigate();
@@ -47,6 +85,30 @@ const AdminPersonalAccounts = () => {
   const [deletingAccount, setDeletingAccount] = useState<PersonalAccount | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  // Create account state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    email: "",
+    fullName: "",
+    username: "",
+    planType: "free" as "free" | "monthly" | "yearly",
+    headline: "",
+    bio: "",
+  });
+  const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
+  const [newLinkType, setNewLinkType] = useState("instagram");
+  const [newLinkHandle, setNewLinkHandle] = useState("");
+
+  // Success state
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    tempPassword: string;
+    profileUrl: string;
+    username: string;
+  } | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -82,31 +144,15 @@ const AdminPersonalAccounts = () => {
 
     setDeleting(true);
     try {
-      // Get current admin user
       const { data: { user: adminUser } } = await supabase.auth.getUser();
       if (!adminUser) throw new Error("Not authenticated");
 
       // Delete all related data
+      await supabase.from("personal_blocks").delete().eq("profile_id", deletingAccount.id);
+      await supabase.from("personal_links").delete().eq("profile_id", deletingAccount.id);
+      await supabase.from("personal_analytics").delete().eq("profile_id", deletingAccount.id);
 
-      // 1. Delete blocks
-      await supabase
-        .from("personal_blocks")
-        .delete()
-        .eq("profile_id", deletingAccount.id);
-
-      // 2. Delete links
-      await supabase
-        .from("personal_links")
-        .delete()
-        .eq("profile_id", deletingAccount.id);
-
-      // 3. Delete analytics
-      await supabase
-        .from("personal_analytics")
-        .delete()
-        .eq("profile_id", deletingAccount.id);
-
-      // 4. Delete storage assets
+      // Delete storage assets
       try {
         await supabase.storage
           .from("personal-photos")
@@ -115,7 +161,6 @@ const AdminPersonalAccounts = () => {
             `${deletingAccount.user_id}/header.jpg`,
           ]);
 
-        // Try to delete any block images
         const { data: files } = await supabase.storage
           .from("personal-photos")
           .list(`${deletingAccount.user_id}/blocks`);
@@ -129,7 +174,7 @@ const AdminPersonalAccounts = () => {
         console.warn("Storage cleanup error (non-fatal):", storageErr);
       }
 
-      // 5. Delete the profile
+      // Delete the profile
       const { error: profileError } = await supabase
         .from("personal_profiles")
         .delete()
@@ -137,35 +182,27 @@ const AdminPersonalAccounts = () => {
 
       if (profileError) throw profileError;
 
-      // 6. Try to delete auth user via edge function
+      // Try to delete auth user via edge function
       try {
-        const { error: authError } = await supabase.functions.invoke("delete-user-complete", {
-          body: { 
-            userId: deletingAccount.user_id,
-            isPersonalAccount: true
-          }
+        await supabase.functions.invoke("delete-user-complete", {
+          body: { userId: deletingAccount.user_id, isPersonalAccount: true }
         });
-        if (authError) {
-          console.warn("Auth user deletion may have failed:", authError);
-        }
       } catch (authErr) {
         console.warn("Auth deletion error (non-fatal):", authErr);
       }
 
-      // 7. Log the deletion
-      await supabase
-        .from("admin_audit_log")
-        .insert({
-          admin_user_id: adminUser.id,
-          action: "delete_personal_account",
-          target_type: "personal_profile",
-          target_id: deletingAccount.id,
-          details: {
-            username: deletingAccount.username,
-            email: deletingAccount.email,
-            user_id: deletingAccount.user_id,
-          }
-        });
+      // Log the deletion
+      await supabase.from("admin_audit_log").insert({
+        admin_user_id: adminUser.id,
+        action: "delete_personal_account",
+        target_type: "personal_profile",
+        target_id: deletingAccount.id,
+        details: {
+          username: deletingAccount.username,
+          email: deletingAccount.email,
+          user_id: deletingAccount.user_id,
+        }
+      });
 
       toast.success(`Account @${deletingAccount.username} deleted permanently`);
       setAccounts(accounts.filter(a => a.id !== deletingAccount.id));
@@ -177,6 +214,116 @@ const AdminPersonalAccounts = () => {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const addQuickLink = () => {
+    if (!newLinkHandle.trim()) return;
+    
+    const platform = PLATFORM_PREFIXES[newLinkType];
+    if (!platform) return;
+
+    const handle = newLinkHandle.trim().replace(/^@/, "");
+    const url = platform.prefix + handle;
+
+    setQuickLinks([...quickLinks, {
+      type: newLinkType,
+      label: platform.label,
+      url,
+    }]);
+    setNewLinkHandle("");
+  };
+
+  const removeQuickLink = (index: number) => {
+    setQuickLinks(quickLinks.filter((_, i) => i !== index));
+  };
+
+  const handleCreateAccount = async () => {
+    if (!createForm.email || !createForm.fullName || !createForm.username) {
+      toast.error("Email, name, and username are required");
+      return;
+    }
+
+    // Basic username validation
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(createForm.username)) {
+      toast.error("Username can only contain letters, numbers, and underscores");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-personal-account", {
+        body: {
+          email: createForm.email,
+          fullName: createForm.fullName,
+          username: createForm.username.toLowerCase(),
+          planType: createForm.planType,
+          headline: createForm.headline || null,
+          bio: createForm.bio || null,
+          links: quickLinks,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Show success with credentials
+      setCreatedCredentials({
+        email: data.credentials.email,
+        tempPassword: data.credentials.tempPassword,
+        profileUrl: data.profileUrl,
+        username: data.username,
+      });
+
+      // Reload accounts list
+      loadAccounts();
+
+      toast.success(`Account created for ${createForm.fullName}`);
+    } catch (err: any) {
+      console.error("Create error:", err);
+      toast.error(err.message || "Failed to create account");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const copyPassword = async () => {
+    if (!createdCredentials) return;
+    await navigator.clipboard.writeText(createdCredentials.tempPassword);
+    setCopiedPassword(true);
+    toast.success("Password copied to clipboard");
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
+  const copyAllCredentials = async () => {
+    if (!createdCredentials) return;
+    const text = `Login Credentials for TapAway Personal
+    
+Email: ${createdCredentials.email}
+Password: ${createdCredentials.tempPassword}
+
+Profile URL: ${window.location.origin}${createdCredentials.profileUrl}
+
+Login at: ${window.location.origin}/auth`;
+    
+    await navigator.clipboard.writeText(text);
+    toast.success("All credentials copied to clipboard");
+  };
+
+  const resetCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateForm({
+      email: "",
+      fullName: "",
+      username: "",
+      planType: "free",
+      headline: "",
+      bio: "",
+    });
+    setQuickLinks([]);
+    setNewLinkHandle("");
+    setCreatedCredentials(null);
+    setCopiedPassword(false);
   };
 
   const filteredAccounts = accounts.filter((account) => {
@@ -204,17 +351,23 @@ const AdminPersonalAccounts = () => {
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Personal Accounts</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage personal TapAway accounts
-          </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Personal Accounts</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage personal TapAway accounts
+            </p>
+          </div>
         </div>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Account
+        </Button>
       </div>
 
       {/* Search */}
@@ -261,11 +414,16 @@ const AdminPersonalAccounts = () => {
                   <p className="font-semibold text-foreground">{account.full_name}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                     account.subscription_status === "active" 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-yellow-100 text-yellow-700"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                   }`}>
                     {account.subscription_status || "pending"}
                   </span>
+                  {account.plan_type && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {account.plan_type}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">@{account.username}</p>
                 <p className="text-xs text-muted-foreground">{account.email}</p>
@@ -291,6 +449,186 @@ const AdminPersonalAccounts = () => {
           ))}
         </div>
       )}
+
+      {/* Create Account Modal */}
+      <Dialog open={showCreateModal} onOpenChange={(open) => !open && resetCreateModal()}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {createdCredentials ? "Account Created!" : "Create Personal Account"}
+            </DialogTitle>
+            <DialogDescription>
+              {createdCredentials 
+                ? "Share these credentials with the influencer" 
+                : "Set up a new TapAway Personal account for an influencer"
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {createdCredentials ? (
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="font-mono text-sm">{createdCredentials.email}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Temporary Password</Label>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-sm bg-background px-2 py-1 rounded flex-1">
+                      {createdCredentials.tempPassword}
+                    </p>
+                    <Button size="sm" variant="outline" onClick={copyPassword}>
+                      {copiedPassword ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Profile URL</Label>
+                  <p className="font-mono text-sm">
+                    {window.location.origin}{createdCredentials.profileUrl}
+                  </p>
+                </div>
+              </div>
+
+              <Button onClick={copyAllCredentials} className="w-full">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy All Credentials
+              </Button>
+
+              <Button variant="outline" onClick={resetCreateModal} className="w-full">
+                Create Another
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label>Full Name *</Label>
+                  <Input
+                    placeholder="John Doe"
+                    value={createForm.fullName}
+                    onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Username *</Label>
+                  <Input
+                    placeholder="johndoe"
+                    value={createForm.username}
+                    onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.toLowerCase() })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {createForm.planType === "free" ? "tap" : ""}{createForm.username || "username"}
+                  </p>
+                </div>
+                <div>
+                  <Label>Plan Type</Label>
+                  <Select
+                    value={createForm.planType}
+                    onValueChange={(v) => setCreateForm({ ...createForm, planType: v as any })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Free (tap prefix)</SelectItem>
+                      <SelectItem value="monthly">Monthly ($3/mo)</SelectItem>
+                      <SelectItem value="yearly">Yearly ($19/yr)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Optional fields */}
+              <div>
+                <Label>Headline</Label>
+                <Input
+                  placeholder="Fitness Coach | Content Creator"
+                  value={createForm.headline}
+                  onChange={(e) => setCreateForm({ ...createForm, headline: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Bio</Label>
+                <Textarea
+                  placeholder="A short bio..."
+                  value={createForm.bio}
+                  onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              {/* Quick Links */}
+              <div>
+                <Label>Quick Links</Label>
+                <div className="flex gap-2 mt-1">
+                  <Select value={newLinkType} onValueChange={setNewLinkType}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PLATFORM_PREFIXES).map(([key, val]) => (
+                        <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="@handle"
+                    value={newLinkHandle}
+                    onChange={(e) => setNewLinkHandle(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addQuickLink()}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" onClick={addQuickLink}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {quickLinks.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {quickLinks.map((link, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm"
+                      >
+                        <span>{link.label}</span>
+                        <button onClick={() => removeQuickLink(i)} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Button 
+                onClick={handleCreateAccount} 
+                disabled={creating}
+                className="w-full"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deletingAccount} onOpenChange={() => {
