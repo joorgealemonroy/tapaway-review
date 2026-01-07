@@ -95,39 +95,27 @@ serve(async (req) => {
     let userId: string;
 
     if (existingUser) {
-      // User exists - update their password if provided, else use a temp password
+      // User already exists - DO NOT change their password
+      // They must sign in with their existing password
       console.log("[verify-custom-otp] Existing user found:", existingUser.id);
 
-      const passwordToSet = userPassword || crypto.randomUUID();
-      const usedProvidedPassword = !!userPassword;
-
-      const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
-        password: passwordToSet,
+      // Just confirm their email is verified
+      await supabase.auth.admin.updateUserById(existingUser.id, {
         email_confirm: true,
       });
 
-      if (updateError) {
-        console.error("[verify-custom-otp] Error updating user password:", updateError);
-        throw new Error("Failed to create session");
-      }
-
-      userId = existingUser.id;
-
-      console.log("[verify-custom-otp] success", {
+      console.log("[verify-custom-otp] Existing account - password NOT changed", {
         email: normalizedEmail,
         ts: new Date().toISOString(),
-        success: true,
-        isNewUser: false,
       });
 
       return new Response(
         JSON.stringify({
           success: true,
-          userId,
+          userId: existingUser.id,
           email: normalizedEmail,
           isNewUser: false,
-          usedProvidedPassword,
-          tempPassword: passwordToSet, // Frontend will use this to sign in immediately
+          existingAccount: true, // Signal to frontend: user must sign in with existing password
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
