@@ -196,6 +196,18 @@ export const usePersonalOnboarding = () => {
     setIsDirty(false);
   }, []);
 
+  // Immediately save to localStorage (bypass debounce)
+  const flushSave = useCallback(() => {
+    const toSave = {
+      ...data,
+      profilePhoto: null,
+      croppedPhotoBlob: null,
+      password: "", // Never save password to localStorage
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    setIsDirty(false);
+  }, [data]);
+
   const hasDraft = Boolean(localStorage.getItem(STORAGE_KEY));
 
   return {
@@ -210,6 +222,7 @@ export const usePersonalOnboarding = () => {
     removeBlock,
     reorderBlocks,
     clearDraft,
+    flushSave,
     hasDraft,
     isDirty,
   };

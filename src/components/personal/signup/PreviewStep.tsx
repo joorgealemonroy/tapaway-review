@@ -7,6 +7,7 @@ import { SignupData } from "@/pages/personal/PersonalSignup";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
 import { HeaderCustomizer } from "@/components/personal/HeaderCustomizer";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import { getPublicUsername } from "@/lib/personalUsername";
 import { 
   ArrowLeft,
   CheckCircle2,
@@ -261,7 +262,9 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
           {/* Name & Username */}
           <div className="mt-3">
             <h2 className="text-lg font-bold text-foreground">{formData.fullName}</h2>
-            <p className="text-sm text-muted-foreground">@{formData.username}</p>
+            <p className="text-sm text-muted-foreground">
+              @{getPublicUsername(formData.planType, formData.username)}
+            </p>
           </div>
 
           {/* Links - Draggable */}

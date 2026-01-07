@@ -1,30 +1,37 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { 
   Check, 
   Copy, 
-  ExternalLink,
+  ExternalLink, 
+  CreditCard, 
   Package,
   Smartphone,
   RefreshCw,
   PartyPopper
 } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { getPublicProfileUrl } from "@/lib/personalUsername";
 
 interface Props {
   username: string;
+  planType?: "free" | "monthly" | "yearly";
 }
 
-export const SuccessScreen = ({ username }: Props) => {
+export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const profileUrl = `tapaway.co/${username}`;
-
+  
+  // Use the helper to get the correct public URL
+  const profileUrl = getPublicProfileUrl(planType, username);
+  // Extract just the path for display (without origin)
+  const displayPath = profileUrl.replace(/^https?:\/\/[^/]+/, "");
+  
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(`https://${profileUrl}`);
+      await navigator.clipboard.writeText(profileUrl);
       setCopied(true);
       toast.success("Link copied!");
       setTimeout(() => setCopied(false), 2000);
@@ -153,19 +160,26 @@ export const SuccessScreen = ({ username }: Props) => {
           ))}
         </motion.div>
 
-        {/* CTA */}
+        {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="w-full"
+          className="w-full space-y-3"
         >
           <Button
-            onClick={() => navigate("/personal/dashboard")}
+            onClick={() => window.open(profileUrl, "_blank")}
             className="w-full h-14 text-base font-semibold"
           >
-            Go to dashboard
+            View my live TapAway
             <ExternalLink className="h-4 w-4 ml-2" />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/personal/dashboard")}
+            className="w-full h-12 text-sm"
+          >
+            Go to dashboard
           </Button>
         </motion.div>
       </main>

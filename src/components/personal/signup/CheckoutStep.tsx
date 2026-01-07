@@ -9,6 +9,7 @@ import {
   PERSONAL_TRIAL_CONFIG, 
   PERSONAL_PRICING 
 } from "@/lib/personalConfig";
+import { getPublicUsername } from "@/lib/personalUsername";
 import { 
   ArrowLeft, 
   Check,
@@ -29,12 +30,13 @@ interface Props {
   onComplete: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  planLocked?: boolean; // If true, skip plan selection (plan was chosen from pricing page)
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating";
 type PlanType = "free" | "monthly" | "yearly";
 
-export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading }: Props) => {
+export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false }: Props) => {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [flowStep, setFlowStep] = useState<FlowStep>("plan");
@@ -216,13 +218,59 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
-      // Step 4: Create the personal profile
+      // Step 4: Upload header image if custom image was selected
+      let headerImageUrl = null;
+      if (formData.headerType === "image" && formData.headerImageUrl) {
+        logCheckpoint("Uploading header image");
+        try {
+          // Convert data URL to Blob if needed
+          let headerBlob: Blob;
+          if (formData.headerImageUrl.startsWith("data:")) {
+            const arr = formData.headerImageUrl.split(",");
+            const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+            }
+            headerBlob = new Blob([u8arr], { type: mime });
+          } else {
+            // It's already a URL, skip upload
+            headerImageUrl = formData.headerImageUrl;
+            headerBlob = null as any;
+          }
+
+          if (headerBlob) {
+            const headerPath = `${signInData.user.id}/header.jpg`;
+            const { error: headerUploadError } = await supabase.storage
+              .from("personal-photos")
+              .upload(headerPath, headerBlob, { 
+                upsert: true, 
+                contentType: "image/jpeg" 
+              });
+
+            if (!headerUploadError) {
+              const { data: { publicUrl } } = supabase.storage
+                .from("personal-photos")
+                .getPublicUrl(headerPath);
+              headerImageUrl = `${publicUrl}?t=${Date.now()}`;
+              logCheckpoint("Header image uploaded", { url: headerImageUrl.substring(0, 50) + "..." });
+            } else {
+              console.warn("Header upload failed:", headerUploadError);
+            }
+          }
+        } catch (headerErr) {
+          console.warn("Header upload error:", headerErr);
+          // Continue without header image
+        }
+      }
+
+      // Step 5: Create the personal profile with ALL theme settings
       logCheckpoint("Creating personal profile");
       
-      // For free plan, add "tap" prefix to username
-      const finalUsername = formData.planType === "free" 
-        ? `tap${formData.username.toLowerCase()}`
-        : formData.username.toLowerCase();
+      // Use the helper to get the correct public username
+      const finalUsername = getPublicUsername(formData.planType, formData.username);
       
       const profileData = {
         user_id: signInData.user.id,
@@ -232,6 +280,12 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
         subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
+        // Include ALL theme settings
+        header_type: formData.headerType || "color",
+        header_color: formData.headerColor || "#6BCB77",
+        header_image_url: headerImageUrl,
+        background_color: formData.backgroundColor || "#ffffff",
+        card_front_headline: formData.cardHeadline || "Tap to Connect &\nCollaborate",
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -257,7 +311,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       logCheckpoint("Profile created", { profileId: profileResult.id });
 
-      // Step 5: Create the links
+      // Step 6: Create the links
       if (formData.links.length > 0) {
         logCheckpoint("Creating links", { count: formData.links.length });
         
@@ -282,13 +336,13 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
-      // Step 6: Send welcome email
+      // Step 7: Send welcome email with correct public username
       logCheckpoint("Sending welcome email");
       try {
         await supabase.functions.invoke("send-personal-welcome-emails", {
           body: {
             fullName: formData.fullName,
-            username: formData.username,
+            username: finalUsername, // Use the public username
             email: formData.email,
             profilePhotoUrl: profilePhotoUrl,
             profileId: profileResult.id,
@@ -528,7 +582,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     );
   }
 
-  // Plan Selection View
+  // Plan Selection View (simplified if planLocked)
   return (
     <div className="space-y-6">
       {/* Test Mode Banner */}
@@ -540,102 +594,139 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* Plan Selection */}
-      <div className="space-y-3">
-        {/* Pro Yearly Plan - Most Prominent */}
-        <button
-          onClick={() => updateFormData({ planType: "yearly" })}
-          className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
-            formData.planType === "yearly"
-              ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/20"
-              : "border-border hover:border-primary/50"
-          }`}
-        >
-          <div className="absolute -top-3 left-4">
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
-              <Sparkles className="h-3 w-3" />
-              BEST VALUE — NFC Card + FREE Stand
-            </span>
-          </div>
-          
-          <div className="flex items-start justify-between pt-2">
-            <div>
-              <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
-              <p className="text-sm text-primary font-medium mt-1">Only $6.25/month • Save $45/year</p>
-              <p className="text-xs text-amber-600 font-medium mt-1">🎁 + FREE Card Stand included</p>
-            </div>
-            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
-              formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
-            }`}>
-              {formData.planType === "yearly" && <Check className="h-4 w-4 text-primary-foreground" />}
-            </div>
-          </div>
-        </button>
-
-        {/* Pro Monthly Plan */}
-        <button
-          onClick={() => updateFormData({ planType: "monthly" })}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-            formData.planType === "monthly"
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50"
-          }`}
-        >
+      {/* Show plan summary if planLocked, otherwise show full selection */}
+      {planLocked ? (
+        // Compact plan summary (plan was chosen from pricing page)
+        <div className="p-4 rounded-xl border-2 border-primary bg-primary/5">
           <div className="flex items-center justify-between">
             <div>
-              <span className="font-bold text-foreground">Pro — ${PERSONAL_PRICING.monthly}/month</span>
-              <p className="text-sm text-muted-foreground mt-1">NFC Card included • Flexible billing</p>
+              <span className="font-bold text-lg text-foreground">
+                {formData.planType === "yearly" 
+                  ? `Pro Annual — $${PERSONAL_PRICING.yearly}/year`
+                  : formData.planType === "monthly"
+                  ? `Pro Monthly — $${PERSONAL_PRICING.monthly}/month`
+                  : "Free Plan"
+                }
+              </span>
+              {formData.planType === "yearly" && (
+                <p className="text-xs text-amber-600 font-medium mt-1">
+                  🎁 Includes NFC card + FREE stand
+                </p>
+              )}
+              {formData.planType === "monthly" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Includes custom NFC card
+                </p>
+              )}
             </div>
-            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
-              formData.planType === "monthly" ? "border-primary bg-primary" : "border-muted-foreground"
-            }`}>
-              {formData.planType === "monthly" && <Check className="h-4 w-4 text-primary-foreground" />}
-            </div>
+            <button
+              onClick={() => navigate("/personal/pricing")}
+              className="text-xs text-primary hover:underline"
+            >
+              Change
+            </button>
           </div>
-        </button>
-
-        {/* Free Plan - Less Prominent */}
-        <button
-          onClick={() => updateFormData({ planType: "free" as any })}
-          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-            formData.planType === "free"
-              ? "border-muted bg-muted/30"
-              : "border-border/50 hover:border-border opacity-70"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-medium text-muted-foreground">Free — $0</span>
-              <p className="text-sm text-muted-foreground mt-1">No NFC card • Limited features</p>
+        </div>
+      ) : (
+        // Full plan selection
+        <div className="space-y-3">
+          {/* Pro Yearly Plan - Most Prominent */}
+          <button
+            onClick={() => updateFormData({ planType: "yearly" })}
+            className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
+              formData.planType === "yearly"
+                ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/20"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <div className="absolute -top-3 left-4">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
+                <Sparkles className="h-3 w-3" />
+                BEST VALUE — NFC Card + FREE Stand
+              </span>
             </div>
-            <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
-              formData.planType === "free" ? "border-muted-foreground bg-muted" : "border-muted"
-            }`}>
-              {formData.planType === "free" && <Check className="h-4 w-4 text-muted-foreground" />}
+            
+            <div className="flex items-start justify-between pt-2">
+              <div>
+                <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
+                <p className="text-sm text-primary font-medium mt-1">Only $6.25/month • Save $45/year</p>
+                <p className="text-xs text-amber-600 font-medium mt-1">🎁 + FREE Card Stand included</p>
+              </div>
+              <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
+                formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
+              }`}>
+                {formData.planType === "yearly" && <Check className="h-4 w-4 text-primary-foreground" />}
+              </div>
             </div>
-          </div>
-        </button>
-      </div>
+          </button>
 
-      {/* What's Included */}
-      <div className="p-4 bg-muted/50 rounded-xl">
-        <h3 className="font-semibold text-foreground mb-3">
-          {isFreePlan ? "Free plan includes" : "Pro plan includes"}
-        </h3>
-        <ul className="space-y-2">
-          {(isFreePlan ? freeFeatures : proFeatures).map((feature, index) => (
-            <li key={index} className="flex items-center gap-2 text-sm">
-              <Check className={`h-4 w-4 flex-shrink-0 ${isFreePlan ? "text-muted-foreground" : "text-primary"}`} />
-              <span className={isFreePlan ? "text-muted-foreground" : "text-foreground"}>{feature}</span>
-            </li>
-          ))}
-        </ul>
-        {isFreePlan && (
-          <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-            Upgrade to Pro anytime to get your NFC card and unlock all features
-          </p>
-        )}
-      </div>
+          {/* Pro Monthly Plan */}
+          <button
+            onClick={() => updateFormData({ planType: "monthly" })}
+            className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+              formData.planType === "monthly"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-bold text-foreground">Pro — ${PERSONAL_PRICING.monthly}/month</span>
+                <p className="text-sm text-muted-foreground mt-1">NFC Card included • Flexible billing</p>
+              </div>
+              <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
+                formData.planType === "monthly" ? "border-primary bg-primary" : "border-muted-foreground"
+              }`}>
+                {formData.planType === "monthly" && <Check className="h-4 w-4 text-primary-foreground" />}
+              </div>
+            </div>
+          </button>
+
+          {/* Free Plan - Less Prominent */}
+          <button
+            onClick={() => updateFormData({ planType: "free" as any })}
+            className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+              formData.planType === "free"
+                ? "border-muted bg-muted/30"
+                : "border-border/50 hover:border-border opacity-70"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-medium text-muted-foreground">Free — $0</span>
+                <p className="text-sm text-muted-foreground mt-1">No NFC card • Limited features</p>
+              </div>
+              <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
+                formData.planType === "free" ? "border-muted-foreground bg-muted" : "border-muted"
+              }`}>
+                {formData.planType === "free" && <Check className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* What's Included - only show if NOT planLocked */}
+      {!planLocked && (
+        <div className="p-4 bg-muted/50 rounded-xl">
+          <h3 className="font-semibold text-foreground mb-3">
+            {isFreePlan ? "Free plan includes" : "Pro plan includes"}
+          </h3>
+          <ul className="space-y-2">
+            {(isFreePlan ? freeFeatures : proFeatures).map((feature, index) => (
+              <li key={index} className="flex items-center gap-2 text-sm">
+                <Check className={`h-4 w-4 flex-shrink-0 ${isFreePlan ? "text-muted-foreground" : "text-primary"}`} />
+                <span className={isFreePlan ? "text-muted-foreground" : "text-foreground"}>{feature}</span>
+              </li>
+            ))}
+          </ul>
+          {isFreePlan && (
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+              Upgrade to Pro anytime to get your NFC card and unlock all features
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Order Summary */}
       <div className="space-y-2 py-4 border-t border-border">
