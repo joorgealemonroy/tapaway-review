@@ -55,6 +55,7 @@ const PersonalSignup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
+  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   const { 
@@ -72,11 +73,14 @@ const PersonalSignup = () => {
     hasDraft 
   } = usePersonalOnboarding();
 
-  // Set plan type from URL param on mount
+  // Set plan type from URL param on mount and track if plan was pre-selected
+  const [planLocked, setPlanLocked] = useState(false);
+  
   useEffect(() => {
     const planParam = searchParams.get("plan");
     if (planParam === "free" || planParam === "monthly" || planParam === "yearly") {
       update({ planType: planParam });
+      setPlanLocked(true); // Plan was chosen from pricing page, skip selection in checkout
     }
   }, [searchParams, update]);
 
@@ -140,8 +144,9 @@ const PersonalSignup = () => {
   };
 
   const handleCheckoutComplete = () => {
-    // Capture username BEFORE clearing draft
+    // Capture username and plan type BEFORE clearing draft
     setCompletedUsername(formData.username);
+    setCompletedPlanType(formData.planType);
     setSignupComplete(true);
     clearDraft();
   };
@@ -163,7 +168,7 @@ const PersonalSignup = () => {
   };
 
   if (signupComplete && completedUsername) {
-    return <SuccessScreen username={completedUsername} />;
+    return <SuccessScreen username={completedUsername} planType={completedPlanType} />;
   }
 
   return (
@@ -278,6 +283,7 @@ const PersonalSignup = () => {
                 onComplete={handleCheckoutComplete}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
+                planLocked={planLocked}
               />
             )}
           </motion.div>
