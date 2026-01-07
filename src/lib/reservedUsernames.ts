@@ -52,7 +52,7 @@ export const RESERVED_USERNAMES = new Set([
   "false",
   
   // TapAway specific
-  "tapaway",
+  // NOTE: "tapaway" is intentionally NOT reserved so it can be used as a public profile route.
   "tap",
   "card",
   "cards",
