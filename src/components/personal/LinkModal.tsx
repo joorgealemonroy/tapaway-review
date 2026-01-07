@@ -46,7 +46,7 @@ export const LinkModal = ({
   const [pillColor, setPillColor] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformConfig | null>(null);
-  const [displayStyle, setDisplayStyle] = useState<"pill" | "icon">("pill");
+  const [displayStyle, setDisplayStyle] = useState<"pill" | "icon" | "both">("pill");
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -66,7 +66,7 @@ export const LinkModal = ({
         setInputValue(editingLink.value);
         setCustomLabel(editingLink.label !== config.label ? editingLink.label : "");
         setPillColor(editingLink.pillColor || null);
-        setDisplayStyle((editingLink.displayStyle as "pill" | "icon") || "pill");
+        setDisplayStyle((editingLink.displayStyle as "pill" | "icon" | "both") || "pill");
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -277,31 +277,49 @@ export const LinkModal = ({
               <button
                 type="button"
                 onClick={() => setDisplayStyle("pill")}
-                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
                   displayStyle === "pill" 
                     ? "border-primary bg-primary/5" 
                     : "border-border hover:border-muted-foreground/50"
                 }`}
               >
                 <LayoutList className="h-4 w-4" />
-                <span className="text-sm font-medium">Button</span>
+                <span className="text-xs font-medium">Button</span>
               </button>
               <button
                 type="button"
                 onClick={() => setDisplayStyle("icon")}
-                className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
                   displayStyle === "icon" 
                     ? "border-primary bg-primary/5" 
                     : "border-border hover:border-muted-foreground/50"
                 }`}
               >
                 <Circle className="h-4 w-4" />
-                <span className="text-sm font-medium">Icon only</span>
+                <span className="text-xs font-medium">Icon</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayStyle("both")}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
+                  displayStyle === "both" 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <div className="flex items-center gap-0.5">
+                  <LayoutList className="h-3 w-3" />
+                  <span className="text-[10px]">+</span>
+                  <Circle className="h-3 w-3" />
+                </div>
+                <span className="text-xs font-medium">Both</span>
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
               {displayStyle === "icon" 
-                ? "Shows as a small icon in the social bar at the top" 
+                ? "Shows as a small icon in the social bar" 
+                : displayStyle === "both"
+                ? "Shows as a button AND an icon in the social bar"
                 : "Shows as a full button with label"}
             </p>
           </div>

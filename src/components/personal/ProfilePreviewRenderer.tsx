@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
-import { getPlatformConfig } from "@/lib/platformLinks";
+import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
@@ -96,11 +96,13 @@ function ProfilePreviewRendererComponent({
   );
 
   // Separate icon-style links from pill-style links
+  // "icon" and "both" both show in the icon bar
   const iconLinks = useMemo(
-    () => activeLinks.filter((l) => l.display_style === 'icon'),
+    () => activeLinks.filter((l) => l.display_style === 'icon' || l.display_style === 'both'),
     [activeLinks]
   );
 
+  // "pill" and "both" both show as buttons (exclude "icon" only)
   const pillLinks = useMemo(
     () => activeLinks.filter((l) => l.display_style !== 'icon'),
     [activeLinks]
@@ -198,12 +200,31 @@ function ProfilePreviewRendererComponent({
     );
   };
 
-  // Social icon bar for icon-style links
+  // Social icon bar for icon-style links - vibrant brand colors
   const renderIconBar = () => {
     if (iconLinks.length === 0) return null;
     
+    // Get brand color for platform
+    const getBrandColor = (type: string): string => {
+      const colors = PLATFORM_COLORS as Record<string, string>;
+      return colors[type] || '#6366f1';
+    };
+    
+    // Get gradient for Instagram
+    const getBrandStyle = (type: string): React.CSSProperties => {
+      if (type === 'instagram') {
+        return { background: PLATFORM_COLORS.instagramGradient };
+      }
+      return { backgroundColor: getBrandColor(type) };
+    };
+    
+    // Determine if icon should be dark (for light bg platforms like Snapchat)
+    const needsDarkIcon = (type: string): boolean => {
+      return type === 'snapchat';
+    };
+    
     return (
-      <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+      <div className="flex flex-wrap justify-center gap-2 mt-3">
         {iconLinks.map((link) => {
           const config = getPlatformConfig(link.link_type);
           const Icon = config?.icon;
@@ -216,12 +237,11 @@ function ProfilePreviewRendererComponent({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => handleLinkClick(e, link.url)}
-              className={`h-8 w-8 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
-                isDarkBg ? 'bg-white/15 hover:bg-white/25' : 'bg-black/5 hover:bg-black/10'
-              }`}
+              className="h-9 w-9 rounded-full flex items-center justify-center transition-all hover:scale-110 hover:shadow-lg shadow-sm"
+              style={getBrandStyle(link.link_type)}
               title={config?.label}
             >
-              <Icon className={`h-4 w-4 ${isDarkBg ? 'text-white' : config?.color || 'text-foreground'}`} />
+              <Icon className={`h-[18px] w-[18px] ${needsDarkIcon(link.link_type) ? 'text-black' : 'text-white'}`} />
             </a>
           );
         })}
