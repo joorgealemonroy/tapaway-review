@@ -646,7 +646,13 @@ Login at: ${window.location.origin}/auth`;
       }
 
       // Sync links - delete all and re-insert
-      await supabase.from("personal_links").delete().eq("profile_id", editingAccount.id);
+      const { error: deleteLinksError } = await supabase
+        .from("personal_links")
+        .delete()
+        .eq("profile_id", editingAccount.id);
+      
+      if (deleteLinksError) throw deleteLinksError;
+      
       if (editLinks.length > 0) {
         const linksToInsert = editLinks.map((link, index) => ({
           profile_id: editingAccount.id,
@@ -659,11 +665,21 @@ Login at: ${window.location.origin}/auth`;
           is_featured: link.isFeatured,
           sort_order: index,
         }));
-        await supabase.from("personal_links").insert(linksToInsert);
+        const { error: insertLinksError } = await supabase
+          .from("personal_links")
+          .insert(linksToInsert);
+        
+        if (insertLinksError) throw insertLinksError;
       }
 
       // Sync blocks - delete all and re-insert
-      await supabase.from("personal_blocks").delete().eq("profile_id", editingAccount.id);
+      const { error: deleteBlocksError } = await supabase
+        .from("personal_blocks")
+        .delete()
+        .eq("profile_id", editingAccount.id);
+      
+      if (deleteBlocksError) throw deleteBlocksError;
+      
       if (editBlocks.length > 0) {
         const blocksToInsert = editBlocks.map((block, index) => ({
           profile_id: editingAccount.id,
@@ -673,7 +689,11 @@ Login at: ${window.location.origin}/auth`;
           is_active: block.is_active,
           sort_order: index,
         }));
-        await supabase.from("personal_blocks").insert(blocksToInsert);
+        const { error: insertBlocksError } = await supabase
+          .from("personal_blocks")
+          .insert(blocksToInsert);
+        
+        if (insertBlocksError) throw insertBlocksError;
       }
 
       toast.success("Profile updated successfully");
