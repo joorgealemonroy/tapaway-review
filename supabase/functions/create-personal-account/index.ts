@@ -200,6 +200,8 @@ Deno.serve(async (req) => {
         is_featured: link.isFeatured === true,
         display_style: link.displayStyle || "pill",
         pill_color: link.pillColor || null,
+        cover_image_url: link.coverImageUrl || null,
+        grid_size: link.gridSize || null,
       }));
 
       const { error: linksError } = await supabase

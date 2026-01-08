@@ -83,6 +83,29 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
     return aOrder - bOrder;
   });
 
+  // Group consecutive grid links for 2-column rendering
+  type GroupedItem = 
+    | { kind: "grid-group"; links: AdminLink[] }
+    | UnifiedItem;
+  
+  const groupedItems: GroupedItem[] = [];
+  let currentGridGroup: AdminLink[] = [];
+  
+  for (const item of unifiedItems) {
+    if (item.kind === "link" && item.data.coverImageUrl && item.data.gridSize === "half" && !item.data.isFeatured) {
+      currentGridGroup.push(item.data);
+    } else {
+      if (currentGridGroup.length > 0) {
+        groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+        currentGridGroup = [];
+      }
+      groupedItems.push(item);
+    }
+  }
+  if (currentGridGroup.length > 0) {
+    groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+  }
+
   const getSortOrder = (item: UnifiedItem): number => {
     return item.kind === "link" ? item.data.sortOrder : item.data.sort_order;
   };
@@ -313,14 +336,115 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
         </div>
       </div>
 
-      {unifiedItems.length === 0 ? (
+      {groupedItems.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
           <p className="text-sm">No content added yet</p>
           <p className="text-xs">Add links and blocks to build the profile</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {unifiedItems.map((item, index) => {
+          {groupedItems.map((groupedItem, groupIdx) => {
+            // Grid group - render as 2-column grid
+            if (groupedItem.kind === "grid-group") {
+              return (
+                <div key={`grid-group-${groupIdx}`} className="grid grid-cols-2 gap-2">
+                  {groupedItem.links.map((link) => {
+                    const index = unifiedItems.findIndex(
+                      (i) => i.kind === "link" && i.data.id === link.id
+                    );
+                    const config = getPlatformConfig(link.type);
+                    return (
+                      <div
+                        key={`link-${link.id}`}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, index)}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
+                          draggedIndex === index ? "opacity-50" : ""
+                        } ${!link.isActive ? "opacity-50" : ""}`}
+                      >
+                        {/* Cover image */}
+                        {link.coverImageUrl && (
+                          <img
+                            src={link.coverImageUrl}
+                            alt={link.label}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                        {/* Platform icon badge */}
+                        {config && (
+                          <div
+                            className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${config.gradient || config.bgColor}`}
+                          >
+                            <config.icon className={`h-3 w-3 ${config.color}`} />
+                          </div>
+                        )}
+
+                        {/* Drag handle */}
+                        <div className="absolute top-2 right-2 cursor-grab text-white/70 hover:text-white">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+
+                        {/* Label */}
+                        <div className="absolute bottom-2 left-2 right-2">
+                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2">
+                            {link.label}
+                          </span>
+                        </div>
+
+                        {/* Actions overlay on hover */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => toggleLinkFeatured(link.id)}
+                            className={`p-1.5 rounded bg-white/20 hover:bg-white/30 transition-colors ${
+                              link.isFeatured ? "text-yellow-400" : "text-white"
+                            }`}
+                            title={link.isFeatured ? "Unstar" : "Star"}
+                          >
+                            <Star className="h-3.5 w-3.5" fill={link.isFeatured ? "currentColor" : "none"} />
+                          </button>
+                          <button
+                            onClick={() => toggleLinkActive(link.id)}
+                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            title={link.isActive ? "Hide" : "Show"}
+                          >
+                            {link.isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingLink(link);
+                              setLinkModalOpen(true);
+                            }}
+                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLink(link.id)}
+                            className="p-1.5 rounded bg-white/20 hover:bg-red-500/70 text-white transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            // Regular link or block
+            const item = groupedItem as UnifiedItem;
+            const index = unifiedItems.indexOf(item);
+
             if (item.kind === "link") {
               const link = item.data;
               const config = getPlatformConfig(link.type);
