@@ -53,6 +53,7 @@ export const LinkModal = ({
   const [displayStyle, setDisplayStyle] = useState<"pill" | "icon" | "both">("pill");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [gridSize, setGridSize] = useState<"half" | "full">("half");
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -66,6 +67,7 @@ export const LinkModal = ({
       setDetectedPlatform(null);
       setDisplayStyle("pill");
       setCoverImageUrl(null);
+      setGridSize("half");
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
@@ -75,6 +77,7 @@ export const LinkModal = ({
         setPillColor(editingLink.pillColor || null);
         setDisplayStyle((editingLink.displayStyle as "pill" | "icon" | "both") || "pill");
         setCoverImageUrl(editingLink.coverImageUrl || null);
+        setGridSize(((editingLink as any).gridSize as "half" | "full") || "half");
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -114,6 +117,7 @@ export const LinkModal = ({
     setDisplayStyle("pill");
     setDetectedPlatform(null);
     setCoverImageUrl(null);
+    setGridSize("half");
   };
 
   const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,11 +183,13 @@ export const LinkModal = ({
     const value = inputValue.trim();
     const url = selectedPlatform.generateUrl(value);
     const label = customLabel.trim() || selectedPlatform.label;
+    // Only include gridSize if there's a cover image
+    const finalGridSize = coverImageUrl ? gridSize : undefined;
 
     if (editingLink && onUpdate) {
-      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined });
+      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize } as any);
     } else {
-      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined });
+      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize } as any);
     }
     onOpenChange(false);
   };
@@ -426,6 +432,47 @@ export const LinkModal = ({
             </label>
           )}
         </div>
+
+        {/* Grid size toggle - only show when cover image is uploaded */}
+        {coverImageUrl && (
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Card size</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setGridSize("half")}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
+                  gridSize === "half" 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <div className="flex gap-1">
+                  <div className="w-4 h-4 bg-current rounded opacity-70" />
+                  <div className="w-4 h-4 bg-current rounded opacity-30" />
+                </div>
+                <span className="text-xs font-medium">Half width</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGridSize("full")}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all ${
+                  gridSize === "full" 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-muted-foreground/50"
+                }`}
+              >
+                <div className="w-10 h-4 bg-current rounded opacity-70" />
+                <span className="text-xs font-medium">Full width</span>
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {gridSize === "half" 
+                ? "Displays in a 2-column grid with other half-width cards" 
+                : "Displays as a full-width card"}
+            </p>
+          </div>
+        )}
 
         {/* Detected platform banner */}
         {detectedPlatform && (

@@ -53,6 +53,7 @@ interface LinkData {
   pill_color?: string | null;
   display_style?: string | null;
   cover_image_url?: string | null;
+  grid_size?: string | null;
 }
 
 interface BlockData {
@@ -114,10 +115,20 @@ function ProfilePreviewRendererComponent({
     [pillLinks]
   );
 
+  // Grid links (half-width with cover images)
+  const gridLinks = useMemo(
+    () =>
+      pillLinks
+        .filter((l) => !l.is_featured && l.cover_image_url && l.grid_size === 'half')
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [pillLinks]
+  );
+
+  // Regular links exclude grid links
   const regularLinks = useMemo(
     () =>
       pillLinks
-        .filter((l) => !l.is_featured)
+        .filter((l) => !l.is_featured && !(l.cover_image_url && l.grid_size === 'half'))
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
     [pillLinks]
   );
@@ -250,11 +261,44 @@ function ProfilePreviewRendererComponent({
     );
   };
 
-  const renderLink = (link: LinkData, isFeatured = false) => {
+  const renderLink = (link: LinkData, isFeatured = false, isGrid = false) => {
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
 
-    // Card-style link with cover image
+    // Grid card-style link with cover image (square, 2-column layout)
+    if (link.cover_image_url && isGrid) {
+      return (
+        <a
+          key={link.id}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => handleLinkClick(e, link.url)}
+          className="block relative rounded-xl overflow-hidden aspect-square shadow-md group"
+        >
+          <img 
+            src={link.cover_image_url} 
+            alt={link.label}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {Icon && (
+            <div 
+              className={`absolute top-1.5 left-1.5 h-6 w-6 rounded-full flex items-center justify-center shadow-lg ${platform?.gradient || platform?.bgColor || 'bg-primary'}`}
+            >
+              <Icon className={`h-3 w-3 ${platform?.color || 'text-white'}`} />
+            </div>
+          )}
+          <div className="absolute bottom-1.5 left-1.5 right-1.5">
+            <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide">
+              {link.label}
+            </span>
+          </div>
+        </a>
+      );
+    }
+
+    // Full-width card-style link with cover image
     if (link.cover_image_url) {
       return (
         <a
@@ -574,6 +618,13 @@ function ProfilePreviewRendererComponent({
       <div className="mt-6 space-y-3 px-6 pb-8">
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true)}
+
+        {/* Grid links - 2-column layout */}
+        {gridLinks.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {gridLinks.map((link) => renderLink(link, false, true))}
+          </div>
+        )}
 
         {/* Unified items (links + blocks) */}
         {unifiedItems.map((item) =>

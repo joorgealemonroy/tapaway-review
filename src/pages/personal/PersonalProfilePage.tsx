@@ -48,17 +48,50 @@ interface Props {
 // Memoized link component to prevent re-renders
 const ProfileLink = memo(function ProfileLink({ 
   link,
-  isFeatured = false
+  isFeatured = false,
+  isGrid = false
 }: { 
-  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null };
+  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null };
   isFeatured?: boolean;
+  isGrid?: boolean;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
   const customColor = link.pill_color;
   const coverImage = link.cover_image_url;
   
-  // Card-style link with cover image
+  // Grid card-style link with cover image (square, 2-column layout)
+  if (coverImage && isGrid) {
+    return (
+      <motion.a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block relative rounded-2xl overflow-hidden aspect-square shadow-lg group"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <img 
+          src={coverImage} 
+          alt={link.label}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div 
+          className={`absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center shadow-lg ${config?.gradient || config?.bgColor || 'bg-primary'}`}
+        >
+          {Icon && <Icon className={`h-4 w-4 ${config?.color || 'text-white'}`} />}
+        </div>
+        <div className="absolute bottom-2 left-2 right-2">
+          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide">
+            {link.label}
+          </span>
+        </div>
+      </motion.a>
+    );
+  }
+  
+  // Full-width card-style link with cover image
   if (coverImage) {
     return (
       <motion.a
@@ -583,17 +616,24 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const iconLinks = links.filter((l: any) => l.is_active !== false && l.display_style === 'icon');
   const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
 
+  // Separate grid links (half-width with cover images) from regular items
+  const gridLinks = pillLinks.filter((l: any) => 
+    l.cover_image_url && l.grid_size === 'half' && !l.is_featured
+  ).sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  
+  // Regular items exclude grid links
+  const regularPillLinks = pillLinks.filter((l: any) => 
+    !l.is_featured && !(l.cover_image_url && l.grid_size === 'half')
+  );
+
   const unifiedItems: UnifiedItem[] = [
-    ...pillLinks
+    ...regularPillLinks
       .map((link): UnifiedItem => ({ kind: "link", data: link })),
     ...blocks.map((block): UnifiedItem => ({ kind: "block", data: block })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
   // Extract featured link (renders at top separately)
   const featuredLink = pillLinks.find((l: any) => l.is_featured === true);
-  const itemsWithoutFeatured = unifiedItems.filter(
-    item => !(item.kind === "link" && (item.data as any).is_featured === true)
-  );
 
   // Use optimized header image URL for faster loading
   const optimizedHeaderUrl = profile.header_type === "image" && profile.header_image_url
@@ -681,10 +721,19 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
 
+        {/* Grid links - 2-column layout for half-width cards with cover images */}
+        {gridLinks.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {gridLinks.map((link: any) => (
+              <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
+            ))}
+          </div>
+        )}
+
         {/* Unified content - interleaved links and blocks */}
-        {itemsWithoutFeatured.length > 0 && (
+        {unifiedItems.length > 0 && (
           <div className="space-y-3">
-            {itemsWithoutFeatured.map((item) => {
+            {unifiedItems.map((item) => {
               if (item.kind === "link") {
                 return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
               } else {

@@ -40,6 +40,7 @@ export interface CachedLink {
   is_featured: boolean | null;
   display_style?: string | null;
   cover_image_url?: string | null;
+  grid_size?: string | null;
 }
 
 export interface CachedBlock {

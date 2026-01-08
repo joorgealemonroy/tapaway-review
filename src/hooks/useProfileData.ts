@@ -48,7 +48,7 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
   const [linksResult, blocksResult] = await Promise.all([
     supabase
       .from('personal_links')
-      .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url')
+      .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size')
       .eq('profile_id', profileData.id)
       .order('sort_order', { ascending: true }),
     supabase
