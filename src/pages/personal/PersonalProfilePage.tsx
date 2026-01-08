@@ -50,12 +50,44 @@ const ProfileLink = memo(function ProfileLink({
   link,
   isFeatured = false
 }: { 
-  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null };
+  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null };
   isFeatured?: boolean;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
   const customColor = link.pill_color;
+  const coverImage = link.cover_image_url;
+  
+  // Card-style link with cover image
+  if (coverImage) {
+    return (
+      <motion.a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <img 
+          src={coverImage} 
+          alt={link.label}
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div 
+          className={`absolute top-3 left-3 h-10 w-10 rounded-full flex items-center justify-center shadow-lg ${config?.gradient || config?.bgColor || 'bg-primary'}`}
+        >
+          {Icon && <Icon className={`h-5 w-5 ${config?.color || 'text-white'}`} />}
+        </div>
+        <div className="absolute bottom-3 left-3 right-3">
+          <span className="text-white font-bold text-lg drop-shadow-lg uppercase tracking-wide">
+            {link.label}
+          </span>
+        </div>
+      </motion.a>
+    );
+  }
   
   // Featured links are larger and more prominent
   if (isFeatured) {
@@ -162,7 +194,7 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
   );
 });
 
-// Social icon bar for icon-style links
+// Social icon bar for icon-style links - with branded colors
 const SocialIconBar = memo(function SocialIconBar({ 
   links, 
   isDarkBg 
@@ -179,18 +211,19 @@ const SocialIconBar = memo(function SocialIconBar({
         const Icon = config?.icon;
         if (!Icon) return null;
         
+        // Get the platform's background styling
+        const bgStyle = config?.gradient || config?.bgColor;
+        
         return (
           <a
             key={link.id}
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`h-10 w-10 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
-              isDarkBg ? 'bg-white/15 hover:bg-white/25' : 'bg-black/5 hover:bg-black/10'
-            }`}
+            className={`h-11 w-11 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md ${bgStyle}`}
             title={config?.label}
           >
-            <Icon className={`h-5 w-5 ${isDarkBg ? 'text-white' : config?.color || 'text-foreground'}`} />
+            <Icon className={`h-5 w-5 ${config?.color || 'text-white'}`} />
           </a>
         );
       })}

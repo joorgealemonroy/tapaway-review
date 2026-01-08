@@ -34,6 +34,7 @@ interface DbPersonalLink {
   is_active: boolean | null;
   is_featured: boolean | null;
   display_style?: string | null;
+  cover_image_url?: string | null;
 }
 
 interface PersonalLink {
@@ -44,6 +45,7 @@ interface PersonalLink {
   url: string;
   pillColor?: string | null;
   displayStyle?: string;
+  coverImageUrl?: string | null;
 }
 
 interface Props {
@@ -69,6 +71,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     url: dbLink.url,
     pillColor: dbLink.pill_color,
     displayStyle: dbLink.display_style || "pill",
+    coverImageUrl: dbLink.cover_image_url,
   });
 
   const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
@@ -103,6 +106,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         sort_order: links.length,
         pill_color: link.pillColor || null,
         display_style: newDisplayStyle,
+        cover_image_url: link.coverImageUrl || null,
       };
 
       const { data, error } = await supabase
@@ -157,6 +161,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
           url: updates.url,
           pill_color: updates.pillColor || null,
           display_style: updates.displayStyle,
+          cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : null,
         })
         .eq("id", id);
 
@@ -171,6 +176,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
               url: updates.url || l.url,
               pill_color: updates.pillColor !== undefined ? updates.pillColor : l.pill_color,
               display_style: updates.displayStyle || l.display_style,
+              cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : l.cover_image_url,
             }
           : l
       ));
@@ -360,10 +366,14 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div 
-                  className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${!link.pill_color ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${!link.pill_color && !link.cover_image_url ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
                   style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
                 >
-                  {Icon && <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
+                  {link.cover_image_url ? (
+                    <img src={link.cover_image_url} alt="" className="w-full h-full object-cover" />
+                  ) : Icon ? (
+                    <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />
+                  ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -371,6 +381,11 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                     {isFeatured && (
                       <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
                         FEATURED
+                      </span>
+                    )}
+                    {link.cover_image_url && (
+                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                        COVER
                       </span>
                     )}
                   </div>

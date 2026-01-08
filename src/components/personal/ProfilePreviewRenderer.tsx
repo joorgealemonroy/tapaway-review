@@ -52,6 +52,7 @@ interface LinkData {
   sort_order?: number | null;
   pill_color?: string | null;
   display_style?: string | null;
+  cover_image_url?: string | null;
 }
 
 interface BlockData {
@@ -252,6 +253,39 @@ function ProfilePreviewRendererComponent({
   const renderLink = (link: LinkData, isFeatured = false) => {
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
+
+    // Card-style link with cover image
+    if (link.cover_image_url) {
+      return (
+        <a
+          key={link.id}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => handleLinkClick(e, link.url)}
+          className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group"
+        >
+          <img 
+            src={link.cover_image_url} 
+            alt={link.label}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {Icon && (
+            <div 
+              className={`absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center shadow-lg ${platform?.gradient || platform?.bgColor || 'bg-primary'}`}
+            >
+              <Icon className={`h-4 w-4 ${platform?.color || 'text-white'}`} />
+            </div>
+          )}
+          <div className="absolute bottom-2 left-2 right-2">
+            <span className="text-white font-bold text-base drop-shadow-lg uppercase tracking-wide">
+              {link.label}
+            </span>
+          </div>
+        </a>
+      );
+    }
 
     if (isFeatured) {
       return (

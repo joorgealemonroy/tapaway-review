@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft, Check, Sparkles, LayoutList, Circle } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Preset colors for custom links
 const COLOR_PRESETS = [
@@ -25,9 +27,9 @@ const COLOR_PRESETS = [
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (link: Omit<PersonalLink, "id"> & { displayStyle?: string }) => void;
-  editingLink?: (PersonalLink & { displayStyle?: string }) | null;
-  onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string }>) => void;
+  onAdd: (link: Omit<PersonalLink, "id"> & { displayStyle?: string; coverImageUrl?: string }) => void;
+  editingLink?: (PersonalLink & { displayStyle?: string; coverImageUrl?: string }) | null;
+  onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string }>) => void;
   existingTypes?: string[];
   existingIconTypes?: string[]; // Platform types that already have an icon
 }
@@ -49,6 +51,8 @@ export const LinkModal = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [detectedPlatform, setDetectedPlatform] = useState<PlatformConfig | null>(null);
   const [displayStyle, setDisplayStyle] = useState<"pill" | "icon" | "both">("pill");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -61,6 +65,7 @@ export const LinkModal = ({
       setShowColorPicker(false);
       setDetectedPlatform(null);
       setDisplayStyle("pill");
+      setCoverImageUrl(null);
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
@@ -69,6 +74,7 @@ export const LinkModal = ({
         setCustomLabel(editingLink.label !== config.label ? editingLink.label : "");
         setPillColor(editingLink.pillColor || null);
         setDisplayStyle((editingLink.displayStyle as "pill" | "icon" | "both") || "pill");
+        setCoverImageUrl(editingLink.coverImageUrl || null);
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -107,6 +113,51 @@ export const LinkModal = ({
     setShowColorPicker(false);
     setDisplayStyle("pill");
     setDetectedPlatform(null);
+    setCoverImageUrl(null);
+  };
+
+  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `link-covers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-link-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-link-images")
+        .getPublicUrl(filePath);
+
+      setCoverImageUrl(publicUrl);
+      toast.success("Image uploaded!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeCoverImage = () => {
+    setCoverImageUrl(null);
   };
 
   const handleSwitchToDetected = () => {
@@ -130,9 +181,9 @@ export const LinkModal = ({
     const label = customLabel.trim() || selectedPlatform.label;
 
     if (editingLink && onUpdate) {
-      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle });
+      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined });
     } else {
-      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle });
+      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined });
     }
     onOpenChange(false);
   };
@@ -334,6 +385,47 @@ export const LinkModal = ({
             )}
           </div>
         )}
+
+        {/* Cover image upload - shows as card-style link on profile */}
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground">Cover image (optional)</Label>
+          {coverImageUrl ? (
+            <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-muted">
+              <img 
+                src={coverImageUrl} 
+                alt="Cover" 
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={removeCoverImage}
+                className="absolute top-2 right-2 h-8 w-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4 text-white" />
+              </button>
+              <div className={`absolute bottom-2 left-2 h-8 w-8 rounded-full flex items-center justify-center ${config.gradient || config.bgColor}`}>
+                <config.icon className={`h-4 w-4 ${config.color}`} />
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center gap-2 p-6 bg-muted/50 rounded-xl border-2 border-dashed border-border hover:border-primary cursor-pointer transition-colors">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverImageUpload}
+                className="hidden"
+                disabled={uploadingImage}
+              />
+              <ImagePlus className="h-8 w-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {uploadingImage ? "Uploading..." : "Add a cover image"}
+              </span>
+              <span className="text-xs text-muted-foreground/70">
+                Shows as a visual card on your profile
+              </span>
+            </label>
+          )}
+        </div>
 
         {/* Detected platform banner */}
         {detectedPlatform && (

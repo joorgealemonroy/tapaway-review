@@ -38,6 +38,7 @@ export interface CachedLink {
   is_active: boolean | null;
   is_featured: boolean | null;
   display_style?: string | null;
+  cover_image_url?: string | null;
 }
 
 export interface CachedBlock {

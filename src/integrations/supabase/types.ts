@@ -1003,6 +1003,7 @@ export type Database = {
       }
       personal_links: {
         Row: {
+          cover_image_url: string | null
           created_at: string | null
           display_style: string | null
           id: string
@@ -1016,6 +1017,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string | null
           display_style?: string | null
           id?: string
@@ -1029,6 +1031,7 @@ export type Database = {
           url: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string | null
           display_style?: string | null
           id?: string
