@@ -1071,6 +1071,7 @@ export type Database = {
           card_front_headline: string | null
           contact_address: string | null
           contact_company: string | null
+          contact_email: string | null
           contact_enabled: boolean | null
           contact_name: string | null
           contact_phone: string | null
@@ -1104,6 +1105,7 @@ export type Database = {
           card_front_headline?: string | null
           contact_address?: string | null
           contact_company?: string | null
+          contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1137,6 +1139,7 @@ export type Database = {
           card_front_headline?: string | null
           contact_address?: string | null
           contact_company?: string | null
+          contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1867,6 +1870,7 @@ export type Database = {
           bio: string | null
           contact_address: string | null
           contact_company: string | null
+          contact_email: string | null
           contact_enabled: boolean | null
           contact_name: string | null
           contact_phone: string | null
@@ -1890,6 +1894,7 @@ export type Database = {
           bio?: string | null
           contact_address?: string | null
           contact_company?: string | null
+          contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1913,6 +1918,7 @@ export type Database = {
           bio?: string | null
           contact_address?: string | null
           contact_company?: string | null
+          contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
           contact_phone?: string | null

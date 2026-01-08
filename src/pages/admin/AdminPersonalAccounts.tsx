@@ -76,6 +76,7 @@ interface PersonalAccount {
   // Contact card fields
   contact_enabled: boolean | null;
   contact_name: string | null;
+  contact_email: string | null;
   contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
@@ -168,6 +169,7 @@ const AdminPersonalAccounts = () => {
     // Contact card fields
     contactEnabled: false,
     contactName: "",
+    contactEmail: "",
     contactPhotoUrl: "",
     contactPhone: "",
     contactCompany: "",
@@ -181,8 +183,11 @@ const AdminPersonalAccounts = () => {
   const [editProfilePhotoPreview, setEditProfilePhotoPreview] = useState<string | null>(null);
   const [editHeaderImageFile, setEditHeaderImageFile] = useState<File | null>(null);
   const [editHeaderImagePreview, setEditHeaderImagePreview] = useState<string | null>(null);
+  const [editContactPhotoFile, setEditContactPhotoFile] = useState<File | null>(null);
+  const [editContactPhotoPreview, setEditContactPhotoPreview] = useState<string | null>(null);
   const editProfileInputRef = useRef<HTMLInputElement>(null);
   const editHeaderInputRef = useRef<HTMLInputElement>(null);
+  const editContactPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -509,6 +514,7 @@ Login at: ${window.location.origin}/auth`;
       pfpPosition: (account.pfp_position as "center" | "left") || "center",
       contactEnabled: account.contact_enabled || false,
       contactName: account.contact_name || "",
+      contactEmail: account.contact_email || "",
       contactPhotoUrl: account.contact_photo_url || "",
       contactPhone: account.contact_phone || "",
       contactCompany: account.contact_company || "",
@@ -520,8 +526,10 @@ Login at: ${window.location.origin}/auth`;
     // Set image previews from existing data
     setEditProfilePhotoPreview(account.profile_photo_url || null);
     setEditHeaderImagePreview(account.header_image_url || null);
+    setEditContactPhotoPreview(account.contact_photo_url || null);
     setEditProfilePhotoFile(null);
     setEditHeaderImageFile(null);
+    setEditContactPhotoFile(null);
 
     try {
       // Load links
@@ -600,7 +608,7 @@ Login at: ${window.location.origin}/auth`;
       const file = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
       setEditProfilePhotoFile(file);
       setEditProfilePhotoPreview(URL.createObjectURL(croppedBlob));
-    } else {
+    } else if (cropperType === "header") {
       const file = new File([croppedBlob], "header.jpg", { type: "image/jpeg" });
       setEditHeaderImageFile(file);
       setEditHeaderImagePreview(URL.createObjectURL(croppedBlob));
@@ -608,6 +616,19 @@ Login at: ${window.location.origin}/auth`;
     }
     setCropperOpen(false);
     setRawImageUrl(null);
+  };
+
+  const handleEditContactPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    // For contact photo, we don't need a cropper - just use as-is
+    const previewUrl = URL.createObjectURL(file);
+    setEditContactPhotoFile(file);
+    setEditContactPhotoPreview(previewUrl);
   };
 
   const handleSaveEdit = async () => {
@@ -628,6 +649,7 @@ Login at: ${window.location.origin}/auth`;
           pfp_position: editForm.pfpPosition,
           contact_enabled: editForm.contactEnabled,
           contact_name: editForm.contactName || null,
+          contact_email: editForm.contactEmail || null,
           contact_photo_url: editForm.contactPhotoUrl || null,
           contact_phone: editForm.contactPhone || null,
           contact_company: editForm.contactCompany || null,
@@ -674,6 +696,26 @@ Login at: ${window.location.origin}/auth`;
           await supabase
             .from("personal_profiles")
             .update({ header_image_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", editingAccount.id);
+        }
+      }
+
+      // Upload contact photo if changed
+      if (editContactPhotoFile) {
+        const fileExt = editContactPhotoFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const filePath = `${editingAccount.user_id}/contact-photo-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, editContactPhotoFile, { upsert: true });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ contact_photo_url: publicUrl })
             .eq("id", editingAccount.id);
         }
       }
@@ -753,6 +795,7 @@ Login at: ${window.location.origin}/auth`;
       pfpPosition: "center",
       contactEnabled: false,
       contactName: "",
+      contactEmail: "",
       contactPhotoUrl: "",
       contactPhone: "",
       contactCompany: "",
@@ -766,6 +809,8 @@ Login at: ${window.location.origin}/auth`;
     setEditProfilePhotoPreview(null);
     setEditHeaderImageFile(null);
     setEditHeaderImagePreview(null);
+    setEditContactPhotoFile(null);
+    setEditContactPhotoPreview(null);
     setActiveTab("basic");
   };
 
@@ -1533,6 +1578,59 @@ Login at: ${window.location.origin}/auth`;
                     />
                     <Label htmlFor="edit-contact-enabled" className="text-sm">Enable "Save Contact" button</Label>
                   </div>
+                  
+                  {/* Contact Photo Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Contact Photo</Label>
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                        {(editContactPhotoPreview || editForm.contactPhotoUrl) ? (
+                          <img 
+                            src={editContactPhotoPreview || editForm.contactPhotoUrl} 
+                            alt="Contact" 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <User className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        ref={editContactPhotoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditContactPhotoSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editContactPhotoInputRef.current?.click()}
+                      >
+                        <Upload className="h-3 w-3 mr-1" />
+                        Upload
+                      </Button>
+                      {(editContactPhotoPreview || editForm.contactPhotoUrl) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditContactPhotoFile(null);
+                            setEditContactPhotoPreview(null);
+                            setEditForm({ ...editForm, contactPhotoUrl: "" });
+                          }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Leave empty to use profile photo</p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <Label className="text-xs">Contact Name</Label>
@@ -1543,11 +1641,12 @@ Login at: ${window.location.origin}/auth`;
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-xs">Contact Photo URL</Label>
+                      <Label className="text-xs">Email</Label>
                       <Input
-                        placeholder="Leave empty to use profile photo"
-                        value={editForm.contactPhotoUrl}
-                        onChange={(e) => setEditForm({ ...editForm, contactPhotoUrl: e.target.value })}
+                        type="email"
+                        placeholder="Leave empty to use account email"
+                        value={editForm.contactEmail}
+                        onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
                       />
                     </div>
                     <div>

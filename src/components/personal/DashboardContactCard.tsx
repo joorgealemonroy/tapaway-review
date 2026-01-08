@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera } from "lucide-react";
+import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera, Mail } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 
 interface ContactSettings {
   contact_enabled: boolean;
   contact_name: string | null;
+  contact_email: string | null;
   contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
@@ -40,6 +41,7 @@ export function DashboardContactCard({
 }: Props) {
   const [enabled, setEnabled] = useState(initialSettings.contact_enabled || false);
   const [contactName, setContactName] = useState(initialSettings.contact_name || "");
+  const [contactEmail, setContactEmail] = useState(initialSettings.contact_email || "");
   const [contactPhotoUrl, setContactPhotoUrl] = useState(initialSettings.contact_photo_url || "");
   const [phone, setPhone] = useState(initialSettings.contact_phone || "");
   const [company, setCompany] = useState(initialSettings.contact_company || "");
@@ -100,6 +102,7 @@ export function DashboardContactCard({
         .update({
           contact_enabled: enabled,
           contact_name: contactName.trim() || null,
+          contact_email: contactEmail.trim() || null,
           contact_photo_url: contactPhotoUrl.trim() || null,
           contact_phone: phone.trim() || null,
           contact_company: company.trim() || null,
@@ -224,9 +227,23 @@ export function DashboardContactCard({
           </p>
         </div>
 
-        <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-          Your email (<strong>{email}</strong>) is automatically included.
-        </p>
+        {/* Email */}
+        <div className="space-y-2">
+          <Label htmlFor="contact-email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Email
+          </Label>
+          <Input
+            id="contact-email"
+            type="email"
+            placeholder={email}
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave empty to use "{email}"
+          </p>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="contact-phone" className="flex items-center gap-2">
