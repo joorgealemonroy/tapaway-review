@@ -31,6 +31,8 @@ export interface AdminLink {
   isActive: boolean;
   isFeatured: boolean;
   sortOrder: number;
+  coverImageUrl?: string | null;
+  gridSize?: string | null;
 }
 
 export interface AdminBlock {
@@ -102,7 +104,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
   };
 
   // Link handlers
-  const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string }) => {
+  const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null }) => {
     const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both") || "pill";
     const maxOrder = unifiedItems.length > 0 ? Math.max(...unifiedItems.map(getSortOrder)) : -1;
     
@@ -129,6 +131,8 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
       isActive: true,
       isFeatured: false,
       sortOrder: maxOrder + 1,
+      coverImageUrl: linkData.coverImageUrl || null,
+      gridSize: linkData.gridSize || null,
     };
     onLinksChange([...updatedLinks, newLink]);
   };
@@ -480,6 +484,8 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
           url: editingLink.url,
           pillColor: editingLink.pillColor,
           displayStyle: editingLink.displayStyle,
+          coverImageUrl: editingLink.coverImageUrl,
+          gridSize: editingLink.gridSize,
         } : null}
         onUpdate={(id, updates) => handleUpdateLink(id, updates as Partial<AdminLink>)}
         existingTypes={[]}
