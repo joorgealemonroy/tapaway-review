@@ -551,6 +551,8 @@ Login at: ${window.location.origin}/auth`;
           isActive: l.is_active ?? true,
           isFeatured: l.is_featured ?? false,
           sortOrder: l.sort_order ?? index,
+          coverImageUrl: l.cover_image_url || undefined,
+          gridSize: l.grid_size || undefined,
         })));
       }
 
@@ -739,6 +741,8 @@ Login at: ${window.location.origin}/auth`;
           is_active: link.isActive,
           is_featured: link.isFeatured,
           sort_order: link.sortOrder,
+          cover_image_url: link.coverImageUrl || null,
+          grid_size: link.gridSize || null,
         }));
         const { error: insertLinksError } = await supabase
           .from("personal_links")
