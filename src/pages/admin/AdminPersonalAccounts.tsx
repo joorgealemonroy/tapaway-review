@@ -336,7 +336,7 @@ const AdminPersonalAccounts = () => {
           headline: createForm.headline || null,
           bio: createForm.bio || null,
           // Full link objects with all customization
-          links: adminLinks.map((link, index) => ({
+          links: adminLinks.map((link) => ({
             type: link.type,
             label: link.label,
             url: link.url,
@@ -345,15 +345,15 @@ const AdminPersonalAccounts = () => {
             displayStyle: link.displayStyle || "pill",
             isActive: link.isActive,
             isFeatured: link.isFeatured,
-            sortOrder: index,
+            sortOrder: link.sortOrder,
           })),
           // Content blocks
-          blocks: adminBlocks.map((block, index) => ({
+          blocks: adminBlocks.map((block) => ({
             blockType: block.block_type,
             content: block.content,
             alignment: block.alignment,
             isActive: block.is_active,
-            sortOrder: index,
+            sortOrder: block.sort_order,
           })),
           // Design fields
           headerType: createForm.headerType,
@@ -653,7 +653,7 @@ Login at: ${window.location.origin}/auth`;
       if (deleteLinksError) throw deleteLinksError;
       
       if (editLinks.length > 0) {
-        const linksToInsert = editLinks.map((link, index) => ({
+        const linksToInsert = editLinks.map((link) => ({
           profile_id: editingAccount.id,
           link_type: link.type,
           label: link.label,
@@ -662,7 +662,7 @@ Login at: ${window.location.origin}/auth`;
           display_style: link.displayStyle || "pill",
           is_active: link.isActive,
           is_featured: link.isFeatured,
-          sort_order: index,
+          sort_order: link.sortOrder,
         }));
         const { error: insertLinksError } = await supabase
           .from("personal_links")
@@ -680,13 +680,13 @@ Login at: ${window.location.origin}/auth`;
       if (deleteBlocksError) throw deleteBlocksError;
       
       if (editBlocks.length > 0) {
-        const blocksToInsert = editBlocks.map((block, index) => ({
+        const blocksToInsert = editBlocks.map((block) => ({
           profile_id: editingAccount.id,
           block_type: block.block_type,
           content: block.content as unknown as Record<string, never>,
           alignment: block.alignment,
           is_active: block.is_active,
-          sort_order: index,
+          sort_order: block.sort_order,
         }));
         const { error: insertBlocksError } = await supabase
           .from("personal_blocks")
