@@ -94,7 +94,7 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
           transition={{ delay: 0.3 }}
           className="text-2xl font-bold text-foreground mb-2"
         >
-          You're all set! 🎉
+          Thank You for Joining TapAway! 🎉
         </motion.h1>
 
         <motion.p
@@ -103,7 +103,7 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
           transition={{ delay: 0.4 }}
           className="text-muted-foreground mb-8"
         >
-          Your TapAway profile is live and your card is being prepared.
+          Your profile is live and your custom card is on the way.
         </motion.p>
 
         {/* Profile Link */}
