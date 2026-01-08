@@ -10,6 +10,8 @@ export interface PersonalLink {
   url: string; // generated full URL
   pillColor?: string | null; // custom button color
   isFeatured?: boolean; // highlighted/featured link
+  displayStyle?: string; // "pill" | "icon" | "both"
+  coverImageUrl?: string | null; // optional cover image for card-style display
 }
 
 export interface PersonalBlock {
