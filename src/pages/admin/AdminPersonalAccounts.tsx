@@ -49,7 +49,8 @@ import {
   Image as ImageIcon,
   AlignLeft,
   AlignCenter,
-  Upload
+  Upload,
+  Pencil
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -63,6 +64,13 @@ interface PersonalAccount {
   full_name: string;
   email: string;
   profile_photo_url: string | null;
+  header_image_url: string | null;
+  header_color: string | null;
+  header_type: string | null;
+  background_color: string | null;
+  pfp_position: string | null;
+  headline: string | null;
+  bio: string | null;
   subscription_status: string | null;
   plan_type: string | null;
   created_at: string;
@@ -135,6 +143,29 @@ const AdminPersonalAccounts = () => {
     username: string;
   } | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
+
+  // Edit account state
+  const [editingAccount, setEditingAccount] = useState<PersonalAccount | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    headline: "",
+    bio: "",
+    headerType: "color" as "color" | "image",
+    headerColor: "#6BCB77",
+    backgroundColor: "#ffffff",
+    pfpPosition: "center" as "center" | "left",
+  });
+  const [editLinks, setEditLinks] = useState<AdminLink[]>([]);
+  const [editBlocks, setEditBlocks] = useState<AdminBlock[]>([]);
+  const [editProfilePhotoFile, setEditProfilePhotoFile] = useState<File | null>(null);
+  const [editProfilePhotoPreview, setEditProfilePhotoPreview] = useState<string | null>(null);
+  const [editHeaderImageFile, setEditHeaderImageFile] = useState<File | null>(null);
+  const [editHeaderImagePreview, setEditHeaderImagePreview] = useState<string | null>(null);
+  const editProfileInputRef = useRef<HTMLInputElement>(null);
+  const editHeaderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -443,6 +474,240 @@ Login at: ${window.location.origin}/auth`;
     setHeaderImagePreview(null);
   };
 
+  // Edit functions
+  const openEditModal = async (account: PersonalAccount) => {
+    setEditingAccount(account);
+    setShowEditModal(true);
+    setEditLoading(true);
+    setActiveTab("basic");
+
+    // Set form values from account
+    setEditForm({
+      fullName: account.full_name || "",
+      headline: account.headline || "",
+      bio: account.bio || "",
+      headerType: (account.header_type as "color" | "image") || "color",
+      headerColor: account.header_color || "#6BCB77",
+      backgroundColor: account.background_color || "#ffffff",
+      pfpPosition: (account.pfp_position as "center" | "left") || "center",
+    });
+
+    // Set image previews from existing data
+    setEditProfilePhotoPreview(account.profile_photo_url || null);
+    setEditHeaderImagePreview(account.header_image_url || null);
+    setEditProfilePhotoFile(null);
+    setEditHeaderImageFile(null);
+
+    try {
+      // Load links
+      const { data: linksData } = await supabase
+        .from("personal_links")
+        .select("*")
+        .eq("profile_id", account.id)
+        .order("sort_order", { ascending: true });
+
+      if (linksData) {
+        setEditLinks(linksData.map((l, index) => ({
+          id: l.id,
+          type: l.link_type,
+          label: l.label,
+          url: l.url,
+          value: l.url,
+          pillColor: l.pill_color || undefined,
+          displayStyle: (l.display_style as "icon" | "pill" | "both") || "pill",
+          isActive: l.is_active ?? true,
+          isFeatured: l.is_featured ?? false,
+          sortOrder: l.sort_order ?? index,
+        })));
+      }
+
+      // Load blocks
+      const { data: blocksData } = await supabase
+        .from("personal_blocks")
+        .select("*")
+        .eq("profile_id", account.id)
+        .order("sort_order", { ascending: true });
+
+      if (blocksData) {
+        setEditBlocks(blocksData.map((b, index) => ({
+          id: b.id,
+          block_type: b.block_type as AdminBlock["block_type"],
+          content: b.content as Record<string, unknown>,
+          alignment: (b.alignment as "left" | "center" | "right") || "center",
+          is_active: b.is_active ?? true,
+          sort_order: b.sort_order ?? index,
+        })));
+      }
+    } catch (err) {
+      console.error("Error loading account data:", err);
+      toast.error("Failed to load account data");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleEditProfilePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setCropperType("profile");
+    setRawImageUrl(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleEditHeaderImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setCropperType("header");
+    setRawImageUrl(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleEditCropComplete = async (croppedBlob: Blob) => {
+    if (cropperType === "profile") {
+      const file = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
+      setEditProfilePhotoFile(file);
+      setEditProfilePhotoPreview(URL.createObjectURL(croppedBlob));
+    } else {
+      const file = new File([croppedBlob], "header.jpg", { type: "image/jpeg" });
+      setEditHeaderImageFile(file);
+      setEditHeaderImagePreview(URL.createObjectURL(croppedBlob));
+      setEditForm({ ...editForm, headerType: "image" });
+    }
+    setCropperOpen(false);
+    setRawImageUrl(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAccount) return;
+
+    setSaving(true);
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from("personal_profiles")
+        .update({
+          full_name: editForm.fullName,
+          headline: editForm.headline || null,
+          bio: editForm.bio || null,
+          header_type: editForm.headerType,
+          header_color: editForm.headerColor,
+          background_color: editForm.backgroundColor,
+          pfp_position: editForm.pfpPosition,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingAccount.id);
+
+      if (profileError) throw profileError;
+
+      // Upload profile photo if changed
+      if (editProfilePhotoFile) {
+        const filePath = `${editingAccount.user_id}/profile.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, editProfilePhotoFile, { upsert: true, contentType: "image/jpeg" });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ profile_photo_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", editingAccount.id);
+        }
+      }
+
+      // Upload header image if changed
+      if (editHeaderImageFile && editForm.headerType === "image") {
+        const filePath = `${editingAccount.user_id}/header.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, editHeaderImageFile, { upsert: true, contentType: "image/jpeg" });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ header_image_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", editingAccount.id);
+        }
+      }
+
+      // Sync links - delete all and re-insert
+      await supabase.from("personal_links").delete().eq("profile_id", editingAccount.id);
+      if (editLinks.length > 0) {
+        const linksToInsert = editLinks.map((link, index) => ({
+          profile_id: editingAccount.id,
+          link_type: link.type,
+          label: link.label,
+          url: link.url || link.value,
+          pill_color: link.pillColor || null,
+          display_style: link.displayStyle || "pill",
+          is_active: link.isActive,
+          is_featured: link.isFeatured,
+          sort_order: index,
+        }));
+        await supabase.from("personal_links").insert(linksToInsert);
+      }
+
+      // Sync blocks - delete all and re-insert
+      await supabase.from("personal_blocks").delete().eq("profile_id", editingAccount.id);
+      if (editBlocks.length > 0) {
+        const blocksToInsert = editBlocks.map((block, index) => ({
+          profile_id: editingAccount.id,
+          block_type: block.block_type,
+          content: block.content as unknown as Record<string, never>,
+          alignment: block.alignment,
+          is_active: block.is_active,
+          sort_order: index,
+        }));
+        await supabase.from("personal_blocks").insert(blocksToInsert);
+      }
+
+      toast.success("Profile updated successfully");
+      loadAccounts();
+      resetEditModal();
+    } catch (err) {
+      console.error("Save error:", err);
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetEditModal = () => {
+    setShowEditModal(false);
+    setEditingAccount(null);
+    setEditForm({
+      fullName: "",
+      headline: "",
+      bio: "",
+      headerType: "color",
+      headerColor: "#6BCB77",
+      backgroundColor: "#ffffff",
+      pfpPosition: "center",
+    });
+    setEditLinks([]);
+    setEditBlocks([]);
+    setEditProfilePhotoFile(null);
+    setEditProfilePhotoPreview(null);
+    setEditHeaderImageFile(null);
+    setEditHeaderImagePreview(null);
+    setActiveTab("basic");
+  };
+
   const filteredAccounts = accounts.filter((account) => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
@@ -547,6 +812,13 @@ Login at: ${window.location.origin}/auth`;
               </div>
 
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openEditModal(account)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -940,6 +1212,297 @@ Login at: ${window.location.origin}/auth`;
         </DialogContent>
       </Dialog>
 
+      {/* Edit Account Modal */}
+      <Dialog open={showEditModal} onOpenChange={(open) => !open && resetEditModal()}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit @{editingAccount?.username}</DialogTitle>
+            <DialogDescription>
+              Modify profile details, links, and content blocks
+            </DialogDescription>
+          </DialogHeader>
+
+          {editLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="design">Design</TabsTrigger>
+                <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="blocks">Blocks</TabsTrigger>
+              </TabsList>
+
+              {/* Basic Info Tab */}
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div>
+                  <Label>Full Name</Label>
+                  <Input
+                    value={editForm.fullName}
+                    onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Headline</Label>
+                  <Input
+                    placeholder="Fitness Coach | Content Creator"
+                    value={editForm.headline}
+                    onChange={(e) => setEditForm({ ...editForm, headline: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Bio</Label>
+                  <Textarea
+                    placeholder="A short bio..."
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Design Tab */}
+              <TabsContent value="design" className="space-y-6 mt-4">
+                {/* Profile Photo */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Profile Photo</Label>
+                  <div className="flex items-center gap-4">
+                    {editProfilePhotoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={editProfilePhotoPreview}
+                          alt="Profile preview"
+                          className="h-20 w-20 rounded-full object-cover"
+                        />
+                        <button
+                          onClick={() => {
+                            setEditProfilePhotoFile(null);
+                            setEditProfilePhotoPreview(null);
+                          }}
+                          className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => editProfileInputRef.current?.click()}
+                        className="h-20 w-20 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center hover:border-primary transition-colors"
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </button>
+                    )}
+                    <div className="text-sm text-muted-foreground">
+                      <p>Click to upload profile photo</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={editProfileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditProfilePhotoSelect}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Header Style */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Header Style</Label>
+                  <RadioGroup
+                    value={editForm.headerType}
+                    onValueChange={(v) => setEditForm({ ...editForm, headerType: v as "color" | "image" })}
+                    className="flex gap-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="color" id="edit-header-color" />
+                      <Label htmlFor="edit-header-color" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                        <Paintbrush className="h-4 w-4" />
+                        Solid Color
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="image" id="edit-header-image" />
+                      <Label htmlFor="edit-header-image" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                        <ImageIcon className="h-4 w-4" />
+                        Custom Image
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {editForm.headerType === "color" ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {COLOR_PRESETS.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setEditForm({ ...editForm, headerColor: color })}
+                            className={`h-8 w-8 rounded-full border-2 transition-all ${
+                              editForm.headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {GRADIENT_PRESETS.map((gradient, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setEditForm({ ...editForm, headerColor: gradient })}
+                            className={`h-8 w-8 rounded-full border-2 transition-all ${
+                              editForm.headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
+                            }`}
+                            style={{ background: gradient }}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          value={editForm.headerColor}
+                          onChange={(e) => setEditForm({ ...editForm, headerColor: e.target.value })}
+                          className="h-10 flex-1"
+                        />
+                        <input
+                          type="color"
+                          value={editForm.headerColor.startsWith("#") ? editForm.headerColor : "#6BCB77"}
+                          onChange={(e) => setEditForm({ ...editForm, headerColor: e.target.value })}
+                          className="h-10 w-10 rounded border border-border cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {editHeaderImagePreview ? (
+                        <div className="relative">
+                          <img
+                            src={editHeaderImagePreview}
+                            alt="Header preview"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => {
+                              setEditHeaderImageFile(null);
+                              setEditHeaderImagePreview(null);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => editHeaderInputRef.current?.click()}
+                          className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+                        >
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Upload header image</span>
+                        </button>
+                      )}
+                      <input
+                        ref={editHeaderInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditHeaderImageSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* PFP Position */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Profile Photo Position</Label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditForm({ ...editForm, pfpPosition: "left" })}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
+                        editForm.pfpPosition === "left" ? "border-primary bg-primary/10" : "border-border"
+                      }`}
+                    >
+                      <AlignLeft className="h-4 w-4" />
+                      <span className="text-sm">Left</span>
+                    </button>
+                    <button
+                      onClick={() => setEditForm({ ...editForm, pfpPosition: "center" })}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
+                        editForm.pfpPosition === "center" ? "border-primary bg-primary/10" : "border-border"
+                      }`}
+                    >
+                      <AlignCenter className="h-4 w-4" />
+                      <span className="text-sm">Center</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Background Color */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Page Background</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_PRESETS.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setEditForm({ ...editForm, backgroundColor: color })}
+                        className={`h-8 w-8 rounded-full border-2 transition-all ${
+                          editForm.backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={editForm.backgroundColor}
+                      onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
+                      className="h-10 flex-1"
+                    />
+                    <input
+                      type="color"
+                      value={editForm.backgroundColor.startsWith("#") ? editForm.backgroundColor : "#ffffff"}
+                      onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
+                      className="h-10 w-10 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Links Tab */}
+              <TabsContent value="links" className="mt-4">
+                <AdminLinksManager 
+                  links={editLinks} 
+                  onLinksChange={setEditLinks} 
+                />
+              </TabsContent>
+
+              {/* Blocks Tab */}
+              <TabsContent value="blocks" className="mt-4">
+                <AdminBlocksManager 
+                  blocks={editBlocks} 
+                  onBlocksChange={setEditBlocks} 
+                />
+              </TabsContent>
+
+              <Button 
+                onClick={handleSaveEdit} 
+                disabled={saving}
+                className="w-full mt-4"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Image Cropper */}
       {rawImageUrl && (
         <ImageCropper
@@ -949,7 +1512,7 @@ Login at: ${window.location.origin}/auth`;
             if (!open) setRawImageUrl(null);
           }}
           imageSrc={rawImageUrl}
-          onCropComplete={handleCropComplete}
+          onCropComplete={showEditModal ? handleEditCropComplete : handleCropComplete}
           aspectRatio={cropperType === "profile" ? 1 : 16 / 5}
           cropShape={cropperType === "profile" ? "round" : "rect"}
         />
