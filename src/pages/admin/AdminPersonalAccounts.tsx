@@ -54,8 +54,7 @@ import {
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { AdminLinksManager, AdminLink } from "@/components/admin/AdminLinksManager";
-import { AdminBlocksManager, AdminBlock } from "@/components/admin/AdminBlocksManager";
+import { AdminUnifiedContent, AdminLink, AdminBlock } from "@/components/admin/AdminUnifiedContent";
 
 interface PersonalAccount {
   id: string;
@@ -911,11 +910,10 @@ Login at: ${window.location.origin}/auth`;
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
-                <TabsTrigger value="links">Links</TabsTrigger>
-                <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                <TabsTrigger value="content">Content</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -1197,19 +1195,13 @@ Login at: ${window.location.origin}/auth`;
                 </div>
               </TabsContent>
 
-              {/* Links Tab - Full featured with all platforms */}
-              <TabsContent value="links" className="mt-4">
-                <AdminLinksManager 
-                  links={adminLinks} 
-                  onLinksChange={setAdminLinks} 
-                />
-              </TabsContent>
-
-              {/* Blocks Tab - Content blocks */}
-              <TabsContent value="blocks" className="mt-4">
-                <AdminBlocksManager 
-                  blocks={adminBlocks} 
-                  onBlocksChange={setAdminBlocks} 
+              {/* Content Tab - Unified links and blocks */}
+              <TabsContent value="content" className="mt-4">
+                <AdminUnifiedContent 
+                  links={adminLinks}
+                  blocks={adminBlocks}
+                  onLinksChange={setAdminLinks}
+                  onBlocksChange={setAdminBlocks}
                 />
               </TabsContent>
 
@@ -1248,11 +1240,10 @@ Login at: ${window.location.origin}/auth`;
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
-                <TabsTrigger value="links">Links</TabsTrigger>
-                <TabsTrigger value="blocks">Blocks</TabsTrigger>
+                <TabsTrigger value="content">Content</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -1488,19 +1479,13 @@ Login at: ${window.location.origin}/auth`;
                 </div>
               </TabsContent>
 
-              {/* Links Tab */}
-              <TabsContent value="links" className="mt-4">
-                <AdminLinksManager 
-                  links={editLinks} 
-                  onLinksChange={setEditLinks} 
-                />
-              </TabsContent>
-
-              {/* Blocks Tab */}
-              <TabsContent value="blocks" className="mt-4">
-                <AdminBlocksManager 
-                  blocks={editBlocks} 
-                  onBlocksChange={setEditBlocks} 
+              {/* Content Tab - Unified links and blocks */}
+              <TabsContent value="content" className="mt-4">
+                <AdminUnifiedContent 
+                  links={editLinks}
+                  blocks={editBlocks}
+                  onLinksChange={setEditLinks}
+                  onBlocksChange={setEditBlocks}
                 />
               </TabsContent>
 
