@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -42,8 +44,15 @@ import {
   Plus,
   Copy,
   Check,
-  X
+  X,
+  Paintbrush,
+  Image as ImageIcon,
+  AlignLeft,
+  AlignCenter,
+  Upload
 } from "lucide-react";
+import { PERSONAL_PRICING } from "@/lib/personalConfig";
+import { ImageCropper } from "@/components/personal/ImageCropper";
 
 interface PersonalAccount {
   id: string;
@@ -74,6 +83,22 @@ const PLATFORM_PREFIXES: Record<string, { prefix: string; label: string }> = {
   threads: { prefix: "https://threads.net/@", label: "Threads" },
 };
 
+const COLOR_PRESETS = [
+  "#6BCB77", "#1DA1F2", "#E91E63", "#9C27B0",
+  "#FF5722", "#607D8B", "#000000", "#FFFFFF",
+];
+
+const GRADIENT_PRESETS = [
+  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+  "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+  "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+  "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+  "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+  "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+];
+
+const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
+
 const AdminPersonalAccounts = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -89,6 +114,7 @@ const AdminPersonalAccounts = () => {
   // Create account state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
   const [createForm, setCreateForm] = useState({
     email: "",
     fullName: "",
@@ -96,10 +122,26 @@ const AdminPersonalAccounts = () => {
     planType: "free" as "free" | "monthly" | "yearly",
     headline: "",
     bio: "",
+    // Design fields
+    headerType: "color" as "color" | "image",
+    headerColor: "#6BCB77",
+    backgroundColor: "#ffffff",
+    pfpPosition: "center" as "center" | "left",
   });
   const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
   const [newLinkType, setNewLinkType] = useState("instagram");
   const [newLinkHandle, setNewLinkHandle] = useState("");
+
+  // Image upload state
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperType, setCropperType] = useState<"profile" | "header">("profile");
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const headerInputRef = useRef<HTMLInputElement>(null);
 
   // Success state
   const [createdCredentials, setCreatedCredentials] = useState<{
@@ -237,6 +279,45 @@ const AdminPersonalAccounts = () => {
     setQuickLinks(quickLinks.filter((_, i) => i !== index));
   };
 
+  const handleProfilePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setCropperType("profile");
+    setRawImageUrl(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleHeaderImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setCropperType("header");
+    setRawImageUrl(URL.createObjectURL(file));
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (cropperType === "profile") {
+      const file = new File([croppedBlob], "profile.jpg", { type: "image/jpeg" });
+      setProfilePhotoFile(file);
+      setProfilePhotoPreview(URL.createObjectURL(croppedBlob));
+    } else {
+      const file = new File([croppedBlob], "header.jpg", { type: "image/jpeg" });
+      setHeaderImageFile(file);
+      setHeaderImagePreview(URL.createObjectURL(croppedBlob));
+      setCreateForm({ ...createForm, headerType: "image" });
+    }
+    setCropperOpen(false);
+    setRawImageUrl(null);
+  };
+
   const handleCreateAccount = async () => {
     if (!createForm.email || !createForm.fullName || !createForm.username) {
       toast.error("Email, name, and username are required");
@@ -252,6 +333,7 @@ const AdminPersonalAccounts = () => {
 
     setCreating(true);
     try {
+      // First, create the account to get the user ID
       const { data, error } = await supabase.functions.invoke("create-personal-account", {
         body: {
           email: createForm.email,
@@ -261,11 +343,55 @@ const AdminPersonalAccounts = () => {
           headline: createForm.headline || null,
           bio: createForm.bio || null,
           links: quickLinks,
+          // Design fields
+          headerType: createForm.headerType,
+          headerColor: createForm.headerColor,
+          backgroundColor: createForm.backgroundColor,
+          pfpPosition: createForm.pfpPosition,
         },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+
+      const userId = data.userId;
+
+      // Upload images if present
+      if (profilePhotoFile && userId) {
+        const filePath = `${userId}/profile.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, profilePhotoFile, { upsert: true, contentType: "image/jpeg" });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ profile_photo_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", data.profileId);
+        }
+      }
+
+      if (headerImageFile && userId && createForm.headerType === "image") {
+        const filePath = `${userId}/header.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, headerImageFile, { upsert: true, contentType: "image/jpeg" });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ header_image_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", data.profileId);
+        }
+      }
 
       // Show success with credentials
       setCreatedCredentials({
@@ -312,6 +438,7 @@ Login at: ${window.location.origin}/auth`;
 
   const resetCreateModal = () => {
     setShowCreateModal(false);
+    setActiveTab("basic");
     setCreateForm({
       email: "",
       fullName: "",
@@ -319,11 +446,19 @@ Login at: ${window.location.origin}/auth`;
       planType: "free",
       headline: "",
       bio: "",
+      headerType: "color",
+      headerColor: "#6BCB77",
+      backgroundColor: "#ffffff",
+      pfpPosition: "center",
     });
     setQuickLinks([]);
     setNewLinkHandle("");
     setCreatedCredentials(null);
     setCopiedPassword(false);
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(null);
+    setHeaderImageFile(null);
+    setHeaderImagePreview(null);
   };
 
   const filteredAccounts = accounts.filter((account) => {
@@ -452,7 +587,7 @@ Login at: ${window.location.origin}/auth`;
 
       {/* Create Account Modal */}
       <Dialog open={showCreateModal} onOpenChange={(open) => !open && resetCreateModal()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {createdCredentials ? "Account Created!" : "Create Personal Account"}
@@ -501,120 +636,341 @@ Login at: ${window.location.origin}/auth`;
               </Button>
             </div>
           ) : (
-            <div className="space-y-4 py-4">
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <Label>Full Name *</Label>
-                  <Input
-                    placeholder="John Doe"
-                    value={createForm.fullName}
-                    onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
-                  />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="design">Design</TabsTrigger>
+                <TabsTrigger value="links">Links</TabsTrigger>
+              </TabsList>
+
+              {/* Basic Info Tab */}
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label>Full Name *</Label>
+                    <Input
+                      placeholder="John Doe"
+                      value={createForm.fullName}
+                      onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Username *</Label>
+                    <Input
+                      placeholder="johndoe"
+                      value={createForm.username}
+                      onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.toLowerCase() })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {createForm.planType === "free" ? "tap" : ""}{createForm.username || "username"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Plan Type</Label>
+                    <Select
+                      value={createForm.planType}
+                      onValueChange={(v) => setCreateForm({ ...createForm, planType: v as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free (tap prefix)</SelectItem>
+                        <SelectItem value="monthly">Pro Monthly (${PERSONAL_PRICING.monthly}/mo)</SelectItem>
+                        <SelectItem value="yearly">Pro Yearly (${PERSONAL_PRICING.yearly}/yr)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <Label>Email *</Label>
+
+                <div>
+                  <Label>Headline</Label>
                   <Input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    placeholder="Fitness Coach | Content Creator"
+                    value={createForm.headline}
+                    onChange={(e) => setCreateForm({ ...createForm, headline: e.target.value })}
                   />
                 </div>
                 <div>
-                  <Label>Username *</Label>
-                  <Input
-                    placeholder="johndoe"
-                    value={createForm.username}
-                    onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.toLowerCase() })}
+                  <Label>Bio</Label>
+                  <Textarea
+                    placeholder="A short bio..."
+                    value={createForm.bio}
+                    onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
+                    rows={2}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {createForm.planType === "free" ? "tap" : ""}{createForm.username || "username"}
-                  </p>
                 </div>
-                <div>
-                  <Label>Plan Type</Label>
-                  <Select
-                    value={createForm.planType}
-                    onValueChange={(v) => setCreateForm({ ...createForm, planType: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free (tap prefix)</SelectItem>
-                      <SelectItem value="monthly">Monthly ($3/mo)</SelectItem>
-                      <SelectItem value="yearly">Yearly ($19/yr)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              </TabsContent>
 
-              {/* Optional fields */}
-              <div>
-                <Label>Headline</Label>
-                <Input
-                  placeholder="Fitness Coach | Content Creator"
-                  value={createForm.headline}
-                  onChange={(e) => setCreateForm({ ...createForm, headline: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Bio</Label>
-                <Textarea
-                  placeholder="A short bio..."
-                  value={createForm.bio}
-                  onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
-                  rows={2}
-                />
-              </div>
-
-              {/* Quick Links */}
-              <div>
-                <Label>Quick Links</Label>
-                <div className="flex gap-2 mt-1">
-                  <Select value={newLinkType} onValueChange={setNewLinkType}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PLATFORM_PREFIXES).map(([key, val]) => (
-                        <SelectItem key={key} value={key}>{val.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="@handle"
-                    value={newLinkHandle}
-                    onChange={(e) => setNewLinkHandle(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addQuickLink()}
-                    className="flex-1"
-                  />
-                  <Button type="button" variant="outline" onClick={addQuickLink}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {quickLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {quickLinks.map((link, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm"
-                      >
-                        <span>{link.label}</span>
-                        <button onClick={() => removeQuickLink(i)} className="hover:text-destructive">
+              {/* Design Tab */}
+              <TabsContent value="design" className="space-y-6 mt-4">
+                {/* Profile Photo */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Profile Photo</Label>
+                  <div className="flex items-center gap-4">
+                    {profilePhotoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={profilePhotoPreview}
+                          alt="Profile preview"
+                          className="h-20 w-20 rounded-full object-cover"
+                        />
+                        <button
+                          onClick={() => {
+                            setProfilePhotoFile(null);
+                            setProfilePhotoPreview(null);
+                          }}
+                          className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
+                        >
                           <X className="h-3 w-3" />
                         </button>
                       </div>
+                    ) : (
+                      <button
+                        onClick={() => profileInputRef.current?.click()}
+                        className="h-20 w-20 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center hover:border-primary transition-colors"
+                      >
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </button>
+                    )}
+                    <div className="text-sm text-muted-foreground">
+                      <p>Click to upload profile photo</p>
+                      <p className="text-xs">Recommended: Square image</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={profileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePhotoSelect}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Header Style */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Header Style</Label>
+                  <RadioGroup
+                    value={createForm.headerType}
+                    onValueChange={(v) => setCreateForm({ ...createForm, headerType: v as "color" | "image" })}
+                    className="flex gap-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="color" id="header-color" />
+                      <Label htmlFor="header-color" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                        <Paintbrush className="h-4 w-4" />
+                        Solid Color
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="image" id="header-image" />
+                      <Label htmlFor="header-image" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                        <ImageIcon className="h-4 w-4" />
+                        Custom Image
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {createForm.headerType === "color" ? (
+                    <div className="space-y-3">
+                      {/* Color presets */}
+                      <div className="flex flex-wrap gap-2">
+                        {COLOR_PRESETS.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setCreateForm({ ...createForm, headerColor: color })}
+                            className={`h-8 w-8 rounded-full border-2 transition-all ${
+                              createForm.headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      {/* Gradient presets */}
+                      <div className="flex flex-wrap gap-2">
+                        {GRADIENT_PRESETS.map((gradient, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setCreateForm({ ...createForm, headerColor: gradient })}
+                            className={`h-8 w-8 rounded-full border-2 transition-all ${
+                              createForm.headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
+                            }`}
+                            style={{ background: gradient }}
+                          />
+                        ))}
+                      </div>
+                      {/* Custom hex */}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          placeholder="#6BCB77"
+                          value={createForm.headerColor}
+                          onChange={(e) => setCreateForm({ ...createForm, headerColor: e.target.value })}
+                          className="h-10 flex-1"
+                        />
+                        <input
+                          type="color"
+                          value={createForm.headerColor.startsWith("#") ? createForm.headerColor : "#6BCB77"}
+                          onChange={(e) => setCreateForm({ ...createForm, headerColor: e.target.value })}
+                          className="h-10 w-10 rounded border border-border cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {headerImagePreview ? (
+                        <div className="relative">
+                          <img
+                            src={headerImagePreview}
+                            alt="Header preview"
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => {
+                              setHeaderImageFile(null);
+                              setHeaderImagePreview(null);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => headerInputRef.current?.click()}
+                          className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+                        >
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Upload header image</span>
+                        </button>
+                      )}
+                      <input
+                        ref={headerInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleHeaderImageSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* PFP Position */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Profile Photo Position</Label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCreateForm({ ...createForm, pfpPosition: "left" })}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
+                        createForm.pfpPosition === "left" ? "border-primary bg-primary/10" : "border-border"
+                      }`}
+                    >
+                      <AlignLeft className="h-4 w-4" />
+                      <span className="text-sm">Left</span>
+                    </button>
+                    <button
+                      onClick={() => setCreateForm({ ...createForm, pfpPosition: "center" })}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
+                        createForm.pfpPosition === "center" ? "border-primary bg-primary/10" : "border-border"
+                      }`}
+                    >
+                      <AlignCenter className="h-4 w-4" />
+                      <span className="text-sm">Center</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Background Color */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Page Background</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_PRESETS.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setCreateForm({ ...createForm, backgroundColor: color })}
+                        className={`h-8 w-8 rounded-full border-2 transition-all ${
+                          createForm.backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
                     ))}
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="#ffffff"
+                      value={createForm.backgroundColor}
+                      onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
+                      className="h-10 flex-1"
+                    />
+                    <input
+                      type="color"
+                      value={createForm.backgroundColor.startsWith("#") ? createForm.backgroundColor : "#ffffff"}
+                      onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
+                      className="h-10 w-10 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Links Tab */}
+              <TabsContent value="links" className="space-y-4 mt-4">
+                <div>
+                  <Label>Quick Links</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Add social media handles</p>
+                  <div className="flex gap-2">
+                    <Select value={newLinkType} onValueChange={setNewLinkType}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PLATFORM_PREFIXES).map(([key, val]) => (
+                          <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="@handle"
+                      value={newLinkHandle}
+                      onChange={(e) => setNewLinkHandle(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addQuickLink()}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" onClick={addQuickLink}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {quickLinks.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {quickLinks.map((link, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm"
+                        >
+                          <span>{link.label}</span>
+                          <button onClick={() => removeQuickLink(i)} className="hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
 
               <Button 
                 onClick={handleCreateAccount} 
                 disabled={creating}
-                className="w-full"
+                className="w-full mt-4"
               >
                 {creating ? (
                   <>
@@ -625,10 +981,25 @@ Login at: ${window.location.origin}/auth`;
                   "Create Account"
                 )}
               </Button>
-            </div>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper */}
+      {rawImageUrl && (
+        <ImageCropper
+          open={cropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open);
+            if (!open) setRawImageUrl(null);
+          }}
+          imageSrc={rawImageUrl}
+          onCropComplete={handleCropComplete}
+          aspectRatio={cropperType === "profile" ? 1 : 16 / 5}
+          cropShape={cropperType === "profile" ? "round" : "rect"}
+        />
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deletingAccount} onOpenChange={() => {
