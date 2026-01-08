@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { 
   PERSONAL_PAYMENTS_ENABLED, 
   PERSONAL_TRIAL_CONFIG, 
-  PERSONAL_PRICING 
+  PERSONAL_PRICING,
+  PERSONAL_PAYMENT_LINKS,
 } from "@/lib/personalConfig";
 import { getPublicUsername } from "@/lib/personalUsername";
 import { 
@@ -412,36 +413,28 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("create-personal-checkout", {
-        body: {
-          email: formData.email,
-          fullName: formData.fullName,
-          username: formData.username,
-          planType: formData.planType,
-          addExtraCard: formData.addExtraCard,
-          extraCardCount: formData.extraCardCount,
-          links: formData.links,
-          blocks: formData.blocks,
-          cardHeadline: formData.cardHeadline,
-        },
-      });
+      // Save signup data to sessionStorage for retrieval after payment
+      sessionStorage.setItem("personal_signup_data", JSON.stringify({
+        ...formData,
+        profilePhoto: null,
+        croppedPhotoBlob: null,
+      }));
 
-      if (error) throw error;
+      // Get the correct payment link based on plan
+      const paymentLink = formData.planType === 'yearly' 
+        ? PERSONAL_PAYMENT_LINKS.yearly 
+        : PERSONAL_PAYMENT_LINKS.monthly;
 
-      if (data?.url) {
-        sessionStorage.setItem("personal_signup_data", JSON.stringify({
-          ...formData,
-          profilePhoto: null,
-          croppedPhotoBlob: null,
-        }));
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
+      // Add prefilled email and client reference ID (username)
+      const url = new URL(paymentLink);
+      url.searchParams.set('prefilled_email', formData.email);
+      url.searchParams.set('client_reference_id', formData.username);
+
+      // Redirect to Stripe Payment Link
+      window.location.href = url.toString();
     } catch (err) {
       console.error("Checkout error:", err);
       toast.error("Failed to start checkout. Please try again.");
-    } finally {
       setProcessing(false);
       setIsLoading(false);
     }

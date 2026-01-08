@@ -31,3 +31,9 @@ export const PERSONAL_PRICING = {
   yearly: 75,
   extraCard: 10,
 };
+
+// Stripe Payment Links (direct links - bypass Checkout API for correct pricing)
+export const PERSONAL_PAYMENT_LINKS = {
+  monthly: 'https://buy.stripe.com/4gMeVddSnbXR0Tngv8gYU0d',
+  yearly: 'https://buy.stripe.com/5kQaEX4hNbXR9pT5QugYU0c',
+};
