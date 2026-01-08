@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       tempPassword,
       planType = "free",
       links = [],
+      blocks = [],
       headline,
       bio,
       // Design fields
@@ -187,16 +188,18 @@ Deno.serve(async (req) => {
       throw new Error(profileError.message || "Failed to create profile");
     }
 
-    // Create any initial links
+    // Create any initial links with full customization support
     if (links && links.length > 0) {
       const linksToInsert = links.map((link: any, index: number) => ({
         profile_id: profile.id,
         link_type: link.type || "custom",
         label: link.label || link.type,
         url: link.url,
-        sort_order: index,
-        is_active: true,
+        sort_order: link.sortOrder ?? index,
+        is_active: link.isActive !== false,
+        is_featured: link.isFeatured === true,
         display_style: link.displayStyle || "pill",
+        pill_color: link.pillColor || null,
       }));
 
       const { error: linksError } = await supabase
@@ -205,6 +208,27 @@ Deno.serve(async (req) => {
 
       if (linksError) {
         console.error("Links creation error:", linksError);
+        // Non-fatal, continue anyway
+      }
+    }
+
+    // Create any content blocks
+    if (blocks && blocks.length > 0) {
+      const blocksToInsert = blocks.map((block: any, index: number) => ({
+        profile_id: profile.id,
+        block_type: block.blockType,
+        content: block.content,
+        alignment: block.alignment || "center",
+        sort_order: block.sortOrder ?? index,
+        is_active: block.isActive !== false,
+      }));
+
+      const { error: blocksError } = await supabase
+        .from("personal_blocks")
+        .insert(blocksToInsert);
+
+      if (blocksError) {
+        console.error("Blocks creation error:", blocksError);
         // Non-fatal, continue anyway
       }
     }

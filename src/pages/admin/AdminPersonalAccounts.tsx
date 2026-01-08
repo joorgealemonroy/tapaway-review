@@ -53,6 +53,8 @@ import {
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
+import { AdminLinksManager, AdminLink } from "@/components/admin/AdminLinksManager";
+import { AdminBlocksManager, AdminBlock } from "@/components/admin/AdminBlocksManager";
 
 interface PersonalAccount {
   id: string;
@@ -65,23 +67,6 @@ interface PersonalAccount {
   plan_type: string | null;
   created_at: string;
 }
-
-interface QuickLink {
-  type: string;
-  label: string;
-  url: string;
-}
-
-const PLATFORM_PREFIXES: Record<string, { prefix: string; label: string }> = {
-  instagram: { prefix: "https://instagram.com/", label: "Instagram" },
-  tiktok: { prefix: "https://tiktok.com/@", label: "TikTok" },
-  youtube: { prefix: "https://youtube.com/@", label: "YouTube" },
-  twitter: { prefix: "https://x.com/", label: "X (Twitter)" },
-  linkedin: { prefix: "https://linkedin.com/in/", label: "LinkedIn" },
-  snapchat: { prefix: "https://snapchat.com/add/", label: "Snapchat" },
-  facebook: { prefix: "https://facebook.com/", label: "Facebook" },
-  threads: { prefix: "https://threads.net/@", label: "Threads" },
-};
 
 const COLOR_PRESETS = [
   "#6BCB77", "#1DA1F2", "#E91E63", "#9C27B0",
@@ -128,9 +113,8 @@ const AdminPersonalAccounts = () => {
     backgroundColor: "#ffffff",
     pfpPosition: "center" as "center" | "left",
   });
-  const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
-  const [newLinkType, setNewLinkType] = useState("instagram");
-  const [newLinkHandle, setNewLinkHandle] = useState("");
+  const [adminLinks, setAdminLinks] = useState<AdminLink[]>([]);
+  const [adminBlocks, setAdminBlocks] = useState<AdminBlock[]>([]);
 
   // Image upload state
   const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
@@ -258,27 +242,6 @@ const AdminPersonalAccounts = () => {
     }
   };
 
-  const addQuickLink = () => {
-    if (!newLinkHandle.trim()) return;
-    
-    const platform = PLATFORM_PREFIXES[newLinkType];
-    if (!platform) return;
-
-    const handle = newLinkHandle.trim().replace(/^@/, "");
-    const url = platform.prefix + handle;
-
-    setQuickLinks([...quickLinks, {
-      type: newLinkType,
-      label: platform.label,
-      url,
-    }]);
-    setNewLinkHandle("");
-  };
-
-  const removeQuickLink = (index: number) => {
-    setQuickLinks(quickLinks.filter((_, i) => i !== index));
-  };
-
   const handleProfilePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -342,7 +305,26 @@ const AdminPersonalAccounts = () => {
           planType: createForm.planType,
           headline: createForm.headline || null,
           bio: createForm.bio || null,
-          links: quickLinks,
+          // Full link objects with all customization
+          links: adminLinks.map((link, index) => ({
+            type: link.type,
+            label: link.label,
+            url: link.url,
+            value: link.value,
+            pillColor: link.pillColor,
+            displayStyle: link.displayStyle || "pill",
+            isActive: link.isActive,
+            isFeatured: link.isFeatured,
+            sortOrder: index,
+          })),
+          // Content blocks
+          blocks: adminBlocks.map((block, index) => ({
+            blockType: block.block_type,
+            content: block.content,
+            alignment: block.alignment,
+            isActive: block.is_active,
+            sortOrder: index,
+          })),
           // Design fields
           headerType: createForm.headerType,
           headerColor: createForm.headerColor,
@@ -451,8 +433,8 @@ Login at: ${window.location.origin}/auth`;
       backgroundColor: "#ffffff",
       pfpPosition: "center",
     });
-    setQuickLinks([]);
-    setNewLinkHandle("");
+    setAdminLinks([]);
+    setAdminBlocks([]);
     setCreatedCredentials(null);
     setCopiedPassword(false);
     setProfilePhotoFile(null);
@@ -637,10 +619,11 @@ Login at: ${window.location.origin}/auth`;
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
                 <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="blocks">Blocks</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -922,49 +905,20 @@ Login at: ${window.location.origin}/auth`;
                 </div>
               </TabsContent>
 
-              {/* Links Tab */}
-              <TabsContent value="links" className="space-y-4 mt-4">
-                <div>
-                  <Label>Quick Links</Label>
-                  <p className="text-xs text-muted-foreground mb-2">Add social media handles</p>
-                  <div className="flex gap-2">
-                    <Select value={newLinkType} onValueChange={setNewLinkType}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(PLATFORM_PREFIXES).map(([key, val]) => (
-                          <SelectItem key={key} value={key}>{val.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="@handle"
-                      value={newLinkHandle}
-                      onChange={(e) => setNewLinkHandle(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addQuickLink()}
-                      className="flex-1"
-                    />
-                    <Button type="button" variant="outline" onClick={addQuickLink}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {quickLinks.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {quickLinks.map((link, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm"
-                        >
-                          <span>{link.label}</span>
-                          <button onClick={() => removeQuickLink(i)} className="hover:text-destructive">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Links Tab - Full featured with all platforms */}
+              <TabsContent value="links" className="mt-4">
+                <AdminLinksManager 
+                  links={adminLinks} 
+                  onLinksChange={setAdminLinks} 
+                />
+              </TabsContent>
+
+              {/* Blocks Tab - Content blocks */}
+              <TabsContent value="blocks" className="mt-4">
+                <AdminBlocksManager 
+                  blocks={adminBlocks} 
+                  onBlocksChange={setAdminBlocks} 
+                />
               </TabsContent>
 
               <Button 
