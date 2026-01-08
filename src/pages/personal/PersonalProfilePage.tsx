@@ -616,24 +616,37 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const iconLinks = links.filter((l: any) => l.is_active !== false && l.display_style === 'icon');
   const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
 
-  // Separate grid links (half-width with cover images) from regular items
-  const gridLinks = pillLinks.filter((l: any) => 
-    l.cover_image_url && l.grid_size === 'half' && !l.is_featured
-  ).sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  
-  // Regular items exclude grid links
-  const regularPillLinks = pillLinks.filter((l: any) => 
-    !l.is_featured && !(l.cover_image_url && l.grid_size === 'half')
-  );
+  // All non-featured items go into unified list for proper sort order
+  const nonFeaturedPillLinks = pillLinks.filter((l: any) => !l.is_featured);
 
   const unifiedItems: UnifiedItem[] = [
-    ...regularPillLinks
-      .map((link): UnifiedItem => ({ kind: "link", data: link })),
+    ...nonFeaturedPillLinks.map((link): UnifiedItem => ({ kind: "link", data: link })),
     ...blocks.map((block): UnifiedItem => ({ kind: "block", data: block })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
   // Extract featured link (renders at top separately)
   const featuredLink = pillLinks.find((l: any) => l.is_featured === true);
+
+  // Group consecutive grid links for 2-column rendering
+  const groupedItems: (UnifiedItem | { kind: "grid-group"; links: typeof links })[] = [];
+  let currentGridGroup: typeof links = [];
+  
+  for (const item of unifiedItems) {
+    if (item.kind === "link" && item.data.cover_image_url && item.data.grid_size === 'half') {
+      currentGridGroup.push(item.data);
+    } else {
+      // Flush current grid group if any
+      if (currentGridGroup.length > 0) {
+        groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+        currentGridGroup = [];
+      }
+      groupedItems.push(item);
+    }
+  }
+  // Flush remaining grid group
+  if (currentGridGroup.length > 0) {
+    groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+  }
 
   // Use optimized header image URL for faster loading
   const optimizedHeaderUrl = profile.header_type === "image" && profile.header_image_url
@@ -721,20 +734,19 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
 
-        {/* Grid links - 2-column layout for half-width cards with cover images */}
-        {gridLinks.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {gridLinks.map((link: any) => (
-              <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
-            ))}
-          </div>
-        )}
-
-        {/* Unified content - interleaved links and blocks */}
-        {unifiedItems.length > 0 && (
+        {/* Unified content - interleaved links, grid groups, and blocks */}
+        {groupedItems.length > 0 && (
           <div className="space-y-3">
-            {unifiedItems.map((item) => {
-              if (item.kind === "link") {
+            {groupedItems.map((item, idx) => {
+              if (item.kind === "grid-group") {
+                return (
+                  <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
+                    {item.links.map((link: any) => (
+                      <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
+                    ))}
+                  </div>
+                );
+              } else if (item.kind === "link") {
                 return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
               } else {
                 return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
