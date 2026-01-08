@@ -481,12 +481,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     
     const profile = data.profile;
     downloadVCard({
-      fullName: profile.full_name,
+      fullName: profile.contact_name || profile.full_name,
       phone: profile.contact_phone || undefined,
       company: profile.contact_company || undefined,
       title: profile.contact_title || undefined,
       address: profile.contact_address || undefined,
       website: profile.contact_website || undefined,
+      profilePhotoUrl: profile.contact_photo_url || profile.profile_photo_url || undefined,
     });
     
     // Track the save contact event

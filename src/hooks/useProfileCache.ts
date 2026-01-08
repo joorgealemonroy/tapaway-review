@@ -19,6 +19,8 @@ export interface CachedProfile {
   bio: string | null;
   // Contact card fields
   contact_enabled: boolean | null;
+  contact_name: string | null;
+  contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
   contact_title: string | null;

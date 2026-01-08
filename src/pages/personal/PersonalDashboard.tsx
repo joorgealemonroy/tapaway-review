@@ -58,6 +58,8 @@ interface PersonalProfile {
   plan_type: string | null;
   // Contact card fields
   contact_enabled: boolean | null;
+  contact_name: string | null;
+  contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
   contact_title: string | null;
@@ -699,8 +701,11 @@ const PersonalDashboard = () => {
                 username={profile.username}
                 fullName={profile.full_name}
                 email={profile.email}
+                profilePhotoUrl={profile.profile_photo_url}
                 initialSettings={{
                   contact_enabled: profile.contact_enabled || false,
+                  contact_name: profile.contact_name,
+                  contact_photo_url: profile.contact_photo_url,
                   contact_phone: profile.contact_phone,
                   contact_company: profile.contact_company,
                   contact_title: profile.contact_title,

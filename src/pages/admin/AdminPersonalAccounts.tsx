@@ -75,6 +75,8 @@ interface PersonalAccount {
   created_at: string;
   // Contact card fields
   contact_enabled: boolean | null;
+  contact_name: string | null;
+  contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
   contact_title: string | null;
@@ -165,6 +167,8 @@ const AdminPersonalAccounts = () => {
     pfpPosition: "center" as "center" | "left",
     // Contact card fields
     contactEnabled: false,
+    contactName: "",
+    contactPhotoUrl: "",
     contactPhone: "",
     contactCompany: "",
     contactTitle: "",
@@ -504,6 +508,8 @@ Login at: ${window.location.origin}/auth`;
       backgroundColor: account.background_color || "#ffffff",
       pfpPosition: (account.pfp_position as "center" | "left") || "center",
       contactEnabled: account.contact_enabled || false,
+      contactName: account.contact_name || "",
+      contactPhotoUrl: account.contact_photo_url || "",
       contactPhone: account.contact_phone || "",
       contactCompany: account.contact_company || "",
       contactTitle: account.contact_title || "",
@@ -621,6 +627,8 @@ Login at: ${window.location.origin}/auth`;
           background_color: editForm.backgroundColor,
           pfp_position: editForm.pfpPosition,
           contact_enabled: editForm.contactEnabled,
+          contact_name: editForm.contactName || null,
+          contact_photo_url: editForm.contactPhotoUrl || null,
           contact_phone: editForm.contactPhone || null,
           contact_company: editForm.contactCompany || null,
           contact_title: editForm.contactTitle || null,
@@ -744,6 +752,8 @@ Login at: ${window.location.origin}/auth`;
       backgroundColor: "#ffffff",
       pfpPosition: "center",
       contactEnabled: false,
+      contactName: "",
+      contactPhotoUrl: "",
       contactPhone: "",
       contactCompany: "",
       contactTitle: "",
@@ -1524,6 +1534,22 @@ Login at: ${window.location.origin}/auth`;
                     <Label htmlFor="edit-contact-enabled" className="text-sm">Enable "Save Contact" button</Label>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Contact Name</Label>
+                      <Input
+                        placeholder="Leave empty to use display name"
+                        value={editForm.contactName}
+                        onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Contact Photo URL</Label>
+                      <Input
+                        placeholder="Leave empty to use profile photo"
+                        value={editForm.contactPhotoUrl}
+                        onChange={(e) => setEditForm({ ...editForm, contactPhotoUrl: e.target.value })}
+                      />
+                    </div>
                     <div>
                       <Label className="text-xs">Phone</Label>
                       <Input

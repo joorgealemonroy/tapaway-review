@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe } from "lucide-react";
+import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 
 interface ContactSettings {
   contact_enabled: boolean;
+  contact_name: string | null;
+  contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
   contact_title: string | null;
@@ -22,6 +24,7 @@ interface Props {
   username: string;
   fullName: string;
   email: string;
+  profilePhotoUrl?: string | null;
   initialSettings: ContactSettings;
   onUpdate?: () => void;
 }
@@ -31,16 +34,63 @@ export function DashboardContactCard({
   username,
   fullName,
   email,
+  profilePhotoUrl,
   initialSettings,
   onUpdate,
 }: Props) {
   const [enabled, setEnabled] = useState(initialSettings.contact_enabled || false);
+  const [contactName, setContactName] = useState(initialSettings.contact_name || "");
+  const [contactPhotoUrl, setContactPhotoUrl] = useState(initialSettings.contact_photo_url || "");
   const [phone, setPhone] = useState(initialSettings.contact_phone || "");
   const [company, setCompany] = useState(initialSettings.contact_company || "");
   const [title, setTitle] = useState(initialSettings.contact_title || "");
   const [address, setAddress] = useState(initialSettings.contact_address || "");
   const [website, setWebsite] = useState(initialSettings.contact_website || "");
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const fileName = `${profileId}/contact-photo-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(fileName);
+
+      setContactPhotoUrl(urlData.publicUrl);
+      toast.success("Photo uploaded!");
+    } catch (err) {
+      console.error("Error uploading photo:", err);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -49,6 +99,8 @@ export function DashboardContactCard({
         .from("personal_profiles")
         .update({
           contact_enabled: enabled,
+          contact_name: contactName.trim() || null,
+          contact_photo_url: contactPhotoUrl.trim() || null,
           contact_phone: phone.trim() || null,
           contact_company: company.trim() || null,
           contact_title: title.trim() || null,
@@ -70,6 +122,8 @@ export function DashboardContactCard({
       setSaving(false);
     }
   };
+
+  const displayPhotoUrl = contactPhotoUrl || profilePhotoUrl;
 
   return (
     <div className="space-y-6">
@@ -93,8 +147,85 @@ export function DashboardContactCard({
 
       {/* Fields */}
       <div className={`space-y-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
+        {/* Contact Photo */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Camera className="h-4 w-4 text-muted-foreground" />
+            Contact Photo
+          </Label>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {displayPhotoUrl ? (
+                <img
+                  src={displayPhotoUrl}
+                  alt="Contact"
+                  className="h-16 w-16 rounded-full object-cover border-2 border-border"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                  <User className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
+              {uploadingPhoto && (
+                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+              >
+                {contactPhotoUrl ? "Change Photo" : "Upload Photo"}
+              </Button>
+              {contactPhotoUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 text-muted-foreground"
+                  onClick={() => setContactPhotoUrl("")}
+                >
+                  Use profile photo
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {contactPhotoUrl ? "Custom photo for contact card" : `Using your profile photo`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Name */}
+        <div className="space-y-2">
+          <Label htmlFor="contact-name" className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            Contact Name
+          </Label>
+          <Input
+            id="contact-name"
+            placeholder={fullName}
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave empty to use "{fullName}"
+          </p>
+        </div>
+
         <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-          Your display name (<strong>{fullName}</strong>) and email (<strong>{email}</strong>) are automatically included.
+          Your email (<strong>{email}</strong>) is automatically included.
         </p>
 
         <div className="space-y-2">
