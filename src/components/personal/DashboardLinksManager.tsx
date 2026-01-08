@@ -33,6 +33,7 @@ interface DbPersonalLink {
   pill_color: string | null;
   is_active: boolean | null;
   is_featured: boolean | null;
+  display_style?: string | null;
 }
 
 interface PersonalLink {
@@ -42,6 +43,7 @@ interface PersonalLink {
   value: string;
   url: string;
   pillColor?: string | null;
+  displayStyle?: string;
 }
 
 interface Props {
@@ -66,11 +68,33 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     value: getPlatformConfig(dbLink.link_type)?.extractValue(dbLink.url) || dbLink.url,
     url: dbLink.url,
     pillColor: dbLink.pill_color,
+    displayStyle: dbLink.display_style || "pill",
   });
 
   const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
     setSaving(true);
     try {
+      const newDisplayStyle = link.displayStyle || "pill";
+      
+      // If adding with "icon" or "both" style, update any existing icon of same type to "pill"
+      if (newDisplayStyle === "icon" || newDisplayStyle === "both") {
+        const existingIconLink = links.find(
+          l => l.link_type === link.type && (l.display_style === "icon" || l.display_style === "both")
+        );
+        if (existingIconLink) {
+          await supabase
+            .from("personal_links")
+            .update({ display_style: "pill" })
+            .eq("id", existingIconLink.id);
+          
+          // Update local state
+          onLinksChange(links.map(l => 
+            l.id === existingIconLink.id ? { ...l, display_style: "pill" } : l
+          ));
+          toast.info("Only one can display as an icon. Previous one changed to button.");
+        }
+      }
+
       const newLink = {
         profile_id: profileId,
         link_type: link.type,
@@ -78,6 +102,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         url: link.url,
         sort_order: links.length,
         pill_color: link.pillColor || null,
+        display_style: newDisplayStyle,
       };
 
       const { data, error } = await supabase
@@ -102,6 +127,28 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
   const handleUpdateLink = async (id: string, updates: Partial<PersonalLink>) => {
     setSaving(true);
     try {
+      const newDisplayStyle = updates.displayStyle;
+      const linkType = updates.type || links.find(l => l.id === id)?.link_type;
+      
+      // If updating to "icon" or "both" style, update any existing icon of same type to "pill"
+      if ((newDisplayStyle === "icon" || newDisplayStyle === "both") && linkType) {
+        const existingIconLink = links.find(
+          l => l.id !== id && l.link_type === linkType && (l.display_style === "icon" || l.display_style === "both")
+        );
+        if (existingIconLink) {
+          await supabase
+            .from("personal_links")
+            .update({ display_style: "pill" })
+            .eq("id", existingIconLink.id);
+          
+          // Update local state for the other link
+          onLinksChange(links.map(l => 
+            l.id === existingIconLink.id ? { ...l, display_style: "pill" } : l
+          ));
+          toast.info("Only one can display as an icon. Previous one changed to button.");
+        }
+      }
+
       const { error } = await supabase
         .from("personal_links")
         .update({
@@ -109,6 +156,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
           label: updates.label,
           url: updates.url,
           pill_color: updates.pillColor || null,
+          display_style: updates.displayStyle,
         })
         .eq("id", id);
 
@@ -122,6 +170,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
               label: updates.label || l.label, 
               url: updates.url || l.url,
               pill_color: updates.pillColor !== undefined ? updates.pillColor : l.pill_color,
+              display_style: updates.displayStyle || l.display_style,
             }
           : l
       ));
@@ -384,7 +433,6 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         </p>
       )}
 
-      {/* Link Modal */}
       <LinkModal
         open={linkModalOpen}
         onOpenChange={setLinkModalOpen}
@@ -392,6 +440,10 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         editingLink={editingLink}
         onUpdate={handleUpdateLink}
         existingTypes={existingTypes}
+        existingIconTypes={links
+          .filter(l => l.display_style === "icon" || l.display_style === "both")
+          .map(l => l.link_type)
+        }
       />
 
       {/* Delete confirmation */}
