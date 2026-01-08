@@ -90,7 +90,11 @@ Deno.serve(async (req) => {
       links = [],
       headline,
       bio,
-      headerColor,
+      // Design fields
+      headerType = "color",
+      headerColor = "#6BCB77",
+      backgroundColor = "#ffffff",
+      pfpPosition = "center",
     } = await req.json();
 
     // Validate required fields
@@ -156,7 +160,7 @@ Deno.serve(async (req) => {
     // Determine subscription status based on plan
     const subscriptionStatus = planType === "free" ? "active" : "active";
 
-    // Create the personal profile
+    // Create the personal profile with all design settings
     const { data: profile, error: profileError } = await supabase
       .from("personal_profiles")
       .insert({
@@ -166,7 +170,10 @@ Deno.serve(async (req) => {
         full_name: fullName,
         headline: headline || null,
         bio: bio || null,
-        header_color: headerColor || "#1a1a2e",
+        header_type: headerType,
+        header_color: headerColor,
+        background_color: backgroundColor,
+        pfp_position: pfpPosition,
         plan_type: planType,
         subscription_status: subscriptionStatus,
       })
