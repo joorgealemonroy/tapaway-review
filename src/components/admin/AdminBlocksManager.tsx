@@ -47,6 +47,8 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<AdminBlock | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
 
   const currentMaxOrder = blocks.length > 0 
     ? Math.max(...blocks.map(b => b.sort_order)) 
@@ -108,6 +110,41 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
   };
 
   const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    setTouchStartY(e.touches[0].clientY);
+    setTouchCurrentIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY === null || touchCurrentIndex === null) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+    const itemHeight = 60;
+    const indexDiff = Math.round(diff / itemHeight);
+    const newIndex = Math.max(0, Math.min(blocks.length - 1, touchCurrentIndex + indexDiff));
+
+    if (newIndex !== draggedIndex && draggedIndex !== null) {
+      const newBlocks = [...blocks];
+      const [draggedItem] = newBlocks.splice(draggedIndex, 1);
+      newBlocks.splice(newIndex, 0, draggedItem);
+      
+      newBlocks.forEach((block, i) => {
+        block.sort_order = i;
+      });
+      
+      onBlocksChange(newBlocks);
+      setDraggedIndex(newIndex);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchStartY(null);
+    setTouchCurrentIndex(null);
     setDraggedIndex(null);
   };
 
@@ -178,11 +215,14 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all ${
+                onTouchStart={(e) => handleTouchStart(e, index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
                   draggedIndex === index ? "opacity-50" : ""
                 } ${!block.is_active ? "opacity-50" : ""}`}
               >
-                <div className="cursor-grab text-muted-foreground hover:text-foreground">
+                <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
                   <GripVertical className="h-4 w-4" />
                 </div>
 

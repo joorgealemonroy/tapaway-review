@@ -34,6 +34,8 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<AdminLink | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
 
   // Allow multiple of same platform type
   const existingTypes: string[] = [];
@@ -130,6 +132,41 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
     setDraggedIndex(null);
   };
 
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    setTouchStartY(e.touches[0].clientY);
+    setTouchCurrentIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY === null || touchCurrentIndex === null) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+    const itemHeight = 60;
+    const indexDiff = Math.round(diff / itemHeight);
+    const newIndex = Math.max(0, Math.min(links.length - 1, touchCurrentIndex + indexDiff));
+
+    if (newIndex !== draggedIndex && draggedIndex !== null) {
+      const newLinks = [...links];
+      const [draggedItem] = newLinks.splice(draggedIndex, 1);
+      newLinks.splice(newIndex, 0, draggedItem);
+      
+      newLinks.forEach((link, i) => {
+        link.sortOrder = i;
+      });
+      
+      onLinksChange(newLinks);
+      setDraggedIndex(newIndex);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchStartY(null);
+    setTouchCurrentIndex(null);
+    setDraggedIndex(null);
+  };
+
   const openEditModal = (link: AdminLink) => {
     setEditingLink(link);
     setModalOpen(true);
@@ -167,11 +204,14 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all ${
+                onTouchStart={(e) => handleTouchStart(e, index)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
                   draggedIndex === index ? "opacity-50" : ""
                 } ${!link.isActive ? "opacity-50" : ""}`}
               >
-                <div className="cursor-grab text-muted-foreground hover:text-foreground">
+                <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
                   <GripVertical className="h-4 w-4" />
                 </div>
 
