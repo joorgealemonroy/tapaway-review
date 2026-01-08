@@ -36,6 +36,7 @@ import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
+import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 
 interface PersonalProfile {
   id: string;
@@ -55,6 +56,13 @@ interface PersonalProfile {
   card_front_headline: string | null;
   card_back_text: string | null;
   plan_type: string | null;
+  // Contact card fields
+  contact_enabled: boolean | null;
+  contact_phone: string | null;
+  contact_company: string | null;
+  contact_title: string | null;
+  contact_address: string | null;
+  contact_website: string | null;
 }
 
 interface DbPersonalLink {
@@ -673,7 +681,7 @@ const PersonalDashboard = () => {
           </TabsContent>
 
           {/* Design Tab */}
-          <TabsContent value="design" className="space-y-4">
+          <TabsContent value="design" className="space-y-6">
             <DashboardDesignTab
               profileId={profile.id}
               headerType={profile.header_type}
@@ -683,6 +691,25 @@ const PersonalDashboard = () => {
               pfpPosition={profile.pfp_position}
               onUpdate={handleDesignUpdate}
             />
+
+            {/* Contact Card Settings */}
+            <div className="border-t pt-6">
+              <DashboardContactCard
+                profileId={profile.id}
+                username={profile.username}
+                fullName={profile.full_name}
+                email={profile.email}
+                initialSettings={{
+                  contact_enabled: profile.contact_enabled || false,
+                  contact_phone: profile.contact_phone,
+                  contact_company: profile.contact_company,
+                  contact_title: profile.contact_title,
+                  contact_address: profile.contact_address,
+                  contact_website: profile.contact_website,
+                }}
+                onUpdate={() => loadData()}
+              />
+            </div>
           </TabsContent>
 
           {/* Leads Tab */}

@@ -73,6 +73,13 @@ interface PersonalAccount {
   subscription_status: string | null;
   plan_type: string | null;
   created_at: string;
+  // Contact card fields
+  contact_enabled: boolean | null;
+  contact_phone: string | null;
+  contact_company: string | null;
+  contact_title: string | null;
+  contact_address: string | null;
+  contact_website: string | null;
 }
 
 const COLOR_PRESETS = [
@@ -156,6 +163,13 @@ const AdminPersonalAccounts = () => {
     headerColor: "#6BCB77",
     backgroundColor: "#ffffff",
     pfpPosition: "center" as "center" | "left",
+    // Contact card fields
+    contactEnabled: false,
+    contactPhone: "",
+    contactCompany: "",
+    contactTitle: "",
+    contactAddress: "",
+    contactWebsite: "",
   });
   const [editLinks, setEditLinks] = useState<AdminLink[]>([]);
   const [editBlocks, setEditBlocks] = useState<AdminBlock[]>([]);
@@ -489,6 +503,12 @@ Login at: ${window.location.origin}/auth`;
       headerColor: account.header_color || "#6BCB77",
       backgroundColor: account.background_color || "#ffffff",
       pfpPosition: (account.pfp_position as "center" | "left") || "center",
+      contactEnabled: account.contact_enabled || false,
+      contactPhone: account.contact_phone || "",
+      contactCompany: account.contact_company || "",
+      contactTitle: account.contact_title || "",
+      contactAddress: account.contact_address || "",
+      contactWebsite: account.contact_website || "",
     });
 
     // Set image previews from existing data
@@ -600,6 +620,12 @@ Login at: ${window.location.origin}/auth`;
           header_color: editForm.headerColor,
           background_color: editForm.backgroundColor,
           pfp_position: editForm.pfpPosition,
+          contact_enabled: editForm.contactEnabled,
+          contact_phone: editForm.contactPhone || null,
+          contact_company: editForm.contactCompany || null,
+          contact_title: editForm.contactTitle || null,
+          contact_address: editForm.contactAddress || null,
+          contact_website: editForm.contactWebsite || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingAccount.id);
@@ -717,6 +743,12 @@ Login at: ${window.location.origin}/auth`;
       headerColor: "#6BCB77",
       backgroundColor: "#ffffff",
       pfpPosition: "center",
+      contactEnabled: false,
+      contactPhone: "",
+      contactCompany: "",
+      contactTitle: "",
+      contactAddress: "",
+      contactWebsite: "",
     });
     setEditLinks([]);
     setEditBlocks([]);
@@ -1474,6 +1506,63 @@ Login at: ${window.location.origin}/auth`;
                       value={editForm.backgroundColor.startsWith("#") ? editForm.backgroundColor : "#ffffff"}
                       onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
                       className="h-10 w-10 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Card Settings */}
+                <div className="space-y-3 border-t pt-4">
+                  <Label className="text-sm font-medium">Contact Card</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="edit-contact-enabled"
+                      checked={editForm.contactEnabled}
+                      onChange={(e) => setEditForm({ ...editForm, contactEnabled: e.target.checked })}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="edit-contact-enabled" className="text-sm">Enable "Save Contact" button</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input
+                        placeholder="+1 555-123-4567"
+                        value={editForm.contactPhone}
+                        onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Company</Label>
+                      <Input
+                        placeholder="Company name"
+                        value={editForm.contactCompany}
+                        onChange={(e) => setEditForm({ ...editForm, contactCompany: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Job Title</Label>
+                      <Input
+                        placeholder="Job title"
+                        value={editForm.contactTitle}
+                        onChange={(e) => setEditForm({ ...editForm, contactTitle: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Website</Label>
+                      <Input
+                        placeholder="https://..."
+                        value={editForm.contactWebsite}
+                        onChange={(e) => setEditForm({ ...editForm, contactWebsite: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Address</Label>
+                    <Input
+                      placeholder="123 Main St, City, State"
+                      value={editForm.contactAddress}
+                      onChange={(e) => setEditForm({ ...editForm, contactAddress: e.target.value })}
                     />
                   </div>
                 </div>
