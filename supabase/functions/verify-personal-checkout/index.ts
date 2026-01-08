@@ -56,10 +56,14 @@ serve(async (req) => {
       throw new Error('No customer email found');
     }
 
-    console.log('[verify-personal-checkout] Session verified, metadata:', {
+    // For Payment Links, username comes from client_reference_id
+    const usernameFromRef = session.client_reference_id;
+    
+    console.log('[verify-personal-checkout] Session verified:', {
       type: metadata.type,
-      username: metadata.username,
+      username: metadata.username || usernameFromRef,
       fullName: metadata.full_name,
+      client_reference_id: usernameFromRef,
     });
 
     // Check if user already exists
@@ -95,7 +99,9 @@ serve(async (req) => {
     }
 
     // Create the personal profile
-    const username = metadata.username || customerEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+    // For Payment Links: username comes from client_reference_id
+    // For Checkout API: username comes from metadata
+    const username = metadata.username || usernameFromRef || customerEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
     
     const { data: existingProfile } = await supabase
       .from('personal_profiles')
