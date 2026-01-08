@@ -1069,7 +1069,9 @@ export type Database = {
           contact_address: string | null
           contact_company: string | null
           contact_enabled: boolean | null
+          contact_name: string | null
           contact_phone: string | null
+          contact_photo_url: string | null
           contact_title: string | null
           contact_website: string | null
           created_at: string | null
@@ -1100,7 +1102,9 @@ export type Database = {
           contact_address?: string | null
           contact_company?: string | null
           contact_enabled?: boolean | null
+          contact_name?: string | null
           contact_phone?: string | null
+          contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
           created_at?: string | null
@@ -1131,7 +1135,9 @@ export type Database = {
           contact_address?: string | null
           contact_company?: string | null
           contact_enabled?: boolean | null
+          contact_name?: string | null
           contact_phone?: string | null
+          contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
           created_at?: string | null
@@ -1859,7 +1865,9 @@ export type Database = {
           contact_address: string | null
           contact_company: string | null
           contact_enabled: boolean | null
+          contact_name: string | null
           contact_phone: string | null
+          contact_photo_url: string | null
           contact_title: string | null
           contact_website: string | null
           full_name: string | null
@@ -1880,7 +1888,9 @@ export type Database = {
           contact_address?: string | null
           contact_company?: string | null
           contact_enabled?: boolean | null
+          contact_name?: string | null
           contact_phone?: string | null
+          contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
           full_name?: string | null
@@ -1901,7 +1911,9 @@ export type Database = {
           contact_address?: string | null
           contact_company?: string | null
           contact_enabled?: boolean | null
+          contact_name?: string | null
           contact_phone?: string | null
+          contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
           full_name?: string | null
