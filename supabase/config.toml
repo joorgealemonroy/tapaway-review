@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.create-personal-account]
 verify_jwt = true
+
+[functions.serve-og-profile]
+verify_jwt = false

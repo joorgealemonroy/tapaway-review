@@ -32,11 +32,13 @@ const PersonalProfile = () => {
   const [notFound, setNotFound] = useState(false);
 
   const handleShare = async () => {
-    const shareUrl = `https://tapaway.co/${profile?.username}`;
+    // Share URL uses edge function for rich OG previews
+    const ogUrl = `https://xfrvckdcrqvkqdwjzopt.supabase.co/functions/v1/serve-og-profile?slug=${profile?.username}`;
+    const displayUrl = `https://tapaway.co/${profile?.username}`;
     const shareData = {
       title: `${profile?.full_name} | TapAway`,
       text: `Check out ${profile?.full_name}'s TapAway profile`,
-      url: shareUrl,
+      url: ogUrl,
     };
 
     if (navigator.share && navigator.canShare?.(shareData)) {
@@ -44,11 +46,11 @@ const PersonalProfile = () => {
         await navigator.share(shareData);
       } catch (err) {
         // User cancelled or share failed - copy to clipboard instead
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(displayUrl);
         toast.success("Link copied to clipboard");
       }
     } else {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(displayUrl);
       toast.success("Link copied to clipboard");
     }
   };
