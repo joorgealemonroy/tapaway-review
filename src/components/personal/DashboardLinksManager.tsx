@@ -35,6 +35,7 @@ interface DbPersonalLink {
   is_featured: boolean | null;
   display_style?: string | null;
   cover_image_url?: string | null;
+  grid_size?: string | null;
 }
 
 interface PersonalLink {
@@ -46,6 +47,7 @@ interface PersonalLink {
   pillColor?: string | null;
   displayStyle?: string;
   coverImageUrl?: string | null;
+  gridSize?: string | null;
 }
 
 interface Props {
@@ -72,6 +74,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     pillColor: dbLink.pill_color,
     displayStyle: dbLink.display_style || "pill",
     coverImageUrl: dbLink.cover_image_url,
+    gridSize: dbLink.grid_size,
   });
 
   const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
@@ -107,6 +110,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         pill_color: link.pillColor || null,
         display_style: newDisplayStyle,
         cover_image_url: link.coverImageUrl || null,
+        grid_size: link.gridSize || null,
       };
 
       const { data, error } = await supabase
@@ -162,6 +166,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
           pill_color: updates.pillColor || null,
           display_style: updates.displayStyle,
           cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : null,
+          grid_size: updates.gridSize !== undefined ? updates.gridSize : null,
         })
         .eq("id", id);
 
@@ -177,6 +182,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
               pill_color: updates.pillColor !== undefined ? updates.pillColor : l.pill_color,
               display_style: updates.displayStyle || l.display_style,
               cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : l.cover_image_url,
+              grid_size: updates.gridSize !== undefined ? updates.gridSize : l.grid_size,
             }
           : l
       ));

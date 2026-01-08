@@ -1006,6 +1006,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string | null
           display_style: string | null
+          grid_size: string | null
           id: string
           is_active: boolean | null
           is_featured: boolean | null
@@ -1020,6 +1021,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           display_style?: string | null
+          grid_size?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
@@ -1034,6 +1036,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string | null
           display_style?: string | null
+          grid_size?: string | null
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null

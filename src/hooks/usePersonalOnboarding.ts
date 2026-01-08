@@ -12,6 +12,7 @@ export interface PersonalLink {
   isFeatured?: boolean; // highlighted/featured link
   displayStyle?: string; // "pill" | "icon" | "both"
   coverImageUrl?: string | null; // optional cover image for card-style display
+  gridSize?: string | null; // "half" | "full" - controls 2-col grid
 }
 
 export interface PersonalBlock {

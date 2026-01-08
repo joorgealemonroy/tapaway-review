@@ -40,6 +40,8 @@ interface DbPersonalLink {
   is_active: boolean | null;
   is_featured: boolean | null;
   display_style?: string | null;
+  cover_image_url?: string | null;
+  grid_size?: string | null;
 }
 
 interface PersonalBlock {
@@ -59,6 +61,7 @@ interface PersonalLink {
   url: string;
   pillColor?: string | null;
   displayStyle?: string | null;
+  gridSize?: string | null;
 }
 
 type UnifiedItem = 
