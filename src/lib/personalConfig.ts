@@ -13,7 +13,7 @@
  * - Use the real checkout flow
  */
 
-export const PERSONAL_PAYMENTS_ENABLED = false;
+export const PERSONAL_PAYMENTS_ENABLED = true;
 
 // Trial configuration when payments are disabled
 export const PERSONAL_TRIAL_CONFIG = {
