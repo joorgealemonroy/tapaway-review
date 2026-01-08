@@ -62,6 +62,7 @@ interface PersonalLink {
   pillColor?: string | null;
   displayStyle?: string | null;
   gridSize?: string | null;
+  coverImageUrl?: string | null;
 }
 
 type UnifiedItem = 
@@ -159,6 +160,29 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     ...blocks.map((block): UnifiedItem => ({ kind: "block", data: { ...block, is_active: (block as any).is_active ?? true } })),
   ].sort((a, b) => a.data.sort_order - b.data.sort_order);
 
+  // Group consecutive grid links for 2-column rendering
+  type GroupedItem = 
+    | { kind: "grid-group"; links: DbPersonalLink[] }
+    | UnifiedItem;
+  
+  const groupedItems: GroupedItem[] = [];
+  let currentGridGroup: DbPersonalLink[] = [];
+  
+  for (const item of unifiedItems) {
+    if (item.kind === "link" && item.data.cover_image_url && item.data.grid_size === "half" && !item.data.is_featured) {
+      currentGridGroup.push(item.data);
+    } else {
+      if (currentGridGroup.length > 0) {
+        groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+        currentGridGroup = [];
+      }
+      groupedItems.push(item);
+    }
+  }
+  if (currentGridGroup.length > 0) {
+    groupedItems.push({ kind: "grid-group", links: currentGridGroup });
+  }
+
   const convertToPersonalLink = (dbLink: DbPersonalLink): PersonalLink => ({
     id: dbLink.id,
     type: dbLink.link_type,
@@ -167,6 +191,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     url: dbLink.url,
     pillColor: dbLink.pill_color,
     displayStyle: dbLink.display_style,
+    gridSize: dbLink.grid_size,
+    coverImageUrl: dbLink.cover_image_url,
   });
 
   // Save all pending changes to DB
@@ -194,6 +220,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           is_active: link.is_active,
           is_featured: link.is_featured,
           display_style: link.display_style || 'pill',
+          cover_image_url: link.cover_image_url || null,
+          grid_size: link.grid_size || null,
         });
       }
       for (const block of pendingChanges.addedBlocks) {
@@ -360,7 +388,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   };
 
   // Link handlers - now update local state only
-  const handleAddLink = (link: Omit<PersonalLink, "id"> & { displayStyle?: string }) => {
+  const handleAddLink = (link: Omit<PersonalLink, "id"> & { displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null }) => {
     const maxOrder = Math.max(...unifiedItems.map(i => i.data.sort_order), -1);
     const newLink: DbPersonalLink = {
       id: crypto.randomUUID(),
@@ -372,6 +400,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       is_active: true,
       is_featured: false,
       display_style: link.displayStyle || 'pill',
+      cover_image_url: link.coverImageUrl || null,
+      grid_size: link.gridSize || null,
     };
 
     onLinksChange([...links, newLink]);
@@ -379,7 +409,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     setLinkModalOpen(false);
   };
 
-  const handleUpdateLink = (id: string, updates: Partial<PersonalLink & { displayStyle?: string }>) => {
+  const handleUpdateLink = (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null }>) => {
     // Check if this is a pending add (not yet in DB)
     const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
     
@@ -389,6 +419,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       url: updates.url,
       pill_color: updates.pillColor || null,
       display_style: updates.displayStyle,
+      cover_image_url: updates.coverImageUrl,
+      grid_size: updates.gridSize,
     };
 
     onLinksChange(links.map(l => 
@@ -579,11 +611,115 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     <div className="space-y-3">
       <Label className="text-sm font-medium text-foreground">Content</Label>
       
-      {unifiedItems.length > 0 && (
+      {groupedItems.length > 0 && (
         <div className="space-y-2">
-          {unifiedItems.map((item, index) => {
+          {groupedItems.map((groupedItem, groupIdx) => {
+            // Grid group - render as 2-column grid
+            if (groupedItem.kind === "grid-group") {
+              return (
+                <div key={`grid-group-${groupIdx}`} className="grid grid-cols-2 gap-2">
+                  {groupedItem.links.map((link) => {
+                    const index = unifiedItems.findIndex(
+                      (i) => i.kind === "link" && i.data.id === link.id
+                    );
+                    const config = getPlatformConfig(link.link_type);
+                    const Icon = config?.icon;
+                    const isActive = link.is_active !== false;
+                    const isDragging = draggedItem?.index === index;
+                    
+                    return (
+                      <div
+                        key={`link-${link.id}`}
+                        draggable
+                        onDragStart={() => handleDragStart(index, { kind: "link", data: link })}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, index, { kind: "link", data: link })}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                        className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
+                          isDragging ? "opacity-50" : ""
+                        } ${!isActive ? "opacity-50" : ""}`}
+                      >
+                        {/* Cover image */}
+                        {link.cover_image_url && (
+                          <img
+                            src={link.cover_image_url}
+                            alt={link.label}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                        {/* Platform icon badge */}
+                        {Icon && (
+                          <div
+                            className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-primary"}`}
+                          >
+                            <Icon className={`h-3 w-3 ${config?.color || "text-white"}`} />
+                          </div>
+                        )}
+
+                        {/* Drag handle */}
+                        <div className="absolute top-2 right-2 cursor-grab text-white/70 hover:text-white">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+
+                        {/* Label */}
+                        <div className="absolute bottom-2 left-2 right-2">
+                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2">
+                            {link.label}
+                          </span>
+                        </div>
+
+                        {/* Actions overlay on hover */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => toggleFeatured(link.id, link.is_featured)}
+                            className={`p-1.5 rounded bg-white/20 hover:bg-white/30 transition-colors ${
+                              link.is_featured ? "text-yellow-400" : "text-white"
+                            }`}
+                            title={link.is_featured ? "Unstar" : "Star"}
+                          >
+                            <Star className={`h-3.5 w-3.5 ${link.is_featured ? "fill-current" : ""}`} />
+                          </button>
+                          <button
+                            onClick={() => toggleLinkVisibility(link.id, link.is_active)}
+                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            title={isActive ? "Hide" : "Show"}
+                          >
+                            {isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingLink(convertToPersonalLink(link));
+                              setLinkModalOpen(true);
+                            }}
+                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteItem({ kind: "link", id: link.id })}
+                            className="p-1.5 rounded bg-white/20 hover:bg-red-500/70 text-white transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            // Regular link or block
+            const item = groupedItem as UnifiedItem;
+            const index = unifiedItems.indexOf(item);
             const isDragging = draggedItem?.index === index;
-            
+
             if (item.kind === "link") {
               const link = item.data;
               const config = getPlatformConfig(link.link_type);

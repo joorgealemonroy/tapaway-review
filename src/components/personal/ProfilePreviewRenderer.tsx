@@ -115,21 +115,9 @@ function ProfilePreviewRendererComponent({
     [pillLinks]
   );
 
-  // Grid links (half-width with cover images)
-  const gridLinks = useMemo(
-    () =>
-      pillLinks
-        .filter((l) => !l.is_featured && l.cover_image_url && l.grid_size === 'half')
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
-    [pillLinks]
-  );
-
-  // Regular links exclude grid links
-  const regularLinks = useMemo(
-    () =>
-      pillLinks
-        .filter((l) => !l.is_featured && !(l.cover_image_url && l.grid_size === 'half'))
-        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+  // Non-featured links for unified list
+  const nonFeaturedPillLinks = useMemo(
+    () => pillLinks.filter((l) => !l.is_featured),
     [pillLinks]
   );
 
@@ -141,10 +129,10 @@ function ProfilePreviewRendererComponent({
     [blocks]
   );
 
+  // Unified items sorted by sort_order (same logic as live profile)
   const unifiedItems = useMemo(() => {
-    const items: Array<{ type: "link" | "block"; data: LinkData | BlockData }> =
-      [];
-    regularLinks.forEach((link) => items.push({ type: "link", data: link }));
+    const items: Array<{ type: "link" | "block"; data: LinkData | BlockData }> = [];
+    nonFeaturedPillLinks.forEach((link) => items.push({ type: "link", data: link }));
     activeBlocks.forEach((block) => items.push({ type: "block", data: block }));
     items.sort((a, b) => {
       const aOrder =
@@ -158,7 +146,45 @@ function ProfilePreviewRendererComponent({
       return aOrder - bOrder;
     });
     return items;
-  }, [regularLinks, activeBlocks]);
+  }, [nonFeaturedPillLinks, activeBlocks]);
+
+  // Group consecutive grid links for 2-column rendering (same as live profile)
+  const groupedItems = useMemo(() => {
+    const result: Array<
+      | { kind: "grid-group"; links: LinkData[] }
+      | { kind: "link"; data: LinkData }
+      | { kind: "block"; data: BlockData }
+    > = [];
+    let currentGridGroup: LinkData[] = [];
+
+    for (const item of unifiedItems) {
+      if (item.type === "link") {
+        const link = item.data as LinkData;
+        if (link.cover_image_url && link.grid_size === "half") {
+          currentGridGroup.push(link);
+        } else {
+          // Flush current grid group if any
+          if (currentGridGroup.length > 0) {
+            result.push({ kind: "grid-group", links: currentGridGroup });
+            currentGridGroup = [];
+          }
+          result.push({ kind: "link", data: link });
+        }
+      } else {
+        // Flush current grid group if any
+        if (currentGridGroup.length > 0) {
+          result.push({ kind: "grid-group", links: currentGridGroup });
+          currentGridGroup = [];
+        }
+        result.push({ kind: "block", data: item.data as BlockData });
+      }
+    }
+    // Flush remaining grid group
+    if (currentGridGroup.length > 0) {
+      result.push({ kind: "grid-group", links: currentGridGroup });
+    }
+    return result;
+  }, [unifiedItems]);
 
   const handleLinkClick = (e: React.MouseEvent, url: string) => {
     if (isPreview) {
@@ -619,19 +645,20 @@ function ProfilePreviewRendererComponent({
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true)}
 
-        {/* Grid links - 2-column layout */}
-        {gridLinks.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
-            {gridLinks.map((link) => renderLink(link, false, true))}
-          </div>
-        )}
-
-        {/* Unified items (links + blocks) */}
-        {unifiedItems.map((item) =>
-          item.type === "link"
-            ? renderLink(item.data as LinkData)
-            : renderBlock(item.data as BlockData)
-        )}
+        {/* Unified content - interleaved links, grid groups, and blocks */}
+        {groupedItems.map((item, idx) => {
+          if (item.kind === "grid-group") {
+            return (
+              <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-2">
+                {item.links.map((link) => renderLink(link, false, true))}
+              </div>
+            );
+          } else if (item.kind === "link") {
+            return renderLink(item.data);
+          } else {
+            return renderBlock(item.data);
+          }
+        })}
       </div>
     </div>
   );
