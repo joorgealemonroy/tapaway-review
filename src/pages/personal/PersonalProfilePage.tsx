@@ -522,22 +522,24 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const handleShare = useCallback(async () => {
     if (!data?.profile) return;
     
-    const shareUrl = `https://tapaway.co/${data.profile.username}`;
+    // Share URL uses edge function for rich OG previews
+    const ogUrl = `https://xfrvckdcrqvkqdwjzopt.supabase.co/functions/v1/serve-og-profile?slug=${data.profile.username}`;
+    const displayUrl = `https://tapaway.co/${data.profile.username}`;
     const shareData = {
       title: `${data.profile.full_name} | TapAway`,
       text: `Check out ${data.profile.full_name}'s TapAway profile`,
-      url: shareUrl,
+      url: ogUrl,
     };
 
     if (navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
       } catch {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(displayUrl);
         toast.success("Link copied to clipboard");
       }
     } else {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(displayUrl);
       toast.success("Link copied to clipboard");
     }
   }, [data?.profile]);
