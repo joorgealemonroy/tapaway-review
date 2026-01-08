@@ -515,6 +515,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     const profile = data.profile;
     downloadVCard({
       fullName: profile.contact_name || profile.full_name,
+      email: profile.contact_email || undefined,
       phone: profile.contact_phone || undefined,
       company: profile.contact_company || undefined,
       title: profile.contact_title || undefined,

@@ -20,6 +20,7 @@ export interface CachedProfile {
   // Contact card fields
   contact_enabled: boolean | null;
   contact_name: string | null;
+  contact_email: string | null;
   contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;

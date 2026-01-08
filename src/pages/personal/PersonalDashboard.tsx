@@ -59,6 +59,7 @@ interface PersonalProfile {
   // Contact card fields
   contact_enabled: boolean | null;
   contact_name: string | null;
+  contact_email: string | null;
   contact_photo_url: string | null;
   contact_phone: string | null;
   contact_company: string | null;
@@ -705,6 +706,7 @@ const PersonalDashboard = () => {
                 initialSettings={{
                   contact_enabled: profile.contact_enabled || false,
                   contact_name: profile.contact_name,
+                  contact_email: profile.contact_email,
                   contact_photo_url: profile.contact_photo_url,
                   contact_phone: profile.contact_phone,
                   contact_company: profile.contact_company,
