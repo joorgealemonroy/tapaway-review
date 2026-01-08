@@ -57,8 +57,61 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { restaurantId } = await req.json();
+    const { restaurantId, userId, isPersonalAccount } = await req.json();
     
+    // Handle personal account deletion
+    if (isPersonalAccount && userId) {
+      // SAFETY CHECK: Prevent admin from deleting their own account
+      if (userId === caller.id) {
+        return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete personal profile related data
+      const { data: profile } = await supabaseAdmin
+        .from("personal_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .single();
+
+      if (profile) {
+        await supabaseAdmin.from("personal_analytics").delete().eq("profile_id", profile.id);
+        await supabaseAdmin.from("personal_links").delete().eq("profile_id", profile.id);
+        await supabaseAdmin.from("personal_blocks").delete().eq("profile_id", profile.id);
+        await supabaseAdmin.from("personal_email_captures").delete().eq("profile_id", profile.id);
+        
+        // Delete the profile
+        await supabaseAdmin.from("personal_profiles").delete().eq("id", profile.id);
+      }
+
+      // Delete user roles
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+
+      // Delete the auth user
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      if (deleteUserError) {
+        console.error("Error deleting auth user:", deleteUserError);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          warning: "Profile deleted but could not remove auth user" 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Successfully deleted personal account for user ${userId}`);
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle restaurant deletion (existing logic)
     if (!restaurantId) {
       return new Response(JSON.stringify({ error: "restaurantId required" }), {
         status: 400,
