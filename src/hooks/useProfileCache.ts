@@ -17,6 +17,13 @@ export interface CachedProfile {
   pfp_position: string | null;
   headline: string | null;
   bio: string | null;
+  // Contact card fields
+  contact_enabled: boolean | null;
+  contact_phone: string | null;
+  contact_company: string | null;
+  contact_title: string | null;
+  contact_address: string | null;
+  contact_website: string | null;
 }
 
 export interface CachedLink {

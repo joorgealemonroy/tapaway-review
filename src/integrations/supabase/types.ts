@@ -1066,6 +1066,12 @@ export type Database = {
           card_confirmed: boolean | null
           card_confirmed_at: string | null
           card_front_headline: string | null
+          contact_address: string | null
+          contact_company: string | null
+          contact_enabled: boolean | null
+          contact_phone: string | null
+          contact_title: string | null
+          contact_website: string | null
           created_at: string | null
           email: string
           full_name: string
@@ -1091,6 +1097,12 @@ export type Database = {
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
           card_front_headline?: string | null
+          contact_address?: string | null
+          contact_company?: string | null
+          contact_enabled?: boolean | null
+          contact_phone?: string | null
+          contact_title?: string | null
+          contact_website?: string | null
           created_at?: string | null
           email: string
           full_name: string
@@ -1116,6 +1128,12 @@ export type Database = {
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
           card_front_headline?: string | null
+          contact_address?: string | null
+          contact_company?: string | null
+          contact_enabled?: boolean | null
+          contact_phone?: string | null
+          contact_title?: string | null
+          contact_website?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
@@ -1838,6 +1856,12 @@ export type Database = {
         Row: {
           background_color: string | null
           bio: string | null
+          contact_address: string | null
+          contact_company: string | null
+          contact_enabled: boolean | null
+          contact_phone: string | null
+          contact_title: string | null
+          contact_website: string | null
           full_name: string | null
           header_color: string | null
           header_image_url: string | null
@@ -1853,6 +1877,12 @@ export type Database = {
         Insert: {
           background_color?: string | null
           bio?: string | null
+          contact_address?: string | null
+          contact_company?: string | null
+          contact_enabled?: boolean | null
+          contact_phone?: string | null
+          contact_title?: string | null
+          contact_website?: string | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
@@ -1868,6 +1898,12 @@ export type Database = {
         Update: {
           background_color?: string | null
           bio?: string | null
+          contact_address?: string | null
+          contact_company?: string | null
+          contact_enabled?: boolean | null
+          contact_phone?: string | null
+          contact_title?: string | null
+          contact_website?: string | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null

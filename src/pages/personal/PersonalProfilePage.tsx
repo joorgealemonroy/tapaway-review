@@ -4,7 +4,8 @@ import {
   CheckCircle2,
   ExternalLink,
   Share2,
-  Smartphone
+  Smartphone,
+  UserPlus
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
+import { downloadVCard } from "@/lib/vcard";
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
 function isColorDark(hexColor: string | null | undefined): boolean {
@@ -474,6 +476,37 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [data?.profile]);
 
+  const handleSaveContact = useCallback(() => {
+    if (!data?.profile) return;
+    
+    const profile = data.profile;
+    downloadVCard({
+      fullName: profile.full_name,
+      phone: profile.contact_phone || undefined,
+      company: profile.contact_company || undefined,
+      title: profile.contact_title || undefined,
+      address: profile.contact_address || undefined,
+      website: profile.contact_website || undefined,
+    });
+    
+    // Track the save contact event
+    if (profile.id) {
+      supabase
+        .from("personal_analytics")
+        .insert({
+          profile_id: profile.id,
+          event_type: "contact_save",
+          visitor_info: {
+            referrer: document.referrer || null,
+            userAgent: navigator.userAgent,
+          },
+        })
+        .then(() => {});
+    }
+    
+    toast.success("Contact saved!");
+  }, [data?.profile]);
+
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
@@ -556,14 +589,25 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       
       {/* Profile Content */}
       <div className={`max-w-md mx-auto px-4 -mt-16 pb-12 relative ${pfpCentered ? "text-center" : ""}`}>
-        {/* Share button */}
-        <button
-          onClick={handleShare}
-          className={`absolute top-0 right-4 h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
-          aria-label="Share profile"
-        >
-          <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
-        </button>
+        {/* Action buttons - Share and Save Contact */}
+        <div className="absolute top-0 right-4 flex gap-2">
+          {profile.contact_enabled && (
+            <button
+              onClick={handleSaveContact}
+              className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+              aria-label="Save contact"
+            >
+              <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+            </button>
+          )}
+          <button
+            onClick={handleShare}
+            className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+            aria-label="Share profile"
+          >
+            <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+          </button>
+        </div>
 
         {/* Avatar - priority loaded */}
         <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
