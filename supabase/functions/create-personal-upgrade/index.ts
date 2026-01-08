@@ -6,6 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Hardcoded Stripe Price IDs
+const PERSONAL_PRICES = {
+  monthly: 'price_1SnMxKDg8DaTuVNZsc6KH8pw',  // $9/month
+  yearly: 'price_1SnMz2Dg8DaTuVNZM7QjRAET',   // $99/year
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -32,49 +38,11 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    // Get the correct price based on plan type
-    const prices = await stripe.prices.list({
-      active: true,
-      expand: ["data.product"],
-      limit: 100,
-    });
+    const selectedPriceId = planType === 'yearly' 
+      ? PERSONAL_PRICES.yearly 
+      : PERSONAL_PRICES.monthly;
 
-    // Find personal plan prices
-    const personalPrices = prices.data.filter((price: Stripe.Price) => {
-      const product = price.product as Stripe.Product;
-      return product.name?.toLowerCase().includes("personal") || 
-             product.name?.toLowerCase().includes("tapaway personal");
-    });
-
-    let selectedPrice: Stripe.Price | undefined;
-
-    if (planType === "yearly") {
-      selectedPrice = personalPrices.find(
-        (p: Stripe.Price) => p.recurring?.interval === "year"
-      );
-    } else {
-      selectedPrice = personalPrices.find(
-        (p: Stripe.Price) => p.recurring?.interval === "month"
-      );
-    }
-
-    // Fallback to any available price
-    if (!selectedPrice) {
-      selectedPrice = prices.data.find(
-        (p: Stripe.Price) =>
-          p.recurring?.interval === (planType === "yearly" ? "year" : "month")
-      );
-    }
-
-    if (!selectedPrice) {
-      console.error("[create-personal-upgrade] No suitable price found");
-      return new Response(
-        JSON.stringify({ error: "No suitable price found" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log("[create-personal-upgrade] Using price:", selectedPrice.id);
+    console.log("[create-personal-upgrade] Using price:", selectedPriceId);
 
     // Calculate new username (remove "tap" prefix if present)
     const newUsername = currentUsername?.startsWith("tap") 
@@ -85,7 +53,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: selectedPrice.id, quantity: 1 }],
+      line_items: [{ price: selectedPriceId, quantity: 1 }],
       customer_email: email,
       success_url: `${origin}/personal/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/personal/dashboard`,
