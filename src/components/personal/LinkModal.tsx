@@ -29,6 +29,7 @@ interface Props {
   editingLink?: (PersonalLink & { displayStyle?: string }) | null;
   onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string }>) => void;
   existingTypes?: string[];
+  existingIconTypes?: string[]; // Platform types that already have an icon
 }
 
 export const LinkModal = ({ 
@@ -37,7 +38,8 @@ export const LinkModal = ({
   onAdd, 
   editingLink,
   onUpdate,
-  existingTypes = [] 
+  existingTypes = [],
+  existingIconTypes = []
 }: Props) => {
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformConfig | null>(null);
   const [inputValue, setInputValue] = useState("");
@@ -322,6 +324,14 @@ export const LinkModal = ({
                 ? "Shows as a button AND an icon in the social bar"
                 : "Shows as a full button with label"}
             </p>
+            {/* Warning when another link of same type already has icon */}
+            {(displayStyle === "icon" || displayStyle === "both") && 
+             existingIconTypes.includes(config.type) && 
+             !(editingLink?.displayStyle === "icon" || editingLink?.displayStyle === "both") && (
+              <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-md">
+                ⚠️ Another {config.label} is set as an icon. Saving this will change it to a button.
+              </p>
+            )}
           </div>
         )}
 

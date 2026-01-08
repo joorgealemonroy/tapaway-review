@@ -35,9 +35,26 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
   const [editingLink, setEditingLink] = useState<AdminLink | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  const existingTypes = links.map(l => l.type);
+  // Allow multiple of same platform type
+  const existingTypes: string[] = [];
 
   const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string }) => {
+    const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both") || "pill";
+    
+    // If adding a link with "icon" or "both" style, check for existing icon of same type
+    let updatedLinks = [...links];
+    if (newDisplayStyle === "icon" || newDisplayStyle === "both") {
+      const existingIconLink = links.find(
+        l => l.type === linkData.type && (l.displayStyle === "icon" || l.displayStyle === "both")
+      );
+      if (existingIconLink) {
+        // Change the existing one to "pill"
+        updatedLinks = links.map(l => 
+          l.id === existingIconLink.id ? { ...l, displayStyle: "pill" as const } : l
+        );
+      }
+    }
+
     const newLink: AdminLink = {
       id: crypto.randomUUID(),
       type: linkData.type,
@@ -45,16 +62,33 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
       value: linkData.value,
       url: linkData.url,
       pillColor: linkData.pillColor || null,
-      displayStyle: (linkData.displayStyle as "pill" | "icon" | "both") || "pill",
+      displayStyle: newDisplayStyle,
       isActive: true,
       isFeatured: false,
-      sortOrder: links.length,
+      sortOrder: updatedLinks.length,
     };
-    onLinksChange([...links, newLink]);
+    onLinksChange([...updatedLinks, newLink]);
   };
 
   const handleUpdateLink = (id: string, updates: Partial<AdminLink>) => {
-    onLinksChange(links.map(l => l.id === id ? { ...l, ...updates } : l));
+    const newDisplayStyle = updates.displayStyle;
+    const linkType = updates.type || links.find(l => l.id === id)?.type;
+    
+    // If updating to "icon" or "both" style, check for existing icon of same type
+    let updatedLinks = links;
+    if ((newDisplayStyle === "icon" || newDisplayStyle === "both") && linkType) {
+      const existingIconLink = links.find(
+        l => l.id !== id && l.type === linkType && (l.displayStyle === "icon" || l.displayStyle === "both")
+      );
+      if (existingIconLink) {
+        // Change the existing one to "pill"
+        updatedLinks = links.map(l => 
+          l.id === existingIconLink.id ? { ...l, displayStyle: "pill" as const } : l
+        );
+      }
+    }
+    
+    onLinksChange(updatedLinks.map(l => l.id === id ? { ...l, ...updates } : l));
     setEditingLink(null);
   };
 
@@ -213,7 +247,11 @@ export const AdminLinksManager = ({ links, onLinksChange }: Props) => {
           displayStyle: editingLink.displayStyle,
         } : null}
         onUpdate={(id, updates) => handleUpdateLink(id, updates as Partial<AdminLink>)}
-        existingTypes={editingLink ? existingTypes.filter(t => t !== editingLink.type) : existingTypes}
+        existingTypes={existingTypes}
+        existingIconTypes={links
+          .filter(l => l.displayStyle === "icon" || l.displayStyle === "both")
+          .map(l => l.type)
+        }
       />
     </div>
   );
