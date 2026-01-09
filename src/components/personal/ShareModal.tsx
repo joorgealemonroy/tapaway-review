@@ -177,22 +177,7 @@ function ShareContent({ profile, shareUrl, onClose, variant = 'dialog' }: Omit<S
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
-        >
-          {/* Light gradient overlay for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          
-          {/* Centered content */}
-          <div className="relative h-full flex flex-col items-center justify-center px-4">
-            <OptimizedAvatar
-              src={profile.profile_photo_url}
-              alt={profile.full_name}
-              size={72}
-              className="rounded-full"
-            />
-            <h3 className="text-white font-bold text-lg mt-3">@{profile.username}</h3>
-            <p className="text-white/60 text-sm">tapaway.co/{profile.username}</p>
-          </div>
-        </div>
+        />
       </div>
 
       {/* Share Options */}
