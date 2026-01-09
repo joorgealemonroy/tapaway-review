@@ -759,6 +759,25 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 background: `linear-gradient(to bottom, transparent 0%, transparent 50%, ${fadeToColor}80 75%, ${fadeToColor} 100%)`
               }}
             />
+            {/* Action buttons - top right for banner profiles */}
+            <div className="absolute top-4 right-4 flex gap-2 z-20">
+              {profile.contact_enabled && (
+                <button
+                  onClick={handleSaveContact}
+                  className="h-10 w-10 backdrop-blur-sm bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                  aria-label="Save contact"
+                >
+                  <UserPlus className="h-4 w-4 text-white" />
+                </button>
+              )}
+              <button
+                onClick={handleShare}
+                className="h-10 w-10 backdrop-blur-sm bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                aria-label="Share profile"
+              >
+                <Share2 className="h-4 w-4 text-white" />
+              </button>
+            </div>
             {/* Spacer to push content below the banner area */}
             <div className="h-[40vh] md:h-[35vh]" />
           </div>
@@ -780,25 +799,27 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         
         {/* Profile Content - responsive offsets */}
         <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24 md:-mt-28' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
-          {/* Action buttons - Share and Save Contact */}
-          <div className={`absolute ${hasBanner ? 'top-16 md:top-20' : 'top-0'} right-4 flex gap-2`}>
-            {profile.contact_enabled && (
+          {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
+          {!hasBanner && (
+            <div className="absolute top-0 right-4 flex gap-2">
+              {profile.contact_enabled && (
+                <button
+                  onClick={handleSaveContact}
+                  className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+                  aria-label="Save contact"
+                >
+                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+                </button>
+              )}
               <button
-                onClick={handleSaveContact}
+                onClick={handleShare}
                 className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
-                aria-label="Save contact"
+                aria-label="Share profile"
               >
-                <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+                <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
               </button>
-            )}
-            <button
-              onClick={handleShare}
-              className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
-              aria-label="Share profile"
-            >
-              <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
-            </button>
-          </div>
+            </div>
+          )}
 
           {/* Avatar - priority loaded, hidden when using full banner */}
           {!hasBanner && (
