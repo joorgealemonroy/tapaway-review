@@ -182,9 +182,9 @@ const AdminPersonalAccounts = () => {
     fullName: "",
     headline: "",
     bio: "",
-    headerType: "color" as "color" | "image",
+    headerType: "color" as "color" | "image" | "banner",
     headerColor: "#6BCB77",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#000000",
     pfpPosition: "center" as "center" | "left",
     // Contact card fields
     contactEnabled: false,
@@ -1512,8 +1512,8 @@ Login at: ${window.location.origin}/auth`;
                   <Label className="text-sm font-medium">Header Style</Label>
                   <RadioGroup
                     value={editForm.headerType}
-                    onValueChange={(v) => setEditForm({ ...editForm, headerType: v as "color" | "image" })}
-                    className="flex gap-3"
+                    onValueChange={(v) => setEditForm({ ...editForm, headerType: v as "color" | "image" | "banner" })}
+                    className="flex flex-wrap gap-3"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="color" id="edit-header-color" />
@@ -1529,9 +1529,62 @@ Login at: ${window.location.origin}/auth`;
                         Custom Image
                       </Label>
                     </div>
+                    {editingAccount?.plan_type !== 'free' && editingAccount?.plan_type !== null && (
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="banner" id="edit-header-banner" />
+                        <Label htmlFor="edit-header-banner" className="text-sm flex items-center gap-1.5 cursor-pointer text-primary">
+                          ✨ Full Banner
+                        </Label>
+                      </div>
+                    )}
                   </RadioGroup>
 
-                  {editForm.headerType === "color" ? (
+                  {editForm.headerType === "banner" ? (
+                    /* Banner upload UI for premium users */
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Full-screen banner that fades behind the profile as visitors scroll
+                      </p>
+                      {(editBannerImagePreview || editForm.bannerImageUrl) ? (
+                        <div className="relative">
+                          <img 
+                            src={editBannerImagePreview || editForm.bannerImageUrl || ""} 
+                            alt="Banner" 
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button
+                              onClick={() => editBannerInputRef.current?.click()}
+                              className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                            >
+                              <Upload className="h-4 w-4 text-white" />
+                            </button>
+                            <button
+                              onClick={handleRemoveEditBanner}
+                              className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => editBannerInputRef.current?.click()}
+                          className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+                        >
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Upload banner image</span>
+                        </button>
+                      )}
+                      <input
+                        ref={editBannerInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditBannerImageSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  ) : editForm.headerType === "color" ? (
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-2">
                         {COLOR_PRESETS.map((color) => (
@@ -1682,53 +1735,6 @@ Login at: ${window.location.origin}/auth`;
                     )}
                   </div>
                 </div>
-
-                {/* Banner Image (Premium Feature) */}
-                {editingAccount?.plan_type !== 'free' && editingAccount?.plan_type !== null && (
-                  <div className="space-y-3 border-t pt-4">
-                    <Label className="text-sm font-medium">Background Banner (Premium)</Label>
-                    <p className="text-xs text-muted-foreground">Full-width banner that fades behind the profile</p>
-                    
-                    {(editBannerImagePreview || editForm.bannerImageUrl) ? (
-                      <div className="relative">
-                        <img 
-                          src={editBannerImagePreview || editForm.bannerImageUrl || ""} 
-                          alt="Banner" 
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          <button
-                            onClick={() => editBannerInputRef.current?.click()}
-                            className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                          >
-                            <Upload className="h-4 w-4 text-white" />
-                          </button>
-                          <button
-                            onClick={handleRemoveEditBanner}
-                            className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                          >
-                            <X className="h-4 w-4 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => editBannerInputRef.current?.click()}
-                        className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-                      >
-                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Upload banner image</span>
-                      </button>
-                    )}
-                    <input
-                      ref={editBannerInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditBannerImageSelect}
-                      className="hidden"
-                    />
-                  </div>
-                )}
 
                 {/* Contact Card Settings */}
                 <div className="space-y-3 border-t pt-4">

@@ -687,8 +687,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? getOptimizedImageUrl(profile.header_image_url, 640, 85)
     : null;
   
-  // Banner image for premium users
-  const bannerUrl = profile.banner_image_url
+  // Banner image for premium users (header_type === "banner")
+  const bannerUrl = (profile.header_type === "banner" && profile.banner_image_url)
     ? getOptimizedImageUrl(profile.banner_image_url, 1080, 90)
     : null;
   const hasBanner = !!bannerUrl;
@@ -697,7 +697,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
-  const bgColor = profile.background_color || "#ffffff";
+  // Default to black background (#000000) for users without a set background
+  const bgColor = profile.background_color || "#000000";
   const isGradientBg = bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient');
   // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
   const bgStyle = isGradientBg 
@@ -719,24 +720,25 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       {/* Full-width Banner (Premium) or standard Header */}
       {hasBanner ? (
         <div className="relative">
-          {/* Full-width banner with fixed position for scroll fade effect */}
+          {/* Full-width banner with fixed position for scroll fade effect - responsive heights */}
           <div 
-            className="fixed inset-x-0 top-0 h-[70vh] pointer-events-none z-0"
+            className="fixed inset-x-0 top-0 h-[50vh] md:h-[70vh] pointer-events-none z-0"
             style={{
               backgroundImage: `url(${bannerUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center top",
+              willChange: "transform",
             }}
           />
           {/* Gradient fade from banner to background */}
           <div 
-            className="fixed inset-x-0 top-0 h-[70vh] pointer-events-none z-0"
+            className="fixed inset-x-0 top-0 h-[50vh] md:h-[70vh] pointer-events-none z-0"
             style={{
               background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}60 65%, ${fadeToColor}90 80%, ${fadeToColor} 100%)`
             }}
           />
-          {/* Spacer to push content below the banner area */}
-          <div className="h-[50vh]" />
+          {/* Spacer to push content below the banner area - responsive */}
+          <div className="h-[35vh] md:h-[50vh]" />
         </div>
       ) : (
         <div className="relative">
@@ -754,10 +756,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         </div>
       )}
       
-      {/* Profile Content */}
-      <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
+      {/* Profile Content - responsive offsets */}
+      <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24 md:-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
         {/* Action buttons - Share and Save Contact */}
-        <div className={`absolute ${hasBanner ? 'top-24' : 'top-0'} right-4 flex gap-2`}>
+        <div className={`absolute ${hasBanner ? 'top-16 md:top-24' : 'top-0'} right-4 flex gap-2`}>
           {profile.contact_enabled && (
             <button
               onClick={handleSaveContact}

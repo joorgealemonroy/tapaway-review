@@ -49,6 +49,8 @@ interface ProfileData {
   header_image_url?: string | null;
   background_color?: string | null;
   pfp_position?: string | null;
+  banner_image_url?: string | null;
+  plan_type?: string | null;
 }
 
 interface LinkData {
@@ -93,9 +95,17 @@ function ProfilePreviewRendererComponent({
   const headerType = profile.header_type || "color";
   const headerColor = profile.header_color || "#6366f1";
   const headerImageUrl = profile.header_image_url;
-  const backgroundColor = profile.background_color || "#ffffff";
+  // Default to black background
+  const backgroundColor = profile.background_color || "#000000";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
-  const isDarkBg = useMemo(() => isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg]);
+  
+  // Banner for premium users (header_type === "banner")
+  const bannerUrl = (headerType === "banner" && profile.banner_image_url) 
+    ? getOptimizedImageUrl(profile.banner_image_url, 400, 80) 
+    : null;
+  const hasBanner = !!bannerUrl;
+  
+  const isDarkBg = useMemo(() => hasBanner || isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg, hasBanner]);
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
@@ -569,38 +579,64 @@ function ProfilePreviewRendererComponent({
   return (
     <div
       className="min-h-full w-full"
-      style={{ backgroundColor }}
+      style={isGradientBg ? { background: backgroundColor } : { backgroundColor }}
     >
-      {/* Header */}
+      {/* Header or Banner */}
       <div className="relative w-full">
-        <div className="h-32 overflow-hidden">
-          {headerType === "image" && headerImageUrl ? (
-            <OptimizedImage
-              src={headerImageUrl}
-              alt="Header"
-              className="h-full w-full object-cover"
-              width={800}
+        {hasBanner ? (
+          <>
+            {/* Banner mode - taller with fade */}
+            <div className="h-44 overflow-hidden">
+              <img
+                src={bannerUrl}
+                alt="Banner"
+                className="h-full w-full object-cover object-top"
+              />
+            </div>
+            {/* Fade overlay from banner to background */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                }60 50%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                } 100%)`
+              }}
             />
-          ) : (
-            <div
-              className="h-full w-full"
-              style={{ backgroundColor: headerColor }}
+          </>
+        ) : (
+          <>
+            <div className="h-32 overflow-hidden">
+              {headerType === "image" && headerImageUrl ? (
+                <OptimizedImage
+                  src={headerImageUrl}
+                  alt="Header"
+                  className="h-full w-full object-cover"
+                  width={800}
+                />
+              ) : (
+                <div
+                  className="h-full w-full"
+                  style={{ backgroundColor: headerColor }}
+                />
+              )}
+            </div>
+            {/* Fade overlay from header to background */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                }40 40%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                }90 70%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                } 100%)`
+              }}
             />
-          )}
-        </div>
-        {/* Fade overlay from header to background */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-          style={{
-            background: `linear-gradient(to bottom, transparent 0%, ${
-              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-            }40 40%, ${
-              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-            }90 70%, ${
-              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-            } 100%)`
-          }}
-        />
+          </>
+        )}
       </div>
 
       {/* Profile section */}
