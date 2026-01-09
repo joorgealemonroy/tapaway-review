@@ -130,7 +130,8 @@ const PersonalDashboard = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/personal/signup");
+        // Not authenticated - redirect to auth page, NOT signup
+        navigate("/auth?redirect=/personal/dashboard");
         return;
       }
 
@@ -142,6 +143,7 @@ const PersonalDashboard = () => {
         .single();
 
       if (profileError || !profileData) {
+        // User is authenticated but has no profile - this is the only case for signup
         navigate("/personal/signup");
         return;
       }

@@ -37,9 +37,9 @@ serve(async (req) => {
 
     console.log('[verify-personal-checkout] Verifying session:', sessionId);
 
-    // Retrieve the session from Stripe
+    // Retrieve the session from Stripe with line_items for plan detection
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'customer'],
+      expand: ['subscription', 'customer', 'line_items'],
     });
 
     if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
@@ -59,11 +59,48 @@ serve(async (req) => {
     // For Payment Links, username comes from client_reference_id
     const usernameFromRef = session.client_reference_id;
     
+    // Determine plan type from various sources
+    let detectedPlanType = metadata.plan_type || null;
+    
+    // If not in metadata, try to detect from payment link or line items
+    if (!detectedPlanType) {
+      // Check payment link ID (if configured in Stripe)
+      const paymentLinkId = session.payment_link;
+      
+      // Check if subscription exists (indicates recurring = monthly or yearly)
+      if (session.subscription) {
+        // Try to get interval from subscription
+        const subscription = session.subscription as Stripe.Subscription;
+        if (subscription.items?.data?.[0]?.price?.recurring?.interval === 'year') {
+          detectedPlanType = 'yearly';
+        } else if (subscription.items?.data?.[0]?.price?.recurring?.interval === 'month') {
+          detectedPlanType = 'monthly';
+        }
+      }
+      
+      // Check amount to differentiate plans (yearly = $75, monthly = $10)
+      if (!detectedPlanType && session.amount_total) {
+        // Amount is in cents
+        if (session.amount_total >= 7000) { // $70+ = yearly
+          detectedPlanType = 'yearly';
+        } else {
+          detectedPlanType = 'monthly';
+        }
+      }
+      
+      // Default to yearly if still not detected
+      if (!detectedPlanType) {
+        detectedPlanType = 'yearly';
+      }
+    }
+    
     console.log('[verify-personal-checkout] Session verified:', {
       type: metadata.type,
       username: metadata.username || usernameFromRef,
       fullName: metadata.full_name,
       client_reference_id: usernameFromRef,
+      detectedPlanType,
+      amountTotal: session.amount_total,
     });
 
     // Check if user already exists
@@ -120,7 +157,7 @@ serve(async (req) => {
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: 'active',
-          plan_type: metadata.plan_type || 'monthly',
+          plan_type: detectedPlanType,
         })
         .eq('id', existingProfile.id);
         
@@ -133,13 +170,13 @@ serve(async (req) => {
         .insert({
           user_id: userId,
           username,
-          full_name: metadata.full_name || 'TapAway User',
+          full_name: metadata.full_name || customerEmail.split('@')[0], // Use email prefix instead of generic name
           email: customerEmail,
           headline: metadata.card_headline || null,
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: 'active',
-          plan_type: metadata.plan_type || 'monthly',
+          plan_type: detectedPlanType,
         })
         .select()
         .single();
@@ -224,8 +261,9 @@ serve(async (req) => {
         success: true,
         email: customerEmail,
         username,
+        userId, // Return userId for password setup
+        planType: detectedPlanType,
         needsPasswordSetup: tempPassword !== null,
-        // Don't send tempPassword to client - use magic link instead
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

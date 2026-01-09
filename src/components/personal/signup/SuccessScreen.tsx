@@ -5,7 +5,6 @@ import {
   Check, 
   Copy, 
   ExternalLink, 
-  CreditCard, 
   Package,
   Smartphone,
   RefreshCw,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { getPublicProfileUrl } from "@/lib/personalUsername";
 
 interface Props {
@@ -176,7 +176,16 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate("/personal/dashboard")}
+            onClick={async () => {
+              // Check if user is logged in
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                navigate("/personal/dashboard");
+              } else {
+                // Not logged in, redirect to auth
+                navigate("/auth?redirect=/personal/dashboard");
+              }
+            }}
             className="w-full h-12 text-sm"
           >
             Go to dashboard

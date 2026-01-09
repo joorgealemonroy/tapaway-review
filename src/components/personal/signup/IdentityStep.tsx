@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Loader2, Eye, EyeOff, Info } from "lucide-react";
+import { Check, X, Loader2, Eye, EyeOff, Info, LogIn } from "lucide-react";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { z } from "zod";
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setIsLoading, selectedPlan = "free" }: Props) => {
+  const navigate = useNavigate();
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -194,7 +196,19 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
           </div>
         </div>
         {usernameStatus === "taken" && (
-          <p className="text-sm text-destructive">This username is already taken</p>
+          <div className="space-y-2">
+            <p className="text-sm text-destructive">This username is already taken</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/auth?redirect=/personal/dashboard")}
+              className="text-xs"
+            >
+              <LogIn className="h-3 w-3 mr-1" />
+              Already yours? Log in
+            </Button>
+          </div>
         )}
         {touched.username && errors.username && usernameStatus !== "taken" && (
           <p className="text-sm text-destructive">{errors.username}</p>

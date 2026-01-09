@@ -413,12 +413,40 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setIsLoading(true);
 
     try {
-      // Save signup data to sessionStorage for retrieval after payment
-      sessionStorage.setItem("personal_signup_data", JSON.stringify({
-        ...formData,
-        profilePhoto: null,
-        croppedPhotoBlob: null,
-      }));
+      // Convert cropped photo blob to base64 for storage
+      let profilePhotoBase64: string | null = null;
+      if (formData.croppedPhotoBlob) {
+        profilePhotoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(formData.croppedPhotoBlob!);
+        });
+      }
+
+      // Save complete signup data to sessionStorage for retrieval after payment
+      const signupData = {
+        fullName: formData.fullName,
+        email: formData.email,
+        username: formData.username,
+        planType: formData.planType,
+        links: formData.links,
+        blocks: formData.blocks,
+        cardHeadline: formData.cardHeadline,
+        headerType: formData.headerType,
+        headerColor: formData.headerColor,
+        headerImageUrl: formData.headerImageUrl,
+        backgroundColor: formData.backgroundColor,
+        profilePhotoBase64, // Store as base64 for retrieval
+        addExtraCard: formData.addExtraCard,
+        extraCardCount: formData.extraCardCount,
+      };
+      
+      sessionStorage.setItem("personal_signup_data", JSON.stringify(signupData));
+      
+      // Store password temporarily for auto-login after payment
+      if (formData.password) {
+        sessionStorage.setItem("signup_password", formData.password);
+      }
 
       // Get the correct payment link based on plan
       const paymentLink = formData.planType === 'yearly' 
