@@ -818,19 +818,44 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           )}
 
           {/* Name & Username & Headline/Bio */}
-          <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
-          {profile.headline && (
-            <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
+          {hasBanner ? (
+            // Banner mode: Large white username and bio like Linktree
+            <>
+              <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+                @{profile.username}
+              </h1>
+              {profile.headline && (
+                <p className="text-base text-white/90 mt-2 drop-shadow-md">
+                  {profile.headline}
+                </p>
+              )}
+              {profile.bio && (
+                <p className="text-base text-white/80 mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
+                  {profile.bio}
+                </p>
+              )}
+              {/* Social icon bar - white icons for banner */}
+              <SocialIconBar links={iconLinks} isDarkBg={true} />
+              <div className="mb-3" />
+            </>
+          ) : (
+            // Standard mode: Current styling
+            <>
+              <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
+              {profile.headline && (
+                <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
+              )}
+              <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
+              
+              {/* Social icon bar - shows icon-style links */}
+              <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
+              
+              {profile.bio && (
+                <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
+              )}
+              <div className="mb-6" />
+            </>
           )}
-          <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
-          
-          {/* Social icon bar - shows icon-style links */}
-          <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
-          
-          {profile.bio && (
-            <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
-          )}
-          <div className="mb-6" />
 
           {/* Featured link - rendered prominently at top */}
           {featuredLink && (
