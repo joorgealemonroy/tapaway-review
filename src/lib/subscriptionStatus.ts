@@ -33,6 +33,10 @@ export const PUBLIC_ROUTES = [
   '/rep/apply',
   '/rep/setup-password',
   '/demo',
+  '/personal/signup',
+  '/personal/signup/complete',
+  '/personal/dashboard',
+  '/personal/pricing',
 ];
 
 /** Check if a subscription status grants access (true = allowed). */
