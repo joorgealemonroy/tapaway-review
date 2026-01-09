@@ -336,7 +336,7 @@ export const DashboardDesignTab = ({
         <RadioGroup 
           value={headerType} 
           onValueChange={handleTypeChange}
-          className="flex gap-3"
+          className="flex flex-wrap gap-3"
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="color" id="header-color" />
@@ -352,9 +352,75 @@ export const DashboardDesignTab = ({
               Custom Image
             </Label>
           </div>
+          {isPremium && (
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="banner" id="header-banner" />
+              <Label htmlFor="header-banner" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Full Banner
+              </Label>
+            </div>
+          )}
         </RadioGroup>
 
-        {headerType === "color" ? (
+        {headerType === "banner" ? (
+          /* Banner upload UI for premium users */
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Full-screen banner that fades behind your profile as visitors scroll
+            </p>
+            {bannerImageUrl ? (
+              <div className="relative">
+                <img 
+                  src={bannerImageUrl} 
+                  alt="Banner" 
+                  className="w-full h-40 object-cover rounded-lg"
+                />
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <button
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    disabled={uploadingBanner}
+                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    {uploadingBanner ? (
+                      <Loader2 className="h-4 w-4 text-white animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 text-white" />
+                    )}
+                  </button>
+                  <button
+                    onClick={handleRemoveBanner}
+                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => bannerFileInputRef.current?.click()}
+                disabled={uploadingBanner}
+                className="w-full h-32 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+              >
+                {uploadingBanner ? (
+                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+                ) : (
+                  <>
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Upload banner image</span>
+                  </>
+                )}
+              </button>
+            )}
+            <input
+              ref={bannerFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBannerSelect}
+              className="hidden"
+            />
+          </div>
+        ) : headerType === "color" ? (
           <div className="space-y-3">
             {/* Color presets */}
             <div className="flex flex-wrap gap-2">
@@ -544,70 +610,6 @@ export const DashboardDesignTab = ({
           />
         </div>
       </div>
-
-      {/* Banner Image (Premium Only) */}
-      {isPremium && (
-        <div className="space-y-3">
-          <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Background Banner
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Add a full-width banner that fades behind your profile
-          </p>
-          
-          {bannerImageUrl ? (
-            <div className="relative">
-              <img 
-                src={bannerImageUrl} 
-                alt="Banner" 
-                className="w-full h-40 object-cover rounded-lg"
-              />
-              <div className="absolute top-2 right-2 flex gap-1">
-                <button
-                  onClick={() => bannerFileInputRef.current?.click()}
-                  disabled={uploadingBanner}
-                  className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                >
-                  {uploadingBanner ? (
-                    <Loader2 className="h-4 w-4 text-white animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 text-white" />
-                  )}
-                </button>
-                <button
-                  onClick={handleRemoveBanner}
-                  className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                >
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => bannerFileInputRef.current?.click()}
-              disabled={uploadingBanner}
-              className="w-full h-32 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-            >
-              {uploadingBanner ? (
-                <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-              ) : (
-                <>
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Upload banner image</span>
-                </>
-              )}
-            </button>
-          )}
-          <input
-            ref={bannerFileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleBannerSelect}
-            className="hidden"
-          />
-        </div>
-      )}
 
       {/* Image Cropper for Header */}
       {rawImageUrl && (
