@@ -778,20 +778,22 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </button>
         </div>
 
-        {/* Avatar - priority loaded */}
-        <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
-          <OptimizedAvatar
-            src={profile.profile_photo_url}
-            alt={profile.full_name}
-            size={28}
-            className="border-4 border-background"
-            priority
-            fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
-          />
-          <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
-            <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+        {/* Avatar - priority loaded, hidden when using full banner */}
+        {!hasBanner && (
+          <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
+            <OptimizedAvatar
+              src={profile.profile_photo_url}
+              alt={profile.full_name}
+              size={28}
+              className="border-4 border-background"
+              priority
+              fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
+            />
+            <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
+              <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Name & Username & Headline/Bio */}
         <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>

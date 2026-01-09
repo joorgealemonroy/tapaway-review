@@ -645,36 +645,38 @@ function ProfilePreviewRendererComponent({
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >
-        {/* Avatar */}
-        <div
-          className={`relative ${
-            pfpPosition === "left"
-              ? "-mt-10"
-              : pfpPosition === "right"
-              ? "-mt-12 ml-auto mr-4"
-              : "-mt-12 mx-auto"
-          } ${pfpPosition === "center" ? "w-24" : "w-20"}`}
-        >
-          {profile.profile_photo_url ? (
-            <OptimizedImage
-              src={profile.profile_photo_url}
-              alt={profile.full_name}
-              className={`${
-                pfpPosition === "center" ? "h-24 w-24" : "h-20 w-20"
-              } rounded-full border-4 border-white object-cover shadow-lg`}
-              width={96}
-            />
-          ) : (
-            <div
-              className={`${
-                pfpPosition === "center" ? "h-24 w-24" : "h-20 w-20"
-              } rounded-full border-4 border-white shadow-lg flex items-center justify-center text-2xl font-bold text-white`}
-              style={{ backgroundColor: headerColor }}
-            >
-              {profile.full_name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+        {/* Avatar - hidden when using full banner */}
+        {!hasBanner && (
+          <div
+            className={`relative ${
+              pfpPosition === "left"
+                ? "-mt-10"
+                : pfpPosition === "right"
+                ? "-mt-12 ml-auto mr-4"
+                : "-mt-12 mx-auto"
+            } ${pfpPosition === "center" ? "w-24" : "w-20"}`}
+          >
+            {profile.profile_photo_url ? (
+              <OptimizedImage
+                src={profile.profile_photo_url}
+                alt={profile.full_name}
+                className={`${
+                  pfpPosition === "center" ? "h-24 w-24" : "h-20 w-20"
+                } rounded-full border-4 border-white object-cover shadow-lg`}
+                width={96}
+              />
+            ) : (
+              <div
+                className={`${
+                  pfpPosition === "center" ? "h-24 w-24" : "h-20 w-20"
+                } rounded-full border-4 border-white shadow-lg flex items-center justify-center text-2xl font-bold text-white`}
+                style={{ backgroundColor: headerColor }}
+              >
+                {profile.full_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Name and headline */}
         <div
