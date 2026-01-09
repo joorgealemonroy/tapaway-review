@@ -1079,6 +1079,7 @@ export type Database = {
           archived_header_image_url: string | null
           archived_header_type: string | null
           background_color: string | null
+          banner_image_url: string | null
           bio: string | null
           card_back_text: string | null
           card_confirmed: boolean | null
@@ -1116,6 +1117,7 @@ export type Database = {
           archived_header_image_url?: string | null
           archived_header_type?: string | null
           background_color?: string | null
+          banner_image_url?: string | null
           bio?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
@@ -1153,6 +1155,7 @@ export type Database = {
           archived_header_image_url?: string | null
           archived_header_type?: string | null
           background_color?: string | null
+          banner_image_url?: string | null
           bio?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
@@ -1888,6 +1891,7 @@ export type Database = {
       personal_profiles_public: {
         Row: {
           background_color: string | null
+          banner_image_url: string | null
           bio: string | null
           contact_address: string | null
           contact_company: string | null
@@ -1912,6 +1916,7 @@ export type Database = {
         }
         Insert: {
           background_color?: string | null
+          banner_image_url?: string | null
           bio?: string | null
           contact_address?: string | null
           contact_company?: string | null
@@ -1936,6 +1941,7 @@ export type Database = {
         }
         Update: {
           background_color?: string | null
+          banner_image_url?: string | null
           bio?: string | null
           contact_address?: string | null
           contact_company?: string | null

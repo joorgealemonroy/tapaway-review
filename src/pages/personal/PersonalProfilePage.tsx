@@ -687,6 +687,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? getOptimizedImageUrl(profile.header_image_url, 640, 85)
     : null;
   
+  // Banner image for premium users
+  const bannerUrl = profile.banner_image_url
+    ? getOptimizedImageUrl(profile.banner_image_url, 1080, 90)
+    : null;
+  const hasBanner = !!bannerUrl;
+  
   const headerStyle = optimizedHeaderUrl
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
@@ -698,7 +704,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? { background: bgColor, backgroundAttachment: 'fixed' as const } 
     : { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
-  const isDarkBg = isGradientBg || isColorDark(bgColor);
+  const isDarkBg = hasBanner || isGradientBg || isColorDark(bgColor);
   
   // Dynamic text classes based on background
   const headingClass = isDarkBg ? "text-white" : "text-foreground";
@@ -710,25 +716,48 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   return (
     <div className="min-h-screen" style={bgStyle}>
-      {/* Cover/Header - with lazy loaded background */}
-      <div className="relative">
-        <div 
-          className="h-48 bg-muted" 
-          style={headerStyle} 
-        />
-        {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{
-            background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
-          }}
-        />
-      </div>
+      {/* Full-width Banner (Premium) or standard Header */}
+      {hasBanner ? (
+        <div className="relative">
+          {/* Full-width banner with fixed position for scroll fade effect */}
+          <div 
+            className="fixed inset-x-0 top-0 h-[70vh] pointer-events-none z-0"
+            style={{
+              backgroundImage: `url(${bannerUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center top",
+            }}
+          />
+          {/* Gradient fade from banner to background */}
+          <div 
+            className="fixed inset-x-0 top-0 h-[70vh] pointer-events-none z-0"
+            style={{
+              background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}60 65%, ${fadeToColor}90 80%, ${fadeToColor} 100%)`
+            }}
+          />
+          {/* Spacer to push content below the banner area */}
+          <div className="h-[50vh]" />
+        </div>
+      ) : (
+        <div className="relative">
+          <div 
+            className="h-48 bg-muted" 
+            style={headerStyle} 
+          />
+          {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
+            style={{
+              background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
+            }}
+          />
+        </div>
+      )}
       
       {/* Profile Content */}
-      <div className={`max-w-md mx-auto px-4 -mt-20 pb-12 relative ${pfpCentered ? "text-center" : ""}`}>
+      <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
         {/* Action buttons - Share and Save Contact */}
-        <div className="absolute top-0 right-4 flex gap-2">
+        <div className={`absolute ${hasBanner ? 'top-24' : 'top-0'} right-4 flex gap-2`}>
           {profile.contact_enabled && (
             <button
               onClick={handleSaveContact}

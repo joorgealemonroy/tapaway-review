@@ -12,7 +12,8 @@ import {
   Upload,
   AlignLeft,
   AlignCenter,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,12 +24,15 @@ interface Props {
   headerImageUrl: string | null;
   backgroundColor: string | null;
   pfpPosition: string;
+  bannerImageUrl: string | null;
+  isPremium: boolean;
   onUpdate: (updates: {
     headerType?: string;
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
     pfpPosition?: string;
+    bannerImageUrl?: string | null;
   }) => void;
 }
 
@@ -82,14 +86,20 @@ export const DashboardDesignTab = ({
   headerImageUrl,
   backgroundColor,
   pfpPosition,
+  bannerImageUrl,
+  isPremium,
   onUpdate,
 }: Props) => {
   const [cropperOpen, setCropperOpen] = useState(false);
+  const [bannerCropperOpen, setBannerCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [rawBannerUrl, setRawBannerUrl] = useState<string | null>(null);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [uploading, setUploading] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -256,6 +266,64 @@ export const DashboardDesignTab = ({
       onUpdate({ pfpPosition: position });
     } catch (err) {
       console.error("Error updating pfp position:", err);
+    }
+  };
+
+  // Banner image handlers (Premium feature)
+  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const url = URL.createObjectURL(file);
+    setRawBannerUrl(url);
+    setBannerCropperOpen(true);
+    e.target.value = "";
+  };
+
+  const handleBannerCropComplete = async (croppedBlob: Blob) => {
+    setUploadingBanner(true);
+    try {
+      const filePath = `banners/${profileId}/banner-${Date.now()}.jpg`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+
+      await supabase
+        .from("personal_profiles")
+        .update({ banner_image_url: urlWithBust })
+        .eq("id", profileId);
+
+      onUpdate({ bannerImageUrl: urlWithBust });
+      toast.success("Banner image updated!");
+    } catch (err) {
+      console.error("Banner upload error:", err);
+      toast.error("Failed to upload banner image");
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    try {
+      await supabase
+        .from("personal_profiles")
+        .update({ banner_image_url: null })
+        .eq("id", profileId);
+
+      onUpdate({ bannerImageUrl: null });
+      toast.success("Banner removed");
+    } catch (err) {
+      console.error("Error removing banner:", err);
+      toast.error("Failed to remove banner");
     }
   };
 
@@ -477,7 +545,71 @@ export const DashboardDesignTab = ({
         </div>
       </div>
 
-      {/* Image Cropper */}
+      {/* Banner Image (Premium Only) */}
+      {isPremium && (
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Background Banner
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Add a full-width banner that fades behind your profile
+          </p>
+          
+          {bannerImageUrl ? (
+            <div className="relative">
+              <img 
+                src={bannerImageUrl} 
+                alt="Banner" 
+                className="w-full h-40 object-cover rounded-lg"
+              />
+              <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                  onClick={() => bannerFileInputRef.current?.click()}
+                  disabled={uploadingBanner}
+                  className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                >
+                  {uploadingBanner ? (
+                    <Loader2 className="h-4 w-4 text-white animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 text-white" />
+                  )}
+                </button>
+                <button
+                  onClick={handleRemoveBanner}
+                  className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => bannerFileInputRef.current?.click()}
+              disabled={uploadingBanner}
+              className="w-full h-32 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+            >
+              {uploadingBanner ? (
+                <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+              ) : (
+                <>
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Upload banner image</span>
+                </>
+              )}
+            </button>
+          )}
+          <input
+            ref={bannerFileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleBannerSelect}
+            className="hidden"
+          />
+        </div>
+      )}
+
+      {/* Image Cropper for Header */}
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
@@ -485,6 +617,18 @@ export const DashboardDesignTab = ({
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
           aspectRatio={16 / 5}
+          cropShape="rect"
+        />
+      )}
+
+      {/* Image Cropper for Banner */}
+      {rawBannerUrl && (
+        <ImageCropper
+          open={bannerCropperOpen}
+          onOpenChange={setBannerCropperOpen}
+          imageSrc={rawBannerUrl}
+          onCropComplete={handleBannerCropComplete}
+          aspectRatio={9 / 16}
           cropShape="rect"
         />
       )}
