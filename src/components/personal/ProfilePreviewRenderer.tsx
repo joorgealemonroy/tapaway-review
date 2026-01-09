@@ -84,7 +84,8 @@ function ProfilePreviewRendererComponent({
   const headerColor = profile.header_color || "#6366f1";
   const headerImageUrl = profile.header_image_url;
   const backgroundColor = profile.background_color || "#ffffff";
-  const isDarkBg = useMemo(() => isColorDark(backgroundColor), [backgroundColor]);
+  const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
+  const isDarkBg = useMemo(() => isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg]);
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
