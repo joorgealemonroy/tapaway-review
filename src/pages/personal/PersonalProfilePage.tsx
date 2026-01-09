@@ -851,7 +851,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 </p>
               )}
                 {profile.bio && (
-                  <p className="text-base text-white mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
+                  <p className="text-base text-white font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
                     {profile.bio}
                   </p>
                 )}
