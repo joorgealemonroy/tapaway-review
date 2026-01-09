@@ -1,4 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { motion } from "framer-motion";
 import { 
   Link, 
@@ -11,6 +12,7 @@ import {
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { OptimizedAvatar } from "./OptimizedImage";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -27,7 +29,7 @@ interface ShareModalProps {
 const shareOptions = [
   { 
     id: 'copy', 
-    label: 'Copy link', 
+    label: 'Copy', 
     icon: Link,
     color: 'bg-zinc-700',
     action: 'copy'
@@ -114,7 +116,7 @@ const shareOptions = [
   },
 ];
 
-export function ShareModal({ isOpen, onClose, profile, shareUrl }: ShareModalProps) {
+function ShareContent({ profile, shareUrl, onClose }: Omit<ShareModalProps, 'isOpen'>) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = useCallback(async (action: string) => {
@@ -156,81 +158,111 @@ export function ShareModal({ isOpen, onClose, profile, shareUrl }: ShareModalPro
   }, [shareUrl, profile.full_name]);
 
   return (
+    <div className="flex flex-col">
+      {/* Profile Preview Card with Banner */}
+      <div className="px-5 pt-2 pb-4">
+        <div 
+          className="relative rounded-2xl overflow-hidden h-40"
+          style={{
+            backgroundImage: profile.banner_image_url 
+              ? `url(${profile.banner_image_url})` 
+              : 'linear-gradient(135deg, #27272a 0%, #18181b 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          
+          {/* Centered content */}
+          <div className="relative h-full flex flex-col items-center justify-center px-4">
+            <OptimizedAvatar
+              src={profile.profile_photo_url}
+              alt={profile.full_name}
+              size={72}
+              className="rounded-full ring-4 ring-white/20 shadow-2xl"
+            />
+            <h3 className="text-white font-bold text-lg mt-3">@{profile.username}</h3>
+            <p className="text-white/60 text-sm">tapaway.co/{profile.username}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Share Options */}
+      <div className="px-5 pb-5">
+        <p className="text-zinc-500 text-sm mb-4 font-medium">Share this profile</p>
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+          {shareOptions.map((option) => {
+            const IconComponent = option.icon;
+            return (
+              <motion.button
+                key={option.id}
+                onClick={() => handleShare(option.action)}
+                className="flex flex-col items-center gap-2.5 flex-shrink-0"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.92 }}
+              >
+                <div className={`h-14 w-14 rounded-2xl ${option.color} flex items-center justify-center text-white shadow-md`}>
+                  {option.id === 'copy' && copied ? (
+                    <Check className="h-5 w-5" />
+                  ) : (
+                    <IconComponent />
+                  )}
+                </div>
+                <span className="text-zinc-500 text-xs font-medium whitespace-nowrap">{option.label}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* CTA Section */}
+        <div className="pt-5 mt-5 border-t border-zinc-800/50 text-center">
+          <p className="text-zinc-500 text-sm">
+            Don't have TapAway yet?
+          </p>
+          <a 
+            href="/personal"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-2 text-white font-semibold hover:text-primary transition-colors"
+          >
+            Start using TapAway
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ShareModal({ isOpen, onClose, profile, shareUrl }: ShareModalProps) {
+  const isMobile = useIsMobile();
+
+  // Mobile: Bottom drawer with rounded top corners
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DrawerContent className="bg-zinc-900 border-zinc-800 rounded-t-3xl max-h-[90vh]">
+          <ShareContent profile={profile} shareUrl={shareUrl} onClose={onClose} />
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop: Centered dialog with rounded corners
+  return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden bg-zinc-900 border-zinc-800">
+      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden bg-zinc-900 border-zinc-800 rounded-3xl">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center transition-colors"
+          className="absolute right-4 top-4 z-10 h-8 w-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 flex items-center justify-center transition-colors"
         >
           <X className="h-4 w-4 text-white" />
         </button>
 
-        {/* Profile Preview Card */}
-        <div className="p-6 pb-4">
-          <div className="bg-zinc-800 rounded-2xl p-4 flex items-center gap-4">
-            <OptimizedAvatar
-              src={profile.profile_photo_url}
-              alt={profile.full_name}
-              size={56}
-              className="rounded-full ring-2 ring-white/10"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold truncate">{profile.full_name}</p>
-              <p className="text-zinc-400 text-sm truncate">tapaway.co/{profile.username}</p>
-            </div>
-            <div className="flex-shrink-0">
-              <img 
-                src="/tapaway-logo.svg" 
-                alt="TapAway" 
-                className="h-6 w-6 opacity-60"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Share Options */}
-        <div className="px-6 pb-6">
-          <p className="text-zinc-400 text-sm mb-4">Share this profile</p>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-            {shareOptions.map((option) => {
-              const IconComponent = option.icon;
-              return (
-                <motion.button
-                  key={option.id}
-                  onClick={() => handleShare(option.action)}
-                  className="flex flex-col items-center gap-2 flex-shrink-0"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className={`h-14 w-14 rounded-full ${option.color} flex items-center justify-center text-white shadow-lg`}>
-                    {option.id === 'copy' && copied ? (
-                      <Check className="h-5 w-5" />
-                    ) : (
-                      <IconComponent />
-                    )}
-                  </div>
-                  <span className="text-zinc-400 text-xs whitespace-nowrap">{option.label}</span>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* CTA Section */}
-          <div className="pt-4 mt-4 border-t border-zinc-800 text-center">
-            <p className="text-zinc-400 text-sm">
-              Don't have TapAway yet?
-            </p>
-            <a 
-              href="/personal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-2 text-white font-semibold hover:text-primary transition-colors"
-            >
-              Start using TapAway
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
+        <div className="pt-6">
+          <ShareContent profile={profile} shareUrl={shareUrl} onClose={onClose} />
         </div>
       </DialogContent>
     </Dialog>
