@@ -716,162 +716,169 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
   return (
-    <div className="min-h-screen" style={bgStyle}>
-      {/* Full-width Banner (Premium) or standard Header */}
-      {hasBanner ? (
-        <div className="relative">
-          {/* Full-width banner with fixed position for scroll fade effect - responsive heights */}
-          <div 
-            className="fixed inset-x-0 top-0 h-[50vh] md:h-[70vh] pointer-events-none z-0"
-            style={{
-              backgroundImage: `url(${bannerUrl})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center top",
-              willChange: "transform",
-            }}
-          />
-          {/* Gradient fade from banner to background */}
-          <div 
-            className="fixed inset-x-0 top-0 h-[50vh] md:h-[70vh] pointer-events-none z-0"
-            style={{
-              background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}60 65%, ${fadeToColor}90 80%, ${fadeToColor} 100%)`
-            }}
-          />
-          {/* Spacer to push content below the banner area - responsive */}
-          <div className="h-[35vh] md:h-[50vh]" />
-        </div>
-      ) : (
-        <div className="relative">
-          <div 
-            className="h-48 bg-muted" 
-            style={headerStyle} 
-          />
-          {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
-          <div 
-            className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-            style={{
-              background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
-            }}
-          />
-        </div>
-      )}
-      
-      {/* Profile Content - responsive offsets */}
-      <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24 md:-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
-        {/* Action buttons - Share and Save Contact */}
-        <div className={`absolute ${hasBanner ? 'top-16 md:top-24' : 'top-0'} right-4 flex gap-2`}>
-          {profile.contact_enabled && (
-            <button
-              onClick={handleSaveContact}
-              className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
-              aria-label="Save contact"
-            >
-              <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
-            </button>
-          )}
-          <button
-            onClick={handleShare}
-            className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
-            aria-label="Share profile"
-          >
-            <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
-          </button>
-        </div>
-
-        {/* Avatar - priority loaded, hidden when using full banner */}
-        {!hasBanner && (
-          <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
-            <OptimizedAvatar
-              src={profile.profile_photo_url}
-              alt={profile.full_name}
-              size={28}
-              className="border-4 border-background"
-              priority
-              fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
+    // Outer wrapper - dark background visible on desktop around the phone frame
+    <div className="min-h-screen bg-black">
+      {/* Phone-frame container - full width on mobile, centered card on desktop */}
+      <div 
+        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl"
+        style={bgStyle}
+      >
+        {/* Full-width Banner (Premium) or standard Header */}
+        {hasBanner ? (
+          <div className="relative">
+            {/* Banner - fixed on mobile for scroll feel, absolute on desktop to stay in container */}
+            <div 
+              className="fixed md:absolute inset-x-0 top-0 h-[50vh] md:h-[55%] pointer-events-none z-0"
+              style={{
+                backgroundImage: `url(${bannerUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center top",
+                willChange: "transform",
+              }}
             />
-            <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
-              <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
-            </div>
+            {/* Gradient fade from banner to background */}
+            <div 
+              className="fixed md:absolute inset-x-0 top-0 h-[50vh] md:h-[55%] pointer-events-none z-0"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}60 65%, ${fadeToColor}90 80%, ${fadeToColor} 100%)`
+              }}
+            />
+            {/* Spacer to push content below the banner area - responsive */}
+            <div className="h-[35vh] md:h-[40vh]" />
+          </div>
+        ) : (
+          <div className="relative">
+            <div 
+              className="h-48 bg-muted" 
+              style={headerStyle} 
+            />
+            {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
+              }}
+            />
           </div>
         )}
-
-        {/* Name & Username & Headline/Bio */}
-        <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
-        {profile.headline && (
-          <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
-        )}
-        <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
         
-        {/* Social icon bar - shows icon-style links */}
-        <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
-        
-        {profile.bio && (
-          <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
-        )}
-        <div className="mb-6" />
-
-        {/* Featured link - rendered prominently at top */}
-        {featuredLink && (
-          <div className="mb-4">
-            <ProfileLink link={featuredLink} isFeatured />
-          </div>
-        )}
-
-        {/* Unified content - interleaved links, grid groups, and blocks */}
-        {groupedItems.length > 0 && (
-          <div className="space-y-3">
-            {groupedItems.map((item, idx) => {
-              if (item.kind === "grid-group") {
-                return (
-                  <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
-                    {item.links.map((link: any) => (
-                      <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
-                    ))}
-                  </div>
-                );
-              } else if (item.kind === "link") {
-                return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
-              } else {
-                return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
-              }
-            })}
-          </div>
-        )}
-
-        {links.length === 0 && blocks.length === 0 && (
-          <p className={`${mutedClass} text-center py-8`}>
-            No links yet
-          </p>
-        )}
-
-        {/* Footer */}
-        <footer className="mt-12 pb-6 text-center space-y-3">
-          {/* Glass Pill CTA */}
-          <motion.div 
-            className="flex justify-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            <a
-              href="/personal"
-              className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-2xl border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-all duration-300 text-sm ${isDarkBg ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-white/20 border-white/30 hover:bg-white/30'}`}
+        {/* Profile Content - responsive offsets */}
+        <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24 md:-mt-28' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
+          {/* Action buttons - Share and Save Contact */}
+          <div className={`absolute ${hasBanner ? 'top-16 md:top-20' : 'top-0'} right-4 flex gap-2`}>
+            {profile.contact_enabled && (
+              <button
+                onClick={handleSaveContact}
+                className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+                aria-label="Save contact"
+              >
+                <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+              </button>
+            )}
+            <button
+              onClick={handleShare}
+              className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+              aria-label="Share profile"
             >
-              <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-foreground/80'}`}>
-                Start using TapAway
-              </span>
-            </a>
-          </motion.div>
+              <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+            </button>
+          </div>
+
+          {/* Avatar - priority loaded, hidden when using full banner */}
+          {!hasBanner && (
+            <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
+              <OptimizedAvatar
+                src={profile.profile_photo_url}
+                alt={profile.full_name}
+                size={28}
+                className="border-4 border-background"
+                priority
+                fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
+              />
+              <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
+                <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+              </div>
+            </div>
+          )}
+
+          {/* Name & Username & Headline/Bio */}
+          <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
+          {profile.headline && (
+            <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
+          )}
+          <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
           
-          {/* Subtle tap-enabled indicator */}
-          <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-muted-foreground/50'}`}>
-            <Smartphone className="h-3 w-3" />
-            Tap-enabled
-          </p>
-        </footer>
+          {/* Social icon bar - shows icon-style links */}
+          <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
+          
+          {profile.bio && (
+            <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
+          )}
+          <div className="mb-6" />
+
+          {/* Featured link - rendered prominently at top */}
+          {featuredLink && (
+            <div className="mb-4">
+              <ProfileLink link={featuredLink} isFeatured />
+            </div>
+          )}
+
+          {/* Unified content - interleaved links, grid groups, and blocks */}
+          {groupedItems.length > 0 && (
+            <div className="space-y-3">
+              {groupedItems.map((item, idx) => {
+                if (item.kind === "grid-group") {
+                  return (
+                    <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
+                      {item.links.map((link: any) => (
+                        <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
+                      ))}
+                    </div>
+                  );
+                } else if (item.kind === "link") {
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
+                } else {
+                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
+                }
+              })}
+            </div>
+          )}
+
+          {links.length === 0 && blocks.length === 0 && (
+            <p className={`${mutedClass} text-center py-8`}>
+              No links yet
+            </p>
+          )}
+
+          {/* Footer */}
+          <footer className="mt-12 pb-6 text-center space-y-3">
+            {/* Glass Pill CTA */}
+            <motion.div 
+              className="flex justify-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <a
+                href="/personal"
+                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-2xl border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-all duration-300 text-sm ${isDarkBg ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-white/20 border-white/30 hover:bg-white/30'}`}
+              >
+                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-foreground/80'}`}>
+                  Start using TapAway
+                </span>
+              </a>
+            </motion.div>
+            
+            {/* Subtle tap-enabled indicator */}
+            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-muted-foreground/50'}`}>
+              <Smartphone className="h-3 w-3" />
+              Tap-enabled
+            </p>
+          </footer>
+        </div>
       </div>
     </div>
   );
