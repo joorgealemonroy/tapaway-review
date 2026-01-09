@@ -101,6 +101,12 @@ const GRADIENT_PRESETS = [
 
 const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
 
+const BG_GRADIENT_PRESETS = [
+  "linear-gradient(135deg, #1a0000 0%, #3d0000 25%, #1a0000 50%, #0a0000 100%)",
+  "linear-gradient(180deg, #0a0000 0%, #2d0a0a 50%, #1a0000 100%)",
+  "radial-gradient(ellipse at center, #2d0a0a 0%, #0a0000 70%, #000000 100%)",
+];
+
 const AdminPersonalAccounts = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -1268,6 +1274,20 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
+                  {/* Ambient gradient presets */}
+                  <Label className="text-xs text-muted-foreground">Ambient Gradients</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_GRADIENT_PRESETS.map((gradient, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCreateForm({ ...createForm, backgroundColor: gradient })}
+                        className={`h-8 w-8 rounded-full border-2 transition-all ${
+                          createForm.backgroundColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
+                        }`}
+                        style={{ background: gradient }}
+                      />
+                    ))}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"
@@ -1276,12 +1296,14 @@ Login at: ${window.location.origin}/auth`;
                       onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
                       className="h-10 flex-1"
                     />
-                    <input
-                      type="color"
-                      value={createForm.backgroundColor.startsWith("#") ? createForm.backgroundColor : "#ffffff"}
-                      onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
-                      className="h-10 w-10 rounded border border-border cursor-pointer"
-                    />
+                    {!createForm.backgroundColor.startsWith("linear-gradient") && !createForm.backgroundColor.startsWith("radial-gradient") && (
+                      <input
+                        type="color"
+                        value={createForm.backgroundColor.startsWith("#") ? createForm.backgroundColor : "#ffffff"}
+                        onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
+                        className="h-10 w-10 rounded border border-border cursor-pointer"
+                      />
+                    )}
                   </div>
                 </div>
               </TabsContent>
@@ -1553,6 +1575,20 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
+                  {/* Ambient gradient presets */}
+                  <Label className="text-xs text-muted-foreground">Ambient Gradients</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_GRADIENT_PRESETS.map((gradient, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setEditForm({ ...editForm, backgroundColor: gradient })}
+                        className={`h-8 w-8 rounded-full border-2 transition-all ${
+                          editForm.backgroundColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
+                        }`}
+                        style={{ background: gradient }}
+                      />
+                    ))}
+                  </div>
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"
@@ -1560,12 +1596,14 @@ Login at: ${window.location.origin}/auth`;
                       onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
                       className="h-10 flex-1"
                     />
-                    <input
-                      type="color"
-                      value={editForm.backgroundColor.startsWith("#") ? editForm.backgroundColor : "#ffffff"}
-                      onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
-                      className="h-10 w-10 rounded border border-border cursor-pointer"
-                    />
+                    {!editForm.backgroundColor.startsWith("linear-gradient") && !editForm.backgroundColor.startsWith("radial-gradient") && (
+                      <input
+                        type="color"
+                        value={editForm.backgroundColor.startsWith("#") ? editForm.backgroundColor : "#ffffff"}
+                        onChange={(e) => setEditForm({ ...editForm, backgroundColor: e.target.value })}
+                        className="h-10 w-10 rounded border border-border cursor-pointer"
+                      />
+                    )}
                   </div>
                 </div>
 
