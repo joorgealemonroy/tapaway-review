@@ -98,3 +98,9 @@ verify_jwt = true
 
 [functions.serve-og-profile]
 verify_jwt = false
+
+[functions.manage-personal-subscription]
+verify_jwt = true
+
+[functions.restore-premium-content]
+verify_jwt = false
