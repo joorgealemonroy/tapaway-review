@@ -585,11 +585,15 @@ function ProfilePreviewRendererComponent({
         </div>
         {/* Fade overlay from header to background */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
           style={{
-            background: `linear-gradient(to bottom, transparent, ${
+            background: `linear-gradient(to bottom, transparent 0%, ${
               isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-            })`
+            }40 40%, ${
+              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+            }90 70%, ${
+              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+            } 100%)`
           }}
         />
       </div>

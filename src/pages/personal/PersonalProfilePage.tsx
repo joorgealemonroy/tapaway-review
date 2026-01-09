@@ -708,9 +708,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         />
         {/* Fade overlay from header to background */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
           style={{
-            background: `linear-gradient(to bottom, transparent, ${fadeToColor})`
+            background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}40 40%, ${fadeToColor}90 70%, ${fadeToColor} 100%)`
           }}
         />
       </div>
