@@ -36,6 +36,7 @@ interface DbPersonalLink {
   display_style?: string | null;
   cover_image_url?: string | null;
   grid_size?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface PersonalLink {
@@ -48,6 +49,7 @@ interface PersonalLink {
   displayStyle?: string;
   coverImageUrl?: string | null;
   gridSize?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 interface Props {
@@ -75,6 +77,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     displayStyle: dbLink.display_style || "pill",
     coverImageUrl: dbLink.cover_image_url,
     gridSize: dbLink.grid_size,
+    thumbnailUrl: dbLink.thumbnail_url,
   });
 
   const handleAddLink = async (link: Omit<PersonalLink, "id">) => {
@@ -111,6 +114,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         display_style: newDisplayStyle,
         cover_image_url: link.coverImageUrl || null,
         grid_size: link.gridSize || null,
+        thumbnail_url: link.thumbnailUrl || null,
       };
 
       const { data, error } = await supabase
@@ -167,6 +171,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
           display_style: updates.displayStyle,
           cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : null,
           grid_size: updates.gridSize !== undefined ? updates.gridSize : null,
+          thumbnail_url: updates.thumbnailUrl !== undefined ? updates.thumbnailUrl : null,
         })
         .eq("id", id);
 
@@ -183,6 +188,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
               display_style: updates.displayStyle || l.display_style,
               cover_image_url: updates.coverImageUrl !== undefined ? updates.coverImageUrl : l.cover_image_url,
               grid_size: updates.gridSize !== undefined ? updates.gridSize : l.grid_size,
+              thumbnail_url: updates.thumbnailUrl !== undefined ? updates.thumbnailUrl : l.thumbnail_url,
             }
           : l
       ));

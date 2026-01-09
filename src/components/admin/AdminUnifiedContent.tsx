@@ -33,6 +33,7 @@ export interface AdminLink {
   sortOrder: number;
   coverImageUrl?: string | null;
   gridSize?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 export interface AdminBlock {
@@ -467,12 +468,23 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                   </div>
 
                   {config ? (
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${config.gradient || config.bgColor}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${config.gradient || config.bgColor}`}>
                       <config.icon className={`h-4 w-4 ${config.color}`} />
                     </div>
+                  ) : link.thumbnailUrl ? (
+                    <div className="h-8 w-8 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      <img src={link.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                       <LinkIcon className="h-4 w-4 text-foreground" />
+                    </div>
+                  )}
+
+                  {/* Show thumbnail badge if present */}
+                  {link.thumbnailUrl && config && (
+                    <div className="h-6 w-6 rounded overflow-hidden bg-muted flex-shrink-0 -ml-1">
+                      <img src={link.thumbnailUrl} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
 

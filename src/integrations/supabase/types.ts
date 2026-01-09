@@ -1019,6 +1019,7 @@ export type Database = {
           pill_color: string | null
           profile_id: string
           sort_order: number | null
+          thumbnail_url: string | null
           url: string
         }
         Insert: {
@@ -1035,6 +1036,7 @@ export type Database = {
           pill_color?: string | null
           profile_id: string
           sort_order?: number | null
+          thumbnail_url?: string | null
           url: string
         }
         Update: {
@@ -1051,6 +1053,7 @@ export type Database = {
           pill_color?: string | null
           profile_id?: string
           sort_order?: number | null
+          thumbnail_url?: string | null
           url?: string
         }
         Relationships: [

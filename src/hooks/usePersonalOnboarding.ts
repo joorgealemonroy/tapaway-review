@@ -13,6 +13,7 @@ export interface PersonalLink {
   displayStyle?: string; // "pill" | "icon" | "both"
   coverImageUrl?: string | null; // optional cover image for card-style display
   gridSize?: string | null; // "half" | "full" - controls 2-col grid
+  thumbnailUrl?: string | null; // optional small icon image
 }
 
 export interface PersonalBlock {

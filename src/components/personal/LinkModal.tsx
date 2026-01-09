@@ -27,9 +27,9 @@ const COLOR_PRESETS = [
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (link: Omit<PersonalLink, "id"> & { displayStyle?: string; coverImageUrl?: string }) => void;
-  editingLink?: (PersonalLink & { displayStyle?: string; coverImageUrl?: string }) | null;
-  onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string }>) => void;
+  onAdd: (link: Omit<PersonalLink, "id"> & { displayStyle?: string; coverImageUrl?: string; thumbnailUrl?: string }) => void;
+  editingLink?: (PersonalLink & { displayStyle?: string; coverImageUrl?: string; thumbnailUrl?: string }) | null;
+  onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string; thumbnailUrl?: string }>) => void;
   existingTypes?: string[];
   existingIconTypes?: string[]; // Platform types that already have an icon
 }
@@ -54,6 +54,8 @@ export const LinkModal = ({
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [gridSize, setGridSize] = useState<"half" | "full">("half");
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -68,6 +70,7 @@ export const LinkModal = ({
       setDisplayStyle("pill");
       setCoverImageUrl(null);
       setGridSize("half");
+      setThumbnailUrl(null);
     } else if (editingLink) {
       const config = getPlatformConfig(editingLink.type);
       if (config) {
@@ -78,6 +81,7 @@ export const LinkModal = ({
         setDisplayStyle((editingLink.displayStyle as "pill" | "icon" | "both") || "pill");
         setCoverImageUrl(editingLink.coverImageUrl || null);
         setGridSize(((editingLink as any).gridSize as "half" | "full") || "half");
+        setThumbnailUrl(editingLink.thumbnailUrl || null);
         if (editingLink.type === "youtube") {
           setYoutubeType(editingLink.value.startsWith("UC") ? "channel" : "handle");
         }
@@ -118,6 +122,7 @@ export const LinkModal = ({
     setDetectedPlatform(null);
     setCoverImageUrl(null);
     setGridSize("half");
+    setThumbnailUrl(null);
   };
 
   const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +169,50 @@ export const LinkModal = ({
     setCoverImageUrl(null);
   };
 
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-link-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-link-images")
+        .getPublicUrl(filePath);
+
+      setThumbnailUrl(publicUrl);
+      toast.success("Thumbnail uploaded!");
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload thumbnail");
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const removeThumbnail = () => {
+    setThumbnailUrl(null);
+  };
+
   const handleSwitchToDetected = () => {
     if (!detectedPlatform) return;
     const extractedValue = detectedPlatform.extractValue(inputValue);
@@ -187,9 +236,9 @@ export const LinkModal = ({
     const finalGridSize = coverImageUrl ? gridSize : undefined;
 
     if (editingLink && onUpdate) {
-      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize } as any);
+      onUpdate(editingLink.id, { value, url, label, type: selectedPlatform.type, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize, thumbnailUrl: thumbnailUrl || undefined } as any);
     } else {
-      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize } as any);
+      onAdd({ type: selectedPlatform.type, value, url, label, pillColor, displayStyle, coverImageUrl: coverImageUrl || undefined, gridSize: finalGridSize, thumbnailUrl: thumbnailUrl || undefined } as any);
     }
     onOpenChange(false);
   };
@@ -389,6 +438,43 @@ export const LinkModal = ({
                 ⚠️ Another {config.label} is set as an icon. Saving this will change it to a button.
               </p>
             )}
+          </div>
+        )}
+
+        {/* Thumbnail icon upload - shows as small icon on left of button */}
+        {!coverImageUrl && (
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Thumbnail icon (optional)</Label>
+            {thumbnailUrl ? (
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  <img src={thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                </div>
+                <button
+                  type="button"
+                  onClick={removeThumbnail}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Remove</span>
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-dashed border-border hover:border-primary cursor-pointer transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailUpload}
+                  className="hidden"
+                  disabled={uploadingThumbnail}
+                />
+                <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {uploadingThumbnail ? "Uploading..." : "Add thumbnail icon"}
+                </span>
+              </label>
+            )}
+            <p className="text-xs text-muted-foreground">Shows as a small square image on the left of the button</p>
           </div>
         )}
 

@@ -61,7 +61,7 @@ const ProfileLink = memo(function ProfileLink({
   isFeatured = false,
   isGrid = false
 }: { 
-  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null };
+  link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   isFeatured?: boolean;
   isGrid?: boolean;
 }) {
@@ -183,11 +183,17 @@ const ProfileLink = memo(function ProfileLink({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-        customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
-      }`}>
-        {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
-      </div>
+      {link.thumbnail_url ? (
+        <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
+          <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+          customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
+        }`}>
+          {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
+        </div>
+      )}
       <span className={`flex-1 font-medium ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
         {link.label}
       </span>
