@@ -660,9 +660,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
   const bgColor = profile.background_color || "#ffffff";
-  const bgStyle = { backgroundColor: bgColor };
+  const isGradientBg = bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient');
+  const bgStyle = isGradientBg ? { background: bgColor } : { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
-  const isDarkBg = isColorDark(bgColor);
+  const isDarkBg = isGradientBg || isColorDark(bgColor);
   
   // Dynamic text classes based on background
   const headingClass = isDarkBg ? "text-white" : "text-foreground";
