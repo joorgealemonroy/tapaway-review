@@ -95,18 +95,39 @@ serve(async (req) => {
     let userId: string;
 
     if (existingUser) {
-      // User already exists - DO NOT change their password
-      // They must sign in with their existing password
       console.log("[verify-custom-otp] Existing user found:", existingUser.id);
 
-      // Just confirm their email is verified
+      // If password provided, this is a password reset - update it
+      if (userPassword) {
+        console.log("[verify-custom-otp] Updating password for existing user");
+        
+        const { error: updateError } = await supabase.auth.admin.updateUserById(existingUser.id, {
+          password: userPassword,
+          email_confirm: true,
+        });
+
+        if (updateError) {
+          console.error("[verify-custom-otp] Error updating password:", updateError);
+          throw new Error("Failed to update password");
+        }
+
+        console.log("[verify-custom-otp] Password updated for existing user:", existingUser.id);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            userId: existingUser.id,
+            email: normalizedEmail,
+            isNewUser: false,
+            passwordUpdated: true,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // No password provided - just confirm email
       await supabase.auth.admin.updateUserById(existingUser.id, {
         email_confirm: true,
-      });
-
-      console.log("[verify-custom-otp] Existing account - password NOT changed", {
-        email: normalizedEmail,
-        ts: new Date().toISOString(),
       });
 
       return new Response(
@@ -115,7 +136,7 @@ serve(async (req) => {
           userId: existingUser.id,
           email: normalizedEmail,
           isNewUser: false,
-          existingAccount: true, // Signal to frontend: user must sign in with existing password
+          existingAccount: true,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
