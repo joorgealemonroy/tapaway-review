@@ -122,8 +122,9 @@ const shareOptions = [
   },
 ];
 
-function ShareContent({ profile, shareUrl, onClose }: Omit<ShareModalProps, 'isOpen'>) {
+function ShareContent({ profile, shareUrl, onClose, variant = 'dialog' }: Omit<ShareModalProps, 'isOpen'> & { variant?: 'dialog' | 'drawer' }) {
   const [copied, setCopied] = useState(false);
+  const isDrawer = variant === 'drawer';
 
   const handleShare = useCallback(async (action: string) => {
     const encodedUrl = encodeURIComponent(shareUrl);
@@ -166,9 +167,9 @@ function ShareContent({ profile, shareUrl, onClose }: Omit<ShareModalProps, 'isO
   return (
     <div className="flex flex-col">
       {/* Profile Preview Card with Banner */}
-      <div className="px-5 pt-2 pb-4">
+      <div className={isDrawer ? "pb-4" : "px-5 pt-2 pb-4"}>
         <div 
-          className="relative rounded-2xl overflow-hidden h-40"
+          className={`relative overflow-hidden h-40 ${isDrawer ? 'rounded-b-2xl' : 'rounded-2xl'}`}
           style={{
             backgroundImage: profile.banner_image_url 
               ? `url(${profile.banner_image_url})` 
@@ -249,7 +250,7 @@ export function ShareModal({ isOpen, onClose, profile, shareUrl }: ShareModalPro
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DrawerContent showHandle={false} className="bg-zinc-900 border-zinc-800 rounded-t-3xl max-h-[90vh]">
-          <ShareContent profile={profile} shareUrl={shareUrl} onClose={onClose} />
+          <ShareContent profile={profile} shareUrl={shareUrl} onClose={onClose} variant="drawer" />
         </DrawerContent>
       </Drawer>
     );
