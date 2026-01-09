@@ -713,12 +713,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       {/* Cover/Header - with lazy loaded background */}
       <div className="relative">
         <div 
-          className="h-64 bg-muted" 
+          className="h-48 bg-muted" 
           style={headerStyle} 
         />
         {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
           style={{
             background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
           }}
@@ -726,7 +726,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       </div>
       
       {/* Profile Content */}
-      <div className={`max-w-md mx-auto px-4 -mt-28 pb-12 relative ${pfpCentered ? "text-center" : ""}`}>
+      <div className={`max-w-md mx-auto px-4 -mt-20 pb-12 relative ${pfpCentered ? "text-center" : ""}`}>
         {/* Action buttons - Share and Save Contact */}
         <div className="absolute top-0 right-4 flex gap-2">
           {profile.contact_enabled && (
