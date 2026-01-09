@@ -102,6 +102,7 @@ serve(async (req) => {
         subscription_status: "active",
         username: finalUsername,
         card_confirmed: false, // Reset so they can confirm their card design
+        archived_at: null, // Clear archived timestamp on upgrade
       })
       .eq("id", profileId);
 
@@ -111,6 +112,29 @@ serve(async (req) => {
         JSON.stringify({ error: "Failed to update profile" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Restore any archived premium content
+    try {
+      const response = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/restore-premium-content`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ profileId }),
+        }
+      );
+      
+      if (!response.ok) {
+        console.error("[verify-personal-upgrade] Failed to restore premium content");
+      } else {
+        console.log("[verify-personal-upgrade] Premium content restored");
+      }
+    } catch (restoreErr) {
+      console.error("[verify-personal-upgrade] Error restoring content:", restoreErr);
     }
 
     console.log("[verify-personal-upgrade] Profile upgraded successfully");

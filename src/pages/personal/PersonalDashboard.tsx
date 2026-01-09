@@ -37,6 +37,7 @@ import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
+import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 
 interface PersonalProfile {
   id: string;
@@ -56,6 +57,9 @@ interface PersonalProfile {
   card_front_headline: string | null;
   card_back_text: string | null;
   plan_type: string | null;
+  subscription_status: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
   // Contact card fields
   contact_enabled: boolean | null;
   contact_name: string | null;
@@ -158,17 +162,19 @@ const PersonalDashboard = () => {
 
       setProfile(normalizedProfile);
 
-      // Parallel fetch links and blocks
+      // Parallel fetch links and blocks - filter out archived content
       const [linksResult, blocksResult] = await Promise.all([
         supabase
           .from("personal_links")
           .select("*")
           .eq("profile_id", profileData.id)
+          .or("is_archived.is.null,is_archived.eq.false")
           .order("sort_order", { ascending: true }),
         supabase
           .from("personal_blocks")
           .select("*")
           .eq("profile_id", profileData.id)
+          .or("is_archived.is.null,is_archived.eq.false")
           .order("sort_order", { ascending: true }),
       ]);
 
@@ -635,7 +641,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="links" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="links" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
               <span className="hidden sm:inline">Links</span>
@@ -655,6 +661,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="card" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Card</span>
+            </TabsTrigger>
+            <TabsTrigger value="plan" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Plan</span>
             </TabsTrigger>
           </TabsList>
 
@@ -852,6 +862,21 @@ const PersonalDashboard = () => {
                 </p>
               </>
             )}
+          </TabsContent>
+
+          {/* Plan Tab */}
+          <TabsContent value="plan" className="space-y-4">
+            <PersonalBillingTab
+              profile={{
+                id: profile.id,
+                plan_type: profile.plan_type,
+                subscription_status: profile.subscription_status,
+                stripe_customer_id: profile.stripe_customer_id,
+                stripe_subscription_id: profile.stripe_subscription_id,
+              }}
+              onUpgrade={() => handleUpgrade("monthly")}
+              onPlanChange={loadData}
+            />
           </TabsContent>
         </Tabs>
       </main>

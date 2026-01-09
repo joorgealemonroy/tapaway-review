@@ -919,6 +919,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_archived: boolean | null
           profile_id: string
           sort_order: number
         }
@@ -929,6 +930,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_archived?: boolean | null
           profile_id: string
           sort_order?: number
         }
@@ -939,6 +941,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_archived?: boolean | null
           profile_id?: string
           sort_order?: number
         }
@@ -1009,6 +1012,7 @@ export type Database = {
           grid_size: string | null
           id: string
           is_active: boolean | null
+          is_archived: boolean | null
           is_featured: boolean | null
           label: string
           link_type: string
@@ -1024,6 +1028,7 @@ export type Database = {
           grid_size?: string | null
           id?: string
           is_active?: boolean | null
+          is_archived?: boolean | null
           is_featured?: boolean | null
           label: string
           link_type: string
@@ -1039,6 +1044,7 @@ export type Database = {
           grid_size?: string | null
           id?: string
           is_active?: boolean | null
+          is_archived?: boolean | null
           is_featured?: boolean | null
           label?: string
           link_type?: string
@@ -1066,6 +1072,9 @@ export type Database = {
       }
       personal_profiles: {
         Row: {
+          archived_at: string | null
+          archived_header_image_url: string | null
+          archived_header_type: string | null
           background_color: string | null
           bio: string | null
           card_back_text: string | null
@@ -1100,6 +1109,9 @@ export type Database = {
           username: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_header_image_url?: string | null
+          archived_header_type?: string | null
           background_color?: string | null
           bio?: string | null
           card_back_text?: string | null
@@ -1134,6 +1146,9 @@ export type Database = {
           username: string
         }
         Update: {
+          archived_at?: string | null
+          archived_header_image_url?: string | null
+          archived_header_type?: string | null
           background_color?: string | null
           bio?: string | null
           card_back_text?: string | null
@@ -2065,6 +2080,7 @@ export type Database = {
     }
     Functions: {
       build_google_review_url: { Args: { place_id: string }; Returns: string }
+      cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
       has_role: {
         Args: {

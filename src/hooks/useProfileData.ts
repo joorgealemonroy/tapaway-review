@@ -44,18 +44,20 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
     return null;
   }
 
-  // Parallel fetch links and blocks
+  // Parallel fetch links and blocks - filter out archived content
   const [linksResult, blocksResult] = await Promise.all([
     supabase
       .from('personal_links')
-      .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size')
+      .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size, is_archived')
       .eq('profile_id', profileData.id)
+      .or('is_archived.is.null,is_archived.eq.false')
       .order('sort_order', { ascending: true }),
     supabase
       .from('personal_blocks')
-      .select('id, block_type, content, alignment, sort_order')
+      .select('id, block_type, content, alignment, sort_order, is_archived')
       .eq('profile_id', profileData.id)
       .eq('is_active', true)
+      .or('is_archived.is.null,is_archived.eq.false')
       .order('sort_order', { ascending: true }),
   ]);
 
