@@ -349,7 +349,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
             // Grid group - render as 2-column grid
             if (groupedItem.kind === "grid-group") {
               return (
-                <div key={`grid-group-${groupIdx}`} className="grid grid-cols-2 gap-2">
+                <div key={`grid-group-${groupIdx}`} className="grid grid-cols-3 gap-2">
                   {groupedItem.links.map((link) => {
                     const index = unifiedItems.findIndex(
                       (i) => i.kind === "link" && i.data.id === link.id
@@ -365,7 +365,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                         onTouchStart={(e) => handleTouchStart(e, index)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        className={`relative aspect-[4/3] rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
+                        className={`relative aspect-video rounded-lg overflow-hidden border bg-card transition-all touch-none group ${
                           draggedIndex === index ? "opacity-50" : ""
                         } ${!link.isActive ? "opacity-50" : ""}`}
                       >
