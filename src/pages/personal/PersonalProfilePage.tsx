@@ -315,16 +315,31 @@ const ProfileBlock = memo(function ProfileBlock({
     case "youtube": {
       const videoId = content.videoId;
       if (!videoId) return null;
+      const ytOverlayTitle = content.overlayTitle;
+      const ytOverlaySubtitle = content.overlaySubtitle;
+      const hasYtOverlay = ytOverlayTitle || ytOverlaySubtitle;
       return (
-        <div className="w-full aspect-video rounded-xl overflow-hidden">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            className="w-full h-full"
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title="YouTube video"
-          />
+        <div className="w-full space-y-2">
+          <div className="aspect-video rounded-xl overflow-hidden">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              className="w-full h-full"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="YouTube video"
+            />
+          </div>
+          {hasYtOverlay && (
+            <div className={alignClass}>
+              {ytOverlayTitle && (
+                <h3 className={`text-lg font-bold ${textClass}`}>{ytOverlayTitle}</h3>
+              )}
+              {ytOverlaySubtitle && (
+                <p className={`text-sm ${mutedClass}`}>{ytOverlaySubtitle}</p>
+              )}
+            </div>
+          )}
         </div>
       );
     }
