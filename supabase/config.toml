@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.restore-premium-content]
 verify_jwt = false
+
+[functions.update-personal-account-email]
+verify_jwt = true

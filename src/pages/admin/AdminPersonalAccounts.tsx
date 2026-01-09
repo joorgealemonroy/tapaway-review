@@ -50,7 +50,9 @@ import {
   AlignLeft,
   AlignCenter,
   Upload,
-  Pencil
+  Pencil,
+  Mail,
+  Send
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -178,7 +180,10 @@ const AdminPersonalAccounts = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updatingEmail, setUpdatingEmail] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const [editForm, setEditForm] = useState({
+    email: "",
     fullName: "",
     headline: "",
     bio: "",
@@ -530,6 +535,7 @@ Login at: ${window.location.origin}/auth`;
 
     // Set form values from account
     setEditForm({
+      email: account.email || "",
       fullName: account.full_name || "",
       headline: account.headline || "",
       bio: account.bio || "",
@@ -689,6 +695,73 @@ Login at: ${window.location.origin}/auth`;
     } catch (err) {
       console.error("Error removing banner:", err);
       toast.error("Failed to remove banner");
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!editingAccount || !editForm.email) return;
+    
+    // Check if email actually changed
+    if (editForm.email === editingAccount.email) {
+      toast.info("Email hasn't changed");
+      return;
+    }
+
+    setUpdatingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("update-personal-account-email", {
+        body: {
+          userId: editingAccount.user_id,
+          profileId: editingAccount.id,
+          newEmail: editForm.email,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update the local account state
+      setEditingAccount({ ...editingAccount, email: editForm.email });
+      
+      toast.success(`Email updated to ${editForm.email}`);
+      loadAccounts();
+    } catch (err: unknown) {
+      console.error("Email update error:", err);
+      const message = err instanceof Error ? err.message : "Failed to update email";
+      toast.error(message);
+    } finally {
+      setUpdatingEmail(false);
+    }
+  };
+
+  const handleSendMagicLink = async () => {
+    if (!editingAccount) return;
+    
+    const emailToUse = editForm.email || editingAccount.email;
+    if (!emailToUse) {
+      toast.error("No email address available");
+      return;
+    }
+
+    setSendingMagicLink(true);
+    try {
+      // Use Supabase's built-in magic link via OTP
+      const { error } = await supabase.auth.signInWithOtp({
+        email: emailToUse,
+        options: {
+          shouldCreateUser: false, // Don't create new user, just send login link
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Magic link sent to ${emailToUse}. They can use it to log in.`);
+    } catch (err: unknown) {
+      console.error("Magic link error:", err);
+      const message = err instanceof Error ? err.message : "Failed to send magic link";
+      toast.error(message);
+    } finally {
+      setSendingMagicLink(false);
     }
   };
 
@@ -869,6 +942,7 @@ Login at: ${window.location.origin}/auth`;
     setShowEditModal(false);
     setEditingAccount(null);
     setEditForm({
+      email: "",
       fullName: "",
       headline: "",
       bio: "",
@@ -1437,6 +1511,55 @@ Login at: ${window.location.origin}/auth`;
 
               {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4 mt-4">
+                {/* Email Section with Update + Magic Link */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3 border border-border">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Mail className="h-4 w-4" />
+                    Account Email
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="user@example.com"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUpdateEmail}
+                      disabled={updatingEmail || editForm.email === editingAccount?.email}
+                    >
+                      {updatingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+                    </Button>
+                  </div>
+                  {editForm.email !== editingAccount?.email && (
+                    <p className="text-xs text-amber-600">
+                      Email changed from {editingAccount?.email} → {editForm.email}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSendMagicLink}
+                      disabled={sendingMagicLink}
+                      className="flex items-center gap-2"
+                    >
+                      {sendingMagicLink ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Send Magic Link
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Sends a login link to {editForm.email || editingAccount?.email}
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <Label>Full Name</Label>
                   <Input
