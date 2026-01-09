@@ -83,6 +83,8 @@ interface PersonalAccount {
   contact_title: string | null;
   contact_address: string | null;
   contact_website: string | null;
+  // Premium feature
+  banner_image_url: string | null;
 }
 
 const COLOR_PRESETS = [
@@ -194,6 +196,8 @@ const AdminPersonalAccounts = () => {
     contactTitle: "",
     contactAddress: "",
     contactWebsite: "",
+    // Banner
+    bannerImageUrl: "" as string | null,
   });
   const [editLinks, setEditLinks] = useState<AdminLink[]>([]);
   const [editBlocks, setEditBlocks] = useState<AdminBlock[]>([]);
@@ -203,9 +207,12 @@ const AdminPersonalAccounts = () => {
   const [editHeaderImagePreview, setEditHeaderImagePreview] = useState<string | null>(null);
   const [editContactPhotoFile, setEditContactPhotoFile] = useState<File | null>(null);
   const [editContactPhotoPreview, setEditContactPhotoPreview] = useState<string | null>(null);
+  const [editBannerImageFile, setEditBannerImageFile] = useState<File | null>(null);
+  const [editBannerImagePreview, setEditBannerImagePreview] = useState<string | null>(null);
   const editProfileInputRef = useRef<HTMLInputElement>(null);
   const editHeaderInputRef = useRef<HTMLInputElement>(null);
   const editContactPhotoInputRef = useRef<HTMLInputElement>(null);
+  const editBannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -539,15 +546,18 @@ Login at: ${window.location.origin}/auth`;
       contactTitle: account.contact_title || "",
       contactAddress: account.contact_address || "",
       contactWebsite: account.contact_website || "",
+      bannerImageUrl: account.banner_image_url || null,
     });
 
     // Set image previews from existing data
     setEditProfilePhotoPreview(account.profile_photo_url || null);
     setEditHeaderImagePreview(account.header_image_url || null);
     setEditContactPhotoPreview(account.contact_photo_url || null);
+    setEditBannerImagePreview(account.banner_image_url || null);
     setEditProfilePhotoFile(null);
     setEditHeaderImageFile(null);
     setEditContactPhotoFile(null);
+    setEditBannerImageFile(null);
 
     try {
       // Load links
@@ -652,6 +662,36 @@ Login at: ${window.location.origin}/auth`;
     setEditContactPhotoPreview(previewUrl);
   };
 
+  const handleEditBannerImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setEditBannerImageFile(file);
+    setEditBannerImagePreview(previewUrl);
+  };
+
+  const handleRemoveEditBanner = async () => {
+    if (!editingAccount) return;
+    try {
+      await supabase
+        .from("personal_profiles")
+        .update({ banner_image_url: null })
+        .eq("id", editingAccount.id);
+      
+      setEditBannerImageFile(null);
+      setEditBannerImagePreview(null);
+      setEditForm(prev => ({ ...prev, bannerImageUrl: null }));
+      toast.success("Banner removed");
+    } catch (err) {
+      console.error("Error removing banner:", err);
+      toast.error("Failed to remove banner");
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!editingAccount) return;
 
@@ -741,6 +781,25 @@ Login at: ${window.location.origin}/auth`;
         }
       }
 
+      // Upload banner image if changed
+      if (editBannerImageFile) {
+        const filePath = `banners/${editingAccount.id}/banner-${Date.now()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("personal-photos")
+          .upload(filePath, editBannerImageFile, { upsert: true, contentType: "image/jpeg" });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          await supabase
+            .from("personal_profiles")
+            .update({ banner_image_url: `${publicUrl}?t=${Date.now()}` })
+            .eq("id", editingAccount.id);
+        }
+      }
+
       // Sync links - delete all and re-insert
       const { error: deleteLinksError } = await supabase
         .from("personal_links")
@@ -826,6 +885,7 @@ Login at: ${window.location.origin}/auth`;
       contactTitle: "",
       contactAddress: "",
       contactWebsite: "",
+      bannerImageUrl: null,
     });
     setEditLinks([]);
     setEditBlocks([]);
@@ -835,6 +895,8 @@ Login at: ${window.location.origin}/auth`;
     setEditHeaderImagePreview(null);
     setEditContactPhotoFile(null);
     setEditContactPhotoPreview(null);
+    setEditBannerImageFile(null);
+    setEditBannerImagePreview(null);
     setActiveTab("basic");
   };
 
@@ -1620,6 +1682,53 @@ Login at: ${window.location.origin}/auth`;
                     )}
                   </div>
                 </div>
+
+                {/* Banner Image (Premium Feature) */}
+                {editingAccount?.plan_type !== 'free' && editingAccount?.plan_type !== null && (
+                  <div className="space-y-3 border-t pt-4">
+                    <Label className="text-sm font-medium">Background Banner (Premium)</Label>
+                    <p className="text-xs text-muted-foreground">Full-width banner that fades behind the profile</p>
+                    
+                    {(editBannerImagePreview || editForm.bannerImageUrl) ? (
+                      <div className="relative">
+                        <img 
+                          src={editBannerImagePreview || editForm.bannerImageUrl || ""} 
+                          alt="Banner" 
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          <button
+                            onClick={() => editBannerInputRef.current?.click()}
+                            className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                          >
+                            <Upload className="h-4 w-4 text-white" />
+                          </button>
+                          <button
+                            onClick={handleRemoveEditBanner}
+                            className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                          >
+                            <X className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => editBannerInputRef.current?.click()}
+                        className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+                      >
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Upload banner image</span>
+                      </button>
+                    )}
+                    <input
+                      ref={editBannerInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditBannerImageSelect}
+                      className="hidden"
+                    />
+                  </div>
+                )}
 
                 {/* Contact Card Settings */}
                 <div className="space-y-3 border-t pt-4">
