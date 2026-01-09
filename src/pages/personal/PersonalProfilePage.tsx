@@ -850,11 +850,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   {profile.headline}
                 </p>
               )}
-              {profile.bio && (
-                <p className="text-base text-white/80 mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
-                  {profile.bio}
-                </p>
-              )}
+                {profile.bio && (
+                  <p className="text-base text-white mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
+                    {profile.bio}
+                  </p>
+                )}
               {/* Social icon bar - white icons for banner */}
               <SocialIconBar links={iconLinks} isDarkBg={true} />
               <div className="mb-3" />
