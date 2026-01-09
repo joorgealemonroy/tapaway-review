@@ -180,7 +180,7 @@ function ShareContent({ profile, shareUrl, onClose }: Omit<ShareModalProps, 'isO
               src={profile.profile_photo_url}
               alt={profile.full_name}
               size={72}
-              className="rounded-full ring-4 ring-white/20 shadow-2xl"
+              className="rounded-full"
             />
             <h3 className="text-white font-bold text-lg mt-3">@{profile.username}</h3>
             <p className="text-white/60 text-sm">tapaway.co/{profile.username}</p>
