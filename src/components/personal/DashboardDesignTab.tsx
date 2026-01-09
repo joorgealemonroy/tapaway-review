@@ -49,21 +49,30 @@ const GRADIENT_PRESETS = [
 const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
 
 const BG_GRADIENT_PRESETS = [
-  // Red ambient
-  "linear-gradient(135deg, #1a0000 0%, #3d0000 25%, #1a0000 50%, #0a0000 100%)",
-  "linear-gradient(180deg, #0a0000 0%, #2d0a0a 50%, #1a0000 100%)",
-  "radial-gradient(ellipse at center, #2d0a0a 0%, #0a0000 70%, #000000 100%)",
-  // Blue ambient
-  "linear-gradient(135deg, #000a1a 0%, #00203d 25%, #000a1a 50%, #00050a 100%)",
-  "linear-gradient(180deg, #00050a 0%, #0a1a2d 50%, #000a1a 100%)",
-  "radial-gradient(ellipse at center, #0a1a2d 0%, #00050a 70%, #000000 100%)",
-  // Purple ambient
-  "linear-gradient(135deg, #0d001a 0%, #1f003d 25%, #0d001a 50%, #05000a 100%)",
-  "linear-gradient(180deg, #05000a 0%, #150a2d 50%, #0d001a 100%)",
-  "radial-gradient(ellipse at center, #150a2d 0%, #05000a 70%, #000000 100%)",
-  // Green ambient
-  "linear-gradient(135deg, #001a0d 0%, #003d1f 25%, #001a0d 50%, #000a05 100%)",
-  "linear-gradient(180deg, #000a05 0%, #0a2d15 50%, #001a0d 100%)",
+  // Red Ambiance
+  "radial-gradient(ellipse at top, #2d0a0a 0%, #1a0505 40%, #0a0000 100%)",
+  "linear-gradient(180deg, #1a0000 0%, #2d0808 50%, #0a0000 100%)",
+  // Orange Ambiance
+  "radial-gradient(ellipse at top, #2d1a0a 0%, #1a0f05 40%, #0a0500 100%)",
+  "linear-gradient(180deg, #1a0d00 0%, #2d1808 50%, #0a0500 100%)",
+  // Purple/Violet Ambiance
+  "radial-gradient(ellipse at top, #1a0a2d 0%, #0f051a 40%, #05000a 100%)",
+  "linear-gradient(180deg, #0d001a 0%, #1a0830 50%, #05000a 100%)",
+  // Blue Ambiance
+  "radial-gradient(ellipse at top, #0a1a2d 0%, #050f1a 40%, #00050a 100%)",
+  "linear-gradient(180deg, #000a1a 0%, #081a2d 50%, #00050a 100%)",
+  // Cyan/Teal Ambiance
+  "radial-gradient(ellipse at top, #0a2d2d 0%, #051a1a 40%, #000a0a 100%)",
+  "linear-gradient(180deg, #001a1a 0%, #082d2d 50%, #000a0a 100%)",
+  // Green Ambiance
+  "radial-gradient(ellipse at top, #0a2d15 0%, #051a0d 40%, #000a05 100%)",
+  "linear-gradient(180deg, #001a0d 0%, #082d15 50%, #000a05 100%)",
+  // Pink/Magenta Ambiance
+  "radial-gradient(ellipse at top, #2d0a20 0%, #1a0512 40%, #0a0008 100%)",
+  "linear-gradient(180deg, #1a0015 0%, #2d0820 50%, #0a0008 100%)",
+  // Gold/Warm Ambiance
+  "radial-gradient(ellipse at top, #2d2a0a 0%, #1a1805 40%, #0a0900 100%)",
+  "linear-gradient(180deg, #1a1500 0%, #2d2508 50%, #0a0800 100%)",
 ];
 
 export const DashboardDesignTab = ({
@@ -428,17 +437,18 @@ export const DashboardDesignTab = ({
             />
           ))}
         </div>
-        {/* Ambient gradient presets */}
-        <Label className="text-xs text-muted-foreground">Ambient Gradients</Label>
-        <div className="flex flex-wrap gap-2">
+        {/* Ambient gradient presets - organized in 4-column grid */}
+        <Label className="text-xs text-muted-foreground">Ambient Gradients (with parallax effect)</Label>
+        <div className="grid grid-cols-4 gap-2">
           {BG_GRADIENT_PRESETS.map((gradient, i) => (
             <button
               key={i}
               onClick={() => handleBgColorChange(gradient)}
-              className={`h-8 w-8 rounded-full border-2 transition-all ${
-                backgroundColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
+              className={`h-10 w-10 rounded-lg border-2 transition-all ${
+                backgroundColor === gradient ? "border-primary scale-110 ring-2 ring-primary/30" : "border-border hover:scale-105"
               }`}
               style={{ background: gradient }}
+              title={["Red", "Red", "Orange", "Orange", "Purple", "Purple", "Blue", "Blue", "Cyan", "Cyan", "Green", "Green", "Pink", "Pink", "Gold", "Gold"][i] || "Ambient"}
             />
           ))}
         </div>

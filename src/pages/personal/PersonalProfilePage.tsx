@@ -336,16 +336,7 @@ const ProfileBlock = memo(function ProfileBlock({
       const hasYtOverlay = ytOverlayTitle || ytOverlaySubtitle;
       return (
         <div className="w-full space-y-2">
-          <div className="aspect-video rounded-xl overflow-hidden">
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}`}
-              className="w-full h-full"
-              loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title="YouTube video"
-            />
-          </div>
+          {/* Title ABOVE video for cleaner look */}
           {hasYtOverlay && (
             <div className={alignClass}>
               {ytOverlayTitle && (
@@ -356,6 +347,16 @@ const ProfileBlock = memo(function ProfileBlock({
               )}
             </div>
           )}
+          <div className="aspect-video rounded-xl overflow-hidden">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              className="w-full h-full"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="YouTube video"
+            />
+          </div>
         </div>
       );
     }
@@ -692,7 +693,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   const bgColor = profile.background_color || "#ffffff";
   const isGradientBg = bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient');
-  const bgStyle = isGradientBg ? { background: bgColor } : { backgroundColor: bgColor };
+  // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
+  const bgStyle = isGradientBg 
+    ? { background: bgColor, backgroundAttachment: 'fixed' as const } 
+    : { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
   const isDarkBg = isGradientBg || isColorDark(bgColor);
   
@@ -712,11 +716,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           className="h-32 bg-muted" 
           style={headerStyle} 
         />
-        {/* Fade overlay from header to background */}
+        {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
           style={{
-            background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}40 40%, ${fadeToColor}90 70%, ${fadeToColor} 100%)`
+            background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
           }}
         />
       </div>
