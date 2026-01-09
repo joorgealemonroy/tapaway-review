@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
+import { ShareModal } from "@/components/personal/ShareModal";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -568,29 +569,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     };
   }, []);
 
-  const handleShare = useCallback(async () => {
-    if (!data?.profile) return;
-    
-    // Share URL uses edge function for rich OG previews
-    const ogUrl = `https://xfrvckdcrqvkqdwjzopt.supabase.co/functions/v1/serve-og-profile?slug=${data.profile.username}`;
-    const displayUrl = `https://tapaway.co/${data.profile.username}`;
-    const shareData = {
-      title: `${data.profile.full_name} | TapAway`,
-      text: `Check out ${data.profile.full_name}'s TapAway profile`,
-      url: ogUrl,
-    };
+  const [showShareModal, setShowShareModal] = useState(false);
 
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        await navigator.clipboard.writeText(displayUrl);
-        toast.success("Link copied to clipboard");
-      }
-    } else {
-      await navigator.clipboard.writeText(displayUrl);
-      toast.success("Link copied to clipboard");
-    }
+  const handleShare = useCallback(() => {
+    if (!data?.profile) return;
+    setShowShareModal(true);
   }, [data?.profile]);
 
   const handleSaveContact = useCallback(() => {
@@ -732,12 +715,18 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // Calculate fade color for header transition
   const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
+  // Get outer background color based on profile theme
+  const outerBgColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
+
   return (
-    // Outer wrapper - dark background visible on desktop around the phone frame
-    <div className="min-h-screen bg-black">
-      {/* Phone-frame container - full width on mobile, centered card on desktop */}
+    // Outer wrapper - themed background visible on desktop around the phone frame
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor: outerBgColor }}
+    >
+      {/* Phone-frame container - full width on mobile, centered card on desktop with rounded corners */}
       <div 
-        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl"
+        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:rounded-3xl md:overflow-hidden md:my-4"
         style={bgStyle}
       >
         {/* Full-width Banner (Premium) or standard Header */}
@@ -952,6 +941,19 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         />
         <p className="text-xs text-gray-600 font-medium">Scan to view on mobile</p>
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        profile={{
+          username: profile.username,
+          full_name: profile.full_name,
+          profile_photo_url: profile.profile_photo_url,
+          banner_image_url: profile.banner_image_url,
+        }}
+        shareUrl={`https://tapaway.co/${profile.username}`}
+      />
     </div>
   );
 };
