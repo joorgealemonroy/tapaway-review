@@ -4,6 +4,15 @@ import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
 
+// Helper to extract a base color from a gradient for fade effect
+function getBaseColorFromGradient(gradient: string): string {
+  const colorMatch = gradient.match(/#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgb\([^)]+\)|rgba\([^)]+\)/g);
+  if (colorMatch && colorMatch.length > 0) {
+    return colorMatch[colorMatch.length - 1];
+  }
+  return "#000000";
+}
+
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
 function isColorDark(hexColor: string | null | undefined): boolean {
   if (!hexColor) return false;
@@ -558,20 +567,31 @@ function ProfilePreviewRendererComponent({
       style={{ backgroundColor }}
     >
       {/* Header */}
-      <div className="relative h-32 w-full overflow-hidden">
-        {headerType === "image" && headerImageUrl ? (
-          <OptimizedImage
-            src={headerImageUrl}
-            alt="Header"
-            className="h-full w-full object-cover"
-            width={800}
-          />
-        ) : (
-          <div
-            className="h-full w-full"
-            style={{ backgroundColor: headerColor }}
-          />
-        )}
+      <div className="relative w-full">
+        <div className="h-32 overflow-hidden">
+          {headerType === "image" && headerImageUrl ? (
+            <OptimizedImage
+              src={headerImageUrl}
+              alt="Header"
+              className="h-full w-full object-cover"
+              width={800}
+            />
+          ) : (
+            <div
+              className="h-full w-full"
+              style={{ backgroundColor: headerColor }}
+            />
+          )}
+        </div>
+        {/* Fade overlay from header to background */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+          style={{
+            background: `linear-gradient(to bottom, transparent, ${
+              isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+            })`
+          }}
+        />
       </div>
 
       {/* Profile section */}
