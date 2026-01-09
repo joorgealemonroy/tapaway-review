@@ -128,7 +128,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
   };
 
   // Link handlers
-  const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null }) => {
+  const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null; thumbnailUrl?: string | null }) => {
     const newDisplayStyle = (linkData.displayStyle as "pill" | "icon" | "both") || "pill";
     const maxOrder = unifiedItems.length > 0 ? Math.max(...unifiedItems.map(getSortOrder)) : -1;
     
@@ -157,6 +157,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
       sortOrder: maxOrder + 1,
       coverImageUrl: linkData.coverImageUrl || null,
       gridSize: linkData.gridSize || null,
+      thumbnailUrl: linkData.thumbnailUrl || null,
     };
     onLinksChange([...updatedLinks, newLink]);
   };
@@ -364,7 +365,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                         onTouchStart={(e) => handleTouchStart(e, index)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
+                        className={`relative aspect-[4/3] rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
                           draggedIndex === index ? "opacity-50" : ""
                         } ${!link.isActive ? "opacity-50" : ""}`}
                       >
@@ -622,6 +623,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
           displayStyle: editingLink.displayStyle,
           coverImageUrl: editingLink.coverImageUrl,
           gridSize: editingLink.gridSize,
+          thumbnailUrl: editingLink.thumbnailUrl,
         } : null}
         onUpdate={(id, updates) => handleUpdateLink(id, updates as Partial<AdminLink>)}
         existingTypes={[]}
