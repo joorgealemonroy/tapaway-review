@@ -15,6 +15,7 @@ import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/Opt
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
+import QRCode from "react-qr-code";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -551,6 +552,22 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [data?.profile?.header_image_url]);
 
+  // Set mobile browser theme-color meta tag to black for all profiles
+  useEffect(() => {
+    const themeColor = "#000000";
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', themeColor);
+    
+    return () => {
+      meta?.setAttribute('content', '#ffffff');
+    };
+  }, []);
+
   const handleShare = useCallback(async () => {
     if (!data?.profile) return;
     
@@ -726,25 +743,24 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         {/* Full-width Banner (Premium) or standard Header */}
         {hasBanner ? (
           <div className="relative">
-            {/* Banner - fixed on mobile for scroll feel, absolute on desktop to stay in container */}
+            {/* Banner - scrolls with content (not fixed) like Linktree */}
             <div 
-              className="fixed md:absolute inset-x-0 top-0 h-[50vh] md:h-[55%] pointer-events-none z-0"
+              className="absolute inset-x-0 top-0 h-[55vh] md:h-[50vh] pointer-events-none z-0"
               style={{
                 backgroundImage: `url(${bannerUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center top",
-                willChange: "transform",
               }}
             />
             {/* Gradient fade from banner to background */}
             <div 
-              className="fixed md:absolute inset-x-0 top-0 h-[50vh] md:h-[55%] pointer-events-none z-0"
+              className="absolute inset-x-0 top-0 h-[55vh] md:h-[50vh] pointer-events-none z-0"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}60 65%, ${fadeToColor}90 80%, ${fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, transparent 50%, ${fadeToColor}80 75%, ${fadeToColor} 100%)`
               }}
             />
-            {/* Spacer to push content below the banner area - responsive */}
-            <div className="h-[35vh] md:h-[40vh]" />
+            {/* Spacer to push content below the banner area */}
+            <div className="h-[40vh] md:h-[35vh]" />
           </div>
         ) : (
           <div className="relative">
@@ -879,6 +895,16 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </p>
           </footer>
         </div>
+      </div>
+
+      {/* Desktop-only QR code - positioned outside the phone frame */}
+      <div className="hidden md:flex fixed bottom-8 right-8 bg-white p-4 rounded-2xl shadow-xl flex-col items-center gap-2 z-50">
+        <QRCode 
+          value={`https://tapaway.co/${profile.username}`} 
+          size={100}
+          level="M"
+        />
+        <p className="text-xs text-gray-600 font-medium">Scan to view on mobile</p>
       </div>
     </div>
   );
