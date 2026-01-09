@@ -56,18 +56,38 @@ export const usePaywallGuard = () => {
         return;
       }
 
-      // Check if user already has an allowed subscription
-      const { data: restaurant } = await supabase
-        .from("restaurants")
-        .select("subscription_status, id")
-        .eq("owner_id", user.id)
-        .maybeSingle();
+      // Check both business AND personal accounts in parallel
+      const [restaurantResult, personalResult] = await Promise.all([
+        supabase
+          .from("restaurants")
+          .select("subscription_status, id")
+          .eq("owner_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("personal_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle()
+      ]);
 
+      const restaurant = restaurantResult.data;
+      const personal = personalResult.data;
+
+      // If user has valid business subscription, go to business dashboard
       if (restaurant && isSubscriptionAllowed(restaurant.subscription_status)) {
-        // User has allowed subscription, redirect to dashboard
         navigate("/dashboard");
+        setChecking(false);
+        return;
       }
 
+      // If user has a personal profile (no valid business), go to personal dashboard
+      if (personal) {
+        navigate("/personal/dashboard");
+        setChecking(false);
+        return;
+      }
+
+      // Only now show the paywall (user has neither)
       setChecking(false);
     };
 
