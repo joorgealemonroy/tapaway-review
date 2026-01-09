@@ -16,6 +16,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
 
+// Helper to extract a base color from a gradient for fade effect
+function getBaseColorFromGradient(gradient: string): string {
+  // Try to extract the last color from the gradient
+  const colorMatch = gradient.match(/#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgb\([^)]+\)|rgba\([^)]+\)/g);
+  if (colorMatch && colorMatch.length > 0) {
+    return colorMatch[colorMatch.length - 1];
+  }
+  return "#000000";
+}
+
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
 function isColorDark(hexColor: string | null | undefined): boolean {
   if (!hexColor) return false;
@@ -685,13 +695,25 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const textClass = isDarkBg ? "text-white/80" : "text-foreground/80";
   const mutedClass = isDarkBg ? "text-white/60" : "text-muted-foreground";
 
+  // Calculate fade color for header transition
+  const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
+
   return (
     <div className="min-h-screen" style={bgStyle}>
       {/* Cover/Header - with lazy loaded background */}
-      <div 
-        className="h-32 bg-muted" 
-        style={headerStyle} 
-      />
+      <div className="relative">
+        <div 
+          className="h-32 bg-muted" 
+          style={headerStyle} 
+        />
+        {/* Fade overlay from header to background */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+          style={{
+            background: `linear-gradient(to bottom, transparent, ${fadeToColor})`
+          }}
+        />
+      </div>
       
       {/* Profile Content */}
       <div className={`max-w-md mx-auto px-4 -mt-16 pb-12 relative ${pfpCentered ? "text-center" : ""}`}>
