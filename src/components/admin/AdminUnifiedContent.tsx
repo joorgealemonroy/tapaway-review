@@ -312,7 +312,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
     : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-hidden">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Content</p>
@@ -476,9 +476,9 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <p className="font-medium text-sm truncate">{link.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">{link.value || link.url}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-full">{link.value || link.url}</p>
                   </div>
 
                   {link.displayStyle && link.displayStyle !== "pill" && (
