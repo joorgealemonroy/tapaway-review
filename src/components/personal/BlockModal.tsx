@@ -72,6 +72,8 @@ export const BlockModal = ({
   
   // Form states
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeOverlayTitle, setYoutubeOverlayTitle] = useState("");
+  const [youtubeOverlaySubtitle, setYoutubeOverlaySubtitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [textTitle, setTextTitle] = useState("");
@@ -119,6 +121,8 @@ export const BlockModal = ({
         const content = editingBlock.content as Record<string, string>;
         if (editingBlock.block_type === "youtube") {
           setYoutubeUrl(content.url || "");
+          setYoutubeOverlayTitle(content.overlayTitle || "");
+          setYoutubeOverlaySubtitle(content.overlaySubtitle || "");
         } else if (editingBlock.block_type === "image") {
           setImageUrl(content.url || "");
           setImageLinkUrl(content.linkUrl || "");
@@ -162,6 +166,8 @@ export const BlockModal = ({
   const resetForm = () => {
     setSelectedType(null);
     setYoutubeUrl("");
+    setYoutubeOverlayTitle("");
+    setYoutubeOverlaySubtitle("");
     setImageUrl("");
     setTextTitle("");
     setTextBody("");
@@ -345,7 +351,12 @@ export const BlockModal = ({
           toast.error("Invalid YouTube URL");
           return;
         }
-        content = { url: youtubeUrl, videoId };
+        content = { 
+          url: youtubeUrl, 
+          videoId,
+          overlayTitle: youtubeOverlayTitle.trim(),
+          overlaySubtitle: youtubeOverlaySubtitle.trim(),
+        };
         break;
       }
       case "image": {
@@ -508,14 +519,33 @@ export const BlockModal = ({
           ) : (
             <div className="space-y-4 pt-2">
               {selectedType === "youtube" && (
-                <div className="space-y-2">
-                  <Label>YouTube URL</Label>
-                  <Input
-                    placeholder="https://youtube.com/watch?v=..."
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="h-12"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>YouTube URL</Label>
+                    <Input
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  {/* Text overlay options */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Text Overlay (optional)</Label>
+                    <Input
+                      placeholder="Title text..."
+                      value={youtubeOverlayTitle}
+                      onChange={(e) => setYoutubeOverlayTitle(e.target.value)}
+                      className="h-10"
+                    />
+                    <Input
+                      placeholder="Subtitle text..."
+                      value={youtubeOverlaySubtitle}
+                      onChange={(e) => setYoutubeOverlaySubtitle(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
                 </div>
               )}
 
