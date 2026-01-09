@@ -27,6 +27,9 @@ export interface CachedProfile {
   contact_title: string | null;
   contact_address: string | null;
   contact_website: string | null;
+  // Premium feature
+  banner_image_url: string | null;
+  plan_type: string | null;
 }
 
 export interface CachedLink {

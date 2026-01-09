@@ -70,6 +70,8 @@ interface PersonalProfile {
   contact_title: string | null;
   contact_address: string | null;
   contact_website: string | null;
+  // Premium feature
+  banner_image_url: string | null;
 }
 
 interface DbPersonalLink {
@@ -434,6 +436,7 @@ const PersonalDashboard = () => {
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
     pfpPosition?: string;
+    bannerImageUrl?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -443,6 +446,7 @@ const PersonalDashboard = () => {
         header_image_url: updates.headerImageUrl !== undefined ? updates.headerImageUrl : profile.header_image_url,
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
+        banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
       };
       setProfile(updatedProfile);
       
@@ -704,6 +708,8 @@ const PersonalDashboard = () => {
               headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
               pfpPosition={profile.pfp_position}
+              bannerImageUrl={profile.banner_image_url}
+              isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               onUpdate={handleDesignUpdate}
             />
 
