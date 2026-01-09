@@ -42,6 +42,7 @@ interface DbPersonalLink {
   display_style?: string | null;
   cover_image_url?: string | null;
   grid_size?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface PersonalBlock {
@@ -63,6 +64,7 @@ interface PersonalLink {
   displayStyle?: string | null;
   gridSize?: string | null;
   coverImageUrl?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 type UnifiedItem = 
@@ -193,6 +195,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     displayStyle: dbLink.display_style,
     gridSize: dbLink.grid_size,
     coverImageUrl: dbLink.cover_image_url,
+    thumbnailUrl: dbLink.thumbnail_url,
   });
 
   // Save all pending changes to DB
@@ -222,6 +225,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           display_style: link.display_style || 'pill',
           cover_image_url: link.cover_image_url || null,
           grid_size: link.grid_size || null,
+          thumbnail_url: link.thumbnail_url || null,
         });
       }
       for (const block of pendingChanges.addedBlocks) {
@@ -402,6 +406,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       display_style: link.displayStyle || 'pill',
       cover_image_url: link.coverImageUrl || null,
       grid_size: link.gridSize || null,
+      thumbnail_url: link.thumbnailUrl || null,
     };
 
     onLinksChange([...links, newLink]);
@@ -409,7 +414,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     setLinkModalOpen(false);
   };
 
-  const handleUpdateLink = (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null }>) => {
+  const handleUpdateLink = (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null; thumbnailUrl?: string | null }>) => {
     // Check if this is a pending add (not yet in DB)
     const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
     
@@ -421,6 +426,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       display_style: updates.displayStyle,
       cover_image_url: updates.coverImageUrl,
       grid_size: updates.gridSize,
+      thumbnail_url: updates.thumbnailUrl,
     };
 
     onLinksChange(links.map(l => 

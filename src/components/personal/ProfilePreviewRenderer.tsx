@@ -63,6 +63,7 @@ interface LinkData {
   display_style?: string | null;
   cover_image_url?: string | null;
   grid_size?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface BlockData {
@@ -397,7 +398,11 @@ function ProfilePreviewRendererComponent({
         className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`}
         style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
       >
-        {Icon && (
+        {link.thumbnail_url ? (
+          <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
+            <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : Icon && (
           <div
             className="flex h-10 w-10 items-center justify-center rounded-lg"
             style={{ backgroundColor: isDarkBg ? 'rgba(255,255,255,0.1)' : `${headerColor}15` }}
