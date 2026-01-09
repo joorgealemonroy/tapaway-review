@@ -5,7 +5,8 @@ import {
   MessageCircle, 
   Mail,
   Check,
-  X
+  X,
+  ArrowRight
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
@@ -213,6 +214,22 @@ export function ShareModal({ isOpen, onClose, profile, shareUrl }: ShareModalPro
                 </motion.button>
               );
             })}
+          </div>
+
+          {/* CTA Section */}
+          <div className="pt-4 mt-4 border-t border-zinc-800 text-center">
+            <p className="text-zinc-400 text-sm">
+              Don't have TapAway yet?
+            </p>
+            <a 
+              href="/personal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-2 text-white font-semibold hover:text-primary transition-colors"
+            >
+              Start using TapAway
+              <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </DialogContent>
