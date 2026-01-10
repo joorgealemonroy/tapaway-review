@@ -745,12 +745,13 @@ Login at: ${window.location.origin}/auth`;
 
     setSendingMagicLink(true);
     try {
-      // Use custom TapAway-branded magic link email
+      // Use custom TapAway-branded magic link email with dynamic base URL
       const { data, error } = await supabase.functions.invoke("send-magic-link-email", {
         body: {
           userId: editingAccount.user_id,
           email: emailToUse,
           fullName: editingAccount.full_name,
+          baseUrl: window.location.origin,
         },
       });
 

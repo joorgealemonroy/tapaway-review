@@ -43,19 +43,19 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
     <!-- Main Content Card -->
     <tr>
       <td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
-        <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#ffffff;">Sign In to TapAway</h1>
+        <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#ffffff;">Set Up Your TapAway Account</h1>
         <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">
-          Hey ${firstName}, click the button below to securely sign in to your TapAway account.
+          Hey ${firstName}, click the button below to set your password and access your TapAway profile.
         </p>
         
         <!-- CTA Button -->
         <a href="${magicLink}" 
            style="display:inline-block;background:#6BCB77;color:#000000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;margin-bottom:32px;">
-          Sign In to TapAway
+          Set Up My Account
         </a>
         
         <p style="margin:24px 0 0 0;font-size:13px;color:#666666;line-height:1.6;">
-          This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+          This link expires in 24 hours. You can close and reopen it anytime before setting your password. If you didn't request this, you can safely ignore this email.
         </p>
       </td>
     </tr>
@@ -79,15 +79,15 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
 function generateMagicLinkEmailText(fullName: string, magicLink: string): string {
   const firstName = fullName?.split(" ")[0] || "there";
   
-  return `TapAway — Sign In
+  return `TapAway — Set Up Your Account
 
 Hey ${firstName},
 
-Click the link below to sign in to your TapAway account:
+Click the link below to set your password and access your TapAway profile:
 
 ${magicLink}
 
-This link expires in 1 hour.
+This link expires in 24 hours. You can close and reopen it anytime before setting your password.
 If you didn't request this, you can safely ignore this email.
 
 Need help? Reply to this email.
@@ -146,7 +146,7 @@ serve(async (req) => {
 
   try {
     // Parse body FIRST (can only be read once)
-    const { userId, email, fullName } = await req.json();
+    const { userId, email, fullName, baseUrl: requestBaseUrl } = await req.json();
 
     if (!userId || !email) {
       return new Response(
@@ -205,7 +205,8 @@ serve(async (req) => {
     // Generate secure token
     const token = generateSecureToken();
     const tokenHash = await sha256Hex(token);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Extended to 24 hours for dummy-proof experience
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Delete any existing magic link tokens for this user
     await supabase
@@ -228,14 +229,16 @@ serve(async (req) => {
       throw new Error("Failed to generate magic link");
     }
 
-    // Build magic link URL
-    const baseUrl = "https://tapaway.co";
+    // Build magic link URL - use baseUrl from request or default to production
+    const baseUrl = requestBaseUrl || "https://tapaway.co";
     const magicLink = `${baseUrl}/auth/magic?token=${token}`;
+
+    console.log("[send-magic-link-email] Magic link base URL:", baseUrl);
 
     // Send email
     const html = generateMagicLinkEmailHtml(fullName || "there", magicLink);
     const text = generateMagicLinkEmailText(fullName || "there", magicLink);
-    const sent = await sendEmail(email, "Sign in to TapAway", html, text);
+    const sent = await sendEmail(email, "Set Up Your TapAway Account", html, text);
 
     if (!sent) {
       throw new Error("Failed to send magic link email");
@@ -247,7 +250,7 @@ serve(async (req) => {
       action: "send_magic_link",
       target_type: "personal_profile",
       target_id: userId,
-      details: { email },
+      details: { email, baseUrl },
     });
 
     console.log("[send-magic-link-email] Magic link sent successfully to:", email);

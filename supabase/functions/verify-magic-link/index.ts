@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json();
+    const { token, newPassword } = await req.json();
 
     if (!token || typeof token !== "string") {
       return new Response(
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("[verify-magic-link] Verifying token...");
+    console.log("[verify-magic-link] Verifying token, password provided:", !!newPassword);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -42,7 +42,7 @@ serve(async (req) => {
     // Hash the token to look it up
     const tokenHash = await sha256Hex(token);
 
-    // Find the token
+    // Find the token - check if unused
     const { data: tokenData, error: lookupError } = await supabase
       .from("magic_link_tokens")
       .select("*")
@@ -67,7 +67,38 @@ serve(async (req) => {
       );
     }
 
-    // Mark token as used
+    // VALIDATION MODE: If no password provided, just validate the token
+    // Token is NOT consumed yet - user can close tab and come back
+    if (!newPassword) {
+      console.log("[verify-magic-link] Validation mode - token valid for:", tokenData.email);
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          email: tokenData.email,
+          userId: tokenData.user_id,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // COMPLETE MODE: Password provided - set it and create session
+    console.log("[verify-magic-link] Complete mode - setting password for:", tokenData.email);
+
+    // Set the user's password
+    const { error: passwordError } = await supabase.auth.admin.updateUserById(
+      tokenData.user_id,
+      { password: newPassword }
+    );
+
+    if (passwordError) {
+      console.error("[verify-magic-link] Error setting password:", passwordError);
+      return new Response(
+        JSON.stringify({ error: "Failed to set password" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // NOW mark token as used (only after password is successfully set)
     const { error: updateError } = await supabase
       .from("magic_link_tokens")
       .update({ used_at: new Date().toISOString() })
@@ -78,7 +109,6 @@ serve(async (req) => {
     }
 
     // Generate a session for the user
-    // Using generateLink to create a magic link that we can use to sign in
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: "magiclink",
       email: tokenData.email,
@@ -110,7 +140,7 @@ serve(async (req) => {
           throw new Error("Failed to create session");
         }
 
-        console.log("[verify-magic-link] Session created for user:", tokenData.user_id);
+        console.log("[verify-magic-link] Password set and session created for user:", tokenData.user_id);
 
         return new Response(
           JSON.stringify({
@@ -129,7 +159,7 @@ serve(async (req) => {
       throw new Error("Failed to extract session tokens");
     }
 
-    console.log("[verify-magic-link] Session created for user:", tokenData.user_id);
+    console.log("[verify-magic-link] Password set and session created for user:", tokenData.user_id);
 
     return new Response(
       JSON.stringify({
