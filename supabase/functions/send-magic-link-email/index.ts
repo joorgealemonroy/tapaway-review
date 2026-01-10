@@ -145,6 +145,16 @@ serve(async (req) => {
   }
 
   try {
+    // Parse body FIRST (can only be read once)
+    const { userId, email, fullName } = await req.json();
+
+    if (!userId || !email) {
+      return new Response(
+        JSON.stringify({ error: "userId and email are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get auth header to verify admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -165,6 +175,7 @@ serve(async (req) => {
 
     const { data: { user: adminUser }, error: authError } = await userClient.auth.getUser();
     if (authError || !adminUser) {
+      console.error("[send-magic-link-email] Auth error:", authError);
       return new Response(
         JSON.stringify({ error: "Not authenticated" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -186,16 +197,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse request body
-    const { userId, email, fullName } = await req.json();
-
-    if (!userId || !email) {
-      return new Response(
-        JSON.stringify({ error: "userId and email are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
