@@ -182,23 +182,23 @@ serve(async (req) => {
       );
     }
 
-    // Create service role client for admin operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check if user is admin
-    const { data: adminRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", adminUser.id)
-      .eq("role", "admin")
-      .single();
-
-    if (!adminRole) {
+    // Check if user is admin using the is_admin RPC function (runs with user's context)
+    const { data: isAdmin, error: adminCheckError } = await userClient.rpc("is_admin");
+    
+    if (adminCheckError) {
+      console.error("[send-magic-link-email] Admin check error:", adminCheckError);
+    }
+    
+    if (!isAdmin) {
+      console.error("[send-magic-link-email] Admin check failed for user:", adminUser.email);
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Create service role client for admin operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("[send-magic-link-email] Sending magic link to:", email);
 

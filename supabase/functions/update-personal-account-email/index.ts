@@ -25,26 +25,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the caller is an admin
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: authError } = await supabase.auth.getUser(token);
+    // Create client with user's token to check admin status
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user: callerUser }, error: authError } = await userClient.auth.getUser();
     
     if (authError || !callerUser) {
+      console.error("[update-personal-account-email] Auth error:", authError);
       return new Response(
         JSON.stringify({ error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if caller is admin
-    const { data: adminRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", callerUser.id)
-      .eq("role", "admin")
-      .single();
-
-    if (!adminRole) {
+    // Check if caller is admin using the is_admin RPC function
+    const { data: isAdmin, error: adminCheckError } = await userClient.rpc("is_admin");
+    
+    if (adminCheckError) {
+      console.error("[update-personal-account-email] Admin check error:", adminCheckError);
+    }
+    
+    if (!isAdmin) {
+      console.error("[update-personal-account-email] Admin check failed for user:", callerUser.email);
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
