@@ -745,15 +745,17 @@ Login at: ${window.location.origin}/auth`;
 
     setSendingMagicLink(true);
     try {
-      // Use Supabase's built-in magic link via OTP
-      const { error } = await supabase.auth.signInWithOtp({
-        email: emailToUse,
-        options: {
-          shouldCreateUser: false, // Don't create new user, just send login link
+      // Use custom TapAway-branded magic link email
+      const { data, error } = await supabase.functions.invoke("send-magic-link-email", {
+        body: {
+          userId: editingAccount.user_id,
+          email: emailToUse,
+          fullName: editingAccount.full_name,
         },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success(`Magic link sent to ${emailToUse}. They can use it to log in.`);
     } catch (err: unknown) {

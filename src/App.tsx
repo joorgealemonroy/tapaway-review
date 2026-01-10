@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 // Auth routes - relatively lightweight
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 
 // Personal TapAway - code split for fast public profile loads
 const PersonalSignup = lazy(() => import("./pages/personal/PersonalSignup"));
@@ -97,6 +98,7 @@ const App = () => (
                 <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/magic" element={<MagicLinkVerify />} />
                 <Route path="/select-dashboard" element={<DashboardSelector />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />

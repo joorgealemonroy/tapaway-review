@@ -107,3 +107,9 @@ verify_jwt = false
 
 [functions.update-personal-account-email]
 verify_jwt = true
+
+[functions.send-magic-link-email]
+verify_jwt = true
+
+[functions.verify-magic-link]
+verify_jwt = false
