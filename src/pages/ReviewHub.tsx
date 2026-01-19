@@ -40,7 +40,11 @@ interface MenuItem {
 }
 
 const ReviewHub = () => {
-  const { restaurantId, customSlug } = useParams();
+  const { restaurantId, customSlug, slug } = useParams<{ 
+    restaurantId?: string; 
+    customSlug?: string; 
+    slug?: string; 
+  }>();
   const location = useLocation();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,14 +71,17 @@ const ReviewHub = () => {
     // Check if we're on a custom slug route (not /hub/:id)
     const isCustomSlugRoute = !location.pathname.startsWith('/hub/');
     
-    if (isCustomSlugRoute && customSlug) {
+    // Try customSlug first, then slug (from /:slug route via UsernameResolver)
+    const effectiveSlug = customSlug || slug;
+    
+    if (isCustomSlugRoute && effectiveSlug) {
       // Fetch by custom slug
-      fetchRestaurantBySlug(customSlug);
+      fetchRestaurantBySlug(effectiveSlug);
     } else if (restaurantId) {
       // Fetch by ID
       fetchRestaurant(restaurantId);
     }
-  }, [restaurantId, customSlug, location]);
+  }, [restaurantId, customSlug, slug, location]);
 
   const fetchRestaurantBySlug = async (slug: string) => {
     // Use restaurant_public_info view which is publicly accessible (no RLS restrictions)
