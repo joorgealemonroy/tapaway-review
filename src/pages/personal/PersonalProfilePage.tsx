@@ -750,9 +750,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:overflow-hidden md:rounded-3xl md:mb-4"
         style={{
           ...bgStyle,
-          // Soft glow shadow that blends the frame edge into the outer background
+          // Larger, softer glow that blends the frame edge into the outer background
           boxShadow: hasBanner && extractedBannerColor 
-            ? `0 0 60px 20px ${extractedBannerColor}40, 0 0 100px 40px ${extractedBannerColor}20`
+            ? `0 0 80px 30px ${extractedBannerColor}30, 0 0 120px 60px ${extractedBannerColor}15, 0 0 160px 80px ${extractedBannerColor}08`
             : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}
       >

@@ -10,6 +10,7 @@ import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
 import { TrialBanner } from "@/components/TrialBanner";
 import { LandingNav } from "@/components/landing/LandingNav";
+import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
 
 const Index = () => {
   return (
@@ -70,6 +71,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Free Trial Popup */}
+      <FreeTrialPopup />
     </div>
   );
 };

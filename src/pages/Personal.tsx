@@ -5,6 +5,7 @@ import { PersonalHowItWorks } from "@/components/landing/personal/PersonalHowItW
 import { PersonalUseCases } from "@/components/landing/personal/PersonalUseCases";
 import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
+import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
 
 const Personal = () => {
   return (
@@ -41,6 +42,9 @@ const Personal = () => {
           </div>
         </div>
       </footer>
+
+      {/* Free Trial Popup */}
+      <FreeTrialPopup />
     </div>
   );
 };
