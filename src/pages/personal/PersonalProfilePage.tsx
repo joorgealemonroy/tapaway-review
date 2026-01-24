@@ -744,9 +744,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       style={{ backgroundColor: outerBgColor }}
     >
       {/* Phone-frame container - full width on mobile, centered card on desktop with rounded corners */}
-      {/* When banner is active, remove top margin but keep rounded corners */}
+      {/* Add top padding on desktop for spacing, using outer bg color instead of margin */}
+      <div className="hidden md:block md:h-4" />
       <div 
-        className={`min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:overflow-hidden md:rounded-3xl ${hasBanner ? 'md:mb-4' : 'md:my-4'}`}
+        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:overflow-hidden md:rounded-3xl md:mb-4"
         style={bgStyle}
       >
         {/* Full-width Banner (Premium) or standard Header */}
