@@ -39,8 +39,7 @@ serve(async (req) => {
       // Personal profile found
       const title = `Check out ${profile.full_name} (@${profile.username}) on TapAway`;
       const description = profile.headline || profile.bio || "Share who you are with a single tap.";
-      // Use dynamic OG image generator for personalized previews
-      const image = `${supabaseUrl}/functions/v1/generate-og-image?slug=${encodeURIComponent(slug)}`;
+      const image = profile.profile_photo_url || defaultImage;
 
       const html = generateOgHtml({ title, description, image, canonicalUrl });
       return new Response(html, {
