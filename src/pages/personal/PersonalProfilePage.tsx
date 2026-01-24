@@ -647,7 +647,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     | { kind: "block"; data: typeof blocks[0] };
 
   // Separate icon-style links from pill-style links
-  const iconLinks = links.filter((l: any) => l.is_active !== false && l.display_style === 'icon');
+  // Icon links include both 'icon' and 'both' display styles
+  const iconLinks = links.filter((l: any) => l.is_active !== false && (l.display_style === 'icon' || l.display_style === 'both'));
+  // Pill links include everything except 'icon' only (so 'both' appears in both places)
   const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
 
   // All non-featured items go into unified list for proper sort order
@@ -741,11 +743,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 backgroundPosition: "center top",
               }}
             />
-            {/* Gradient fade from banner to background */}
+            {/* Gradient fade from banner to background - subtle fade for better image visibility */}
             <div 
               className="absolute inset-x-0 top-0 h-[55vh] md:h-[50vh] pointer-events-none z-0"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, transparent 50%, ${fadeToColor}80 75%, ${fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}30 60%, ${fadeToColor}80 80%, ${fadeToColor} 100%)`
               }}
             />
             {/* Action buttons - top right for banner profiles */}
