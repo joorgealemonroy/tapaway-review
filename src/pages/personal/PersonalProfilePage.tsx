@@ -588,6 +588,20 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [bannerUrlForExtraction]);
 
+  // Compute document background color for useAppBackground hook
+  // Must be called before early returns to comply with React Rules of Hooks
+  const docBgColor = (() => {
+    if (!data?.profile) return null;
+    const bg = data.profile.background_color || "#000000";
+    if (bg.startsWith('linear-gradient') || bg.startsWith('radial-gradient')) {
+      return getBaseColorFromGradient(bg);
+    }
+    return bg;
+  })();
+
+  // Set document background to match profile theme (eliminates white bar at bottom)
+  useAppBackground(docBgColor);
+
   const handleShare = useCallback(() => {
     if (!data?.profile) return;
     setShowShareModal(true);
@@ -737,9 +751,6 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Get outer background color based on profile theme
   const outerBgColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
-
-  // Set document background to match profile theme (eliminates white bar at bottom)
-  useAppBackground(outerBgColor);
 
   return (
     // Outer wrapper - themed background visible on desktop around the phone frame
