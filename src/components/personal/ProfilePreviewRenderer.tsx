@@ -585,27 +585,23 @@ function ProfilePreviewRendererComponent({
       <div className="relative w-full">
         {hasBanner ? (
           <>
-            {/* Banner mode - taller with fade */}
-            <div className="h-44 overflow-hidden">
+            {/* Banner mode - fully visible with fade at bottom only */}
+            <div className="h-48 overflow-hidden relative">
               <img
                 src={bannerUrl}
                 alt="Banner"
                 className="h-full w-full object-cover object-top"
               />
+              {/* Gradient fade at bottom of banner only */}
+              <div 
+                className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
+                style={{
+                  background: `linear-gradient(to bottom, transparent 0%, ${
+                    isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  } 100%)`
+                }}
+              />
             </div>
-            {/* Fade overlay from banner to background - subtle fade for better image visibility */}
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
-              style={{
-                background: `linear-gradient(to bottom, transparent 0%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-                }30 40%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-                }80 70%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
-                } 100%)`
-              }}
-            />
           </>
         ) : (
           <>

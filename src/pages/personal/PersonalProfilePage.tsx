@@ -734,20 +734,20 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         {/* Full-width Banner (Premium) or standard Header */}
         {hasBanner ? (
           <div className="relative">
-            {/* Banner - scrolls with content (not fixed) like Linktree */}
+            {/* Banner image - fully visible */}
             <div 
-              className="absolute inset-x-0 top-0 h-[55vh] md:h-[50vh] pointer-events-none z-0"
+              className="w-full h-[55vh] md:h-[50vh]"
               style={{
                 backgroundImage: `url(${bannerUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center top",
               }}
             />
-            {/* Gradient fade from banner to background - subtle fade for better image visibility */}
+            {/* Gradient fade at bottom of banner only */}
             <div 
-              className="absolute inset-x-0 top-0 h-[55vh] md:h-[50vh] pointer-events-none z-0"
+              className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, transparent 40%, ${fadeToColor}30 60%, ${fadeToColor}80 80%, ${fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor} 100%)`
               }}
             />
             {/* Action buttons - top right for banner profiles */}
@@ -769,8 +769,6 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 <Share2 className="h-4 w-4 text-white" />
               </button>
             </div>
-            {/* Spacer to push content below the banner area */}
-            <div className="h-[40vh] md:h-[35vh]" />
           </div>
         ) : (
           <div className="relative">
@@ -788,8 +786,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
         
-        {/* Profile Content - responsive offsets */}
-        <div className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24 md:-mt-28' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
+        {/* Profile Content - no overlap for banner mode */}
+        <div className={`max-w-md mx-auto px-4 ${hasBanner ? 'pt-6' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
             <div className="absolute top-0 right-4 flex gap-2">
