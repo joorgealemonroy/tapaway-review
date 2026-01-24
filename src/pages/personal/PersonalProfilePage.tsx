@@ -744,9 +744,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       style={{ backgroundColor: outerBgColor }}
     >
       {/* Phone-frame container - full width on mobile, centered card on desktop with rounded corners */}
-      {/* When banner is active, remove top margin to avoid white bar */}
+      {/* When banner is active, remove top margin but keep rounded corners */}
       <div 
-        className={`min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:overflow-hidden ${hasBanner ? '' : 'md:my-4 md:rounded-3xl'}`}
+        className={`min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:overflow-hidden md:rounded-3xl ${hasBanner ? 'md:mb-4' : 'md:my-4'}`}
         style={bgStyle}
       >
         {/* Full-width Banner (Premium) or standard Header */}
