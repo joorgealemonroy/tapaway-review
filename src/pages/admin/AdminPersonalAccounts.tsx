@@ -1638,49 +1638,17 @@ Login at: ${window.location.origin}/auth`;
                   </RadioGroup>
 
                   {editForm.headerType === "banner" ? (
-                    /* Banner upload UI for premium users */
+                    /* Full Banner mode - uses profile photo as banner (no separate upload) */
                     <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">
-                        Full-screen banner that fades behind the profile as visitors scroll
-                      </p>
-                      {(editBannerImagePreview || editForm.bannerImageUrl) ? (
-                        <div className="relative">
-                          <img 
-                            src={editBannerImagePreview || editForm.bannerImageUrl || ""} 
-                            alt="Banner" 
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <div className="absolute top-2 right-2 flex gap-1">
-                            <button
-                              onClick={() => editBannerInputRef.current?.click()}
-                              className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                            >
-                              <Upload className="h-4 w-4 text-white" />
-                            </button>
-                            <button
-                              onClick={handleRemoveEditBanner}
-                              className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                            >
-                              <X className="h-4 w-4 text-white" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => editBannerInputRef.current?.click()}
-                          className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-                        >
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Upload banner image</span>
-                        </button>
-                      )}
-                      <input
-                        ref={editBannerInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleEditBannerImageSelect}
-                        className="hidden"
-                      />
+                      <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          ✨ Full-Screen Banner Mode
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          The profile photo will be displayed as a full-screen banner that fades behind the content.
+                          Update the profile photo in the Profile Photo section above.
+                        </p>
+                      </div>
                     </div>
                   ) : editForm.headerType === "color" ? (
                     <div className="space-y-3">
@@ -1802,24 +1770,24 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
-                  {/* Auto-apply ambient gradient when banner exists with legacy background */}
-                  {editForm.headerType === "banner" && (editBannerImagePreview || editForm.bannerImageUrl) && (
+                  {/* Auto-apply ambient gradient when banner mode is active */}
+                  {editForm.headerType === "banner" && (editProfilePhotoPreview || editingAccount?.profile_photo_url) && (
                     <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <p className="text-xs text-primary font-medium mb-2">✨ Ambient background will auto-match banner</p>
+                      <p className="text-xs text-primary font-medium mb-2">✨ Ambient background will auto-match profile photo</p>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          const bannerUrl = editBannerImagePreview || editForm.bannerImageUrl;
-                          if (!bannerUrl) return;
+                          const photoUrl = editProfilePhotoPreview || editingAccount?.profile_photo_url;
+                          if (!photoUrl) return;
                           try {
-                            const color = await extractBottomColor(bannerUrl);
+                            const color = await extractBottomColor(photoUrl);
                             const ambientGradient = generateAmbientGradient(color);
                             setEditForm({ ...editForm, backgroundColor: ambientGradient });
-                            toast.success("Background matched to banner image");
+                            toast.success("Background matched to profile photo");
                           } catch {
-                            toast.error("Failed to extract color from banner");
+                            toast.error("Failed to extract color from photo");
                           }
                         }}
                       >

@@ -21,7 +21,7 @@ interface ShareModalProps {
     username: string;
     full_name: string;
     profile_photo_url: string | null;
-    banner_image_url?: string | null;
+    header_type?: string | null;
   };
   shareUrl: string;
 }
@@ -166,13 +166,13 @@ function ShareContent({ profile, shareUrl, onClose, variant = 'dialog' }: Omit<S
 
   return (
     <div className="flex flex-col">
-      {/* Profile Preview Card with Banner */}
+      {/* Profile Preview Card with Banner (uses profile photo when header_type is banner) */}
       <div className={isDrawer ? "pb-4" : "px-5 pt-2 pb-4"}>
         <div 
           className={`relative overflow-hidden h-40 ${isDrawer ? 'rounded-b-2xl' : 'rounded-2xl'}`}
           style={{
-            backgroundImage: profile.banner_image_url 
-              ? `url(${profile.banner_image_url})` 
+            backgroundImage: (profile.header_type === 'banner' && profile.profile_photo_url)
+              ? `url(${profile.profile_photo_url})` 
               : 'linear-gradient(135deg, #27272a 0%, #18181b 100%)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',

@@ -26,7 +26,7 @@ interface Props {
   headerImageUrl: string | null;
   backgroundColor: string | null;
   pfpPosition: string;
-  bannerImageUrl: string | null;
+  profilePhotoUrl: string | null;
   isPremium: boolean;
   onUpdate: (updates: {
     headerType?: string;
@@ -34,7 +34,6 @@ interface Props {
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
     pfpPosition?: string;
-    bannerImageUrl?: string | null;
   }) => void;
 }
 
@@ -61,33 +60,33 @@ export const DashboardDesignTab = ({
   headerImageUrl,
   backgroundColor,
   pfpPosition,
-  bannerImageUrl,
+  profilePhotoUrl,
   isPremium,
   onUpdate,
 }: Props) => {
   const [cropperOpen, setCropperOpen] = useState(false);
-  const [bannerCropperOpen, setBannerCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [rawBannerUrl, setRawBannerUrl] = useState<string | null>(null);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [uploading, setUploading] = useState(false);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [imageBasedColor, setImageBasedColor] = useState<string | null>(null);
   const [extractingColor, setExtractingColor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extract color from banner image only (premium feature) for ambient gradient
-  // Auto-apply ambient gradient when banner image is present or when legacy gradient is detected
+  // For banner mode, we use the profile photo as the banner (no separate upload)
+  // When in banner mode, use the profilePhotoUrl for color extraction
+  const bannerImageSource = headerType === "banner" ? profilePhotoUrl : null;
+
+  // Auto-apply ambient gradient when banner mode is active (uses profile photo)
   useEffect(() => {
-    if (!bannerImageUrl) {
+    // When NOT in banner mode, or no profile photo exists, clear the extracted color
+    if (headerType !== "banner" || !bannerImageSource) {
       setImageBasedColor(null);
       return;
     }
     
     setExtractingColor(true);
-    extractBottomColor(bannerImageUrl)
+    extractBottomColor(bannerImageSource)
       .then((color) => {
         setImageBasedColor(color);
         const ambientGradient = generateAmbientGradient(color);
@@ -102,7 +101,7 @@ export const DashboardDesignTab = ({
         
         if (shouldAutoApply) {
           handleBgColorChange(ambientGradient);
-          toast.success("Background auto-matched to your banner image");
+          toast.success("Background auto-matched to your profile photo");
         }
       })
       .catch(() => {
@@ -112,7 +111,7 @@ export const DashboardDesignTab = ({
         setExtractingColor(false);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bannerImageUrl, backgroundColor]);
+  }, [headerType, bannerImageSource, backgroundColor]);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -282,63 +281,7 @@ export const DashboardDesignTab = ({
     }
   };
 
-  // Banner image handlers (Premium feature)
-  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const url = URL.createObjectURL(file);
-    setRawBannerUrl(url);
-    setBannerCropperOpen(true);
-    e.target.value = "";
-  };
-
-  const handleBannerCropComplete = async (croppedBlob: Blob) => {
-    setUploadingBanner(true);
-    try {
-      const filePath = `banners/${profileId}/banner-${Date.now()}.jpg`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("personal-photos")
-        .getPublicUrl(filePath);
-
-      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
-
-      await supabase
-        .from("personal_profiles")
-        .update({ banner_image_url: urlWithBust })
-        .eq("id", profileId);
-
-      onUpdate({ bannerImageUrl: urlWithBust });
-      toast.success("Banner image updated!");
-    } catch (err) {
-      console.error("Banner upload error:", err);
-      toast.error("Failed to upload banner image");
-    } finally {
-      setUploadingBanner(false);
-    }
-  };
-
-  const handleRemoveBanner = async () => {
-    try {
-      await supabase
-        .from("personal_profiles")
-        .update({ banner_image_url: null })
-        .eq("id", profileId);
-
-      onUpdate({ bannerImageUrl: null });
-      toast.success("Banner removed");
-    } catch (err) {
-      console.error("Error removing banner:", err);
-      toast.error("Failed to remove banner");
-    }
-  };
+  // Banner mode now uses the profile photo - no separate banner upload needed
 
   return (
     <div className="space-y-6">
@@ -377,61 +320,25 @@ export const DashboardDesignTab = ({
         </RadioGroup>
 
         {headerType === "banner" ? (
-          /* Banner upload UI for premium users */
+          /* Full Banner mode - uses profile photo as banner (no separate upload) */
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Full-screen banner that fades behind your profile as visitors scroll
-            </p>
-            {bannerImageUrl ? (
-              <div className="relative">
-                <img 
-                  src={bannerImageUrl} 
-                  alt="Banner" 
-                  className="w-full h-40 object-cover rounded-lg"
-                />
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <button
-                    onClick={() => bannerFileInputRef.current?.click()}
-                    disabled={uploadingBanner}
-                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                  >
-                    {uploadingBanner ? (
-                      <Loader2 className="h-4 w-4 text-white animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 text-white" />
-                    )}
-                  </button>
-                  <button
-                    onClick={handleRemoveBanner}
-                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                  >
-                    <X className="h-4 w-4 text-white" />
-                  </button>
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm font-medium text-foreground mb-1">
+                ✨ Full-Screen Banner Mode
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Your profile photo will be displayed as a full-screen banner that fades behind your content. 
+                Update your photo in the Profile section above.
+              </p>
+            </div>
+            {imageBasedColor && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Wand2 className="h-3.5 w-3.5 text-primary" />
+                  <span>Ambient background will auto-match your photo</span>
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => bannerFileInputRef.current?.click()}
-                disabled={uploadingBanner}
-                className="w-full h-32 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-              >
-                {uploadingBanner ? (
-                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-                ) : (
-                  <>
-                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Upload banner image</span>
-                  </>
-                )}
-              </button>
             )}
-            <input
-              ref={bannerFileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleBannerSelect}
-              className="hidden"
-            />
           </div>
         ) : headerType === "color" ? (
           <div className="space-y-3">
@@ -584,8 +491,8 @@ export const DashboardDesignTab = ({
             />
           ))}
         </div>
-        {/* Show ambient preview when banner is active (auto-applied) */}
-        {bannerImageUrl && imageBasedColor && (
+        {/* Show ambient preview when banner mode is active (uses profile photo) */}
+        {bannerImageSource && imageBasedColor && (
           <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
             <Label className="text-xs text-primary flex items-center gap-1.5 font-medium">
               <Wand2 className="h-3 w-3" />
@@ -638,18 +545,7 @@ export const DashboardDesignTab = ({
           cropShape="rect"
         />
       )}
-
-      {/* Image Cropper for Banner */}
-      {rawBannerUrl && (
-        <ImageCropper
-          open={bannerCropperOpen}
-          onOpenChange={setBannerCropperOpen}
-          imageSrc={rawBannerUrl}
-          onCropComplete={handleBannerCropComplete}
-          aspectRatio={9 / 16}
-          cropShape="rect"
-        />
-      )}
+      {/* Banner mode no longer needs separate cropper - uses profile photo */}
     </div>
   );
 };
