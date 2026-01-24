@@ -42,7 +42,7 @@
     <style>
       /* Minimal inline styles for instant render */
       :root { --background: 213 27% 97%; --foreground: 222 47% 11%; --primary: 182 85% 39%; }
-      html, body { margin: 0; font-family: Inter, system-ui, -apple-system, sans-serif; background: hsl(var(--background)); min-height: 100%; }
+      html, body { margin: 0; font-family: Inter, system-ui, -apple-system, sans-serif; background: var(--app-bg, hsl(var(--background))); min-height: 100%; }
       #root { min-height: 100vh; }
       /* Loading skeleton styles */
       .skeleton-pulse { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background: hsl(222.2 84% 4.9% / 0.1); }
