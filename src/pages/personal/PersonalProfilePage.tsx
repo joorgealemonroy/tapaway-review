@@ -747,8 +747,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       {/* Add top padding on desktop for spacing, using outer bg color instead of margin */}
       <div className="hidden md:block md:h-4" />
       <div 
-        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:shadow-2xl md:overflow-hidden md:rounded-3xl md:mb-4"
-        style={bgStyle}
+        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:overflow-hidden md:rounded-3xl md:mb-4"
+        style={{
+          ...bgStyle,
+          // Soft glow shadow that blends the frame edge into the outer background
+          boxShadow: hasBanner && extractedBannerColor 
+            ? `0 0 60px 20px ${extractedBannerColor}40, 0 0 100px 40px ${extractedBannerColor}20`
+            : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        }}
       >
         {/* Full-width Banner (Premium) or standard Header */}
         {hasBanner ? (
