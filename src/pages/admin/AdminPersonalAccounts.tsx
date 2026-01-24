@@ -105,23 +105,7 @@ const GRADIENT_PRESETS = [
 
 const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
 
-const BG_GRADIENT_PRESETS = [
-  // Red ambient
-  "linear-gradient(135deg, #1a0000 0%, #3d0000 25%, #1a0000 50%, #0a0000 100%)",
-  "linear-gradient(180deg, #0a0000 0%, #2d0a0a 50%, #1a0000 100%)",
-  "radial-gradient(ellipse at center, #2d0a0a 0%, #0a0000 70%, #000000 100%)",
-  // Blue ambient
-  "linear-gradient(135deg, #000a1a 0%, #00203d 25%, #000a1a 50%, #00050a 100%)",
-  "linear-gradient(180deg, #00050a 0%, #0a1a2d 50%, #000a1a 100%)",
-  "radial-gradient(ellipse at center, #0a1a2d 0%, #00050a 70%, #000000 100%)",
-  // Purple ambient
-  "linear-gradient(135deg, #0d001a 0%, #1f003d 25%, #0d001a 50%, #05000a 100%)",
-  "linear-gradient(180deg, #05000a 0%, #150a2d 50%, #0d001a 100%)",
-  "radial-gradient(ellipse at center, #150a2d 0%, #05000a 70%, #000000 100%)",
-  // Green ambient
-  "linear-gradient(135deg, #001a0d 0%, #003d1f 25%, #001a0d 50%, #000a05 100%)",
-  "linear-gradient(180deg, #000a05 0%, #0a2d15 50%, #001a0d 100%)",
-];
+// BG_GRADIENT_PRESETS removed - ambient gradients are now auto-generated from banner images
 
 const AdminPersonalAccounts = () => {
   const navigate = useNavigate();
@@ -1427,20 +1411,7 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
-                  {/* Ambient gradient presets */}
-                  <Label className="text-xs text-muted-foreground">Ambient Gradients</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {BG_GRADIENT_PRESETS.map((gradient, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setCreateForm({ ...createForm, backgroundColor: gradient })}
-                        className={`h-8 w-8 rounded-full border-2 transition-all ${
-                          createForm.backgroundColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
-                        }`}
-                        style={{ background: gradient }}
-                      />
-                    ))}
-                  </div>
+                  {/* Ambient gradients auto-applied when banner is uploaded */}
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"
@@ -1830,20 +1801,7 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
-                  {/* Ambient gradient presets */}
-                  <Label className="text-xs text-muted-foreground">Ambient Gradients</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {BG_GRADIENT_PRESETS.map((gradient, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setEditForm({ ...editForm, backgroundColor: gradient })}
-                        className={`h-8 w-8 rounded-full border-2 transition-all ${
-                          editForm.backgroundColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
-                        }`}
-                        style={{ background: gradient }}
-                      />
-                    ))}
-                  </div>
+                  {/* Ambient gradients auto-applied when banner is uploaded */}
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"
