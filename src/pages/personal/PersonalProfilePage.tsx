@@ -17,6 +17,7 @@ import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
+import { extractBottomColor } from "@/lib/imageColorExtraction";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -570,6 +571,20 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   }, []);
 
   const [showShareModal, setShowShareModal] = useState(false);
+  const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
+
+  // Extract color from banner image for natural fade effect
+  const bannerUrlForExtraction = data?.profile?.header_type === "banner" && data?.profile?.banner_image_url
+    ? data.profile.banner_image_url
+    : null;
+  
+  useEffect(() => {
+    if (bannerUrlForExtraction) {
+      extractBottomColor(bannerUrlForExtraction).then(setExtractedBannerColor);
+    } else {
+      setExtractedBannerColor(null);
+    }
+  }, [bannerUrlForExtraction]);
 
   const handleShare = useCallback(() => {
     if (!data?.profile) return;
@@ -743,11 +758,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 backgroundPosition: "center top",
               }}
             />
-            {/* Gradient fade at bottom of banner only */}
+            {/* Gradient fade at bottom using extracted color from image */}
             <div 
-              className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+              className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, ${extractedBannerColor || fadeToColor} 100%)`
               }}
             />
             {/* Action buttons - top right for banner profiles */}
@@ -786,8 +801,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
         
-        {/* Profile Content - no overlap for banner mode */}
-        <div className={`max-w-md mx-auto px-4 ${hasBanner ? 'pt-6' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}>
+        {/* Profile Content - overlapping text for banner mode */}
+        <div 
+          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+        >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
             <div className="absolute top-0 right-4 flex gap-2">

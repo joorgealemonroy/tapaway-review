@@ -1,8 +1,9 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useState, useEffect } from "react";
 import { ExternalLink } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
+import { extractBottomColor } from "@/lib/imageColorExtraction";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -104,6 +105,17 @@ function ProfilePreviewRendererComponent({
     ? getOptimizedImageUrl(profile.banner_image_url, 400, 80) 
     : null;
   const hasBanner = !!bannerUrl;
+  
+  // Extract color from banner image for natural fade
+  const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (hasBanner && profile.banner_image_url) {
+      extractBottomColor(profile.banner_image_url).then(setExtractedBannerColor);
+    } else {
+      setExtractedBannerColor(null);
+    }
+  }, [hasBanner, profile.banner_image_url]);
   
   const isDarkBg = useMemo(() => hasBanner || isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg, hasBanner]);
   
@@ -585,19 +597,19 @@ function ProfilePreviewRendererComponent({
       <div className="relative w-full">
         {hasBanner ? (
           <>
-            {/* Banner mode - fully visible with fade at bottom only */}
+            {/* Banner mode - fully visible with fade at bottom using extracted color */}
             <div className="h-48 overflow-hidden relative">
               <img
                 src={bannerUrl}
                 alt="Banner"
                 className="h-full w-full object-cover object-top"
               />
-              {/* Gradient fade at bottom of banner only */}
+              {/* Gradient fade using extracted color from image */}
               <div 
-                className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
+                className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
                 style={{
                   background: `linear-gradient(to bottom, transparent 0%, ${
-                    isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
                   } 100%)`
                 }}
               />
@@ -637,11 +649,12 @@ function ProfilePreviewRendererComponent({
         )}
       </div>
 
-      {/* Profile section */}
+      {/* Profile section - overlapping text for banner */}
       <div
-        className={`px-6 ${
+        className={`px-6 ${hasBanner ? '-mt-6' : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
+        style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
       >
         {/* Avatar - hidden when using full banner */}
         {!hasBanner && (
