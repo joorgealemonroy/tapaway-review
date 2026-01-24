@@ -78,19 +78,21 @@ export const DashboardDesignTab = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extract color from header/banner image for ambient gradient
-  const imageUrlToExtract = bannerImageUrl || headerImageUrl;
-  
+  // Extract color from banner image only (premium feature) for ambient gradient
+  // Auto-apply ambient gradient when banner image is present
   useEffect(() => {
-    if (!imageUrlToExtract) {
+    if (!bannerImageUrl) {
       setImageBasedColor(null);
       return;
     }
     
     setExtractingColor(true);
-    extractBottomColor(imageUrlToExtract)
+    extractBottomColor(bannerImageUrl)
       .then((color) => {
         setImageBasedColor(color);
+        // Auto-apply the ambient gradient when banner is uploaded
+        const ambientGradient = generateAmbientGradient(color);
+        handleBgColorChange(ambientGradient);
       })
       .catch(() => {
         setImageBasedColor(null);
@@ -98,7 +100,8 @@ export const DashboardDesignTab = ({
       .finally(() => {
         setExtractingColor(false);
       });
-  }, [imageUrlToExtract]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bannerImageUrl]);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -570,30 +573,19 @@ export const DashboardDesignTab = ({
             />
           ))}
         </div>
-        {/* Auto-generated ambient from image */}
-        {imageUrlToExtract && (
+        {/* Show ambient preview when banner is active (auto-applied) */}
+        {bannerImageUrl && imageBasedColor && (
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Wand2 className="h-3 w-3" />
-              Match Background to Image
+              Ambient Style (auto-matched to banner)
             </Label>
-            {extractingColor ? (
-              <div className="h-12 w-full rounded-lg border border-border bg-muted/50 flex items-center justify-center">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : imageBasedColor ? (
-              <button
-                onClick={() => handleBgColorChange(generateAmbientGradient(imageBasedColor))}
-                className={`h-12 w-full rounded-lg border-2 transition-all flex items-center justify-center ${
-                  backgroundColor?.includes("radial-gradient") 
-                    ? "border-primary ring-2 ring-primary/30" 
-                    : "border-border hover:border-primary/50"
-                }`}
-                style={{ background: generateAmbientGradient(imageBasedColor) }}
-              >
-                <span className="text-xs text-white/60">Auto-generated from your image</span>
-              </button>
-            ) : null}
+            <div
+              className="h-12 w-full rounded-lg border-2 border-primary/30 flex items-center justify-center"
+              style={{ background: generateAmbientGradient(imageBasedColor) }}
+            >
+              <span className="text-xs text-white/60">Auto-generated from your banner</span>
+            </div>
           </div>
         )}
         <div className="flex items-center gap-2">
