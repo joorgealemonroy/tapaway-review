@@ -758,11 +758,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 backgroundPosition: "center top",
               }}
             />
-            {/* Gradient fade at bottom using extracted color from image */}
+            {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
             <div 
-              className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+              className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, ${extractedBannerColor || fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
               }}
             />
             {/* Action buttons - top right for banner profiles */}
@@ -801,10 +801,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           </div>
         )}
         
-        {/* Profile Content - overlapping text for banner mode */}
+        {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-24' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
-          style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
@@ -885,12 +884,17 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </>
           )}
 
-          {/* Featured link - rendered prominently at top */}
-          {featuredLink && (
-            <div className="mb-4">
-              <ProfileLink link={featuredLink} isFeatured />
-            </div>
-          )}
+          {/* Links section - solid background starts here for banner mode */}
+          <div 
+            className={hasBanner ? "rounded-t-3xl pt-4 pb-2 -mx-4 px-4" : ""}
+            style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+          >
+            {/* Featured link - rendered prominently at top */}
+            {featuredLink && (
+              <div className="mb-4">
+                <ProfileLink link={featuredLink} isFeatured />
+              </div>
+            )}
 
           {/* Unified content - interleaved links, grid groups, and blocks */}
           {groupedItems.length > 0 && (
@@ -913,11 +917,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </div>
           )}
 
-          {links.length === 0 && blocks.length === 0 && (
-            <p className={`${mutedClass} text-center py-8`}>
-              No links yet
-            </p>
-          )}
+            {links.length === 0 && blocks.length === 0 && (
+              <p className={`${mutedClass} text-center py-8`}>
+                No links yet
+              </p>
+            )}
+          </div>
 
           {/* Footer */}
           <footer className="mt-12 pb-6 text-center space-y-3">
