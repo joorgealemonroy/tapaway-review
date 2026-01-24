@@ -101,21 +101,22 @@ function ProfilePreviewRendererComponent({
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
   
   // Banner for premium users (header_type === "banner")
-  const bannerUrl = (headerType === "banner" && profile.banner_image_url) 
-    ? getOptimizedImageUrl(profile.banner_image_url, 400, 80) 
+  // Uses profile_photo_url as the banner (no separate upload)
+  const bannerUrl = (headerType === "banner" && profile.profile_photo_url) 
+    ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
     : null;
   const hasBanner = !!bannerUrl;
   
-  // Extract color from banner image for natural fade
+  // Extract color from profile photo (used as banner) for natural fade
   const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
   
   useEffect(() => {
-    if (hasBanner && profile.banner_image_url) {
-      extractBottomColor(profile.banner_image_url).then(setExtractedBannerColor);
+    if (hasBanner && profile.profile_photo_url) {
+      extractBottomColor(profile.profile_photo_url).then(setExtractedBannerColor);
     } else {
       setExtractedBannerColor(null);
     }
-  }, [hasBanner, profile.banner_image_url]);
+  }, [hasBanner, profile.profile_photo_url]);
   
   const isDarkBg = useMemo(() => hasBanner || isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg, hasBanner]);
   

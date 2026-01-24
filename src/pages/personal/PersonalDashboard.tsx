@@ -708,7 +708,7 @@ const PersonalDashboard = () => {
               headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
               pfpPosition={profile.pfp_position}
-              bannerImageUrl={profile.banner_image_url}
+              profilePhotoUrl={profile.profile_photo_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               onUpdate={handleDesignUpdate}
             />

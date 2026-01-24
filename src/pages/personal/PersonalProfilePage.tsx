@@ -573,9 +573,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
 
-  // Extract color from banner image for natural fade effect
-  const bannerUrlForExtraction = data?.profile?.header_type === "banner" && data?.profile?.banner_image_url
-    ? data.profile.banner_image_url
+  // Extract color from profile photo (used as banner) for natural fade effect
+  // When header_type is "banner", we use the profile_photo_url as the banner
+  const bannerUrlForExtraction = data?.profile?.header_type === "banner" && data?.profile?.profile_photo_url
+    ? data.profile.profile_photo_url
     : null;
   
   useEffect(() => {
@@ -705,8 +706,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     : null;
   
   // Banner image for premium users (header_type === "banner")
-  const bannerUrl = (profile.header_type === "banner" && profile.banner_image_url)
-    ? getOptimizedImageUrl(profile.banner_image_url, 1080, 90)
+  // Uses profile_photo_url as the banner (no separate upload)
+  const bannerUrl = (profile.header_type === "banner" && profile.profile_photo_url)
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
     : null;
   const hasBanner = !!bannerUrl;
   
@@ -973,7 +975,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           username: profile.username,
           full_name: profile.full_name,
           profile_photo_url: profile.profile_photo_url,
-          banner_image_url: profile.banner_image_url,
+          header_type: profile.header_type,
         }}
         shareUrl={`https://tapaway.co/${profile.username}`}
       />
