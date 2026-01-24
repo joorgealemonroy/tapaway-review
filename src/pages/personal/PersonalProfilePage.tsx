@@ -18,6 +18,7 @@ import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
+import { useAppBackground } from "@/hooks/useAppBackground";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -736,6 +737,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Get outer background color based on profile theme
   const outerBgColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
+
+  // Set document background to match profile theme (eliminates white bar at bottom)
+  useAppBackground(outerBgColor);
 
   return (
     // Outer wrapper - themed background visible on desktop around the phone frame
