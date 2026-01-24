@@ -57,6 +57,7 @@ import {
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { AdminUnifiedContent, AdminLink, AdminBlock } from "@/components/admin/AdminUnifiedContent";
+import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 
 interface PersonalAccount {
   id: string;
@@ -1801,7 +1802,31 @@ Login at: ${window.location.origin}/auth`;
                       />
                     ))}
                   </div>
-                  {/* Ambient gradients auto-applied when banner is uploaded */}
+                  {/* Auto-apply ambient gradient when banner exists with legacy background */}
+                  {editForm.headerType === "banner" && (editBannerImagePreview || editForm.bannerImageUrl) && (
+                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="text-xs text-primary font-medium mb-2">✨ Ambient background will auto-match banner</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const bannerUrl = editBannerImagePreview || editForm.bannerImageUrl;
+                          if (!bannerUrl) return;
+                          try {
+                            const color = await extractBottomColor(bannerUrl);
+                            const ambientGradient = generateAmbientGradient(color);
+                            setEditForm({ ...editForm, backgroundColor: ambientGradient });
+                            toast.success("Background matched to banner image");
+                          } catch {
+                            toast.error("Failed to extract color from banner");
+                          }
+                        }}
+                      >
+                        Apply Ambient Gradient Now
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Input
                       type="text"

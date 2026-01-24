@@ -79,7 +79,7 @@ export const DashboardDesignTab = ({
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract color from banner image only (premium feature) for ambient gradient
-  // Auto-apply ambient gradient when banner image is present
+  // Auto-apply ambient gradient when banner image is present or when legacy gradient is detected
   useEffect(() => {
     if (!bannerImageUrl) {
       setImageBasedColor(null);
@@ -90,9 +90,20 @@ export const DashboardDesignTab = ({
     extractBottomColor(bannerImageUrl)
       .then((color) => {
         setImageBasedColor(color);
-        // Auto-apply the ambient gradient when banner is uploaded
         const ambientGradient = generateAmbientGradient(color);
-        handleBgColorChange(ambientGradient);
+        
+        // Auto-apply if:
+        // 1. No background is set yet, OR
+        // 2. Current background is a legacy linear-gradient (old preset), OR
+        // 3. Current background is already a radial-gradient (update to new extraction)
+        const isLegacyGradient = backgroundColor?.startsWith('linear-gradient');
+        const isRadialGradient = backgroundColor?.startsWith('radial-gradient');
+        const shouldAutoApply = !backgroundColor || isLegacyGradient || isRadialGradient;
+        
+        if (shouldAutoApply) {
+          handleBgColorChange(ambientGradient);
+          toast.success("Background auto-matched to your banner image");
+        }
       })
       .catch(() => {
         setImageBasedColor(null);
@@ -101,7 +112,7 @@ export const DashboardDesignTab = ({
         setExtractingColor(false);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bannerImageUrl]);
+  }, [bannerImageUrl, backgroundColor]);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -575,10 +586,10 @@ export const DashboardDesignTab = ({
         </div>
         {/* Show ambient preview when banner is active (auto-applied) */}
         {bannerImageUrl && imageBasedColor && (
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <Label className="text-xs text-primary flex items-center gap-1.5 font-medium">
               <Wand2 className="h-3 w-3" />
-              Ambient Style (auto-matched to banner)
+              ✨ Ambient background auto-matched to your banner
             </Label>
             <div
               className="h-12 w-full rounded-lg border-2 border-primary/30 flex items-center justify-center"
@@ -586,6 +597,9 @@ export const DashboardDesignTab = ({
             >
               <span className="text-xs text-white/60">Auto-generated from your banner</span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              You can override this by selecting a solid color above
+            </p>
           </div>
         )}
         <div className="flex items-center gap-2">
