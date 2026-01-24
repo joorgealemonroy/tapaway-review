@@ -604,11 +604,13 @@ function ProfilePreviewRendererComponent({
                 alt="Banner"
                 className="h-full w-full object-cover object-top"
               />
-              {/* Gradient fade using extracted color from image */}
+              {/* Gradient fade using extracted color from image - taller for text overlap */}
               <div 
-                className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+                className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
                 style={{
-                  background: `linear-gradient(to bottom, transparent 0%, ${
+                  background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
+                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
+                  }40 60%, ${
                     extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
                   } 100%)`
                 }}
@@ -649,12 +651,11 @@ function ProfilePreviewRendererComponent({
         )}
       </div>
 
-      {/* Profile section - overlapping text for banner */}
+      {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
-        className={`px-6 ${hasBanner ? '-mt-6' : ''} ${
+        className={`px-6 ${hasBanner ? '-mt-12' : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
-        style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
       >
         {/* Avatar - hidden when using full banner */}
         {!hasBanner && (
@@ -719,8 +720,11 @@ function ProfilePreviewRendererComponent({
         </div>
       )}
 
-      {/* Content */}
-      <div className="mt-6 space-y-3 px-6 pb-8">
+      {/* Content - solid background for banner mode */}
+      <div 
+        className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-t-2xl pt-4 -mx-0' : ''}`}
+        style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+      >
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true)}
 
