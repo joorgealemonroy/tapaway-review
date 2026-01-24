@@ -1,4 +1,29 @@
 /**
+ * Generates an ambient gradient from an RGB color string.
+ * Creates a radial gradient that fades from a darkened version of the color to near-black.
+ */
+export function generateAmbientGradient(rgbColor: string): string {
+  // Parse rgb(r, g, b) format
+  const match = rgbColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return "radial-gradient(ellipse at top, #1a1a1a 0%, #0a0a0a 100%)";
+  
+  const r = parseInt(match[1]);
+  const g = parseInt(match[2]);
+  const b = parseInt(match[3]);
+  
+  // Create darkened versions for ambient effect
+  const darkR = Math.round(r * 0.15);
+  const darkG = Math.round(g * 0.15);
+  const darkB = Math.round(b * 0.15);
+  
+  const midR = Math.round(r * 0.08);
+  const midG = Math.round(g * 0.08);
+  const midB = Math.round(b * 0.08);
+  
+  return `radial-gradient(ellipse at top, rgb(${darkR}, ${darkG}, ${darkB}) 0%, rgb(${midR}, ${midG}, ${midB}) 40%, #0a0a0a 100%)`;
+}
+
+/**
  * Extracts the average color from the bottom portion of an image.
  * Used for creating smooth fade transitions from banner images.
  */

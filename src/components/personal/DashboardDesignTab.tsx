@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,11 @@ import {
   AlignLeft,
   AlignCenter,
   Loader2,
-  Sparkles
+  Sparkles,
+  Wand2
 } from "lucide-react";
 import { toast } from "sonner";
+import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 
 interface Props {
   profileId: string;
@@ -52,33 +54,6 @@ const GRADIENT_PRESETS = [
 
 const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
 
-const BG_GRADIENT_PRESETS = [
-  // Red Ambiance
-  "radial-gradient(ellipse at top, #2d0a0a 0%, #1a0505 40%, #0a0000 100%)",
-  "linear-gradient(180deg, #1a0000 0%, #2d0808 50%, #0a0000 100%)",
-  // Orange Ambiance
-  "radial-gradient(ellipse at top, #2d1a0a 0%, #1a0f05 40%, #0a0500 100%)",
-  "linear-gradient(180deg, #1a0d00 0%, #2d1808 50%, #0a0500 100%)",
-  // Purple/Violet Ambiance
-  "radial-gradient(ellipse at top, #1a0a2d 0%, #0f051a 40%, #05000a 100%)",
-  "linear-gradient(180deg, #0d001a 0%, #1a0830 50%, #05000a 100%)",
-  // Blue Ambiance
-  "radial-gradient(ellipse at top, #0a1a2d 0%, #050f1a 40%, #00050a 100%)",
-  "linear-gradient(180deg, #000a1a 0%, #081a2d 50%, #00050a 100%)",
-  // Cyan/Teal Ambiance
-  "radial-gradient(ellipse at top, #0a2d2d 0%, #051a1a 40%, #000a0a 100%)",
-  "linear-gradient(180deg, #001a1a 0%, #082d2d 50%, #000a0a 100%)",
-  // Green Ambiance
-  "radial-gradient(ellipse at top, #0a2d15 0%, #051a0d 40%, #000a05 100%)",
-  "linear-gradient(180deg, #001a0d 0%, #082d15 50%, #000a05 100%)",
-  // Pink/Magenta Ambiance
-  "radial-gradient(ellipse at top, #2d0a20 0%, #1a0512 40%, #0a0008 100%)",
-  "linear-gradient(180deg, #1a0015 0%, #2d0820 50%, #0a0008 100%)",
-  // Gold/Warm Ambiance
-  "radial-gradient(ellipse at top, #2d2a0a 0%, #1a1805 40%, #0a0900 100%)",
-  "linear-gradient(180deg, #1a1500 0%, #2d2508 50%, #0a0800 100%)",
-];
-
 export const DashboardDesignTab = ({
   profileId,
   headerType,
@@ -98,8 +73,32 @@ export const DashboardDesignTab = ({
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [imageBasedColor, setImageBasedColor] = useState<string | null>(null);
+  const [extractingColor, setExtractingColor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Extract color from header/banner image for ambient gradient
+  const imageUrlToExtract = bannerImageUrl || headerImageUrl;
+  
+  useEffect(() => {
+    if (!imageUrlToExtract) {
+      setImageBasedColor(null);
+      return;
+    }
+    
+    setExtractingColor(true);
+    extractBottomColor(imageUrlToExtract)
+      .then((color) => {
+        setImageBasedColor(color);
+      })
+      .catch(() => {
+        setImageBasedColor(null);
+      })
+      .finally(() => {
+        setExtractingColor(false);
+      });
+  }, [imageUrlToExtract]);
 
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -571,21 +570,32 @@ export const DashboardDesignTab = ({
             />
           ))}
         </div>
-        {/* Ambient gradient presets - organized in 4-column grid */}
-        <Label className="text-xs text-muted-foreground">Ambient Gradients (with parallax effect)</Label>
-        <div className="grid grid-cols-4 gap-2">
-          {BG_GRADIENT_PRESETS.map((gradient, i) => (
-            <button
-              key={i}
-              onClick={() => handleBgColorChange(gradient)}
-              className={`h-10 w-10 rounded-lg border-2 transition-all ${
-                backgroundColor === gradient ? "border-primary scale-110 ring-2 ring-primary/30" : "border-border hover:scale-105"
-              }`}
-              style={{ background: gradient }}
-              title={["Red", "Red", "Orange", "Orange", "Purple", "Purple", "Blue", "Blue", "Cyan", "Cyan", "Green", "Green", "Pink", "Pink", "Gold", "Gold"][i] || "Ambient"}
-            />
-          ))}
-        </div>
+        {/* Auto-generated ambient from image */}
+        {imageUrlToExtract && (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Wand2 className="h-3 w-3" />
+              Match Background to Image
+            </Label>
+            {extractingColor ? (
+              <div className="h-12 w-full rounded-lg border border-border bg-muted/50 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : imageBasedColor ? (
+              <button
+                onClick={() => handleBgColorChange(generateAmbientGradient(imageBasedColor))}
+                className={`h-12 w-full rounded-lg border-2 transition-all flex items-center justify-center ${
+                  backgroundColor?.includes("radial-gradient") 
+                    ? "border-primary ring-2 ring-primary/30" 
+                    : "border-border hover:border-primary/50"
+                }`}
+                style={{ background: generateAmbientGradient(imageBasedColor) }}
+              >
+                <span className="text-xs text-white/60">Auto-generated from your image</span>
+              </button>
+            ) : null}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Input
             type="text"
