@@ -135,6 +135,7 @@ const PersonalDashboard = () => {
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState("links");
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
+  const welcomeParamRef = useRef<boolean>(false);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -199,20 +200,27 @@ const PersonalDashboard = () => {
     loadData();
   }, [loadData]);
 
-  // Show welcome tutorial on first visit via magic link
+  // Capture welcome param on mount (before profile loads) to avoid race condition
   useEffect(() => {
-    const isWelcome = searchParams.get("welcome") === "true";
-    if (isWelcome && profile) {
+    if (searchParams.get("welcome") === "true") {
+      welcomeParamRef.current = true;
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty - run once on mount
+
+  // Show welcome tutorial after profile loads if we had the welcome param
+  useEffect(() => {
+    if (welcomeParamRef.current && profile) {
       const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
       const alreadyDismissed = localStorage.getItem(dismissKey);
       
       if (!alreadyDismissed) {
         setShowWelcomeTutorial(true);
       }
-      // Clear the URL param
-      setSearchParams({});
+      welcomeParamRef.current = false;
     }
-  }, [profile, searchParams, setSearchParams]);
+  }, [profile]);
 
   // Initialize card modal editable fields when profile loads (but don't auto-show)
   useEffect(() => {
