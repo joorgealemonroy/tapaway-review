@@ -1,129 +1,232 @@
 
-# Plan: Remove Profile Photo Position Option, Default to Centered
+# Plan: Replace Modal Tutorial with Inline Walkthrough
 
 ## Overview
 
-Remove the profile photo position selector UI from both places it appears (Hero Editor and Design Tab) and ensure all profiles default to centered positioning.
+Replace the current `WelcomeTutorialModal` (a dialog box with "Next" buttons) with inline coach marks/tooltips that appear directly on the dashboard elements. This creates a "follow-through" experience where users see tips attached to the actual UI elements they'll be using.
 
 ---
 
-## Changes Required
+## Design Approach
 
-### 1. DashboardHeroEditor.tsx
+### New Component: `WelcomeCoachMarks.tsx`
 
-**Remove:**
-- The entire "PFP Position" section (lines 146-183)
-- The `position` state variable and related logic
-- The `pfp_position` from the update payload (always use "center")
-- Import of `AlignCenter`, `AlignLeft` icons
-- Import of `RadioGroup`, `RadioGroupItem` components
-- The `pfpPosition` prop (no longer needed)
+Instead of a modal, create a lightweight coach mark system that:
+- Shows small tooltip-style callouts attached to specific dashboard elements
+- Auto-advances through steps as user interacts with the UI OR via a "Got it" button
+- Uses Framer Motion for smooth fade/slide animations
+- Dismisses permanently via localStorage
 
-**Keep:**
-- The save functionality for name, headline, bio
+### Steps (Simplified)
 
-**Lines to remove:** 146-183 (entire PFP Position section)
-**Lines to modify:** 
-- Line 39: Remove `position` state
-- Lines 47, 55: Remove position from effects
-- Line 68: Always save `pfp_position: "center"`
+| Step | Target Element | Message |
+|------|----------------|---------|
+| 1 | Profile Header (name/photo) | "Welcome! This is your TapAway profile. Tap your photo to change it." |
+| 2 | Links Tab | "Add links to your social profiles, website, and more." |
+| 3 | Design Tab | "Customize colors, headers, and make it yours." |
+| 4 | Profile URL | "Share this link anywhere — or request a TapAway card!" |
 
-### 2. DashboardDesignTab.tsx
+**Note:** The "Confirm Your Card" step is removed. Instead, a brief mention of requesting a card is included in the final step.
 
-**Remove:**
-- The entire "PFP Position" section (lines 454-477)
-- The `handlePfpPositionChange` function (lines 271-280)
-- The `pfpPosition` prop from the interface and component params
-- Import of `AlignLeft`, `AlignCenter` icons (if not used elsewhere)
+---
 
-### 3. PersonalDashboard.tsx
+## Implementation
 
-**Modify:**
-- Remove `pfpPosition` prop when calling `DashboardHeroEditor` (line 704)
-- Remove `pfpPosition` prop when calling `DashboardDesignTab` (line 731)
+### 1. Create `WelcomeCoachMarks.tsx`
 
-### 4. create-personal-account Edge Function
+```tsx
+// New component that renders floating tooltips attached to dashboard elements
+interface CoachMarkStep {
+  id: string;
+  targetId: string; // ID of the DOM element to attach to
+  title: string;
+  message: string;
+  position: "top" | "bottom" | "left" | "right";
+}
 
-**Modify:**
-- Always set `pfp_position: "center"` regardless of input (line 132)
+const COACH_STEPS: CoachMarkStep[] = [
+  {
+    id: "welcome",
+    targetId: "profile-header",
+    title: "Welcome to TapAway!",
+    message: "This is your digital profile. Tap your photo to customize it.",
+    position: "bottom",
+  },
+  {
+    id: "links",
+    targetId: "tab-links",
+    title: "Add Your Links",
+    message: "Connect social profiles, websites, and anything you want to share.",
+    position: "bottom",
+  },
+  {
+    id: "design",
+    targetId: "tab-design",
+    title: "Customize Your Look",
+    message: "Choose colors and upload a header image to match your style.",
+    position: "bottom",
+  },
+  {
+    id: "share",
+    targetId: "profile-url",
+    title: "You're All Set!",
+    message: "Share your link anywhere. Want a physical card? Check the Card tab!",
+    position: "top",
+  },
+];
+```
+
+The coach mark will:
+- Render a floating div positioned relative to the target element
+- Show one step at a time with "Got it" / "Skip" buttons
+- Track current step in component state
+- Dismiss permanently on completion or skip
+
+### 2. Add Target IDs to Dashboard Elements
+
+Add `id` attributes to key dashboard elements so coach marks can attach:
+
+```tsx
+// Profile header section
+<div id="profile-header" className="flex items-center gap-4 mb-6">
+
+// Tab triggers
+<TabsTrigger id="tab-links" value="links" ...>
+<TabsTrigger id="tab-design" value="design" ...>
+
+// Profile URL button
+<button id="profile-url" onClick={copyProfileUrl} ...>
+```
+
+### 3. Update PersonalDashboard.tsx
+
+- Remove `WelcomeTutorialModal` component usage
+- Add `WelcomeCoachMarks` component with the same trigger logic (welcome=true param)
+- Pass necessary props for positioning and dismissal
+
+### 4. Delete WelcomeTutorialModal.tsx
+
+Remove the old modal component since it's no longer needed.
+
+---
+
+## Visual Design
+
+```
+┌─────────────────────────────────────────┐
+│  TapAway              [Switch] [Logout] │
+├─────────────────────────────────────────┤
+│                                         │
+│  [Photo] John Doe                       │
+│          tapaway.co/john ◄─────────┐    │
+│                               ┌────┴───────────┐
+│  ┌─────────────────────────┐  │ You're All Set! │
+│  │ Links │ Design │ Stats │  │ Share your link │
+│  └─────────────────────────┘  │ anywhere. Want a│
+│                               │ card? Check the │
+│  ...content...                │ Card tab!       │
+│                               │ [Got it!]       │
+│                               └─────────────────┘
+```
+
+The coach mark appears as a floating card with:
+- Title in bold
+- Short message (1-2 sentences)
+- "Got it" button to advance
+- "Skip tutorial" link to dismiss entirely
 
 ---
 
 ## Files Summary
 
-| File | Changes |
-|------|---------|
-| `src/components/personal/DashboardHeroEditor.tsx` | Remove PFP Position section, state, props, and effects; always save "center" |
-| `src/components/personal/DashboardDesignTab.tsx` | Remove PFP Position section and handler function |
-| `src/pages/personal/PersonalDashboard.tsx` | Remove `pfpPosition` props from component calls |
-| `supabase/functions/create-personal-account/index.ts` | Always default to "center" |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/components/personal/WelcomeCoachMarks.tsx` | **Create** | New inline coach mark component |
+| `src/components/personal/WelcomeTutorialModal.tsx` | **Delete** | Remove old modal component |
+| `src/pages/personal/PersonalDashboard.tsx` | **Modify** | Add element IDs, replace modal with coach marks |
 
 ---
 
 ## Technical Details
 
-### DashboardHeroEditor.tsx (simplified)
+### Coach Mark Positioning
+
+Use a portal + `getBoundingClientRect()` to position the tooltip relative to target elements:
 
 ```tsx
-// Remove these imports
-// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-// import { AlignCenter, AlignLeft } from "lucide-react";
+const CoachMark = ({ step, onNext, onSkip }: Props) => {
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  
+  useEffect(() => {
+    const target = document.getElementById(step.targetId);
+    if (target) {
+      const rect = target.getBoundingClientRect();
+      // Calculate position based on step.position (top/bottom/left/right)
+      setPosition({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2,
+      });
+    }
+  }, [step]);
 
-// Remove pfpPosition from Props interface
-interface Props {
-  profileId: string;
-  username: string;
-  fullName: string;
-  headline: string | null;
-  bio: string | null;
-  // pfpPosition: string; <-- REMOVE
-  onUpdate: (updates: Partial<{
-    full_name: string;
-    headline: string | null;
-    bio: string | null;
-    pfp_position: string;
-  }>) => void;
-}
-
-// Remove position state
-// const [position, setPosition] = useState(pfpPosition || "center"); <-- REMOVE
-
-// Remove from hasChanges check
-const changed = 
-  name !== fullName ||
-  headlineValue !== (headline || "") ||
-  bioValue !== (bio || "");
-  // position !== (pfpPosition || "center"); <-- REMOVE
-
-// Always save "center"
-const updates = {
-  full_name: name.trim(),
-  headline: headlineValue.trim() || null,
-  bio: bioValue.trim() || null,
-  pfp_position: "center", // Always centered
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed z-[100] bg-background border shadow-lg rounded-lg p-4 max-w-xs"
+      style={{ top: position.top, left: position.left, transform: 'translateX(-50%)' }}
+    >
+      <h4 className="font-semibold text-sm">{step.title}</h4>
+      <p className="text-xs text-muted-foreground mt-1">{step.message}</p>
+      <div className="flex items-center justify-between mt-3">
+        <button onClick={onSkip} className="text-xs text-muted-foreground">
+          Skip
+        </button>
+        <Button size="sm" onClick={onNext}>Got it</Button>
+      </div>
+    </motion.div>,
+    document.body
+  );
 };
-
-// Remove entire PFP Position section (lines 146-183)
 ```
 
-### DashboardDesignTab.tsx
+### Smooth Tab Highlighting
+
+When showing the "Links" or "Design" tab coach marks, add a subtle pulse/highlight to the tab:
 
 ```tsx
-// Remove pfpPosition from Props interface and component params
-
-// Remove the handler function
-// const handlePfpPositionChange = async (position: string) => { ... }
-
-// Remove the entire PFP Position section (lines 454-477)
+// Add pulsing ring around target when coach mark is active
+<TabsTrigger 
+  id="tab-links" 
+  value="links" 
+  className={cn(
+    "...",
+    activeCoachStep === "links" && "ring-2 ring-primary ring-offset-2 animate-pulse"
+  )}
+>
 ```
 
 ---
 
-## Behavior After Changes
+## Behavior
 
-- All profiles will display with centered profile photo
-- Users will no longer see the position option in their dashboard
-- New accounts created by admin will always have centered position
-- Existing accounts with "left" position will remain unchanged in the database, but the UI will always render as centered (since we won't check the value anymore in the preview/profile pages)
+1. User lands on dashboard with `?welcome=true` → Coach marks start
+2. Step 1: Tooltip appears under profile header
+3. User taps "Got it" → Step 2: Tooltip moves to Links tab
+4. User taps "Got it" → Step 3: Tooltip moves to Design tab
+5. User taps "Got it" → Step 4: Tooltip appears on profile URL, mentions card option
+6. User taps "Got it!" → Tutorial complete, saved to localStorage
+7. "Skip" at any point → Dismiss entire tutorial
 
-**Note:** The `ProfilePreviewRenderer.tsx` and `PersonalProfilePage.tsx` will still reference `pfp_position` from the database, but since all new saves will be "center" and the UI option is removed, this is acceptable. The rendering code can stay as-is for backward compatibility with any existing "left" positions.
+---
+
+## Key Differences from Old Tutorial
+
+| Old (Modal) | New (Coach Marks) |
+|-------------|-------------------|
+| Separate dialog box | Inline tooltips on actual UI |
+| "Next" buttons in modal | "Got it" on floating tips |
+| "Confirm Your Card" step | Just mentions "request a card" |
+| Blocks interaction | Non-blocking, can click around |
+| Generic icons | Points to real elements |
+
