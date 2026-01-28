@@ -76,6 +76,27 @@ Deno.serve(async (req) => {
 
     console.log(`[update-personal-account-email] Admin ${callerUser.email} updating user ${userId} email to ${newEmail}`);
 
+    // Check if email is already in use by another user
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) {
+      console.error("[update-personal-account-email] Error listing users:", listError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify email availability" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const emailInUse = existingUsers.users.find(
+      (u) => u.email?.toLowerCase() === newEmail.toLowerCase() && u.id !== userId
+    );
+    if (emailInUse) {
+      console.log(`[update-personal-account-email] Email ${newEmail} already in use by user ${emailInUse.id}`);
+      return new Response(
+        JSON.stringify({ error: `Email "${newEmail}" is already in use by another account` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Update the email in auth.users using admin API
     const { error: authUpdateError } = await supabase.auth.admin.updateUserById(userId, {
       email: newEmail,
