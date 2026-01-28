@@ -1,232 +1,116 @@
 
-# Plan: Replace Modal Tutorial with Inline Walkthrough
+# Plan: Fix Welcome Tutorial Not Showing After Password Setup
 
-## Overview
+## Problem
 
-Replace the current `WelcomeTutorialModal` (a dialog box with "Next" buttons) with inline coach marks/tooltips that appear directly on the dashboard elements. This creates a "follow-through" experience where users see tips attached to the actual UI elements they'll be using.
+The welcome tutorial (coach marks) doesn't appear after users complete their password setup via the magic link flow, despite being redirected to `/personal/dashboard?welcome=true`.
 
----
+## Root Cause Analysis
 
-## Design Approach
-
-### New Component: `WelcomeCoachMarks.tsx`
-
-Instead of a modal, create a lightweight coach mark system that:
-- Shows small tooltip-style callouts attached to specific dashboard elements
-- Auto-advances through steps as user interacts with the UI OR via a "Got it" button
-- Uses Framer Motion for smooth fade/slide animations
-- Dismisses permanently via localStorage
-
-### Steps (Simplified)
-
-| Step | Target Element | Message |
-|------|----------------|---------|
-| 1 | Profile Header (name/photo) | "Welcome! This is your TapAway profile. Tap your photo to change it." |
-| 2 | Links Tab | "Add links to your social profiles, website, and more." |
-| 3 | Design Tab | "Customize colors, headers, and make it yours." |
-| 4 | Profile URL | "Share this link anywhere — or request a TapAway card!" |
-
-**Note:** The "Confirm Your Card" step is removed. Instead, a brief mention of requesting a card is included in the final step.
-
----
-
-## Implementation
-
-### 1. Create `WelcomeCoachMarks.tsx`
+There's a **race condition** in the `PersonalDashboard.tsx` welcome tutorial logic:
 
 ```tsx
-// New component that renders floating tooltips attached to dashboard elements
-interface CoachMarkStep {
-  id: string;
-  targetId: string; // ID of the DOM element to attach to
-  title: string;
-  message: string;
-  position: "top" | "bottom" | "left" | "right";
-}
-
-const COACH_STEPS: CoachMarkStep[] = [
-  {
-    id: "welcome",
-    targetId: "profile-header",
-    title: "Welcome to TapAway!",
-    message: "This is your digital profile. Tap your photo to customize it.",
-    position: "bottom",
-  },
-  {
-    id: "links",
-    targetId: "tab-links",
-    title: "Add Your Links",
-    message: "Connect social profiles, websites, and anything you want to share.",
-    position: "bottom",
-  },
-  {
-    id: "design",
-    targetId: "tab-design",
-    title: "Customize Your Look",
-    message: "Choose colors and upload a header image to match your style.",
-    position: "bottom",
-  },
-  {
-    id: "share",
-    targetId: "profile-url",
-    title: "You're All Set!",
-    message: "Share your link anywhere. Want a physical card? Check the Card tab!",
-    position: "top",
-  },
-];
+// Lines 203-215
+useEffect(() => {
+  const isWelcome = searchParams.get("welcome") === "true";
+  if (isWelcome && profile) {  // <-- PROBLEM: Both must be true at the same time
+    // ... show tutorial
+    setSearchParams({});  // <-- Clears URL immediately
+  }
+}, [profile, searchParams, setSearchParams]);
 ```
 
-The coach mark will:
-- Render a floating div positioned relative to the target element
-- Show one step at a time with "Got it" / "Skip" buttons
-- Track current step in component state
-- Dismiss permanently on completion or skip
+**What happens:**
+1. User navigates to `/personal/dashboard?welcome=true`
+2. Effect runs while `profile` is still `null` (loading)
+3. Condition `isWelcome && profile` fails because profile is null
+4. Profile loads, effect runs again - but now URL params may be in a different state or cleared by another effect
 
-### 2. Add Target IDs to Dashboard Elements
+## Solution
 
-Add `id` attributes to key dashboard elements so coach marks can attach:
+Use a **ref to capture the welcome param on mount**, then check it once profile loads:
+
+### Changes to PersonalDashboard.tsx
+
+**1. Add a ref to capture the initial welcome param:**
 
 ```tsx
-// Profile header section
-<div id="profile-header" className="flex items-center gap-4 mb-6">
+const welcomeParamRef = useRef<boolean>(false);
 
-// Tab triggers
-<TabsTrigger id="tab-links" value="links" ...>
-<TabsTrigger id="tab-design" value="design" ...>
-
-// Profile URL button
-<button id="profile-url" onClick={copyProfileUrl} ...>
+// Capture the welcome param ONCE on mount (before profile loads)
+useEffect(() => {
+  if (searchParams.get("welcome") === "true") {
+    welcomeParamRef.current = true;
+    // Clear the URL param immediately to prevent refresh issues
+    setSearchParams({}, { replace: true });
+  }
+}, []); // Empty deps - runs once on mount
 ```
 
-### 3. Update PersonalDashboard.tsx
-
-- Remove `WelcomeTutorialModal` component usage
-- Add `WelcomeCoachMarks` component with the same trigger logic (welcome=true param)
-- Pass necessary props for positioning and dismissal
-
-### 4. Delete WelcomeTutorialModal.tsx
-
-Remove the old modal component since it's no longer needed.
-
----
-
-## Visual Design
-
-```
-┌─────────────────────────────────────────┐
-│  TapAway              [Switch] [Logout] │
-├─────────────────────────────────────────┤
-│                                         │
-│  [Photo] John Doe                       │
-│          tapaway.co/john ◄─────────┐    │
-│                               ┌────┴───────────┐
-│  ┌─────────────────────────┐  │ You're All Set! │
-│  │ Links │ Design │ Stats │  │ Share your link │
-│  └─────────────────────────┘  │ anywhere. Want a│
-│                               │ card? Check the │
-│  ...content...                │ Card tab!       │
-│                               │ [Got it!]       │
-│                               └─────────────────┘
-```
-
-The coach mark appears as a floating card with:
-- Title in bold
-- Short message (1-2 sentences)
-- "Got it" button to advance
-- "Skip tutorial" link to dismiss entirely
-
----
-
-## Files Summary
-
-| File | Action | Changes |
-|------|--------|---------|
-| `src/components/personal/WelcomeCoachMarks.tsx` | **Create** | New inline coach mark component |
-| `src/components/personal/WelcomeTutorialModal.tsx` | **Delete** | Remove old modal component |
-| `src/pages/personal/PersonalDashboard.tsx` | **Modify** | Add element IDs, replace modal with coach marks |
-
----
-
-## Technical Details
-
-### Coach Mark Positioning
-
-Use a portal + `getBoundingClientRect()` to position the tooltip relative to target elements:
+**2. Update the welcome tutorial effect to use the ref:**
 
 ```tsx
-const CoachMark = ({ step, onNext, onSkip }: Props) => {
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  
-  useEffect(() => {
-    const target = document.getElementById(step.targetId);
-    if (target) {
-      const rect = target.getBoundingClientRect();
-      // Calculate position based on step.position (top/bottom/left/right)
-      setPosition({
-        top: rect.bottom + 8,
-        left: rect.left + rect.width / 2,
-      });
+// Show welcome tutorial after profile loads if we had the welcome param
+useEffect(() => {
+  if (welcomeParamRef.current && profile) {
+    const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
+    const alreadyDismissed = localStorage.getItem(dismissKey);
+    
+    if (!alreadyDismissed) {
+      setShowWelcomeTutorial(true);
     }
-  }, [step]);
-
-  return createPortal(
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="fixed z-[100] bg-background border shadow-lg rounded-lg p-4 max-w-xs"
-      style={{ top: position.top, left: position.left, transform: 'translateX(-50%)' }}
-    >
-      <h4 className="font-semibold text-sm">{step.title}</h4>
-      <p className="text-xs text-muted-foreground mt-1">{step.message}</p>
-      <div className="flex items-center justify-between mt-3">
-        <button onClick={onSkip} className="text-xs text-muted-foreground">
-          Skip
-        </button>
-        <Button size="sm" onClick={onNext}>Got it</Button>
-      </div>
-    </motion.div>,
-    document.body
-  );
-};
+    // Reset ref so it doesn't trigger again
+    welcomeParamRef.current = false;
+  }
+}, [profile]); // Only depends on profile
 ```
 
-### Smooth Tab Highlighting
+---
 
-When showing the "Links" or "Design" tab coach marks, add a subtle pulse/highlight to the tab:
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/personal/PersonalDashboard.tsx` | Fix race condition with useRef pattern |
+
+---
+
+## Technical Implementation
 
 ```tsx
-// Add pulsing ring around target when coach mark is active
-<TabsTrigger 
-  id="tab-links" 
-  value="links" 
-  className={cn(
-    "...",
-    activeCoachStep === "links" && "ring-2 ring-primary ring-offset-2 animate-pulse"
-  )}
->
+// Line ~122 - Add the ref
+const welcomeParamRef = useRef<boolean>(false);
+
+// Line ~198 - Add new effect to capture param on mount
+useEffect(() => {
+  if (searchParams.get("welcome") === "true") {
+    welcomeParamRef.current = true;
+    setSearchParams({}, { replace: true });
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // Intentionally empty - run once on mount
+
+// Lines 203-215 - Replace existing welcome effect
+useEffect(() => {
+  if (welcomeParamRef.current && profile) {
+    const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
+    const alreadyDismissed = localStorage.getItem(dismissKey);
+    
+    if (!alreadyDismissed) {
+      setShowWelcomeTutorial(true);
+    }
+    welcomeParamRef.current = false;
+  }
+}, [profile]);
 ```
 
 ---
 
-## Behavior
+## Expected Behavior After Fix
 
-1. User lands on dashboard with `?welcome=true` → Coach marks start
-2. Step 1: Tooltip appears under profile header
-3. User taps "Got it" → Step 2: Tooltip moves to Links tab
-4. User taps "Got it" → Step 3: Tooltip moves to Design tab
-5. User taps "Got it" → Step 4: Tooltip appears on profile URL, mentions card option
-6. User taps "Got it!" → Tutorial complete, saved to localStorage
-7. "Skip" at any point → Dismiss entire tutorial
-
----
-
-## Key Differences from Old Tutorial
-
-| Old (Modal) | New (Coach Marks) |
-|-------------|-------------------|
-| Separate dialog box | Inline tooltips on actual UI |
-| "Next" buttons in modal | "Got it" on floating tips |
-| "Confirm Your Card" step | Just mentions "request a card" |
-| Blocks interaction | Non-blocking, can click around |
-| Generic icons | Points to real elements |
-
+1. User completes password setup via magic link
+2. Redirected to `/personal/dashboard?welcome=true`
+3. On mount, the `welcome=true` param is captured in the ref and URL is cleared
+4. Once profile loads, the tutorial starts automatically
+5. Tutorial coach marks appear pointing to actual UI elements
+6. Completing/skipping tutorial saves dismissal to localStorage
