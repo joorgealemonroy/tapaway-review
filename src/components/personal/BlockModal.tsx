@@ -768,7 +768,7 @@ export const BlockModal = ({
                 <>
                   <div className="space-y-2">
                     <Label>Images (max 9)</Label>
-                    <p className="text-xs text-muted-foreground">Scrolls left-to-right on your profile</p>
+                    <p className="text-xs text-muted-foreground">Displays as a 3-column grid on your profile</p>
                     <input
                       ref={collageFileInputRef}
                       type="file"
@@ -776,9 +776,9 @@ export const BlockModal = ({
                       onChange={handleCollageImageSelect}
                       className="hidden"
                     />
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                    <div className="grid grid-cols-4 gap-2">
                       {collageImages.map((imgUrl, idx) => (
-                        <div key={idx} className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                           <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                           <button
                             onClick={() => handleRemoveCollageImage(idx)}
@@ -792,7 +792,7 @@ export const BlockModal = ({
                         <button
                           onClick={() => collageFileInputRef.current?.click()}
                           disabled={uploadingCollageImage}
-                          className="w-20 h-20 flex-shrink-0 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
+                          className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
                         >
                           {uploadingCollageImage ? (
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

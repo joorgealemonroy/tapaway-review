@@ -579,7 +579,7 @@ const PersonalDashboard = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -598,9 +598,9 @@ const PersonalDashboard = () => {
       </header>
 
       {/* Main Layout: Dashboard + Preview Panel */}
-      <div className="max-w-7xl mx-auto flex">
+      <div className="max-w-7xl mx-auto flex overflow-x-hidden">
         {/* Dashboard Content */}
-        <main className="flex-1 max-w-2xl px-4 py-6 pb-32">
+        <main className="flex-1 max-w-2xl px-4 py-6 pb-32 w-full overflow-x-hidden">
           {/* Profile Header */}
           <div className="flex items-center gap-4 mb-6">
             <button

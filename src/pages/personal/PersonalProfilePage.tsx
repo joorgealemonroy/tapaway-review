@@ -218,13 +218,14 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
 
   return (
     <>
-      <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-2" style={{ width: 'max-content' }}>
+      {/* Vertical grid layout - 3 columns, users scroll up/down */}
+      <div className="w-full">
+        <div className="grid grid-cols-3 gap-1.5">
           {images.map((imgUrl, idx) => (
             <button
               key={idx}
               onClick={() => handleImageClick(idx)}
-              className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+              className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <img 
                 src={getOptimizedImageUrl(imgUrl, 200, 85)} 
