@@ -3,10 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, AlignCenter, AlignLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 
 interface Props {
@@ -15,7 +14,6 @@ interface Props {
   fullName: string;
   headline: string | null;
   bio: string | null;
-  pfpPosition: string;
   onUpdate: (updates: Partial<{
     full_name: string;
     headline: string | null;
@@ -30,13 +28,11 @@ export const DashboardHeroEditor = ({
   fullName,
   headline,
   bio,
-  pfpPosition,
   onUpdate,
 }: Props) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
-  const [position, setPosition] = useState(pfpPosition || "center");
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -44,17 +40,15 @@ export const DashboardHeroEditor = ({
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
-    setPosition(pfpPosition || "center");
-  }, [fullName, headline, bio, pfpPosition]);
+  }, [fullName, headline, bio]);
 
   useEffect(() => {
     const changed = 
       name !== fullName ||
       headlineValue !== (headline || "") ||
-      bioValue !== (bio || "") ||
-      position !== (pfpPosition || "center");
+      bioValue !== (bio || "");
     setHasChanges(changed);
-  }, [name, headlineValue, bioValue, position, fullName, headline, bio, pfpPosition]);
+  }, [name, headlineValue, bioValue, fullName, headline, bio]);
 
   const handleSave = async () => {
     if (!hasChanges) return;
@@ -65,7 +59,7 @@ export const DashboardHeroEditor = ({
         full_name: name.trim(),
         headline: headlineValue.trim() || null,
         bio: bioValue.trim() || null,
-        pfp_position: position,
+        pfp_position: "center", // Always centered
       };
 
       const { error } = await supabase
@@ -141,45 +135,6 @@ export const DashboardHeroEditor = ({
           maxLength={160}
         />
         <p className="text-xs text-muted-foreground">{bioValue.length}/160</p>
-      </div>
-
-      {/* PFP Position */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Profile Photo Position</Label>
-        <RadioGroup
-          value={position}
-          onValueChange={setPosition}
-          className="flex gap-2"
-        >
-          <div className="flex-1">
-            <RadioGroupItem
-              value="center"
-              id="pos-center"
-              className="peer sr-only"
-            />
-            <label
-              htmlFor="pos-center"
-              className="flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-            >
-              <AlignCenter className="h-5 w-5" />
-              <span className="text-xs">Centered</span>
-            </label>
-          </div>
-          <div className="flex-1">
-            <RadioGroupItem
-              value="left"
-              id="pos-left"
-              className="peer sr-only"
-            />
-            <label
-              htmlFor="pos-left"
-              className="flex flex-col items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-            >
-              <AlignLeft className="h-5 w-5" />
-              <span className="text-xs">Left</span>
-            </label>
-          </div>
-        </RadioGroup>
       </div>
     </div>
   );

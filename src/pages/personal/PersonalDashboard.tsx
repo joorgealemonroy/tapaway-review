@@ -701,7 +701,6 @@ const PersonalDashboard = () => {
               fullName={profile.full_name}
               headline={profile.headline}
               bio={profile.bio}
-              pfpPosition={profile.pfp_position}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
             />
             
@@ -728,7 +727,6 @@ const PersonalDashboard = () => {
               headerColor={profile.header_color}
               headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
-              pfpPosition={profile.pfp_position}
               profilePhotoUrl={profile.profile_photo_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               onUpdate={handleDesignUpdate}
