@@ -68,7 +68,7 @@ export const WelcomeCoachMarks = ({
   const currentStep = COACH_STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === COACH_STEPS.length - 1;
 
-  // Calculate position based on target element
+  // Calculate position based on target element with mobile-first bounds checking
   const updatePosition = useCallback(() => {
     if (!currentStep) return;
 
@@ -80,19 +80,46 @@ export const WelcomeCoachMarks = ({
 
     const rect = target.getBoundingClientRect();
     const tooltipWidth = 280;
-    const tooltipHeight = 120;
+    const tooltipHeight = 140; // Slightly larger to account for content
     const offset = 12;
+    const safeAreaTop = 60; // Account for mobile status bar/notch
 
     let top: number;
     let arrowPosition: "top" | "bottom";
+    let preferredPosition = currentStep.position;
 
-    if (currentStep.position === "bottom") {
+    // Check if there's enough space above for "top" position
+    if (preferredPosition === "top") {
+      const spaceAbove = rect.top - safeAreaTop;
+      if (spaceAbove < tooltipHeight + offset) {
+        // Not enough space above, flip to bottom
+        preferredPosition = "bottom";
+      }
+    }
+
+    // Check if there's enough space below for "bottom" position
+    if (preferredPosition === "bottom") {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < tooltipHeight + offset) {
+        // Not enough space below, try top (unless we already tried)
+        if (currentStep.position === "bottom") {
+          preferredPosition = "top";
+        }
+      }
+    }
+
+    // Calculate final position
+    if (preferredPosition === "bottom") {
       top = rect.bottom + offset;
       arrowPosition = "top";
     } else {
       top = rect.top - tooltipHeight - offset;
       arrowPosition = "bottom";
     }
+
+    // Ensure tooltip stays within vertical bounds
+    top = Math.max(safeAreaTop, top);
+    top = Math.min(top, window.innerHeight - tooltipHeight - 16);
 
     // Center horizontally on the target, but keep within viewport
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
