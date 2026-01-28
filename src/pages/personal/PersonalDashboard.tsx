@@ -38,7 +38,8 @@ import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
-import { WelcomeTutorialModal } from "@/components/personal/WelcomeTutorialModal";
+import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
+import { cn } from "@/lib/utils";
 
 interface PersonalProfile {
   id: string;
@@ -133,6 +134,7 @@ const PersonalDashboard = () => {
   const modalFileInputRef = useRef<HTMLInputElement>(null);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState("links");
+  const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -602,7 +604,13 @@ const PersonalDashboard = () => {
         {/* Dashboard Content */}
         <main className="flex-1 max-w-2xl px-4 py-6 pb-32 w-full overflow-x-hidden">
           {/* Profile Header */}
-          <div className="flex items-center gap-4 mb-6">
+          <div 
+            id="profile-header" 
+            className={cn(
+              "flex items-center gap-4 mb-6 rounded-lg p-2 -m-2 transition-all",
+              coachHighlight === "welcome" && "ring-2 ring-primary ring-offset-2"
+            )}
+          >
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingPhoto}
@@ -639,8 +647,12 @@ const PersonalDashboard = () => {
             <div className="flex-1 min-w-0">
               <h1 className="font-bold text-lg text-foreground">{profile.full_name}</h1>
               <button
+                id="profile-url"
                 onClick={copyProfileUrl}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className={cn(
+                  "flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors",
+                  coachHighlight === "share" && "ring-2 ring-primary ring-offset-2 rounded px-1 -mx-1"
+                )}
               >
                 tapaway.co/{profile.username}
                 {copied ? (
@@ -663,11 +675,25 @@ const PersonalDashboard = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="links" className="flex items-center gap-2">
+            <TabsTrigger 
+              id="tab-links"
+              value="links" 
+              className={cn(
+                "flex items-center gap-2",
+                coachHighlight === "links" && "ring-2 ring-primary ring-offset-2"
+              )}
+            >
               <Link2 className="h-4 w-4" />
               <span className="hidden sm:inline">Links</span>
             </TabsTrigger>
-            <TabsTrigger value="design" className="flex items-center gap-2">
+            <TabsTrigger 
+              id="tab-design"
+              value="design" 
+              className={cn(
+                "flex items-center gap-2",
+                coachHighlight === "design" && "ring-2 ring-primary ring-offset-2"
+              )}
+            >
               <Palette className="h-4 w-4" />
               <span className="hidden sm:inline">Design</span>
             </TabsTrigger>
@@ -1077,18 +1103,16 @@ const PersonalDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Welcome Tutorial Modal */}
-      <WelcomeTutorialModal
-        open={showWelcomeTutorial}
-        onClose={() => {
+      {/* Welcome Coach Marks */}
+      <WelcomeCoachMarks
+        active={showWelcomeTutorial}
+        onComplete={() => {
           localStorage.setItem(`tapaway_personal_welcome_dismissed_${profile.id}`, 'true');
           setShowWelcomeTutorial(false);
+          setCoachHighlight(null);
         }}
-        username={profile.username}
-        fullName={profile.full_name}
-        hasPaidPlan={!!profile.plan_type && profile.plan_type !== "free"}
-        cardConfirmed={!!profile.card_confirmed}
-        onNavigateToTab={(tab) => setActiveTab(tab)}
+        highlightedStep={coachHighlight}
+        onHighlightChange={setCoachHighlight}
       />
     </div>
   );
