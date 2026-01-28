@@ -453,9 +453,9 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <p className="font-medium text-sm truncate">{link.label}</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-full">{link.value || link.url}</p>
+                  <div className="flex-1 min-w-0 overflow-hidden select-none pointer-events-none">
+                    <p className="font-medium text-sm truncate select-none">{link.label}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-full select-none">{link.value || link.url}</p>
                   </div>
 
                   {link.displayStyle && link.displayStyle !== "pill" && (
@@ -519,11 +519,11 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                   onTouchStart={(e) => handleTouchStart(e, index)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
+                  className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none select-none ${
                     draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!block.is_active ? "opacity-50" : ""}`}
                 >
-                  <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
+                  <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none select-none">
                     <GripVertical className="h-4 w-4" />
                   </div>
 
@@ -531,9 +531,9 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                     <Icon className="h-4 w-4 text-foreground" />
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{typeInfo.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">
+                  <div className="flex-1 min-w-0 select-none pointer-events-none">
+                    <p className="font-medium text-sm select-none">{typeInfo.label}</p>
+                    <p className="text-xs text-muted-foreground truncate select-none">
                       {getBlockPreview(block)}
                     </p>
                   </div>

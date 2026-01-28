@@ -401,10 +401,10 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
                 draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
               } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}`}
             >
-              <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
+              <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 select-none pointer-events-none">
                 {renderBlockPreview(block)}
               </div>
               <button

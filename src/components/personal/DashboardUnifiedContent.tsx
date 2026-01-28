@@ -717,8 +717,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         </div>
 
                         {/* Label */}
-                        <div className="absolute bottom-2 left-2 right-2">
-                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2">
+                        <div className="absolute bottom-2 left-2 right-2 select-none pointer-events-none">
+                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2 select-none">
                             {link.label}
                           </span>
                         </div>
@@ -788,11 +788,11 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none ${
+                  className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none select-none ${
                     isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
                 >
-                  <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
+                  <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div 
@@ -801,16 +801,16 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   >
                     {Icon && <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 select-none pointer-events-none">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm text-foreground">{link.label}</p>
+                      <p className="font-medium text-sm text-foreground select-none">{link.label}</p>
                       {isFeatured && (
-                        <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded select-none">
                           FEATURED
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                    <p className="text-xs text-muted-foreground truncate select-none">{link.url}</p>
                   </div>
                   
                   <button
@@ -858,19 +858,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none ${
+                  className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none select-none ${
                     isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
                 >
-                  <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
+                  <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {renderBlockIcon(block.block_type)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">{getBlockLabel(block)}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{block.block_type} block</p>
+                  <div className="flex-1 min-w-0 select-none pointer-events-none">
+                    <p className="font-medium text-sm text-foreground select-none">{getBlockLabel(block)}</p>
+                    <p className="text-xs text-muted-foreground capitalize select-none">{block.block_type} block</p>
                   </div>
                   <button
                     onClick={() => {

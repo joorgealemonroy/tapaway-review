@@ -346,7 +346,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}
                 ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
               >
-                <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
+                <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div 
@@ -359,21 +359,21 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                     <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />
                   ) : null}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 select-none pointer-events-none">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm text-foreground">{link.label}</p>
+                    <p className="font-medium text-sm text-foreground select-none">{link.label}</p>
                     {isFeatured && (
-                      <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded select-none">
                         FEATURED
                       </span>
                     )}
                     {link.cover_image_url && (
-                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded select-none">
                         COVER
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                  <p className="text-xs text-muted-foreground truncate select-none">{link.url}</p>
                 </div>
                 
                 {/* Feature toggle */}
