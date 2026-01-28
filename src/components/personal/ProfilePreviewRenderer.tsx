@@ -227,7 +227,7 @@ function ProfilePreviewRendererComponent({
     }
   };
 
-  // Collage preview with lightbox
+  // Collage preview with lightbox - vertical grid layout for better mobile UX
   const CollagePreview = ({ images, isPreview, onLinkClick }: { images: string[]; isPreview: boolean; onLinkClick?: (url: string) => void }) => {
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -243,13 +243,14 @@ function ProfilePreviewRendererComponent({
 
     return (
       <>
-        <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6">
-          <div className="flex gap-1.5" style={{ width: 'max-content' }}>
+        {/* Vertical grid instead of horizontal scroll - 3 columns for easy vertical scrolling */}
+        <div className="w-full">
+          <div className="grid grid-cols-3 gap-1.5">
             {images.map((imgUrl, idx) => (
               <button
                 key={idx}
                 onClick={() => handleImageClick(idx)}
-                className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <img 
                   src={getOptimizedImageUrl(imgUrl, 150)} 

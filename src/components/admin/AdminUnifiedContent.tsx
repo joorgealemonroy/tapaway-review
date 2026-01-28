@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { LinkModal } from "@/components/personal/LinkModal";
 import { BlockModal } from "@/components/personal/BlockModal";
@@ -19,6 +19,7 @@ import {
   Grid,
   Link as LinkIcon
 } from "lucide-react";
+import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
 export interface AdminLink {
   id: string;
@@ -70,9 +71,6 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<AdminLink | null>(null);
   const [editingBlock, setEditingBlock] = useState<AdminBlock | null>(null);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
 
   // Combine links and blocks into a unified list, sorted by sort_order
   const unifiedItems: UnifiedItem[] = [
@@ -111,7 +109,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
     return item.kind === "link" ? item.data.sortOrder : item.data.sort_order;
   };
 
-  const updateSortOrders = (items: UnifiedItem[]) => {
+  const updateSortOrders = useCallback((items: UnifiedItem[]) => {
     const newLinks: AdminLink[] = [];
     const newBlocks: AdminBlock[] = [];
     
@@ -125,7 +123,27 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
     
     onLinksChange(newLinks);
     onBlocksChange(newBlocks);
-  };
+  }, [onLinksChange, onBlocksChange]);
+
+  // Touch hold drag hook for better mobile UX
+  const handleReorder = useCallback((newItems: UnifiedItem[]) => {
+    updateSortOrders(newItems);
+  }, [updateSortOrders]);
+
+  const {
+    draggedIndex,
+    isDragEnabled,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useTouchHoldDrag({
+    items: unifiedItems,
+    onReorder: handleReorder,
+    itemHeight: 60,
+  });
 
   // Link handlers
   const handleAddLink = (linkData: { type: string; value: string; url: string; label: string; pillColor?: string | null; displayStyle?: string; coverImageUrl?: string | null; gridSize?: string | null; thumbnailUrl?: string | null }) => {
@@ -227,60 +245,6 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
     onBlocksChange(blocks.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b));
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    
-    const newItems = [...unifiedItems];
-    const draggedItem = newItems[draggedIndex];
-    newItems.splice(draggedIndex, 1);
-    newItems.splice(index, 0, draggedItem);
-    
-    updateSortOrders(newItems);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
-
-  // Touch handlers
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchCurrentIndex(index);
-    setDraggedIndex(index);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY === null || touchCurrentIndex === null) return;
-    
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY;
-    const itemHeight = 60;
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(unifiedItems.length - 1, touchCurrentIndex + indexDiff));
-
-    if (newIndex !== draggedIndex && draggedIndex !== null) {
-      const newItems = [...unifiedItems];
-      const [draggedItem] = newItems.splice(draggedIndex, 1);
-      newItems.splice(newIndex, 0, draggedItem);
-      
-      updateSortOrders(newItems);
-      setDraggedIndex(newIndex);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setTouchStartY(null);
-    setTouchCurrentIndex(null);
-    setDraggedIndex(null);
-  };
-
   const getBlockPreview = (block: AdminBlock): string => {
     const content = block.content;
     switch (block.block_type) {
@@ -366,8 +330,8 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                         className={`relative aspect-video rounded-lg overflow-hidden border bg-card transition-all touch-none group ${
-                          draggedIndex === index ? "opacity-50" : ""
-                        } ${!link.isActive ? "opacity-50" : ""}`}
+                          draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                        } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!link.isActive ? "opacity-50" : ""}`}
                       >
                         {/* Cover image */}
                         {link.coverImageUrl && (
@@ -556,8 +520,8 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
-                    draggedIndex === index ? "opacity-50" : ""
-                  } ${!block.is_active ? "opacity-50" : ""}`}
+                    draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!block.is_active ? "opacity-50" : ""}`}
                 >
                   <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-4 w-4" />
