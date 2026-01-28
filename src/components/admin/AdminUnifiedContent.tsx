@@ -329,7 +329,7 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                         onTouchStart={(e) => handleTouchStart(e, index)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        className={`relative aspect-video rounded-lg overflow-hidden border bg-card transition-all touch-none group ${
+                        className={`relative aspect-video rounded-lg overflow-hidden border bg-card transition-all touch-none select-none group ${
                           draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                         } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!link.isActive ? "opacity-50" : ""}`}
                       >
@@ -424,9 +424,9 @@ export const AdminUnifiedContent = ({ links, blocks, onLinksChange, onBlocksChan
                   onTouchStart={(e) => handleTouchStart(e, index)}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
-                  className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
-                    draggedIndex === index ? "opacity-50" : ""
-                  } ${!link.isActive ? "opacity-50" : ""}`}
+                  className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none select-none ${
+                    draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!link.isActive ? "opacity-50" : ""}`}
                 >
                   <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-4 w-4" />
