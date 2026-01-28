@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -23,6 +23,7 @@ import {
 import { LinkModal } from "@/components/personal/LinkModal";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
+import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
 interface DbPersonalLink {
   id: string;
@@ -63,9 +64,50 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
+
+  // Use the touch hold drag hook for better mobile UX
+  const handleReorder = useCallback((newLinks: DbPersonalLink[]) => {
+    onLinksChange(newLinks);
+  }, [onLinksChange]);
+
+  const persistOrder = useCallback(async () => {
+    try {
+      const updates = links.map((link, i) => ({
+        id: link.id,
+        sort_order: i,
+      }));
+
+      for (const update of updates) {
+        await supabase
+          .from("personal_links")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id);
+      }
+    } catch (err) {
+      console.error("Reorder error:", err);
+      toast.error("Failed to save order");
+    }
+  }, [links]);
+
+  const {
+    draggedIndex,
+    isDragEnabled,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd: hookDragEnd,
+  } = useTouchHoldDrag({
+    items: links,
+    onReorder: handleReorder,
+    onDragEnd: persistOrder,
+    itemHeight: 60,
+  });
+
+  const handleDragEnd = () => {
+    hookDragEnd();
+  };
 
   const convertToPersonalLink = (dbLink: DbPersonalLink): PersonalLink => ({
     id: dbLink.id,
@@ -274,77 +316,6 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     }
   };
 
-  // Desktop drag handlers
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newLinks = [...links];
-    const [draggedLink] = newLinks.splice(draggedIndex, 1);
-    newLinks.splice(index, 0, draggedLink);
-    
-    onLinksChange(newLinks);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = async () => {
-    if (draggedIndex === null) return;
-    setDraggedIndex(null);
-
-    // Persist new order
-    try {
-      const updates = links.map((link, i) => ({
-        id: link.id,
-        sort_order: i,
-      }));
-
-      for (const update of updates) {
-        await supabase
-          .from("personal_links")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id);
-      }
-    } catch (err) {
-      console.error("Reorder error:", err);
-      toast.error("Failed to save order");
-    }
-  };
-
-  // Mobile touch handlers
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchCurrentIndex(index);
-    setDraggedIndex(index);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY === null || touchCurrentIndex === null) return;
-    
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY;
-    const itemHeight = 60;
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(links.length - 1, touchCurrentIndex + indexDiff));
-
-    if (newIndex !== draggedIndex && draggedIndex !== null) {
-      const newLinks = [...links];
-      const [draggedLink] = newLinks.splice(draggedIndex, 1);
-      newLinks.splice(newIndex, 0, draggedLink);
-      onLinksChange(newLinks);
-      setDraggedIndex(newIndex);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    setTouchStartY(null);
-    setTouchCurrentIndex(null);
-    await handleDragEnd();
-  };
-
   // Don't filter by existing types - allow multiple of same type
   const existingTypes: string[] = [];
 
@@ -371,8 +342,9 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none ${
-                  draggedIndex === index ? "opacity-50 scale-95 shadow-lg" : ""
-                } ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
+                  draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}
+                ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
               >
                 <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
                   <GripVertical className="h-5 w-5 text-muted-foreground" />

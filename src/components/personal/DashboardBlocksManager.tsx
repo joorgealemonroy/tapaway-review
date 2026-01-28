@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   Maximize2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
 interface PersonalBlock {
   id: string;
@@ -51,9 +52,6 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
   const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
   
   // Form states
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -66,6 +64,50 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
   const [alignment, setAlignment] = useState("center");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use the touch hold drag hook for better mobile UX
+  const handleReorder = useCallback((newBlocks: PersonalBlock[]) => {
+    onBlocksChange(newBlocks);
+  }, [onBlocksChange]);
+
+  const persistOrder = useCallback(async () => {
+    try {
+      const updates = blocks.map((block, i) => ({
+        id: block.id,
+        sort_order: i,
+      }));
+
+      for (const update of updates) {
+        await supabase
+          .from("personal_blocks")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id);
+      }
+    } catch (err) {
+      console.error("Reorder error:", err);
+      toast.error("Failed to save order");
+    }
+  }, [blocks]);
+
+  const {
+    draggedIndex,
+    isDragEnabled,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd: hookDragEnd,
+  } = useTouchHoldDrag({
+    items: blocks,
+    onReorder: handleReorder,
+    onDragEnd: persistOrder,
+    itemHeight: 60,
+  });
+
+  const handleDragEnd = () => {
+    hookDragEnd();
+  };
 
   const resetForm = () => {
     setSelectedType(null);
@@ -302,77 +344,6 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
     }
   };
 
-  // Desktop drag handlers
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newBlocks = [...blocks];
-    const [draggedBlock] = newBlocks.splice(draggedIndex, 1);
-    newBlocks.splice(index, 0, draggedBlock);
-    
-    onBlocksChange(newBlocks);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = async () => {
-    if (draggedIndex === null) return;
-    setDraggedIndex(null);
-
-    // Persist new order
-    try {
-      const updates = blocks.map((block, i) => ({
-        id: block.id,
-        sort_order: i,
-      }));
-
-      for (const update of updates) {
-        await supabase
-          .from("personal_blocks")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id);
-      }
-    } catch (err) {
-      console.error("Reorder error:", err);
-      toast.error("Failed to save order");
-    }
-  };
-
-  // Mobile touch handlers
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchCurrentIndex(index);
-    setDraggedIndex(index);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY === null || touchCurrentIndex === null) return;
-    
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY;
-    const itemHeight = 60; // Approximate height of each item
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(blocks.length - 1, touchCurrentIndex + indexDiff));
-
-    if (newIndex !== draggedIndex && draggedIndex !== null) {
-      const newBlocks = [...blocks];
-      const [draggedBlock] = newBlocks.splice(draggedIndex, 1);
-      newBlocks.splice(newIndex, 0, draggedBlock);
-      onBlocksChange(newBlocks);
-      setDraggedIndex(newIndex);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    setTouchStartY(null);
-    setTouchCurrentIndex(null);
-    await handleDragEnd();
-  };
-
   const renderBlockPreview = (block: PersonalBlock) => {
     const content = block.content as Record<string, string>;
     switch (block.block_type) {
@@ -427,8 +398,8 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none ${
-                draggedIndex === index ? "opacity-50 scale-95 shadow-lg" : ""
-              }`}
+                draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+              } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}`}
             >
               <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
                 <GripVertical className="h-5 w-5 text-muted-foreground" />

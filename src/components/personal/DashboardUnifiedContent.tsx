@@ -1,4 +1,4 @@
-import { useState, useCallback, useImperativeHandle, forwardRef } from "react";
+import { useState, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { 
@@ -124,6 +124,11 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const [deleteItem, setDeleteItem] = useState<{ kind: "link" | "block"; id: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState<{ index: number; item: UnifiedItem } | null>(null);
+  
+  // Touch hold state for mobile UX
+  const [isDragEnabled, setIsDragEnabled] = useState(false);
+  const touchHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const initialTouchYRef = useRef<number | null>(null);
   
   // Track pending changes - these haven't been saved to DB yet
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
@@ -340,17 +345,56 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     markPendingChange({ orderChanged: true });
   };
 
-  // Touch handlers for mobile
+  // Touch handlers for mobile - with hold delay for better UX
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
+  const HOLD_DELAY_MS = 200;
+
+  const clearTouchTimer = useCallback(() => {
+    if (touchHoldTimerRef.current) {
+      clearTimeout(touchHoldTimerRef.current);
+      touchHoldTimerRef.current = null;
+    }
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent, index: number, item: UnifiedItem) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchCurrentIndex(index);
-    setDraggedItem({ index, item });
+    // Store initial touch position
+    initialTouchYRef.current = e.touches[0].clientY;
+    touchCurrentIndex !== null && setTouchCurrentIndex(null);
+    
+    // Start hold timer - only enable drag after delay
+    touchHoldTimerRef.current = setTimeout(() => {
+      setIsDragEnabled(true);
+      setTouchStartY(initialTouchYRef.current);
+      setTouchCurrentIndex(index);
+      setDraggedItem({ index, item });
+      
+      // Haptic feedback on supported devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, HOLD_DELAY_MS);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // If drag not enabled yet, check if user is scrolling
+    if (!isDragEnabled) {
+      if (initialTouchYRef.current !== null) {
+        const currentY = e.touches[0].clientY;
+        const diff = Math.abs(currentY - initialTouchYRef.current);
+        
+        // If user moved more than 10px, they're scrolling - cancel the hold timer
+        if (diff > 10) {
+          clearTouchTimer();
+          initialTouchYRef.current = null;
+        }
+      }
+      return; // Let the page scroll normally
+    }
+
+    // Prevent scrolling when dragging
+    e.preventDefault();
+
     if (touchStartY === null || touchCurrentIndex === null || !draggedItem) return;
 
     const currentY = e.touches[0].clientY;
@@ -383,12 +427,17 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   };
 
   const handleTouchEnd = () => {
+    clearTouchTimer();
+    initialTouchYRef.current = null;
     setTouchStartY(null);
     setTouchCurrentIndex(null);
-    if (draggedItem) {
+    
+    if (isDragEnabled && draggedItem) {
       setDraggedItem(null);
       markPendingChange({ orderChanged: true });
     }
+    
+    setIsDragEnabled(false);
   };
 
   // Link handlers - now update local state only
@@ -644,8 +693,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                         className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
-                          isDragging ? "opacity-50" : ""
-                        } ${!isActive ? "opacity-50" : ""}`}
+                          isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                        } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
                       >
                         {/* Cover image */}
                         {link.cover_image_url && (
@@ -744,8 +793,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none ${
-                    isDragging ? "opacity-50 scale-95 shadow-lg" : ""
-                  } ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
+                    isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
                 >
                   <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
@@ -814,8 +863,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none ${
-                    isDragging ? "opacity-50 scale-95 shadow-lg" : ""
-                  } ${!isActive ? "opacity-50" : ""}`}
+                    isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
                 >
                   <div className="p-1 cursor-grab active:cursor-grabbing touch-none">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />

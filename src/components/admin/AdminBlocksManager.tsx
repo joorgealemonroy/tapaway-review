@@ -1,7 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { BlockModal } from "@/components/personal/BlockModal";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Plus, 
@@ -18,6 +17,7 @@ import {
   Grid,
   Loader2
 } from "lucide-react";
+import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
 export interface AdminBlock {
   id: string;
@@ -46,13 +46,34 @@ const BLOCK_TYPE_INFO: Record<string, { label: string; icon: React.ElementType }
 export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<AdminBlock | null>(null);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
 
   const currentMaxOrder = blocks.length > 0 
     ? Math.max(...blocks.map(b => b.sort_order)) 
     : 0;
+
+  // Use the touch hold drag hook for better mobile UX
+  const handleReorder = useCallback((newBlocks: AdminBlock[]) => {
+    // Update sort orders
+    newBlocks.forEach((block, i) => {
+      block.sort_order = i;
+    });
+    onBlocksChange(newBlocks);
+  }, [onBlocksChange]);
+
+  const {
+    draggedIndex,
+    isDragEnabled,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useTouchHoldDrag({
+    items: blocks,
+    onReorder: handleReorder,
+    itemHeight: 60,
+  });
 
   const handleBlockSaved = (block: { id: string; block_type: string; content: unknown; alignment: string | null; sort_order: number; is_active?: boolean | null }) => {
     const existingIndex = blocks.findIndex(b => b.id === block.id);
@@ -85,67 +106,6 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
 
   const toggleActive = (id: string) => {
     onBlocksChange(blocks.map(b => b.id === id ? { ...b, is_active: !b.is_active } : b));
-  };
-
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-    
-    const newBlocks = [...blocks];
-    const draggedItem = newBlocks[draggedIndex];
-    newBlocks.splice(draggedIndex, 1);
-    newBlocks.splice(index, 0, draggedItem);
-    
-    // Update sort orders
-    newBlocks.forEach((block, i) => {
-      block.sort_order = i;
-    });
-    
-    onBlocksChange(newBlocks);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchCurrentIndex(index);
-    setDraggedIndex(index);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY === null || touchCurrentIndex === null) return;
-    
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY;
-    const itemHeight = 60;
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(blocks.length - 1, touchCurrentIndex + indexDiff));
-
-    if (newIndex !== draggedIndex && draggedIndex !== null) {
-      const newBlocks = [...blocks];
-      const [draggedItem] = newBlocks.splice(draggedIndex, 1);
-      newBlocks.splice(newIndex, 0, draggedItem);
-      
-      newBlocks.forEach((block, i) => {
-        block.sort_order = i;
-      });
-      
-      onBlocksChange(newBlocks);
-      setDraggedIndex(newIndex);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setTouchStartY(null);
-    setTouchCurrentIndex(null);
-    setDraggedIndex(null);
   };
 
   const openEditModal = (block: AdminBlock) => {
@@ -219,8 +179,8 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
-                  draggedIndex === index ? "opacity-50" : ""
-                } ${!block.is_active ? "opacity-50" : ""}`}
+                  draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
+                } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!block.is_active ? "opacity-50" : ""}`}
               >
                 <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
                   <GripVertical className="h-4 w-4" />
