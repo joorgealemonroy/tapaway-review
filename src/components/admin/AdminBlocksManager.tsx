@@ -182,7 +182,7 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
                   draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                 } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!block.is_active ? "opacity-50" : ""}`}
               >
-                <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
+                <div className="cursor-grab text-muted-foreground hover:text-foreground touch-none select-none">
                   <GripVertical className="h-4 w-4" />
                 </div>
 
@@ -190,9 +190,9 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
                   <Icon className="h-4 w-4 text-foreground" />
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{typeInfo.label}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                <div className="flex-1 min-w-0 select-none pointer-events-none">
+                  <p className="font-medium text-sm select-none">{typeInfo.label}</p>
+                  <p className="text-xs text-muted-foreground truncate select-none">
                     {getBlockPreview(block)}
                   </p>
                 </div>
