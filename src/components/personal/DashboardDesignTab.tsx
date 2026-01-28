@@ -10,8 +10,6 @@ import {
   Image as ImageIcon, 
   X, 
   Upload,
-  AlignLeft,
-  AlignCenter,
   Loader2,
   Sparkles,
   Wand2
@@ -25,7 +23,6 @@ interface Props {
   headerColor: string | null;
   headerImageUrl: string | null;
   backgroundColor: string | null;
-  pfpPosition: string;
   profilePhotoUrl: string | null;
   isPremium: boolean;
   onUpdate: (updates: {
@@ -33,7 +30,6 @@ interface Props {
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
-    pfpPosition?: string;
   }) => void;
 }
 
@@ -59,7 +55,6 @@ export const DashboardDesignTab = ({
   headerColor,
   headerImageUrl,
   backgroundColor,
-  pfpPosition,
   profilePhotoUrl,
   isPremium,
   onUpdate,
@@ -268,18 +263,7 @@ export const DashboardDesignTab = ({
     }
   };
 
-  const handlePfpPositionChange = async (position: string) => {
-    try {
-      await supabase
-        .from("personal_profiles")
-        .update({ pfp_position: position })
-        .eq("id", profileId);
-
-      onUpdate({ pfpPosition: position });
-    } catch (err) {
-      console.error("Error updating pfp position:", err);
-    }
-  };
+  // PFP position removed - always centered
 
   // Banner mode now uses the profile photo - no separate banner upload needed
 
@@ -451,30 +435,7 @@ export const DashboardDesignTab = ({
         )}
       </div>
 
-      {/* PFP Position */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-foreground">Profile Photo Position</Label>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handlePfpPositionChange("left")}
-            className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
-              pfpPosition === "left" ? "border-primary bg-primary/10" : "border-border"
-            }`}
-          >
-            <AlignLeft className="h-4 w-4" />
-            <span className="text-sm">Left</span>
-          </button>
-          <button
-            onClick={() => handlePfpPositionChange("center")}
-            className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
-              pfpPosition === "center" ? "border-primary bg-primary/10" : "border-border"
-            }`}
-          >
-            <AlignCenter className="h-4 w-4" />
-            <span className="text-sm">Center</span>
-          </button>
-        </div>
-      </div>
+      {/* PFP Position removed - always centered */}
 
       {/* Background Color */}
       <div className="space-y-3">

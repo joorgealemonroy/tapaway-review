@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       headerType = "color",
       headerColor = "#6BCB77",
       backgroundColor = "#ffffff",
-      pfpPosition = "center",
+      // pfpPosition always defaults to "center" - no longer configurable
     } = await req.json();
 
     // Validate required fields
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
         header_type: headerType,
         header_color: headerColor,
         background_color: backgroundColor,
-        pfp_position: pfpPosition,
+        pfp_position: "center", // Always centered
         plan_type: planType,
         subscription_status: subscriptionStatus,
       })
