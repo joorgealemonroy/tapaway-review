@@ -38,6 +38,7 @@ import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
+import { WelcomeTutorialModal } from "@/components/personal/WelcomeTutorialModal";
 
 interface PersonalProfile {
   id: string;
@@ -130,6 +131,8 @@ const PersonalDashboard = () => {
   const [isCardPhotoEdit, setIsCardPhotoEdit] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
+  const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
+  const [activeTab, setActiveTab] = useState("links");
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -194,14 +197,28 @@ const PersonalDashboard = () => {
     loadData();
   }, [loadData]);
 
-  // Show card confirmation modal on first visit if not confirmed and has a paid plan
+  // Show welcome tutorial on first visit via magic link
+  useEffect(() => {
+    const isWelcome = searchParams.get("welcome") === "true";
+    if (isWelcome && profile) {
+      const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
+      const alreadyDismissed = localStorage.getItem(dismissKey);
+      
+      if (!alreadyDismissed) {
+        setShowWelcomeTutorial(true);
+      }
+      // Clear the URL param
+      setSearchParams({});
+    }
+  }, [profile, searchParams, setSearchParams]);
+
+  // Initialize card modal editable fields when profile loads (but don't auto-show)
   useEffect(() => {
     if (profile && !profile.card_confirmed && profile.plan_type && profile.plan_type !== "free") {
       setEditableCardName(profile.full_name);
       setEditableFrontHeadline(profile.card_front_headline || "Tap to Connect\n& Collaborate");
       setEditableBackText(profile.card_back_text || "Tap to Connect");
-      setEditableCardPhotoUrl(null); // Reset to use profile photo
-      setShowCardConfirmModal(true);
+      setEditableCardPhotoUrl(null);
     }
   }, [profile]);
 
@@ -644,7 +661,7 @@ const PersonalDashboard = () => {
           </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="links" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="links" className="flex items-center gap-2">
               <Link2 className="h-4 w-4" />
@@ -662,9 +679,12 @@ const PersonalDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="card" className="flex items-center gap-2">
+            <TabsTrigger value="card" className="flex items-center gap-2 relative">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Card</span>
+              {!profile.card_confirmed && profile.plan_type && profile.plan_type !== "free" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+              )}
             </TabsTrigger>
             <TabsTrigger value="plan" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -1057,6 +1077,20 @@ const PersonalDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Welcome Tutorial Modal */}
+      <WelcomeTutorialModal
+        open={showWelcomeTutorial}
+        onClose={() => {
+          localStorage.setItem(`tapaway_personal_welcome_dismissed_${profile.id}`, 'true');
+          setShowWelcomeTutorial(false);
+        }}
+        username={profile.username}
+        fullName={profile.full_name}
+        hasPaidPlan={!!profile.plan_type && profile.plan_type !== "free"}
+        cardConfirmed={!!profile.card_confirmed}
+        onNavigateToTab={(tab) => setActiveTab(tab)}
+      />
     </div>
   );
 };

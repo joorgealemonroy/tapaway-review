@@ -81,7 +81,7 @@ const MagicLinkVerify = () => {
 
         // Redirect to personal dashboard after a brief delay
         setTimeout(() => {
-          navigate("/personal/dashboard", { replace: true });
+          navigate("/personal/dashboard?welcome=true", { replace: true });
         }, 1500);
       } else {
         throw new Error("No session returned");
