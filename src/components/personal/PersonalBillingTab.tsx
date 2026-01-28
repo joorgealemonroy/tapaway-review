@@ -36,6 +36,9 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
 
   const isPro = isPaidPlan(profile.plan_type);
   const planInfo = isPro ? PERSONAL_PLANS.paid : PERSONAL_PLANS.free;
+  
+  // Detect admin-created VIP accounts: paid plan without Stripe subscription
+  const isVIP = isPro && !profile.stripe_subscription_id;
 
   const handleManageSubscription = async () => {
     if (!profile.stripe_customer_id) {
@@ -92,11 +95,15 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
                 Current Plan
               </CardTitle>
               <CardDescription>
-                {isPro ? "You have access to all premium features" : "Upgrade to unlock premium features"}
+                {isVIP 
+                  ? "You have complimentary full access to all features!" 
+                  : isPro 
+                    ? "You have access to all premium features" 
+                    : "Upgrade to unlock premium features"}
               </CardDescription>
             </div>
-            <Badge variant={isPro ? "default" : "secondary"} className={isPro ? "bg-amber-500" : ""}>
-              {planInfo.name}
+            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isPro ? "bg-amber-500" : ""}>
+              {isVIP ? "VIP Access" : planInfo.name}
             </Badge>
           </div>
         </CardHeader>
@@ -106,7 +113,13 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
             <span className="text-muted-foreground">{planInfo.priceSubtext}</span>
           </div>
 
-          {isPro && profile.subscription_status === "active" && (
+          {isVIP && (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              ✨ You have complimentary access to all premium features - enjoy!
+            </p>
+          )}
+
+          {isPro && !isVIP && profile.subscription_status === "active" && (
             <p className="text-sm text-muted-foreground">
               Your subscription is active. Manage billing details through the Stripe portal.
             </p>
@@ -115,65 +128,71 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
           <div className="flex flex-wrap gap-3">
             {isPro ? (
               <>
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={isOpeningPortal || !profile.stripe_customer_id}
-                >
-                  {isOpeningPortal ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4 mr-2" />
-                  )}
-                  Manage Subscription
-                  <ExternalLink className="h-3 w-3 ml-2" />
-                </Button>
+                {/* Only show subscription management for paying users */}
+                {!isVIP && (
+                  <Button
+                    variant="outline"
+                    onClick={handleManageSubscription}
+                    disabled={isOpeningPortal || !profile.stripe_customer_id}
+                  >
+                    {isOpeningPortal ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CreditCard className="h-4 w-4 mr-2" />
+                    )}
+                    Manage Subscription
+                    <ExternalLink className="h-3 w-3 ml-2" />
+                  </Button>
+                )}
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" className="text-muted-foreground">
-                      Downgrade to Free
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Downgrade to Free Plan?</AlertDialogTitle>
-                      <AlertDialogDescription asChild>
-                        <div className="space-y-3">
-                          <p>Your subscription will be canceled immediately.</p>
-
-                          <div className="bg-muted p-3 rounded-lg space-y-2">
-                            <p className="font-medium text-foreground">What happens to your content:</p>
-                            <ul className="text-sm space-y-1">
-                              <li>✓ Your first 5 links will remain active</li>
-                              <li>✓ Basic blocks (text, image, youtube, button) stay visible</li>
-                              <li>⏸ Extra links will be hidden (not deleted)</li>
-                              <li>⏸ Photo collage & email capture blocks will be hidden</li>
-                              <li>⏸ Custom header image will be hidden</li>
-                            </ul>
-                          </div>
-
-                          <p className="text-sm text-amber-600 dark:text-amber-400">
-                            💡 If you upgrade again within 60 days, everything will be restored!
-                          </p>
-                        </div>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Keep Pro</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDowngrade}
-                        disabled={isDowngrading}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {isDowngrading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : null}
+                {/* Only show downgrade option for paying users */}
+                {!isVIP && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" className="text-muted-foreground">
                         Downgrade to Free
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Downgrade to Free Plan?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-3">
+                            <p>Your subscription will be canceled immediately.</p>
+
+                            <div className="bg-muted p-3 rounded-lg space-y-2">
+                              <p className="font-medium text-foreground">What happens to your content:</p>
+                              <ul className="text-sm space-y-1">
+                                <li>✓ Your first 5 links will remain active</li>
+                                <li>✓ Basic blocks (text, image, youtube, button) stay visible</li>
+                                <li>⏸ Extra links will be hidden (not deleted)</li>
+                                <li>⏸ Photo collage & email capture blocks will be hidden</li>
+                                <li>⏸ Custom header image will be hidden</li>
+                              </ul>
+                            </div>
+
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              💡 If you upgrade again within 60 days, everything will be restored!
+                            </p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep Pro</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDowngrade}
+                          disabled={isDowngrading}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDowngrading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : null}
+                          Downgrade to Free
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             ) : (
               <Button onClick={onUpgrade}>

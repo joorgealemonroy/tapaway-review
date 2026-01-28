@@ -715,6 +715,7 @@ const PersonalDashboard = () => {
                 onLinksChange={setLinks}
                 onBlocksChange={setBlocks}
                 onPendingChangesChange={setHasPendingChanges}
+                onDiscardRequest={loadData}
               />
             </div>
           </TabsContent>

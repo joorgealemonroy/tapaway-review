@@ -341,7 +341,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 onTouchStart={(e) => handleTouchStart(e, index)}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none ${
+                className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none select-none ${
                   draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                 } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}
                 ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}

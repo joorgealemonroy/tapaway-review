@@ -96,6 +96,7 @@ interface Props {
   onLinksChange: (links: DbPersonalLink[]) => void;
   onBlocksChange: (blocks: PersonalBlock[]) => void;
   onPendingChangesChange: (hasPending: boolean) => void;
+  onDiscardRequest?: () => void;
 }
 
 const createEmptyPendingChanges = (): PendingChanges => ({
@@ -116,6 +117,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   onLinksChange, 
   onBlocksChange,
   onPendingChangesChange,
+  onDiscardRequest,
 }, ref) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
@@ -285,22 +287,16 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }
   };
 
-  // Discard all pending changes - reload from DB
+  // Discard all pending changes - request parent to reload from DB
   const discardChanges = useCallback(() => {
-    // Remove locally added items from state
-    const cleanedLinks = links.filter(l => !pendingChanges.addedLinks.find(al => al.id === l.id));
-    const cleanedBlocks = blocks.filter(b => !pendingChanges.addedBlocks.find(ab => ab.id === b.id));
-    
-    // Restore deleted items - we need to reload from DB, so just trigger a refresh
-    // For now, we'll clear pending and the parent should refetch
+    // Clear pending changes state
     setPendingChanges(createEmptyPendingChanges());
     onPendingChangesChange(false);
     
-    // Signal parent to reload data
+    // Signal parent to reload data from DB
     toast.info("Changes discarded");
-    // Trigger page reload to reset state
-    window.location.reload();
-  }, [links, blocks, pendingChanges, onPendingChangesChange]);
+    onDiscardRequest?.();
+  }, [onPendingChangesChange, onDiscardRequest]);
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({

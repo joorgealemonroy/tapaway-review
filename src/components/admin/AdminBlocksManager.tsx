@@ -178,7 +178,7 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
                 onTouchStart={(e) => handleTouchStart(e, index)}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none ${
+                className={`flex items-center gap-2 p-3 bg-card border rounded-lg transition-all touch-none select-none ${
                   draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                 } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""} ${!block.is_active ? "opacity-50" : ""}`}
               >
