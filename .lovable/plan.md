@@ -1,116 +1,122 @@
 
-# Plan: Fix Welcome Tutorial Not Showing After Password Setup
+# Plan: Make Tutorial Coach Marks Mobile-First
 
 ## Problem
 
-The welcome tutorial (coach marks) doesn't appear after users complete their password setup via the magic link flow, despite being redirected to `/personal/dashboard?welcome=true`.
+On mobile, the "You're All Set!" tooltip is cut off at the top of the screen. The tooltip is positioned above the target element (`position: "top"`), but when the target is near the top of the viewport, the tooltip goes off-screen.
 
-## Root Cause Analysis
+Looking at the screenshot, you can see the tooltip title "You're All Set!" is partially hidden because it's positioned above the profile URL element without checking if there's enough vertical space.
 
-There's a **race condition** in the `PersonalDashboard.tsx` welcome tutorial logic:
+---
+
+## Root Cause
+
+In `WelcomeCoachMarks.tsx`, the positioning logic (lines 86-95) doesn't check vertical bounds:
 
 ```tsx
-// Lines 203-215
-useEffect(() => {
-  const isWelcome = searchParams.get("welcome") === "true";
-  if (isWelcome && profile) {  // <-- PROBLEM: Both must be true at the same time
-    // ... show tutorial
-    setSearchParams({});  // <-- Clears URL immediately
-  }
-}, [profile, searchParams, setSearchParams]);
+if (currentStep.position === "bottom") {
+  top = rect.bottom + offset;
+  arrowPosition = "top";
+} else {
+  top = rect.top - tooltipHeight - offset;  // Can be negative!
+  arrowPosition = "bottom";
+}
 ```
 
-**What happens:**
-1. User navigates to `/personal/dashboard?welcome=true`
-2. Effect runs while `profile` is still `null` (loading)
-3. Condition `isWelcome && profile` fails because profile is null
-4. Profile loads, effect runs again - but now URL params may be in a different state or cleared by another effect
+The horizontal bounds are checked (line 99), but vertical bounds are not.
+
+---
 
 ## Solution
 
-Use a **ref to capture the welcome param on mount**, then check it once profile loads:
+1. **Add vertical viewport checking** - If the tooltip would go off-screen at the top, flip it to appear below the target instead
+2. **Account for mobile safe areas** - Add padding for the status bar and notch on mobile devices
+3. **Ensure minimum top position** - Never position the tooltip above a safe threshold
 
-### Changes to PersonalDashboard.tsx
+---
 
-**1. Add a ref to capture the initial welcome param:**
+## Changes Required
+
+### File: `src/components/personal/WelcomeCoachMarks.tsx`
+
+**Update the `updatePosition` function to add vertical boundary checking:**
 
 ```tsx
-const welcomeParamRef = useRef<boolean>(false);
+const updatePosition = useCallback(() => {
+  if (!currentStep) return;
 
-// Capture the welcome param ONCE on mount (before profile loads)
-useEffect(() => {
-  if (searchParams.get("welcome") === "true") {
-    welcomeParamRef.current = true;
-    // Clear the URL param immediately to prevent refresh issues
-    setSearchParams({}, { replace: true });
+  const target = document.getElementById(currentStep.targetId);
+  if (!target) {
+    setPosition(null);
+    return;
   }
-}, []); // Empty deps - runs once on mount
-```
 
-**2. Update the welcome tutorial effect to use the ref:**
+  const rect = target.getBoundingClientRect();
+  const tooltipWidth = 280;
+  const tooltipHeight = 140; // Slightly larger to account for content
+  const offset = 12;
+  const safeAreaTop = 60; // Account for mobile status bar/notch
 
-```tsx
-// Show welcome tutorial after profile loads if we had the welcome param
-useEffect(() => {
-  if (welcomeParamRef.current && profile) {
-    const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
-    const alreadyDismissed = localStorage.getItem(dismissKey);
-    
-    if (!alreadyDismissed) {
-      setShowWelcomeTutorial(true);
+  let top: number;
+  let arrowPosition: "top" | "bottom";
+  let preferredPosition = currentStep.position;
+
+  // Check if there's enough space above for "top" position
+  if (preferredPosition === "top") {
+    const spaceAbove = rect.top - safeAreaTop;
+    if (spaceAbove < tooltipHeight + offset) {
+      // Not enough space above, flip to bottom
+      preferredPosition = "bottom";
     }
-    // Reset ref so it doesn't trigger again
-    welcomeParamRef.current = false;
   }
-}, [profile]); // Only depends on profile
-```
 
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/personal/PersonalDashboard.tsx` | Fix race condition with useRef pattern |
-
----
-
-## Technical Implementation
-
-```tsx
-// Line ~122 - Add the ref
-const welcomeParamRef = useRef<boolean>(false);
-
-// Line ~198 - Add new effect to capture param on mount
-useEffect(() => {
-  if (searchParams.get("welcome") === "true") {
-    welcomeParamRef.current = true;
-    setSearchParams({}, { replace: true });
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); // Intentionally empty - run once on mount
-
-// Lines 203-215 - Replace existing welcome effect
-useEffect(() => {
-  if (welcomeParamRef.current && profile) {
-    const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
-    const alreadyDismissed = localStorage.getItem(dismissKey);
-    
-    if (!alreadyDismissed) {
-      setShowWelcomeTutorial(true);
+  // Check if there's enough space below for "bottom" position
+  if (preferredPosition === "bottom") {
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < tooltipHeight + offset) {
+      // Not enough space below, try top (unless we already tried)
+      if (currentStep.position === "bottom") {
+        preferredPosition = "top";
+      }
     }
-    welcomeParamRef.current = false;
   }
-}, [profile]);
+
+  // Calculate final position
+  if (preferredPosition === "bottom") {
+    top = rect.bottom + offset;
+    arrowPosition = "top";
+  } else {
+    top = rect.top - tooltipHeight - offset;
+    arrowPosition = "bottom";
+  }
+
+  // Ensure tooltip stays within vertical bounds
+  top = Math.max(safeAreaTop, top);
+  top = Math.min(top, window.innerHeight - tooltipHeight - 16);
+
+  // Center horizontally on the target, but keep within viewport
+  let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+  left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
+
+  setPosition({ top, left, arrowPosition });
+}, [currentStep]);
 ```
 
 ---
 
-## Expected Behavior After Fix
+## Summary of Changes
 
-1. User completes password setup via magic link
-2. Redirected to `/personal/dashboard?welcome=true`
-3. On mount, the `welcome=true` param is captured in the ref and URL is cleared
-4. Once profile loads, the tutorial starts automatically
-5. Tutorial coach marks appear pointing to actual UI elements
-6. Completing/skipping tutorial saves dismissal to localStorage
+| Change | Description |
+|--------|-------------|
+| **Safe area padding** | Add 60px top padding for mobile status bar/notch |
+| **Auto-flip logic** | If preferred position doesn't fit, flip to opposite side |
+| **Vertical bounds check** | Ensure tooltip never goes above safe area or below viewport |
+| **Larger tooltip height estimate** | Increase from 120px to 140px for better spacing |
+
+---
+
+## Expected Result
+
+- On mobile, the "You're All Set!" tooltip will appear **below** the profile URL element instead of above when there isn't enough space
+- The tooltip will always be fully visible within the mobile viewport
+- Works seamlessly across all device sizes
