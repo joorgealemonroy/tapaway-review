@@ -1,122 +1,169 @@
 
-# Plan: Make Tutorial Coach Marks Mobile-First
+# Plan: Add TapAway VIP Plan Option for Admin Account Creation
 
-## Problem
+## Overview
 
-On mobile, the "You're All Set!" tooltip is cut off at the top of the screen. The tooltip is positioned above the target element (`position: "top"`), but when the target is near the top of the viewport, the tooltip goes off-screen.
-
-Looking at the screenshot, you can see the tooltip title "You're All Set!" is partially hidden because it's positioned above the profile URL element without checking if there's enough vertical space.
+Add a "TapAway VIP" plan type that administrators can select when creating personal accounts. This plan grants full Pro features for free, forever, without requiring any payment or Stripe subscription.
 
 ---
 
-## Root Cause
+## Current Behavior
 
-In `WelcomeCoachMarks.tsx`, the positioning logic (lines 86-95) doesn't check vertical bounds:
+When admins create accounts, they can select:
+- **Free** (tap prefix, limited features)
+- **Pro Monthly** ($10/mo, full features)
+- **Pro Yearly** ($75/yr, full features)
 
-```tsx
-if (currentStep.position === "bottom") {
-  top = rect.bottom + offset;
-  arrowPosition = "top";
-} else {
-  top = rect.top - tooltipHeight - offset;  // Can be negative!
-  arrowPosition = "bottom";
-}
-```
-
-The horizontal bounds are checked (line 99), but vertical bounds are not.
+Currently, the only way to get a "VIP" account is to select Monthly/Yearly without Stripe - which is detected in the billing tab but isn't an explicit option.
 
 ---
 
 ## Solution
 
-1. **Add vertical viewport checking** - If the tooltip would go off-screen at the top, flip it to appear below the target instead
-2. **Account for mobile safe areas** - Add padding for the status bar and notch on mobile devices
-3. **Ensure minimum top position** - Never position the tooltip above a safe threshold
+### 1. Add "vip" as a Plan Type
 
----
+Update the plan type union across the codebase to include `"vip"`:
 
-## Changes Required
+```typescript
+planType: "free" | "monthly" | "yearly" | "vip"
+```
 
-### File: `src/components/personal/WelcomeCoachMarks.tsx`
+### 2. Update Plan Limits Configuration
 
-**Update the `updatePosition` function to add vertical boundary checking:**
+Add VIP to `src/lib/personalPlanLimits.ts`:
+
+```typescript
+export const PERSONAL_PLANS = {
+  free: { /* existing */ },
+  paid: { /* existing */ },
+  vip: {
+    name: 'VIP',
+    maxLinks: -1, // unlimited
+    price: '$0',
+    priceSubtext: 'forever',
+    features: {
+      nfcCard: true,
+      customHeader: true,
+      photoCollage: true,
+      emailCapture: true,
+      advancedAnalytics: true,
+      socialIconBar: true,
+      youtube: true,
+      image: true,
+      text: true,
+      button: true,
+    },
+  },
+} as const;
+```
+
+### 3. Update Helper Functions
+
+Update `getPlanLimits()` to recognize VIP:
+
+```typescript
+export function getPlanLimits(planType: string | null) {
+  if (planType === 'free') return PERSONAL_PLANS.free;
+  if (planType === 'vip') return PERSONAL_PLANS.vip;
+  return PERSONAL_PLANS.paid;
+}
+
+export function isVIPPlan(planType: string | null): boolean {
+  return planType === 'vip';
+}
+
+export function isPaidPlan(planType: string | null): boolean {
+  return planType !== 'free' && planType !== 'vip' && planType !== null;
+}
+```
+
+### 4. Add VIP Option in Admin UI
+
+Update `AdminPersonalAccounts.tsx` plan selector:
 
 ```tsx
-const updatePosition = useCallback(() => {
-  if (!currentStep) return;
+<SelectContent>
+  <SelectItem value="free">Free (tap prefix)</SelectItem>
+  <SelectItem value="vip">
+    <span className="flex items-center gap-2">
+      <Sparkles className="h-4 w-4 text-emerald-500" />
+      TapAway VIP (Free forever)
+    </span>
+  </SelectItem>
+  <SelectItem value="monthly">Pro Monthly (${PERSONAL_PRICING.monthly}/mo)</SelectItem>
+  <SelectItem value="yearly">Pro Yearly (${PERSONAL_PRICING.yearly}/yr)</SelectItem>
+</SelectContent>
+```
 
-  const target = document.getElementById(currentStep.targetId);
-  if (!target) {
-    setPosition(null);
-    return;
-  }
+### 5. Update Billing Tab Display
 
-  const rect = target.getBoundingClientRect();
-  const tooltipWidth = 280;
-  const tooltipHeight = 140; // Slightly larger to account for content
-  const offset = 12;
-  const safeAreaTop = 60; // Account for mobile status bar/notch
+Update `PersonalBillingTab.tsx` to properly detect VIP accounts:
 
-  let top: number;
-  let arrowPosition: "top" | "bottom";
-  let preferredPosition = currentStep.position;
+```typescript
+// Detect VIP by plan_type OR by paid plan without subscription
+const isVIP = profile.plan_type === 'vip' || (isPro && !profile.stripe_subscription_id);
+```
 
-  // Check if there's enough space above for "top" position
-  if (preferredPosition === "top") {
-    const spaceAbove = rect.top - safeAreaTop;
-    if (spaceAbove < tooltipHeight + offset) {
-      // Not enough space above, flip to bottom
-      preferredPosition = "bottom";
-    }
-  }
+### 6. Update Username Prefix Logic
 
-  // Check if there's enough space below for "bottom" position
-  if (preferredPosition === "bottom") {
-    const spaceBelow = window.innerHeight - rect.bottom;
-    if (spaceBelow < tooltipHeight + offset) {
-      // Not enough space below, try top (unless we already tried)
-      if (currentStep.position === "bottom") {
-        preferredPosition = "top";
-      }
-    }
-  }
+VIP accounts should NOT have the "tap" prefix (like Pro accounts):
 
-  // Calculate final position
-  if (preferredPosition === "bottom") {
-    top = rect.bottom + offset;
-    arrowPosition = "top";
-  } else {
-    top = rect.top - tooltipHeight - offset;
-    arrowPosition = "bottom";
-  }
-
-  // Ensure tooltip stays within vertical bounds
-  top = Math.max(safeAreaTop, top);
-  top = Math.min(top, window.innerHeight - tooltipHeight - 16);
-
-  // Center horizontally on the target, but keep within viewport
-  let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-  left = Math.max(16, Math.min(left, window.innerWidth - tooltipWidth - 16));
-
-  setPosition({ top, left, arrowPosition });
-}, [currentStep]);
+```typescript
+// In create-personal-account edge function and UI
+const publicUsername = planType === "free" 
+  ? (username.toLowerCase().startsWith("tap") ? username.toLowerCase() : `tap${username.toLowerCase()}`)
+  : username.toLowerCase(); // monthly, yearly, OR vip
 ```
 
 ---
 
-## Summary of Changes
+## Files to Modify
 
-| Change | Description |
-|--------|-------------|
-| **Safe area padding** | Add 60px top padding for mobile status bar/notch |
-| **Auto-flip logic** | If preferred position doesn't fit, flip to opposite side |
-| **Vertical bounds check** | Ensure tooltip never goes above safe area or below viewport |
-| **Larger tooltip height estimate** | Increase from 120px to 140px for better spacing |
+| File | Changes |
+|------|---------|
+| `src/lib/personalPlanLimits.ts` | Add VIP plan config, update helper functions |
+| `src/pages/admin/AdminPersonalAccounts.tsx` | Add VIP option to plan selector, update type |
+| `src/components/personal/PersonalBillingTab.tsx` | Update VIP detection to include explicit plan_type |
+| `supabase/functions/create-personal-account/index.ts` | Ensure VIP is treated like paid (no tap prefix) |
 
 ---
 
-## Expected Result
+## Visual Representation
 
-- On mobile, the "You're All Set!" tooltip will appear **below** the profile URL element instead of above when there isn't enough space
-- The tooltip will always be fully visible within the mobile viewport
-- Works seamlessly across all device sizes
+**Admin Create Account Modal:**
+```text
+┌──────────────────────────────────────┐
+│ Plan Type                            │
+├──────────────────────────────────────┤
+│ ▼ Free (tap prefix)                  │
+│   ✨ TapAway VIP (Free forever)      │ ← NEW
+│   Pro Monthly ($10/mo)               │
+│   Pro Yearly ($75/yr)                │
+└──────────────────────────────────────┘
+```
+
+**Billing Tab for VIP Users:**
+```text
+┌──────────────────────────────────────┐
+│ 👑 Current Plan          [VIP Access]│
+│                                      │
+│ You have complimentary full access   │
+│ to all features!                     │
+│                                      │
+│ $0 forever                           │
+│                                      │
+│ ✨ Enjoy all premium features!       │
+│                                      │
+│ (No billing buttons shown)           │
+└──────────────────────────────────────┘
+```
+
+---
+
+## Technical Notes
+
+- VIP is stored as `plan_type: 'vip'` in the database
+- VIP accounts get `subscription_status: 'active'` but NO `stripe_subscription_id`
+- Feature access: VIP has identical permissions to Pro (monthly/yearly)
+- VIP accounts don't have the "tap" username prefix
+- VIP accounts cannot downgrade (no billing buttons shown)
