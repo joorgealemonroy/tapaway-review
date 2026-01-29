@@ -3,7 +3,7 @@
  * Single source of truth for public username logic
  */
 
-export type PersonalPlanType = "free" | "monthly" | "yearly";
+export type PersonalPlanType = "free" | "monthly" | "yearly" | "vip";
 
 /**
  * Get the public-facing username based on plan type
