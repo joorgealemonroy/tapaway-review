@@ -35,15 +35,32 @@ export const PERSONAL_PLANS = {
       button: true,
     },
   },
+  vip: {
+    name: 'VIP',
+    maxLinks: -1, // unlimited
+    price: '$0',
+    priceSubtext: 'forever',
+    features: {
+      nfcCard: true,
+      customHeader: true,
+      photoCollage: true,
+      emailCapture: true,
+      advancedAnalytics: true,
+      socialIconBar: true,
+      youtube: true,
+      image: true,
+      text: true,
+      button: true,
+    },
+  },
 } as const;
 
 export type PlanType = keyof typeof PERSONAL_PLANS;
 export type FeatureKey = keyof typeof PERSONAL_PLANS.free.features;
 
 export function getPlanLimits(planType: string | null) {
-  if (planType === 'free') {
-    return PERSONAL_PLANS.free;
-  }
+  if (planType === 'free') return PERSONAL_PLANS.free;
+  if (planType === 'vip') return PERSONAL_PLANS.vip;
   return PERSONAL_PLANS.paid;
 }
 
@@ -51,8 +68,12 @@ export function isFeatureAvailable(planType: string | null, feature: FeatureKey)
   return getPlanLimits(planType).features[feature];
 }
 
+export function isVIPPlan(planType: string | null): boolean {
+  return planType === 'vip';
+}
+
 export function isPaidPlan(planType: string | null): boolean {
-  return planType !== 'free' && planType !== null;
+  return planType !== 'free' && planType !== 'vip' && planType !== null;
 }
 
 // Feature display info for pricing page

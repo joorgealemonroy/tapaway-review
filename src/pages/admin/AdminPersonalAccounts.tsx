@@ -52,7 +52,8 @@ import {
   Upload,
   Pencil,
   Mail,
-  Send
+  Send,
+  Sparkles
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -128,7 +129,7 @@ const AdminPersonalAccounts = () => {
     email: "",
     fullName: "",
     username: "",
-    planType: "free" as "free" | "monthly" | "yearly",
+    planType: "free" as "free" | "monthly" | "yearly" | "vip",
     headline: "",
     bio: "",
     // Design fields
@@ -1193,6 +1194,12 @@ Login at: ${window.location.origin}/auth`;
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="free">Free (tap prefix)</SelectItem>
+                        <SelectItem value="vip">
+                          <span className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-emerald-500" />
+                            TapAway VIP (Free forever)
+                          </span>
+                        </SelectItem>
                         <SelectItem value="monthly">Pro Monthly (${PERSONAL_PRICING.monthly}/mo)</SelectItem>
                         <SelectItem value="yearly">Pro Yearly (${PERSONAL_PRICING.yearly}/yr)</SelectItem>
                       </SelectContent>

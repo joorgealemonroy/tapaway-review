@@ -16,7 +16,7 @@ import {
 import { CreditCard, Crown, Sparkles, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PERSONAL_PLANS, isPaidPlan } from "@/lib/personalPlanLimits";
+import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
 
 interface PersonalBillingTabProps {
   profile: {
@@ -34,11 +34,15 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
   const [isDowngrading, setIsDowngrading] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
-  const isPro = isPaidPlan(profile.plan_type);
-  const planInfo = isPro ? PERSONAL_PLANS.paid : PERSONAL_PLANS.free;
+  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type);
+  const planInfo = isVIPPlan(profile.plan_type) 
+    ? PERSONAL_PLANS.vip 
+    : isPaidPlan(profile.plan_type) 
+      ? PERSONAL_PLANS.paid 
+      : PERSONAL_PLANS.free;
   
-  // Detect admin-created VIP accounts: paid plan without Stripe subscription
-  const isVIP = isPro && !profile.stripe_subscription_id;
+  // Detect VIP: explicit plan_type OR admin-created accounts (paid without Stripe)
+  const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
   const handleManageSubscription = async () => {
     if (!profile.stripe_customer_id) {
