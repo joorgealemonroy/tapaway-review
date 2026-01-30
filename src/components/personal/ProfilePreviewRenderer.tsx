@@ -4,6 +4,7 @@ import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
+import useEmblaCarousel from "embla-carousel-react";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -227,10 +228,16 @@ function ProfilePreviewRendererComponent({
     }
   };
 
-  // Collage preview with lightbox - vertical grid layout for better mobile UX
+  // Collage preview with lightbox - horizontal swipeable carousel
   const CollagePreview = ({ images, isPreview, onLinkClick }: { images: string[]; isPreview: boolean; onLinkClick?: (url: string) => void }) => {
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [emblaRef] = useEmblaCarousel({ 
+      loop: false, 
+      align: "start",
+      containScroll: "trimSnaps",
+      dragFree: true
+    });
 
     const handleImageClick = (index: number) => {
       if (isPreview) {
@@ -243,14 +250,14 @@ function ProfilePreviewRendererComponent({
 
     return (
       <>
-        {/* Vertical grid instead of horizontal scroll - 3 columns for easy vertical scrolling */}
-        <div className="w-full">
-          <div className="grid grid-cols-3 gap-1.5">
+        {/* Horizontal swipeable carousel - shows ~3 images at a time */}
+        <div className="w-full overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-1.5">
             {images.map((imgUrl, idx) => (
               <button
                 key={idx}
                 onClick={() => handleImageClick(idx)}
-                className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <img 
                   src={getOptimizedImageUrl(imgUrl, 150)} 
@@ -732,7 +739,7 @@ function ProfilePreviewRendererComponent({
 
       {/* Content - solid background for banner mode */}
       <div 
-        className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-t-2xl pt-4 -mx-0' : ''}`}
+        className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-2xl pt-4 pb-6 -mx-0' : ''}`}
         style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
       >
         {/* Featured link */}
