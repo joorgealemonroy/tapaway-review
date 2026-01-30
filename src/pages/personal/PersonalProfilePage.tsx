@@ -487,6 +487,11 @@ const ProfileBlock = memo(function ProfileBlock({
       // Default to email-only for backward compat
       const showEmail = content.collectEmail !== "false";
       const showPhone = content.collectPhone === "true";
+      // Required flags - default true for contact fields if collecting, false for name/message
+      const isEmailRequired = showEmail && content.emailRequired !== "false";
+      const isPhoneRequired = showPhone && content.phoneRequired !== "false";
+      const isNameRequired = showName && content.nameRequired === "true";
+      const isMessageRequired = showMessage && content.messageRequired === "true";
       
       if (emailSubmitted) {
         return (
@@ -511,35 +516,38 @@ const ProfileBlock = memo(function ProfileBlock({
           {showName && (
             <input
               type="text"
-              placeholder="Your name (optional)"
+              placeholder={isNameRequired ? "Your name" : "Your name (optional)"}
+              required={isNameRequired}
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
+              className={inputClass}
+            />
+          )}
+          {/* Phone first, then Email */}
+          {showPhone && (
+            <input
+              type="tel"
+              placeholder={isPhoneRequired ? "Your phone number" : "Your phone number (optional)"}
+              required={isPhoneRequired}
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
               className={inputClass}
             />
           )}
           {showEmail && (
             <input
               type="email"
-              placeholder="your@email.com"
-              required={!showPhone}
+              placeholder={isEmailRequired ? "your@email.com" : "your@email.com (optional)"}
+              required={isEmailRequired}
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               className={inputClass}
             />
           )}
-          {showPhone && (
-            <input
-              type="tel"
-              placeholder="Your phone number"
-              required={!showEmail}
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
-              className={inputClass}
-            />
-          )}
           {showMessage && (
             <textarea
-              placeholder="Message (optional)"
+              placeholder={isMessageRequired ? "Message" : "Message (optional)"}
+              required={isMessageRequired}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               rows={2}
