@@ -226,13 +226,18 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
   return (
     <>
       {/* Horizontal swipeable carousel - shows ~3 images at a time */}
-      <div className="w-full overflow-hidden" ref={emblaRef}>
+      <div 
+        className="w-full overflow-hidden" 
+        ref={emblaRef}
+        style={{ touchAction: "pan-x pan-y" }}
+      >
         <div className="flex gap-1.5">
           {images.map((imgUrl, idx) => (
             <button
               key={idx}
               onClick={() => handleImageClick(idx)}
               className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+              style={{ touchAction: "pan-x" }}
             >
               <img 
                 src={getOptimizedImageUrl(imgUrl, 200, 85)} 
