@@ -19,6 +19,7 @@ import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
+import useEmblaCarousel from "embla-carousel-react";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -206,10 +207,16 @@ const ProfileLink = memo(function ProfileLink({
   );
 });
 
-// Collage with lightbox component
+// Collage with lightbox component - horizontal swipeable carousel
 const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { images: string[] }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [emblaRef] = useEmblaCarousel({ 
+    loop: false, 
+    align: "start",
+    containScroll: "trimSnaps",
+    dragFree: true
+  });
 
   const handleImageClick = (index: number) => {
     setLightboxIndex(index);
@@ -218,14 +225,14 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
 
   return (
     <>
-      {/* Vertical grid layout - 3 columns, users scroll up/down */}
-      <div className="w-full">
-        <div className="grid grid-cols-3 gap-1.5">
+      {/* Horizontal swipeable carousel - shows ~3 images at a time */}
+      <div className="w-full overflow-hidden" ref={emblaRef}>
+        <div className="flex gap-1.5">
           {images.map((imgUrl, idx) => (
             <button
               key={idx}
               onClick={() => handleImageClick(idx)}
-              className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <img 
                 src={getOptimizedImageUrl(imgUrl, 200, 85)} 
@@ -802,7 +809,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       {/* Add top padding on desktop for spacing, using outer bg color instead of margin */}
       <div className="hidden md:block md:h-4" />
       <div 
-        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:overflow-hidden md:rounded-3xl md:mb-4"
+        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
         style={{
           ...bgStyle,
           // Larger, softer glow that blends the frame edge into the outer background
@@ -951,7 +958,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
           {/* Links section - solid background starts here for banner mode */}
           <div 
-            className={hasBanner ? "rounded-t-3xl pt-4 pb-2 -mx-4 px-4" : ""}
+            className={hasBanner ? "rounded-3xl pt-4 pb-6 -mx-4 px-4" : ""}
             style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
           >
             {/* Featured link - rendered prominently at top */}
