@@ -758,12 +758,12 @@ const Onboarding = () => {
               </div>
 
               <div>
-                <Label htmlFor="instagram">Instagram URL (optional)</Label>
+                <Label htmlFor="instagram">Instagram Handle (optional)</Label>
                 <Input
                   id="instagram"
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
-                  placeholder="https://instagram.com/yourbusiness"
+                  placeholder="@yourbusiness"
                   className="mt-1.5"
                 />
               </div>

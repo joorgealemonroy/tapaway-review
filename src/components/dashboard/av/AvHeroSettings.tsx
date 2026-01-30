@@ -156,7 +156,7 @@ export const AvHeroSettings = ({ restaurantId, restaurant, onUpdate }: AvHeroSet
             id="instagram-url"
             value={instagramUrl}
             onChange={(e) => setInstagramUrl(e.target.value)}
-            placeholder="https://instagram.com/avmealpreps"
+            placeholder="@avmealpreps"
           />
         </div>
       </div>
