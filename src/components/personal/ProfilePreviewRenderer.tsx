@@ -540,10 +540,13 @@ function ProfilePreviewRendererComponent({
       }
       case "email_capture": {
         const headline = (content.headline as string) || "Stay Connected 💌";
-        const description = (content.description as string) || "Leave your email and I'll reach out!";
+        const description = (content.description as string) || "Leave your info and I'll reach out!";
         const buttonText = (content.buttonText as string) || "Submit";
         const showName = content.collectName === "true";
         const showMessage = content.collectMessage === "true";
+        // Default to email-only for backward compat
+        const showEmail = content.collectEmail !== "false";
+        const showPhone = content.collectPhone === "true";
         
         const inputBg = isDarkBg ? 'bg-white/10 border-white/20' : 'bg-gray-100 border-gray-200';
         return (
@@ -555,7 +558,12 @@ function ProfilePreviewRendererComponent({
             {showName && (
               <div className={`h-9 rounded-lg border ${inputBg}`} />
             )}
-            <div className={`h-9 rounded-lg border ${inputBg}`} />
+            {showEmail && (
+              <div className={`h-9 rounded-lg border ${inputBg}`} />
+            )}
+            {showPhone && (
+              <div className={`h-9 rounded-lg border ${inputBg}`} />
+            )}
             {showMessage && (
               <div className={`h-16 rounded-lg border ${inputBg}`} />
             )}
