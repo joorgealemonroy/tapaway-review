@@ -23,18 +23,23 @@ export const urlValidationSchemas = {
     .optional()
     .transform((val) => {
       if (!val || val === "") return val;
-      // If it's already a full URL, return as-is
-      if (val.startsWith('http://') || val.startsWith('https://')) {
+      // If it's already a deep link, return as-is
+      if (val.startsWith('instagram://')) {
         return val;
       }
-      // If it's just a username, prepend Instagram URL
+      // If it's a web URL, extract username and convert to deep link
+      if (val.startsWith('http://') || val.startsWith('https://')) {
+        const username = val.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").split("/")[0];
+        return `instagram://user?username=${username}`;
+      }
+      // If it's just a username, convert to deep link
       // Remove @ symbol if present
       const username = val.replace(/^@/, '').trim();
-      return `https://instagram.com/${username}`;
+      return `instagram://user?username=${username}`;
     })
     .refine(
-      (val) => !val || val === "" || /^https:\/\/(www\.)?instagram\.com\/[\w.]+$/.test(val),
-      "Instagram must be a valid username or URL from instagram.com"
+      (val) => !val || val === "" || /^instagram:\/\/user\?username=[\w.]+$/.test(val),
+      "Instagram must be a valid username"
     ),
   
   directions: z.string()

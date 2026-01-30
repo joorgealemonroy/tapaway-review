@@ -434,7 +434,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 id="instagram"
                 value={restaurant.instagram_url || ""}
                 onChange={(e) => setRestaurant({ ...restaurant, instagram_url: e.target.value })}
-                placeholder="https://instagram.com/..."
+                placeholder="@yourbusiness"
               />
               {restaurant.instagram_url && (
                 <Button variant="outline" size="sm" asChild>
