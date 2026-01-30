@@ -91,10 +91,12 @@ export const BlockModal = ({
   const [overlaySubtitle, setOverlaySubtitle] = useState("");
   const [overlayCta, setOverlayCta] = useState("");
   
-  // Email capture block options
+  // Email/Contact capture block options
   const [emailHeadline, setEmailHeadline] = useState("");
   const [emailDescription, setEmailDescription] = useState("");
   const [emailButtonText, setEmailButtonText] = useState("Submit");
+  const [collectEmail, setCollectEmail] = useState(true);
+  const [collectPhone, setCollectPhone] = useState(false);
   const [collectName, setCollectName] = useState(false);
   const [collectMessage, setCollectMessage] = useState(false);
   
@@ -140,6 +142,9 @@ export const BlockModal = ({
           setEmailHeadline(content.headline || "");
           setEmailDescription(content.description || "");
           setEmailButtonText(content.buttonText || "Submit");
+          // Default to email only for backward compat if not set
+          setCollectEmail(content.collectEmail !== "false");
+          setCollectPhone(content.collectPhone === "true");
           setCollectName(content.collectName === "true");
           setCollectMessage(content.collectMessage === "true");
         } else if (editingBlock.block_type === "photo_collage") {
@@ -180,10 +185,12 @@ export const BlockModal = ({
     setOverlayTitle("");
     setOverlaySubtitle("");
     setOverlayCta("");
-    // Email capture
+    // Email/Contact capture
     setEmailHeadline("");
     setEmailDescription("");
     setEmailButtonText("Submit");
+    setCollectEmail(true);
+    setCollectPhone(false);
     setCollectName(false);
     setCollectMessage(false);
     // Photo collage
@@ -391,10 +398,17 @@ export const BlockModal = ({
         break;
       }
       case "email_capture": {
+        // Must collect at least email OR phone
+        if (!collectEmail && !collectPhone) {
+          toast.error("Please select at least email or phone to collect");
+          return;
+        }
         content = {
           headline: emailHeadline.trim() || "Stay Connected 💌",
-          description: emailDescription.trim() || "Leave your email and I'll reach out!",
+          description: emailDescription.trim() || "Leave your info and I'll reach out!",
           buttonText: emailButtonText.trim() || "Submit",
+          collectEmail: collectEmail.toString(),
+          collectPhone: collectPhone.toString(),
           collectName: collectName.toString(),
           collectMessage: collectMessage.toString(),
         };
@@ -743,6 +757,23 @@ export const BlockModal = ({
                       onChange={(e) => setEmailButtonText(e.target.value)}
                       className="h-11"
                     />
+                  </div>
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <Label className="text-sm font-medium">Contact Fields</Label>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Collect Email</p>
+                        <p className="text-xs text-muted-foreground">Ask for their email address</p>
+                      </div>
+                      <Switch checked={collectEmail} onCheckedChange={setCollectEmail} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Collect Phone</p>
+                        <p className="text-xs text-muted-foreground">Ask for their phone number</p>
+                      </div>
+                      <Switch checked={collectPhone} onCheckedChange={setCollectPhone} />
+                    </div>
                   </div>
                   <div className="space-y-3 pt-2 border-t border-border">
                     <Label className="text-sm font-medium">Optional Fields</Label>

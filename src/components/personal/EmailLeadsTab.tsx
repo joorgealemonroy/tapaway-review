@@ -7,7 +7,8 @@ import { format } from "date-fns";
 
 interface EmailCapture {
   id: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   name: string | null;
   message: string | null;
   created_at: string;
@@ -49,9 +50,10 @@ const EmailLeadsTab = ({ profileId }: Props) => {
       return;
     }
 
-    const headers = ["Email", "Name", "Message", "Date"];
+    const headers = ["Email", "Phone", "Name", "Message", "Date"];
     const rows = leads.map((lead) => [
-      lead.email,
+      lead.email || "",
+      lead.phone || "",
       lead.name || "",
       lead.message || "",
       format(new Date(lead.created_at), "yyyy-MM-dd HH:mm"),
@@ -112,25 +114,30 @@ const EmailLeadsTab = ({ profileId }: Props) => {
             key={lead.id}
             className="p-4 bg-card rounded-xl border border-border"
           >
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{lead.email}</p>
-                {lead.name && (
-                  <p className="text-sm text-muted-foreground">{lead.name}</p>
-                )}
-                {lead.message && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {lead.message}
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">
+                    {lead.email || lead.phone}
                   </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  {format(new Date(lead.created_at), "MMM d, yyyy 'at' h:mm a")}
-                </p>
+                  {lead.email && lead.phone && (
+                    <p className="text-sm text-muted-foreground">{lead.phone}</p>
+                  )}
+                  {lead.name && (
+                    <p className="text-sm text-muted-foreground">{lead.name}</p>
+                  )}
+                  {lead.message && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {lead.message}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {format(new Date(lead.created_at), "MMM d, yyyy 'at' h:mm a")}
+                  </p>
+                </div>
               </div>
-            </div>
           </div>
         ))}
       </div>

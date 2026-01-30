@@ -298,6 +298,7 @@ const ProfileBlock = memo(function ProfileBlock({
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
   
@@ -308,7 +309,29 @@ const ProfileBlock = memo(function ProfileBlock({
   
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profileId || !emailInput.trim()) return;
+    if (!profileId) return;
+    
+    // Get collectEmail/collectPhone from the current block content
+    const currentContent = content as Record<string, string>;
+    const shouldCollectEmail = currentContent.collectEmail !== "false";
+    const shouldCollectPhone = currentContent.collectPhone === "true";
+    
+    // Validate at least one contact method is provided
+    const hasEmail = emailInput.trim();
+    const hasPhone = phoneInput.trim();
+    
+    if (shouldCollectEmail && shouldCollectPhone && !hasEmail && !hasPhone) {
+      toast.error("Please enter your email or phone number.");
+      return;
+    }
+    if (shouldCollectEmail && !shouldCollectPhone && !hasEmail) {
+      toast.error("Please enter your email.");
+      return;
+    }
+    if (shouldCollectPhone && !shouldCollectEmail && !hasPhone) {
+      toast.error("Please enter your phone number.");
+      return;
+    }
     
     setEmailSubmitting(true);
     try {
@@ -316,7 +339,8 @@ const ProfileBlock = memo(function ProfileBlock({
         .from("personal_email_captures")
         .insert({
           profile_id: profileId,
-          email: emailInput.trim(),
+          email: emailInput.trim() || null,
+          phone: phoneInput.trim() || null,
           name: nameInput.trim() || null,
           message: messageInput.trim() || null,
         });
@@ -449,10 +473,13 @@ const ProfileBlock = memo(function ProfileBlock({
     }
     case "email_capture": {
       const headline = content.headline || "Stay Connected 💌";
-      const description = content.description || "Leave your email and I'll reach out!";
+      const description = content.description || "Leave your info and I'll reach out!";
       const buttonText = content.buttonText || "Submit";
       const showName = content.collectName === "true";
       const showMessage = content.collectMessage === "true";
+      // Default to email-only for backward compat
+      const showEmail = content.collectEmail !== "false";
+      const showPhone = content.collectPhone === "true";
       
       if (emailSubmitted) {
         return (
@@ -483,14 +510,26 @@ const ProfileBlock = memo(function ProfileBlock({
               className={inputClass}
             />
           )}
-          <input
-            type="email"
-            placeholder="your@email.com"
-            required
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            className={inputClass}
-          />
+          {showEmail && (
+            <input
+              type="email"
+              placeholder="your@email.com"
+              required={!showPhone}
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              className={inputClass}
+            />
+          )}
+          {showPhone && (
+            <input
+              type="tel"
+              placeholder="Your phone number"
+              required={!showEmail}
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              className={inputClass}
+            />
+          )}
           {showMessage && (
             <textarea
               placeholder="Message (optional)"
