@@ -168,6 +168,12 @@ const AdminPersonalAccounts = () => {
   const [saving, setSaving] = useState(false);
   const [updatingEmail, setUpdatingEmail] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
+  
+  // Username edit state
+  const [editUsername, setEditUsername] = useState("");
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [savingUsername, setSavingUsername] = useState(false);
   const [editForm, setEditForm] = useState({
     email: "",
     fullName: "",
@@ -518,6 +524,11 @@ Login at: ${window.location.origin}/auth`;
     setShowEditModal(true);
     setEditLoading(true);
     setActiveTab("basic");
+    
+    // Initialize username editing state
+    setEditUsername(account.username);
+    setUsernameAvailable(null);
+    setUsernameChecking(false);
 
     // Set form values from account
     setEditForm({
@@ -754,6 +765,93 @@ Login at: ${window.location.origin}/auth`;
     }
   };
 
+  // Username availability check with debounce
+  const checkUsernameAvailability = async (newUsername: string) => {
+    if (!newUsername || newUsername === editingAccount?.username) {
+      setUsernameAvailable(null);
+      return;
+    }
+    
+    // Validate format - lowercase letters, numbers, underscore only
+    if (!/^[a-z0-9_]+$/.test(newUsername.toLowerCase())) {
+      setUsernameAvailable(false);
+      return;
+    }
+    
+    setUsernameChecking(true);
+    try {
+      const { data, error } = await supabase
+        .from("personal_profiles")
+        .select("id")
+        .eq("username", newUsername.toLowerCase())
+        .maybeSingle();
+      
+      if (error) throw error;
+      setUsernameAvailable(!data); // Available if no profile found
+    } catch (err) {
+      console.error("Username check error:", err);
+      setUsernameAvailable(null);
+    } finally {
+      setUsernameChecking(false);
+    }
+  };
+
+  // Handle username update
+  const handleUpdateUsername = async () => {
+    if (!editingAccount || !editUsername || editUsername === editingAccount.username) return;
+    if (!usernameAvailable) {
+      toast.error("This username is already taken");
+      return;
+    }
+    
+    setSavingUsername(true);
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ username: editUsername.toLowerCase() })
+        .eq("id", editingAccount.id);
+      
+      if (error) throw error;
+      
+      // Log the change
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      await supabase.from("admin_audit_log").insert({
+        admin_user_id: adminUser?.id,
+        action: "update_username",
+        target_type: "personal_profile",
+        target_id: editingAccount.id,
+        details: {
+          old_username: editingAccount.username,
+          new_username: editUsername.toLowerCase(),
+        }
+      });
+      
+      // Update local state
+      setEditingAccount({ ...editingAccount, username: editUsername.toLowerCase() });
+      toast.success(`Username changed to @${editUsername.toLowerCase()}`);
+      loadAccounts();
+    } catch (err) {
+      console.error("Username update error:", err);
+      toast.error("Failed to update username");
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
+  // Debounced username check
+  useEffect(() => {
+    if (!editUsername || editUsername === editingAccount?.username) {
+      setUsernameAvailable(null);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      checkUsernameAvailability(editUsername);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [editUsername, editingAccount?.username]);
+
   const handleSaveEdit = async () => {
     if (!editingAccount) return;
 
@@ -961,6 +1059,10 @@ Login at: ${window.location.origin}/auth`;
     setEditBannerImageFile(null);
     setEditBannerImagePreview(null);
     setActiveTab("basic");
+    // Reset username state
+    setEditUsername("");
+    setUsernameAvailable(null);
+    setUsernameChecking(false);
   };
 
   const filteredAccounts = accounts.filter((account) => {
@@ -1540,6 +1642,63 @@ Login at: ${window.location.origin}/auth`;
                       Sends a login link to {editForm.email || editingAccount?.email}
                     </span>
                   </div>
+                </div>
+
+                {/* Username Section */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3 border border-border">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <User className="h-4 w-4" />
+                    Username
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="username"
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                        className="pr-8"
+                      />
+                      {usernameChecking && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      {!usernameChecking && usernameAvailable === true && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Check className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                      {!usernameChecking && usernameAvailable === false && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <X className="h-4 w-4 text-red-500" />
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUpdateUsername}
+                      disabled={savingUsername || !usernameAvailable || editUsername === editingAccount?.username}
+                    >
+                      {savingUsername ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+                    </Button>
+                  </div>
+                  {editUsername && editUsername !== editingAccount?.username && (
+                    <p className="text-xs text-muted-foreground">
+                      New URL: tapaway.co/{editUsername}
+                    </p>
+                  )}
+                  {usernameAvailable === true && editUsername !== editingAccount?.username && (
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> Username available
+                    </p>
+                  )}
+                  {usernameAvailable === false && (
+                    <p className="text-xs text-red-600 flex items-center gap-1">
+                      <X className="h-3 w-3" /> Already taken or invalid
+                    </p>
+                  )}
                 </div>
 
                 <div>
