@@ -1,199 +1,227 @@
 
 
-# Plan: Profile Page UI Improvements
+# Plan: Enhance Contact Capture Form with User-Controlled Required/Optional Fields
 
 ## Overview
 
-This plan addresses four issues with the personal profile page:
-1. **Rounded corners** on the solid content section (where "beige"/extracted color ends)
-2. **Desktop scrolling** — currently requires using the side scrollbar
-3. **Photo collage layout** — return to horizontal scrolling on public profile
-4. **Collage swipe support** — enable swipe gestures without needing arrow buttons
+This plan addresses three changes requested for the contact capture block:
+1. **Reorder fields**: Phone number should appear above email in the form
+2. **User-defined required/optional**: Let the profile owner decide which fields are required vs optional (not hardcoded)
+3. **Visual indicators**: Required fields show nothing extra; optional fields show "(optional)" suffix in placeholder
 
 ---
 
-## Issue 1: Rounded Corners on Solid Content Section
+## Current Behavior
 
-**Problem**: Looking at the screenshots, when the profile has a banner with an extracted color, the solid content section (the beige/extracted color area) ends with a straight edge. The user wants rounded bottom corners like in the reference images.
+Currently the form fields are displayed in this order:
+1. Name (optional - hardcoded)
+2. Email
+3. Phone
+4. Message (optional - hardcoded)
 
-**Solution**: Add `rounded-3xl` to the solid content container.
-
-### Files to Modify
-
-**`src/pages/personal/PersonalProfilePage.tsx`** (lines 952-956)
-
-```tsx
-// Current
-<div 
-  className={hasBanner ? "rounded-t-3xl pt-4 pb-2 -mx-4 px-4" : ""}
-  style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
->
-
-// Updated - add rounded-b-3xl for bottom corners
-<div 
-  className={hasBanner ? "rounded-3xl pt-4 pb-6 -mx-4 px-4" : ""}
-  style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
->
-```
-
-**`src/components/personal/ProfilePreviewRenderer.tsx`** (lines 734-736)
-
-```tsx
-// Current
-<div 
-  className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-t-2xl pt-4 -mx-0' : ''}`}
-
-// Updated
-<div 
-  className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-2xl pt-4 -mx-0' : ''}`}
-```
+The system decides required/optional logic:
+- Email is required if phone is not collected
+- Phone is required if email is not collected
+- Name is always labeled "(optional)"
+- Message is always labeled "(optional)"
 
 ---
 
-## Issue 2: Desktop Scrolling Not Working Properly
+## Solution
 
-**Problem**: The phone-frame container on desktop has `md:overflow-hidden`, which prevents normal scroll behavior. Users have to use the browser's scrollbar helper.
+### 1. Add New State Variables for Required/Optional Toggle
 
-**Solution**: Remove `md:overflow-hidden` from the phone-frame container and ensure proper scrolling.
+In `BlockModal.tsx`, add new state for each field's required status:
 
-### File to Modify
-
-**`src/pages/personal/PersonalProfilePage.tsx`** (lines 804-805)
-
-```tsx
-// Current
-className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:overflow-hidden md:rounded-3xl md:mb-4"
-
-// Updated - remove md:overflow-hidden
-className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
+```typescript
+// New required toggles (default true for contact fields, false for name/message)
+const [emailRequired, setEmailRequired] = useState(true);
+const [phoneRequired, setPhoneRequired] = useState(true);
+const [nameRequired, setNameRequired] = useState(false);
+const [messageRequired, setMessageRequired] = useState(false);
 ```
 
----
+### 2. Update Content Structure
 
-## Issue 3 & 4: Collage Horizontal Scroll with Swipe Support
+Store the required settings in the block content:
 
-**Problem**: The current collage uses a 3-column grid where images stack vertically. The user wants:
-- Horizontal scrolling (like Instagram stories)
-- Native swipe support (no arrow buttons needed)
-
-**Solution**: Use `embla-carousel-react` (already installed) to create a swipeable horizontal carousel. Show 3 images at a time with smooth swipe navigation.
-
-### Files to Modify
-
-**`src/pages/personal/PersonalProfilePage.tsx`** — Update `CollageWithLightbox` component
-
-Replace the vertical grid with a horizontal swipeable carousel:
-
-```tsx
-import useEmblaCarousel from "embla-carousel-react";
-
-const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { images: string[] }) {
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [emblaRef] = useEmblaCarousel({ 
-    loop: false, 
-    align: "start",
-    containScroll: "trimSnaps",
-    dragFree: true // Allows free scrolling without snap
-  });
-
-  const handleImageClick = (index: number) => {
-    setLightboxIndex(index);
-    setLightboxOpen(true);
-  };
-
-  return (
-    <>
-      {/* Horizontal swipeable carousel - shows 3 images at a time */}
-      <div className="w-full overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-1.5">
-          {images.map((imgUrl, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleImageClick(idx)}
-              className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <img 
-                src={getOptimizedImageUrl(imgUrl, 200, 85)} 
-                alt="" 
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-      <ImageLightbox
-        images={images}
-        currentIndex={lightboxIndex}
-        isOpen={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        onNavigate={setLightboxIndex}
-      />
-    </>
-  );
-});
-```
-
-**`src/components/personal/ProfilePreviewRenderer.tsx`** — Update `CollagePreview`
-
-Same pattern for the dashboard preview:
-
-```tsx
-import useEmblaCarousel from "embla-carousel-react";
-
-const CollagePreview = ({ images, isPreview, onLinkClick }: {...}) => {
-  const [emblaRef] = useEmblaCarousel({ 
-    loop: false, 
-    align: "start",
-    containScroll: "trimSnaps",
-    dragFree: true
-  });
-  // ... rest of implementation
+```typescript
+content = {
+  headline: "...",
+  description: "...",
+  buttonText: "Submit",
+  collectEmail: "true",
+  collectPhone: "true",
+  collectName: "false",
+  collectMessage: "false",
+  // NEW fields:
+  emailRequired: "true",
+  phoneRequired: "true",
+  nameRequired: "false",
+  messageRequired: "false",
 };
 ```
 
+### 3. Update BlockModal UI Configuration
+
+Under each "Collect X" toggle, add a "Required" sub-toggle that only appears when the field is enabled:
+
+**New UI structure:**
+```text
+┌──────────────────────────────────────┐
+│ Contact Fields                        │
+├──────────────────────────────────────┤
+│ ☑ Collect Phone       [Required ☑]  │
+│ ☑ Collect Email       [Required ☑]  │
+├──────────────────────────────────────┤
+│ Additional Fields                     │
+├──────────────────────────────────────┤
+│ ☑ Collect Name        [Required ☐]  │
+│ ☐ Collect Message     [Required ☐]  │
+└──────────────────────────────────────┘
+```
+
+### 4. Reorder Form Fields (Phone Above Email)
+
+In `PersonalProfilePage.tsx` and `ProfilePreviewRenderer.tsx`, change the render order:
+
+**Current order:**
+1. Name
+2. Email
+3. Phone
+4. Message
+
+**New order:**
+1. Name
+2. Phone ← moved up
+3. Email ← moved down
+4. Message
+
+### 5. Update Placeholders with "(optional)" Suffix
+
+In the form rendering, dynamically set placeholder text based on required status:
+
+```typescript
+// Phone input
+placeholder={phoneRequired ? "Your phone number" : "Your phone number (optional)"}
+required={phoneRequired}
+
+// Email input  
+placeholder={emailRequired ? "your@email.com" : "your@email.com (optional)"}
+required={emailRequired}
+
+// Name input
+placeholder={nameRequired ? "Your name" : "Your name (optional)"}
+required={nameRequired}
+
+// Message input
+placeholder={messageRequired ? "Message" : "Message (optional)"}
+required={messageRequired}
+```
+
+### 6. Update Form Validation
+
+Remove the auto-required logic that makes email/phone required based on the other. Instead, respect the user's explicit required settings:
+
+```typescript
+// Current (REMOVE this logic):
+required={!showPhone}  // Email required only if phone not shown
+required={!showEmail}  // Phone required only if email not shown
+
+// New (use explicit settings):
+required={emailRequired}
+required={phoneRequired}
+```
+
 ---
 
-## Summary of Changes
+## Files to Modify
 
-| File | Change |
-|------|--------|
-| `PersonalProfilePage.tsx` | Remove `md:overflow-hidden`, add `rounded-3xl` to content section, convert collage to Embla carousel |
-| `ProfilePreviewRenderer.tsx` | Add `rounded-2xl` to content section, convert collage preview to Embla carousel |
+| File | Changes |
+|------|---------|
+| `src/components/personal/BlockModal.tsx` | Add required state variables, update UI to show required toggles, reorder phone/email in save logic, store required settings |
+| `src/pages/personal/PersonalProfilePage.tsx` | Reorder phone above email, update placeholders with "(optional)" suffix, use explicit required settings |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Reorder phone above email in preview |
 
 ---
 
-## Visual Result
+## Visual Mockup - Public Form
 
-**Collage Before:**
+**Both phone and email required:**
 ```text
-┌─────────────────────────────┐
-│ [img1] [img2] [img3]        │
-│ [img4] [img5] [img6]        │
-│ [img7] ...                  │
-└─────────────────────────────┘
+┌────────────────────────────────────┐
+│         Stay Connected 💌          │
+│   Leave your info...               │
+├────────────────────────────────────┤
+│ [Your name (optional)            ] │
+│ [Your phone number               ] │  ← Phone now first
+│ [your@email.com                  ] │  ← Email second
+│ [Message (optional)              ] │
+│ ┌────────────────────────────────┐ │
+│ │           Submit               │ │
+│ └────────────────────────────────┘ │
+└────────────────────────────────────┘
 ```
 
-**Collage After (swipeable):**
+**Phone required, email optional:**
 ```text
-┌─────────────────────────────┐
-│ [img1] [img2] [img3] → swipe│
-│                             │
-└─────────────────────────────┘
+┌────────────────────────────────────┐
+│         Stay Connected 💌          │
+│   Leave your info...               │
+├────────────────────────────────────┤
+│ [Your phone number               ] │  ← Required, no suffix
+│ [your@email.com (optional)       ] │  ← Optional, shows suffix
+│ ┌────────────────────────────────┐ │
+│ │           Submit               │ │
+│ └────────────────────────────────┘ │
+└────────────────────────────────────┘
 ```
 
-**Content Section (with rounded corners):**
+---
+
+## Configuration Modal Mockup
+
 ```text
-         ╭────────────────╮
-         │  Banner Image  │
-         ╰────────────────╯
-    ╭────────────────────────╮
-    │    Solid Color Area    │
-    │    (extracted color)   │
-    │                        │
-    │    Links & Content     │
-    │                        │
-    ╰────────────────────────╯  ← rounded bottom corners
+┌──────────────────────────────────────────────────────┐
+│ Contact Fields                                        │
+├──────────────────────────────────────────────────────┤
+│ Collect Phone                                         │
+│ Ask for their phone number                   [ON/OFF] │
+│   └─ Required                                    [☑] │
+│                                                       │
+│ Collect Email                                         │
+│ Ask for their email address                  [ON/OFF] │
+│   └─ Required                                    [☐] │
+├──────────────────────────────────────────────────────┤
+│ Additional Fields                                     │
+├──────────────────────────────────────────────────────┤
+│ Collect Name                                          │
+│ Ask visitors for their name                  [ON/OFF] │
+│   └─ Required                                    [☐] │
+│                                                       │
+│ Collect Message                                       │
+│ Let visitors add a message                   [ON/OFF] │
+│   └─ Required                                    [☐] │
+└──────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Backward Compatibility
+
+- Existing blocks without the new `*Required` fields will default to:
+  - `emailRequired: true` (if email is being collected)
+  - `phoneRequired: true` (if phone is being collected)
+  - `nameRequired: false`
+  - `messageRequired: false`
+- This maintains the current behavior for existing blocks until they're edited
+
+---
+
+## Technical Notes
+
+1. **Field order change**: Phone above email matches the reference screenshot and is more intuitive for mobile users
+2. **Validation**: HTML5 `required` attribute handles validation; users who leave required fields blank see browser-native error
+3. **No placeholder for required fields**: Required fields show clean placeholders like "Your phone number"; optional fields show "Your phone number (optional)"
+4. **Minimum requirement**: At least one of email or phone must be enabled (existing validation stays)
 
