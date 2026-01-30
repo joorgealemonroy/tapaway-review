@@ -1,119 +1,145 @@
 
-# Plan: Add TapAway VIP Plan Option for Admin Account Creation
+# Plan: Add Phone Number Collection to Contact Capture Block
 
 ## Overview
 
-Add a "TapAway VIP" plan type that administrators can select when creating personal accounts. This plan grants full Pro features for free, forever, without requiring any payment or Stripe subscription.
+Update the email capture block to support collecting phone numbers in addition to (or instead of) email addresses. Profile owners can configure which fields to require.
 
 ---
 
-## Current Behavior
+## Database Changes
 
-When admins create accounts, they can select:
-- **Free** (tap prefix, limited features)
-- **Pro Monthly** ($10/mo, full features)
-- **Pro Yearly** ($75/yr, full features)
+### Add `phone` column to `personal_email_captures` table
 
-Currently, the only way to get a "VIP" account is to select Monthly/Yearly without Stripe - which is detected in the billing tab but isn't an explicit option.
+```sql
+ALTER TABLE public.personal_email_captures
+  ADD COLUMN phone text;
+
+-- Make email nullable since users can now choose to collect only phone
+ALTER TABLE public.personal_email_captures 
+  ALTER COLUMN email DROP NOT NULL;
+
+-- Add a check constraint to ensure at least email OR phone is provided
+ALTER TABLE public.personal_email_captures
+  ADD CONSTRAINT email_or_phone_required 
+  CHECK (email IS NOT NULL OR phone IS NOT NULL);
+```
 
 ---
 
-## Solution
+## UI Configuration Changes
 
-### 1. Add "vip" as a Plan Type
+### BlockModal.tsx - Add Contact Fields Selection
 
-Update the plan type union across the codebase to include `"vip"`:
+Update the email_capture configuration section to allow choosing which contact method(s) to collect:
 
-```typescript
-planType: "free" | "monthly" | "yearly" | "vip"
+| Option | Description |
+|--------|-------------|
+| `collectEmail` | Collect email address (checkbox, default: true) |
+| `collectPhone` | Collect phone number (checkbox, default: false) |
+
+**New UI in the modal:**
+
+```text
+┌──────────────────────────────────────┐
+│ Configure block                       │
+├──────────────────────────────────────┤
+│ Headline: [Stay Connected 💌        ]│
+│ Description: [Leave your info...    ]│
+│ Button Text: [Submit                ]│
+├──────────────────────────────────────┤
+│ Contact Fields                        │
+│                                       │
+│ ☑ Collect Email                      │
+│ ☐ Collect Phone Number               │
+├──────────────────────────────────────┤
+│ Optional Fields                       │
+│                                       │
+│ ☐ Collect Name                       │
+│ ☐ Collect Message                    │
+└──────────────────────────────────────┘
 ```
 
-### 2. Update Plan Limits Configuration
-
-Add VIP to `src/lib/personalPlanLimits.ts`:
-
+**State changes:**
 ```typescript
-export const PERSONAL_PLANS = {
-  free: { /* existing */ },
-  paid: { /* existing */ },
-  vip: {
-    name: 'VIP',
-    maxLinks: -1, // unlimited
-    price: '$0',
-    priceSubtext: 'forever',
-    features: {
-      nfcCard: true,
-      customHeader: true,
-      photoCollage: true,
-      emailCapture: true,
-      advancedAnalytics: true,
-      socialIconBar: true,
-      youtube: true,
-      image: true,
-      text: true,
-      button: true,
-    },
-  },
-} as const;
+const [collectEmail, setCollectEmail] = useState(true);
+const [collectPhone, setCollectPhone] = useState(false);
 ```
 
-### 3. Update Helper Functions
-
-Update `getPlanLimits()` to recognize VIP:
-
+**Content structure:**
 ```typescript
-export function getPlanLimits(planType: string | null) {
-  if (planType === 'free') return PERSONAL_PLANS.free;
-  if (planType === 'vip') return PERSONAL_PLANS.vip;
-  return PERSONAL_PLANS.paid;
-}
-
-export function isVIPPlan(planType: string | null): boolean {
-  return planType === 'vip';
-}
-
-export function isPaidPlan(planType: string | null): boolean {
-  return planType !== 'free' && planType !== 'vip' && planType !== null;
-}
+content = {
+  headline: "...",
+  description: "...",
+  buttonText: "Submit",
+  collectEmail: "true",      // NEW
+  collectPhone: "false",     // NEW
+  collectName: "false",
+  collectMessage: "false",
+};
 ```
 
-### 4. Add VIP Option in Admin UI
+---
 
-Update `AdminPersonalAccounts.tsx` plan selector:
+## Form Rendering Changes
 
+### PersonalProfilePage.tsx - Update Email Capture Block
+
+Update the `email_capture` case in the block renderer:
+
+1. Parse `collectEmail` and `collectPhone` from content
+2. Conditionally render email input (only if collectEmail is true)
+3. Add phone number input (only if collectPhone is true)
+4. Validate that at least one contact field is filled before submit
+5. Submit phone number to database
+
+**Phone input styling:**
 ```tsx
-<SelectContent>
-  <SelectItem value="free">Free (tap prefix)</SelectItem>
-  <SelectItem value="vip">
-    <span className="flex items-center gap-2">
-      <Sparkles className="h-4 w-4 text-emerald-500" />
-      TapAway VIP (Free forever)
-    </span>
-  </SelectItem>
-  <SelectItem value="monthly">Pro Monthly (${PERSONAL_PRICING.monthly}/mo)</SelectItem>
-  <SelectItem value="yearly">Pro Yearly (${PERSONAL_PRICING.yearly}/yr)</SelectItem>
-</SelectContent>
+<input
+  type="tel"
+  placeholder="Your phone number"
+  value={phoneInput}
+  onChange={(e) => setPhoneInput(e.target.value)}
+  className={inputClass}
+  required={!collectEmail} // Required only if email isn't being collected
+/>
 ```
 
-### 5. Update Billing Tab Display
+### ProfilePreviewRenderer.tsx - Update Preview
 
-Update `PersonalBillingTab.tsx` to properly detect VIP accounts:
+Mirror the changes for the dashboard preview:
+- Show email field placeholder when collectEmail is true
+- Show phone field placeholder when collectPhone is true
 
+---
+
+## Leads Display Changes
+
+### EmailLeadsTab.tsx
+
+1. Update interface to include `phone`:
 ```typescript
-// Detect VIP by plan_type OR by paid plan without subscription
-const isVIP = profile.plan_type === 'vip' || (isPro && !profile.stripe_subscription_id);
+interface EmailCapture {
+  id: string;
+  email: string | null;  // Now nullable
+  phone: string | null;  // NEW
+  name: string | null;
+  message: string | null;
+  created_at: string;
+}
 ```
 
-### 6. Update Username Prefix Logic
-
-VIP accounts should NOT have the "tap" prefix (like Pro accounts):
-
-```typescript
-// In create-personal-account edge function and UI
-const publicUsername = planType === "free" 
-  ? (username.toLowerCase().startsWith("tap") ? username.toLowerCase() : `tap${username.toLowerCase()}`)
-  : username.toLowerCase(); // monthly, yearly, OR vip
+2. Update display to show phone when present:
+```tsx
+<p className="font-medium text-foreground truncate">
+  {lead.email || lead.phone}
+</p>
+{lead.email && lead.phone && (
+  <p className="text-sm text-muted-foreground">{lead.phone}</p>
+)}
 ```
+
+3. Update CSV export to include phone column
 
 ---
 
@@ -121,49 +147,59 @@ const publicUsername = planType === "free"
 
 | File | Changes |
 |------|---------|
-| `src/lib/personalPlanLimits.ts` | Add VIP plan config, update helper functions |
-| `src/pages/admin/AdminPersonalAccounts.tsx` | Add VIP option to plan selector, update type |
-| `src/components/personal/PersonalBillingTab.tsx` | Update VIP detection to include explicit plan_type |
-| `supabase/functions/create-personal-account/index.ts` | Ensure VIP is treated like paid (no tap prefix) |
+| **Database** | Add `phone` column, make `email` nullable, add constraint |
+| `src/components/personal/BlockModal.tsx` | Add collectEmail/collectPhone toggles |
+| `src/pages/personal/PersonalProfilePage.tsx` | Add phone input, update submission logic |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Add phone placeholder in preview |
+| `src/components/personal/EmailLeadsTab.tsx` | Display phone, update export |
 
 ---
 
-## Visual Representation
+## Backward Compatibility
 
-**Admin Create Account Modal:**
+- Existing blocks with no `collectEmail`/`collectPhone` fields default to `collectEmail: true, collectPhone: false`
+- This preserves all existing behavior while unlocking new capabilities
+- Existing leads with only email continue to display correctly
+
+---
+
+## Visual Mockup - Public Profile Form
+
+**Email + Phone collection enabled:**
 ```text
-┌──────────────────────────────────────┐
-│ Plan Type                            │
-├──────────────────────────────────────┤
-│ ▼ Free (tap prefix)                  │
-│   ✨ TapAway VIP (Free forever)      │ ← NEW
-│   Pro Monthly ($10/mo)               │
-│   Pro Yearly ($75/yr)                │
-└──────────────────────────────────────┘
+┌────────────────────────────────────┐
+│         Stay Connected 💌          │
+│   Leave your info and I'll reach   │
+│              out!                  │
+├────────────────────────────────────┤
+│ [Your name (optional)            ] │
+│ [your@email.com                  ] │
+│ [Your phone number               ] │
+│ [Message (optional)              ] │
+│ ┌────────────────────────────────┐ │
+│ │           Submit               │ │
+│ └────────────────────────────────┘ │
+└────────────────────────────────────┘
 ```
 
-**Billing Tab for VIP Users:**
+**Phone only collection:**
 ```text
-┌──────────────────────────────────────┐
-│ 👑 Current Plan          [VIP Access]│
-│                                      │
-│ You have complimentary full access   │
-│ to all features!                     │
-│                                      │
-│ $0 forever                           │
-│                                      │
-│ ✨ Enjoy all premium features!       │
-│                                      │
-│ (No billing buttons shown)           │
-└──────────────────────────────────────┘
+┌────────────────────────────────────┐
+│         Text Me! 📱               │
+│   Drop your number below          │
+├────────────────────────────────────┤
+│ [Your phone number               ] │
+│ ┌────────────────────────────────┐ │
+│ │           Submit               │ │
+│ └────────────────────────────────┘ │
+└────────────────────────────────────┘
 ```
 
 ---
 
-## Technical Notes
+## Technical Implementation Notes
 
-- VIP is stored as `plan_type: 'vip'` in the database
-- VIP accounts get `subscription_status: 'active'` but NO `stripe_subscription_id`
-- Feature access: VIP has identical permissions to Pro (monthly/yearly)
-- VIP accounts don't have the "tap" username prefix
-- VIP accounts cannot downgrade (no billing buttons shown)
+1. **Phone validation**: Use `type="tel"` for mobile keyboard optimization, but keep validation simple (not empty when required)
+2. **Required field logic**: At least one of email OR phone must be filled when submitting
+3. **Block label update**: Consider renaming from "Email Capture" to "Contact Capture" in BLOCK_TYPES for clarity
+4. **Tab naming**: Consider renaming "Leads" tab icon/label since it now captures more than just emails
