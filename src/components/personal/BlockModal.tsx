@@ -99,6 +99,11 @@ export const BlockModal = ({
   const [collectPhone, setCollectPhone] = useState(false);
   const [collectName, setCollectName] = useState(false);
   const [collectMessage, setCollectMessage] = useState(false);
+  // Required toggles for each field
+  const [emailRequired, setEmailRequired] = useState(true);
+  const [phoneRequired, setPhoneRequired] = useState(true);
+  const [nameRequired, setNameRequired] = useState(false);
+  const [messageRequired, setMessageRequired] = useState(false);
   
   // Photo collage options
   const [collageImages, setCollageImages] = useState<string[]>([]);
@@ -147,6 +152,11 @@ export const BlockModal = ({
           setCollectPhone(content.collectPhone === "true");
           setCollectName(content.collectName === "true");
           setCollectMessage(content.collectMessage === "true");
+          // Required toggles - default true for contact fields, false for name/message
+          setEmailRequired(content.emailRequired !== "false");
+          setPhoneRequired(content.phoneRequired !== "false");
+          setNameRequired(content.nameRequired === "true");
+          setMessageRequired(content.messageRequired === "true");
         } else if (editingBlock.block_type === "photo_collage") {
           let images: string[] = [];
           try {
@@ -193,6 +203,11 @@ export const BlockModal = ({
     setCollectPhone(false);
     setCollectName(false);
     setCollectMessage(false);
+    // Required toggles
+    setEmailRequired(true);
+    setPhoneRequired(true);
+    setNameRequired(false);
+    setMessageRequired(false);
     // Photo collage
     setCollageImages([]);
     setCollageColumns(3);
@@ -411,6 +426,10 @@ export const BlockModal = ({
           collectPhone: collectPhone.toString(),
           collectName: collectName.toString(),
           collectMessage: collectMessage.toString(),
+          emailRequired: emailRequired.toString(),
+          phoneRequired: phoneRequired.toString(),
+          nameRequired: nameRequired.toString(),
+          messageRequired: messageRequired.toString(),
         };
         break;
       }
@@ -760,36 +779,69 @@ export const BlockModal = ({
                   </div>
                   <div className="space-y-3 pt-2 border-t border-border">
                     <Label className="text-sm font-medium">Contact Fields</Label>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Collect Email</p>
-                        <p className="text-xs text-muted-foreground">Ask for their email address</p>
+                    {/* Phone first, then Email */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Collect Phone</p>
+                          <p className="text-xs text-muted-foreground">Ask for their phone number</p>
+                        </div>
+                        <Switch checked={collectPhone} onCheckedChange={setCollectPhone} />
                       </div>
-                      <Switch checked={collectEmail} onCheckedChange={setCollectEmail} />
+                      {collectPhone && (
+                        <div className="flex items-center justify-between pl-4 py-1">
+                          <p className="text-sm text-muted-foreground">Required</p>
+                          <Switch checked={phoneRequired} onCheckedChange={setPhoneRequired} />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Collect Phone</p>
-                        <p className="text-xs text-muted-foreground">Ask for their phone number</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Collect Email</p>
+                          <p className="text-xs text-muted-foreground">Ask for their email address</p>
+                        </div>
+                        <Switch checked={collectEmail} onCheckedChange={setCollectEmail} />
                       </div>
-                      <Switch checked={collectPhone} onCheckedChange={setCollectPhone} />
+                      {collectEmail && (
+                        <div className="flex items-center justify-between pl-4 py-1">
+                          <p className="text-sm text-muted-foreground">Required</p>
+                          <Switch checked={emailRequired} onCheckedChange={setEmailRequired} />
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-3 pt-2 border-t border-border">
-                    <Label className="text-sm font-medium">Optional Fields</Label>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Collect Name</p>
-                        <p className="text-xs text-muted-foreground">Ask visitors for their name</p>
+                    <Label className="text-sm font-medium">Additional Fields</Label>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Collect Name</p>
+                          <p className="text-xs text-muted-foreground">Ask visitors for their name</p>
+                        </div>
+                        <Switch checked={collectName} onCheckedChange={setCollectName} />
                       </div>
-                      <Switch checked={collectName} onCheckedChange={setCollectName} />
+                      {collectName && (
+                        <div className="flex items-center justify-between pl-4 py-1">
+                          <p className="text-sm text-muted-foreground">Required</p>
+                          <Switch checked={nameRequired} onCheckedChange={setNameRequired} />
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">Collect Message</p>
-                        <p className="text-xs text-muted-foreground">Let visitors add a message</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Collect Message</p>
+                          <p className="text-xs text-muted-foreground">Let visitors add a message</p>
+                        </div>
+                        <Switch checked={collectMessage} onCheckedChange={setCollectMessage} />
                       </div>
-                      <Switch checked={collectMessage} onCheckedChange={setCollectMessage} />
+                      {collectMessage && (
+                        <div className="flex items-center justify-between pl-4 py-1">
+                          <p className="text-sm text-muted-foreground">Required</p>
+                          <Switch checked={messageRequired} onCheckedChange={setMessageRequired} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>

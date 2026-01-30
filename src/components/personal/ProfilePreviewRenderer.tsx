@@ -565,10 +565,11 @@ function ProfilePreviewRendererComponent({
             {showName && (
               <div className={`h-9 rounded-lg border ${inputBg}`} />
             )}
-            {showEmail && (
+            {/* Phone first, then Email */}
+            {showPhone && (
               <div className={`h-9 rounded-lg border ${inputBg}`} />
             )}
-            {showPhone && (
+            {showEmail && (
               <div className={`h-9 rounded-lg border ${inputBg}`} />
             )}
             {showMessage && (
