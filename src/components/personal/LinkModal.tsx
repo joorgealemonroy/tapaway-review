@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -598,33 +600,55 @@ export const LinkModal = ({
     );
   };
 
+  const isMobile = useIsMobile();
+  
+  const modalTitle = editingLink ? "Edit link" : selectedPlatform ? "Add link" : "Add a link";
+  
+  const modalContent = (
+    <>
+      {!selectedPlatform ? (
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          {availablePlatforms.map((platform) => (
+            <button
+              key={platform.type}
+              onClick={() => handleSelectPlatform(platform)}
+              className="flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
+            >
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${platform.gradient || platform.bgColor}`}>
+                <platform.icon className={`h-4 w-4 ${platform.color}`} />
+              </div>
+              <span className="text-sm font-medium">{platform.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        renderPlatformInput()
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader className="text-left">
+            <DrawerTitle>{modalTitle}</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-8">
+            {modalContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm mx-4 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editingLink ? "Edit link" : selectedPlatform ? "Add link" : "Add a link"}
-          </DialogTitle>
+          <DialogTitle>{modalTitle}</DialogTitle>
         </DialogHeader>
-
-        {!selectedPlatform ? (
-          <div className="grid grid-cols-2 gap-2 pt-2">
-            {availablePlatforms.map((platform) => (
-              <button
-                key={platform.type}
-                onClick={() => handleSelectPlatform(platform)}
-                className="flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
-              >
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${platform.gradient || platform.bgColor}`}>
-                  <platform.icon className={`h-4 w-4 ${platform.color}`} />
-                </div>
-                <span className="text-sm font-medium">{platform.label}</span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          renderPlatformInput()
-        )}
+        {modalContent}
       </DialogContent>
     </Dialog>
   );

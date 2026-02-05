@@ -40,6 +40,7 @@ import { DashboardContactCard } from "@/components/personal/DashboardContactCard
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { cn } from "@/lib/utils";
+import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 
 interface PersonalProfile {
   id: string;
@@ -599,8 +600,8 @@ const PersonalDashboard = () => {
             </a>
             <div className="flex items-center gap-2">
               <DashboardSwitcher currentType="personal" />
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-10 w-10">
+                <LogOut className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -610,7 +611,7 @@ const PersonalDashboard = () => {
       {/* Main Layout: Dashboard + Preview Panel */}
       <div className="max-w-7xl mx-auto flex overflow-x-hidden">
         {/* Dashboard Content */}
-        <main className="flex-1 max-w-2xl px-4 py-6 pb-32 w-full overflow-x-hidden">
+        <main className="flex-1 max-w-2xl px-4 py-6 pb-24 md:pb-8 w-full overflow-x-hidden">
           {/* Profile Header */}
           <div 
             id="profile-header" 
@@ -682,7 +683,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="hidden md:grid w-full grid-cols-6">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -797,7 +798,7 @@ const PersonalDashboard = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: "Last 7 days", key: "7d" as TimeRange },
                 { label: "Last 30 days", key: "30d" as TimeRange },
@@ -805,9 +806,9 @@ const PersonalDashboard = () => {
               ].map((item) => (
                 <div
                   key={item.key}
-                  className="p-4 bg-card rounded-xl border border-border"
+                  className="p-4 bg-card rounded-xl border border-border text-center sm:text-left"
                 >
-                  <p className="text-2xl font-bold text-foreground">{analytics[item.key]}</p>
+                  <p className="text-3xl sm:text-2xl font-bold text-foreground">{analytics[item.key]}</p>
                   <p className="text-xs text-muted-foreground">{item.label}</p>
                 </div>
               ))}
@@ -954,9 +955,9 @@ const PersonalDashboard = () => {
       <Sheet open={previewSheetOpen} onOpenChange={setPreviewSheetOpen}>
         <SheetTrigger asChild>
           <Button
-            className="fixed bottom-6 right-6 xl:hidden rounded-full h-14 w-14 shadow-lg z-40"
+            className="fixed right-4 xl:hidden rounded-full h-14 w-14 shadow-lg z-30"
             size="icon"
-            style={{ bottom: hasPendingChanges ? "7rem" : "1.5rem" }}
+            style={{ bottom: hasPendingChanges ? "10rem" : "5.5rem" }}
           >
             <Smartphone className="h-6 w-6" />
           </Button>
@@ -1121,6 +1122,13 @@ const PersonalDashboard = () => {
         }}
         highlightedStep={coachHighlight}
         onHighlightChange={setCoachHighlight}
+      />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        hasCardNotification={!profile.card_confirmed && profile.plan_type !== null && profile.plan_type !== "free"}
       />
     </div>
   );

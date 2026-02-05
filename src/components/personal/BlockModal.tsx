@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -118,6 +120,8 @@ export const BlockModal = ({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const collageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const isMobile = useIsMobile();
 
   // Reset/populate form when modal opens or editingBlock changes
   useEffect(() => {
@@ -525,8 +529,38 @@ export const BlockModal = ({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-sm mx-4">
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>
+                {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
+              </DrawerTitle>
+            </DrawerHeader>
+            <div className="overflow-y-auto flex-1 px-4 pb-8">
+              {!selectedType ? (
+                <div className="space-y-2 pt-2">
+                  {BLOCK_TYPES.map((type) => (
+                    <button
+                      key={type.type}
+                      onClick={() => setSelectedType(type.type)}
+                      className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
+                    >
+                      <type.icon className="h-5 w-5 text-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{type.label}</p>
+                        <p className="text-xs text-muted-foreground">{type.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-sm mx-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
@@ -958,6 +992,7 @@ export const BlockModal = ({
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Image Cropper */}
       {rawImageForCrop && (
