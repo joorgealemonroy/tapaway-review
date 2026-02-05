@@ -332,7 +332,7 @@ export const DashboardDesignTab = ({
                 <button
                   key={color}
                   onClick={() => handleColorChange(color)}
-                  className={`h-8 w-8 rounded-full border-2 transition-all ${
+                  className={`h-11 w-11 rounded-full border-2 transition-all ${
                     headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
                   }`}
                   style={{ backgroundColor: color }}
@@ -346,7 +346,7 @@ export const DashboardDesignTab = ({
                 <button
                   key={i}
                   onClick={() => handleColorChange(gradient)}
-                  className={`h-8 w-8 rounded-full border-2 transition-all ${
+                  className={`h-11 w-11 rounded-full border-2 transition-all ${
                     headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
                   }`}
                   style={{ background: gradient }}
@@ -445,7 +445,7 @@ export const DashboardDesignTab = ({
             <button
               key={color}
               onClick={() => handleBgColorChange(color)}
-              className={`h-8 w-8 rounded-full border-2 transition-all ${
+              className={`h-11 w-11 rounded-full border-2 transition-all ${
                 backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
               }`}
               style={{ backgroundColor: color }}

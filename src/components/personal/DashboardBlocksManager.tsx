@@ -401,23 +401,23 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
                 draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
               } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}`}
             >
-              <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
-                <GripVertical className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 cursor-grab active:cursor-grabbing touch-none select-none">
+                <GripVertical className="h-6 w-6 text-muted-foreground" />
               </div>
               <div className="flex-1 min-w-0 select-none pointer-events-none">
                 {renderBlockPreview(block)}
               </div>
               <button
                 onClick={() => handleOpenModal(block)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <Edit className="h-4 w-4 text-muted-foreground" />
+                <Edit className="h-5 w-5 text-muted-foreground" />
               </button>
               <button
                 onClick={() => setDeleteId(block.id)}
-                className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
-                <Trash2 className="h-4 w-4 text-destructive" />
+                <Trash2 className="h-5 w-5 text-destructive" />
               </button>
             </div>
           ))}

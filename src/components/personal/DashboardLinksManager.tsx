@@ -347,7 +347,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
               >
                 <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                  <GripVertical className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <div 
                   className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${!link.pill_color && !link.cover_image_url ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
@@ -379,19 +379,19 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                 {/* Feature toggle */}
                 <button
                   onClick={() => toggleFeatured(link.id, link.is_featured)}
-                  className={`p-2 rounded-lg transition-colors ${isFeatured ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted"}`}
+                  className={`p-3 -m-1 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isFeatured ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted"}`}
                   title={isFeatured ? "Remove from featured" : "Make featured"}
                 >
-                  <Star className={`h-4 w-4 ${isFeatured ? "fill-current" : ""}`} />
+                  <Star className={`h-5 w-5 ${isFeatured ? "fill-current" : ""}`} />
                 </button>
                 
                 {/* Visibility toggle */}
                 <button
                   onClick={() => toggleLinkVisibility(link.id, link.is_active)}
-                  className={`p-2 rounded-lg transition-colors ${isActive ? "text-muted-foreground hover:bg-muted" : "text-muted-foreground/50 bg-muted"}`}
+                  className={`p-3 -m-1 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isActive ? "text-muted-foreground hover:bg-muted" : "text-muted-foreground/50 bg-muted"}`}
                   title={isActive ? "Hide link" : "Show link"}
                 >
-                  {isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  {isActive ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                 </button>
                 
                 <button
@@ -399,15 +399,15 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                     setEditingLink(convertToPersonalLink(link));
                     setLinkModalOpen(true);
                   }}
-                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <Edit className="h-4 w-4 text-muted-foreground" />
+                  <Edit className="h-5 w-5 text-muted-foreground" />
                 </button>
                 <button
                   onClick={() => setDeleteId(link.id)}
-                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                  className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-5 w-5 text-destructive" />
                 </button>
               </div>
             );

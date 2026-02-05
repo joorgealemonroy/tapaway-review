@@ -18,8 +18,9 @@ export const UnsavedChangesBar = ({
 }: UnsavedChangesBarProps) => {
   if (!hasPendingChanges) return null;
 
+  // On mobile, position above the bottom nav (which is h-16 + safe area)
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 xl:left-auto xl:right-4 xl:bottom-4 xl:max-w-md animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 xl:left-auto xl:right-4 xl:bottom-4 xl:max-w-md animate-in slide-in-from-bottom-4 duration-300">
       <div className="bg-card border-t xl:border xl:rounded-xl shadow-lg p-4 mx-auto">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-foreground">
