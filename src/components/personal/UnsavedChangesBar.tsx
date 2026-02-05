@@ -1,9 +1,8 @@
-import { Eye, Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface UnsavedChangesBarProps {
   hasPendingChanges: boolean;
-  onPreview: () => void;
   onSave: () => void;
   onDiscard: () => void;
   saving?: boolean;
@@ -11,7 +10,6 @@ interface UnsavedChangesBarProps {
 
 export const UnsavedChangesBar = ({
   hasPendingChanges,
-  onPreview,
   onSave,
   onDiscard,
   saving = false,
@@ -27,15 +25,6 @@ export const UnsavedChangesBar = ({
             You have unsaved changes
           </p>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onPreview}
-              className="flex-1 sm:flex-none h-10"
-            >
-              <Eye className="h-4 w-4 mr-1.5" />
-              Preview
-            </Button>
             <Button
               size="sm"
               onClick={onSave}
