@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +18,7 @@ import {
   Copy,
   Check,
   Palette,
-  Smartphone,
   Mail,
-  Lock,
   Sparkles,
   Star
 } from "lucide-react";
@@ -38,6 +35,7 @@ import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
+import { RequestMoreCards } from "@/components/dashboard/RequestMoreCards";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
@@ -118,7 +116,6 @@ const PersonalDashboard = () => {
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analyticsLoadedRef = useRef(false);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
@@ -499,10 +496,6 @@ const PersonalDashboard = () => {
     unifiedContentRef.current.discardChanges();
   }, []);
 
-  const handleOpenPreview = useCallback(() => {
-    setPreviewSheetOpen(true);
-  }, []);
-
   const handleConfirmCardDesign = useCallback(async (fromModal = false) => {
     const previewRef = fromModal ? cardModalPreviewRef : cardPreviewRef;
     if (!profile || !previewRef.current) return;
@@ -752,6 +745,20 @@ const PersonalDashboard = () => {
                 onDiscardRequest={loadData}
               />
             </div>
+
+            {/* Mobile Live Preview */}
+            <div className="xl:hidden border-t pt-6">
+              <p className="text-sm font-medium text-muted-foreground mb-4 text-center">
+                Live Preview
+              </p>
+              <div className="flex justify-center">
+                <ProfilePreviewPanel
+                  profile={profile}
+                  links={links}
+                  blocks={previewBlocks}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           {/* Design Tab */}
@@ -821,11 +828,7 @@ const PersonalDashboard = () => {
           {/* Card Tab */}
           <TabsContent value="card" className="space-y-4">
             {profile.card_confirmed ? (
-              <>
-                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg text-sm text-primary">
-                  <Lock className="h-4 w-4" />
-                  <span>Your card design is confirmed and being printed</span>
-                </div>
+              <div className="space-y-6">
                 <TapAwayCardPreview
                   ref={cardPreviewRef}
                   fullName={profile.full_name}
@@ -834,7 +837,15 @@ const PersonalDashboard = () => {
                   cardHeadline={profile.card_front_headline || undefined}
                   cardBackText={profile.card_back_text || undefined}
                 />
-              </>
+                
+                {/* Order More Cards Section */}
+                <div className="text-center space-y-3 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    Need more cards?
+                  </p>
+                  <RequestMoreCards restaurantId={profile.id} />
+                </div>
+              </div>
             ) : profile.plan_type === "free" ? (
               <div className="text-center py-8 space-y-6">
                 <div className="space-y-2">
@@ -951,35 +962,9 @@ const PersonalDashboard = () => {
         </aside>
       </div>
 
-      {/* Mobile Preview Button + Sheet */}
-      <Sheet open={previewSheetOpen} onOpenChange={setPreviewSheetOpen}>
-        <SheetTrigger asChild>
-          <Button
-            className="fixed right-4 xl:hidden rounded-full h-14 w-14 shadow-lg z-30"
-            size="icon"
-            style={{ bottom: hasPendingChanges ? "10rem" : "5.5rem" }}
-          >
-            <Smartphone className="h-6 w-6" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Preview</SheetTitle>
-          </SheetHeader>
-          <div className="flex justify-center pt-4 pb-8 overflow-y-auto h-full">
-            <ProfilePreviewPanel
-              profile={profile}
-              links={links}
-              blocks={previewBlocks}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
-
       {/* Unsaved Changes Bar */}
       <UnsavedChangesBar
         hasPendingChanges={hasPendingChanges}
-        onPreview={handleOpenPreview}
         onSave={handleSaveChanges}
         onDiscard={handleDiscardChanges}
         saving={saving}
