@@ -18,8 +18,9 @@ export const usePaywallGuard = () => {
 
   useEffect(() => {
     const checkSubscription = async () => {
-      // If we're on a public route, never redirect to paywall
-      if (isPublicRoute(location.pathname)) {
+     // If we're on a public route (except /paywall itself), skip checks
+     // We need to run checks on /paywall to redirect personal users away
+     if (isPublicRoute(location.pathname) && location.pathname !== "/paywall") {
         setChecking(false);
         return;
       }

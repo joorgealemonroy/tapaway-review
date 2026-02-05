@@ -175,8 +175,49 @@ const Auth = () => {
       return "/rep";
     }
 
-    // Default: normal user goes to dashboard
-    return "/dashboard";
+   // Check for business restaurant and personal profile
+   const [restaurantResult, personalResult] = await Promise.all([
+     supabase
+       .from("restaurants")
+       .select("id, onboarding_completed, subscription_status")
+       .eq("owner_id", user.id)
+       .maybeSingle(),
+     supabase
+       .from("personal_profiles")
+       .select("id")
+       .eq("user_id", user.id)
+       .maybeSingle()
+   ]);
+
+   const restaurant = restaurantResult.data;
+   const personal = personalResult.data;
+
+   const hasValidBusiness = restaurant && 
+     restaurant.onboarding_completed && 
+     (restaurant.subscription_status === 'active' || 
+      restaurant.subscription_status === 'trialing' ||
+      restaurant.subscription_status === 'pending_payment' ||
+      restaurant.subscription_status === 'pending_setup');
+   const hasPersonal = !!personal;
+
+   // If user has both, let them choose
+   if (hasValidBusiness && hasPersonal) {
+     return "/select-dashboard";
+   }
+   // Valid business account
+   if (hasValidBusiness) {
+     return "/dashboard";
+   }
+   // Personal profile only
+   if (hasPersonal) {
+     return "/personal/dashboard";
+   }
+   // Has restaurant but blocked subscription
+   if (restaurant && !hasValidBusiness) {
+     return "/paywall";
+   }
+   // No accounts at all
+   return "/paywall";
   };
 
   // Extract session_id from redirect for password setting
