@@ -1,50 +1,145 @@
 
+## What’s happening (root cause)
 
-# Fix: Link Jorge's Personal Profile to His Auth Account
+There are two separate issues mixed together:
 
-## Problem
+1) **Jorge is being sent to the business dashboard after login**
+- `src/pages/Auth.tsx` logs in with `supabase.auth.signInWithPassword()` and then (for normal users) **defaults to `"/dashboard"`**.
+- Jorge only has a **personal profile** (no restaurant record), so when `Dashboard.tsx` loads it detects “no restaurant” and redirects to `"/paywall"`.
 
-**@jorge** (jorgealemonroy@gmail.com) is being redirected to the paywall because his personal profile is linked to the **wrong auth user**.
+2) **Jorge’s personal plan_type is literally `"test_mode"`**
+- In the database, `public.personal_profiles.plan_type` for `username = 'jorge'` is currently `test_mode`.
+- That’s why the Admin Personal Accounts page shows `test_mode`. (This value also risks confusing any future plan gating/UI.)
 
-| What | Current Value | Expected Value |
-|------|---------------|----------------|
-| Auth User ID | `be064e3d-3669-4338-a2df-198b97436743` | (correct) |
-| Profile `user_id` | `87672793-9bcb-4cf9-b2d6-657dcaa36187` | Should be `be064e3d-3669-4338-a2df-198b97436743` |
-
-The profile was accidentally linked to a test/throwaway account (`jfkgrjsbwbswwsogjougi@gmail.com`).
+So even if “paywall is off”, Jorge can still *land on* the paywall because the **login redirect path is wrong**, and the **paywall guard currently doesn’t redirect away** due to a logic shortcut.
 
 ---
 
-## Solution
+## Evidence from current backend data (Test environment)
 
-This is a **data fix**, not a code fix. We need to update the personal profile's `user_id` to point to Jorge's correct auth account.
+From the current database:
+- `personal_profiles.username = 'jorge'` has:
+  - `user_id = be064e3d-3669-4338-a2df-198b97436743` (correct)
+  - `subscription_status = 'active'`
+  - `plan_type = 'test_mode'` (this is the “still reads test_mode” issue)
 
-### Database Update Required
+Also:
+- There is **no restaurant** row for Jorge’s `owner_id`, so `/dashboard` will always route him to `/paywall`.
 
+---
+
+## Fix scope (what I will change)
+
+### A) Data fix (remove “test_mode” and make Jorge VIP)
+Update Jorge’s personal profile:
+- `plan_type: 'vip'`
+- keep `subscription_status: 'active'`
+
+This fixes the Admin UI showing `test_mode` and ensures his personal account is treated as VIP.
+
+**SQL (Test environment)**
 ```sql
-UPDATE personal_profiles 
-SET user_id = 'be064e3d-3669-4338-a2df-198b97436743',
+UPDATE public.personal_profiles
+SET plan_type = 'vip',
+    subscription_status = 'active',
     updated_at = now()
 WHERE username = 'jorge';
 ```
 
-This will:
-1. Link the `@jorge` profile to the correct auth user
-2. Allow `jorgealemonroy@gmail.com` to log in and access their personal dashboard
-3. No longer redirect to paywall since a valid personal profile will be found
+**Important note about Live vs Test**
+Lovable Cloud has **separate Test and Live data**. If Jorge is logging in on the **published site**, we must run the same update in **Live** as well (I’ll include the exact SQL for you to run in Live if needed).
 
 ---
 
-## Why This Happened
+### B) Code fix 1 — make `/auth` redirect personal users correctly
+**File:** `src/pages/Auth.tsx`
 
-The profile was likely created under a different auth account (possibly during testing with `jfkgrjsbwbswwsogjougi@gmail.com`), and then the email field was manually changed to `jorgealemonroy@gmail.com` without updating the `user_id` foreign key.
+Right now, `determineRedirectDestination()` does:
+- admin -> `/admin`
+- sales rep -> `/rep`
+- else -> `/dashboard` (this is the bug for personal-only accounts)
+
+I will update `determineRedirectDestination()` to also check:
+- whether the user has a **personal profile**
+- whether the user has a **valid business restaurant**
+
+Routing after login will become:
+- If user has both valid business + personal -> `/select-dashboard`
+- Else if valid business -> `/dashboard`
+- Else if personal profile exists -> `/personal/dashboard`
+- Else -> `/paywall`
+
+This matches the intent of your `useAuth.signIn` logic, but applies to the actual login page you’re using.
 
 ---
 
-## Verification After Fix
+### C) Code fix 2 — make the Paywall page redirect away for personal users
+**Files:** `src/pages/PaywallGuard.tsx` and `src/pages/Paywall.tsx`
 
-After the update, when Jorge logs in:
-1. Auth lookup returns user ID `be064e3d-...`
-2. Personal profile query finds `@jorge` profile (now linked correctly)
-3. Routing goes to `/personal/dashboard` instead of `/paywall`
+`usePaywallGuard()` currently exits immediately if the route is “public”:
+```ts
+if (isPublicRoute(location.pathname)) return;
+```
+But `/paywall` is listed as public, so the guard **never runs** on the paywall page, meaning users can get stuck seeing it.
+
+I will change `usePaywallGuard()` so that:
+- It still avoids redirect loops on other public pages,
+- But **does not early-return on `/paywall`**, allowing it to redirect logged-in users who have a personal profile to `/personal/dashboard`.
+
+Simplest safe rule:
+- Only skip when `isPublicRoute(pathname)` AND `pathname !== "/paywall"`.
+
+---
+
+### D) (Optional but recommended) Make `/dashboard` more forgiving
+**File:** `src/pages/Dashboard.tsx`
+
+When a user has **no restaurant**, it currently does:
+- redirect to `/paywall`
+
+I’ll add a check:
+- if they have a personal profile, redirect them to `/personal/dashboard` instead.
+
+This prevents accidental paywall exposure if a personal user lands on `/dashboard` via bookmarks, old links, or direct navigation.
+
+---
+
+## Step-by-step implementation order
+
+1) **Backend data update (Test)**
+   - Update `personal_profiles.plan_type` for `jorge` from `test_mode` to `vip`
+   - Verify via select that it now reads `vip`
+
+2) **Auth redirect fix**
+   - Update `src/pages/Auth.tsx` redirect decision logic to detect personal profiles and route accordingly
+
+3) **Paywall guard fix**
+   - Update `src/pages/PaywallGuard.tsx` so it actually runs on `/paywall` and can redirect personal users away
+
+4) **Dashboard safety redirect (recommended)**
+   - Update `src/pages/Dashboard.tsx` to route personal-only users to `/personal/dashboard` instead of `/paywall`
+
+---
+
+## Verification checklist (end-to-end)
+
+1) In **Admin → Personal Accounts**, confirm `@jorge` now shows:
+   - plan_type: `vip`
+
+2) Login as `jorgealemonroy@gmail.com` via `/auth`:
+   - Should land on `/personal/dashboard`
+   - Should not see `/paywall`
+
+3) While logged in as Jorge, manually visit:
+   - `/dashboard` -> should redirect to `/personal/dashboard` (with the optional improvement)
+   - `/paywall` -> should redirect to `/personal/dashboard` (after PaywallGuard fix)
+
+4) If Jorge is testing on the **published site**, repeat after applying the same data update in **Live**.
+
+---
+
+## Notes / edge cases
+
+- This approach does not weaken business paywall logic; it simply prevents personal-only users from being misrouted into the business paywall.
+- The `"test_mode"` value appears to be a legacy artifact from when personal payments were disabled. Converting to `vip` is the cleanest admin-friendly representation.
 
