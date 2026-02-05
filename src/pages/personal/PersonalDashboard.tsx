@@ -748,9 +748,14 @@ const PersonalDashboard = () => {
 
             {/* Mobile Live Preview */}
             <div className="xl:hidden border-t pt-6">
-              <p className="text-sm font-medium text-muted-foreground mb-4 text-center">
-                Live Preview
-              </p>
+              <div className="text-center mb-6">
+                <p className="text-sm font-semibold text-foreground">
+                  Your Profile Preview
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This is exactly how your profile looks to visitors
+                </p>
+              </div>
               <div className="flex justify-center">
                 <ProfilePreviewPanel
                   profile={profile}
@@ -841,9 +846,9 @@ const PersonalDashboard = () => {
                 {/* Order More Cards Section */}
                 <div className="text-center space-y-3 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Need more cards?
+                    Want another card?
                   </p>
-                  <RequestMoreCards restaurantId={profile.id} />
+                  <RequestMoreCards restaurantId={profile.id} variant="personal" />
                 </div>
               </div>
             ) : profile.plan_type === "free" ? (

@@ -11,8 +11,7 @@ import {
   X, 
   Upload,
   Loader2,
-  Sparkles,
-  Wand2
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
@@ -268,36 +267,55 @@ export const DashboardDesignTab = ({
   // Banner mode now uses the profile photo - no separate banner upload needed
 
   return (
-    <div className="space-y-6">
-      {/* Header Style */}
+    <div className="space-y-8">
+      {/* Header Style Section */}
       <div className="space-y-4">
-        <Label className="text-sm font-medium text-foreground">Header Style</Label>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Header Style</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Choose how your profile header appears
+          </p>
+        </div>
         
         <RadioGroup 
           value={headerType} 
           onValueChange={handleTypeChange}
-          className="flex flex-wrap gap-3"
+          className="grid grid-cols-3 gap-3"
         >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="color" id="header-color" />
-            <Label htmlFor="header-color" className="text-sm flex items-center gap-1.5 cursor-pointer">
-              <Paintbrush className="h-4 w-4" />
-              Solid Color
+          {/* Solid Color option */}
+          <div>
+            <RadioGroupItem value="color" id="header-color" className="peer sr-only" />
+            <Label 
+              htmlFor="header-color" 
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
+            >
+              <Paintbrush className="h-5 w-5" />
+              <span className="text-xs font-medium">Solid Color</span>
             </Label>
           </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="image" id="header-image" />
-            <Label htmlFor="header-image" className="text-sm flex items-center gap-1.5 cursor-pointer">
-              <ImageIcon className="h-4 w-4" />
-              Custom Image
+          
+          {/* Custom Image option */}
+          <div>
+            <RadioGroupItem value="image" id="header-image" className="peer sr-only" />
+            <Label 
+              htmlFor="header-image" 
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
+            >
+              <ImageIcon className="h-5 w-5" />
+              <span className="text-xs font-medium">Image</span>
             </Label>
           </div>
+          
+          {/* Full Banner (Premium only) */}
           {isPremium && (
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="banner" id="header-banner" />
-              <Label htmlFor="header-banner" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Full Banner
+            <div>
+              <RadioGroupItem value="banner" id="header-banner" className="peer sr-only" />
+              <Label 
+                htmlFor="header-banner" 
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
+              >
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Full Banner</span>
               </Label>
             </div>
           )}
@@ -305,57 +323,61 @@ export const DashboardDesignTab = ({
 
         {headerType === "banner" ? (
           /* Full Banner mode - uses profile photo as banner (no separate upload) */
-          <div className="space-y-3">
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <p className="text-sm font-medium text-foreground mb-1">
-                ✨ Full-Screen Banner Mode
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your profile photo will be displayed as a full-screen banner that fades behind your content. 
-                Update your photo in the Profile section above.
-              </p>
-            </div>
-            {imageBasedColor && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Wand2 className="h-3.5 w-3.5 text-primary" />
-                  <span>Ambient background will auto-match your photo</span>
-                </div>
+          <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Full-Screen Banner Mode
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your profile photo displays as a stunning full-screen banner with ambient color matching.
+                </p>
               </div>
-            )}
+            </div>
           </div>
         ) : headerType === "color" ? (
-          <div className="space-y-3">
-            {/* Color presets */}
-            <div className="flex flex-wrap gap-2">
-              {COLOR_PRESETS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => handleColorChange(color)}
-                  className={`h-11 w-11 rounded-full border-2 transition-all ${
-                    headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Solid Colors</p>
+              <div className="grid grid-cols-8 gap-2">
+                {COLOR_PRESETS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => handleColorChange(color)}
+                    className={`aspect-square rounded-full border-2 transition-all ${
+                      headerColor === color ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:scale-110"
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
-
-            {/* Gradient presets */}
-            <div className="flex flex-wrap gap-2">
-              {GRADIENT_PRESETS.map((gradient, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleColorChange(gradient)}
-                  className={`h-11 w-11 rounded-full border-2 transition-all ${
-                    headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
-                  }`}
-                  style={{ background: gradient }}
-                />
-              ))}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Gradients</p>
+              <div className="grid grid-cols-6 gap-2">
+                {GRADIENT_PRESETS.map((gradient, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleColorChange(gradient)}
+                    className={`aspect-square rounded-full border-2 transition-all ${
+                      headerColor === gradient ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:scale-110"
+                    }`}
+                    style={{ background: gradient }}
+                  />
+                ))}
+              </div>
             </div>
-
-            {/* Custom hex input */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={customColorInput.startsWith("#") ? customColorInput : "#6BCB77"}
+                onChange={(e) => {
+                  setCustomColorInput(e.target.value);
+                  handleColorChange(e.target.value);
+                }}
+                className="h-10 w-10 rounded-lg border-0 cursor-pointer"
+              />
               <Input
                 type="text"
                 placeholder="#6BCB77"
@@ -366,16 +388,7 @@ export const DashboardDesignTab = ({
                     handleColorChange(customColorInput);
                   }
                 }}
-                className="h-10 flex-1"
-              />
-              <input
-                type="color"
-                value={customColorInput.startsWith("#") ? customColorInput : "#6BCB77"}
-                onChange={(e) => {
-                  setCustomColorInput(e.target.value);
-                  handleColorChange(e.target.value);
-                }}
-                className="h-10 w-10 rounded border border-border cursor-pointer"
+                className="h-10 flex-1 font-mono text-sm"
               />
             </div>
           </div>
@@ -435,42 +448,55 @@ export const DashboardDesignTab = ({
         )}
       </div>
 
-      {/* PFP Position removed - always centered */}
+      {/* Divider */}
+      <div className="h-px bg-border" />
 
-      {/* Background Color */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium text-foreground">Page Background</Label>
-        <div className="flex flex-wrap gap-2">
+      {/* Background Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Background</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Set your page's background color
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-6 gap-2">
           {BG_PRESETS.map((color) => (
             <button
               key={color}
               onClick={() => handleBgColorChange(color)}
-              className={`h-11 w-11 rounded-full border-2 transition-all ${
-                backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+              className={`aspect-square rounded-full border-2 transition-all ${
+                backgroundColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
               }`}
               style={{ backgroundColor: color }}
             />
           ))}
         </div>
+        
         {/* Show ambient preview when banner mode is active (uses profile photo) */}
         {bannerImageSource && imageBasedColor && (
-          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <Label className="text-xs text-primary flex items-center gap-1.5 font-medium">
-              <Wand2 className="h-3 w-3" />
-              ✨ Ambient background auto-matched to your banner
-            </Label>
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
             <div
-              className="h-12 w-full rounded-lg border-2 border-primary/30 flex items-center justify-center"
+              className="h-10 w-10 rounded-full flex-shrink-0"
               style={{ background: generateAmbientGradient(imageBasedColor) }}
-            >
-              <span className="text-xs text-white/60">Auto-generated from your banner</span>
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground">Auto-matched to your photo</p>
+              <p className="text-xs text-muted-foreground">Override with a solid color above</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              You can override this by selecting a solid color above
-            </p>
           </div>
         )}
-        <div className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={bgColorInput.startsWith("#") ? bgColorInput : "#ffffff"}
+            onChange={(e) => {
+              setBgColorInput(e.target.value);
+              handleBgColorChange(e.target.value);
+            }}
+            className="h-10 w-10 rounded-lg border-0 cursor-pointer"
+          />
           <Input
             type="text"
             placeholder="#ffffff"
@@ -481,16 +507,7 @@ export const DashboardDesignTab = ({
                 handleBgColorChange(bgColorInput);
               }
             }}
-            className="h-10 flex-1"
-          />
-          <input
-            type="color"
-            value={bgColorInput.startsWith("#") ? bgColorInput : "#ffffff"}
-            onChange={(e) => {
-              setBgColorInput(e.target.value);
-              handleBgColorChange(e.target.value);
-            }}
-            className="h-10 w-10 rounded border border-border cursor-pointer"
+            className="h-10 flex-1 font-mono text-sm"
           />
         </div>
       </div>

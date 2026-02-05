@@ -17,14 +17,17 @@ import { CreditCard, Package } from "lucide-react";
 
 interface RequestMoreCardsProps {
   restaurantId: string;
+  variant?: "restaurant" | "personal";
 }
 
 const MAX_CARDS_PER_MONTH = 10;
 
-export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
+export const RequestMoreCards = ({ restaurantId, variant = "restaurant" }: RequestMoreCardsProps) => {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const isPersonal = variant === "personal";
 
   const handleSubmit = async () => {
     if (quantity < 1 || quantity > MAX_CARDS_PER_MONTH) {
@@ -64,17 +67,20 @@ export const RequestMoreCards = ({ restaurantId }: RequestMoreCardsProps) => {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Package className="h-4 w-4" />
-          Request More Cards
+          {isPersonal ? "Request a Card" : "Request More Cards"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            Request More TapAway Cards
+            {isPersonal ? "Request a TapAway Card" : "Request More TapAway Cards"}
           </DialogTitle>
           <DialogDescription>
-            Need more NFC cards for your business? You can request up to {MAX_CARDS_PER_MONTH} cards per month.
+            {isPersonal 
+              ? `Need an additional card? You can request up to ${MAX_CARDS_PER_MONTH} cards per month.`
+              : `Need more NFC cards for your business? You can request up to ${MAX_CARDS_PER_MONTH} cards per month.`
+            }
           </DialogDescription>
         </DialogHeader>
         

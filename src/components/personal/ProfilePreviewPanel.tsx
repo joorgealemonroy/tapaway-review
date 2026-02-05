@@ -55,17 +55,15 @@ function ProfilePreviewPanelComponent({
   };
 
   return (
-    <div className="flex flex-col items-center">
-      <p className="text-xs text-muted-foreground mb-3">Live Preview</p>
-      
+    <div className="flex flex-col items-center w-full">
       {/* Phone frame */}
       <div className="relative">
-        {/* Phone bezel */}
-        <div className="w-[280px] h-[560px] bg-gray-900 rounded-[2.5rem] p-2 shadow-2xl">
+        {/* Phone bezel - slimmer, more modern */}
+        <div className="w-[280px] h-[560px] bg-gray-900 rounded-[2.5rem] p-[6px] shadow-2xl ring-1 ring-gray-700/50">
           {/* Screen */}
-          <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden relative">
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-900 rounded-b-xl z-10" />
+          <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden relative">
+            {/* Dynamic Island style notch - smaller, modern */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-10" />
             
             {/* Content */}
             <div className="h-full overflow-y-auto scrollbar-hide">
@@ -80,10 +78,10 @@ function ProfilePreviewPanelComponent({
           </div>
         </div>
         
-        {/* Side buttons (decorative) */}
-        <div className="absolute right-[-2px] top-24 w-1 h-8 bg-gray-700 rounded-l" />
-        <div className="absolute left-[-2px] top-20 w-1 h-6 bg-gray-700 rounded-r" />
-        <div className="absolute left-[-2px] top-32 w-1 h-12 bg-gray-700 rounded-r" />
+        {/* Side buttons (decorative) - refined */}
+        <div className="absolute right-[-2px] top-24 w-[3px] h-8 bg-gray-700 rounded-l-sm" />
+        <div className="absolute left-[-2px] top-20 w-[3px] h-6 bg-gray-700 rounded-r-sm" />
+        <div className="absolute left-[-2px] top-32 w-[3px] h-12 bg-gray-700 rounded-r-sm" />
       </div>
     </div>
   );
