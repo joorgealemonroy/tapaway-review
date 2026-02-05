@@ -303,9 +303,21 @@ const Dashboard = () => {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
-      // Regular user without restaurant - redirect to paywall to subscribe
-      console.log('[Dashboard] User has no restaurant, redirecting to paywall');
-      navigate("/paywall");
+     // Check if user has a personal profile before redirecting to paywall
+     const { data: personalProfile } = await supabase
+       .from("personal_profiles")
+       .select("id")
+       .eq("user_id", user?.id ?? '')
+       .maybeSingle();
+
+     if (personalProfile) {
+       console.log('[Dashboard] User has personal profile, redirecting to personal dashboard');
+       navigate("/personal/dashboard");
+     } else {
+       // Regular user without restaurant or personal profile - redirect to paywall
+       console.log('[Dashboard] User has no restaurant or personal profile, redirecting to paywall');
+       navigate("/paywall");
+     }
     }
   };
   const fetchLocations = async (restaurantId: string) => {
