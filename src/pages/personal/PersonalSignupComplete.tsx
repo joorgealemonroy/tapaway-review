@@ -251,7 +251,7 @@ const PersonalSignupComplete = () => {
           }
         }
 
-        // Step 7b: Log affiliate referral if applicable
+        // Step 7b: Log affiliate referral, commission, and abuse check
         const referralCode = sessionStorage.getItem("tapaway_ref");
         if (referralCode && profile) {
           try {
@@ -263,11 +263,17 @@ const PersonalSignupComplete = () => {
               .maybeSingle();
 
             if (affiliate) {
-              await supabase.from("affiliate_referrals").insert({
-                affiliate_id: affiliate.id,
-                referred_user_id: verifiedUserId,
-                referred_profile_id: profile.id,
-              } as any);
+              // Insert referral record
+              const { data: referralRow } = await supabase
+                .from("affiliate_referrals")
+                .insert({
+                  affiliate_id: affiliate.id,
+                  referred_user_id: verifiedUserId,
+                  referred_profile_id: profile.id,
+                  ip_address: data.clientIp || null,
+                } as any)
+                .select("id")
+                .single();
 
               // Also update profile with referred_by
               await supabase
@@ -276,6 +282,44 @@ const PersonalSignupComplete = () => {
                 .eq("id", profile.id);
 
               console.log("[PersonalSignupComplete] Affiliate referral logged");
+
+              // Auto-create commission
+              if (referralRow) {
+                try {
+                  const { data: settings } = await supabase
+                    .from("affiliate_settings")
+                    .select("commission_per_referral")
+                    .limit(1)
+                    .single();
+
+                  const commissionAmount = settings?.commission_per_referral ?? 5;
+
+                  await supabase.from("affiliate_commissions").insert({
+                    affiliate_id: affiliate.id,
+                    referral_id: referralRow.id,
+                    amount: commissionAmount,
+                    status: "pending",
+                  });
+
+                  console.log("[PersonalSignupComplete] Commission created:", commissionAmount);
+                } catch (commErr) {
+                  console.warn("[PersonalSignupComplete] Commission creation failed (non-fatal):", commErr);
+                }
+
+                // Trigger abuse check (fire and forget)
+                try {
+                  supabase.functions.invoke("check-affiliate-abuse", {
+                    body: {
+                      referralId: referralRow.id,
+                      affiliateId: affiliate.id,
+                      ipAddress: data.clientIp || null,
+                      referredEmail: data.email,
+                    },
+                  });
+                } catch {
+                  // Non-fatal
+                }
+              }
             }
           } catch (refErr) {
             console.warn("[PersonalSignupComplete] Referral logging failed (non-fatal):", refErr);

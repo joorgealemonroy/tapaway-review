@@ -255,6 +255,11 @@ serve(async (req) => {
       }
     }
 
+    // Capture IP for affiliate abuse tracking
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("x-real-ip")
+      || null;
+
     // Return success with session info for auto-login
     return new Response(
       JSON.stringify({
@@ -264,6 +269,7 @@ serve(async (req) => {
         userId, // Return userId for password setup
         planType: detectedPlanType,
         needsPasswordSetup: tempPassword !== null,
+        clientIp,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

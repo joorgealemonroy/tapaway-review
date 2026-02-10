@@ -44,6 +44,92 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_abuse_flags: {
+        Row: {
+          created_at: string
+          details: string | null
+          flag_type: string
+          id: string
+          referral_id: string
+          resolved: boolean
+          resolved_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          flag_type: string
+          id?: string
+          referral_id: string
+          resolved?: boolean
+          resolved_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          flag_type?: string
+          id?: string
+          referral_id?: string
+          resolved?: boolean
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_abuse_flags_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliate_commissions: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          referral_id: string
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          referral_id: string
+          status?: string
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          referral_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: true
+            referencedRelation: "affiliate_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_referrals: {
         Row: {
           affiliate_id: string
@@ -92,6 +178,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      affiliate_settings: {
+        Row: {
+          commission_per_referral: number
+          id: string
+          payout_minimum: number
+          program_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          commission_per_referral?: number
+          id?: string
+          payout_minimum?: number
+          program_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          commission_per_referral?: number
+          id?: string
+          payout_minimum?: number
+          program_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       affiliates: {
         Row: {
