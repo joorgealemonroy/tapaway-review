@@ -1065,6 +1065,47 @@ Login at: ${window.location.origin}/auth`;
     setUsernameChecking(false);
   };
 
+  const handleToggleAffiliate = async (account: PersonalAccount) => {
+    try {
+      // Check if already an affiliate
+      const { data: existing } = await supabase
+        .from("affiliates")
+        .select("id, is_active")
+        .eq("user_id", account.user_id)
+        .maybeSingle();
+
+      if (existing) {
+        // Toggle active status
+        const { error } = await supabase
+          .from("affiliates")
+          .update({ is_active: !existing.is_active })
+          .eq("id", existing.id);
+        if (error) throw error;
+        toast.success(existing.is_active ? `Affiliate revoked for @${account.username}` : `Affiliate restored for @${account.username}`);
+      } else {
+        // Create new affiliate
+        const { error } = await supabase
+          .from("affiliates")
+          .insert({
+            user_id: account.user_id,
+            referral_code: account.username.toLowerCase(),
+          });
+        if (error) throw error;
+
+        // Also add the affiliate role
+        await supabase.from("user_roles").insert({
+          user_id: account.user_id,
+          role: "affiliate" as any,
+        });
+
+        toast.success(`@${account.username} is now an affiliate!`);
+      }
+    } catch (err: any) {
+      console.error("Toggle affiliate error:", err);
+      toast.error(err.message || "Failed to update affiliate status");
+    }
+  };
+
   const filteredAccounts = accounts.filter((account) => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
@@ -1182,6 +1223,14 @@ Login at: ${window.location.origin}/auth`;
                   onClick={() => window.open(`/${account.username}`, "_blank")}
                 >
                   <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleToggleAffiliate(account)}
+                  title="Toggle Affiliate"
+                >
+                  <Sparkles className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="destructive"

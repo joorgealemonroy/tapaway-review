@@ -287,13 +287,17 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       // Use the helper to get the correct public username
       const finalUsername = getPublicUsername(formData.planType, formData.username);
       
-      const profileData = {
+      // Check for affiliate referral
+      const referralCode = sessionStorage.getItem("tapaway_ref");
+      const isReferred = referralCode && referralCode.toLowerCase() !== finalUsername.toLowerCase();
+      
+      const profileData: Record<string, any> = {
         user_id: signInData.user.id,
         email: formData.email,
         full_name: formData.fullName,
         username: finalUsername,
         plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
-        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        subscription_status: isReferred ? "trialing" : PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
         // Include ALL theme settings
         header_type: formData.headerType || "color",
@@ -303,9 +307,18 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         card_front_headline: formData.cardHeadline || "Tap to Connect &\nCollaborate",
       };
 
+      // If referred, set trial fields
+      if (isReferred) {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 14);
+        profileData.referred_by = referralCode;
+        profileData.trial_ends_at = trialEnd.toISOString();
+        profileData.plan_type = "free"; // They're on free plan with trial access
+      }
+
       const { data: profileResult, error: profileError } = await supabase
         .from("personal_profiles")
-        .insert(profileData)
+        .insert(profileData as any)
         .select()
         .single();
 
@@ -351,7 +364,34 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
-      // Step 7: Send welcome email with correct public username
+      // Step 7: Log affiliate referral if applicable
+      if (isReferred && referralCode) {
+        logCheckpoint("Logging affiliate referral");
+        try {
+          // Find the affiliate by referral code
+          const { data: affiliate } = await supabase
+            .from("affiliates")
+            .select("id")
+            .eq("referral_code", referralCode.toLowerCase())
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (affiliate) {
+            await supabase.from("affiliate_referrals").insert({
+              affiliate_id: affiliate.id,
+              referred_user_id: signInData.user.id,
+              referred_profile_id: profileResult.id,
+            });
+            logCheckpoint("Referral logged");
+          }
+        } catch (refErr) {
+          console.warn("Referral logging failed (non-fatal):", refErr);
+        }
+        // Clear the referral code
+        sessionStorage.removeItem("tapaway_ref");
+      }
+
+      // Step 8: Send welcome email with correct public username
       logCheckpoint("Sending welcome email");
       try {
         await supabase.functions.invoke("send-personal-welcome-emails", {
@@ -399,6 +439,14 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   };
 
   const handleGetCard = () => {
+    // Check if this is an affiliate referral signup - bypass Stripe
+    const referralCode = sessionStorage.getItem("tapaway_ref");
+    if (referralCode) {
+      // Referred users get free trial - go straight to OTP verification
+      sendOTP();
+      return;
+    }
+    
     if (PERSONAL_PAYMENTS_ENABLED) {
       // Real payment flow - redirect to Stripe
       handleStripeCheckout();

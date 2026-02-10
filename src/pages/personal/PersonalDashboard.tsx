@@ -73,6 +73,9 @@ interface PersonalProfile {
   contact_website: string | null;
   // Premium feature
   banner_image_url: string | null;
+  // Affiliate referral
+  referred_by: string | null;
+  trial_ends_at: string | null;
 }
 
 interface DbPersonalLink {
@@ -165,6 +168,19 @@ const PersonalDashboard = () => {
         background_color: profileData.background_color || "#ffffff",
         pfp_position: profileData.pfp_position || "left",
       };
+
+      // Check for expired trial and auto-downgrade
+      if (
+        normalizedProfile.subscription_status === "trialing" &&
+        normalizedProfile.trial_ends_at &&
+        new Date(normalizedProfile.trial_ends_at) <= new Date()
+      ) {
+        await supabase
+          .from("personal_profiles")
+          .update({ subscription_status: "expired" })
+          .eq("id", normalizedProfile.id);
+        normalizedProfile.subscription_status = "expired";
+      }
 
       setProfile(normalizedProfile);
 
@@ -663,6 +679,32 @@ const PersonalDashboard = () => {
                   <Copy className="h-3 w-3" />
                 )}
               </button>
+              {/* Trial badge for referred users */}
+              {profile.referred_by && profile.subscription_status === "trialing" && profile.trial_ends_at && (
+                (() => {
+                  const daysLeft = Math.max(0, Math.ceil((new Date(profile.trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                  return (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                        <Star className="h-3 w-3 inline mr-1" />
+                        Pro Trial · {daysLeft}d left
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        via @{profile.referred_by}
+                      </span>
+                    </div>
+                  );
+                })()
+              )}
+              {/* Trial expired message */}
+              {profile.referred_by && profile.subscription_status !== "trialing" && profile.subscription_status !== "active" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your free trial has ended.{" "}
+                  <button onClick={() => handleUpgrade("yearly")} className="text-primary underline">
+                    Upgrade to Pro
+                  </button>
+                </p>
+              )}
             </div>
             <Button
               variant="outline"

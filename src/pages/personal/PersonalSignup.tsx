@@ -76,6 +76,14 @@ const PersonalSignup = () => {
   // Set plan type from URL param on mount and track if plan was pre-selected
   const [planLocked, setPlanLocked] = useState(false);
   
+  // Capture affiliate referral code from URL
+  useEffect(() => {
+    const refParam = searchParams.get("ref");
+    if (refParam) {
+      sessionStorage.setItem("tapaway_ref", refParam);
+    }
+  }, [searchParams]);
+  
   useEffect(() => {
     const planParam = searchParams.get("plan");
     if (planParam === "free" || planParam === "monthly" || planParam === "yearly") {
