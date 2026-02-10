@@ -1,77 +1,168 @@
 
 
-# Subtle Sign-Up CTA Bar for Personal Profile Hubs
+# Affiliate Referral System — Updated: 14-Day Free Trial
 
-## What changes
+## Key Change from Previous Plan
 
-Replace the current large promotional popup (`FreeTrialPopup`) approach with a slim, non-intrusive floating bar that appears **only on personal profile hub pages** (e.g., `tapaway.co/jorge`). The existing `FreeTrialPopup` on landing pages remains untouched.
-
----
-
-## New component: `ProfileSignupBar`
-
-**File:** `src/components/personal/ProfileSignupBar.tsx`
-
-A slim, sticky bottom bar inspired by link-in-bio signup prompts:
-
-- **Height:** ~44px, single row with text + small button
-- **Position:** Fixed bottom, full width on mobile, max-w-md centered on desktop
-- **Style:** Semi-transparent frosted glass (`backdrop-blur`), soft shadow, rounded-full pill shape with slight inset from edges (`bottom-3 left-3 right-3`)
-- **Copy:** `"Create your digital card — free"` with a small `"Sign up free"` button
-- **Dismiss:** Small x button on the right
-- **Animation:** Subtle slide-up + fade (150ms), no spring bounce
-- **Session logic:** Uses `sessionStorage` key `tapaway_profile_bar_shown` -- only shows once per session
-- **Delay:** Appears after 2 seconds of page load (not immediate)
-- **Does NOT show** if the viewer is the profile owner (check auth user ID vs profile user ID)
-
-Design tokens:
-- Background: `bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl`
-- Border: `border border-gray-200/50 dark:border-white/10`
-- Shadow: `shadow-lg`
-- Button: small pill, `bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full`
-- Text: `text-sm text-gray-700 dark:text-gray-200`
+Instead of granting **lifetime VIP**, referred users now get a **14-day free trial** of Pro features. After 14 days, they auto-downgrade to the free plan unless they upgrade to a paid subscription.
 
 ---
 
-## Integration point
+## Database Changes
 
-**File:** `src/pages/personal/PersonalProfilePage.tsx`
+### 1. Add 'affiliate' to the `app_role` enum
 
-Add `<ProfileSignupBar />` inside the component's return JSX, just before the closing `</div>`. The bar is self-contained and manages its own visibility.
-
----
-
-## What stays the same
-
-- `FreeTrialPopup` on `Index.tsx` and `Personal.tsx` landing pages -- unchanged
-- The existing footer CTA ("Start using TapAway" glass pill) in the profile page -- stays as a secondary, passive CTA
-- `TrialBanner` component -- unchanged (different purpose)
-
----
-
-## Technical details
-
-### `ProfileSignupBar.tsx` structure
-
-```text
-Fixed bottom bar (z-40, below QR code z-50)
-+----------------------------------------------------------+
-| [lightning icon] Create your digital card -- free  [Sign up free] [x] |
-+----------------------------------------------------------+
+```sql
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'affiliate';
 ```
 
-- Uses `framer-motion` for enter/exit animation
-- `AnimatePresence` wrapping
-- `sessionStorage.getItem("tapaway_profile_bar_shown")` check
-- 2-second `setTimeout` before showing
-- Links to `/personal/signup`
-- Accepts optional `profileUserId` prop to hide bar when the logged-in user is viewing their own profile
+### 2. New table: `affiliates`
 
-### Props
+| Column | Type | Details |
+|--------|------|---------|
+| id | uuid PK | `gen_random_uuid()` |
+| user_id | uuid NOT NULL UNIQUE | references auth.users |
+| referral_code | text NOT NULL UNIQUE | typically their username |
+| max_invites | int NULL | NULL = unlimited |
+| is_active | boolean | DEFAULT true |
+| created_at | timestamptz | DEFAULT now() |
+| updated_at | timestamptz | DEFAULT now() |
 
-```typescript
-interface ProfileSignupBarProps {
-  profileUserId?: string; // hide if current auth user matches
-}
+### 3. New table: `affiliate_referrals`
+
+| Column | Type | Details |
+|--------|------|---------|
+| id | uuid PK | `gen_random_uuid()` |
+| affiliate_id | uuid NOT NULL | references affiliates.id |
+| referred_user_id | uuid NOT NULL UNIQUE | references auth.users |
+| referred_profile_id | uuid NULL | references personal_profiles.id |
+| created_at | timestamptz | DEFAULT now() |
+| ip_address | text NULL | for future abuse detection |
+
+### 4. Add columns to `personal_profiles`
+
+```sql
+ALTER TABLE personal_profiles 
+  ADD COLUMN referred_by text NULL,
+  ADD COLUMN trial_ends_at timestamptz NULL;
 ```
+
+- `referred_by` — the affiliate's referral code
+- `trial_ends_at` — when the 14-day trial expires (NULL for non-trial users)
+
+### 5. RLS Policies
+
+- `affiliates`: Admin full access; affiliate can SELECT own row
+- `affiliate_referrals`: Admin full access; affiliate can SELECT own referrals
+
+### 6. DB function: `is_affiliate()`
+
+Returns true if the current auth user is an active affiliate.
+
+---
+
+## Referred User Signup Flow
+
+### How it works
+
+1. User clicks `tapaway.co/signup?ref=USERNAME`
+2. `PersonalSignup.tsx` captures `?ref=` and stores in `sessionStorage` as `tapaway_ref`
+3. In `CheckoutStep.tsx`, when a referral code is detected:
+   - **Skip Stripe payment entirely** (no card required)
+   - Create the account with:
+     - `plan_type: 'free'` (they are on the free plan)
+     - `subscription_status: 'trialing'`
+     - `trial_ends_at: NOW() + 14 days`
+     - `referred_by: referralCode`
+   - Log the referral in `affiliate_referrals`
+4. Self-referral check: if `referral_code === username`, ignore silently
+
+### Trial access logic
+
+Update access checks throughout the app to respect `trial_ends_at`:
+
+- If `subscription_status = 'trialing'` AND `trial_ends_at > now()` -- grant Pro features
+- If `subscription_status = 'trialing'` AND `trial_ends_at <= now()` -- downgrade to free
+  - On next dashboard load, auto-update: `subscription_status = 'expired'`, clear `trial_ends_at`
+  - Show upgrade prompt: "Your free trial has ended. Upgrade to keep Pro features."
+
+This check happens client-side in `PersonalDashboard.tsx` on profile load.
+
+### What they see
+
+- During trial: Badge showing "Pro Trial -- X days left" and "Invited by @username"
+- After trial expires: Downgraded to free plan, upgrade CTA displayed
+
+---
+
+## Affiliate Dashboard
+
+### Route: `/affiliate`
+
+**File:** `src/pages/affiliate/AffiliateDashboard.tsx`
+
+- Copyable referral link: `tapaway.co/signup?ref=CODE`
+- Stats: total signups, active trials, expired trials
+- Recent referrals list (name, username, signup date, trial status)
+- Only accessible to users with active affiliate record
+
+---
+
+## Admin Controls
+
+### Additions to `AdminPersonalAccounts.tsx`
+
+- "Make Affiliate" button on any personal account row
+  - Creates `affiliates` record with `referral_code = username`
+  - Adds `affiliate` role to `user_roles`
+- "Revoke Affiliate" button for existing affiliates
+- Set invite cap (optional, NULL = unlimited)
+
+### New page: `/admin/affiliates`
+
+**File:** `src/pages/admin/AdminAffiliates.tsx`
+
+- Table of all affiliates with: username, total referrals, active trials, status
+- Actions: activate/deactivate, set cap, view referral list
+
+---
+
+## Dashboard Badge for Referred Users
+
+**File:** `src/pages/personal/PersonalDashboard.tsx`
+
+- If `profile.referred_by` exists and trial is active:
+  - Show "Pro Trial via @username -- X days left"
+- If trial expired:
+  - Show upgrade prompt instead
+
+---
+
+## New Files
+
+| File | Purpose |
+|------|---------|
+| `src/pages/affiliate/AffiliateDashboard.tsx` | Affiliate stats dashboard |
+| `src/pages/admin/AdminAffiliates.tsx` | Admin affiliate management |
+| `src/hooks/useAffiliateAccess.tsx` | Hook to check affiliate status |
+
+## Modified Files
+
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add `/affiliate` and `/admin/affiliates` routes |
+| `src/pages/personal/PersonalSignup.tsx` | Capture `?ref=` param into sessionStorage |
+| `src/components/personal/signup/CheckoutStep.tsx` | Detect referral, skip payment, create trial account |
+| `src/pages/admin/AdminPersonalAccounts.tsx` | Add Make/Revoke Affiliate buttons |
+| `src/pages/personal/PersonalDashboard.tsx` | Trial expiry check + badge display |
+| `src/lib/subscriptionStatus.ts` | Add `trialing` handling with expiry awareness |
+
+## Implementation Order
+
+1. Database migration (tables, columns, enum, RLS, function)
+2. Signup flow (capture ref, apply 14-day trial, log referral)
+3. Trial expiry logic in dashboard
+4. Affiliate dashboard page
+5. Admin affiliate management
+6. Route wiring in App.tsx
 
