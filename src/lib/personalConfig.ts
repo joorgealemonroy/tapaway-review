@@ -37,3 +37,6 @@ export const PERSONAL_PAYMENT_LINKS = {
   monthly: 'https://buy.stripe.com/4gMeVddSnbXR0Tngv8gYU0d',
   yearly: 'https://buy.stripe.com/5kQaEX4hNbXR9pT5QugYU0c',
 };
+
+// Affiliate-specific Stripe Payment Link
+export const PERSONAL_AFFILIATE_PAYMENT_LINK = 'https://buy.stripe.com/dRm8wP7tZ4vpby11AegYU0f';

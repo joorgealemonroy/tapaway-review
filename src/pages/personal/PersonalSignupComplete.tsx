@@ -251,6 +251,38 @@ const PersonalSignupComplete = () => {
           }
         }
 
+        // Step 7b: Log affiliate referral if applicable
+        const referralCode = sessionStorage.getItem("tapaway_ref");
+        if (referralCode && profile) {
+          try {
+            const { data: affiliate } = await supabase
+              .from("affiliates")
+              .select("id")
+              .eq("referral_code", referralCode.toLowerCase())
+              .eq("is_active", true)
+              .maybeSingle();
+
+            if (affiliate) {
+              await supabase.from("affiliate_referrals").insert({
+                affiliate_id: affiliate.id,
+                referred_user_id: verifiedUserId,
+                referred_profile_id: profile.id,
+              } as any);
+
+              // Also update profile with referred_by
+              await supabase
+                .from("personal_profiles")
+                .update({ referred_by: referralCode } as any)
+                .eq("id", profile.id);
+
+              console.log("[PersonalSignupComplete] Affiliate referral logged");
+            }
+          } catch (refErr) {
+            console.warn("[PersonalSignupComplete] Referral logging failed (non-fatal):", refErr);
+          }
+          sessionStorage.removeItem("tapaway_ref");
+        }
+
         // Step 8: Clear saved data
         sessionStorage.removeItem("personal_signup_data");
         sessionStorage.removeItem("signup_password");
