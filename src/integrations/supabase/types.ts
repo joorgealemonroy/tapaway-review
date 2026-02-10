@@ -44,6 +44,85 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_referrals: {
+        Row: {
+          affiliate_id: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          referred_profile_id: string | null
+          referred_user_id: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          referred_profile_id?: string | null
+          referred_user_id: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          referred_profile_id?: string | null
+          referred_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referred_profile_id_fkey"
+            columns: ["referred_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_referrals_referred_profile_id_fkey"
+            columns: ["referred_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      affiliates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          max_invites: number | null
+          referral_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_invites?: number | null
+          referral_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_invites?: number | null
+          referral_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -1138,9 +1217,11 @@ export type Database = {
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
+          referred_by: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
+          trial_ends_at: string | null
           updated_at: string | null
           user_id: string
           username: string
@@ -1176,9 +1257,11 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          referred_by?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id: string
           username: string
@@ -1214,9 +1297,11 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          referred_by?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string | null
           user_id?: string
           username?: string
@@ -2132,6 +2217,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_affiliate: { Args: never; Returns: boolean }
       is_clean_greeting: { Args: { input: string }; Returns: boolean }
       is_google_review_url_valid: { Args: { url: string }; Returns: boolean }
       is_sales_rep: { Args: never; Returns: boolean }
@@ -2142,7 +2228,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "sales_rep"
+      app_role: "admin" | "user" | "sales_rep" | "affiliate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2270,7 +2356,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "sales_rep"],
+      app_role: ["admin", "user", "sales_rep", "affiliate"],
     },
   },
 } as const

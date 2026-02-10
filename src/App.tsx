@@ -60,6 +60,8 @@ const AdminTaxReview = lazy(() => import("./pages/admin/AdminTaxReview"));
 const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts"));
 const AdminDemoRequests = lazy(() => import("./pages/admin/AdminDemoRequests"));
 const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAccounts"));
+const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
+const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 
 // Minimal loading spinner
 const PageLoader = () => (
@@ -133,6 +135,9 @@ const App = () => (
                 <Route path="/admin/payouts" element={<AdminPayouts />} />
                 <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
+                <Route path="/admin/affiliates" element={<AdminAffiliates />} />
+                
+                <Route path="/affiliate" element={<AffiliateDashboard />} />
                 
                 <Route path="/hub/:restaurantId" element={<ReviewHub />} />
                 

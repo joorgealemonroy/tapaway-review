@@ -37,6 +37,7 @@ export const PUBLIC_ROUTES = [
   '/personal/signup/complete',
   '/personal/dashboard',
   '/personal/pricing',
+  '/affiliate',
 ];
 
 /** Check if a subscription status grants access (true = allowed). */

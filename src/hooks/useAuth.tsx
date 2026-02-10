@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       navigate("/admin");
     } else {
       // Normal users: check for both business and personal accounts
-      const [restaurantResult, personalResult] = await Promise.all([
+      const [restaurantResult, personalResult, affiliateResult] = await Promise.all([
         supabase
           .from("restaurants")
           .select("onboarding_completed, subscription_status")
@@ -98,11 +98,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from("personal_profiles")
           .select("id")
           .eq("user_id", data.user?.id)
-          .maybeSingle()
+          .maybeSingle(),
+        supabase
+          .from("affiliates")
+          .select("id")
+          .eq("user_id", data.user?.id)
+          .eq("is_active", true)
+          .maybeSingle(),
       ]);
 
       const restaurant = restaurantResult.data;
       const personal = personalResult.data;
+      const isAffiliate = !!affiliateResult.data;
       
       const hasValidBusiness = restaurant && 
         isSubscriptionAllowed(restaurant.subscription_status) && 
@@ -116,6 +123,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         navigate("/dashboard");
       } else if (hasPersonal) {
         navigate("/personal/dashboard");
+      } else if (isAffiliate) {
+        navigate("/affiliate");
       } else if (restaurant && !isSubscriptionAllowed(restaurant.subscription_status)) {
         // Has restaurant but blocked subscription
         navigate("/paywall");
