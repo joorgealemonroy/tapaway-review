@@ -1,63 +1,53 @@
 
+# Show Stripe Billing Email in Personal Billing Tab
 
-# Fix: Auto-Login After Stripe (Users Already Have a Password)
+## Why
 
-## The Problem
+When users pay with Apple Pay (or similar), Stripe uses their Apple ID / billing email which may differ from their TapAway account email. Users need to know which email their subscription is under so they can find and cancel it in the Stripe portal.
 
-Users enter their password on the signup form BEFORE going to Stripe. When they return, the code tries to set the password via `set-user-password`, but it fails because the edge function doesn't set `must_set_password: true` on new users. And the current code only attempts sign-in IF set-password succeeds (line 110 conditional). So sign-in never happens.
+## Changes
 
-## Fix 1: Add `must_set_password` flag to new users
+### 1. Add `stripe_billing_email` column to `personal_profiles`
 
-**File: `supabase/functions/verify-personal-checkout/index.ts`** (line ~124)
-
-Add `must_set_password: true` to user_metadata when creating new users so `set-user-password` accepts the request.
-
-## Fix 2: Always try sign-in regardless of set-password result
-
-**File: `src/pages/personal/PersonalSignupComplete.tsx`** (lines 94-129)
-
-Change the logic so `signInWithPassword` is attempted even if `set-user-password` fails. This handles:
-- New users: set-password succeeds, then sign-in succeeds
-- Existing users: set-password fails (already has password), sign-in succeeds with their existing password
-
-```
-// Try setting password (non-fatal if it fails)
-try {
-  await supabase.functions.invoke("set-user-password", { body: { ... } });
-} catch { /* OK */ }
-
-// Always try to sign in
-const { error } = await supabase.auth.signInWithPassword({
-  email: data.email,
-  password: savedPassword,
-});
-if (!error) signedIn = true;
+```sql
+ALTER TABLE personal_profiles ADD COLUMN stripe_billing_email text;
 ```
 
-## Fix 3: Remove dead-end fallback screens
+### 2. Store billing email during checkout verification
 
-**File: `src/pages/personal/PersonalSignupComplete.tsx`**
+**File: `supabase/functions/verify-personal-checkout/index.ts`**
 
-- `no_data` state (lines 401-437): Auto-redirect to `/auth?redirect=/personal/dashboard` with a toast instead of showing buttons
-- `success` state when not signed in (line 439): Same auto-redirect instead of showing SuccessScreen
+When creating/updating the personal profile, save `customerEmail` (from Stripe) as `stripe_billing_email` alongside the existing fields. This is the Stripe session's customer email -- separate from the account email.
 
-No user should ever see an intermediate page with buttons.
+### 3. Display billing email in the Billing tab
 
-## Fix 4: Default headerType to "banner" in AffiliatePaywall
+**File: `src/components/personal/PersonalBillingTab.tsx`**
 
-**File: `src/components/personal/signup/AffiliatePaywall.tsx`** (line 81)
+- Add `stripe_billing_email` to the component's `profile` interface
+- Below the "Manage Subscription" button (for paying, non-VIP users), show an info note:
 
-Change `headerType: "color"` to `headerType: "banner"`.
+```
+Billing email: supajor@icloud.com
+This is the email linked to your payment method. Use it to find your subscription in the billing portal.
+```
 
-## Files
+Only shown when `stripe_billing_email` exists and differs from the account email. Styled as a subtle muted info block.
+
+### 4. Pass the field from the dashboard
+
+**File: `src/pages/personal/PersonalDashboard.tsx`**
+
+Ensure `stripe_billing_email` is included in the profile query and passed to `PersonalBillingTab`.
+
+## Technical Details
 
 | File | Change |
 |------|--------|
-| `supabase/functions/verify-personal-checkout/index.ts` | Add `must_set_password: true` to new user metadata |
-| `src/pages/personal/PersonalSignupComplete.tsx` | Always attempt sign-in; replace fallback screens with auto-redirects |
-| `src/components/personal/signup/AffiliatePaywall.tsx` | Default headerType to "banner" |
+| Database migration | Add `stripe_billing_email text` column to `personal_profiles` |
+| `supabase/functions/verify-personal-checkout/index.ts` | Store `customerEmail` as `stripe_billing_email` on profile |
+| `src/components/personal/PersonalBillingTab.tsx` | Show billing email info when it differs from account email |
+| `src/pages/personal/PersonalDashboard.tsx` | Include `stripe_billing_email` in profile select query |
 
 ## Expected Result
 
-Stripe return -> verify checkout (user created with flag) -> set password (succeeds) -> sign in (succeeds) -> redirect to `/personal/dashboard?welcome=true` -> confetti + toast. No intermediate screens ever shown.
-
+Users see their billing email in the Billing tab with a note explaining it's the email tied to their payment method, making it easy to locate and manage their subscription in the Stripe portal.
