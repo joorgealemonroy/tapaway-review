@@ -107,10 +107,12 @@ serve(async (req) => {
     const accountEmail = signupEmail || customerEmail;
     console.log('[verify-personal-checkout] Account email:', accountEmail, '| Stripe billing email:', customerEmail);
 
-    // Check if user already exists (check both emails)
+    // Only match by accountEmail (the user's chosen signup email).
+    // Never match by billing email -- Apple Pay, Google Pay, etc. use
+    // a different email that belongs to someone else's account.
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existingUser = existingUsers?.users.find(
-      u => u.email === accountEmail || u.email === customerEmail
+      u => u.email === accountEmail
     );
 
     let userId: string;
