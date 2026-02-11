@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Crown, Sparkles, ExternalLink, Info } from "lucide-react";
+import { CreditCard, Crown, Sparkles, ExternalLink } from "lucide-react";
 import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
 
 const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
@@ -47,8 +47,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   
   const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
-  const showBillingEmail = !isVIP && isPro && profile.stripe_billing_email && 
-    profile.email && profile.stripe_billing_email.toLowerCase() !== profile.email.toLowerCase();
+  const hasBillingEmail = !isVIP && isPro && !!profile.stripe_billing_email;
 
   return (
     <div className="space-y-6">
@@ -107,23 +106,20 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             {isPro ? (
               <>
                 {!isVIP && (
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Manage Subscription
-                    <ExternalLink className="h-3 w-3 ml-2" />
-                  </Button>
-                )}
-
-                {showBillingEmail && (
-                  <div className="w-full flex items-start gap-2 p-3 rounded-md bg-muted text-sm">
-                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Billing email: {maskEmail(profile.stripe_billing_email!)}</p>
-                      <p className="text-muted-foreground">This is the email linked to your payment method. Use it to find your subscription in the billing portal.</p>
-                    </div>
+                  <div className="w-full space-y-3">
+                    {hasBillingEmail && (
+                      <p className="text-sm text-muted-foreground">
+                        Billing email on file: {maskEmail(profile.stripe_billing_email!)}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Manage Subscription
+                      <ExternalLink className="h-3 w-3 ml-2" />
+                    </Button>
                   </div>
                 )}
               </>
