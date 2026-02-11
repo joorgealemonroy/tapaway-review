@@ -1,120 +1,192 @@
 
 
-# Hide Physical Card References (Personal Only) + Affiliate Flow + Dashboard Integration
+# Affiliate Trial Fix + Default Banner + Tutorial Update + Shop Tab
 
-## Important Scope Note
+## Issues Found
 
-All card-related removals apply **only to the Personal product**. The business dashboard (`Dashboard.tsx`), business landing page (`Index.tsx`), and all business components remain completely untouched.
+1. **Affiliate trial not tracking**: `verify-personal-checkout` always sets `subscription_status: 'active'` -- it never checks if Stripe's subscription has a trial period. The `referred_by` field is only set client-side in `PersonalSignupComplete.tsx`, which works, but the trial status is wrong. Sonia's profile shows `subscription_status: active` with no `trial_ends_at` and no `referred_by`.
 
----
+2. **Default header is "color"**: New profiles get `header_type: 'color'` -- should default to `'banner'` (Full Banner).
 
-## 1. Hide Card References from Personal Signup & Landing
+3. **"Auto match to photo" is display-only**: The ambient color preview in the Design tab is informational but not clickable.
 
-### `src/components/personal/signup/CheckoutStep.tsx`
-- Remove NFC card mentions from `proFeatures`: "1 custom TapAway NFC card included", "FREE Card Stand included", "Free shipping"
-- Replace with digital features: "Custom profile URL", "Priority support"
-- Remove card text from plan buttons: "Includes NFC card + FREE stand", "Includes custom NFC card"
-- Remove "No NFC card included" from `freeFeatures`
-- Remove extra card toggle and pricing logic
-- Change CTA from "Get My TapAway Card" to "Create My TapAway"
+4. **Tutorial references removed Card tab**: The last coach mark step says "Want a physical card? Check the Card tab!" which no longer exists.
 
-### `src/components/personal/signup/SuccessScreen.tsx`
-- Remove "Your card is being prepared" and "Tap to share in person" next steps
-- Change subtitle to "Your profile is live!"
-- Replace with digital next steps: "Share your link", "Update links anytime", "Track your views"
+5. **Plan tab doesn't show trial status**: `PersonalBillingTab` has no awareness of trial state -- it shows "Pro $10/month" regardless.
 
-### `src/pages/personal/PersonalPricing.tsx`
-- Remove `PersonalCard3D` card preview component
-- Remove trust badges (Free shipping, Ships in 1-2 days)
-- Remove "Card Stand" yearly bonus section
-- Remove "Physical card included" callout
-- Rewrite pro features list to focus on digital features
-- Update hero text to focus on profile sharing, not physical card
-
-### `src/components/landing/personal/PersonalHero.tsx`
-- Remove "Custom NFC Card Included" badge
-- Remove "Free shipping", "Ships in 1-2 days" trust points
-- Remove `PersonalCard3D` component and card visual
-- Update headline/CTA to focus on digital profile
-- Change CTA from "Get Your Custom NFC Card" to "Get Your TapAway"
-
-### `src/pages/personal/PersonalSignup.tsx`
-- Remove the "Custom NFC card included" and "Free shipping" badges from the header area
+6. **No Shop button**: Users have no way to purchase physical NFC cards.
 
 ---
 
-## 2. Hide Card References from Personal Dashboard
+## 1. Fix Affiliate Trial Detection
 
-### `src/pages/personal/PersonalDashboard.tsx`
-- Remove the "Card" tab from desktop TabsList
-- Remove the entire Card TabsContent section
-- Remove the Card Confirmation Modal
-- Remove all card-related state variables (`sendingCardApproval`, `showCardConfirmModal`, `editableCardName`, etc.)
-- Remove `handleConfirmCardDesign` callback
-- Remove card-related imports (`TapAwayCardPreview`, `RequestMoreCards`, etc.)
+**File: `supabase/functions/verify-personal-checkout/index.ts`**
 
-### `src/components/personal/MobileBottomNav.tsx`
-- Remove the "Card" entry from `MORE_TABS`
-- Remove `hasCardNotification` prop and notification dot logic
+After retrieving the Stripe session, check if the subscription has a trial:
 
----
+```
+const subscription = session.subscription as Stripe.Subscription;
+let subscriptionStatus = 'active';
+let trialEndsAt = null;
 
-## 3. Affiliate-Referred Users Get a Dedicated Paywall
+if (subscription?.status === 'trialing' && subscription?.trial_end) {
+  subscriptionStatus = 'trialing';
+  trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+}
+```
 
-### New: `src/components/personal/signup/AffiliatePaywall.tsx`
-- Single-page paywall for users arriving via `?ref=USERNAME`
-- Collects: Full Name, Email, Username (with availability check), Password
-- "Start your free 2-week trial" messaging
-- Digital-only value props (profile page, unlimited links, analytics)
-- Single CTA: saves data to sessionStorage, redirects to affiliate Stripe link (`https://buy.stripe.com/dRm8wP7tZ4vpby11AegYU0f`)
-- No plan selection, no card content
-- Trust indicators and Terms/Privacy links
-
-### `src/pages/personal/PersonalSignup.tsx`
-- Detect `tapaway_ref` in sessionStorage or `?ref=` in URL on mount
-- If present, render `AffiliatePaywall` instead of the normal wizard
+Use `subscriptionStatus` and `trialEndsAt` when inserting/updating the profile instead of hardcoded `'active'`. This covers both the affiliate Stripe link (which has a 2-week trial) and any future trial-enabled links.
 
 ---
 
-## 4. Signup Redirects to Dashboard (All Personal Users)
+## 2. Default New Profiles to Full Banner
 
-### `src/pages/personal/PersonalSignupComplete.tsx`
-- After successful profile creation, redirect to `/personal/dashboard?welcome=true`
-- Skips SuccessScreen, triggers existing `WelcomeCoachMarks` tutorial
-- User immediately sees their real dashboard
+**File: `supabase/functions/verify-personal-checkout/index.ts`**
 
----
+When inserting a new profile, change `header_type` default from omitted (which defaults to `'color'` in the DB) to `'banner'`:
 
-## 5. Affiliate Button on Personal Dashboard
+```
+header_type: 'banner',
+```
 
-### `src/pages/personal/PersonalDashboard.tsx`
-- Import `useAffiliateAccess` hook
-- Conditionally render "Affiliate" button in header if `isAffiliate` is true
-- Clicking navigates to `/affiliate`
+**File: `src/pages/personal/PersonalSignupComplete.tsx`**
 
-### `src/components/personal/MobileBottomNav.tsx`
-- Accept optional `isAffiliate` prop
-- If true, add "Affiliate" entry (Users icon) to `MORE_TABS`
+In the profile update step (Step 6), set:
 
----
+```
+header_type: savedData.headerType || "banner",
+```
 
-## What Is NOT Touched
-
-- `src/pages/Dashboard.tsx` (business dashboard) -- no changes
-- `src/pages/Index.tsx` (business landing) -- no changes
-- `src/components/dashboard/*` (business components) -- no changes
-- `src/components/landing/HeroSection.tsx` etc. -- no changes
-- Business card ordering, review hubs, onboarding -- no changes
+Instead of `"color"`.
 
 ---
 
-## Implementation Order
+## 3. Make "Auto Match to Photo" Clickable
 
-1. Create `AffiliatePaywall.tsx`
-2. Update `PersonalSignup.tsx` (affiliate detection + remove card badges)
-3. Remove card refs from `CheckoutStep.tsx` and `SuccessScreen.tsx`
-4. Remove card tab/modal from `PersonalDashboard.tsx`
-5. Update `MobileBottomNav.tsx` (remove card, add affiliate)
-6. Update `PersonalPricing.tsx` and `PersonalHero.tsx` (remove card content)
-7. Update `PersonalSignupComplete.tsx` (redirect to dashboard)
-8. Add affiliate button to dashboard header
+**File: `src/components/personal/DashboardDesignTab.tsx`**
+
+The ambient color preview block (lines 477-488) currently just displays. Wrap it in a clickable button that triggers `handleBgColorChange(generateAmbientGradient(imageBasedColor))`:
+
+- Add a cursor pointer and hover effect
+- Add text like "Tap to apply" or make the whole row clickable
+- Also show this option when NOT in banner mode but with a profile photo, so any user with a photo can auto-match
+
+---
+
+## 4. Update Welcome Tutorial Steps
+
+**File: `src/components/personal/WelcomeCoachMarks.tsx`**
+
+Update `COACH_STEPS` to remove Card tab reference and reflect current layout:
+
+```typescript
+const COACH_STEPS = [
+  {
+    id: "welcome",
+    targetId: "profile-header",
+    title: "Welcome to TapAway!",
+    message: "This is your digital profile. Tap your photo to customize it.",
+    position: "bottom",
+  },
+  {
+    id: "links",
+    targetId: "tab-links",
+    title: "Add Your Links",
+    message: "Connect social profiles, websites, and anything you want to share.",
+    position: "bottom",
+  },
+  {
+    id: "design",
+    targetId: "tab-design",
+    title: "Customize Your Look",
+    message: "Choose colors, upload a header image, or enable full-screen banner mode.",
+    position: "bottom",
+  },
+  {
+    id: "share",
+    targetId: "profile-url",
+    title: "You're All Set!",
+    message: "Share your profile link anywhere -- on social media, email, or in person.",
+    position: "top",
+  },
+];
+```
+
+---
+
+## 5. Show Trial Status in Plan Tab
+
+**File: `src/components/personal/PersonalBillingTab.tsx`**
+
+Add `trial_ends_at` to the component's profile prop interface.
+
+When `subscription_status === 'trialing'` and `trial_ends_at` exists:
+
+- Show badge as "Pro Trial" instead of "Pro"
+- Show "Free trial until [date]" instead of "$10/month"
+- After trial ends (or for active paid users), show the normal "$10/month Pro Plan" view
+- Remove the "Custom NFC card" line from the Pro features list (line 256) since cards are now in Shop
+
+Also pass `trial_ends_at` from `PersonalDashboard.tsx` into the component.
+
+---
+
+## 6. Add Shop Tab
+
+**File: `src/pages/personal/PersonalDashboard.tsx`**
+
+Add a "Shop" tab to the TabsList (6th column, `grid-cols-6`):
+
+```
+<TabsTrigger value="shop">
+  <ShoppingBag className="h-4 w-4" />
+  Shop
+</TabsTrigger>
+```
+
+Add corresponding `TabsContent` with a new `PersonalShopTab` component.
+
+**File: `src/components/personal/MobileBottomNav.tsx`**
+
+Add Shop entry to `BASE_MORE_TABS`:
+
+```
+{ value: "shop", label: "Shop", icon: ShoppingBag, description: "Get a physical NFC card" },
+```
+
+**New file: `src/components/personal/PersonalShopTab.tsx`**
+
+A simple shop page with two product cards:
+
+1. **Basic NFC Card** -- $10 one-time
+   - Pre-designed TapAway card
+   - Tap to share your profile instantly
+   - "Coming Soon" or link to Stripe payment
+
+2. **Custom NFC Card** -- $25 one-time
+   - Upload your own design
+   - Your name and branding
+   - Premium materials
+
+Each card includes:
+- Product image placeholder
+- Price
+- "Why go physical?" benefits section: "Share without Wi-Fi", "Make a lasting impression", "Works with any smartphone"
+- CTA button (can link to a Stripe payment link or show "Coming Soon")
+
+---
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `supabase/functions/verify-personal-checkout/index.ts` | Detect Stripe trial status, set `trialing` + `trial_ends_at`; default `header_type: 'banner'` |
+| `src/pages/personal/PersonalSignupComplete.tsx` | Default `header_type` to `'banner'` |
+| `src/components/personal/DashboardDesignTab.tsx` | Make ambient color preview clickable |
+| `src/components/personal/WelcomeCoachMarks.tsx` | Update steps to remove Card references |
+| `src/components/personal/PersonalBillingTab.tsx` | Show trial status, remove NFC card from features |
+| `src/pages/personal/PersonalDashboard.tsx` | Add Shop tab, pass `trial_ends_at` to billing |
+| `src/components/personal/MobileBottomNav.tsx` | Add Shop to More menu |
+| `src/components/personal/PersonalShopTab.tsx` | **NEW** -- Shop page with NFC card products |
+| `src/lib/personalPlanLimits.ts` | Remove `nfcCard` from feature lists |
+
