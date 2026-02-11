@@ -171,6 +171,7 @@ serve(async (req) => {
         stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
         subscription_status: subscriptionStatus,
         plan_type: detectedPlanType,
+        stripe_billing_email: customerEmail,
       };
       if (trialEndsAt) updateData.trial_ends_at = trialEndsAt;
       
@@ -196,6 +197,7 @@ serve(async (req) => {
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
           subscription_status: subscriptionStatus,
           plan_type: detectedPlanType,
+          stripe_billing_email: customerEmail,
           ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
         })
         .select()
