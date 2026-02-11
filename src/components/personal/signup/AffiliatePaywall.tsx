@@ -78,7 +78,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
         links: [],
         blocks: [],
         cardHeadline: "Tap to Connect &\nCollaborate",
-        headerType: "color",
+        headerType: "banner",
         headerColor: "#6BCB77",
         backgroundColor: "#ffffff",
         profilePhotoBase64: null,
