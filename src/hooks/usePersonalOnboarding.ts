@@ -58,7 +58,7 @@ const initialData: PersonalOnboardingData = {
   headerImageUrl: null,
   headerColor: "#6BCB77",
   backgroundColor: "#ffffff",
-  cardHeadline: "Tap to Connect &\nCollaborate",
+  cardHeadline: "",
   links: [],
   blocks: [],
   addExtraCard: false,

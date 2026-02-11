@@ -62,10 +62,11 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileB
            {PRIMARY_TABS.map((tab) => {
              const isActive = activeTab === tab.value;
              return (
-               <button
-                 key={tab.value}
-                 onClick={() => handleTabClick(tab.value)}
-                 className={cn(
+                <button
+                  key={tab.value}
+                  id={`mobile-nav-${tab.value}`}
+                  onClick={() => handleTabClick(tab.value)}
+                  className={cn(
                    "flex flex-col items-center justify-center flex-1 gap-1 min-h-[64px] min-w-[64px] transition-colors",
                    isActive ? "text-primary" : "text-muted-foreground"
                  )}

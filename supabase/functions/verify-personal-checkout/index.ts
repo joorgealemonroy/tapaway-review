@@ -207,7 +207,7 @@ serve(async (req) => {
           username,
           full_name: metadata.full_name || customerEmail.split('@')[0], // Use email prefix instead of generic name
           email: accountEmail,
-          headline: metadata.card_headline || null,
+          headline: null,
           header_type: 'banner',
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,

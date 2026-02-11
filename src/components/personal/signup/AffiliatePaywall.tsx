@@ -77,7 +77,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
         planType: "monthly", // Affiliate plan
         links: [],
         blocks: [],
-        cardHeadline: "Tap to Connect &\nCollaborate",
+        cardHeadline: "",
         headerType: "banner",
         headerColor: "#6BCB77",
         backgroundColor: "#ffffff",

@@ -7,9 +7,11 @@ import { X } from "lucide-react";
 interface CoachMarkStep {
   id: string;
   targetId: string;
+  mobileTargetId?: string;
   title: string;
   message: string;
   position: "top" | "bottom";
+  mobilePosition?: "top" | "bottom";
 }
 
 const COACH_STEPS: CoachMarkStep[] = [
@@ -23,23 +25,27 @@ const COACH_STEPS: CoachMarkStep[] = [
   {
     id: "links",
     targetId: "tab-links",
+    mobileTargetId: "mobile-nav-links",
     title: "Add Your Links",
     message: "Connect social profiles, websites, and anything you want to share.",
     position: "bottom",
+    mobilePosition: "top",
   },
   {
     id: "design",
     targetId: "tab-design",
+    mobileTargetId: "mobile-nav-design",
     title: "Customize Your Look",
     message: "Choose colors, upload a header image, or enable full-screen banner mode.",
     position: "bottom",
+    mobilePosition: "top",
   },
   {
     id: "share",
     targetId: "profile-url",
     title: "You're All Set!",
     message: "Share your profile link anywhere — on social media, email, or in person.",
-    position: "top",
+    position: "bottom",
   },
 ];
 
@@ -72,7 +78,9 @@ export const WelcomeCoachMarks = ({
   const updatePosition = useCallback(() => {
     if (!currentStep) return;
 
-    const target = document.getElementById(currentStep.targetId);
+    // Try mobile target first, then fall back to desktop target
+    const mobileTarget = currentStep.mobileTargetId ? document.getElementById(currentStep.mobileTargetId) : null;
+    const target = mobileTarget || document.getElementById(currentStep.targetId);
     if (!target) {
       setPosition(null);
       return;
@@ -86,7 +94,8 @@ export const WelcomeCoachMarks = ({
 
     let top: number;
     let arrowPosition: "top" | "bottom";
-    let preferredPosition = currentStep.position;
+    // Use mobile position if we resolved to the mobile target
+    let preferredPosition = (mobileTarget && currentStep.mobilePosition) ? currentStep.mobilePosition : currentStep.position;
 
     // Check if there's enough space above for "top" position
     if (preferredPosition === "top") {

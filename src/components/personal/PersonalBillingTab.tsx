@@ -1,22 +1,22 @@
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { CreditCard, Crown, Sparkles, ExternalLink, Loader2, Info } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { CreditCard, Crown, Sparkles, ExternalLink, Info } from "lucide-react";
 import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
+
+const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
+
+const maskEmail = (email: string): string => {
+  const [local, domain] = email.split("@");
+  if (!domain) return "****";
+  const maskedLocal = local.length <= 2
+    ? "**"
+    : `${local.substring(0, 2)}${"*".repeat(Math.max(2, local.length - 3))}${local.slice(-1)}`;
+  const parts = domain.split(".");
+  const tld = parts.pop() || "";
+  const maskedDomain = parts.map(p => "*".repeat(p.length)).join(".") + "." + tld;
+  return `${maskedLocal}@${maskedDomain}`;
+};
 
 interface PersonalBillingTabProps {
   profile: {
@@ -33,10 +33,7 @@ interface PersonalBillingTabProps {
   onPlanChange: () => void;
 }
 
-export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: PersonalBillingTabProps) {
-  const [isDowngrading, setIsDowngrading] = useState(false);
-  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
-
+export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
   const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type);
   const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
   const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
@@ -48,54 +45,10 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
       ? PERSONAL_PLANS.paid 
       : PERSONAL_PLANS.free;
   
-  // Detect VIP: explicit plan_type OR admin-created accounts (paid without Stripe)
   const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
   const showBillingEmail = !isVIP && isPro && profile.stripe_billing_email && 
     profile.email && profile.stripe_billing_email.toLowerCase() !== profile.email.toLowerCase();
-
-  const handleManageSubscription = async () => {
-    if (!profile.stripe_customer_id) {
-      toast.error("No subscription found");
-      return;
-    }
-
-    setIsOpeningPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("manage-personal-subscription", {
-        body: { action: "portal", profileId: profile.id },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error) {
-      console.error("Error opening portal:", error);
-      toast.error("Failed to open subscription portal");
-    } finally {
-      setIsOpeningPortal(false);
-    }
-  };
-
-  const handleDowngrade = async () => {
-    setIsDowngrading(true);
-    try {
-      const { error } = await supabase.functions.invoke("manage-personal-subscription", {
-        body: { action: "downgrade", profileId: profile.id },
-      });
-
-      if (error) throw error;
-
-      toast.success("Successfully downgraded to Free plan");
-      onPlanChange();
-    } catch (error) {
-      console.error("Error downgrading:", error);
-      toast.error("Failed to downgrade plan");
-    } finally {
-      setIsDowngrading(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -153,80 +106,25 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
           <div className="flex flex-wrap gap-3">
             {isPro ? (
               <>
-                {/* Only show subscription management for paying users */}
                 {!isVIP && (
                   <Button
                     variant="outline"
-                    onClick={handleManageSubscription}
-                    disabled={isOpeningPortal || !profile.stripe_customer_id}
+                    onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
                   >
-                    {isOpeningPortal ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <CreditCard className="h-4 w-4 mr-2" />
-                    )}
+                    <CreditCard className="h-4 w-4 mr-2" />
                     Manage Subscription
                     <ExternalLink className="h-3 w-3 ml-2" />
                   </Button>
                 )}
 
-                {/* Only show downgrade option for paying users */}
                 {showBillingEmail && (
                   <div className="w-full flex items-start gap-2 p-3 rounded-md bg-muted text-sm">
                     <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Billing email: {profile.stripe_billing_email}</p>
+                      <p className="font-medium">Billing email: {maskEmail(profile.stripe_billing_email!)}</p>
                       <p className="text-muted-foreground">This is the email linked to your payment method. Use it to find your subscription in the billing portal.</p>
                     </div>
                   </div>
-                )}
-
-                {!isVIP && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" className="text-muted-foreground">
-                        Downgrade to Free
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Downgrade to Free Plan?</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                          <div className="space-y-3">
-                            <p>Your subscription will be canceled immediately.</p>
-
-                            <div className="bg-muted p-3 rounded-lg space-y-2">
-                              <p className="font-medium text-foreground">What happens to your content:</p>
-                              <ul className="text-sm space-y-1">
-                                <li>✓ Your first 5 links will remain active</li>
-                                <li>✓ Basic blocks (text, image, youtube, button) stay visible</li>
-                                <li>⏸ Extra links will be hidden (not deleted)</li>
-                                <li>⏸ Photo collage & email capture blocks will be hidden</li>
-                                <li>⏸ Custom header image will be hidden</li>
-                              </ul>
-                            </div>
-
-                            <p className="text-sm text-amber-600 dark:text-amber-400">
-                              💡 If you upgrade again within 60 days, everything will be restored!
-                            </p>
-                          </div>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Keep Pro</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDowngrade}
-                          disabled={isDowngrading}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {isDowngrading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : null}
-                          Downgrade to Free
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 )}
               </>
             ) : (
