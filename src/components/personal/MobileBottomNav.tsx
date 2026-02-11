@@ -1,13 +1,14 @@
- import { Link2, Palette, BarChart3, MoreHorizontal, Mail, CreditCard, Sparkles, Settings } from "lucide-react";
- import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
- import { useState } from "react";
- import { cn } from "@/lib/utils";
- 
- interface MobileBottomNavProps {
-   activeTab: string;
-   onTabChange: (tab: string) => void;
-   hasCardNotification?: boolean;
- }
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+
+interface MobileBottomNavProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  isAffiliate?: boolean;
+}
  
  const PRIMARY_TABS = [
    { value: "links", label: "Links", icon: Link2 },
@@ -15,14 +16,19 @@
    { value: "analytics", label: "Stats", icon: BarChart3 },
  ];
  
- const MORE_TABS = [
-   { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
-   { value: "card", label: "Card", icon: CreditCard, description: "NFC card preview" },
-   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
- ];
+const BASE_MORE_TABS = [
+  { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
+  { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
+];
  
- export const MobileBottomNav = ({ activeTab, onTabChange, hasCardNotification }: MobileBottomNavProps) => {
-   const [moreOpen, setMoreOpen] = useState(false);
+export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileBottomNavProps) => {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const navigate = useNavigate();
+  
+  const MORE_TABS = [
+    ...BASE_MORE_TABS,
+    ...(isAffiliate ? [{ value: "affiliate", label: "Affiliate", icon: Users, description: "Your affiliate dashboard" }] : []),
+  ];
    
    const isMoreActive = MORE_TABS.some(tab => tab.value === activeTab);
    
@@ -34,13 +40,18 @@
      }
    };
    
-   const handleMoreTabClick = (value: string) => {
-     onTabChange(value);
-     setMoreOpen(false);
-     if (navigator.vibrate) {
-       navigator.vibrate(10);
-     }
-   };
+  const handleMoreTabClick = (value: string) => {
+    if (value === "affiliate") {
+      navigate("/affiliate");
+      setMoreOpen(false);
+      return;
+    }
+    onTabChange(value);
+    setMoreOpen(false);
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+  };
  
    return (
      <>
@@ -65,19 +76,16 @@
            })}
            
            {/* More button */}
-           <button
-             onClick={() => setMoreOpen(true)}
-             className={cn(
-               "flex flex-col items-center justify-center flex-1 gap-1 min-h-[64px] min-w-[64px] transition-colors relative",
-               isMoreActive ? "text-primary" : "text-muted-foreground"
-             )}
-           >
-             <MoreHorizontal className={cn("h-5 w-5", isMoreActive && "text-primary")} />
-             <span className={cn("text-xs font-medium", isMoreActive && "text-primary")}>More</span>
-             {hasCardNotification && (
-              <span className="absolute top-3 right-1/2 translate-x-4 w-2 h-2 bg-destructive rounded-full" />
-             )}
-           </button>
+            <button
+              onClick={() => setMoreOpen(true)}
+              className={cn(
+                "flex flex-col items-center justify-center flex-1 gap-1 min-h-[64px] min-w-[64px] transition-colors relative",
+                isMoreActive ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <MoreHorizontal className={cn("h-5 w-5", isMoreActive && "text-primary")} />
+              <span className={cn("text-xs font-medium", isMoreActive && "text-primary")}>More</span>
+            </button>
          </div>
        </nav>
  
@@ -109,10 +117,7 @@
                      <p className={cn("font-medium", isActive && "text-primary")}>{tab.label}</p>
                      <p className="text-xs text-muted-foreground">{tab.description}</p>
                    </div>
-                   {tab.value === "card" && hasCardNotification && (
-                    <span className="w-2 h-2 bg-destructive rounded-full" />
-                   )}
-                 </button>
+                  </button>
                );
              })}
            </div>
