@@ -1,159 +1,120 @@
 
 
-# Affiliate Referral System — Phase 2: Payout Tracking + Abuse Prevention
+# Hide Physical Card References (Personal Only) + Affiliate Flow + Dashboard Integration
 
-## Overview
+## Important Scope Note
 
-Two major additions to the affiliate system:
-1. **Payout Tracking** -- Track affiliate earnings (commission per paid referral), admin management for marking payouts as sent
-2. **Abuse Prevention** -- Flag suspicious signups using IP address tracking, duplicate email domain detection, and rapid-fire signup detection
+All card-related removals apply **only to the Personal product**. The business dashboard (`Dashboard.tsx`), business landing page (`Index.tsx`), and all business components remain completely untouched.
 
 ---
 
-## Part 1: Payout Tracking
+## 1. Hide Card References from Personal Signup & Landing
 
-### Database Changes
+### `src/components/personal/signup/CheckoutStep.tsx`
+- Remove NFC card mentions from `proFeatures`: "1 custom TapAway NFC card included", "FREE Card Stand included", "Free shipping"
+- Replace with digital features: "Custom profile URL", "Priority support"
+- Remove card text from plan buttons: "Includes NFC card + FREE stand", "Includes custom NFC card"
+- Remove "No NFC card included" from `freeFeatures`
+- Remove extra card toggle and pricing logic
+- Change CTA from "Get My TapAway Card" to "Create My TapAway"
 
-**New table: `affiliate_commissions`**
+### `src/components/personal/signup/SuccessScreen.tsx`
+- Remove "Your card is being prepared" and "Tap to share in person" next steps
+- Change subtitle to "Your profile is live!"
+- Replace with digital next steps: "Share your link", "Update links anytime", "Track your views"
 
-| Column | Type | Details |
-|--------|------|---------|
-| id | uuid PK | gen_random_uuid() |
-| affiliate_id | uuid NOT NULL | references affiliates.id |
-| referral_id | uuid NOT NULL | references affiliate_referrals.id, UNIQUE |
-| amount | numeric NOT NULL | commission amount (e.g. 5.00) |
-| status | text NOT NULL | 'pending' / 'paid' |
-| paid_at | timestamptz NULL | when admin marked as paid |
-| note | text NULL | optional admin note |
-| created_at | timestamptz | DEFAULT now() |
+### `src/pages/personal/PersonalPricing.tsx`
+- Remove `PersonalCard3D` card preview component
+- Remove trust badges (Free shipping, Ships in 1-2 days)
+- Remove "Card Stand" yearly bonus section
+- Remove "Physical card included" callout
+- Rewrite pro features list to focus on digital features
+- Update hero text to focus on profile sharing, not physical card
 
-**New table: `affiliate_settings`** (single-row config)
+### `src/components/landing/personal/PersonalHero.tsx`
+- Remove "Custom NFC Card Included" badge
+- Remove "Free shipping", "Ships in 1-2 days" trust points
+- Remove `PersonalCard3D` component and card visual
+- Update headline/CTA to focus on digital profile
+- Change CTA from "Get Your Custom NFC Card" to "Get Your TapAway"
 
-| Column | Type | Details |
-|--------|------|---------|
-| id | uuid PK | gen_random_uuid() |
-| commission_per_referral | numeric NOT NULL | default 5.00 |
-| payout_minimum | numeric NOT NULL | default 20.00 |
-| program_enabled | boolean | DEFAULT true (global toggle) |
-| updated_at | timestamptz | DEFAULT now() |
-
-RLS: Admin full access on both tables. Affiliates can SELECT their own commission rows.
-
-**Seed initial settings row:**
-
-Insert a single row with default values ($5 commission, $20 minimum payout, program enabled).
-
-### Auto-create commission on referral
-
-Update `PersonalSignupComplete.tsx` -- after logging the referral in `affiliate_referrals`, also insert a row into `affiliate_commissions` with status 'pending' and the amount from `affiliate_settings`.
-
-This requires fetching the current `commission_per_referral` from `affiliate_settings` first.
-
-### Affiliate Dashboard updates
-
-**File:** `src/pages/affiliate/AffiliateDashboard.tsx`
-
-Add to existing dashboard:
-- **Earnings summary card**: Total earned (paid commissions), Pending payout, Commission rate
-- **Payout history list**: Date, amount, status (pending/paid) for each commission
-- Update stats cards to also show dollar amounts
-
-### Admin Affiliates page updates
-
-**File:** `src/pages/admin/AdminAffiliates.tsx`
-
-Add:
-- **Pending payouts section**: List affiliates with pending commission totals above payout minimum
-- **"Mark as Paid" button** on each affiliate's pending commissions (bulk action)
-- **Settings panel**: Edit commission_per_referral, payout_minimum, toggle program_enabled
-
-### New admin route: `/admin/affiliate-settings`
-
-Could be a section within the existing `/admin/affiliates` page (a "Settings" tab) rather than a separate page, to keep things simple.
+### `src/pages/personal/PersonalSignup.tsx`
+- Remove the "Custom NFC card included" and "Free shipping" badges from the header area
 
 ---
 
-## Part 2: Abuse Prevention
+## 2. Hide Card References from Personal Dashboard
 
-### Database Changes
+### `src/pages/personal/PersonalDashboard.tsx`
+- Remove the "Card" tab from desktop TabsList
+- Remove the entire Card TabsContent section
+- Remove the Card Confirmation Modal
+- Remove all card-related state variables (`sendingCardApproval`, `showCardConfirmModal`, `editableCardName`, etc.)
+- Remove `handleConfirmCardDesign` callback
+- Remove card-related imports (`TapAwayCardPreview`, `RequestMoreCards`, etc.)
 
-**New column on `affiliate_referrals`:**
-
-The `ip_address` column already exists (added in Phase 1). We will now populate it.
-
-**New table: `affiliate_abuse_flags`**
-
-| Column | Type | Details |
-|--------|------|---------|
-| id | uuid PK | gen_random_uuid() |
-| referral_id | uuid NOT NULL | references affiliate_referrals.id |
-| flag_type | text NOT NULL | 'duplicate_ip', 'rapid_signup', 'suspicious_domain' |
-| details | text NULL | human-readable explanation |
-| resolved | boolean | DEFAULT false |
-| resolved_by | uuid NULL | admin who resolved |
-| created_at | timestamptz | DEFAULT now() |
-
-RLS: Admin full access only. No public/affiliate access.
-
-### Capture IP on signup
-
-**File:** `supabase/functions/verify-personal-checkout/index.ts`
-
-When creating the user record, capture the request IP from the edge function headers (`x-forwarded-for` or `x-real-ip`) and return it as part of the response.
-
-**File:** `src/pages/personal/PersonalSignupComplete.tsx`
-
-After logging the referral, update the `affiliate_referrals` row with the IP address returned from the verification response.
-
-Alternatively (simpler approach): Create a small edge function or modify `verify-personal-checkout` to write the IP directly into `affiliate_referrals` server-side, avoiding client-side IP exposure.
-
-### Auto-flag logic (server-side)
-
-**New edge function: `supabase/functions/check-affiliate-abuse/index.ts`**
-
-Called after a referral is logged. Checks:
-
-1. **Duplicate IP** -- Query `affiliate_referrals` for other signups from the same affiliate with the same IP in the last 30 days. If found, insert a flag.
-2. **Rapid signup** -- Query `affiliate_referrals` for signups from the same affiliate in the last hour. If 3+ signups in 1 hour, flag.
-3. **Suspicious email domain** -- Check if the referred user's email uses a known disposable email domain (maintain a short list of ~20 common disposable domains like mailinator, guerrillamail, tempmail, etc.)
-
-Returns the flags created (if any) so the caller can log them.
-
-### Admin abuse dashboard
-
-**File:** `src/pages/admin/AdminAffiliates.tsx`
-
-Add an "Abuse Flags" tab/section:
-- Table of unresolved flags with: affiliate name, referral username, flag type, details, date
-- "Resolve" button to mark a flag as resolved (false positive)
-- "Deactivate Affiliate" quick action if abuse is confirmed
-- Filter: unresolved only / all
-- Count badge showing unresolved flags
+### `src/components/personal/MobileBottomNav.tsx`
+- Remove the "Card" entry from `MORE_TABS`
+- Remove `hasCardNotification` prop and notification dot logic
 
 ---
 
-## Modified Files Summary
+## 3. Affiliate-Referred Users Get a Dedicated Paywall
 
-| File | Change |
-|------|--------|
-| `src/pages/affiliate/AffiliateDashboard.tsx` | Add earnings summary, payout history |
-| `src/pages/admin/AdminAffiliates.tsx` | Add payouts section, settings panel, abuse flags tab |
-| `src/pages/personal/PersonalSignupComplete.tsx` | Auto-create commission row, capture IP for abuse tracking |
-| `supabase/functions/verify-personal-checkout/index.ts` | Return IP address in response |
+### New: `src/components/personal/signup/AffiliatePaywall.tsx`
+- Single-page paywall for users arriving via `?ref=USERNAME`
+- Collects: Full Name, Email, Username (with availability check), Password
+- "Start your free 2-week trial" messaging
+- Digital-only value props (profile page, unlimited links, analytics)
+- Single CTA: saves data to sessionStorage, redirects to affiliate Stripe link (`https://buy.stripe.com/dRm8wP7tZ4vpby11AegYU0f`)
+- No plan selection, no card content
+- Trust indicators and Terms/Privacy links
 
-## New Files Summary
+### `src/pages/personal/PersonalSignup.tsx`
+- Detect `tapaway_ref` in sessionStorage or `?ref=` in URL on mount
+- If present, render `AffiliatePaywall` instead of the normal wizard
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/check-affiliate-abuse/index.ts` | Server-side abuse detection logic |
+---
+
+## 4. Signup Redirects to Dashboard (All Personal Users)
+
+### `src/pages/personal/PersonalSignupComplete.tsx`
+- After successful profile creation, redirect to `/personal/dashboard?welcome=true`
+- Skips SuccessScreen, triggers existing `WelcomeCoachMarks` tutorial
+- User immediately sees their real dashboard
+
+---
+
+## 5. Affiliate Button on Personal Dashboard
+
+### `src/pages/personal/PersonalDashboard.tsx`
+- Import `useAffiliateAccess` hook
+- Conditionally render "Affiliate" button in header if `isAffiliate` is true
+- Clicking navigates to `/affiliate`
+
+### `src/components/personal/MobileBottomNav.tsx`
+- Accept optional `isAffiliate` prop
+- If true, add "Affiliate" entry (Users icon) to `MORE_TABS`
+
+---
+
+## What Is NOT Touched
+
+- `src/pages/Dashboard.tsx` (business dashboard) -- no changes
+- `src/pages/Index.tsx` (business landing) -- no changes
+- `src/components/dashboard/*` (business components) -- no changes
+- `src/components/landing/HeroSection.tsx` etc. -- no changes
+- Business card ordering, review hubs, onboarding -- no changes
+
+---
 
 ## Implementation Order
 
-1. Database migration (affiliate_commissions, affiliate_settings, affiliate_abuse_flags tables + RLS + seed settings)
-2. Commission auto-creation in PersonalSignupComplete
-3. Affiliate dashboard earnings/payout UI
-4. Admin payout management + settings panel
-5. IP capture in verify-personal-checkout
-6. Abuse detection edge function
-7. Admin abuse flags UI
-
+1. Create `AffiliatePaywall.tsx`
+2. Update `PersonalSignup.tsx` (affiliate detection + remove card badges)
+3. Remove card refs from `CheckoutStep.tsx` and `SuccessScreen.tsx`
+4. Remove card tab/modal from `PersonalDashboard.tsx`
+5. Update `MobileBottomNav.tsx` (remove card, add affiliate)
+6. Update `PersonalPricing.tsx` and `PersonalHero.tsx` (remove card content)
+7. Update `PersonalSignupComplete.tsx` (redirect to dashboard)
+8. Add affiliate button to dashboard header
