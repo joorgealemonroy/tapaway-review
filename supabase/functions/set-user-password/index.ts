@@ -74,11 +74,8 @@ serve(async (req) => {
           const sessionEmail = session.customer_details?.email || session.customer_email;
           
           if (sessionEmail && sessionEmail.toLowerCase() !== user.user.email?.toLowerCase()) {
-            console.error("[set-user-password] Session email mismatch:", sessionEmail, "vs", user.user.email);
-            return new Response(
-              JSON.stringify({ error: "Session email does not match user" }),
-              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+            // Billing email may differ from account email (e.g. Apple Pay) — warn but don't reject
+            console.warn("[set-user-password] Stripe billing email differs from account email (non-fatal):", sessionEmail, "vs", user.user.email);
           }
         }
       } catch (stripeError) {

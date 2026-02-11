@@ -42,11 +42,28 @@ const PersonalSignupComplete = () => {
       }
 
       try {
-        // Step 1: Verify payment with backend
+        // Step 1: Load saved signup data FIRST (need email for verify call)
+        const savedDataStr = localStorage.getItem("personal_signup_data") || sessionStorage.getItem("personal_signup_data");
+        const savedPassword = localStorage.getItem("signup_password") || sessionStorage.getItem("signup_password");
+        
+        let savedData: SavedSignupData | null = null;
+        if (savedDataStr) {
+          savedData = JSON.parse(savedDataStr);
+          console.log("[PersonalSignupComplete] Retrieved saved signup data:", {
+            email: savedData?.email,
+            hasPhoto: !!savedData?.profilePhotoBase64,
+            linksCount: savedData?.links?.length || 0,
+            headerType: savedData?.headerType,
+          });
+        } else {
+          console.log("[PersonalSignupComplete] No saved signup data found");
+        }
+
+        // Step 2: Verify payment with backend, passing signup email
         setStep("verifying");
         const { data, error: verifyError } = await supabase.functions.invoke(
           "verify-personal-checkout",
-          { body: { sessionId } }
+          { body: { sessionId, signupEmail: savedData?.email } }
         );
 
         if (verifyError) throw verifyError;
@@ -59,6 +76,7 @@ const PersonalSignupComplete = () => {
           username: data.username,
           userId: data.userId,
           planType: data.planType,
+          email: data.email,
         });
 
         const verifiedUsername = data.username;
@@ -68,23 +86,11 @@ const PersonalSignupComplete = () => {
         setUsername(verifiedUsername);
         setPlanType(verifiedPlanType);
 
-        // Step 2: Load saved signup data (localStorage first, fallback to sessionStorage)
-        const savedDataStr = localStorage.getItem("personal_signup_data") || sessionStorage.getItem("personal_signup_data");
-        const savedPassword = localStorage.getItem("signup_password") || sessionStorage.getItem("signup_password");
-        
-        if (!savedDataStr) {
-          console.log("[PersonalSignupComplete] No saved signup data found");
+        if (!savedData) {
           setStep("no_data");
           setLoading(false);
           return;
         }
-
-        const savedData: SavedSignupData = JSON.parse(savedDataStr);
-        console.log("[PersonalSignupComplete] Retrieved saved signup data:", {
-          hasPhoto: !!savedData.profilePhotoBase64,
-          linksCount: savedData.links?.length || 0,
-          headerType: savedData.headerType,
-        });
 
         setStep("finalizing");
 
