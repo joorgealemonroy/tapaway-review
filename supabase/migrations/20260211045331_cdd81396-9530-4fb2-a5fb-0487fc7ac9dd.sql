@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN stripe_billing_email text;

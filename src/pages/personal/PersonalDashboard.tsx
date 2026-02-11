@@ -75,6 +75,7 @@ interface PersonalProfile {
   // Affiliate referral
   referred_by: string | null;
   trial_ends_at: string | null;
+  stripe_billing_email: string | null;
 }
 
 interface DbPersonalLink {

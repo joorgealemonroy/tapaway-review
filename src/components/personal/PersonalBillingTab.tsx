@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CreditCard, Crown, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { CreditCard, Crown, Sparkles, ExternalLink, Loader2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
@@ -26,6 +26,8 @@ interface PersonalBillingTabProps {
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
     trial_ends_at?: string | null;
+    stripe_billing_email?: string | null;
+    email?: string;
   };
   onUpgrade: () => void;
   onPlanChange: () => void;
@@ -48,6 +50,9 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
   
   // Detect VIP: explicit plan_type OR admin-created accounts (paid without Stripe)
   const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
+
+  const showBillingEmail = !isVIP && isPro && profile.stripe_billing_email && 
+    profile.email && profile.stripe_billing_email.toLowerCase() !== profile.email.toLowerCase();
 
   const handleManageSubscription = async () => {
     if (!profile.stripe_customer_id) {
@@ -166,6 +171,16 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
                 )}
 
                 {/* Only show downgrade option for paying users */}
+                {showBillingEmail && (
+                  <div className="w-full flex items-start gap-2 p-3 rounded-md bg-muted text-sm">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Billing email: {profile.stripe_billing_email}</p>
+                      <p className="text-muted-foreground">This is the email linked to your payment method. Use it to find your subscription in the billing portal.</p>
+                    </div>
+                  </div>
+                )}
+
                 {!isVIP && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
