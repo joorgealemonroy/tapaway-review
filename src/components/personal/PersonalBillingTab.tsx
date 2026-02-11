@@ -47,7 +47,8 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   
   const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
-  const hasBillingEmail = !isVIP && isPro && !!profile.stripe_billing_email;
+  const billingEmail = profile.stripe_billing_email || profile.email;
+  const hasBillingEmail = !isVIP && isPro && !!billingEmail;
 
   return (
     <div className="space-y-6">
@@ -109,7 +110,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                   <div className="w-full space-y-3">
                     {hasBillingEmail && (
                       <p className="text-sm text-muted-foreground">
-                        Billing email on file: {maskEmail(profile.stripe_billing_email!)}
+                        Billing email on file: {maskEmail(billingEmail!)}
                       </p>
                     )}
                     <Button

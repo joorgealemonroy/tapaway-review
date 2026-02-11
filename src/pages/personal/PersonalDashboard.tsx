@@ -798,6 +798,8 @@ const PersonalDashboard = () => {
                 stripe_customer_id: profile.stripe_customer_id,
                 stripe_subscription_id: profile.stripe_subscription_id,
                 trial_ends_at: profile.trial_ends_at,
+                stripe_billing_email: profile.stripe_billing_email,
+                email: profile.email,
               }}
               onUpgrade={() => handleUpgrade("monthly")}
               onPlanChange={loadData}
