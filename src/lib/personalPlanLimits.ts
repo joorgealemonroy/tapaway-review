@@ -84,7 +84,7 @@ export const FEATURE_LIST = [
   { key: 'image', label: 'Image blocks', included: { free: true, pro: true } },
   { key: 'text', label: 'Text blocks', included: { free: true, pro: true } },
   { key: 'button', label: 'Button blocks', included: { free: true, pro: true } },
-  { key: 'nfcCard', label: 'Custom NFC card', included: { free: false, pro: true } },
+  
   { key: 'customHeader', label: 'Custom header image', included: { free: false, pro: true } },
   { key: 'photoCollage', label: 'Photo collage block', included: { free: false, pro: true } },
   { key: 'emailCapture', label: 'Email capture block', included: { free: false, pro: true } },

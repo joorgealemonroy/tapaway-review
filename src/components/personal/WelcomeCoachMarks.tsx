@@ -31,14 +31,14 @@ const COACH_STEPS: CoachMarkStep[] = [
     id: "design",
     targetId: "tab-design",
     title: "Customize Your Look",
-    message: "Choose colors and upload a header image to match your style.",
+    message: "Choose colors, upload a header image, or enable full-screen banner mode.",
     position: "bottom",
   },
   {
     id: "share",
     targetId: "profile-url",
     title: "You're All Set!",
-    message: "Share your link anywhere. Want a physical card? Check the Card tab!",
+    message: "Share your profile link anywhere — on social media, email, or in person.",
     position: "top",
   },
 ];

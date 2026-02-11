@@ -74,13 +74,14 @@ export const DashboardDesignTab = ({
   // Auto-apply ambient gradient when banner mode is active (uses profile photo)
   useEffect(() => {
     // When NOT in banner mode, or no profile photo exists, clear the extracted color
-    if (headerType !== "banner" || !bannerImageSource) {
+    const imageSource = headerType === "banner" ? bannerImageSource : profilePhotoUrl;
+    if (!imageSource) {
       setImageBasedColor(null);
       return;
     }
     
     setExtractingColor(true);
-    extractBottomColor(bannerImageSource)
+    extractBottomColor(imageSource)
       .then((color) => {
         setImageBasedColor(color);
         const ambientGradient = generateAmbientGradient(color);
@@ -474,17 +475,21 @@ export const DashboardDesignTab = ({
         </div>
         
         {/* Show ambient preview when banner mode is active (uses profile photo) */}
-        {bannerImageSource && imageBasedColor && (
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+        {(bannerImageSource || profilePhotoUrl) && imageBasedColor && (
+          <button
+            onClick={() => handleBgColorChange(generateAmbientGradient(imageBasedColor))}
+            className="w-full flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+          >
             <div
-              className="h-10 w-10 rounded-full flex-shrink-0"
+              className="h-10 w-10 rounded-full flex-shrink-0 ring-2 ring-primary/20"
               style={{ background: generateAmbientGradient(imageBasedColor) }}
             />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground">Auto-matched to your photo</p>
-              <p className="text-xs text-muted-foreground">Override with a solid color above</p>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs font-medium text-foreground">Auto match to photo</p>
+              <p className="text-xs text-muted-foreground">Tap to apply ambient gradient</p>
             </div>
-          </div>
+            <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+          </button>
         )}
         
         <div className="flex items-center gap-3">

@@ -17,7 +17,8 @@ import {
   Mail,
   Sparkles,
   Star,
-  Users
+  Users,
+  ShoppingBag
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -31,6 +32,7 @@ import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
+import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { cn } from "@/lib/utils";
@@ -620,7 +622,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-5">
+          <TabsList className="hidden md:grid w-full grid-cols-6">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -650,6 +652,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
+            </TabsTrigger>
+            <TabsTrigger value="shop" className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden sm:inline">Shop</span>
             </TabsTrigger>
             <TabsTrigger value="plan" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -768,6 +774,11 @@ const PersonalDashboard = () => {
           </TabsContent>
 
 
+          {/* Shop Tab */}
+          <TabsContent value="shop" className="space-y-4">
+            <PersonalShopTab />
+          </TabsContent>
+
           {/* Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
             <PersonalBillingTab
@@ -777,6 +788,7 @@ const PersonalDashboard = () => {
                 subscription_status: profile.subscription_status,
                 stripe_customer_id: profile.stripe_customer_id,
                 stripe_subscription_id: profile.stripe_subscription_id,
+                trial_ends_at: profile.trial_ends_at,
               }}
               onUpgrade={() => handleUpgrade("monthly")}
               onPlanChange={loadData}
