@@ -192,9 +192,9 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
           <div className="space-y-2">
             <Label className="text-sm font-medium">Card Headline Text</Label>
             <Input
-              value={formData.cardHeadline || "Tap to Connect &\nCollaborate"}
+              value={formData.cardHeadline || ""}
               onChange={(e) => updateFormData({ cardHeadline: e.target.value })}
-              placeholder="Tap to Connect & Collaborate"
+              placeholder="Enter a headline for your card"
               className="h-12"
             />
             <p className="text-xs text-muted-foreground">

@@ -630,7 +630,7 @@ const PersonalDashboard = () => {
           </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
           <TabsList className="hidden md:grid w-full grid-cols-6">
             <TabsTrigger 
               id="tab-links"

@@ -294,7 +294,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_color: formData.headerColor || "#6BCB77",
         header_image_url: headerImageUrl,
         background_color: formData.backgroundColor || "#ffffff",
-        card_front_headline: formData.cardHeadline || "Tap to Connect &\nCollaborate",
+        card_front_headline: formData.cardHeadline || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -598,7 +598,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_color: formData.headerColor || "#6BCB77",
         header_image_url: headerImageUrl,
         background_color: formData.backgroundColor || "#ffffff",
-        card_front_headline: formData.cardHeadline || "Tap to Connect &\nCollaborate",
+        card_front_headline: formData.cardHeadline || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase

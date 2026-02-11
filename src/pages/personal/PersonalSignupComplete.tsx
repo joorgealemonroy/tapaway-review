@@ -205,11 +205,11 @@ const PersonalSignupComplete = () => {
           // Update profile with complete data
           const updateData: Record<string, unknown> = {
             full_name: savedData.fullName,
-            headline: savedData.cardHeadline || null,
+            headline: null,
             header_type: savedData.headerType || "banner",
             header_color: savedData.headerColor || "#6BCB77",
             background_color: savedData.backgroundColor || "#ffffff",
-            card_front_headline: savedData.cardHeadline || "Tap to Connect &\nCollaborate",
+            card_front_headline: savedData.cardHeadline || null,
           };
 
           if (profilePhotoUrl) {
