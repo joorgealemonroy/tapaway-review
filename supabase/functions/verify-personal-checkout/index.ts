@@ -121,7 +121,7 @@ serve(async (req) => {
       console.log('[verify-personal-checkout] Found existing user:', userId, 'email:', existingUser.email);
       
       // Ensure must_set_password flag is set for auto-login flow
-      await supabase.auth.admin.updateUser(userId, {
+      await supabase.auth.admin.updateUserById(userId, {
         user_metadata: {
           ...existingUser.user_metadata,
           must_set_password: true,
