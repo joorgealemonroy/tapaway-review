@@ -1,178 +1,101 @@
 
 
-# Affiliate Trial Fix + Default Banner + Tutorial Update + Shop Tab
+# Confetti Welcome + Fix Affiliate Tracking + Affiliate Dashboard Upgrade
 
-## Issues Found
+## Issues Identified
 
-1. **Affiliate trial not tracking**: `verify-personal-checkout` always sets `subscription_status: 'active'` -- it never checks if Stripe's subscription has a trial period. The `referred_by` field is only set client-side in `PersonalSignupComplete.tsx`, which works, but the trial status is wrong. Sonia's profile shows `subscription_status: active` with no `trial_ends_at` and no `referred_by`.
+1. **Affiliate tracking is broken**: The `AffiliatePaywall` saves the referral code to `sessionStorage`, but when users redirect to Stripe (external site) and return, `sessionStorage` is wiped. This is why Jorge shows 0 referrals despite referring Sonia and others.
 
-2. **Default header is "color"**: New profiles get `header_type: 'color'` -- should default to `'banner'` (Full Banner).
+2. **No confetti or celebration on first dashboard visit**: Users land on the dashboard with just a tutorial overlay -- no celebratory moment.
 
-3. **"Auto match to photo" is display-only**: The ambient color preview in the Design tab is informational but not clickable.
-
-4. **Tutorial references removed Card tab**: The last coach mark step says "Want a physical card? Check the Card tab!" which no longer exists.
-
-5. **Plan tab doesn't show trial status**: `PersonalBillingTab` has no awareness of trial state -- it shows "Pro $10/month" regardless.
-
-6. **No Shop button**: Users have no way to purchase physical NFC cards.
+3. **Affiliate dashboard lacks earnings logic**: It doesn't distinguish between trial users (no commission yet) and converted/paying users ($5 commission). No "potential payout" shown.
 
 ---
 
-## 1. Fix Affiliate Trial Detection
+## 1. Fix Affiliate Tracking (Critical Bug)
 
-**File: `supabase/functions/verify-personal-checkout/index.ts`**
+**File: `src/components/personal/signup/AffiliatePaywall.tsx`**
 
-After retrieving the Stripe session, check if the subscription has a trial:
+Change `sessionStorage.setItem("tapaway_ref", referralCode)` to `localStorage.setItem("tapaway_ref", referralCode)`. localStorage persists across the Stripe redirect.
 
-```
-const subscription = session.subscription as Stripe.Subscription;
-let subscriptionStatus = 'active';
-let trialEndsAt = null;
-
-if (subscription?.status === 'trialing' && subscription?.trial_end) {
-  subscriptionStatus = 'trialing';
-  trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
-}
-```
-
-Use `subscriptionStatus` and `trialEndsAt` when inserting/updating the profile instead of hardcoded `'active'`. This covers both the affiliate Stripe link (which has a 2-week trial) and any future trial-enabled links.
-
----
-
-## 2. Default New Profiles to Full Banner
-
-**File: `supabase/functions/verify-personal-checkout/index.ts`**
-
-When inserting a new profile, change `header_type` default from omitted (which defaults to `'color'` in the DB) to `'banner'`:
-
-```
-header_type: 'banner',
-```
+Also save `personal_signup_data` and `signup_password` to `localStorage` instead of `sessionStorage` so they survive the redirect too.
 
 **File: `src/pages/personal/PersonalSignupComplete.tsx`**
 
-In the profile update step (Step 6), set:
+Update all `sessionStorage.getItem(...)` calls to check `localStorage` first, then fall back to `sessionStorage`:
+- `personal_signup_data`: check localStorage first
+- `signup_password`: check localStorage first  
+- `tapaway_ref`: check localStorage first
+- Clean up both storage locations after use
 
-```
-header_type: savedData.headerType || "banner",
-```
-
-Instead of `"color"`.
-
----
-
-## 3. Make "Auto Match to Photo" Clickable
-
-**File: `src/components/personal/DashboardDesignTab.tsx`**
-
-The ambient color preview block (lines 477-488) currently just displays. Wrap it in a clickable button that triggers `handleBgColorChange(generateAmbientGradient(imageBasedColor))`:
-
-- Add a cursor pointer and hover effect
-- Add text like "Tap to apply" or make the whole row clickable
-- Also show this option when NOT in banner mode but with a profile photo, so any user with a photo can auto-match
+**Manual fix for Sonia**: Since Sonia's profile already exists with `referred_by: null`, we'll need to manually fix her record and create the referral row. This can be done via a one-time database update.
 
 ---
 
-## 4. Update Welcome Tutorial Steps
-
-**File: `src/components/personal/WelcomeCoachMarks.tsx`**
-
-Update `COACH_STEPS` to remove Card tab reference and reflect current layout:
-
-```typescript
-const COACH_STEPS = [
-  {
-    id: "welcome",
-    targetId: "profile-header",
-    title: "Welcome to TapAway!",
-    message: "This is your digital profile. Tap your photo to customize it.",
-    position: "bottom",
-  },
-  {
-    id: "links",
-    targetId: "tab-links",
-    title: "Add Your Links",
-    message: "Connect social profiles, websites, and anything you want to share.",
-    position: "bottom",
-  },
-  {
-    id: "design",
-    targetId: "tab-design",
-    title: "Customize Your Look",
-    message: "Choose colors, upload a header image, or enable full-screen banner mode.",
-    position: "bottom",
-  },
-  {
-    id: "share",
-    targetId: "profile-url",
-    title: "You're All Set!",
-    message: "Share your profile link anywhere -- on social media, email, or in person.",
-    position: "top",
-  },
-];
-```
-
----
-
-## 5. Show Trial Status in Plan Tab
-
-**File: `src/components/personal/PersonalBillingTab.tsx`**
-
-Add `trial_ends_at` to the component's profile prop interface.
-
-When `subscription_status === 'trialing'` and `trial_ends_at` exists:
-
-- Show badge as "Pro Trial" instead of "Pro"
-- Show "Free trial until [date]" instead of "$10/month"
-- After trial ends (or for active paid users), show the normal "$10/month Pro Plan" view
-- Remove the "Custom NFC card" line from the Pro features list (line 256) since cards are now in Shop
-
-Also pass `trial_ends_at` from `PersonalDashboard.tsx` into the component.
-
----
-
-## 6. Add Shop Tab
+## 2. Confetti + Welcome Toast on First Dashboard Visit
 
 **File: `src/pages/personal/PersonalDashboard.tsx`**
 
-Add a "Shop" tab to the TabsList (6th column, `grid-cols-6`):
+When `?welcome=true` is detected (which already triggers the tutorial):
+- Show a confetti animation (using a lightweight CSS/canvas confetti effect)
+- Display a toast or brief banner: "Thank you for joining TapAway!"
+- The user is already logged in and on their dashboard -- they can start customizing immediately
 
-```
-<TabsTrigger value="shop">
-  <ShoppingBag className="h-4 w-4" />
-  Shop
-</TabsTrigger>
-```
+**New file: `src/components/personal/ConfettiEffect.tsx`**
 
-Add corresponding `TabsContent` with a new `PersonalShopTab` component.
+A simple confetti component using canvas that:
+- Fires on mount
+- Runs for about 3 seconds
+- Auto-cleans up
+- Renders as a fixed overlay that doesn't block interaction
 
-**File: `src/components/personal/MobileBottomNav.tsx`**
+---
 
-Add Shop entry to `BASE_MORE_TABS`:
+## 3. Revamp Affiliate Dashboard
 
-```
-{ value: "shop", label: "Shop", icon: ShoppingBag, description: "Get a physical NFC card" },
-```
+**File: `src/pages/affiliate/AffiliateDashboard.tsx`**
 
-**New file: `src/components/personal/PersonalShopTab.tsx`**
+Restructure the dashboard with clearer earnings logic:
 
-A simple shop page with two product cards:
+**Earnings Section** (replaces current grid):
+- "Commission Rate": $5.00 per converted user
+- "Active Trials": count of users currently trialing (no commission yet -- show as "potential")
+- "Converted Users": count of users with `subscription_status = 'active'` (paid at least once)
+- "Potential Payout": $5 x active trials (what you'd earn if they all convert)
+- "Earned": total from actual paid commissions
+- "Pending Payout": commissions marked pending (awaiting payout processing)
 
-1. **Basic NFC Card** -- $10 one-time
-   - Pre-designed TapAway card
-   - Tap to share your profile instantly
-   - "Coming Soon" or link to Stripe payment
+**Commission Rules Card** (new mini section):
+- "You earn $5 for each referred user who completes at least one payment"
+- "Trial signups appear as 'Active Trial' -- no commission until they convert"
+- "Commissions are paid out [weekly/monthly]"
 
-2. **Custom NFC Card** -- $25 one-time
-   - Upload your own design
-   - Your name and branding
-   - Premium materials
+**Referrals List** (updated statuses):
+- "Active Trial" (green badge) -- trialing, trial hasn't ended
+- "Converted" (blue badge) -- subscription_status is 'active', paid
+- "Expired" (gray badge) -- trial ended without conversion
+- Show "$5.00 earned" next to converted users, "Pending conversion" next to trials
 
-Each card includes:
-- Product image placeholder
-- Price
-- "Why go physical?" benefits section: "Share without Wi-Fi", "Make a lasting impression", "Works with any smartphone"
-- CTA button (can link to a Stripe payment link or show "Coming Soon")
+**Change commission creation logic**:
+
+**File: `src/pages/personal/PersonalSignupComplete.tsx`**
+
+Currently, a commission is auto-created when a referral is logged (during trial signup). This is wrong -- commissions should only be created when the user actually pays. Change the referral logging (Step 7b) to:
+- Still create the `affiliate_referrals` row
+- Still set `referred_by` on the profile
+- Do NOT create a commission row yet (remove the commission insert)
+- Commissions should be created by the Stripe webhook when the first real payment occurs
+
+This means the `stripe-webhook` edge function (or a separate mechanism) needs to handle commission creation on first payment. For now, we can note this as a follow-up and keep the commission creation but mark it with a `status: 'pending_conversion'` instead of `'pending'`, then update to `'pending'` (eligible for payout) when the user's subscription moves from `trialing` to `active`.
+
+---
+
+## 4. Fix Sonia's Data (One-Time)
+
+Run a database migration to:
+- Update Sonia's `referred_by` to `'jorge'`
+- Create the missing `affiliate_referrals` row linking jorge's affiliate ID to Sonia's profile
+- No commission row yet (she's on trial, hasn't converted)
 
 ---
 
@@ -180,13 +103,18 @@ Each card includes:
 
 | File | Change |
 |------|--------|
-| `supabase/functions/verify-personal-checkout/index.ts` | Detect Stripe trial status, set `trialing` + `trial_ends_at`; default `header_type: 'banner'` |
-| `src/pages/personal/PersonalSignupComplete.tsx` | Default `header_type` to `'banner'` |
-| `src/components/personal/DashboardDesignTab.tsx` | Make ambient color preview clickable |
-| `src/components/personal/WelcomeCoachMarks.tsx` | Update steps to remove Card references |
-| `src/components/personal/PersonalBillingTab.tsx` | Show trial status, remove NFC card from features |
-| `src/pages/personal/PersonalDashboard.tsx` | Add Shop tab, pass `trial_ends_at` to billing |
-| `src/components/personal/MobileBottomNav.tsx` | Add Shop to More menu |
-| `src/components/personal/PersonalShopTab.tsx` | **NEW** -- Shop page with NFC card products |
-| `src/lib/personalPlanLimits.ts` | Remove `nfcCard` from feature lists |
+| `src/components/personal/signup/AffiliatePaywall.tsx` | Switch from sessionStorage to localStorage for all signup data |
+| `src/pages/personal/PersonalSignupComplete.tsx` | Read from localStorage first; don't auto-create commission on trial signup |
+| `src/pages/personal/PersonalDashboard.tsx` | Add confetti effect and welcome toast on `?welcome=true` |
+| `src/components/personal/ConfettiEffect.tsx` | **NEW** -- Lightweight confetti animation component |
+| `src/pages/affiliate/AffiliateDashboard.tsx` | Revamp with commission rules, trial vs converted distinction, potential payout |
+| Database migration | Fix Sonia's `referred_by` and create missing referral row |
 
+## Implementation Order
+
+1. Fix storage: AffiliatePaywall and PersonalSignupComplete (localStorage)
+2. Fix Sonia's data (database migration)
+3. Add confetti effect component
+4. Add confetti + welcome toast to PersonalDashboard
+5. Revamp AffiliateDashboard with earnings logic and commission rules
+6. Update commission creation logic (no commission on trial, only on conversion)
