@@ -124,6 +124,7 @@ serve(async (req) => {
         user_metadata: {
           full_name: metadata.full_name,
           account_type: 'personal',
+          must_set_password: true,
         },
       });
 

@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Mail, ArrowRight } from "lucide-react";
-import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
-import { Button } from "@/components/ui/button";
-import { getPublicUsername } from "@/lib/personalUsername";
+import { Loader2 } from "lucide-react";
 
 interface SavedSignupData {
   fullName: string;
@@ -94,34 +91,32 @@ const PersonalSignupComplete = () => {
         // Step 3: Try to sign in the user
         let signedIn = false;
         if (savedPassword && data.email) {
+          // Try setting password first (non-fatal if it fails — existing users already have one)
           try {
-            // First, set the user's password using our edge function
-            const { error: setPasswordError } = await supabase.functions.invoke(
-              "set-user-password",
-              { 
-                body: { 
-                  userId: verifiedUserId, 
-                  password: savedPassword,
-                  sessionId, // For verification
-                } 
-              }
-            );
-
-            if (!setPasswordError) {
-              // Now sign in with the password
-              const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: data.email,
+            await supabase.functions.invoke("set-user-password", {
+              body: {
+                userId: verifiedUserId,
                 password: savedPassword,
-              });
+                sessionId,
+              },
+            });
+            console.log("[PersonalSignupComplete] Password set successfully");
+          } catch (err) {
+            console.warn("[PersonalSignupComplete] Set password failed (non-fatal):", err);
+          }
 
-              if (!signInError) {
-                signedIn = true;
-                console.log("[PersonalSignupComplete] User signed in successfully");
-              } else {
-                console.warn("[PersonalSignupComplete] Sign in failed:", signInError.message);
-              }
+          // Always attempt sign-in regardless of set-password result
+          try {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: data.email,
+              password: savedPassword,
+            });
+
+            if (!signInError) {
+              signedIn = true;
+              console.log("[PersonalSignupComplete] User signed in successfully");
             } else {
-              console.warn("[PersonalSignupComplete] Set password failed:", setPasswordError);
+              console.warn("[PersonalSignupComplete] Sign in failed:", signInError.message);
             }
           } catch (err) {
             console.warn("[PersonalSignupComplete] Auth error:", err);
@@ -397,47 +392,18 @@ const PersonalSignupComplete = () => {
     );
   }
 
-  // No saved data - show recovery options
+  // No saved data — auto-redirect to auth (no dead-end screen)
   if (step === "no_data") {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center max-w-md mx-auto">
-        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <Mail className="h-8 w-8 text-primary" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Payment Confirmed! 🎉</h1>
-        <p className="text-muted-foreground mb-8">
-          Your account has been created. To complete your setup, please log in.
-        </p>
-        
-        <div className="w-full space-y-3">
-          <Button
-            onClick={handleSendMagicLink}
-            disabled={sendingMagicLink}
-            className="w-full h-12"
-          >
-            {sendingMagicLink ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Mail className="h-4 w-4 mr-2" />
-            )}
-            Send me a login link
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={() => navigate("/auth?redirect=/personal/dashboard")}
-            className="w-full h-12"
-          >
-            Log in with password
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
-      </div>
-    );
+    toast.info("Your account is ready! Please sign in.");
+    navigate("/auth?redirect=/personal/dashboard");
+    return null;
   }
 
+  // Success but not signed in — auto-redirect to auth
   if (username && step === "success") {
-    return <SuccessScreen username={username} planType={planType} />;
+    toast.info("Your profile is set up! Please sign in to continue.");
+    navigate("/auth?redirect=/personal/dashboard");
+    return null;
   }
 
   return null;
