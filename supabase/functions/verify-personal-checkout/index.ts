@@ -149,16 +149,33 @@ serve(async (req) => {
     let profileId: string;
     let isNewProfile = false;
 
+    // Detect trial status from Stripe subscription
+    let subscriptionStatus = 'active';
+    let trialEndsAt: string | null = null;
+    
+    if (session.subscription) {
+      const subscription = session.subscription as Stripe.Subscription;
+      if (subscription?.status === 'trialing' && subscription?.trial_end) {
+        subscriptionStatus = 'trialing';
+        trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+      }
+    }
+
+    console.log('[verify-personal-checkout] Subscription status:', { subscriptionStatus, trialEndsAt });
+
     if (existingProfile) {
       // Update existing profile
+      const updateData: Record<string, unknown> = {
+        stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
+        stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
+        subscription_status: subscriptionStatus,
+        plan_type: detectedPlanType,
+      };
+      if (trialEndsAt) updateData.trial_ends_at = trialEndsAt;
+      
       await supabase
         .from('personal_profiles')
-        .update({
-          stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
-          stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
-          subscription_status: 'active',
-          plan_type: detectedPlanType,
-        })
+        .update(updateData)
         .eq('id', existingProfile.id);
         
       profileId = existingProfile.id;
@@ -173,10 +190,12 @@ serve(async (req) => {
           full_name: metadata.full_name || customerEmail.split('@')[0], // Use email prefix instead of generic name
           email: customerEmail,
           headline: metadata.card_headline || null,
+          header_type: 'banner',
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
           stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
-          subscription_status: 'active',
+          subscription_status: subscriptionStatus,
           plan_type: detectedPlanType,
+          ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
         })
         .select()
         .single();

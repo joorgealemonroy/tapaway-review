@@ -1,4 +1,4 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface MobileBottomNavProps {
  
 const BASE_MORE_TABS = [
   { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
+  { value: "shop", label: "Shop", icon: ShoppingBag, description: "Get a physical NFC card" },
   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
 ];
  

@@ -25,6 +25,7 @@ interface PersonalBillingTabProps {
     subscription_status: string | null;
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
+    trial_ends_at?: string | null;
   };
   onUpgrade: () => void;
   onPlanChange: () => void;
@@ -35,6 +36,10 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
   const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type);
+  const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
+  const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
+  const trialDaysLeft = trialEndDate ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+  
   const planInfo = isVIPPlan(profile.plan_type) 
     ? PERSONAL_PLANS.vip 
     : isPaidPlan(profile.plan_type) 
@@ -106,16 +111,27 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
                     : "Upgrade to unlock premium features"}
               </CardDescription>
             </div>
-            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isPro ? "bg-amber-500" : ""}>
-              {isVIP ? "VIP Access" : planInfo.name}
+            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
+              {isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold">{planInfo.price}</span>
-            <span className="text-muted-foreground">{planInfo.priceSubtext}</span>
-          </div>
+          {isTrialing ? (
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold">Free Trial</span>
+              </div>
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
+                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $10/month.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold">{planInfo.price}</span>
+              <span className="text-muted-foreground">{planInfo.priceSubtext}</span>
+            </div>
+          )}
 
           {isVIP && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
@@ -123,7 +139,7 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
             </p>
           )}
 
-          {isPro && !isVIP && profile.subscription_status === "active" && (
+          {isPro && !isVIP && !isTrialing && profile.subscription_status === "active" && (
             <p className="text-sm text-muted-foreground">
               Your subscription is active. Manage billing details through the Stripe portal.
             </p>
@@ -251,9 +267,6 @@ export function PersonalBillingTab({ profile, onUpgrade, onPlanChange }: Persona
                 </li>
                 <li className="flex items-center gap-2">
                   <Crown className="h-3 w-3 text-amber-500" /> Unlimited links
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Custom NFC card
                 </li>
                 <li className="flex items-center gap-2">
                   <Crown className="h-3 w-3 text-amber-500" /> Custom header image
