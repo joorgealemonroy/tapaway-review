@@ -26,7 +26,7 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { sessionId } = await req.json();
+    const { sessionId, signupEmail } = await req.json();
 
     if (!sessionId) {
       return new Response(
@@ -103,22 +103,36 @@ serve(async (req) => {
       amountTotal: session.amount_total,
     });
 
-    // Check if user already exists
+    // Use signup form email for account creation; fall back to Stripe billing email
+    const accountEmail = signupEmail || customerEmail;
+    console.log('[verify-personal-checkout] Account email:', accountEmail, '| Stripe billing email:', customerEmail);
+
+    // Check if user already exists (check both emails)
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find(u => u.email === customerEmail);
+    const existingUser = existingUsers?.users.find(
+      u => u.email === accountEmail || u.email === customerEmail
+    );
 
     let userId: string;
     let tempPassword: string | null = null;
 
     if (existingUser) {
       userId = existingUser.id;
-      console.log('[verify-personal-checkout] Found existing user:', userId);
+      console.log('[verify-personal-checkout] Found existing user:', userId, 'email:', existingUser.email);
+      
+      // Ensure must_set_password flag is set for auto-login flow
+      await supabase.auth.admin.updateUser(userId, {
+        user_metadata: {
+          ...existingUser.user_metadata,
+          must_set_password: true,
+        },
+      });
     } else {
-      // Create a new user
+      // Create a new user with the SIGNUP email, not the billing email
       tempPassword = crypto.randomUUID().slice(0, 16);
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: customerEmail,
+        email: accountEmail,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
@@ -133,7 +147,7 @@ serve(async (req) => {
       }
 
       userId = newUser.user.id;
-      console.log('[verify-personal-checkout] Created new user:', userId);
+      console.log('[verify-personal-checkout] Created new user:', userId, 'with email:', accountEmail);
     }
 
     // Create the personal profile
@@ -190,7 +204,7 @@ serve(async (req) => {
           user_id: userId,
           username,
           full_name: metadata.full_name || customerEmail.split('@')[0], // Use email prefix instead of generic name
-          email: customerEmail,
+          email: accountEmail,
           headline: metadata.card_headline || null,
           header_type: 'banner',
           stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id,
@@ -286,7 +300,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        email: customerEmail,
+        email: accountEmail,
         username,
         userId, // Return userId for password setup
         planType: detectedPlanType,
