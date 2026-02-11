@@ -71,9 +71,9 @@ const PersonalSignupComplete = () => {
         setUsername(verifiedUsername);
         setPlanType(verifiedPlanType);
 
-        // Step 2: Load saved signup data from sessionStorage
-        const savedDataStr = sessionStorage.getItem("personal_signup_data");
-        const savedPassword = sessionStorage.getItem("signup_password");
+        // Step 2: Load saved signup data (localStorage first, fallback to sessionStorage)
+        const savedDataStr = localStorage.getItem("personal_signup_data") || sessionStorage.getItem("personal_signup_data");
+        const savedPassword = localStorage.getItem("signup_password") || sessionStorage.getItem("signup_password");
         
         if (!savedDataStr) {
           console.log("[PersonalSignupComplete] No saved signup data found");
@@ -251,8 +251,8 @@ const PersonalSignupComplete = () => {
           }
         }
 
-        // Step 7b: Log affiliate referral, commission, and abuse check
-        const referralCode = sessionStorage.getItem("tapaway_ref");
+        // Step 7b: Log affiliate referral and abuse check
+        const referralCode = localStorage.getItem("tapaway_ref") || sessionStorage.getItem("tapaway_ref");
         if (referralCode && profile) {
           try {
             const { data: affiliate } = await supabase
@@ -283,29 +283,8 @@ const PersonalSignupComplete = () => {
 
               console.log("[PersonalSignupComplete] Affiliate referral logged");
 
-              // Auto-create commission
+              // Commission deferred until user converts from trial — created by stripe webhook
               if (referralRow) {
-                try {
-                  const { data: settings } = await supabase
-                    .from("affiliate_settings")
-                    .select("commission_per_referral")
-                    .limit(1)
-                    .single();
-
-                  const commissionAmount = settings?.commission_per_referral ?? 5;
-
-                  await supabase.from("affiliate_commissions").insert({
-                    affiliate_id: affiliate.id,
-                    referral_id: referralRow.id,
-                    amount: commissionAmount,
-                    status: "pending",
-                  });
-
-                  console.log("[PersonalSignupComplete] Commission created:", commissionAmount);
-                } catch (commErr) {
-                  console.warn("[PersonalSignupComplete] Commission creation failed (non-fatal):", commErr);
-                }
-
                 // Trigger abuse check (fire and forget)
                 try {
                   supabase.functions.invoke("check-affiliate-abuse", {
@@ -324,10 +303,13 @@ const PersonalSignupComplete = () => {
           } catch (refErr) {
             console.warn("[PersonalSignupComplete] Referral logging failed (non-fatal):", refErr);
           }
+          localStorage.removeItem("tapaway_ref");
           sessionStorage.removeItem("tapaway_ref");
         }
 
-        // Step 8: Clear saved data
+        // Step 8: Clear saved data from both storage locations
+        localStorage.removeItem("personal_signup_data");
+        localStorage.removeItem("signup_password");
         sessionStorage.removeItem("personal_signup_data");
         sessionStorage.removeItem("signup_password");
         localStorage.removeItem("tapaway_personal_draft");

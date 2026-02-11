@@ -34,6 +34,7 @@ import { DashboardContactCard } from "@/components/personal/DashboardContactCard
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
+import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
@@ -126,6 +127,7 @@ const PersonalDashboard = () => {
   const [activeTab, setActiveTab] = useState("links");
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
   const welcomeParamRef = useRef<boolean>(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Load profile data - optimized with parallel fetches
   const loadData = useCallback(async () => {
@@ -212,7 +214,7 @@ const PersonalDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - run once on mount
 
-  // Show welcome tutorial after profile loads if we had the welcome param
+  // Show welcome tutorial + confetti after profile loads if we had the welcome param
   useEffect(() => {
     if (welcomeParamRef.current && profile) {
       const dismissKey = `tapaway_personal_welcome_dismissed_${profile.id}`;
@@ -220,6 +222,11 @@ const PersonalDashboard = () => {
       
       if (!alreadyDismissed) {
         setShowWelcomeTutorial(true);
+        setShowConfetti(true);
+        toast.success("Thank you for joining TapAway! 🎉", {
+          description: "Start customizing your profile below.",
+          duration: 5000,
+        });
       }
       welcomeParamRef.current = false;
     }
@@ -498,6 +505,7 @@ const PersonalDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
+      {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3">
