@@ -5,8 +5,6 @@ import {
   Check, 
   Copy, 
   ExternalLink, 
-  Package,
-  Smartphone,
   RefreshCw,
   PartyPopper
 } from "lucide-react";
@@ -42,19 +40,19 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
 
   const nextSteps = [
     {
-      icon: Package,
-      title: "Your card is being prepared",
-      description: "Ships in 1–2 business days with tracking",
-    },
-    {
-      icon: Smartphone,
-      title: "Tap to share in person",
-      description: "Just hold your card to any phone — no app needed",
+      icon: ExternalLink,
+      title: "Share your link",
+      description: "Add tapaway.co/" + username + " to your bio and socials",
     },
     {
       icon: RefreshCw,
       title: "Update links anytime",
       description: "Changes appear instantly on your profile",
+    },
+    {
+      icon: Copy,
+      title: "Track your views",
+      description: "See who visits your profile in your dashboard",
     },
   ];
 
@@ -103,7 +101,7 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
           transition={{ delay: 0.4 }}
           className="text-muted-foreground mb-8"
         >
-          Your profile is live and your custom card is on the way.
+          Your profile is live!
         </motion.p>
 
         {/* Profile Link */}

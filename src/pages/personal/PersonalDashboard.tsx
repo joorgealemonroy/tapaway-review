@@ -4,13 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   Link2, 
-  BarChart3, 
-  CreditCard,
+  BarChart3,
   LogOut,
   Camera,
   Loader2,
@@ -20,10 +16,10 @@ import {
   Palette,
   Mail,
   Sparkles,
-  Star
+  Star,
+  Users
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { TapAwayCardPreview, TapAwayCardPreviewHandle } from "@/components/personal/TapAwayCardPreview";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
@@ -35,8 +31,8 @@ import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
-import { RequestMoreCards } from "@/components/dashboard/RequestMoreCards";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
+import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 
@@ -103,6 +99,7 @@ type TimeRange = "7d" | "30d" | "all";
 
 const PersonalDashboard = () => {
   const navigate = useNavigate();
+  const { isAffiliate } = useAffiliateAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
@@ -122,17 +119,7 @@ const PersonalDashboard = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const analyticsLoadedRef = useRef(false);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
-  const cardPreviewRef = useRef<TapAwayCardPreviewHandle>(null);
-  const cardModalPreviewRef = useRef<TapAwayCardPreviewHandle>(null);
-  const [sendingCardApproval, setSendingCardApproval] = useState(false);
-  const [showCardConfirmModal, setShowCardConfirmModal] = useState(false);
-  const [editableCardName, setEditableCardName] = useState("");
-  const [editableFrontHeadline, setEditableFrontHeadline] = useState("");
-  const [editableBackText, setEditableBackText] = useState("");
-  const [editableCardPhotoUrl, setEditableCardPhotoUrl] = useState<string | null>(null);
-  const [isCardPhotoEdit, setIsCardPhotoEdit] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const modalFileInputRef = useRef<HTMLInputElement>(null);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState("links");
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
@@ -236,15 +223,7 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
-  // Initialize card modal editable fields when profile loads (but don't auto-show)
-  useEffect(() => {
-    if (profile && !profile.card_confirmed && profile.plan_type && profile.plan_type !== "free") {
-      setEditableCardName(profile.full_name);
-      setEditableFrontHeadline(profile.card_front_headline || "Tap to Connect\n& Collaborate");
-      setEditableBackText(profile.card_back_text || "Tap to Connect");
-      setEditableCardPhotoUrl(null);
-    }
-  }, [profile]);
+  // No longer auto-showing card modal
 
   // Handle upgrade success from URL param
   useEffect(() => {
@@ -394,14 +373,10 @@ const PersonalDashboard = () => {
 
       setProfile({ ...profile, profile_photo_url: urlWithCacheBust });
       
-      // If this was a card photo edit, update the editable card photo URL
-      if (isCardPhotoEdit) {
-        setEditableCardPhotoUrl(urlWithCacheBust);
-        setIsCardPhotoEdit(false);
+      // If this was a regular photo edit, just proceed
+      if (profile) {
+        invalidateProfileCache(profile.username);
       }
-      
-      // Invalidate public profile cache
-      invalidateProfileCache(profile.username);
       
       toast.success("Photo updated!");
     } catch (err) {
@@ -410,21 +385,8 @@ const PersonalDashboard = () => {
     } finally {
       setUploadingPhoto(false);
     }
-  }, [profile, isCardPhotoEdit]);
+  }, [profile]);
 
-  const handleModalPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    setIsCardPhotoEdit(true);
-    setRawImageUrl(URL.createObjectURL(file));
-    setCropperOpen(true);
-  };
 
   const handleUpgrade = useCallback(async (planType: "monthly" | "yearly") => {
     if (!profile) return;
@@ -512,72 +474,6 @@ const PersonalDashboard = () => {
     unifiedContentRef.current.discardChanges();
   }, []);
 
-  const handleConfirmCardDesign = useCallback(async (fromModal = false) => {
-    const previewRef = fromModal ? cardModalPreviewRef : cardPreviewRef;
-    if (!profile || !previewRef.current) return;
-
-    setSendingCardApproval(true);
-    try {
-      // Capture both sides of the card
-      const { front, back } = await previewRef.current.captureScreenshots();
-
-      // First update the profile with card text settings and confirmation
-      const cardFrontHeadline = fromModal ? editableFrontHeadline : (profile.card_front_headline || "Tap to Connect\n& Collaborate");
-      const cardBackText = fromModal ? editableBackText : (profile.card_back_text || "Tap to Connect");
-      const cardName = fromModal ? editableCardName : profile.full_name;
-
-      const { error: updateError } = await supabase
-        .from("personal_profiles")
-        .update({
-          card_confirmed: true,
-          card_confirmed_at: new Date().toISOString(),
-          card_front_headline: cardFrontHeadline,
-          card_back_text: cardBackText,
-          full_name: cardName,
-        })
-        .eq("id", profile.id);
-
-      if (updateError) throw updateError;
-
-      // Send to edge function
-      const response = await supabase.functions.invoke("send-card-approval", {
-        body: {
-          fullName: cardName,
-          username: profile.username,
-          email: profile.email,
-          profileId: profile.id,
-          frontImageBase64: front,
-          backImageBase64: back,
-          cardHeadline: cardFrontHeadline,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      // Update local state
-      setProfile({
-        ...profile,
-        card_confirmed: true,
-        card_confirmed_at: new Date().toISOString(),
-        card_front_headline: cardFrontHeadline,
-        card_back_text: cardBackText,
-        full_name: cardName,
-      });
-      
-      setShowCardConfirmModal(false);
-      
-      toast.success("Card design confirmed! We'll start printing soon.", {
-        description: "You'll receive an email when your card ships.",
-      });
-    } catch (err) {
-      console.error("Error sending card approval:", err);
-      toast.error("Failed to confirm card design. Please try again.");
-    } finally {
-      setSendingCardApproval(false);
-    }
-  }, [profile, editableCardName, editableFrontHeadline, editableBackText]);
 
   if (loading) {
     return (
@@ -608,6 +504,12 @@ const PersonalDashboard = () => {
               TapAway
             </a>
             <div className="flex items-center gap-2">
+              {isAffiliate && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/affiliate")}>
+                  <Users className="h-4 w-4 mr-1" />
+                  Affiliate
+                </Button>
+              )}
               <DashboardSwitcher currentType="personal" />
               <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-10 w-10">
                 <LogOut className="h-5 w-5" />
@@ -718,7 +620,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-6">
+          <TabsList className="hidden md:grid w-full grid-cols-5">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -748,13 +650,6 @@ const PersonalDashboard = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
-            </TabsTrigger>
-            <TabsTrigger value="card" className="flex items-center gap-2 relative">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Card</span>
-              {!profile.card_confirmed && profile.plan_type && profile.plan_type !== "free" && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
-              )}
             </TabsTrigger>
             <TabsTrigger value="plan" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -872,115 +767,6 @@ const PersonalDashboard = () => {
             </p>
           </TabsContent>
 
-          {/* Card Tab */}
-          <TabsContent value="card" className="space-y-4">
-            {profile.card_confirmed ? (
-              <div className="space-y-6">
-                <TapAwayCardPreview
-                  ref={cardPreviewRef}
-                  fullName={profile.full_name}
-                  username={profile.username}
-                  profilePhotoUrl={profile.profile_photo_url}
-                  cardHeadline={profile.card_front_headline || undefined}
-                  cardBackText={profile.card_back_text || undefined}
-                />
-                
-                {/* Order More Cards Section */}
-                <div className="text-center space-y-3 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Want another card?
-                  </p>
-                  <RequestMoreCards restaurantId={profile.id} variant="personal" />
-                </div>
-              </div>
-            ) : profile.plan_type === "free" ? (
-              <div className="text-center py-8 space-y-6">
-                <div className="space-y-2">
-                  <CreditCard className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <h3 className="font-semibold text-lg">Get Your Custom NFC Card</h3>
-                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                    Upgrade to Pro to get a personalized TapAway card and remove the "tap" prefix from your URL
-                  </p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 space-y-3 border border-primary/20">
-                  <div className="flex items-center justify-center gap-2 text-primary font-medium">
-                    <Star className="h-4 w-4 fill-primary" />
-                    <span>Pro Benefits</span>
-                  </div>
-                  <ul className="text-sm text-left space-y-2 max-w-xs mx-auto">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>Custom NFC card with your photo</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>Clean URL (no "tap" prefix)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>Unlimited links & blocks</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>Email lead capture</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    onClick={() => handleUpgrade("yearly")}
-                    disabled={upgrading}
-                    className="relative"
-                  >
-                    {upgrading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                    Yearly — $99/year
-                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">Save 8%</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleUpgrade("monthly")}
-                    disabled={upgrading}
-                  >
-                    Monthly — $9/mo
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <TapAwayCardPreview
-                  ref={cardPreviewRef}
-                  fullName={profile.full_name}
-                  username={profile.username}
-                  profilePhotoUrl={profile.profile_photo_url}
-                  cardHeadline={profile.card_front_headline || undefined}
-                  cardBackText={profile.card_back_text || undefined}
-                />
-                <Button
-                  onClick={() => handleConfirmCardDesign(false)}
-                  disabled={sendingCardApproval}
-                  className="w-full"
-                  size="lg"
-                >
-                  {sendingCardApproval ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Confirm This is My Card Design
-                    </>
-                  )}
-                </Button>
-                <p className="text-sm text-muted-foreground text-center">
-                  Once confirmed, we'll print and ship your card
-                </p>
-              </>
-            )}
-          </TabsContent>
 
           {/* Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
@@ -1027,122 +813,6 @@ const PersonalDashboard = () => {
         />
       )}
 
-      {/* Card Confirmation Modal */}
-      <Dialog open={showCardConfirmModal} onOpenChange={setShowCardConfirmModal}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Confirm Your Card Design</DialogTitle>
-            <DialogDescription>
-              Review and customize your TapAway card before we print it. You won't be able to change it after confirmation.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Editable Photo */}
-            <div className="space-y-2">
-              <Label>Profile Photo</Label>
-              <button
-                onClick={() => modalFileInputRef.current?.click()}
-                className="relative w-20 h-20 rounded-full overflow-hidden mx-auto group block"
-              >
-                {(editableCardPhotoUrl || profile.profile_photo_url) ? (
-                  <img 
-                    src={editableCardPhotoUrl || profile.profile_photo_url || ""} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover" 
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
-                    <span className="text-xl font-bold text-muted-foreground">{editableCardName.charAt(0)}</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="h-5 w-5 text-white" />
-                </div>
-              </button>
-              <input
-                ref={modalFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleModalPhotoSelect}
-                className="hidden"
-              />
-              <p className="text-xs text-muted-foreground text-center">Click to change</p>
-            </div>
-
-            {/* Editable Name */}
-            <div className="space-y-2">
-              <Label htmlFor="cardName">Name on Card</Label>
-              <Input
-                id="cardName"
-                value={editableCardName}
-                onChange={(e) => setEditableCardName(e.target.value)}
-                placeholder="Your name"
-              />
-            </div>
-
-            {/* Editable Front Headline */}
-            <div className="space-y-2">
-              <Label htmlFor="frontHeadline">Front Text</Label>
-              <Input
-                id="frontHeadline"
-                value={editableFrontHeadline.replace("\n", " ")}
-                onChange={(e) => setEditableFrontHeadline(e.target.value)}
-                placeholder="Tap to Connect & Collaborate"
-              />
-              <p className="text-xs text-muted-foreground">Text shown below your photo</p>
-            </div>
-
-            {/* Editable Back Text */}
-            <div className="space-y-2">
-              <Label htmlFor="backText">Back Text</Label>
-              <Input
-                id="backText"
-                value={editableBackText}
-                onChange={(e) => setEditableBackText(e.target.value)}
-                placeholder="Tap to Connect"
-              />
-              <p className="text-xs text-muted-foreground">Text shown with QR code on back</p>
-            </div>
-
-            {/* Live Preview */}
-            <div className="pt-2">
-              <Label className="mb-2 block">Preview</Label>
-              <TapAwayCardPreview
-                ref={cardModalPreviewRef}
-                fullName={editableCardName}
-                username={profile.username}
-                profilePhotoUrl={editableCardPhotoUrl || profile.profile_photo_url}
-                cardHeadline={editableFrontHeadline}
-                cardBackText={editableBackText}
-              />
-            </div>
-
-            <Button
-              onClick={() => handleConfirmCardDesign(true)}
-              disabled={sendingCardApproval || !editableCardName.trim()}
-              className="w-full"
-              size="lg"
-            >
-              {sendingCardApproval ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Confirming...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Confirm & Print My Card
-                </>
-              )}
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              ⚠️ Your card design cannot be changed after confirmation
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Welcome Coach Marks */}
       <WelcomeCoachMarks
@@ -1160,7 +830,7 @@ const PersonalDashboard = () => {
       <MobileBottomNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        hasCardNotification={!profile.card_confirmed && profile.plan_type !== null && profile.plan_type !== "free"}
+        isAffiliate={isAffiliate}
       />
     </div>
   );

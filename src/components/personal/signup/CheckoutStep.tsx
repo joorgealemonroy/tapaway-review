@@ -52,26 +52,23 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const freeFeatures = [
     "Up to 5 links",
     "Basic profile page",
-    "No NFC card included",
+    "Limited customization",
   ];
 
   const proFeatures = formData.planType === "yearly" ? [
-    "1 custom TapAway NFC card included",
-    "FREE Card Stand included ($15 value)",
+    "Custom profile URL (tapaway.co/yourname)",
     "Unlimited links & updates",
     "Advanced analytics",
     "Email lead capture",
     "Custom header images",
     "Priority support",
-    "Free shipping",
   ] : [
-    "1 custom TapAway NFC card included",
+    "Custom profile URL (tapaway.co/yourname)",
     "Unlimited links & updates",
     "Advanced analytics",
     "Email lead capture",
     "Custom header images",
     "Priority support",
-    "Free shipping",
   ];
 
   // Cooldown timer for resend
@@ -84,11 +81,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
   const calculateTotal = () => {
     if (formData.planType === "free") return 0;
-    let total = formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
-    if (formData.addExtraCard) {
-      total += PERSONAL_PRICING.extraCard * formData.extraCardCount;
-    }
-    return total;
+    return formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
   };
 
   const isFreePlan = formData.planType === "free";
@@ -919,13 +912,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
                 }
               </span>
               {formData.planType === "yearly" && (
-                <p className="text-xs text-amber-600 font-medium mt-1">
-                  🎁 Includes NFC card + FREE stand
-                </p>
-              )}
-              {formData.planType === "monthly" && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Includes custom NFC card
+                <p className="text-xs text-primary font-medium mt-1">
+                  Save $45/year vs monthly
                 </p>
               )}
             </div>
@@ -952,7 +940,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <div className="absolute -top-3 left-4">
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
                 <Sparkles className="h-3 w-3" />
-                BEST VALUE — NFC Card + FREE Stand
+                BEST VALUE
               </span>
             </div>
             
@@ -960,7 +948,6 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               <div>
                 <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
                 <p className="text-sm text-primary font-medium mt-1">Only $6.25/month • Save $45/year</p>
-                <p className="text-xs text-amber-600 font-medium mt-1">🎁 + FREE Card Stand included</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
                 formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -982,7 +969,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-bold text-foreground">Pro — ${PERSONAL_PRICING.monthly}/month</span>
-                <p className="text-sm text-muted-foreground mt-1">NFC Card included • Flexible billing</p>
+                <p className="text-sm text-muted-foreground mt-1">All Pro features • Flexible billing</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
                 formData.planType === "monthly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -1004,7 +991,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-medium text-muted-foreground">Free — $0</span>
-                <p className="text-sm text-muted-foreground mt-1">No NFC card • Limited features</p>
+                <p className="text-sm text-muted-foreground mt-1">Limited features</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
                 formData.planType === "free" ? "border-muted-foreground bg-muted" : "border-muted"
@@ -1032,7 +1019,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           </ul>
           {isFreePlan && (
             <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-              Upgrade to Pro anytime to get your NFC card and unlock all features
+              Upgrade to Pro anytime to unlock all features
             </p>
           )}
         </div>
@@ -1051,14 +1038,6 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             }
           </span>
         </div>
-        {formData.addExtraCard && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              Extra card{formData.extraCardCount > 1 ? `s (×${formData.extraCardCount})` : ""}
-            </span>
-            <span className="font-medium">+${PERSONAL_PRICING.extraCard * formData.extraCardCount}</span>
-          </div>
-        )}
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-lg font-semibold text-foreground">
             {PERSONAL_PAYMENTS_ENABLED ? "Total due today" : "Due today"}
@@ -1085,7 +1064,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         ) : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />
-            Get My TapAway Card
+            Create My TapAway
           </>
         )}
       </Button>

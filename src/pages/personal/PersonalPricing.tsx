@@ -1,26 +1,23 @@
-import { Check, X, Sparkles, CreditCard, Truck, Smartphone, Package, ArrowRight } from "lucide-react";
+import { Check, X, Sparkles, Smartphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import PersonalCard3D from "@/components/PersonalCard3D";
 
 const PersonalPricing = () => {
   const navigate = useNavigate();
 
   const proFeatures = [
-    "Custom NFC card with your name",
-    "Free shipping (1-2 business days)",
     "Your own URL: tapaway.co/yourname",
     "Unlimited links & content blocks",
     "Custom header image",
     "Photo collage block",
     "Email capture form",
     "Advanced analytics",
+    "Priority support",
     "Change your links anytime",
   ];
 
   const freeFeatures = [
-    "Digital profile only (no card)",
     "URL with prefix: tapaway.co/tapyourname",
     "Up to 5 links",
     "Basic content blocks",
@@ -49,25 +46,21 @@ const PersonalPricing = () => {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-4xl md:text-5xl font-black text-foreground mb-4 tracking-tight">
-            One tap. All your links.
+            One link. All your content.
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-6">
-            Get a custom NFC card that opens your profile instantly when someone taps their phone.
+            Create a beautiful profile page that shares everything — socials, website, payments, and more.
           </p>
           
           {/* Trust badges */}
           <div className="flex flex-wrap gap-4 justify-center text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-primary" />
-              <span>Free shipping</span>
-            </div>
-            <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-primary" />
-              <span>iPhone & Android</span>
+              <span>Works on any device</span>
             </div>
             <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-primary" />
-              <span>Ships in 1-2 days</span>
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span>Set up in minutes</span>
             </div>
           </div>
         </motion.div>
@@ -77,20 +70,13 @@ const PersonalPricing = () => {
       <section className="max-w-5xl mx-auto px-4 pb-20">
         <div className="grid lg:grid-cols-5 gap-6 items-start">
           
-          {/* Pro Plan - Primary (3 columns on large screens) */}
+          {/* Pro Plan */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="lg:col-span-3 bg-card border-2 border-primary rounded-2xl p-8 flex flex-col relative overflow-hidden shadow-lg shadow-primary/10"
           >
-            {/* Card Preview */}
-            <div className="mb-8 flex justify-center">
-              <div className="scale-90 origin-top">
-                <PersonalCard3D />
-              </div>
-            </div>
-
             {/* Popular badge */}
             <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
               <Sparkles className="w-3.5 h-3.5" />
@@ -99,7 +85,7 @@ const PersonalPricing = () => {
 
             <div className="mb-6">
               <h2 className="text-2xl font-black text-foreground mb-2">
-                Pro Card
+                Pro
               </h2>
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="text-4xl font-black text-foreground">$75</span>
@@ -110,36 +96,8 @@ const PersonalPricing = () => {
                 Save $45/year vs monthly — that's only $6.25/mo
               </p>
               <p className="text-muted-foreground mt-3 text-sm">
-                Custom NFC card with your name, shipped free to your door.
+                Your own profile page with unlimited links and full customization.
               </p>
-            </div>
-
-            {/* Yearly Bonus - Card Stand */}
-            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🎁</span>
-                <div>
-                  <p className="font-bold text-foreground text-sm">YEARLY BONUS</p>
-                  <p className="text-muted-foreground text-sm">
-                    FREE Card Stand included ($15 value)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Key benefit callout */}
-            <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground text-sm">Physical card included</p>
-                  <p className="text-muted-foreground text-sm">
-                    We design, print, and ship your personalized TapAway card — all set up for you.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <ul className="space-y-3 flex-1 mb-8">
@@ -157,7 +115,7 @@ const PersonalPricing = () => {
                 className="w-full text-base font-bold h-14"
                 onClick={() => navigate("/personal/signup?plan=yearly")}
               >
-                Get Your Pro Card — $75/year
+                Get Started — $75/year
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button 
@@ -166,12 +124,12 @@ const PersonalPricing = () => {
                 className="w-full"
                 onClick={() => navigate("/personal/signup?plan=monthly")}
               >
-                Or $10/month (no card stand)
+                Or $10/month
               </Button>
             </div>
           </motion.div>
 
-          {/* Free Plan - Secondary (2 columns on large screens) */}
+          {/* Free Plan */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -187,19 +145,19 @@ const PersonalPricing = () => {
                 <span className="text-muted-foreground text-sm">forever</span>
               </div>
               <p className="text-muted-foreground mt-2 text-sm">
-                Digital profile only. No physical card.
+                Basic digital profile to get started.
               </p>
             </div>
 
             <ul className="space-y-2.5 flex-1 mb-6">
               {freeFeatures.map((feature, i) => (
                 <li key={feature} className="flex items-start gap-3">
-                  {i < 2 ? (
+                  {i === 0 ? (
                     <X className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
                   ) : (
                     <Check className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                   )}
-                  <span className={`text-sm ${i < 2 ? "text-muted-foreground/70" : "text-muted-foreground"}`}>
+                  <span className={`text-sm ${i === 0 ? "text-muted-foreground/70" : "text-muted-foreground"}`}>
                     {feature}
                   </span>
                 </li>
@@ -216,7 +174,7 @@ const PersonalPricing = () => {
             </Button>
             
             <p className="text-xs text-muted-foreground text-center mt-3">
-              Upgrade to Pro anytime to get your card
+              Upgrade to Pro anytime
             </p>
           </motion.div>
         </div>

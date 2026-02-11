@@ -13,7 +13,8 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { X, Check, Truck, CreditCard } from "lucide-react";
+import { X } from "lucide-react";
+import { AffiliatePaywall } from "@/components/personal/signup/AffiliatePaywall";
 
 // Step components
 import { IdentityStep } from "@/components/personal/signup/IdentityStep";
@@ -77,10 +78,16 @@ const PersonalSignup = () => {
   const [planLocked, setPlanLocked] = useState(false);
   
   // Capture affiliate referral code from URL
+  const [affiliateRef, setAffiliateRef] = useState<string | null>(null);
+  
   useEffect(() => {
     const refParam = searchParams.get("ref");
     if (refParam) {
       sessionStorage.setItem("tapaway_ref", refParam);
+      setAffiliateRef(refParam);
+    } else {
+      const stored = sessionStorage.getItem("tapaway_ref");
+      if (stored) setAffiliateRef(stored);
     }
   }, [searchParams]);
   
@@ -175,6 +182,11 @@ const PersonalSignup = () => {
     4: "Finish your order",
   };
 
+  // Affiliate-referred users get a dedicated paywall
+  if (affiliateRef) {
+    return <AffiliatePaywall referralCode={affiliateRef} />;
+  }
+
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} />;
   }
@@ -212,20 +224,6 @@ const PersonalSignup = () => {
               </button>
             </div>
           </div>
-          
-          {/* Plan badge */}
-          {isPaidPlan && (
-            <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-primary" />
-                <span>Custom NFC card included</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-primary" />
-                <span>Free shipping</span>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 

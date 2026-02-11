@@ -346,6 +346,12 @@ const PersonalSignupComplete = () => {
           }
         }
 
+        // Redirect to dashboard instead of showing success screen
+        if (signedIn) {
+          navigate("/personal/dashboard?welcome=true");
+          return;
+        }
+
         setStep("success");
       } catch (err) {
         console.error("[PersonalSignupComplete] Error:", err);
