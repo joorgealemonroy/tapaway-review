@@ -12,11 +12,13 @@ import {
   Loader2,
   Users,
   UserCheck,
-  UserX,
   Link2,
   LogOut,
   DollarSign,
   Clock,
+  Info,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 
 interface Referral {
@@ -38,6 +40,8 @@ interface Commission {
   created_at: string;
 }
 
+const COMMISSION_RATE = 5;
+
 const AffiliateDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -50,7 +54,6 @@ const AffiliateDashboard = () => {
   const loadData = useCallback(async () => {
     if (!affiliateInfo) return;
     try {
-      // Load referrals
       const { data: refData } = await supabase
         .from("affiliate_referrals")
         .select("id, created_at, referred_profile_id")
@@ -76,7 +79,6 @@ const AffiliateDashboard = () => {
         })));
       }
 
-      // Load commissions
       const { data: commData } = await supabase
         .from("affiliate_commissions")
         .select("id, amount, status, paid_at, created_at")
@@ -135,9 +137,7 @@ const AffiliateDashboard = () => {
     );
   }
 
-  const totalEarned = commissions.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.amount), 0);
-  const pendingPayout = commissions.filter(c => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
-
+  // Compute stats
   const activeTrials = referrals.filter(r => {
     if (!r.referred_profile) return false;
     return r.referred_profile.subscription_status === "trialing" &&
@@ -145,9 +145,38 @@ const AffiliateDashboard = () => {
       new Date(r.referred_profile.trial_ends_at) > new Date();
   }).length;
 
+  const convertedUsers = referrals.filter(r =>
+    r.referred_profile?.subscription_status === "active"
+  ).length;
+
+  const expiredUsers = referrals.filter(r => {
+    if (!r.referred_profile) return true;
+    const status = r.referred_profile.subscription_status;
+    if (status === "active") return false;
+    if (status === "trialing" && r.referred_profile.trial_ends_at && new Date(r.referred_profile.trial_ends_at) > new Date()) return false;
+    return true;
+  }).length;
+
+  const totalEarned = commissions.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.amount), 0);
+  const pendingPayout = commissions.filter(c => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
+  const potentialPayout = activeTrials * COMMISSION_RATE;
+
   const remainingInvites = affiliateInfo?.max_invites
     ? Math.max(0, affiliateInfo.max_invites - referrals.length)
     : null;
+
+  const getStatusInfo = (ref: Referral) => {
+    if (!ref.referred_profile) return { label: "Unknown", className: "bg-muted text-muted-foreground", earnings: null };
+    const { subscription_status, trial_ends_at } = ref.referred_profile;
+    const isTrialing = subscription_status === "trialing" && trial_ends_at && new Date(trial_ends_at) > new Date();
+    if (subscription_status === "active") {
+      return { label: "Converted", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", earnings: `$${COMMISSION_RATE}.00 earned` };
+    }
+    if (isTrialing) {
+      return { label: "Active Trial", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", earnings: "Pending conversion" };
+    }
+    return { label: "Expired", className: "bg-muted text-muted-foreground", earnings: null };
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -157,7 +186,7 @@ const AffiliateDashboard = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate("/personal/dashboard")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="font-bold text-lg text-foreground">Affiliate Dashboard</h1>
+            <h1 className="font-bold text-lg text-foreground">Affiliate Hub</h1>
           </div>
           <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate("/auth"); }}>
             <LogOut className="h-5 w-5" />
@@ -180,15 +209,36 @@ const AffiliateDashboard = () => {
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
-          {remainingInvites !== null && (
+          {remainingInvites !== null ? (
             <p className="text-xs text-muted-foreground">{remainingInvites} invites remaining</p>
-          )}
-          {remainingInvites === null && (
+          ) : (
             <p className="text-xs text-muted-foreground">Unlimited invites</p>
           )}
         </div>
 
-        {/* Earnings */}
+        {/* Commission Rules */}
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Info className="h-4 w-4 text-primary" />
+            How You Earn
+          </div>
+          <ul className="text-sm text-muted-foreground space-y-1.5">
+            <li className="flex items-start gap-2">
+              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              You earn <span className="font-medium text-foreground">${COMMISSION_RATE}.00</span> for each referred user who completes at least one payment
+            </li>
+            <li className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              Trial signups show as "Active Trial" — no commission until they convert
+            </li>
+            <li className="flex items-start gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              Commissions are paid out monthly
+            </li>
+          </ul>
+        </div>
+
+        {/* Earnings Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card border border-border rounded-xl p-4 text-center">
             <DollarSign className="h-5 w-5 mx-auto mb-1 text-green-500" />
@@ -206,33 +256,70 @@ const AffiliateDashboard = () => {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-card border border-border rounded-xl p-4 text-center">
             <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
-            <p className="text-2xl font-bold text-foreground">{referrals.length}</p>
-            <p className="text-xs text-muted-foreground">Total Signups</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <UserCheck className="h-5 w-5 mx-auto mb-1 text-green-500" />
             <p className="text-2xl font-bold text-foreground">{activeTrials}</p>
             <p className="text-xs text-muted-foreground">Active Trials</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <UserX className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-2xl font-bold text-foreground">{referrals.length - activeTrials}</p>
-            <p className="text-xs text-muted-foreground">Converted/Expired</p>
+            <UserCheck className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <p className="text-2xl font-bold text-foreground">{convertedUsers}</p>
+            <p className="text-xs text-muted-foreground">Converted</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <TrendingUp className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold text-foreground">${potentialPayout.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Potential Payout</p>
           </div>
         </div>
 
-        {/* Commission History */}
+        {/* Referrals List */}
         <div className="space-y-3">
-          <h2 className="font-semibold text-foreground">Commission History</h2>
+          <h2 className="font-semibold text-foreground">Referrals</h2>
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : commissions.length === 0 ? (
+          ) : referrals.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              No commissions yet. Share your link to start earning!
+              No referrals yet. Share your link to get started!
             </div>
           ) : (
+            <div className="space-y-2">
+              {referrals.map((ref) => {
+                const status = getStatusInfo(ref);
+                return (
+                  <div key={ref.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
+                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-muted-foreground">
+                        {ref.referred_profile?.full_name?.charAt(0) || "?"}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {ref.referred_profile?.full_name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        @{ref.referred_profile?.username || "—"} · {new Date(ref.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${status.className}`}>
+                        {status.label}
+                      </span>
+                      {status.earnings && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{status.earnings}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Commission History */}
+        {commissions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="font-semibold text-foreground">Commission History</h2>
             <div className="space-y-2">
               {commissions.map((comm) => (
                 <div key={comm.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
@@ -252,51 +339,8 @@ const AffiliateDashboard = () => {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Recent Referrals */}
-        <div className="space-y-3">
-          <h2 className="font-semibold text-foreground">Recent Referrals</h2>
-          {referrals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              No referrals yet. Share your link to get started!
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {referrals.map((ref) => {
-                const isActive = ref.referred_profile?.subscription_status === "trialing" &&
-                  ref.referred_profile?.trial_ends_at &&
-                  new Date(ref.referred_profile.trial_ends_at) > new Date();
-
-                return (
-                  <div key={ref.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
-                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-muted-foreground">
-                        {ref.referred_profile?.full_name?.charAt(0) || "?"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">
-                        {ref.referred_profile?.full_name || "Unknown"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        @{ref.referred_profile?.username || "—"} · {new Date(ref.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      isActive
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
-                      {isActive ? "Active" : ref.referred_profile?.subscription_status === "active" ? "Paid" : "Expired"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

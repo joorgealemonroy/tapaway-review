@@ -86,9 +86,9 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
         extraCardCount: 0,
       };
 
-      sessionStorage.setItem("personal_signup_data", JSON.stringify(signupData));
-      sessionStorage.setItem("signup_password", password);
-      sessionStorage.setItem("tapaway_ref", referralCode);
+      localStorage.setItem("personal_signup_data", JSON.stringify(signupData));
+      localStorage.setItem("signup_password", password);
+      localStorage.setItem("tapaway_ref", referralCode);
 
       // Build Stripe URL
       const url = new URL(PERSONAL_AFFILIATE_PAYMENT_LINK);
