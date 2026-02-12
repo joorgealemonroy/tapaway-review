@@ -9,6 +9,7 @@ interface GooglePlacesAutocompleteProps {
   }) => void;
   defaultValue?: string;
   disabled?: boolean;
+  onError?: (error: string) => void;
 }
 
 declare global {
@@ -22,6 +23,7 @@ export const GooglePlacesAutocomplete = ({
   onPlaceSelected,
   defaultValue = "",
   disabled = false,
+  onError,
 }: GooglePlacesAutocompleteProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -49,7 +51,7 @@ export const GooglePlacesAutocomplete = ({
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
       setError("Google Maps API key not configured");
-      return;
+      onError?.("Google Maps API key not configured");
     }
 
     const script = document.createElement("script");
@@ -63,6 +65,7 @@ export const GooglePlacesAutocomplete = ({
 
     script.onerror = () => {
       setError("Failed to load Google Maps");
+      onError?.("Failed to load Google Maps");
     };
 
     document.head.appendChild(script);
@@ -83,6 +86,7 @@ export const GooglePlacesAutocomplete = ({
     // Strict readiness check
     if (!window.google?.maps?.places?.PlaceAutocompleteElement) {
       setError("Google Places library not fully loaded");
+      onError?.("Google Places library not fully loaded");
       return;
     }
 
