@@ -117,6 +117,8 @@ const Onboarding = () => {
     address: string;
   } | null>(null);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleWidgetFailed, setGoogleWidgetFailed] = useState(false);
+  const [isManualSearching, setIsManualSearching] = useState(false);
   const [addYelp, setAddYelp] = useState(true);
   
   // User/restaurant IDs (set after auth)
@@ -519,6 +521,35 @@ const Onboarding = () => {
       setFormData(prev => ({ ...prev, businessName: name }));
     }
   }, [formData.businessName]);
+
+  // Manual Google search fallback via edge function
+  const handleManualGoogleSearch = async () => {
+    const searchQuery = `${formData.businessName} ${formData.city} ${formData.state}`.trim();
+    if (!searchQuery) {
+      setGoogleError("Please fill in your business name and city first.");
+      return;
+    }
+    setIsManualSearching(true);
+    setGoogleError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-place-id", {
+        body: { address: searchQuery },
+      });
+      if (error || !data?.placeId) {
+        setGoogleError(data?.error || "Could not find your business. Please try a different search or contact support.");
+        return;
+      }
+      handleGooglePlaceSelected({
+        placeId: data.placeId,
+        name: data.name || formData.businessName,
+        address: data.formattedAddress || `${formData.city}, ${formData.state}`,
+      });
+    } catch (err) {
+      setGoogleError("Search failed. Please try again.");
+    } finally {
+      setIsManualSearching(false);
+    }
+  };
 
   // Step 3: Save Google and proceed
   const handleGoogleSubmit = async () => {
@@ -1058,12 +1089,41 @@ const Onboarding = () => {
               <div>
                 <GooglePlacesAutocomplete
                   onPlaceSelected={handleGooglePlaceSelected}
-                  defaultValue=""
+                  defaultValue={`${formData.businessName} ${formData.city} ${formData.state}`.trim()}
                   disabled={isLoading}
+                  onError={() => setGoogleWidgetFailed(true)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Start typing your business name to search
-                </p>
+                {!selectedGooglePlace && (
+                  <div className="mt-2">
+                    {googleWidgetFailed ? (
+                      <button
+                        type="button"
+                        disabled={isManualSearching}
+                        onClick={handleManualGoogleSearch}
+                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                      >
+                        {isManualSearching ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> Searching...</>
+                        ) : (
+                          "Search failed — click here to search manually"
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isManualSearching}
+                        onClick={handleManualGoogleSearch}
+                        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        {isManualSearching ? (
+                          <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Searching...</span>
+                        ) : (
+                          "Can't find your business? Search manually"
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {selectedGooglePlace && (
