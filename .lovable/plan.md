@@ -1,46 +1,55 @@
 
 
-# Show masked billing email above Manage Subscription button
+# Fix Google Business step: eliminate duplicate address entry and add search fallback
 
-## What changes
+## Problems identified
 
-**File: `src/components/personal/PersonalBillingTab.tsx`**
+1. **Duplicate data entry**: Step 1 collects business name, city, and state. Then Step 3 ("Connect Google") presents an empty Google search field, forcing the user to type their business info again.
 
-Move the billing email display from below the button to directly above it, and simplify the message. Also always show the billing email for paying users (not just when it differs from account email), since users need to know which email to use in the portal.
+2. **Google Autocomplete not working**: The `PlaceAutocompleteElement` widget (newer Google Maps JS API) can fail silently on certain devices/browsers. When it does, the user is completely stuck with no way forward.
 
-### Current layout (lines 106-128):
-```
-[Manage Subscription button]
-[Billing email note (only if different)]
-```
+## Solution
 
-### New layout:
-```
-Billing email on file: su****r@******.com
-[Manage Subscription button]
-```
+### 1. Pre-fill the Google search with Step 1 data
 
-The billing email line will be a simple `p` tag with muted text -- no card, no info icon, no long explanation. Just:
+Pass `defaultValue` to `GooglePlacesAutocomplete` using the business name and city already collected in Step 1. This way the autocomplete dropdown should appear immediately or with minimal typing.
 
-**"Billing email on file: su****r@******.com"**
+**File: `src/pages/Onboarding.tsx` (line ~1059-1062)**
 
-Show this for all paying (non-VIP) users who have a `stripe_billing_email`. Remove the `showBillingEmail` condition that required the emails to differ -- the user should always see which email is tied to billing.
+Change `defaultValue=""` to use `formData.businessName + " " + formData.city + " " + formData.state`.
 
-### Specific edits:
+### 2. Add a "Search manually" fallback button
 
-1. **Remove** the `showBillingEmail` const (line 50-51)
-2. **Restructure** lines 106-128: place the masked email text *above* the button, wrapped in a simple `<p>` with `text-sm text-muted-foreground`
-3. **Remove** the `Info` icon import and the `bg-muted` box -- keep it minimal
+When the Google autocomplete widget fails or returns no results, show a fallback button that calls the existing `lookup-place-id` edge function (server-side Google Places Text Search). This gives users a way to find their business even when the client-side widget breaks.
 
-Result for a Pro user on mobile:
+**File: `src/pages/Onboarding.tsx` (Google step, lines ~1058-1067)**
 
-```
-Billing email on file: su****r@******.com
+Add a fallback section below the autocomplete:
+- A text link: "Can't find your business? Search manually"
+- On click, call the `lookup-place-id` edge function with the business name + city + state
+- If a result is found, auto-populate `selectedGooglePlace` and show the green "Connected" confirmation
+- If not found, show an error message
 
-[Manage Subscription]
-```
+### 3. Handle autocomplete widget load failures gracefully
+
+**File: `src/components/GooglePlacesAutocomplete.tsx`**
+
+When the component renders an error state ("Google Places library not fully loaded", "Failed to load Google Maps", etc.), also expose a callback or render a manual-search prompt so the parent can offer the fallback.
+
+## Technical details
 
 | File | Change |
 |------|--------|
-| `src/components/personal/PersonalBillingTab.tsx` | Move billing email above button, simplify text, always show for paying users |
+| `src/pages/Onboarding.tsx` | Pre-fill `defaultValue` with business name + city + state from Step 1; add manual search fallback calling `lookup-place-id` edge function |
+| `src/components/GooglePlacesAutocomplete.tsx` | Add optional `onError` callback prop so parent knows when widget fails; render fallback UI hint on error |
+
+### Fallback search flow
+
+1. User clicks "Can't find your business? Search manually"
+2. System calls `lookup-place-id` edge function with `address: "Las Islas Marias Fontana CA"`
+3. Edge function returns `{ placeId, name, formattedAddress }`
+4. `selectedGooglePlace` is set automatically, green confirmation appears
+5. User clicks "Continue" as normal
+
+This ensures no user gets stuck on this step regardless of whether the Google Maps JS widget loads correctly.
 
