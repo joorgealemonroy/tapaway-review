@@ -1,43 +1,61 @@
 
 
-# Add Full Menu for Las Islas Marias OG
+# Fix: Touchpad Scrolling Not Working Across All Pages
 
-## Overview
+## Root Cause
 
-Las Islas Marias OG (slug: `islasmarias`, ID: `1d83b669-e326-4231-a8d1-686630915073`) currently has zero menu sections and zero menu items. This plan inserts the entire menu provided, organized into 12 sections with matching emojis.
+The global CSS in `src/index.css` applies `overscroll-behavior-y: none` and `overflow-x: hidden` to both `html` **and** `body`. When both elements have overflow constraints, some browsers (especially on macOS with trackpad gestures) create conflicting scroll containers, causing touchpad two-finger scroll to stop working while keyboard arrows and scrollbar dragging still function.
 
-## Menu Sections (in order)
+## Fix
 
-| # | Section Name | Items |
-|---|-------------|-------|
-| 0 | 🥤 Bebidas - Drinks | 16 |
-| 1 | 🌮 Tacos y Empanadas | 3 |
-| 2 | 🍲 Caldos | 7 |
-| 3 | 🐙 Especialidades de la Casa | 5 |
-| 4 | 🦐 Botanas y Ensaladas | 10 |
-| 5 | 🍤 Platillos - Seafood Plates | 8 |
-| 6 | 🍸 Cocteles - Estilo Nayarit | 7 |
-| 7 | 🥑 Tostadas | 8 |
-| 8 | 🐟 Ceviches y Ensaladas | 11 |
-| 9 | 👶 Kids | 2 |
-| 10 | 🧀 Extras | 4 |
-| 11 | 🍰 Postres | 2 |
+Make two targeted changes in `src/index.css`:
 
-**Total: 83 unique items across 12 sections** -- no duplicates.
+1. **Move `overscroll-behavior-y: none` to `body` only** -- having it on `html` can interfere with the browser's native scroll chain for touchpad events.
 
-## Implementation
+2. **Move `overflow-x: hidden` to `body` only** -- when both `html` and `body` have overflow restrictions, browsers can get confused about which element is the scroll container, breaking touchpad scroll input.
 
-A single database migration will:
+The `html` element should remain as minimal as possible so the browser treats `body` as the primary scrollable container.
 
-1. Insert 12 rows into `menu_sections` with `restaurant_id`, `name`, and `sort_order`
-2. Insert 83 rows into `menu_items` with `section_id` (referencing the new sections), `name`, `description`, `price`, and `sort_order`
+## Technical Details
 
-Items with multiple sizes (e.g., Med/Lg) will show pricing in the `price` field as "Med $4 / Lg $5". Items with no listed price will show "Market Price" or "Price varies".
+**File**: `src/index.css` (lines 177-189)
 
-## Technical details
+Current:
+```css
+html, body {
+  @apply min-h-screen;
+  background: var(--app-bg, hsl(var(--background)));
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-width: 100vw;
+}
+```
 
-- **Tables used**: `menu_sections`, `menu_items`
-- **Restaurant ID**: `1d83b669-e326-4231-a8d1-686630915073`
-- **No code changes needed** -- the existing menu rendering in `ReviewHub.tsx` / `MenuTab.tsx` already reads from these tables
-- Migration uses CTEs with `INSERT ... RETURNING id` to chain section creation with item insertion in a single atomic SQL statement
+Updated -- split into separate `html` and `body` selectors:
+```css
+html {
+  @apply min-h-screen;
+  background: var(--app-bg, hsl(var(--background)));
+}
+
+body {
+  @apply min-h-screen;
+  background: var(--app-bg, hsl(var(--background)));
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-width: 100vw;
+}
+```
+
+This ensures the browser recognizes `body` as the single scroll container, restoring native touchpad scrolling while keeping all existing mobile safe-area and anti-horizontal-scroll protections intact.
 
