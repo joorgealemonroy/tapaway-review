@@ -1,49 +1,31 @@
 
 
-# Add Phone "Order Now" Button to Review Hub
+# Update Yelp Link & Instagram Deep Linking
 
-## Overview
+## 1. Update Yelp URL for Las Islas Marias OG
 
-Add a phone call button to the restaurant's public Review Hub page so visitors can tap to call and place an order. The button will appear between the Directions and Menu buttons, styled with a green call theme.
+Update the database record for Las Islas Marias OG (id: `1d83b669-e326-4231-a8d1-686630915073`) to use the correct Yelp link:
+`https://www.yelp.com/biz/las-islas-marias-los-angeles?osq=las+islas+marias`
 
-## What needs to happen
+## 2. Instagram Deep Linking
 
-1. **Update the public view**: The `restaurant_public_info` database view currently doesn't include the `phone` column. We need to recreate it with `phone` added so the public hub page can read it.
+Currently, Instagram links are stored as regular web URLs (e.g., `https://instagram.com/Islasmariaog64`). When tapped on mobile, this opens in the browser instead of the Instagram app.
 
-2. **Set the phone number**: Las Islas Marias OG currently has no phone number saved. We'll set it in the database.
+The URL validation in the settings already transforms Instagram URLs to the `instagram://user?username=...` deep link format on save. However, the public Review Hub page blocks these deep links because its safety check (`isSafeUrl`) only allows `http:` and `https:` protocols.
 
-3. **Add the button to the hub page**: A green "Call to Place an Order" button with a phone icon will appear on the Review Hub, linking to `tel:` so it opens the phone dialer on mobile. It will only show when a phone number exists.
+**Changes:**
 
-4. **Track taps**: Like the other buttons, tapping it will log a `phone_click` event for your analytics.
+- **ReviewHub.tsx** -- Update the `isSafeUrl()` function to also allow the `instagram://` protocol, so deep links render correctly on the public page.
+- **Database** -- Update the Instagram URL for Las Islas Marias OG from `https://instagram.com/Islasmariaog64` to `instagram://user?username=Islasmariaog64` so it opens the app directly.
 
 ## Technical Details
 
-### Database changes
+**File: `src/pages/ReviewHub.tsx`** (line 178)
+- Change `isSafeUrl` to accept `instagram://` in addition to `http:` and `https:`
 
-- Recreate the `restaurant_public_info` view to include the `phone` column
-- Update Las Islas Marias OG record with their phone number (you'll need to provide the number)
+**Database migration:**
+- Update `yelp_review_url` for restaurant `1d83b669-e326-4231-a8d1-686630915073`
+- Update `instagram_url` for the same restaurant to deep link format
 
-### Code changes
-
-**File: `src/pages/ReviewHub.tsx`**
-
-- Add `phone` to the `Restaurant` interface
-- Add `phone` to the `fetchRestaurant` select query
-- Insert a new phone button block between the Directions button and the Menu button, styled with a green background (`#16a34a`) and a phone SVG icon
-- Button uses `tel:` link so it opens the native phone dialer
-- Only renders when `restaurant.phone` is set
-
-### Button design
-
-The button will match the existing style (rounded, full-width, 700 weight) with a green background to stand out as an action-oriented CTA:
-
-```text
-+------------------------------------------+
-|  [phone icon]  Call to Place an Order     |
-+------------------------------------------+
-```
-
-## Question
-
-What phone number should we use for Las Islas Marias OG?
+Note: Other restaurants with `https://instagram.com/...` links will continue to work (they pass `isSafeUrl` as-is), but they won't open the Instagram app directly until their URLs are also converted to deep link format. This will happen automatically the next time their settings are saved through the dashboard.
 
