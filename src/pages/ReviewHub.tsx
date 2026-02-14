@@ -19,6 +19,7 @@ interface Restaurant {
   hub_background_style: string | null;
   custom_slug: string | null;
   custom_background_url: string | null;
+  phone: string | null;
   type?: string | null;
   avm_question_title?: string | null;
   avm_question_subtitle?: string | null;
@@ -112,7 +113,7 @@ const ReviewHub = () => {
   const fetchRestaurant = async (id: string) => {
     const { data } = await supabase
       .from("restaurants")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label")
+      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label, phone")
       .eq("id", id)
       .single();
 
@@ -729,6 +730,37 @@ const ReviewHub = () => {
                 <path d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
               </svg>
               Get Directions
+            </a>
+          )}
+
+          {/* PHONE - Call to Order */}
+          {restaurant.phone && (
+            <a 
+              href={`tel:${restaurant.phone}`}
+              onClick={() => trackEvent('phone_click')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                justifyContent: 'center', 
+                width: '100%', 
+                textDecoration: 'none', 
+                background: '#16a34a', 
+                color: '#fff', 
+                padding: '14px 16px', 
+                borderRadius: '12px', 
+                fontWeight: '700', 
+                marginBottom: '12px',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#fff" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1.003 1.003 0 011.01-.24c1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+              </svg>
+              Call to Place an Order
             </a>
           )}
 
