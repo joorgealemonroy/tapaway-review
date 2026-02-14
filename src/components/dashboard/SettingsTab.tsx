@@ -26,6 +26,7 @@ interface Restaurant {
   instagram_url: string | null;
   directions_url: string | null;
   greeting_name?: string | null;
+  phone: string | null;
 }
 
 interface SettingsTabProps {
@@ -46,7 +47,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from("restaurants")
-      .select("id, restaurant_name, custom_slug, logo_url, hub_background_style, custom_background_url, google_place_id, google_review_url, yelp_review_url, instagram_url, directions_url, greeting_name")
+      .select("id, restaurant_name, custom_slug, logo_url, hub_background_style, custom_background_url, google_place_id, google_review_url, yelp_review_url, instagram_url, directions_url, greeting_name, phone")
       .eq("id", restaurantId)
       .single();
 
@@ -192,6 +193,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         yelp_review_url: restaurant.yelp_review_url,
         instagram_url: restaurant.instagram_url,
         directions_url: restaurant.directions_url,
+        phone: restaurant.phone,
       };
 
       // Only allow admins to update custom_slug
@@ -462,6 +464,20 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 </Button>
               )}
             </div>
+          </div>
+          <div>
+            <Label htmlFor="phone" className="text-sm font-semibold">Phone Number (Optional)</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                id="phone"
+                value={restaurant.phone || ""}
+                onChange={(e) => setRestaurant({ ...restaurant, phone: e.target.value })}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Adds a "Call to Place an Order" button to your Review Hub
+            </p>
           </div>
         </div>
       </Card>
