@@ -2271,6 +2271,7 @@ export type Database = {
           instagram_url: string | null
           logo_url: string | null
           menu_title: string | null
+          phone: string | null
           restaurant_name: string | null
           type: string | null
           yelp_review_url: string | null
@@ -2291,6 +2292,7 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           menu_title?: string | null
+          phone?: string | null
           restaurant_name?: string | null
           type?: string | null
           yelp_review_url?: string | null
@@ -2311,6 +2313,7 @@ export type Database = {
           instagram_url?: string | null
           logo_url?: string | null
           menu_title?: string | null
+          phone?: string | null
           restaurant_name?: string | null
           type?: string | null
           yelp_review_url?: string | null

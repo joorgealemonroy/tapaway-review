@@ -14,7 +14,8 @@ const VALID_EVENT_TYPES = [
   'directions_click',
   'instagram_click',
   'menu_view',
-  'menu_close'
+  'menu_close',
+  'phone_click'
 ];
 
 // Simple in-memory rate limiting (resets on function restart)
