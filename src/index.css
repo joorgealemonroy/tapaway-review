@@ -174,14 +174,19 @@ All colors MUST be HSL.
   }
 
   /* iOS Safe Area Support for notches and home indicators */
-  html, body {
+  html {
+    @apply min-h-screen;
+    background: var(--app-bg, hsl(var(--background)));
+  }
+
+  body {
     @apply min-h-screen;
     background: var(--app-bg, hsl(var(--background)));
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
-  overscroll-behavior-y: none;
+    overscroll-behavior-y: none;
     /* Prevent horizontal scroll on mobile */
     overflow-x: hidden;
     overflow-y: auto;
