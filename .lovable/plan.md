@@ -1,31 +1,49 @@
 
 
-# Update Yelp Link & Instagram Deep Linking
+# Swap Personal & Business Landing Pages
 
-## 1. Update Yelp URL for Las Islas Marias OG
+## Overview
 
-Update the database record for Las Islas Marias OG (id: `1d83b669-e326-4231-a8d1-686630915073`) to use the correct Yelp link:
-`https://www.yelp.com/biz/las-islas-marias-los-angeles?osq=las+islas+marias`
+Make the Personal landing page the default at `/` (tapaway.co) and move the Business landing page to `/business`. Everything else stays the same — just swapping which page is the homepage.
 
-## 2. Instagram Deep Linking
+## Changes
 
-Currently, Instagram links are stored as regular web URLs (e.g., `https://instagram.com/Islasmariaog64`). When tapped on mobile, this opens in the browser instead of the Instagram app.
+### 1. Routes (src/App.tsx)
 
-The URL validation in the settings already transforms Instagram URLs to the `instagram://user?username=...` deep link format on save. However, the public Review Hub page blocks these deep links because its safety check (`isSafeUrl`) only allows `http:` and `https:` protocols.
+- `/` renders the **Personal** page (currently renders Index/Business)
+- `/business` renders the **Business** page (already exists as an alias, will become primary)
+- `/personal` redirects to `/` (so old links still work)
 
-**Changes:**
+### 2. Navigation Toggle (src/components/landing/ProductNavToggle.tsx)
 
-- **ReviewHub.tsx** -- Update the `isSafeUrl()` function to also allow the `instagram://` protocol, so deep links render correctly on the public page.
-- **Database** -- Update the Instagram URL for Las Islas Marias OG from `https://instagram.com/Islasmariaog64` to `instagram://user?username=Islasmariaog64` so it opens the app directly.
+- "Personal" links to `/`
+- "Business" links to `/business`
+- Active state detection updated accordingly
 
-## Technical Details
+### 3. Desktop Nav (src/components/landing/DesktopNav.tsx)
 
-**File: `src/pages/ReviewHub.tsx`** (line 178)
-- Change `isSafeUrl` to accept `instagram://` in addition to `http:` and `https:`
+- Update `isPersonal` logic to check if NOT on `/business`
+- "Personal Cards" link removed (already on personal by default)
+- CTA links updated: default signup goes to `/personal/signup`, business goes to `/start`
 
-**Database migration:**
-- Update `yelp_review_url` for restaurant `1d83b669-e326-4231-a8d1-686630915073`
-- Update `instagram_url` for the same restaurant to deep link format
+### 4. Mobile Nav (src/components/landing/MobileNav.tsx)
 
-Note: Other restaurants with `https://instagram.com/...` links will continue to work (they pass `isSafeUrl` as-is), but they won't open the Instagram app directly until their URLs are also converted to deep link format. This will happen automatically the next time their settings are saved through the dashboard.
+- Same toggle swap: "Personal" links to `/`, "Business" links to `/business`
+- Active state detection updated
+
+### 5. Personal Page Footer (src/pages/Personal.tsx)
+
+- "For Business" link changed from `/` to `/business`
+
+### 6. Business Page (src/pages/Index.tsx)
+
+- No content changes needed, just served at `/business` instead of `/`
+
+## What stays the same
+
+- All dashboard routes (`/dashboard`, `/personal/dashboard`)
+- All signup routes (`/personal/signup`, `/start`)
+- Profile slugs (`/:username`)
+- Auth, admin, rep routes — all unchanged
+- The DashboardSwitcher and DashboardSelector logic — unchanged
 
