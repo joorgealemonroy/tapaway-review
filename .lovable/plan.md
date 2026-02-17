@@ -1,16 +1,14 @@
 
 
-# Update Pro CTA to "Try Pro Free for 7 Days"
+# Update Pro Pricing Display
 
-## Changes
+## File: `src/pages/personal/PersonalPricing.tsx`
 
-### File: `src/pages/personal/PersonalPricing.tsx`
+Change the yearly price presentation from "$75/year" to "$6.25/month" with a subtle "Billed annually $75" note underneath -- this anchors on the lower monthly equivalent, which feels more affordable.
 
-1. **Button text**: Change "Get Started" to **"Try Pro Free for 7 Days"**
-2. **Navigation URL**: Append `&trial=7` flag to the signup route so the signup flow knows this is a trial:
-   - Before: `/personal/signup?plan=yearly`
-   - After: `/personal/signup?plan=yearly&trial=7`
-3. **Add subtle reassurance text** below the CTA button: "No charge today -- cancel anytime" in `text-xs text-muted-foreground` to reinforce the zero-risk message
+### Changes
 
-Single file change, roughly 4 lines modified.
+1. **Price display for yearly**: Change `$75` / `/year` to `$6.25` / `/month`
+2. **Replace the "That's only $6.25/mo" line** with `Billed annually $75` in the same `text-xs text-primary` style
+3. Monthly price stays as-is (`$10/month`)
 
