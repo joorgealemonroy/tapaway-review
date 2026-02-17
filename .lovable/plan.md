@@ -1,49 +1,59 @@
 
-
-# Swap Personal & Business Landing Pages
+# Use Real Profile Data in Hero Mockup
 
 ## Overview
 
-Make the Personal landing page the default at `/` (tapaway.co) and move the Business landing page to `/business`. Everything else stays the same — just swapping which page is the homepage.
+Replace the fake "Alex Rivera" demo profile in the landing page hero with a real-looking mockup based on Jorge's actual TapAway profile (`tapaway.co/jorge`). This makes the hero far more convincing because visitors can tap through to a real, live profile.
 
-## Changes
+## What Changes
 
-### 1. Routes (src/App.tsx)
+### PersonalHero.tsx — Complete phone mockup redesign
 
-- `/` renders the **Personal** page (currently renders Index/Business)
-- `/business` renders the **Business** page (already exists as an alias, will become primary)
-- `/personal` redirects to `/` (so old links still work)
+The phone screen currently shows a generic emoji avatar and fake links. It will be updated to mirror Jorge's real profile:
 
-### 2. Navigation Toggle (src/components/landing/ProductNavToggle.tsx)
+**Profile section:**
+- Real profile photo from Jorge's Supabase storage URL
+- Name: "Jorge Monroy"
+- Bio: "Building TapAway — a faster way to share who you are."
+- Dark background (#1a1a1a) matching his actual profile theme
+- Banner image header (his actual header_type is "banner")
 
-- "Personal" links to `/`
-- "Business" links to `/business`
-- Active state detection updated accordingly
+**Links section:**
+- Instagram and TikTok shown as grid cards (half-width, side-by-side) with their real cover images from storage
+- X (Twitter) shown as a pill-style link below the grid
+- Social icon bar at the top (Instagram, TikTok, X icons with brand colors)
 
-### 3. Desktop Nav (src/components/landing/DesktopNav.tsx)
+**Blocks section:**
+- "START USING TAPAWAY" image block (his real CTA banner)
+- Photo collage carousel preview (4 real photos)
 
-- Update `isPersonal` logic to check if NOT on `/business`
-- "Personal Cards" link removed (already on personal by default)
-- CTA links updated: default signup goes to `/personal/signup`, business goes to `/start`
+**Handle badge:**
+- Changed from `tapaway.co/alexrivera` to `tapaway.co/jorge`
+- Add a "See it live" link/arrow that opens the real profile in a new tab
 
-### 4. Mobile Nav (src/components/landing/MobileNav.tsx)
+**Floating badges updated:**
+- "Instant share" badge stays
+- "5 links" badge updated to reflect actual link count ("3 links + collage")
+- Optionally add a "Real profile" or "Live example" badge
 
-- Same toggle swap: "Personal" links to `/`, "Business" links to `/business`
-- Active state detection updated
+### Visual fidelity improvements
+- Banner image fades into the dark background naturally (matching ProfilePreviewRenderer behavior)
+- Profile photo uses the real circular crop with ring styling
+- Link cards use the same glassmorphism/dark-card styling as the real profile
+- Grid layout for Instagram/TikTok cards matches the 2-column grid from the real renderer
 
-### 5. Personal Page Footer (src/pages/Personal.tsx)
+## Technical Details
 
-- "For Business" link changed from `/` to `/business`
+**File: `src/components/landing/personal/PersonalHero.tsx`**
 
-### 6. Business Page (src/pages/Index.tsx)
+All changes are contained in this single file. The phone mockup section (right column) will be rebuilt to:
 
-- No content changes needed, just served at `/business` instead of `/`
+1. Use Jorge's real Supabase storage URLs for profile photo, banner, and link cover images
+2. Render a banner-style header that fades to dark background
+3. Show social icon bar with brand-colored circles (Instagram gradient, TikTok pink/cyan, X black)
+4. Render Instagram + TikTok as side-by-side grid cards with cover images
+5. Render X as a standard pill link
+6. Show a small collage preview row
+7. Update the handle badge to `tapaway.co/jorge` with a clickable link to the live profile
 
-## What stays the same
-
-- All dashboard routes (`/dashboard`, `/personal/dashboard`)
-- All signup routes (`/personal/signup`, `/start`)
-- Profile slugs (`/:username`)
-- Auth, admin, rep routes — all unchanged
-- The DashboardSwitcher and DashboardSelector logic — unchanged
-
+No database changes, no new files, no dependency additions needed. All image URLs reference existing Supabase storage assets.
