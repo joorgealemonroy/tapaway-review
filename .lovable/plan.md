@@ -1,59 +1,42 @@
 
-# Use Real Profile Data in Hero Mockup
+
+# Mobile-First Hero: CTA Above Profile
 
 ## Overview
 
-Replace the fake "Alex Rivera" demo profile in the landing page hero with a real-looking mockup based on Jorge's actual TapAway profile (`tapaway.co/jorge`). This makes the hero far more convincing because visitors can tap through to a real, live profile.
+Restructure the PersonalHero into a single-column, mobile-first, centered layout where the headline and CTA buttons appear **above** the phone mockup. On desktop (lg+), it scales up gracefully but the stacked layout remains.
 
-## What Changes
+## Layout (single file: `src/components/landing/personal/PersonalHero.tsx`)
 
-### PersonalHero.tsx — Complete phone mockup redesign
+### Structure (top to bottom, all centered)
 
-The phone screen currently shows a generic emoji avatar and fake links. It will be updated to mirror Jorge's real profile:
+1. **Badge pill** -- "Share Everything in One Tap"
+2. **Headline** -- "One link for everything." (text-2xl on mobile, scaling up)
+3. **Subtitle** -- One-liner with "Set up in under 2 minutes" bolded. Fold "works on any phone" into copy, remove separate pill icons.
+4. **CTA buttons** -- Two buttons side by side:
+   - Primary: "Get Your TapAway" (large, dark, full-width on mobile, auto on desktop)
+   - Secondary: "See a Live Profile" (outline style, links to tapaway.co/jorge in new tab)
+5. **Trust line** -- "Free plan available - Pro from $6.25/mo"
+6. **Phone mockup** -- Jorge's profile (same content, bumped to max-w-[300px] on mobile, max-w-[340px] on md+)
+7. **Handle badge** -- tapaway.co/jorge with live link
 
-**Profile section:**
-- Real profile photo from Jorge's Supabase storage URL
-- Name: "Jorge Monroy"
-- Bio: "Building TapAway — a faster way to share who you are."
-- Dark background (#1a1a1a) matching his actual profile theme
-- Banner image header (his actual header_type is "banner")
+### Key changes
 
-**Links section:**
-- Instagram and TikTok shown as grid cards (half-width, side-by-side) with their real cover images from storage
-- X (Twitter) shown as a pill-style link below the grid
-- Social icon bar at the top (Instagram, TikTok, X icons with brand colors)
+- Remove `lg:grid-cols-2` two-column grid -- replace with `flex flex-col items-center text-center`
+- Remove `lg:text-left`, `lg:justify-start` -- everything centered
+- Remove the separate "Works on any phone" and "Set up in minutes" feature pills
+- Remove floating side badges (they clip on mobile) -- replace with a single subtle badge below the phone or remove entirely
+- Buttons stack full-width on mobile (`w-full sm:w-auto`), sit side by side on sm+
+- Add subtle background: `bg-gradient-to-b from-primary/5 via-transparent to-transparent`
+- Reduce `min-h-[90vh]` to `min-h-screen` or remove min-height entirely and let content dictate height with generous padding (`py-16 md:py-24`)
+- Phone mockup entrance animation changes from `x: 30` (slide from right) to `y: 30` (slide up from below)
 
-**Blocks section:**
-- "START USING TAPAWAY" image block (his real CTA banner)
-- Photo collage carousel preview (4 real photos)
+### Mobile-specific polish
 
-**Handle badge:**
-- Changed from `tapaway.co/alexrivera` to `tapaway.co/jorge`
-- Add a "See it live" link/arrow that opens the real profile in a new tab
+- Headline: `text-2xl` base, `md:text-4xl lg:text-5xl`
+- Subtitle: `text-sm md:text-base` with tighter max-width
+- Primary CTA: `w-full sm:w-auto px-8 py-4 text-base` with glow shadow
+- Secondary CTA: `w-full sm:w-auto` outline button
+- Phone mockup: `max-w-[280px] sm:max-w-[320px] md:max-w-[340px]`
+- Compact vertical spacing: `gap-4` on mobile, `gap-6` on md+
 
-**Floating badges updated:**
-- "Instant share" badge stays
-- "5 links" badge updated to reflect actual link count ("3 links + collage")
-- Optionally add a "Real profile" or "Live example" badge
-
-### Visual fidelity improvements
-- Banner image fades into the dark background naturally (matching ProfilePreviewRenderer behavior)
-- Profile photo uses the real circular crop with ring styling
-- Link cards use the same glassmorphism/dark-card styling as the real profile
-- Grid layout for Instagram/TikTok cards matches the 2-column grid from the real renderer
-
-## Technical Details
-
-**File: `src/components/landing/personal/PersonalHero.tsx`**
-
-All changes are contained in this single file. The phone mockup section (right column) will be rebuilt to:
-
-1. Use Jorge's real Supabase storage URLs for profile photo, banner, and link cover images
-2. Render a banner-style header that fades to dark background
-3. Show social icon bar with brand-colored circles (Instagram gradient, TikTok pink/cyan, X black)
-4. Render Instagram + TikTok as side-by-side grid cards with cover images
-5. Render X as a standard pill link
-6. Show a small collage preview row
-7. Update the handle badge to `tapaway.co/jorge` with a clickable link to the live profile
-
-No database changes, no new files, no dependency additions needed. All image URLs reference existing Supabase storage assets.
