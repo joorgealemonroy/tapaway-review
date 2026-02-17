@@ -1,37 +1,76 @@
 
 
-# Improve Hero CTA Buttons and Floating Badge
+# Mobile-First Pricing Page Redesign
 
-## Changes (single file: `src/components/landing/personal/PersonalHero.tsx`)
+## Goal
 
-### 1. Replace "Real profile" floating badge
+Redesign the pricing page to feel natural and approachable on mobile -- not like a pushy paywall. The user should immediately see value and *want* to choose Pro without feeling pressured. The Free option stays visible and accessible.
 
-The current floating badge says "Real profile" with a sparkle emoji -- it's vague and doesn't drive action. Replace it with something that builds credibility and curiosity:
+## Design Approach
 
-- Change to **"Live example"** with a green pulse dot (like a "live" indicator), making it feel dynamic and real
-- Alternative text: "See it live" with a small external link icon
+Instead of two side-by-side cards (which stack awkwardly on mobile), switch to a **toggle-based single-card view** with a clean, app-like feel.
 
-### 2. Rework the CTA buttons
+## Layout (top to bottom on mobile)
 
-Current state: Single "Get Your TapAway" button with an arrow icon.
+1. **Minimal header** -- stays as-is (TapAway logo + Sign in)
 
-New state -- two buttons side by side:
+2. **Hero copy** -- softer, benefit-focused:
+   - Headline: "Pick your vibe" (casual, low-pressure)
+   - Subtitle: "Start free, upgrade when you're ready."
+   - Remove the trust badge icons (too corporate for this vibe)
 
-- **Primary CTA**: Change "Get Your TapAway" to **"Create Yours Free"** -- this is a stronger funnel opener because it removes friction (implies free, action-oriented "create yours")
-- **Secondary CTA**: Add a new outline-style button **"View a Real Profile"** that links to `https://tapaway.co/jorge` in a new tab with an ExternalLink icon -- this lets skeptical visitors verify it's real before signing up
+3. **Plan toggle** -- a segmented control pill (Free | Pro) centered on screen
+   - Tapping switches which plan's details are shown below
+   - Pro is pre-selected (default) but Free is one tap away
+   - Uses a rounded pill with a sliding highlight indicator
 
-Button layout:
-- On mobile: stack full-width (`flex-col w-full`)
-- On sm+: side by side (`sm:flex-row sm:w-auto`)
+4. **Single plan card** -- shows the selected plan's info:
+   - Plan name + price (large, clean)
+   - Feature list with green checkmarks
+   - For Pro: show the $6.25/mo breakdown subtly, yearly/monthly toggle inside the card
+   - For Free: show what's included, no pricing pressure
+   - CTA button at the bottom:
+     - Pro: "Get Started" (not mentioning price in the button)
+     - Free: "Start Free"
 
-### 3. Update trust line
+5. **Social proof line** -- "30-day money-back guarantee" + "Questions? Contact us" at the bottom, small and unobtrusive
 
-Change "Free plan available - Pro from $6.25/mo" to **"Free forever - upgrade anytime"** for a cleaner, lower-friction message.
+## Key UX Decisions
 
-### Technical details
+- **No "RECOMMENDED" badge** -- the toggle defaulting to Pro is enough. Badges feel salesy.
+- **No strikethrough prices** -- removing the "$120" crossed out. Just show the real price cleanly.
+- **No X marks on the Free plan** -- instead of showing what Free *doesn't* have, only show what it *does* have. Positivity converts better.
+- **Yearly/monthly stays inside the Pro card** as two subtle buttons, not separate cards.
+- **Smooth animation** between plan switches using framer-motion's AnimatePresence.
 
-- Primary button keeps the existing dark style (`bg-foreground text-background`) with the same Link to `/personal/pricing`
-- Secondary button uses outline styling: `border border-border bg-transparent text-foreground hover:bg-muted` as an `<a>` tag with `target="_blank"`
-- Floating badge: replace sparkle emoji + "Real profile" with a small green dot (`w-2 h-2 rounded-full bg-green-500 animate-pulse`) + "Live example" text
-- No new dependencies or files needed
+## Technical Details
+
+### File: `src/pages/personal/PersonalPricing.tsx`
+
+**Plan toggle component (inline):**
+- Two-option segmented control using `useState<'free' | 'pro'>('pro')`
+- Styled as a rounded-full container with `bg-muted` background
+- Active segment gets `bg-foreground text-background` with a `motion.div layoutId="toggle"` for smooth sliding animation
+
+**Plan card rendering:**
+- `AnimatePresence mode="wait"` wrapping a `motion.div` keyed by the selected plan
+- Entry: `opacity: 0, y: 10` to `opacity: 1, y: 0`
+- Exit: `opacity: 0, y: -10`
+
+**Pro card internal pricing toggle:**
+- `useState<'yearly' | 'monthly'>('yearly')` for the billing cycle
+- Two small pill buttons inside the card to switch
+- Price display updates: `$75/year` vs `$10/month`
+
+**Mobile sizing:**
+- Card: `max-w-md mx-auto px-5 py-6` -- compact, not full-bleed
+- Feature list: `text-sm` with `space-y-2.5`
+- CTA button: `w-full h-12 text-base font-semibold rounded-xl`
+- Overall section padding: `px-4 py-10`
+
+**Responsive:**
+- On `lg+`: can optionally show both cards side by side (but the toggle approach works well at all sizes, so keeping single-card is fine)
+- The toggle approach is inherently responsive -- no grid breakpoints needed
+
+**Dependencies:** None new -- uses existing framer-motion, lucide-react, and UI components.
 
