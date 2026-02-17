@@ -252,7 +252,7 @@ export const PersonalHero = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: 1.2 }}
-                  className="absolute -right-4 top-[45%] bg-card rounded-xl shadow-lg border border-border px-3 py-2 flex items-center gap-2"
+                  className="absolute -right-4 top-[45%] z-20 bg-card rounded-xl shadow-lg border border-border px-3 py-2 flex items-center gap-2"
                 >
                   <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                     <span className="text-xs">✨</span>
