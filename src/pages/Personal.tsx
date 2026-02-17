@@ -29,7 +29,7 @@ const Personal = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm">© 2025 TapAway. Share everything with one tap.</p>
             <div className="flex items-center gap-4 text-sm">
-              <Link to="/" className="hover:text-background transition-colors">
+              <Link to="/business" className="hover:text-background transition-colors">
                 For Business
               </Link>
               <a href="/terms" className="hover:text-background transition-colors">
