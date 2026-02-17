@@ -140,13 +140,16 @@ const PersonalPricing = () => {
                 className="w-full h-12 text-base font-semibold rounded-xl"
                 onClick={() =>
                   navigate(
-                    `/personal/signup?plan=${billing === "yearly" ? "yearly" : "monthly"}`
+                    `/personal/signup?plan=${billing === "yearly" ? "yearly" : "monthly"}&trial=7`
                   )
                 }
               >
-                Get Started
+                Try Pro Free for 7 Days
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
+              <p className="text-xs text-muted-foreground text-center mt-3">
+                No charge today — cancel anytime
+              </p>
             </motion.div>
           ) : (
             <motion.div
