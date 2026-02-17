@@ -111,18 +111,17 @@ const PersonalPricing = () => {
               {/* Price */}
               <div className="mb-1">
                 <span className="text-4xl font-black text-foreground">
-                  {billing === "yearly" ? "$75" : "$10"}
+                  {billing === "yearly" ? "$6.25" : "$10"}
                 </span>
-                <span className="text-muted-foreground ml-1">
-                  /{billing === "yearly" ? "year" : "month"}
-                </span>
+                <span className="text-muted-foreground ml-1">/month</span>
               </div>
-              {billing === "yearly" && (
+              {billing === "yearly" ? (
                 <p className="text-xs text-primary font-medium mb-5">
-                  That's only $6.25/mo
+                  Billed annually $75
                 </p>
+              ) : (
+                <div className="mb-5" />
               )}
-              {billing === "monthly" && <div className="mb-5" />}
 
               {/* Features */}
               <ul className="space-y-2.5 mb-6">
