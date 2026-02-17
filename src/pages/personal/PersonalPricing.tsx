@@ -1,28 +1,30 @@
-import { Check, X, Sparkles, Smartphone, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const proFeatures = [
+  "Your own URL: tapaway.co/yourname",
+  "Unlimited links & content blocks",
+  "Custom header image",
+  "Photo collage block",
+  "Email capture form",
+  "Advanced analytics",
+  "Priority support",
+];
+
+const freeFeatures = [
+  "Up to 5 links",
+  "Basic content blocks",
+  "Social icon bar",
+  "YouTube & image blocks",
+];
 
 const PersonalPricing = () => {
   const navigate = useNavigate();
-
-  const proFeatures = [
-    "Your own URL: tapaway.co/yourname",
-    "Unlimited links & content blocks",
-    "Custom header image",
-    "Photo collage block",
-    "Email capture form",
-    "Advanced analytics",
-    "Priority support",
-    "Change your links anytime",
-  ];
-
-  const freeFeatures = [
-    "URL with prefix: tapaway.co/tapyourname",
-    "Up to 5 links",
-    "Basic content blocks",
-    "Social icon bar",
-  ];
+  const [selectedPlan, setSelectedPlan] = useState<"free" | "pro">("pro");
+  const [billing, setBilling] = useState<"yearly" | "monthly">("yearly");
 
   return (
     <div className="min-h-screen bg-background">
@@ -32,168 +34,171 @@ const PersonalPricing = () => {
           <Link to="/personal" className="text-xl font-black text-foreground">
             TapAway
           </Link>
-          <Button variant="ghost" onClick={() => navigate("/auth")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
             Sign in
           </Button>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="py-12 md:py-16 px-4 text-center">
+      <section className="pt-10 pb-6 px-4 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
         >
-          <h1 className="text-4xl md:text-5xl font-black text-foreground mb-4 tracking-tight">
-            One link. All your content.
+          <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2 tracking-tight">
+            Pick your vibe
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-6">
-            Create a beautiful profile page that shares everything — socials, website, payments, and more.
+          <p className="text-muted-foreground text-base">
+            Start free, upgrade when you're ready.
           </p>
-          
-          {/* Trust badges */}
-          <div className="flex flex-wrap gap-4 justify-center text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-primary" />
-              <span>Works on any device</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span>Set up in minutes</span>
-            </div>
-          </div>
         </motion.div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="max-w-5xl mx-auto px-4 pb-20">
-        <div className="grid lg:grid-cols-5 gap-6 items-start">
-          
-          {/* Pro Plan */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-3 bg-card border-2 border-primary rounded-2xl p-8 flex flex-col relative overflow-hidden shadow-lg shadow-primary/10"
-          >
-            {/* Popular badge */}
-            <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
-              <Sparkles className="w-3.5 h-3.5" />
-              RECOMMENDED
-            </div>
+      {/* Plan Toggle */}
+      <div className="flex justify-center px-4 pb-6">
+        <div className="relative flex bg-muted rounded-full p-1 w-56">
+          {(["free", "pro"] as const).map((plan) => (
+            <button
+              key={plan}
+              onClick={() => setSelectedPlan(plan)}
+              className="relative z-10 flex-1 py-2 text-sm font-semibold rounded-full transition-colors duration-200"
+              style={{ color: selectedPlan === plan ? "hsl(var(--background))" : "hsl(var(--muted-foreground))" }}
+            >
+              {plan === "free" ? "Free" : "Pro"}
+            </button>
+          ))}
+          <motion.div
+            layoutId="plan-toggle"
+            className="absolute top-1 bottom-1 rounded-full bg-foreground"
+            style={{ width: "calc(50% - 4px)" }}
+            animate={{ left: selectedPlan === "free" ? 4 : "calc(50%)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          />
+        </div>
+      </div>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-black text-foreground mb-2">
-                Pro
-              </h2>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-black text-foreground">$75</span>
-                <span className="text-muted-foreground">/year</span>
-                <span className="text-sm text-muted-foreground line-through ml-2">$120</span>
+      {/* Plan Card */}
+      <section className="px-4 pb-6 max-w-md mx-auto">
+        <AnimatePresence mode="wait">
+          {selectedPlan === "pro" ? (
+            <motion.div
+              key="pro"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="bg-card border border-border rounded-2xl px-5 py-6"
+            >
+              {/* Billing toggle */}
+              <div className="flex gap-2 mb-5">
+                {(["yearly", "monthly"] as const).map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setBilling(b)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                      billing === b
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {b === "yearly" ? "Yearly" : "Monthly"}
+                  </button>
+                ))}
               </div>
-              <p className="text-sm text-primary font-medium">
-                Save $45/year vs monthly — that's only $6.25/mo
-              </p>
-              <p className="text-muted-foreground mt-3 text-sm">
-                Your own profile page with unlimited links and full customization.
-              </p>
-            </div>
 
-            <ul className="space-y-3 flex-1 mb-8">
-              {proFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
+              {/* Price */}
+              <div className="mb-1">
+                <span className="text-4xl font-black text-foreground">
+                  {billing === "yearly" ? "$75" : "$10"}
+                </span>
+                <span className="text-muted-foreground ml-1">
+                  /{billing === "yearly" ? "year" : "month"}
+                </span>
+              </div>
+              {billing === "yearly" && (
+                <p className="text-xs text-primary font-medium mb-5">
+                  That's only $6.25/mo
+                </p>
+              )}
+              {billing === "monthly" && <div className="mb-5" />}
 
-            <div className="space-y-3">
-              <Button 
-                size="lg" 
-                className="w-full text-base font-bold h-14"
-                onClick={() => navigate("/personal/signup?plan=yearly")}
+              {/* Features */}
+              <ul className="space-y-2.5 mb-6">
+                {proFeatures.map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA */}
+              <Button
+                size="lg"
+                className="w-full h-12 text-base font-semibold rounded-xl"
+                onClick={() =>
+                  navigate(
+                    `/personal/signup?plan=${billing === "yearly" ? "yearly" : "monthly"}`
+                  )
+                }
               >
-                Get Started — $75/year
-                <ArrowRight className="w-5 h-5 ml-2" />
+                Get Started
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button 
+            </motion.div>
+          ) : (
+            <motion.div
+              key="free"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="bg-card border border-border rounded-2xl px-5 py-6"
+            >
+              {/* Price */}
+              <div className="mb-5">
+                <span className="text-4xl font-black text-foreground">$0</span>
+                <span className="text-muted-foreground ml-1">forever</span>
+              </div>
+
+              {/* Features */}
+              <ul className="space-y-2.5 mb-6">
+                {freeFeatures.map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA */}
+              <Button
                 variant="outline"
                 size="lg"
-                className="w-full"
-                onClick={() => navigate("/personal/signup?plan=monthly")}
+                className="w-full h-12 text-base font-semibold rounded-xl"
+                onClick={() => navigate("/personal/signup?plan=free")}
               >
-                Or $10/month
+                Start Free
               </Button>
-            </div>
-          </motion.div>
-
-          {/* Free Plan */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-span-2 bg-card border border-border rounded-2xl p-6 flex flex-col"
-          >
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-foreground mb-1">
-                Free
-              </h2>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-foreground">$0</span>
-                <span className="text-muted-foreground text-sm">forever</span>
-              </div>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Basic digital profile to get started.
-              </p>
-            </div>
-
-            <ul className="space-y-2.5 flex-1 mb-6">
-              {freeFeatures.map((feature, i) => (
-                <li key={feature} className="flex items-start gap-3">
-                  {i === 0 ? (
-                    <X className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <Check className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  )}
-                  <span className={`text-sm ${i === 0 ? "text-muted-foreground/70" : "text-muted-foreground"}`}>
-                    {feature}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <Button 
-              variant="ghost" 
-              size="lg" 
-              className="w-full text-muted-foreground"
-              onClick={() => navigate("/personal/signup?plan=free")}
-            >
-              Start Free
-            </Button>
-            
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              Upgrade to Pro anytime
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Bottom CTA */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-12 text-center"
-        >
-          <p className="text-muted-foreground text-sm mb-2">
-            Questions? <Link to="/support" className="text-primary underline hover:no-underline">Contact us</Link>
-          </p>
-          <p className="text-muted-foreground/60 text-xs">
-            30-day money-back guarantee on all paid plans
-          </p>
-        </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
+
+      {/* Bottom */}
+      <div className="text-center pb-12 px-4">
+        <p className="text-muted-foreground text-xs mb-1">
+          30-day money-back guarantee on paid plans
+        </p>
+        <p className="text-muted-foreground text-xs">
+          Questions?{" "}
+          <Link to="/support" className="text-primary underline hover:no-underline">
+            Contact us
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };
