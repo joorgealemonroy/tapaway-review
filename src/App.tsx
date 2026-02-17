@@ -90,9 +90,9 @@ const App = () => (
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<Personal />} />
                 <Route path="/business" element={<Index />} />
-                <Route path="/personal" element={<Personal />} />
+                <Route path="/personal" element={<Navigate to="/" replace />} />
                 <Route path="/personal/signup" element={<PersonalSignup />} />
                 <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
                 <Route path="/personal/dashboard" element={<PersonalDashboard />} />

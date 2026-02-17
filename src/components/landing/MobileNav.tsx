@@ -15,9 +15,8 @@ export const MobileNav = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   
-  const isPersonal = location.pathname === "/personal";
-  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
-  const personalDashboardLink = "/personal/dashboard";
+  const isBusiness = location.pathname === "/business";
+  const dashboardLink = isSalesRep ? "/rep" : isBusiness ? "/dashboard" : "/personal/dashboard";
 
   const handleSignOut = async () => {
     await signOut();
@@ -56,7 +55,7 @@ export const MobileNav = () => {
                 {user ? (
                   <>
                     <Link
-                      to={isPersonal ? personalDashboardLink : dashboardLink}
+                      to={dashboardLink}
                       onClick={() => setOpen(false)}
                       className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-foreground font-medium hover:bg-muted/50 active:bg-muted transition-colors"
                     >
@@ -81,7 +80,7 @@ export const MobileNav = () => {
                       Log in
                     </Link>
                     <Link
-                      to={isPersonal ? "/personal/signup" : "/start"}
+                      to={isBusiness ? "/start" : "/personal/signup"}
                       onClick={() => setOpen(false)}
                       className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-foreground text-foreground font-semibold hover:bg-muted/50 active:bg-muted transition-colors"
                     >
@@ -109,9 +108,9 @@ export const MobileNav = () => {
       <div className="px-4 pb-3">
         <div className="flex p-1 rounded-xl bg-muted/60">
           <Link
-            to="/personal"
+            to="/"
             className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
-              isPersonal
+              !isBusiness
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
@@ -119,9 +118,9 @@ export const MobileNav = () => {
             Personal
           </Link>
           <Link
-            to="/"
+            to="/business"
             className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
-              !isPersonal
+              isBusiness
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}

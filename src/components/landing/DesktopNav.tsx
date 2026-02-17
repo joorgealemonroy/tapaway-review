@@ -8,8 +8,8 @@ export const DesktopNav = () => {
   const { isSalesRep } = useSalesRep();
   const location = useLocation();
   
-  const isPersonal = location.pathname === "/personal";
-  const dashboardLink = isSalesRep ? "/rep" : isPersonal ? "/personal/dashboard" : "/dashboard";
+  const isBusiness = location.pathname === "/business";
+  const dashboardLink = isSalesRep ? "/rep" : !isBusiness ? "/personal/dashboard" : "/dashboard";
 
   return (
     <nav className="hidden md:block sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">
@@ -25,9 +25,9 @@ export const DesktopNav = () => {
             <ProductNavToggle />
           </div>
           <div className="flex items-center gap-3">
-            {!isPersonal && (
+            {isBusiness && (
               <Link
-                to="/personal"
+                to="/"
                 className="px-4 py-2 rounded-lg font-medium text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Personal Cards
@@ -49,10 +49,10 @@ export const DesktopNav = () => {
                   Log in
                 </Link>
                 <Link
-                  to={isPersonal ? "/personal/signup" : "/start"}
+                  to={isBusiness ? "/start" : "/personal/signup"}
                   className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
                 >
-                  {isPersonal ? "Get Your Card" : "Start Free Trial"}
+                  {isBusiness ? "Start Free Trial" : "Get Your Card"}
                 </Link>
               </>
             )}
