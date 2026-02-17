@@ -1,42 +1,37 @@
 
 
-# Mobile-First Hero: CTA Above Profile
+# Improve Hero CTA Buttons and Floating Badge
 
-## Overview
+## Changes (single file: `src/components/landing/personal/PersonalHero.tsx`)
 
-Restructure the PersonalHero into a single-column, mobile-first, centered layout where the headline and CTA buttons appear **above** the phone mockup. On desktop (lg+), it scales up gracefully but the stacked layout remains.
+### 1. Replace "Real profile" floating badge
 
-## Layout (single file: `src/components/landing/personal/PersonalHero.tsx`)
+The current floating badge says "Real profile" with a sparkle emoji -- it's vague and doesn't drive action. Replace it with something that builds credibility and curiosity:
 
-### Structure (top to bottom, all centered)
+- Change to **"Live example"** with a green pulse dot (like a "live" indicator), making it feel dynamic and real
+- Alternative text: "See it live" with a small external link icon
 
-1. **Badge pill** -- "Share Everything in One Tap"
-2. **Headline** -- "One link for everything." (text-2xl on mobile, scaling up)
-3. **Subtitle** -- One-liner with "Set up in under 2 minutes" bolded. Fold "works on any phone" into copy, remove separate pill icons.
-4. **CTA buttons** -- Two buttons side by side:
-   - Primary: "Get Your TapAway" (large, dark, full-width on mobile, auto on desktop)
-   - Secondary: "See a Live Profile" (outline style, links to tapaway.co/jorge in new tab)
-5. **Trust line** -- "Free plan available - Pro from $6.25/mo"
-6. **Phone mockup** -- Jorge's profile (same content, bumped to max-w-[300px] on mobile, max-w-[340px] on md+)
-7. **Handle badge** -- tapaway.co/jorge with live link
+### 2. Rework the CTA buttons
 
-### Key changes
+Current state: Single "Get Your TapAway" button with an arrow icon.
 
-- Remove `lg:grid-cols-2` two-column grid -- replace with `flex flex-col items-center text-center`
-- Remove `lg:text-left`, `lg:justify-start` -- everything centered
-- Remove the separate "Works on any phone" and "Set up in minutes" feature pills
-- Remove floating side badges (they clip on mobile) -- replace with a single subtle badge below the phone or remove entirely
-- Buttons stack full-width on mobile (`w-full sm:w-auto`), sit side by side on sm+
-- Add subtle background: `bg-gradient-to-b from-primary/5 via-transparent to-transparent`
-- Reduce `min-h-[90vh]` to `min-h-screen` or remove min-height entirely and let content dictate height with generous padding (`py-16 md:py-24`)
-- Phone mockup entrance animation changes from `x: 30` (slide from right) to `y: 30` (slide up from below)
+New state -- two buttons side by side:
 
-### Mobile-specific polish
+- **Primary CTA**: Change "Get Your TapAway" to **"Create Yours Free"** -- this is a stronger funnel opener because it removes friction (implies free, action-oriented "create yours")
+- **Secondary CTA**: Add a new outline-style button **"View a Real Profile"** that links to `https://tapaway.co/jorge` in a new tab with an ExternalLink icon -- this lets skeptical visitors verify it's real before signing up
 
-- Headline: `text-2xl` base, `md:text-4xl lg:text-5xl`
-- Subtitle: `text-sm md:text-base` with tighter max-width
-- Primary CTA: `w-full sm:w-auto px-8 py-4 text-base` with glow shadow
-- Secondary CTA: `w-full sm:w-auto` outline button
-- Phone mockup: `max-w-[280px] sm:max-w-[320px] md:max-w-[340px]`
-- Compact vertical spacing: `gap-4` on mobile, `gap-6` on md+
+Button layout:
+- On mobile: stack full-width (`flex-col w-full`)
+- On sm+: side by side (`sm:flex-row sm:w-auto`)
+
+### 3. Update trust line
+
+Change "Free plan available - Pro from $6.25/mo" to **"Free forever - upgrade anytime"** for a cleaner, lower-friction message.
+
+### Technical details
+
+- Primary button keeps the existing dark style (`bg-foreground text-background`) with the same Link to `/personal/pricing`
+- Secondary button uses outline styling: `border border-border bg-transparent text-foreground hover:bg-muted` as an `<a>` tag with `target="_blank"`
+- Floating badge: replace sparkle emoji + "Real profile" with a small green dot (`w-2 h-2 rounded-full bg-green-500 animate-pulse`) + "Live example" text
+- No new dependencies or files needed
 
