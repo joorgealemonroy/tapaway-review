@@ -96,20 +96,31 @@ export const PersonalHero = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center lg:justify-start mb-4">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                 <Link
                   to="/personal/pricing"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
-                  Get Your TapAway
+                  Create Yours Free
                   <ArrowRight className="w-5 h-5" />
                 </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
+                <a
+                  href="https://tapaway.co/jorge"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-border bg-transparent text-foreground font-bold text-base hover:bg-muted transition-all"
+                >
+                  View a Real Profile
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               </motion.div>
             </div>
 
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Free plan available • Pro from $6.25/mo
+              Free forever • upgrade anytime
             </p>
           </motion.div>
 
@@ -254,10 +265,8 @@ export const PersonalHero = () => {
                   transition={{ duration: 0.5, delay: 1.2 }}
                   className="absolute -right-4 top-[45%] z-20 bg-card rounded-xl shadow-lg border border-border px-3 py-2 flex items-center gap-2"
                 >
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    <span className="text-xs">✨</span>
-                  </div>
-                  <span className="text-xs font-semibold text-foreground whitespace-nowrap">Real profile</span>
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-foreground whitespace-nowrap">Live example</span>
                 </motion.div>
               </motion.div>
 
