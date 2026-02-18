@@ -265,53 +265,60 @@ export const BlocksManager = ({ blocks, onAdd, onUpdate, onRemove, onReorder, ex
     }
   };
 
+  // When used externally (from LinksStep), only render the modals
+  const isExternalMode = externalModalOpen !== undefined;
+
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium text-foreground">Blocks</Label>
-      
-      {/* Existing blocks */}
-      {blocks.length > 0 && (
-        <div className="space-y-2">
-          {blocks.map((block, index) => (
-            <div
-              key={block.id}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnd={handleDragEnd}
-              className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border cursor-move transition-all ${
-                draggedIndex === index ? "opacity-50 scale-95" : ""
-              }`}
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-              <div className="flex-1 min-w-0">
-                {renderBlockPreview(block)}
-              </div>
-              <button
-                onClick={() => handleOpenModal(block)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-              >
-                <Edit className="h-4 w-4 text-muted-foreground" />
-              </button>
-              <button
-                onClick={() => setDeleteId(block.id)}
-                className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </button>
+      {!isExternalMode && (
+        <>
+          <Label className="text-sm font-medium text-foreground">Blocks</Label>
+          
+          {/* Existing blocks */}
+          {blocks.length > 0 && (
+            <div className="space-y-2">
+              {blocks.map((block, index) => (
+                <div
+                  key={block.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border cursor-move transition-all ${
+                    draggedIndex === index ? "opacity-50 scale-95" : ""
+                  }`}
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    {renderBlockPreview(block)}
+                  </div>
+                  <button
+                    onClick={() => handleOpenModal(block)}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <Edit className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteId(block.id)}
+                    className="p-2 hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Add block button */}
-      <button
-        onClick={() => handleOpenModal()}
-        className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
-      >
-        <Plus className="h-5 w-5 text-muted-foreground" />
-        <span className="text-sm font-medium text-muted-foreground">Add a block</span>
-      </button>
+          {/* Add block button */}
+          <button
+            onClick={() => handleOpenModal()}
+            className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+          >
+            <Plus className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Add a block</span>
+          </button>
+        </>
+      )}
 
       {/* Add/Edit modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
