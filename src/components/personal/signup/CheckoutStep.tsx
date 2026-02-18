@@ -406,6 +406,28 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
+      // Step 6b: Create blocks
+      if (formData.blocks.length > 0) {
+        logCheckpoint("Creating blocks", { count: formData.blocks.length });
+        const blocksToInsert = formData.blocks.map((block, index) => ({
+          profile_id: profileResult.id,
+          block_type: block.type,
+          content: block.content || {},
+          sort_order: index,
+          is_active: true,
+        }));
+
+        const { error: blocksError } = await supabase
+          .from("personal_blocks")
+          .insert(blocksToInsert);
+
+        if (blocksError) {
+          console.warn("Blocks insert error:", blocksError);
+        } else {
+          logCheckpoint("Blocks created successfully");
+        }
+      }
+
       // Note: affiliate referral logging is now handled in PersonalSignupComplete
       // after Stripe payment verification for referred users
 
@@ -457,7 +479,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   };
 
   const handleGetCard = () => {
-    if (PERSONAL_PAYMENTS_ENABLED) {
+    if (isFreePlan) {
+      // Free plan never goes through Stripe
+      sendOTP();
+    } else if (PERSONAL_PAYMENTS_ENABLED) {
       // Real payment flow - redirect to Stripe (affiliate or regular)
       handleStripeCheckout();
     } else {
@@ -687,6 +712,19 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }));
 
         await supabase.from("personal_links").insert(linksToInsert);
+      }
+
+      // Create blocks
+      if (formData.blocks.length > 0) {
+        const blocksToInsert = formData.blocks.map((block, index) => ({
+          profile_id: profileResult.id,
+          block_type: block.type,
+          content: block.content || {},
+          sort_order: index,
+          is_active: true,
+        }));
+
+        await supabase.from("personal_blocks").insert(blocksToInsert);
       }
 
       // Send welcome email
@@ -1145,7 +1183,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         <p className="text-sm text-muted-foreground">
           Instant access • No app required • Works on iPhone & Android
         </p>
-        {PERSONAL_PAYMENTS_ENABLED && (
+        {PERSONAL_PAYMENTS_ENABLED && !isFreePlan && (
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Shield className="h-3 w-3" />
             <span>Secure checkout powered by Stripe</span>
