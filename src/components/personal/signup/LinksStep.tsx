@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
 import { toast } from "sonner";
@@ -12,13 +13,21 @@ import {
   Loader2,
   ArrowLeft,
   Edit,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  Palette
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LinkModal } from "@/components/personal/LinkModal";
 import { BlocksManager } from "@/components/personal/BlocksManager";
 import { ImageCropper } from "@/components/personal/ImageCropper";
+import { HeaderCustomizer } from "@/components/personal/HeaderCustomizer";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Props {
   formData: SignupData;
@@ -60,6 +69,7 @@ export const LinksStep = ({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [themeOpen, setThemeOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,6 +299,43 @@ export const LinksStep = ({
         onRemove={removeBlock}
         onReorder={reorderBlocks}
       />
+
+      {/* Theme Customization */}
+      <Collapsible open={themeOpen} onOpenChange={setThemeOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Palette className="h-4 w-4" />
+              Customize Theme
+            </span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${themeOpen ? "rotate-180" : ""}`} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-4 space-y-4">
+          {/* Card Headline */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Card Headline</Label>
+            <Input
+              value={formData.cardHeadline || ""}
+              onChange={(e) => updateFormData({ cardHeadline: e.target.value })}
+              placeholder="Enter a headline for your card"
+              className="h-12"
+            />
+            <p className="text-xs text-muted-foreground">
+              This appears on your physical card.
+            </p>
+          </div>
+
+          {/* Header & Background Colors */}
+          <HeaderCustomizer
+            headerType={formData.headerType || "color"}
+            headerColor={formData.headerColor}
+            headerImageUrl={formData.headerImageUrl}
+            backgroundColor={formData.backgroundColor}
+            onUpdate={(updates) => updateFormData(updates)}
+          />
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Navigation Buttons */}
       <div className="flex gap-3 pt-4">
