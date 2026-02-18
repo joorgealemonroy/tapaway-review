@@ -1,39 +1,67 @@
 
-# Fix: Hide Header Image Upload for Full Banner Mode
+
+# Fix: Banner Preview Display in Profile Builder
 
 ## Problem
-The `HeaderCustomizer` component (used during signup) currently has a two-way conditional: "color" shows color pickers, and everything else (including "banner") shows the image upload UI. When a user selects "Full Banner," they shouldn't see an upload option -- the profile photo is used automatically.
 
-The dashboard version (`DashboardDesignTab.tsx`) already handles this correctly with a three-way check. This fix brings the shared `HeaderCustomizer` component in line with that behavior.
+When "Full Banner" is selected with a profile photo, the preview has visual issues:
 
-## Change
+1. **White text on white background**: Banner mode forces `isDarkBg = true`, making all text white. But the content area below the banner only gets a colored background IF `extractedBannerColor` is successfully extracted. If extraction hasn't completed or fails, the content sits on the default white/light background with invisible white text.
 
-### File: `src/components/personal/HeaderCustomizer.tsx`
+2. **Banner takes too much space**: The banner uses `h-48` (192px) in a 560px tall phone frame, consuming over a third of the visible area, making the preview feel cramped.
 
-Replace the two-way ternary (line 161) with a three-way conditional:
+3. **No profile photo scenario**: When banner is selected but no photo is uploaded yet, `hasBanner` becomes false and the preview falls back to a plain color header, which is confusing since the user selected "Full Banner."
 
-- **`"color"`** -- show color/gradient presets and hex input (unchanged)
-- **`"banner"`** -- show only the existing info message ("Your profile photo will be used as a full-width banner"). No upload UI at all.
-- **`"image"`** -- show the image upload/crop UI (unchanged)
+## Changes
 
-Currently the code is:
+### File: `src/components/personal/ProfilePreviewRenderer.tsx`
+
+1. **Add fallback background for banner content area**: When `hasBanner` is true but `extractedBannerColor` is null (not yet extracted), use a dark fallback color (e.g., the background color or a dark default) so white text remains readable.
+
+2. **Reduce banner height in preview context**: When rendering inside the compact preview panel, use a smaller banner height (`h-32` instead of `h-48`) so the preview doesn't feel dominated by the banner image.
+
+3. **Show a placeholder banner when no photo exists**: When `headerType === "banner"` but there's no `profile_photo_url`, render a gradient placeholder banner with a message or icon indicating a photo is needed, rather than silently falling back to a color header.
+
+### Specific code changes:
+
+**Content area fallback** (around line 747-749):
+- Change the content area `style` to always apply a background when in banner mode
+- Use `extractedBannerColor` if available, otherwise fall back to a dark color like `#1a1a1a`
+
+```typescript
+style={hasBanner ? { backgroundColor: extractedBannerColor || '#1a1a1a' } : undefined}
 ```
-{headerType === "color" ? (
-  <ColorSection />
+
+**Banner height adjustment** (around line 624):
+- Reduce from `h-48` to `h-36` for better proportion in the small preview frame
+
+**No-photo banner placeholder** (around line 621-641):
+- Add a condition: when `headerType === "banner"` but no `profile_photo_url`, show a gradient placeholder div with the header color, maintaining banner layout styling (dark bg, white text, no avatar) so the user can see what banner mode will look like once they add a photo
+
+```typescript
+const hasBanner = headerType === "banner"; // Always true in banner mode
+const bannerUrl = (headerType === "banner" && profile.profile_photo_url) 
+  ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
+  : null;
+```
+
+Then in the JSX:
+```typescript
+{hasBanner ? (
+  <div className="h-36 overflow-hidden relative">
+    {bannerUrl ? (
+      <img src={bannerUrl} alt="Banner" className="h-full w-full object-cover object-top" />
+    ) : (
+      <div className="h-full w-full flex items-center justify-center" 
+           style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}88)` }}>
+        <span className="text-white/60 text-xs">Add a photo for your banner</span>
+      </div>
+    )}
+    {/* gradient fade overlay */}
+  </div>
 ) : (
-  <ImageUploadSection />  // <-- banner falls through here
+  /* existing non-banner header */
 )}
 ```
 
-It will become:
-```
-{headerType === "color" ? (
-  <ColorSection />
-) : headerType === "image" ? (
-  <ImageUploadSection />
-) : null}
-```
-
-The banner info box (lines 152-158) already renders above this conditional when `headerType === "banner"`, so no additional UI is needed -- banner mode will show only that info message and nothing else.
-
-This is a single-line logic change in one file, affecting all users everywhere the `HeaderCustomizer` is used.
+This way banner mode always looks like banner mode, whether or not a photo exists yet, and text is always readable against the background.
