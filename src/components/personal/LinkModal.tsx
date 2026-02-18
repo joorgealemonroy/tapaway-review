@@ -11,6 +11,7 @@ import { PersonalLink } from "@/hooks/usePersonalOnboarding";
 import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImageCropper } from "./ImageCropper";
 
 const compressImageFile = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -86,6 +87,9 @@ export const LinkModal = ({
   const [gridSize, setGridSize] = useState<"half" | "full">("half");
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
+  const [cropperMode, setCropperMode] = useState<"cover" | "thumbnail">("cover");
 
   // Reset when modal closes or editing changes
   useEffect(() => {
@@ -155,7 +159,7 @@ export const LinkModal = ({
     setThumbnailUrl(null);
   };
 
-  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -169,43 +173,22 @@ export const LinkModal = ({
       return;
     }
 
-    setUploadingImage(true);
-    try {
-      // Compress large images
-      let processedFile: File | Blob = file;
-      if (file.size > 2 * 1024 * 1024) {
-        processedFile = await compressImageFile(file);
-      }
-
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `link-covers/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("personal-link-images")
-        .upload(filePath, processedFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("personal-link-images")
-        .getPublicUrl(filePath);
-
-      setCoverImageUrl(publicUrl);
-      toast.success("Image uploaded!");
-    } catch (err) {
-      console.error("Upload error:", err);
-      toast.error("Failed to upload image");
-    } finally {
-      setUploadingImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(reader.result as string);
+      setCropperMode("cover");
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
   };
 
   const removeCoverImage = () => {
     setCoverImageUrl(null);
   };
 
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -219,21 +202,31 @@ export const LinkModal = ({
       return;
     }
 
-    setUploadingThumbnail(true);
-    try {
-      // Compress large images
-      let processedFile: File | Blob = file;
-      if (file.size > 2 * 1024 * 1024) {
-        processedFile = await compressImageFile(file);
-      }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(reader.result as string);
+      setCropperMode("thumbnail");
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `thumbnails/${fileName}`;
+  const handleCropComplete = async (croppedBlob: Blob, _previewUrl: string) => {
+    const iscover = cropperMode === "cover";
+    const setter = iscover ? setCoverImageUrl : setThumbnailUrl;
+    const setUploading = iscover ? setUploadingImage : setUploadingThumbnail;
+    const folder = iscover ? "link-covers" : "thumbnails";
+
+    setUploading(true);
+    try {
+      const ext = croppedBlob.type.includes("webp") ? "webp" : "jpeg";
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const filePath = `${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-link-images")
-        .upload(filePath, processedFile);
+        .upload(filePath, croppedBlob);
 
       if (uploadError) throw uploadError;
 
@@ -241,13 +234,13 @@ export const LinkModal = ({
         .from("personal-link-images")
         .getPublicUrl(filePath);
 
-      setThumbnailUrl(publicUrl);
-      toast.success("Thumbnail uploaded!");
+      setter(publicUrl);
+      toast.success(iscover ? "Image uploaded!" : "Thumbnail uploaded!");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Failed to upload thumbnail");
+      toast.error("Failed to upload image");
     } finally {
-      setUploadingThumbnail(false);
+      setUploading(false);
     }
   };
 
@@ -646,6 +639,14 @@ export const LinkModal = ({
   
   const modalContent = (
     <>
+      <ImageCropper
+        open={cropperOpen}
+        onOpenChange={setCropperOpen}
+        imageSrc={cropperImageSrc}
+        onCropComplete={handleCropComplete}
+        aspectRatio={cropperMode === "cover" ? 4 / 3 : 1}
+        cropShape={cropperMode === "cover" ? "rect" : "round"}
+      />
       {!selectedPlatform ? (
         <div className="grid grid-cols-2 gap-2 pt-2">
           {availablePlatforms.map((platform) => (
