@@ -47,6 +47,8 @@ export interface SignupData {
   addExtraCard: boolean;
   extraCardCount: number;
   planType: "free" | "monthly" | "yearly";
+  cardChoice: "custom" | "basic" | "none";
+  basicCardColor: string | null;
 }
 
 const PersonalSignup = () => {
@@ -121,6 +123,8 @@ const PersonalSignup = () => {
     addExtraCard: onboardingData.addExtraCard,
     extraCardCount: onboardingData.extraCardCount,
     planType: onboardingData.planType,
+    cardChoice: onboardingData.cardChoice,
+    basicCardColor: onboardingData.basicCardColor,
   };
 
   const updateFormData = (updates: Partial<SignupData>) => {
@@ -177,7 +181,7 @@ const PersonalSignup = () => {
 
   const stepTitles = {
     1: "Create your TapAway",
-    2: "What do you want to share?",
+    2: "Build your profile",
     3: "This is your TapAway",
     4: "Finish your order",
   };

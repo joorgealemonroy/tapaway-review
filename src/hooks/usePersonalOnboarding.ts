@@ -41,6 +41,8 @@ export interface PersonalOnboardingData {
   addExtraCard: boolean;
   extraCardCount: number;
   planType: "free" | "monthly" | "yearly";
+  cardChoice: "custom" | "basic" | "none";
+  basicCardColor: string | null;
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
@@ -64,6 +66,8 @@ const initialData: PersonalOnboardingData = {
   addExtraCard: false,
   extraCardCount: 1,
   planType: "yearly",
+  cardChoice: "none",
+  basicCardColor: null,
 };
 
 export const usePersonalOnboarding = () => {
