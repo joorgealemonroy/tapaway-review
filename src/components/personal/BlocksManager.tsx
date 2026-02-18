@@ -321,7 +321,13 @@ export const BlocksManager = ({ blocks, onAdd, onUpdate, onRemove, onReorder, ex
       )}
 
       {/* Add/Edit modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseModal();
+        } else {
+          setModalOpen(true);
+        }
+      }}>
         <DialogContent className="max-w-sm mx-4">
           <DialogHeader>
             <DialogTitle>

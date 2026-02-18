@@ -280,7 +280,7 @@ export const LinksStep = ({
     is_featured: link.isFeatured || false,
     sort_order: link.sortOrder ?? i,
     pill_color: link.pillColor || null,
-    display_style: link.displayStyle || null,
+    display_style: link.displayStyle || "pill",
     cover_image_url: link.coverImageUrl || null,
     grid_size: link.gridSize || null,
     thumbnail_url: link.thumbnailUrl || null,
