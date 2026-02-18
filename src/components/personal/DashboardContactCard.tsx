@@ -62,20 +62,47 @@ export function DashboardContactCard({
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
     setUploadingPhoto(true);
     try {
+      // Compress large images
+      let processedFile: File | Blob = file;
+      if (file.size > 2 * 1024 * 1024) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = url;
+        });
+        const maxDim = 1200;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        processedFile = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85);
+        });
+        URL.revokeObjectURL(url);
+      }
+
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${profileId}/contact-photo-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, processedFile, { upsert: true });
 
       if (uploadError) throw uploadError;
 

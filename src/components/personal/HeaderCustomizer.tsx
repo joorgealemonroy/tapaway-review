@@ -53,7 +53,7 @@ export const HeaderCustomizer = ({
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -62,12 +62,48 @@ export const HeaderCustomizer = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
-    setRawImageUrl(URL.createObjectURL(file));
+    // Compress large images before cropping
+    let processedUrl: string;
+    if (file.size > 2 * 1024 * 1024) {
+      try {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = url;
+        });
+        const maxDim = 1200;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85);
+        });
+        processedUrl = URL.createObjectURL(blob);
+        URL.revokeObjectURL(url);
+      } catch {
+        toast.error("Failed to process image");
+        return;
+      }
+    } else {
+      processedUrl = URL.createObjectURL(file);
+    }
+
+    setRawImageUrl(processedUrl);
     setCropperOpen(true);
   };
 

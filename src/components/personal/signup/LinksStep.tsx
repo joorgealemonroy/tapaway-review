@@ -102,9 +102,8 @@ export const LinksStep = ({
       return;
     }
 
-    // Allow up to 15MB - we'll compress it
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("Image must be less than 15MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
