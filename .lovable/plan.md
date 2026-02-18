@@ -1,98 +1,67 @@
 
 
-# Revamp Personal Signup: Full Profile Editing + Live Preview + Card Options
+# Free Plan: Show Pro Features with Upgrade Prompts + $0 Checkout
 
 ## Overview
 
-The signup flow currently has 4 steps: Identity, Links (photo + links + blocks), Preview (card theme + reorder), Checkout. The changes restructure steps 2 and 3 so users can fully build their profile like they already own it, then see a real preview of their hub, and finally get optional card ordering.
+During signup, free plan users should see ALL Pro features (custom header, photo collage, email capture, etc.) available in the editor. When they try to USE a Pro-only feature, show an upgrade prompt offering a 7-day free trial. The checkout page for free accounts should show $0 owed.
 
-## Current Flow vs. New Flow
+## Changes
 
+### 1. LinksStep -- Allow Pro features but gate with upgrade toast (`src/components/personal/signup/LinksStep.tsx`)
+
+- During signup, do NOT hide Pro-only features (custom header image, etc.) based on plan type
+- All features are already visible in the current code since plan limits aren't enforced in the signup flow
+- The HeaderCustomizer and blocks are already shown -- no changes needed here since there's no gating in place
+
+### 2. Pro Feature Gating in Signup Flow
+
+Since `isFeatureAvailable` from `personalPlanLimits.ts` is not currently used anywhere in signup components, all features are already accessible during signup regardless of plan. The gating needs to happen when a free user tries to use a Pro-only feature during signup:
+
+- In `LinksStep.tsx`: When a free plan user tries to use the "Custom Image" header option or adds more than 5 links, show a dialog/toast: "This is a Pro feature. Try Pro free for 7 days!" with an "Upgrade" button that changes their plan selection to yearly
+- Add a helper function `checkProFeature(featureName)` that checks `formData.planType === 'free'` and shows the upgrade prompt
+- The upgrade prompt should have two options: "Try Pro Free for 7 Days" (switches plan to yearly) and "Maybe later" (dismisses)
+
+### 3. CheckoutStep -- Free plan shows $0 (`src/components/personal/signup/CheckoutStep.tsx`)
+
+**Plan summary (planLocked):**
+- Free plan: show "Free Plan -- $0"
+- Yearly: change from `Pro Annual -- $75/year` to `Pro Annual -- $6.25/month` with "Billed annually $75" subtext
+- Monthly: keep as-is
+
+**Plan selection (not locked):**
+- Yearly option: change `Pro -- $75/year` to `Pro -- $6.25/month` with "Billed annually $75" subtext
+- Monthly: keep as-is
+- Free: already shows "$0"
+
+**Order summary:**
+- Free plan: show "Free plan" with "$0" and "Total due today: $0"
+- Yearly plan: show "$6.25/mo" line item with "Billed annually $75" note, total "$75"
+- Monthly plan: keep as-is
+
+**CTA button for free plan:**
+- Already says "Create Free Account" -- keep this
+
+### 4. PreviewStep -- No changes needed
+The preview step already works for all plan types.
+
+## Technical Details
+
+### Upgrade prompt component (inline in LinksStep)
 ```text
-CURRENT:                          NEW:
-1. Identity (name/email/pw)       1. Identity (same)
-2. Links (photo + links + blocks) 2. Build Your Profile (photo + links + blocks + theme - all in one, like the dashboard editor)
-3. Preview (card/theme + reorder) 3. Preview Hub + Card Options (live preview + optional card selection)
-4. Checkout                       4. Checkout (same)
+Dialog or toast that appears when free user taps a Pro feature:
+- Title: "This is a Pro feature"
+- Body: "Upgrade to Pro to unlock [feature name]. Try it free for 7 days."
+- Primary CTA: "Try Pro Free for 7 Days" -> updates planType to "yearly"
+- Secondary: "Maybe later" -> dismisses
 ```
 
-## Step 2: "Build Your Profile" (enhanced LinksStep)
+### CheckoutStep pricing display changes
+Lines 903-927 (planLocked summary): Update yearly display to "$6.25/month" + "Billed annually $75"
+Lines 932-958 (yearly selection): Update to "$6.25/month" + "Billed annually $75"  
+Lines 1029-1048 (order summary): Update yearly to show "$6.25/mo" with annual note, free shows "$0"
 
-Keep the current LinksStep mostly as-is -- it already supports photo upload, adding/reordering links, and blocks via BlocksManager. Move the theme customization (HeaderCustomizer for header color/image and background color) from PreviewStep into this step so users can set everything in one place.
-
-### Changes to `src/components/personal/signup/LinksStep.tsx`:
-- Import and add the `HeaderCustomizer` component at the bottom of the form (before the navigation buttons)
-- Add a "Customize Theme" collapsible section containing:
-  - HeaderCustomizer (header color/image picker)
-  - Background color picker
-  - Card headline input
-- This makes step 2 feel like a full profile editor
-
-## Step 3: "This is your TapAway" (completely redesigned PreviewStep)
-
-Replace the current PreviewStep with two sections:
-
-### Section A: Live Hub Preview
-- Use the existing `ProfilePreviewPanel` component (the phone-frame preview used in the dashboard) to show exactly what the public profile will look like
-- Pass the signup form data formatted as the ProfilePreviewRenderer expects
-- This gives the user a real, accurate preview of their hub
-
-### Section B: Card Options (Optional)
-- Present card ordering as fully optional with a clear "Not now" path
-- Three card options displayed as selectable cards:
-
-  1. **Custom Card** -- Their profile photo + name + info printed on the card
-     - Shows a mini preview of TapAwayCardPreview
-     - Price: included with Pro / $15 add-on for Free
-  
-  2. **Basic Card** -- Plain colored card with "tapaway.co" centered
-     - Color picker with 5 options: Yellow, Green, Pink, Red, Grey
-     - Each shown as a small color swatch the user taps to select
-  
-  3. **No card** -- "Not now" option, clearly labeled, not hidden
-     - Subtitle: "You can always order one later from your dashboard"
-
-- Each card option has a small "More info" button/link that expands (or shows a sheet/dialog) explaining:
-  - "Why get a physical card?"
-  - Benefits: instant contact sharing with a tap, no app needed, works with any phone, professional first impression, never run out of business cards
-
-### Technical changes to `src/components/personal/signup/PreviewStep.tsx`:
-- Remove the current inline profile preview rendering (the manual header/avatar/links layout)
-- Remove the drag-and-drop reorder logic (moved to step 2 or unnecessary since LinksStep handles it)
-- Remove the theme settings collapsible (moved to step 2)
-- Import `ProfilePreviewPanel` and render it with form data mapped to the expected shape
-- Add new card selection state: `cardChoice: 'custom' | 'basic' | 'none'` (default: 'none')
-- Add `basicCardColor` state for the 5 color options
-- Add a `moreInfoOpen` state for the benefits dialog
-- Pass `cardChoice` and `basicCardColor` up via `updateFormData` so checkout can use them
-- Keep the existing TapAwayCardPreview for the "Custom Card" option preview
-
-### Data model additions to `SignupData` and `usePersonalOnboarding`:
-- Add `cardChoice: 'custom' | 'basic' | 'none'` (default: `'none'`)
-- Add `basicCardColor: string | null` (default: `null`)
-- These fields are added to both `PersonalOnboardingData` in `usePersonalOnboarding.ts` and `SignupData` in `PersonalSignup.tsx`
-
-## Step Title Updates in `PersonalSignup.tsx`
-
-```text
-Step 2: "Build your profile" (was "What do you want to share?")
-Step 3: "This is your TapAway" (unchanged)
-```
-
-## Files to Modify
-
-1. **`src/hooks/usePersonalOnboarding.ts`** -- Add `cardChoice` and `basicCardColor` to the data interface and initial state
-2. **`src/pages/personal/PersonalSignup.tsx`** -- Add new fields to `SignupData`, update step 2 title, pass theme props to LinksStep
-3. **`src/components/personal/signup/LinksStep.tsx`** -- Add theme customization section (HeaderCustomizer + background color + card headline)
-4. **`src/components/personal/signup/PreviewStep.tsx`** -- Complete rewrite: ProfilePreviewPanel for hub preview + card option selector with Custom/Basic/None choices + More Info dialog
-
-## Card Option UI Details
-
-The three options are presented as tappable cards in a vertical stack:
-
-- **Custom Card**: Shows a scaled-down TapAwayCardPreview, label "Custom Card" with subtitle "Your photo, name & QR code". Has a checkmark ring when selected.
-- **Basic Card**: Shows 5 color circles (Yellow #FFD93D, Green #6BCB77, Pink #FF6B9D, Red #FF6B6B, Grey #9CA3AF) with "tapaway.co" text in the center preview. Selecting this reveals the color picker.
-- **Not now**: Simple text option "I'll skip the card for now" with muted styling. Subtitle: "You can order one anytime from your dashboard."
-
-Below all three, a small link: "Why get a card?" that opens a bottom sheet (on mobile) or dialog explaining benefits.
+### Files to modify
+1. `src/components/personal/signup/LinksStep.tsx` -- Add Pro feature upgrade prompt dialog
+2. `src/components/personal/signup/CheckoutStep.tsx` -- Update pricing display for yearly (monthly equivalent) and ensure free shows $0 throughout
 
