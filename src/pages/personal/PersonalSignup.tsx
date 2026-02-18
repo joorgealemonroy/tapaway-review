@@ -24,10 +24,10 @@ import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
 // Hooks and types
-import { usePersonalOnboarding, PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
+import { usePersonalOnboarding, PersonalLink, PersonalBlock, ContentItem } from "@/hooks/usePersonalOnboarding";
 
 // Re-export types for backward compatibility
-export type { PersonalLink, PersonalBlock };
+export type { PersonalLink, PersonalBlock, ContentItem };
 
 export interface SignupData {
   fullName: string;
@@ -72,6 +72,7 @@ const PersonalSignup = () => {
     updateBlock,
     removeBlock,
     reorderBlocks,
+    reorderContent,
     clearDraft,
     hasDraft 
   } = usePersonalOnboarding();
@@ -182,7 +183,7 @@ const PersonalSignup = () => {
   const stepTitles = {
     1: "Create your TapAway",
     2: "Build your profile",
-    3: "This is your TapAway",
+    3: "Get a physical card",
     4: "Finish your order",
   };
 
@@ -273,6 +274,7 @@ const PersonalSignup = () => {
                 updateBlock={updateBlock}
                 removeBlock={removeBlock}
                 reorderBlocks={reorderBlocks}
+                reorderContent={reorderContent}
               />
             )}
 

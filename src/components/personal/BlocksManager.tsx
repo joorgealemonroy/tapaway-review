@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ interface Props {
   onUpdate: (id: string, updates: Partial<PersonalBlock>) => void;
   onRemove: (id: string) => void;
   onReorder: (blocks: PersonalBlock[]) => void;
+  externalModalOpen?: boolean;
+  onExternalModalClose?: () => void;
+  externalEditingBlock?: PersonalBlock | null;
 }
 
 const BLOCK_TYPES = [
@@ -33,13 +36,25 @@ const BLOCK_TYPES = [
   { type: "button", label: "Featured Button", icon: MousePointerClick, description: "Big CTA button" },
 ] as const;
 
-export const BlocksManager = ({ blocks, onAdd, onUpdate, onRemove, onReorder }: Props) => {
+export const BlocksManager = ({ blocks, onAdd, onUpdate, onRemove, onReorder, externalModalOpen, onExternalModalClose, externalEditingBlock }: Props) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
+  // Handle external modal control
+  useEffect(() => {
+    if (externalModalOpen) {
+      if (externalEditingBlock) {
+        handleOpenModal(externalEditingBlock);
+      } else {
+        handleOpenModal();
+      }
+    }
+  }, [externalModalOpen, externalEditingBlock]);
+
+
   // Form states
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -85,6 +100,7 @@ export const BlocksManager = ({ blocks, onAdd, onUpdate, onRemove, onReorder }: 
   const handleCloseModal = () => {
     resetForm();
     setModalOpen(false);
+    onExternalModalClose?.();
   };
 
   const extractYoutubeId = (url: string): string | null => {

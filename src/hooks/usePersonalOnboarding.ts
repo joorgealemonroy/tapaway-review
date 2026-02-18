@@ -14,7 +14,12 @@ export interface PersonalLink {
   coverImageUrl?: string | null; // optional cover image for card-style display
   gridSize?: string | null; // "half" | "full" - controls 2-col grid
   thumbnailUrl?: string | null; // optional small icon image
+  sortOrder?: number; // unified ordering with blocks
 }
+
+export type ContentItem =
+  | { kind: "link"; item: PersonalLink }
+  | { kind: "block"; item: PersonalBlock };
 
 export interface PersonalBlock {
   id: string;
@@ -198,6 +203,21 @@ export const usePersonalOnboarding = () => {
     setIsDirty(true);
   }, []);
 
+  // Unified reorder: accepts mixed links+blocks, assigns sequential sort orders
+  const reorderContent = useCallback((items: ContentItem[]) => {
+    const newLinks: PersonalLink[] = [];
+    const newBlocks: PersonalBlock[] = [];
+    items.forEach((ci, index) => {
+      if (ci.kind === "link") {
+        newLinks.push({ ...ci.item, sortOrder: index });
+      } else {
+        newBlocks.push({ ...ci.item, sortOrder: index });
+      }
+    });
+    setData(prev => ({ ...prev, links: newLinks, blocks: newBlocks }));
+    setIsDirty(true);
+  }, []);
+
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setData(initialData);
@@ -229,6 +249,7 @@ export const usePersonalOnboarding = () => {
     updateBlock,
     removeBlock,
     reorderBlocks,
+    reorderContent,
     clearDraft,
     flushSave,
     hasDraft,
