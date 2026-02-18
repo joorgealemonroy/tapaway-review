@@ -1,67 +1,69 @@
 
 
-# Free Plan: Show Pro Features with Upgrade Prompts + $0 Checkout
+# Improve Mobile UX, Card Preview, and Plan Switching in Signup Flow
 
-## Overview
+## 1. Make "Build Your Profile" (LinksStep) more phone-friendly with explanations
 
-During signup, free plan users should see ALL Pro features (custom header, photo collage, email capture, etc.) available in the editor. When they try to USE a Pro-only feature, show an upgrade prompt offering a 7-day free trial. The checkout page for free accounts should show $0 owed.
+### Current problem
+- Sections like "Your links," "Blocks," and "Customize Theme" have no descriptions explaining what they are
+- The collapsible theme section is easy to miss
+- Touch targets on link items could be larger
 
-## Changes
+### Changes to `src/components/personal/signup/LinksStep.tsx`
+- Add short helper text below each section heading:
+  - **Profile photo**: "This photo appears on your profile and physical card" (already partially there)
+  - **Your links**: Add subtitle "Add your social media, website, or any link you want to share. People see these when they visit your profile."
+  - **Blocks**: Add subtitle "Add extra content like text, images, YouTube videos, or buttons to make your profile stand out."
+  - **Customize Theme**: Add subtitle "Change colors and style to match your brand or personality."
+- Make the "Customize Theme" section default to open (change `useState(false)` to `useState(true)`) so users don't miss it
+- Increase touch targets: link item rows get `min-h-[56px]` and action buttons get `p-3 -m-1` for 44px targets
+- Add `touch-action: manipulation` to draggable items to prevent zoom on double-tap
 
-### 1. LinksStep -- Allow Pro features but gate with upgrade toast (`src/components/personal/signup/LinksStep.tsx`)
+## 2. Fix basic card to credit card size
 
-- During signup, do NOT hide Pro-only features (custom header image, etc.) based on plan type
-- All features are already visible in the current code since plan limits aren't enforced in the signup flow
-- The HeaderCustomizer and blocks are already shown -- no changes needed here since there's no gating in place
+### Current problem
+The basic card preview in PreviewStep is `w-full h-24` -- too short and not realistic.
 
-### 2. Pro Feature Gating in Signup Flow
+### Changes to `src/components/personal/signup/PreviewStep.tsx`
+- Replace `w-full h-24` with `w-full aspect-[85.6/53.98]` (standard credit card ratio, landscape orientation)
+- This gives the card a realistic credit-card shape
+- Also apply the same aspect ratio styling to the custom card preview area for consistency
 
-Since `isFeatureAvailable` from `personalPlanLimits.ts` is not currently used anywhere in signup components, all features are already accessible during signup regardless of plan. The gating needs to happen when a free user tries to use a Pro-only feature during signup:
+## 3. Plan switching on Checkout without going back to step 1
 
-- In `LinksStep.tsx`: When a free plan user tries to use the "Custom Image" header option or adds more than 5 links, show a dialog/toast: "This is a Pro feature. Try Pro free for 7 days!" with an "Upgrade" button that changes their plan selection to yearly
-- Add a helper function `checkProFeature(featureName)` that checks `formData.planType === 'free'` and shows the upgrade prompt
-- The upgrade prompt should have two options: "Try Pro Free for 7 Days" (switches plan to yearly) and "Maybe later" (dismisses)
+### Current problem
+The "Change" button in the locked plan summary navigates to `/personal/pricing`, which exits the signup flow entirely. When plan is not locked, switching plans works inline but there's no warning about Pro features becoming unavailable when downgrading to free.
 
-### 3. CheckoutStep -- Free plan shows $0 (`src/components/personal/signup/CheckoutStep.tsx`)
+### Changes to `src/components/personal/signup/CheckoutStep.tsx`
 
-**Plan summary (planLocked):**
-- Free plan: show "Free Plan -- $0"
-- Yearly: change from `Pro Annual -- $75/year` to `Pro Annual -- $6.25/month` with "Billed annually $75" subtext
-- Monthly: keep as-is
+**A. Fix the "Change" button (planLocked mode):**
+- Replace `navigate("/personal/pricing")` with inline plan selection
+- When user clicks "Change," expand the plan selection UI inline (toggle `planLocked` behavior off temporarily) so they can pick a new plan without leaving the flow
+- Add a local state `showPlanSelector` that overrides `planLocked` display
 
-**Plan selection (not locked):**
-- Yearly option: change `Pro -- $75/year` to `Pro -- $6.25/month` with "Billed annually $75" subtext
-- Monthly: keep as-is
-- Free: already shows "$0"
+**B. Add downgrade warning when switching from paid to free:**
+- When user selects "Free" after previously having "monthly" or "yearly," check their signup data for Pro-only features:
+  - Custom header image (`headerType === "image"`)
+  - More than 5 links
+  - Pro-only blocks (photo collage, email capture)
+- If any Pro features are in use, show an AlertDialog warning:
+  - Title: "Some features will be removed"
+  - Body: List the specific features that will be lost (e.g., "Custom header image will revert to solid color," "Links beyond 5 will be removed")
+  - Primary CTA: "Switch to Free anyway" -- downgrades and strips pro features from formData
+  - Secondary: "Keep Pro plan" -- cancels the switch
+- If no Pro features are in use, switch silently
 
-**Order summary:**
-- Free plan: show "Free plan" with "$0" and "Total due today: $0"
-- Yearly plan: show "$6.25/mo" line item with "Billed annually $75" note, total "$75"
-- Monthly plan: keep as-is
+**C. Pricing display consistency:**
+- Already shows "$6.25/month" with "Billed annually $75" -- keep this as-is
 
-**CTA button for free plan:**
-- Already says "Create Free Account" -- keep this
+### Changes to `src/pages/personal/PersonalSignup.tsx`
+- Pass a new `onChangePlan` callback to CheckoutStep that updates the plan without resetting the step
+- The `planLocked` prop becomes overridable from within CheckoutStep via local state
 
-### 4. PreviewStep -- No changes needed
-The preview step already works for all plan types.
+## Files to modify
 
-## Technical Details
-
-### Upgrade prompt component (inline in LinksStep)
-```text
-Dialog or toast that appears when free user taps a Pro feature:
-- Title: "This is a Pro feature"
-- Body: "Upgrade to Pro to unlock [feature name]. Try it free for 7 days."
-- Primary CTA: "Try Pro Free for 7 Days" -> updates planType to "yearly"
-- Secondary: "Maybe later" -> dismisses
-```
-
-### CheckoutStep pricing display changes
-Lines 903-927 (planLocked summary): Update yearly display to "$6.25/month" + "Billed annually $75"
-Lines 932-958 (yearly selection): Update to "$6.25/month" + "Billed annually $75"  
-Lines 1029-1048 (order summary): Update yearly to show "$6.25/mo" with annual note, free shows "$0"
-
-### Files to modify
-1. `src/components/personal/signup/LinksStep.tsx` -- Add Pro feature upgrade prompt dialog
-2. `src/components/personal/signup/CheckoutStep.tsx` -- Update pricing display for yearly (monthly equivalent) and ensure free shows $0 throughout
+1. **`src/components/personal/signup/LinksStep.tsx`** -- Add section descriptions, open theme by default, increase touch targets
+2. **`src/components/personal/signup/PreviewStep.tsx`** -- Fix basic card to credit card aspect ratio
+3. **`src/components/personal/signup/CheckoutStep.tsx`** -- Inline plan switching (no navigation away), downgrade warning dialog when switching from paid to free
+4. **`src/pages/personal/PersonalSignup.tsx`** -- Minor: ensure planLocked doesn't prevent inline changes
 
