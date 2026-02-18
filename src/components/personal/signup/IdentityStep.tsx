@@ -130,7 +130,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       {/* Full Name */}
       <div className="space-y-2">
         <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
-          Full name
+          Name
         </Label>
         <Input
           id="fullName"
