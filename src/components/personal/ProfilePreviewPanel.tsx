@@ -25,6 +25,10 @@ interface LinkData {
   is_featured?: boolean | null;
   sort_order?: number | null;
   pill_color?: string | null;
+  display_style?: string | null;
+  cover_image_url?: string | null;
+  grid_size?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface BlockData {
