@@ -323,7 +323,7 @@ export const LinksStep = ({
         </button>
 
         <p className="text-sm text-muted-foreground">
-          These links appear when someone taps your card or visits your profile.
+          These links appear when someone visits your profile.
         </p>
       </div>
 
