@@ -34,7 +34,7 @@ export const PERSONAL_PRICING = {
 
 // Stripe Payment Links (direct links - bypass Checkout API for correct pricing)
 export const PERSONAL_PAYMENT_LINKS = {
-  monthly: 'https://buy.stripe.com/4gMeVddSnbXR0Tngv8gYU0d',
+  monthly: 'https://buy.stripe.com/14A5kDbKfe5Z9pT7YCgYU0e',
   yearly: 'https://buy.stripe.com/5kQaEX4hNbXR9pT5QugYU0c',
 };
 
