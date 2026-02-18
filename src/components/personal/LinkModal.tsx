@@ -12,6 +12,34 @@ import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X } from "lu
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const compressImageFile = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxDim = 1200;
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("No 2d context")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => { if (blob) resolve(blob); else reject(new Error("Compression failed")); },
+        "image/jpeg",
+        0.85
+      );
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 // Preset colors for custom links
 const COLOR_PRESETS = [
   "#000000", // Black
@@ -136,20 +164,26 @@ export const LinkModal = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
     setUploadingImage(true);
     try {
+      // Compress large images
+      let processedFile: File | Blob = file;
+      if (file.size > 2 * 1024 * 1024) {
+        processedFile = await compressImageFile(file);
+      }
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `link-covers/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-link-images")
-        .upload(filePath, file);
+        .upload(filePath, processedFile);
 
       if (uploadError) throw uploadError;
 
@@ -180,20 +214,26 @@ export const LinkModal = ({
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be less than 2MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
     setUploadingThumbnail(true);
     try {
+      // Compress large images
+      let processedFile: File | Blob = file;
+      if (file.size > 2 * 1024 * 1024) {
+        processedFile = await compressImageFile(file);
+      }
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `thumbnails/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-link-images")
-        .upload(filePath, file);
+        .upload(filePath, processedFile);
 
       if (uploadError) throw uploadError;
 

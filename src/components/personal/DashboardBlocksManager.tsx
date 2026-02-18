@@ -164,8 +164,12 @@ export const DashboardBlocksManager = ({ profileId, blocks, onBlocksChange }: Pr
 
     // Client-side compression for large files
     let processedFile: File | Blob = file;
-    if (file.size > 5 * 1024 * 1024) {
-      // Compress large images
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
       setUploadingImage(true);
       try {
         processedFile = await compressImage(file);

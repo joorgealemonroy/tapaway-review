@@ -329,15 +329,14 @@ const PersonalDashboard = () => {
       return;
     }
 
-    // Allow up to 15MB, compress if needed
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error("Image must be less than 15MB");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Image must be less than 20MB");
       return;
     }
 
-    // Compress if > 5MB
+    // Compress if > 2MB
     let processedFile: Blob = file;
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024) {
       try {
         processedFile = await compressImage(file);
       } catch {
