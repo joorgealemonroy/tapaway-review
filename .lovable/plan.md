@@ -1,45 +1,37 @@
 
-# Three Fixes: Tap Prefix Link, Full Banner Option, Change Email Button
 
-## 1. Make "tap" prefix upgrade text clickable (IdentityStep)
+# Fix: Cover Image Upload Fails During Signup
 
-**File: `src/components/personal/signup/IdentityStep.tsx`**
+## Root Cause
 
-The current text at line 222-225 says: `Upgrade to Pro to remove the "tap" prefix from your URL` as a plain `<p>` tag. Change it to a small, subtle clickable element that switches the plan to "yearly" when tapped. Style it as a very small, non-annoying link -- just underlined text, no loud colors or buttons.
+The `personal-link-images` storage bucket has an INSERT policy requiring `auth.role() = 'authenticated'`. During signup, the user is **not yet authenticated**, so every upload is blocked by RLS.
 
-- Replace the `<p>` with a `<button>` styled as subtle text (`text-xs text-muted-foreground underline cursor-pointer`)
-- On click, call `updateFormData({ planType: "yearly" })` and show a toast confirming the upgrade
-- Keep it small and non-intrusive
+## Solution
 
-## 2. Add "Full Banner" as a third header option (HeaderCustomizer)
+Two changes are needed:
 
-**File: `src/components/personal/HeaderCustomizer.tsx`**
+### 1. Allow anonymous uploads to `personal-link-images` bucket
 
-The HeaderCustomizer currently only supports "color" and "image" as header types. The dashboard's `DashboardDesignTab` supports a third option: "banner" (Full Banner) which uses the profile photo as the banner image.
+Since this bucket is already **public for viewing**, allowing anonymous inserts for link cover images is acceptable. We'll update the storage RLS policy:
 
-- Update the `Props` interface to accept `"color" | "image" | "banner"` for `headerType`
-- Add a third `RadioGroupItem` with value `"banner"` labeled "Full Banner" with a Sparkles icon
-- When "banner" is selected, show an info box explaining "Your profile photo will be used as a full-width banner" (matching the dashboard's design)
-- No separate image upload needed for banner mode -- it uses the profile photo automatically
+```sql
+DROP POLICY "Authenticated users can upload link images" ON storage.objects;
 
-**File: `src/components/personal/signup/LinksStep.tsx`**
+CREATE POLICY "Anyone can upload link images"
+ON storage.objects FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'personal-link-images');
+```
 
-- Update the `onUpdate` handler for `HeaderCustomizer` to also gate "banner" behind Pro (same as "image")
+This is safe because:
+- The bucket is already public (anyone can view files)
+- The images are just link covers -- no sensitive data
+- File paths use random names so there's no collision risk
 
-## 3. Add "Change email" button on OTP verification screen (CheckoutStep)
+### 2. No code changes needed
 
-**File: `src/components/personal/signup/CheckoutStep.tsx`**
+The `LinkModal.tsx` upload logic is correct -- it just needs the RLS policy to allow the upload.
 
-Currently (lines 838-980), the OTP screen shows "Check your email" with the email address, OTP inputs, resend button, and a "Back to plan selection" button. Add a "Change email" button that:
+## Files to modify
 
-- Goes back to the plan selection step (`setFlowStep("plan")`)
-- Resets OTP state (`setOtpCode("")`, `setOtpError(null)`)
-- Place it right after the email display text (line ~857), styled as a small text link: "Wrong email? Change it"
-- This keeps it easy to find without redoing any steps -- the user just corrects the email and re-sends
-
-## Summary of files to modify
-
-1. `src/components/personal/signup/IdentityStep.tsx` -- Make "tap" prefix text a subtle clickable upgrade button
-2. `src/components/personal/HeaderCustomizer.tsx` -- Add "banner" as third header type option
-3. `src/components/personal/signup/LinksStep.tsx` -- Gate "banner" behind Pro like "image"
-4. `src/components/personal/signup/CheckoutStep.tsx` -- Add "Change email" link on OTP screen
+- **Database migration only** -- update the storage INSERT policy for `personal-link-images`
