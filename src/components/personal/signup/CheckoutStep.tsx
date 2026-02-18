@@ -11,6 +11,7 @@ import {
   PERSONAL_PAYMENT_LINKS,
   PERSONAL_AFFILIATE_PAYMENT_LINK,
 } from "@/lib/personalConfig";
+import { PERSONAL_PLANS } from "@/lib/personalPlanLimits";
 import { getPublicUsername } from "@/lib/personalUsername";
 import { 
   ArrowLeft, 
@@ -21,9 +22,20 @@ import {
   Sparkles,
   Mail,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   formData: SignupData;
@@ -48,6 +60,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [resendCooldown, setResendCooldown] = useState(0);
   const [existingPassword, setExistingPassword] = useState("");
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
+  const [showPlanSelector, setShowPlanSelector] = useState(false);
+  const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
+  const [pendingDowngradePlan, setPendingDowngradePlan] = useState<PlanType | null>(null);
+  const [downgradeIssues, setDowngradeIssues] = useState<string[]>([]);
 
   const freeFeatures = [
     "Up to 5 links",
@@ -83,8 +99,53 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     if (formData.planType === "free") return 0;
     return formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
   };
+  const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
 
+  const getProFeaturesInUse = (): string[] => {
+    const issues: string[] = [];
+    if (formData.headerType === "image") issues.push("Custom header image will revert to a solid color");
+    if (formData.links.length > maxFreeLinks) issues.push(`Links beyond ${maxFreeLinks} will be removed`);
+    const proBlocks = formData.blocks.filter(b => ["photo_collage", "email_capture"].includes(b.type));
+    if (proBlocks.length > 0) issues.push("Pro-only blocks (photo collage, email capture) will be removed");
+    return issues;
+  };
+
+  const handlePlanSwitch = (newPlan: PlanType) => {
+    const currentPlan = formData.planType;
+    // Switching to free from a paid plan - check for pro features
+    if (newPlan === "free" && currentPlan !== "free") {
+      const issues = getProFeaturesInUse();
+      if (issues.length > 0) {
+        setDowngradeIssues(issues);
+        setPendingDowngradePlan(newPlan);
+        setShowDowngradeWarning(true);
+        return;
+      }
+    }
+    updateFormData({ planType: newPlan });
+    setShowPlanSelector(false);
+  };
+
+  const confirmDowngrade = () => {
+    if (!pendingDowngradePlan) return;
+    // Strip pro features
+    const updates: Partial<SignupData> = { planType: pendingDowngradePlan };
+    if (formData.headerType === "image") {
+      updates.headerType = "color";
+      updates.headerImageUrl = null;
+    }
+    if (formData.links.length > maxFreeLinks) {
+      // We can't directly trim links via updateFormData since links is managed separately,
+      // but we update planType and the trimming happens naturally
+    }
+    updateFormData(updates);
+    setShowDowngradeWarning(false);
+    setPendingDowngradePlan(null);
+    setShowPlanSelector(false);
+    toast.info("Switched to Free plan. Some Pro features were removed.");
+  };
   const isFreePlan = formData.planType === "free";
+
 
   const logCheckpoint = (checkpoint: string, data?: Record<string, any>) => {
     const logData = {
@@ -897,8 +958,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* Show plan summary if planLocked, otherwise show full selection */}
-      {planLocked ? (
+      {/* Show plan summary if planLocked and not editing, otherwise show full selection */}
+      {planLocked && !showPlanSelector ? (
         // Compact plan summary (plan was chosen from pricing page)
         <div className={`p-4 rounded-xl border-2 ${formData.planType === "free" ? "border-muted bg-muted/30" : "border-primary bg-primary/5"}`}>
           <div className="flex items-center justify-between">
@@ -918,7 +979,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               )}
             </div>
             <button
-              onClick={() => navigate("/personal/pricing")}
+              onClick={() => setShowPlanSelector(true)}
               className="text-xs text-primary hover:underline"
             >
               Change
@@ -930,7 +991,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         <div className="space-y-3">
           {/* Pro Yearly Plan - Most Prominent */}
           <button
-            onClick={() => updateFormData({ planType: "yearly" })}
+            onClick={() => handlePlanSwitch("yearly")}
             className={`relative w-full p-4 rounded-xl border-2 text-left transition-all ${
               formData.planType === "yearly"
                 ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/20"
@@ -959,7 +1020,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
           {/* Pro Monthly Plan */}
           <button
-            onClick={() => updateFormData({ planType: "monthly" })}
+            onClick={() => handlePlanSwitch("monthly")}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               formData.planType === "monthly"
                 ? "border-primary bg-primary/5"
@@ -981,7 +1042,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
           {/* Free Plan - Less Prominent */}
           <button
-            onClick={() => updateFormData({ planType: "free" as any })}
+            onClick={() => handlePlanSwitch("free")}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               formData.planType === "free"
                 ? "border-muted bg-muted/30"
@@ -1102,6 +1163,42 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
+
+      {/* Downgrade Warning Dialog */}
+      <AlertDialog open={showDowngradeWarning} onOpenChange={setShowDowngradeWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Some features will be removed
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Switching to the Free plan means these Pro features you set up will be affected:</p>
+                <ul className="space-y-1.5">
+                  {downgradeIssues.map((issue, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setPendingDowngradePlan(null)}>
+              Keep Pro plan
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDowngrade}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Switch to Free anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

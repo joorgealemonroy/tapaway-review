@@ -72,7 +72,7 @@ export const LinksStep = ({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [themeOpen, setThemeOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(true);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -247,7 +247,12 @@ export const LinksStep = ({
 
       {/* Links Section */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium text-foreground">Your links</Label>
+        <div>
+          <Label className="text-sm font-medium text-foreground">Your links</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Add your social media, website, or any link you want to share.
+          </p>
+        </div>
         
         {/* Existing Links */}
         {formData.links.length > 0 && (
@@ -263,7 +268,8 @@ export const LinksStep = ({
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border cursor-move transition-all ${
+                  style={{ touchAction: "manipulation" }}
+                  className={`flex items-center gap-3 p-3 min-h-[56px] bg-card rounded-xl border border-border cursor-move transition-all ${
                     draggedIndex === index ? "opacity-50 scale-95" : ""
                   }`}
                 >
@@ -279,13 +285,13 @@ export const LinksStep = ({
                   </div>
                   <button
                     onClick={() => handleEditLink(link)}
-                    className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                    className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
                   >
                     <Edit className="h-4 w-4 text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => setDeleteId(link.id)}
-                    className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
+                    className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </button>
@@ -322,23 +328,36 @@ export const LinksStep = ({
       </div>
 
       {/* Blocks Section */}
-      <BlocksManager
-        blocks={formData.blocks}
-        onAdd={addBlock}
-        onUpdate={updateBlock}
-        onRemove={removeBlock}
-        onReorder={reorderBlocks}
-      />
+      <div className="space-y-2">
+        <div>
+          <Label className="text-sm font-medium text-foreground">Blocks</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Add extra content like text, images, videos, or buttons to stand out.
+          </p>
+        </div>
+        <BlocksManager
+          blocks={formData.blocks}
+          onAdd={addBlock}
+          onUpdate={updateBlock}
+          onRemove={removeBlock}
+          onReorder={reorderBlocks}
+        />
+      </div>
 
       {/* Theme Customization */}
       <Collapsible open={themeOpen} onOpenChange={setThemeOpen}>
         <CollapsibleTrigger asChild>
           <button className="w-full flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
-            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Palette className="h-4 w-4" />
-              Customize Theme
-            </span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${themeOpen ? "rotate-180" : ""}`} />
+            <div>
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Palette className="h-4 w-4" />
+                Customize Theme
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5 text-left">
+                Change colors and style to match your brand.
+              </p>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${themeOpen ? "rotate-180" : ""}`} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-4 space-y-4">

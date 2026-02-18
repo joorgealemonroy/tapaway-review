@@ -200,7 +200,7 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                   </div>
                   {/* Basic card mini preview */}
                   <div
-                    className="w-full h-24 rounded-xl flex items-center justify-center shadow-sm"
+                    className="w-full aspect-[85.6/53.98] rounded-xl flex items-center justify-center shadow-lg border border-black/10"
                     style={{ backgroundColor: basicCardColor }}
                   >
                     <span className="text-white font-bold text-lg drop-shadow-md">
