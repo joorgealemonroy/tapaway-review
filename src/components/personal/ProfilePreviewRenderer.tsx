@@ -621,7 +621,7 @@ function ProfilePreviewRendererComponent({
         {hasBanner ? (
           <>
             {/* Banner mode - fully visible with fade at bottom using extracted color */}
-            <div className="h-36 overflow-hidden relative">
+            <div className="h-52 overflow-hidden relative">
               {bannerUrl ? (
                 <img
                   src={bannerUrl}
@@ -638,7 +638,7 @@ function ProfilePreviewRendererComponent({
               )}
               {/* Gradient fade using extracted color from image - taller for text overlap */}
               <div 
-                className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+                className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
                 style={{
                   background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
                     extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
@@ -685,7 +685,7 @@ function ProfilePreviewRendererComponent({
 
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
-        className={`px-6 ${hasBanner ? '-mt-12' : ''} ${
+        className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >
@@ -728,8 +728,8 @@ function ProfilePreviewRendererComponent({
             pfpPosition === "left" ? "flex-1 pt-2" : "mt-4"
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
-          <h1 className={`text-xl font-bold ${headingClass}`}>
-            {profile.full_name}
+          <h1 className={`${hasBanner ? 'text-3xl' : 'text-xl'} font-bold ${headingClass}`}>
+            {hasBanner ? `@${profile.username}` : profile.full_name}
           </h1>
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
