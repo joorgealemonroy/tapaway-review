@@ -1,37 +1,58 @@
 
+# Add Image Cropping to All Image Uploads in LinkModal
 
-# Fix: Cover Image Upload Fails During Signup
+## Problem
+Currently, cover images and thumbnail icons uploaded in the Link Modal are uploaded directly without any cropping. The `ImageCropper` component already exists and works well for profile photos and header images -- we just need to wire it into `LinkModal.tsx`.
 
-## Root Cause
+## Changes
 
-The `personal-link-images` storage bucket has an INSERT policy requiring `auth.role() = 'authenticated'`. During signup, the user is **not yet authenticated**, so every upload is blocked by RLS.
+### File: `src/components/personal/LinkModal.tsx`
 
-## Solution
+**1. Import the ImageCropper component**
 
-Two changes are needed:
+Add `import { ImageCropper } from "./ImageCropper";` to the imports.
 
-### 1. Allow anonymous uploads to `personal-link-images` bucket
+**2. Add cropper state variables**
 
-Since this bucket is already **public for viewing**, allowing anonymous inserts for link cover images is acceptable. We'll update the storage RLS policy:
+Add state for managing the cropper dialog for both cover images and thumbnails:
+- `cropperOpen` / `setCropperOpen` -- whether the crop dialog is showing
+- `cropperImageSrc` -- the raw image data URL to crop
+- `cropperMode` -- either `"cover"` or `"thumbnail"` to know which upload triggered the crop
 
-```sql
-DROP POLICY "Authenticated users can upload link images" ON storage.objects;
+**3. Update `handleCoverImageUpload`**
 
-CREATE POLICY "Anyone can upload link images"
-ON storage.objects FOR INSERT
-TO public
-WITH CHECK (bucket_id = 'personal-link-images');
-```
+Instead of uploading immediately, read the file as a data URL and open the cropper:
+- Convert the selected file to a data URL (or object URL)
+- Set `cropperImageSrc` to that URL
+- Set `cropperMode` to `"cover"`
+- Open the cropper dialog
 
-This is safe because:
-- The bucket is already public (anyone can view files)
-- The images are just link covers -- no sensitive data
-- File paths use random names so there's no collision risk
+**4. Update `handleThumbnailUpload`**
 
-### 2. No code changes needed
+Same approach -- open the cropper instead of uploading directly:
+- Set `cropperMode` to `"thumbnail"`
+- Open the cropper dialog
 
-The `LinkModal.tsx` upload logic is correct -- it just needs the RLS policy to allow the upload.
+**5. Add `handleCropComplete` callback**
 
-## Files to modify
+When the user finishes cropping:
+- Take the cropped `Blob` from the cropper
+- Upload it to Supabase storage (same upload logic currently in the handlers)
+- Set the resulting public URL as `coverImageUrl` or `thumbnailUrl` depending on `cropperMode`
 
-- **Database migration only** -- update the storage INSERT policy for `personal-link-images`
+**6. Render the ImageCropper component**
+
+Add the `ImageCropper` at the bottom of the modal content with:
+- `aspectRatio`: 4/3 for cover images, 1 for thumbnails
+- `cropShape`: "rect" for cover images, "round" for thumbnails
+
+## Cropper configuration per upload type
+
+| Upload | Aspect Ratio | Crop Shape |
+|--------|-------------|------------|
+| Cover image | 4/3 | Rectangle |
+| Thumbnail icon | 1 (square) | Round |
+
+## No other files need changes
+
+The `ImageCropper` component already supports all needed props (`aspectRatio`, `cropShape`, `onCropComplete`). Only `LinkModal.tsx` needs to be updated.
