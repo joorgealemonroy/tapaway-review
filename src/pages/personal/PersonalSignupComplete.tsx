@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 
 interface SavedSignupData {
   fullName: string;
@@ -249,6 +250,29 @@ const PersonalSignupComplete = () => {
               .insert(linksToInsert);
 
             console.log("[PersonalSignupComplete] Links created:", linksToInsert.length);
+          }
+
+          // Step 7b: Create blocks from saved data
+          if (savedData.blocks && savedData.blocks.length > 0) {
+            // Delete any existing blocks first (prevents duplicates on refresh)
+            await supabase
+              .from("personal_blocks")
+              .delete()
+              .eq("profile_id", profile.id);
+
+            const blocksToInsert = savedData.blocks.map((block, index) => ({
+              profile_id: profile.id,
+              block_type: block.block_type,
+              content: (block.content || {}) as Json,
+              sort_order: block.sort_order ?? index,
+              is_active: true,
+            }));
+
+            await supabase
+              .from("personal_blocks")
+              .insert(blocksToInsert);
+
+            console.log("[PersonalSignupComplete] Blocks created:", blocksToInsert.length);
           }
         }
 
