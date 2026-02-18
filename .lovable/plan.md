@@ -1,103 +1,45 @@
 
-# Fix Free Plan Bypassing Stripe + End-to-End Data Integrity
+# Three Fixes: Tap Prefix Link, Full Banner Option, Change Email Button
 
-## Problem
+## 1. Make "tap" prefix upgrade text clickable (IdentityStep)
 
-Currently, `handleGetCard()` sends ALL users to Stripe checkout when `PERSONAL_PAYMENTS_ENABLED` is true -- including free plan users. Free users should never touch Stripe.
+**File: `src/components/personal/signup/IdentityStep.tsx`**
 
-## Changes
+The current text at line 222-225 says: `Upgrade to Pro to remove the "tap" prefix from your URL` as a plain `<p>` tag. Change it to a small, subtle clickable element that switches the plan to "yearly" when tapped. Style it as a very small, non-annoying link -- just underlined text, no loud colors or buttons.
 
-### File: `src/components/personal/signup/CheckoutStep.tsx`
+- Replace the `<p>` with a `<button>` styled as subtle text (`text-xs text-muted-foreground underline cursor-pointer`)
+- On click, call `updateFormData({ planType: "yearly" })` and show a toast confirming the upgrade
+- Keep it small and non-intrusive
 
-**1. Route free plans to OTP flow instead of Stripe**
+## 2. Add "Full Banner" as a third header option (HeaderCustomizer)
 
-Update `handleGetCard` (around line 459) to check the plan type:
+**File: `src/components/personal/HeaderCustomizer.tsx`**
 
-```
-const handleGetCard = () => {
-  if (isFreePlan) {
-    // Free plan never goes through Stripe
-    sendOTP();
-  } else if (PERSONAL_PAYMENTS_ENABLED) {
-    handleStripeCheckout();
-  } else {
-    sendOTP();
-  }
-};
-```
+The HeaderCustomizer currently only supports "color" and "image" as header types. The dashboard's `DashboardDesignTab` supports a third option: "banner" (Full Banner) which uses the profile photo as the banner image.
 
-This ensures:
-- **Free plan**: Always goes to OTP verification, then creates the account directly (the existing `verifyOTPAndCreateAccount` flow handles this perfectly already)
-- **Monthly/Yearly**: Goes to Stripe checkout as before
-- **Test mode** (payments disabled): All plans go to OTP
+- Update the `Props` interface to accept `"color" | "image" | "banner"` for `headerType`
+- Add a third `RadioGroupItem` with value `"banner"` labeled "Full Banner" with a Sparkles icon
+- When "banner" is selected, show an info box explaining "Your profile photo will be used as a full-width banner" (matching the dashboard's design)
+- No separate image upload needed for banner mode -- it uses the profile photo automatically
 
-**2. Store blocks during free account creation**
+**File: `src/components/personal/signup/LinksStep.tsx`**
 
-The existing `verifyOTPAndCreateAccount` flow (line 384-407) saves links but does NOT save blocks. Add block creation after the links insert:
+- Update the `onUpdate` handler for `HeaderCustomizer` to also gate "banner" behind Pro (same as "image")
 
-```
-// After links insert, also create blocks
-if (formData.blocks.length > 0) {
-  const blocksToInsert = formData.blocks.map((block, index) => ({
-    profile_id: profileResult.id,
-    block_type: block.type,
-    content: block.content || {},
-    sort_order: index,
-    is_active: true,
-  }));
-  await supabase.from("personal_blocks").insert(blocksToInsert);
-}
-```
+## 3. Add "Change email" button on OTP verification screen (CheckoutStep)
 
-This same block-saving logic also needs to be added to the existing-account flow (around line 678-690).
+**File: `src/components/personal/signup/CheckoutStep.tsx`**
 
-**3. Ensure blocks are saved in the paid (Stripe) flow too**
+Currently (lines 838-980), the OTP screen shows "Check your email" with the email address, OTP inputs, resend button, and a "Back to plan selection" button. Add a "Change email" button that:
 
-In `handleStripeCheckout` (line 484-502), the signup data saved to sessionStorage already includes `blocks`. In `PersonalSignupComplete.tsx`, blocks are NOT being saved after payment verification. Add block creation in the finalize step (after links at line 229-252):
-
-```
-// After links, also create blocks
-if (savedData.blocks && savedData.blocks.length > 0) {
-  await supabase.from("personal_blocks").delete().eq("profile_id", profile.id);
-  const blocksToInsert = savedData.blocks.map((block, index) => ({
-    profile_id: profile.id,
-    block_type: block.block_type,
-    content: block.content || {},
-    sort_order: index,
-    is_active: true,
-  }));
-  await supabase.from("personal_blocks").insert(blocksToInsert);
-}
-```
-
-**4. Hide "Secure checkout powered by Stripe" for free plans**
-
-Update the Stripe reassurance text (line 1148) to only show for paid plans:
-
-```
-{PERSONAL_PAYMENTS_ENABLED && !isFreePlan && (
-  <div className="flex items-center justify-center gap-2 ...">
-    <Shield ... />
-    <span>Secure checkout powered by Stripe</span>
-  </div>
-)}
-```
+- Goes back to the plan selection step (`setFlowStep("plan")`)
+- Resets OTP state (`setOtpCode("")`, `setOtpError(null)`)
+- Place it right after the email display text (line ~857), styled as a small text link: "Wrong email? Change it"
+- This keeps it easy to find without redoing any steps -- the user just corrects the email and re-sends
 
 ## Summary of files to modify
 
-1. **`src/components/personal/signup/CheckoutStep.tsx`** -- Route free plans to OTP, save blocks in both new-user and existing-user flows, hide Stripe badge for free
-2. **`src/pages/personal/PersonalSignupComplete.tsx`** -- Save blocks after Stripe payment verification
-
-## Data flow verification (all 3 paths)
-
-| Data field | Free (OTP) | Monthly (Stripe) | Yearly (Stripe) |
-|---|---|---|---|
-| full_name | Saved in profile insert | Saved via PersonalSignupComplete | Same |
-| username | Saved in profile insert | Created by verify-personal-checkout, updated in Complete | Same |
-| profile_photo | Uploaded after sign-in | Saved as base64 in sessionStorage, uploaded in Complete | Same |
-| header_type/color/image | Saved in profile insert | Updated in Complete | Same |
-| background_color | Saved in profile insert | Updated in Complete | Same |
-| card_headline | Saved in profile insert | Updated in Complete | Same |
-| links | Inserted after profile | Inserted in Complete | Same |
-| blocks | **NEW: Inserted after profile** | **NEW: Inserted in Complete** | Same |
-| welcome email | Sent | Sent by verify-personal-checkout | Same |
+1. `src/components/personal/signup/IdentityStep.tsx` -- Make "tap" prefix text a subtle clickable upgrade button
+2. `src/components/personal/HeaderCustomizer.tsx` -- Add "banner" as third header type option
+3. `src/components/personal/signup/LinksStep.tsx` -- Gate "banner" behind Pro like "image"
+4. `src/components/personal/signup/CheckoutStep.tsx` -- Add "Change email" link on OTP screen
