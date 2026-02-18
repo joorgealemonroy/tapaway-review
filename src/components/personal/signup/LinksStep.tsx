@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SignupData } from "@/pages/personal/PersonalSignup";
-import { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
+import { PersonalLink, PersonalBlock, ContentItem } from "@/hooks/usePersonalOnboarding";
 import { toast } from "sonner";
 import { PERSONAL_PLANS } from "@/lib/personalPlanLimits";
 import { 
@@ -14,23 +14,32 @@ import {
   Loader2,
   ArrowLeft,
   Edit,
-  ExternalLink,
   ChevronDown,
   Palette,
-  Lock,
-  Sparkles
+  Sparkles,
+  Eye,
+  Youtube,
+  Image as ImageIcon,
+  Type,
+  MousePointerClick,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LinkModal } from "@/components/personal/LinkModal";
 import { BlocksManager } from "@/components/personal/BlocksManager";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { HeaderCustomizer } from "@/components/personal/HeaderCustomizer";
+import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 interface Props {
   formData: SignupData;
@@ -47,7 +56,29 @@ interface Props {
   updateBlock: (id: string, updates: Partial<PersonalBlock>) => void;
   removeBlock: (id: string) => void;
   reorderBlocks: (blocks: PersonalBlock[]) => void;
+  reorderContent: (items: ContentItem[]) => void;
 }
+
+// Helper to get a block icon
+const getBlockIcon = (type: string) => {
+  switch (type) {
+    case "youtube": return Youtube;
+    case "image": return ImageIcon;
+    case "text": return Type;
+    case "button": return MousePointerClick;
+    default: return Type;
+  }
+};
+
+const getBlockLabel = (block: PersonalBlock) => {
+  switch (block.type) {
+    case "youtube": return block.content.url || "YouTube Video";
+    case "image": return "Image";
+    case "text": return block.content.title || "Text Block";
+    case "button": return block.content.label || "Button";
+    default: return "Block";
+  }
+};
 
 export const LinksStep = ({ 
   formData, 
@@ -63,25 +94,29 @@ export const LinksStep = ({
   addBlock,
   updateBlock,
   removeBlock,
-  reorderBlocks
+  reorderBlocks,
+  reorderContent,
 }: Props) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<{ id: string; kind: "link" | "block" } | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [themeOpen, setThemeOpen] = useState(true);
+  const [styleOpen, setStyleOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
+  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFreePlan = formData.planType === "free";
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
 
   const checkProFeature = (featureName: string): boolean => {
-    if (!isFreePlan) return true; // Pro users can use everything
+    if (!isFreePlan) return true;
     setUpgradeFeatureName(featureName);
     setUpgradeDialogOpen(true);
     return false;
@@ -110,7 +145,6 @@ export const LinksStep = ({
     setUploadingPhoto(true);
     
     try {
-      // Compress large images before cropping
       let processedFile = file;
       if (file.size > 2 * 1024 * 1024) {
         const img = new Image();
@@ -121,7 +155,6 @@ export const LinksStep = ({
           img.src = url;
         });
         
-        // Resize to max 1200px
         const maxDim = 1200;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
@@ -147,7 +180,6 @@ export const LinksStep = ({
         URL.revokeObjectURL(url);
       }
       
-      // Store the file and open cropper
       updateFormData({ profilePhoto: processedFile });
       setRawImageUrl(URL.createObjectURL(processedFile));
       setCropperOpen(true);
@@ -167,10 +199,15 @@ export const LinksStep = ({
     toast.success("Photo added!");
   };
 
-  const handleEditLink = (link: PersonalLink) => {
-    setEditingLink(link);
-    setLinkModalOpen(true);
-  };
+  // --- Unified content list ---
+  const unifiedContent: ContentItem[] = [
+    ...formData.links.map((link): ContentItem => ({ kind: "link", item: link })),
+    ...formData.blocks.map((block): ContentItem => ({ kind: "block", item: block })),
+  ].sort((a, b) => {
+    const aOrder = a.kind === "link" ? (a.item.sortOrder ?? 0) : a.item.sortOrder;
+    const bOrder = b.kind === "link" ? (b.item.sortOrder ?? 0) : b.item.sortOrder;
+    return aOrder - bOrder;
+  });
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -180,11 +217,11 @@ export const LinksStep = ({
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
 
-    const newLinks = [...formData.links];
-    const [draggedLink] = newLinks.splice(draggedIndex, 1);
-    newLinks.splice(index, 0, draggedLink);
+    const newItems = [...unifiedContent];
+    const [dragged] = newItems.splice(draggedIndex, 1);
+    newItems.splice(index, 0, dragged);
     
-    reorderLinks(newLinks);
+    reorderContent(newItems);
     setDraggedIndex(index);
   };
 
@@ -192,18 +229,84 @@ export const LinksStep = ({
     setDraggedIndex(null);
   };
 
+  const handleDeleteConfirm = () => {
+    if (!deleteId) return;
+    if (deleteId.kind === "link") {
+      removeLink(deleteId.id);
+    } else {
+      removeBlock(deleteId.id);
+    }
+    setDeleteId(null);
+  };
+
+  // --- Preview data mapping ---
+  const previewProfile = {
+    id: "preview",
+    full_name: formData.fullName,
+    username: formData.username,
+    headline: formData.cardHeadline || null,
+    bio: null,
+    profile_photo_url: formData.profilePhotoUrl || null,
+    header_type: formData.headerType || "color",
+    header_color: formData.headerColor || "#6BCB77",
+    header_image_url: formData.headerImageUrl || null,
+    background_color: formData.backgroundColor || "#ffffff",
+    pfp_position: null,
+  };
+
+  const previewLinks = formData.links.map((link, i) => ({
+    id: link.id,
+    label: link.label,
+    url: link.url,
+    link_type: link.type,
+    is_active: true,
+    is_featured: link.isFeatured || false,
+    sort_order: link.sortOrder ?? i,
+    pill_color: link.pillColor || null,
+  }));
+
+  const previewBlocks = formData.blocks.map((block) => ({
+    id: block.id,
+    block_type: block.type,
+    content: block.content as Record<string, unknown>,
+    is_active: true,
+    sort_order: block.sortOrder,
+    alignment: (block.content.alignment as string) || null,
+  }));
+
   const existingTypes = formData.links.map(l => l.type);
   const canProceed = formData.profilePhotoUrl !== null;
 
   return (
     <div className="space-y-6">
-      {/* Profile Photo Upload */}
+      {/* Compact Live Preview (mobile) */}
+      <div className="relative">
+        <div className="h-[220px] overflow-hidden rounded-2xl border border-border bg-muted/30 flex items-center justify-center">
+          <div className="transform scale-[0.38] origin-center pointer-events-none">
+            <ProfilePreviewPanel
+              profile={previewProfile}
+              links={previewLinks}
+              blocks={previewBlocks}
+            />
+          </div>
+        </div>
+        {/* Expand preview FAB */}
+        <button
+          onClick={() => setPreviewDrawerOpen(true)}
+          className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-2 bg-foreground text-background rounded-full text-xs font-medium shadow-lg hover:opacity-90 transition-opacity"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          Preview
+        </button>
+      </div>
+
+      {/* Section 1: Photo & Bio (always open) */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium text-foreground">Profile photo</Label>
+        <Label className="text-sm font-semibold text-foreground">Photo & Bio</Label>
         <div className="flex items-center gap-4">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="relative h-24 w-24 rounded-full bg-muted border-2 border-dashed border-border hover:border-primary transition-colors overflow-hidden group"
+            className="relative h-20 w-20 rounded-full bg-muted border-2 border-dashed border-border hover:border-primary transition-colors overflow-hidden group flex-shrink-0"
             disabled={uploadingPhoto}
           >
             {formData.profilePhotoUrl ? (
@@ -215,21 +318,29 @@ export const LinksStep = ({
             ) : (
               <div className="flex items-center justify-center h-full">
                 {uploadingPhoto ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (
-                  <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <Camera className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 )}
               </div>
             )}
             {formData.profilePhotoUrl && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="h-6 w-6 text-white" />
+                <Camera className="h-5 w-5 text-white" />
               </div>
             )}
           </button>
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Upload a photo</p>
-            <p>This will appear on your card and profile</p>
+          <div className="flex-1 space-y-2">
+            <Input
+              value={formData.cardHeadline || ""}
+              onChange={(e) => updateFormData({ cardHeadline: e.target.value })}
+              placeholder="Headline (e.g. Photographer 📸)"
+              className="h-11"
+            />
+            <p className="text-xs text-muted-foreground">
+              {!formData.profilePhotoUrl && <span className="text-destructive">Photo required · </span>}
+              Tap photo to upload
+            </p>
           </div>
         </div>
         <input
@@ -239,149 +350,151 @@ export const LinksStep = ({
           onChange={handlePhotoSelect}
           className="hidden"
         />
-        {!formData.profilePhotoUrl && (
-          <p className="text-sm text-destructive">Required</p>
-        )}
       </div>
 
-      {/* Links Section */}
+      {/* Section 2: Content (unified links + blocks) */}
       <div className="space-y-3">
-        <div>
-          <Label className="text-sm font-medium text-foreground">Your links</Label>
-          <p className="text-xs text-muted-foreground mt-1">
-            Add your social media, website, or any link you want to share.
-          </p>
-        </div>
-        
-        {/* Existing Links */}
-        {formData.links.length > 0 && (
+        <Label className="text-sm font-semibold text-foreground">Content</Label>
+        <p className="text-xs text-muted-foreground">
+          Add links and blocks. Drag to reorder — they'll appear exactly like this on your profile.
+        </p>
+
+        {/* Unified content list */}
+        {unifiedContent.length > 0 && (
           <div className="space-y-2">
-            {formData.links.map((link, index) => {
-              const config = getPlatformConfig(link.type);
-              const Icon = config?.icon;
-              
-              return (
-                <div
-                  key={link.id}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  style={{ touchAction: "manipulation" }}
-                  className={`flex items-center gap-3 p-3 min-h-[56px] bg-card rounded-xl border border-border cursor-move transition-all ${
-                    draggedIndex === index ? "opacity-50 scale-95" : ""
-                  }`}
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
-                    {Icon && <Icon className={`h-5 w-5 ${config?.color || "text-primary"}`} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">{link.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {link.value}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleEditLink(link)}
-                    className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+            {unifiedContent.map((ci, index) => {
+              const isLink = ci.kind === "link";
+              const id = ci.kind === "link" ? ci.item.id : ci.item.id;
+
+              if (isLink) {
+                const link = ci.item as PersonalLink;
+                const config = getPlatformConfig(link.type);
+                const Icon = config?.icon;
+                return (
+                  <div
+                    key={`link-${link.id}`}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    style={{ touchAction: "manipulation" }}
+                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all ${
+                      draggedIndex === index ? "opacity-50 scale-95" : ""
+                    }`}
                   >
-                    <Edit className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteId(link.id)}
-                    className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
+                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
+                      {Icon && <Icon className={`h-4 w-4 ${config?.color || "text-primary"}`} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
+                      <p className="text-xs text-muted-foreground truncate">{link.value}</p>
+                    </div>
+                    <button
+                      onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Edit className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteId({ id: link.id, kind: "link" })}
+                      className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </button>
+                  </div>
+                );
+              } else {
+                const block = ci.item as PersonalBlock;
+                const BlockIcon = getBlockIcon(block.type);
+                return (
+                  <div
+                    key={`block-${block.id}`}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    style={{ touchAction: "manipulation" }}
+                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all ${
+                      draggedIndex === index ? "opacity-50 scale-95" : ""
+                    }`}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </button>
-                </div>
-              );
+                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <BlockIcon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-foreground truncate">{getBlockLabel(block)}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{block.type} block</p>
+                    </div>
+                    <button
+                      onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Edit className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteId({ id: block.id, kind: "block" })}
+                      className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </button>
+                  </div>
+                );
+              }
             })}
           </div>
         )}
 
-        {/* Add Link Button */}
-        <button 
-          onClick={() => {
-            if (isFreePlan && formData.links.length >= maxFreeLinks) {
-              checkProFeature("unlimited links");
-              return;
-            }
-            setEditingLink(null);
-            setLinkModalOpen(true);
-          }}
-          className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
-        >
-          <Plus className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Add a link</span>
-          {isFreePlan && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {formData.links.length}/{maxFreeLinks}
-            </span>
-          )}
-        </button>
-
-        <p className="text-sm text-muted-foreground">
-          These links appear when someone visits your profile.
-        </p>
-      </div>
-
-      {/* Blocks Section */}
-      <div className="space-y-2">
-        <div>
-          <Label className="text-sm font-medium text-foreground">Blocks</Label>
-          <p className="text-xs text-muted-foreground mt-1">
-            Add extra content like text, images, videos, or buttons to stand out.
-          </p>
+        {/* Add buttons */}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              if (isFreePlan && formData.links.length >= maxFreeLinks) {
+                checkProFeature("unlimited links");
+                return;
+              }
+              setEditingLink(null);
+              setLinkModalOpen(true);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+          >
+            <Plus className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Add link</span>
+          </button>
+          <button 
+            onClick={() => { setEditingBlock(null); setBlockModalOpen(true); }}
+            className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+          >
+            <Plus className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Add block</span>
+          </button>
         </div>
-        <BlocksManager
-          blocks={formData.blocks}
-          onAdd={addBlock}
-          onUpdate={updateBlock}
-          onRemove={removeBlock}
-          onReorder={reorderBlocks}
-        />
       </div>
 
-      {/* Theme Customization */}
-      <Collapsible open={themeOpen} onOpenChange={setThemeOpen}>
+      {/* Section 3: Style (collapsed by default) */}
+      <Collapsible open={styleOpen} onOpenChange={setStyleOpen}>
         <CollapsibleTrigger asChild>
           <button className="w-full flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
             <div>
-              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Palette className="h-4 w-4" />
-                Customize Theme
+                Style
               </span>
               <p className="text-xs text-muted-foreground mt-0.5 text-left">
-                Change colors and style to match your brand.
+                Header, background & colors
               </p>
             </div>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${themeOpen ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${styleOpen ? "rotate-180" : ""}`} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-4 space-y-4">
-          {/* Card Headline */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Card Headline</Label>
-            <Input
-              value={formData.cardHeadline || ""}
-              onChange={(e) => updateFormData({ cardHeadline: e.target.value })}
-              placeholder="Enter a headline for your card"
-              className="h-12"
-            />
-            <p className="text-xs text-muted-foreground">
-              This appears on your physical card.
-            </p>
-          </div>
-
-          {/* Header & Background Colors */}
           <HeaderCustomizer
             headerType={formData.headerType || "color"}
             headerColor={formData.headerColor}
             headerImageUrl={formData.headerImageUrl}
             backgroundColor={formData.backgroundColor}
             onUpdate={(updates) => {
-              // Gate custom header image and banner behind Pro
               if ((updates.headerType === "image" || updates.headerType === "banner") && isFreePlan) {
                 checkProFeature(updates.headerType === "banner" ? "full banner headers" : "custom header images");
                 return;
@@ -410,6 +523,23 @@ export const LinksStep = ({
         </Button>
       </div>
 
+      {/* Full-size preview drawer */}
+      <Drawer open={previewDrawerOpen} onOpenChange={setPreviewDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerTitle className="sr-only">Profile Preview</DrawerTitle>
+          <div className="px-4 pt-2 pb-6 overflow-y-auto">
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              This is exactly what people will see
+            </p>
+            <ProfilePreviewPanel
+              profile={previewProfile}
+              links={previewLinks}
+              blocks={previewBlocks}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       {/* Link Modal */}
       <LinkModal
         open={linkModalOpen}
@@ -418,6 +548,18 @@ export const LinksStep = ({
         editingLink={editingLink}
         onUpdate={updateLink}
         existingTypes={existingTypes}
+      />
+
+      {/* Block Modal (reuse BlocksManager for add/edit) */}
+      <BlocksManager
+        blocks={formData.blocks}
+        onAdd={addBlock}
+        onUpdate={updateBlock}
+        onRemove={removeBlock}
+        onReorder={reorderBlocks}
+        externalModalOpen={blockModalOpen}
+        onExternalModalClose={() => { setBlockModalOpen(false); setEditingBlock(null); }}
+        externalEditingBlock={editingBlock}
       />
 
       {/* Image Cropper */}
@@ -434,7 +576,7 @@ export const LinksStep = ({
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove this link?</AlertDialogTitle>
+            <AlertDialogTitle>Remove this {deleteId?.kind}?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone.
             </AlertDialogDescription>
@@ -442,12 +584,7 @@ export const LinksStep = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (deleteId) {
-                  removeLink(deleteId);
-                  setDeleteId(null);
-                }
-              }}
+              onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove

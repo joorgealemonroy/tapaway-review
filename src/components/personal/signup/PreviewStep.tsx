@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SignupData } from "@/pages/personal/PersonalSignup";
-import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { TapAwayCardPreview } from "@/components/personal/TapAwayCardPreview";
 import { 
   ArrowLeft,
   CreditCard,
   Palette,
-  X as XIcon,
   Info,
   Check,
   Smartphone,
@@ -58,60 +56,13 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
     }
   };
 
-  // Map signup form data to ProfilePreviewPanel shape
-  const previewProfile = {
-    id: "preview",
-    full_name: formData.fullName,
-    username: formData.username,
-    headline: formData.cardHeadline || null,
-    bio: null,
-    profile_photo_url: formData.profilePhotoUrl || null,
-    header_type: formData.headerType || "color",
-    header_color: formData.headerColor || "#6BCB77",
-    header_image_url: formData.headerImageUrl || null,
-    background_color: formData.backgroundColor || "#ffffff",
-    pfp_position: null,
-  };
-
-  const previewLinks = formData.links.map((link, i) => ({
-    id: link.id,
-    label: link.label,
-    url: link.url,
-    link_type: link.type,
-    is_active: true,
-    is_featured: link.isFeatured || false,
-    sort_order: i,
-    pill_color: link.pillColor || null,
-  }));
-
-  const previewBlocks = formData.blocks.map((block) => ({
-    id: block.id,
-    block_type: block.type,
-    content: block.content as Record<string, unknown>,
-    is_active: true,
-    sort_order: block.sortOrder,
-    alignment: (block.content.alignment as string) || null,
-  }));
-
   return (
-    <div className="space-y-8">
-      {/* Section A: Live Hub Preview */}
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground text-center">
-          This is exactly what people will see
-        </p>
-        <ProfilePreviewPanel
-          profile={previewProfile}
-          links={previewLinks}
-          blocks={previewBlocks}
-        />
-      </div>
-
-      {/* Section B: Card Options */}
+    <div className="space-y-6">
+      {/* Card Options */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Get a physical card <span className="text-muted-foreground font-normal text-sm">(optional)</span>
-        </h2>
+        <p className="text-sm text-muted-foreground">
+          Get a physical NFC card that links to your profile. Tap any phone to share instantly.
+        </p>
 
         {/* Custom Card Option */}
         <button
@@ -179,7 +130,6 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
               </div>
               {cardChoice === "basic" && (
                 <div className="space-y-3">
-                  {/* Color picker */}
                   <div className="flex gap-3">
                     {BASIC_COLORS.map((color) => (
                       <button
@@ -198,7 +148,6 @@ export const PreviewStep = ({ formData, updateFormData, onNext, onBack }: Props)
                       />
                     ))}
                   </div>
-                  {/* Basic card mini preview */}
                   <div
                     className="w-full aspect-[85.6/53.98] rounded-xl flex items-center justify-center shadow-lg border border-black/10"
                     style={{ backgroundColor: basicCardColor }}
