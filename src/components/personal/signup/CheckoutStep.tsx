@@ -900,20 +900,20 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       {/* Show plan summary if planLocked, otherwise show full selection */}
       {planLocked ? (
         // Compact plan summary (plan was chosen from pricing page)
-        <div className="p-4 rounded-xl border-2 border-primary bg-primary/5">
+        <div className={`p-4 rounded-xl border-2 ${formData.planType === "free" ? "border-muted bg-muted/30" : "border-primary bg-primary/5"}`}>
           <div className="flex items-center justify-between">
             <div>
               <span className="font-bold text-lg text-foreground">
                 {formData.planType === "yearly" 
-                  ? `Pro Annual — $${PERSONAL_PRICING.yearly}/year`
+                  ? "Pro Annual — $6.25/month"
                   : formData.planType === "monthly"
                   ? `Pro Monthly — $${PERSONAL_PRICING.monthly}/month`
-                  : "Free Plan"
+                  : "Free Plan — $0"
                 }
               </span>
               {formData.planType === "yearly" && (
                 <p className="text-xs text-primary font-medium mt-1">
-                  Save $45/year vs monthly
+                  Billed annually $75
                 </p>
               )}
             </div>
@@ -946,8 +946,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             
             <div className="flex items-start justify-between pt-2">
               <div>
-                <span className="font-bold text-xl text-foreground">Pro — ${PERSONAL_PRICING.yearly}/year</span>
-                <p className="text-sm text-primary font-medium mt-1">Only $6.25/month • Save $45/year</p>
+                <span className="font-bold text-xl text-foreground">Pro — $6.25/month</span>
+                <p className="text-sm text-primary font-medium mt-1">Billed annually $75 • Save $45/year</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
                 formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -1029,21 +1029,31 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       <div className="space-y-2 py-4 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {formData.planType === "yearly" ? "Annual plan" : "Monthly plan"}
+            {formData.planType === "free" 
+              ? "Free plan" 
+              : formData.planType === "yearly" 
+              ? "Annual plan" 
+              : "Monthly plan"}
           </span>
-          <span className="font-medium">
-            {PERSONAL_PAYMENTS_ENABLED 
-              ? `$${formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly}`
-              : "$0 (test mode)"
-            }
-          </span>
+          <div className="text-right">
+            <span className="font-medium">
+              {formData.planType === "free"
+                ? "$0"
+                : formData.planType === "yearly"
+                ? "$6.25/mo"
+                : `$${PERSONAL_PRICING.monthly}/mo`}
+            </span>
+            {formData.planType === "yearly" && (
+              <p className="text-xs text-muted-foreground">Billed annually $75</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-lg font-semibold text-foreground">
-            {PERSONAL_PAYMENTS_ENABLED ? "Total due today" : "Due today"}
+            Total due today
           </span>
           <span className="text-2xl font-bold text-foreground">
-            {PERSONAL_PAYMENTS_ENABLED ? `$${calculateTotal()}` : "$0"}
+            ${calculateTotal()}
           </span>
         </div>
       </div>
