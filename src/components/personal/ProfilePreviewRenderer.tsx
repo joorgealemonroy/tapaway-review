@@ -103,10 +103,10 @@ function ProfilePreviewRendererComponent({
   
   // Banner for premium users (header_type === "banner")
   // Uses profile_photo_url as the banner (no separate upload)
-  const bannerUrl = (headerType === "banner" && profile.profile_photo_url) 
+  const hasBanner = headerType === "banner";
+  const bannerUrl = (hasBanner && profile.profile_photo_url) 
     ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
     : null;
-  const hasBanner = !!bannerUrl;
   
   // Extract color from profile photo (used as banner) for natural fade
   const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
@@ -621,12 +621,21 @@ function ProfilePreviewRendererComponent({
         {hasBanner ? (
           <>
             {/* Banner mode - fully visible with fade at bottom using extracted color */}
-            <div className="h-48 overflow-hidden relative">
-              <img
-                src={bannerUrl}
-                alt="Banner"
-                className="h-full w-full object-cover object-top"
-              />
+            <div className="h-36 overflow-hidden relative">
+              {bannerUrl ? (
+                <img
+                  src={bannerUrl}
+                  alt="Banner"
+                  className="h-full w-full object-cover object-top"
+                />
+              ) : (
+                <div 
+                  className="h-full w-full flex items-center justify-center"
+                  style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}88)` }}
+                >
+                  <span className="text-white/60 text-xs">Add a photo for your banner</span>
+                </div>
+              )}
               {/* Gradient fade using extracted color from image - taller for text overlap */}
               <div 
                 className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
@@ -746,7 +755,7 @@ function ProfilePreviewRendererComponent({
       {/* Content - solid background for banner mode */}
       <div 
         className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-2xl pt-4 pb-6 -mx-0' : ''}`}
-        style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+        style={hasBanner ? { backgroundColor: extractedBannerColor || '#1a1a1a' } : undefined}
       >
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true)}
