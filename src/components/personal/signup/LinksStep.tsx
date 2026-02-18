@@ -381,9 +381,9 @@ export const LinksStep = ({
             headerImageUrl={formData.headerImageUrl}
             backgroundColor={formData.backgroundColor}
             onUpdate={(updates) => {
-              // Gate custom header image behind Pro
-              if (updates.headerType === "image" && isFreePlan) {
-                checkProFeature("custom header images");
+              // Gate custom header image and banner behind Pro
+              if ((updates.headerType === "image" || updates.headerType === "banner") && isFreePlan) {
+                checkProFeature(updates.headerType === "banner" ? "full banner headers" : "custom header images");
                 return;
               }
               updateFormData(updates);

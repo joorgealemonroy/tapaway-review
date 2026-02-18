@@ -857,6 +857,19 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               : `We sent a code to ${formData.email}`
             }
           </p>
+          {flowStep !== "creating" && (
+            <button
+              type="button"
+              onClick={() => {
+                setFlowStep("plan");
+                setOtpCode("");
+                setOtpError(null);
+              }}
+              className="text-xs text-muted-foreground underline cursor-pointer mx-auto"
+            >
+              Wrong email? Change it
+            </button>
+          )}
         </div>
 
         {flowStep !== "creating" && (

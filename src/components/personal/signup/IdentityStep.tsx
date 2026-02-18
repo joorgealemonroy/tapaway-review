@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, X, Loader2, Eye, EyeOff, Info, LogIn } from "lucide-react";
+import { toast } from "sonner";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { z } from "zod";
 
@@ -219,10 +220,17 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
               ⚠️ Your username cannot be changed after signup
             </p>
             {selectedPlan === "free" && (
-              <p className="text-xs text-blue-600 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  updateFormData({ planType: "yearly" });
+                  toast("Switched to Pro plan — complete checkout to remove the 'tap' prefix.");
+                }}
+                className="text-xs text-muted-foreground underline cursor-pointer flex items-center gap-1"
+              >
                 <Info className="h-3 w-3" />
-                Upgrade to Pro to remove the "tap" prefix from your URL
-              </p>
+                Upgrade to Pro to remove the "tap" prefix
+              </button>
             )}
           </>
         )}

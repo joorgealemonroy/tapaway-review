@@ -31,7 +31,7 @@ export interface PersonalOnboardingData {
   profilePhoto: File | null;
   profilePhotoUrl: string | null;
   croppedPhotoBlob: Blob | null;
-  headerType: "color" | "image";
+  headerType: "color" | "image" | "banner";
   headerImageUrl: string | null;
   headerColor: string | null;
   backgroundColor: string | null;
