@@ -1,42 +1,61 @@
 
-# Fix: Duplicate Blocks, Auto Style Color, and Preview Icons
+# Fix: Add Block Button, Link Pills in Preview, and Card Step Redesign
 
-## Issues Found
+## Issues
 
-### 1. Duplicate block list below Continue button
-The `BlocksManager` component renders its own block list AND an "Add block" button (lines 268-314 of BlocksManager.tsx). Since LinksStep already shows blocks in the unified content list, the BlocksManager is creating a duplicate set of blocks below the Continue button. Fix: hide BlocksManager's built-in list rendering when used in "external modal" mode.
+1. **"Add block" button does nothing** -- When the block modal is closed via the X button or clicking outside, the Dialog's `onOpenChange` sets `modalOpen=false` but never calls `onExternalModalClose`. This leaves `blockModalOpen` stuck at `true` in LinksStep, so clicking "Add block" again doesn't change the value, and the useEffect never re-fires.
 
-### 2. Preview missing icons and cover images
-The `previewLinks` mapping in LinksStep (lines 257-266) does not pass `display_style`, `cover_image_url`, `grid_size`, or `thumbnail_url` to the preview renderer. This means:
-- Social icon bar never appears (requires `display_style: "icon"` or `"both"`)
-- Cover image cards don't render
-- Thumbnail icons don't show
+2. **Link pills in preview don't match real profile** -- The preview currently renders correctly for standard pills, but the compact scaled preview (scale 0.38) makes it hard to see. The main issue is ensuring `display_style` is properly defaulted so links show as pills with platform icons matching the real profile styling.
 
-### 3. No automatic style color matching
-When a user uploads a profile photo, the Style section keeps the default green (#6BCB77) header color. It should auto-extract a color from the photo and apply it.
+3. **"Get a physical card" step is too skippable** -- Currently it's a plain list of radio-style options that users can breeze through. It needs to be more visually engaging to drive card orders.
 
 ---
 
 ## Changes
 
 ### File: `src/components/personal/BlocksManager.tsx`
-- When `externalModalOpen` prop is provided (indicating it's being used as a modal-only component from LinksStep), skip rendering the block list and "Add block" button entirely
-- Only render the Dialog and AlertDialog modals
+
+**Fix the modal close handler** -- Replace the Dialog's `onOpenChange={setModalOpen}` with a proper handler that also calls `onExternalModalClose` when closing. This ensures `blockModalOpen` resets to `false` in LinksStep so the next click works.
+
+```typescript
+// Line 324: Change onOpenChange handler
+<Dialog open={modalOpen} onOpenChange={(open) => {
+  if (!open) {
+    handleCloseModal(); // calls resetForm + onExternalModalClose
+  } else {
+    setModalOpen(true);
+  }
+}}>
+```
 
 ### File: `src/components/personal/signup/LinksStep.tsx`
 
-**Fix preview data mapping** -- add missing fields to `previewLinks`:
-```
-display_style: link.displayStyle || null
-cover_image_url: link.coverImageUrl || null
-grid_size: link.gridSize || null
-thumbnail_url: link.thumbnailUrl || null
+**Ensure link pills render with correct default display_style** -- Set `display_style` to `"pill"` instead of `null` when no explicit style is set, so the renderer treats them as standard pill buttons (matching the real profile behavior).
+
+```typescript
+display_style: link.displayStyle || "pill",
 ```
 
-**Auto-match style color** -- after profile photo crop completes:
-- Import `extractBottomColor` from `imageColorExtraction.ts`
-- In `handleCropComplete`, call `extractBottomColor(previewUrl)` to get the dominant color
-- Auto-set `headerColor` to the extracted color
-- Show a toast like "Style color matched to your photo"
+### File: `src/components/personal/signup/PreviewStep.tsx`
+
+**Complete redesign to make the card step more appealing and harder to skip:**
+
+- Add a hero section at the top with a visual of the NFC card with a tap animation (pulsing ring effect)
+- Add a compelling headline: "Complete your TapAway" with subtext about tap-to-share
+- Show the card benefits inline (not hidden behind a dialog) as a visual checklist
+- Make "Custom Card" the default selected option (pre-select it instead of "none")
+- Add a mini stat line like "87% of users get a card" (social proof nudge)
+- Show the card preview larger and more prominently for the custom option
+- Change "Not now" to a less prominent text link at the bottom instead of a full radio option
+- Replace the "Why get a physical card?" info dialog with the benefits always visible
+- Add a subtle animation/glow to the card preview to draw attention
+
+The layout becomes:
+1. Hero visual (NFC card with animated tap rings)
+2. "Complete your TapAway" headline
+3. Benefit bullets (always visible, not hidden)
+4. Card choice: Custom (default, prominent) / Basic (secondary) 
+5. Continue button (primary CTA)
+6. "Skip for now" as a small text link below
 
 ### No other files change
