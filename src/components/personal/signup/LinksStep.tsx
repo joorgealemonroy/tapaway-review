@@ -30,6 +30,7 @@ import { ImageCropper } from "@/components/personal/ImageCropper";
 import { HeaderCustomizer } from "@/components/personal/HeaderCustomizer";
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { getPlatformConfig } from "@/lib/platformLinks";
+import { extractBottomColor } from "@/lib/imageColorExtraction";
 import {
   Collapsible,
   CollapsibleContent,
@@ -191,12 +192,28 @@ export const LinksStep = ({
     }
   };
 
-  const handleCropComplete = (croppedBlob: Blob, previewUrl: string) => {
+  const handleCropComplete = async (croppedBlob: Blob, previewUrl: string) => {
     updateFormData({ 
       croppedPhotoBlob: croppedBlob,
       profilePhotoUrl: previewUrl 
     });
     toast.success("Photo added!");
+
+    // Auto-extract a color from the photo to use as header color
+    try {
+      const color = await extractBottomColor(previewUrl);
+      if (color && color !== "#1a1a1a") {
+        // Convert rgb to hex for the header color
+        const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (match) {
+          const hex = `#${parseInt(match[1]).toString(16).padStart(2, "0")}${parseInt(match[2]).toString(16).padStart(2, "0")}${parseInt(match[3]).toString(16).padStart(2, "0")}`;
+          updateFormData({ headerColor: hex });
+          toast.success("Style color matched to your photo");
+        }
+      }
+    } catch {
+      // Silently fail — keep default color
+    }
   };
 
   // --- Unified content list ---
@@ -263,6 +280,10 @@ export const LinksStep = ({
     is_featured: link.isFeatured || false,
     sort_order: link.sortOrder ?? i,
     pill_color: link.pillColor || null,
+    display_style: link.displayStyle || null,
+    cover_image_url: link.coverImageUrl || null,
+    grid_size: link.gridSize || null,
+    thumbnail_url: link.thumbnailUrl || null,
   }));
 
   const previewBlocks = formData.blocks.map((block) => ({
