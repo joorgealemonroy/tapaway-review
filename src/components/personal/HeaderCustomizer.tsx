@@ -4,16 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageCropper } from "./ImageCropper";
-import { Paintbrush, Image as ImageIcon, X, Upload } from "lucide-react";
+import { Paintbrush, Image as ImageIcon, X, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
-  headerType: "color" | "image";
+  headerType: "color" | "image" | "banner";
   headerColor: string | null;
   headerImageUrl: string | null;
   backgroundColor: string | null;
   onUpdate: (updates: {
-    headerType?: "color" | "image";
+    headerType?: "color" | "image" | "banner";
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
@@ -123,8 +123,8 @@ export const HeaderCustomizer = ({
       {/* Header Type Toggle */}
       <RadioGroup 
         value={headerType} 
-        onValueChange={(v) => onUpdate({ headerType: v as "color" | "image" })}
-        className="flex gap-3"
+        onValueChange={(v) => onUpdate({ headerType: v as "color" | "image" | "banner" })}
+        className="flex flex-wrap gap-3"
       >
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="color" id="header-color" />
@@ -140,7 +140,23 @@ export const HeaderCustomizer = ({
             Custom Image
           </Label>
         </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="banner" id="header-banner" />
+          <Label htmlFor="header-banner" className="text-sm flex items-center gap-1.5 cursor-pointer">
+            <Sparkles className="h-4 w-4" />
+            Full Banner
+          </Label>
+        </div>
       </RadioGroup>
+
+      {headerType === "banner" && (
+        <div className="p-3 bg-muted/50 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+            Your profile photo will be used as a full-width banner
+          </p>
+        </div>
+      )}
 
       {headerType === "color" ? (
         <div className="space-y-3">
