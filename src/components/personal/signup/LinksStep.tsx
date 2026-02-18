@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
 import { toast } from "sonner";
+import { PERSONAL_PLANS } from "@/lib/personalPlanLimits";
 import { 
   Plus, 
   GripVertical,
@@ -15,7 +16,9 @@ import {
   Edit,
   ExternalLink,
   ChevronDown,
-  Palette
+  Palette,
+  Lock,
+  Sparkles
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LinkModal } from "@/components/personal/LinkModal";
@@ -70,7 +73,25 @@ export const LinksStep = ({
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isFreePlan = formData.planType === "free";
+  const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
+
+  const checkProFeature = (featureName: string): boolean => {
+    if (!isFreePlan) return true; // Pro users can use everything
+    setUpgradeFeatureName(featureName);
+    setUpgradeDialogOpen(true);
+    return false;
+  };
+
+  const handleUpgradeToPro = () => {
+    updateFormData({ planType: "yearly" });
+    setUpgradeDialogOpen(false);
+    toast.success("Upgraded to Pro! You now have a 7-day free trial.");
+  };
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -277,6 +298,10 @@ export const LinksStep = ({
         {/* Add Link Button */}
         <button 
           onClick={() => {
+            if (isFreePlan && formData.links.length >= maxFreeLinks) {
+              checkProFeature("unlimited links");
+              return;
+            }
             setEditingLink(null);
             setLinkModalOpen(true);
           }}
@@ -284,6 +309,11 @@ export const LinksStep = ({
         >
           <Plus className="h-5 w-5 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Add a link</span>
+          {isFreePlan && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {formData.links.length}/{maxFreeLinks}
+            </span>
+          )}
         </button>
 
         <p className="text-sm text-muted-foreground">
@@ -332,7 +362,14 @@ export const LinksStep = ({
             headerColor={formData.headerColor}
             headerImageUrl={formData.headerImageUrl}
             backgroundColor={formData.backgroundColor}
-            onUpdate={(updates) => updateFormData(updates)}
+            onUpdate={(updates) => {
+              // Gate custom header image behind Pro
+              if (updates.headerType === "image" && isFreePlan) {
+                checkProFeature("custom header images");
+                return;
+              }
+              updateFormData(updates);
+            }}
           />
         </CollapsibleContent>
       </Collapsible>
@@ -396,6 +433,31 @@ export const LinksStep = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Pro Feature Upgrade Dialog */}
+      <AlertDialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              This is a Pro feature
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Upgrade to Pro to unlock {upgradeFeatureName}. Try it free for 7 days — no charge today.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Maybe later</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUpgradeToPro}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Try Pro Free for 7 Days
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
