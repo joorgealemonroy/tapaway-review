@@ -645,7 +645,7 @@ export const LinkModal = ({
         imageSrc={cropperImageSrc}
         onCropComplete={handleCropComplete}
         aspectRatio={cropperMode === "cover" ? 4 / 3 : 1}
-        cropShape={cropperMode === "cover" ? "rect" : "round"}
+        cropShape={cropperMode === "cover" ? "rect" : "rect"}
       />
       {!selectedPlatform ? (
         <div className="grid grid-cols-2 gap-2 pt-2">
