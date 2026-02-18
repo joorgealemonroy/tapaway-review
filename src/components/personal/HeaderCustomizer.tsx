@@ -216,7 +216,7 @@ export const HeaderCustomizer = ({
             />
           </div>
         </div>
-      ) : (
+      ) : headerType === "image" ? (
         <div className="space-y-3">
           {headerImageUrl ? (
             <div className="relative">
@@ -257,7 +257,7 @@ export const HeaderCustomizer = ({
             className="hidden"
           />
         </div>
-      )}
+      ) : null}
 
       {/* Background Color */}
       <div className="pt-2 border-t border-border space-y-3">
