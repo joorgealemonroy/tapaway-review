@@ -1,77 +1,63 @@
 
 
-# Simplify NFC Activation to a Single URL
+# Admin NFC Card Batch Manager
 
-## What changes
+## Overview
 
-Instead of each card having its own unique URL (`/c/AB12CD`), all NFC cards will be programmed with the same URL:
+Add a new admin page at `/admin/nfc-cards` where you can generate NFC card batches, view all cards in a table, and download CSV files for printing trifolds.
 
+## New File: `src/pages/admin/AdminNfcCards.tsx`
+
+A single admin page with two sections:
+
+### Section 1: Generate Batch
+- Input for **batch size** (number, default 10)
+- Input for **batch ID** (optional text label, e.g. "BATCH-001" or "FEB-2026")
+- "Generate Cards" button that calls `admin-create-nfc-cards`
+- On success: auto-downloads the CSV and shows the newly created cards
+
+### Section 2: All Cards Table
+- Loads all cards from `nfc_cards` table on page load
+- Columns: Public Code, Status, Batch ID, Owner, Destination, Created, Claimed At
+- Search/filter by batch ID or public code
+- Status badges (unclaimed = gray, claimed = green, disabled = red)
+- Download CSV button for any batch (filters and exports)
+
+### CSV Format (for trifold printing)
 ```
-tapaway.co/setup
-```
-
-The user then enters their card's **public code** manually on that page (along with the claim code). This is simpler for manufacturing since every card gets the same NFC link.
-
-## Changes
-
-### 1. Route update (`src/App.tsx`)
-- Change `/c/:code` to `/setup`
-- Update the lazy import reference
-
-### 2. Rewrite `CardResolver.tsx`
-- Remove the URL param-based card lookup
-- Instead, show a form where the user types in their **card code** (the `public_code` printed on the card)
-- Once entered, look up the card and either redirect (if claimed) or proceed to activation
-- Essentially merge the "card code input" into the first step of the flow
-
-### 3. Update `CardActivation.tsx`
-- Add a new first step: "Enter your card code" (the `public_code`)
-- Flow becomes: **Card Code** -> **Claim Code** -> **Auth** -> **Username** -> **Done**
-- The card code input is a simple text field (6 chars, uppercase alphanumeric)
-
-### 4. Remove "c" from reserved usernames (`src/lib/reservedUsernames.ts`)
-- Add "setup" instead
-
-### 5. No edge function changes needed
-- The `claim-nfc-card` function already accepts `publicCode` in the body, so it works the same way
-
-## Updated User Flow
-
-```text
-All NFC cards programmed with: tapaway.co/setup
-                |
-                v
-        User lands on /setup
-                |
-                v
-        Enter card code (public_code from card)
-                |
-                v
-        Card found? ──No──> "Card not found"
-                |
-               Yes
-                |
-        Already claimed? ──Yes──> Redirect to /username
-                |
-               No
-                |
-        Enter claim code (secret from packaging)
-                |
-                v
-        Login / Create account
-                |
-                v
-        Pick username
-                |
-                v
-        Card activated!
+public_code,claim_code,nfc_url
+AB12CD,Kx7mNp3Q,tapaway.co/setup
 ```
 
-## Files to modify
+The `claim_code` column only appears in the CSV returned at generation time (it's never stored in plaintext). For existing cards, the CSV will only have `public_code` and status.
 
+## Route Addition
+
+Add `/admin/nfc-cards` route in `App.tsx` with a lazy import. Add a navigation button in the main Admin page linking to it.
+
+## Technical Details
+
+### Files to create
+| File | Purpose |
+|------|---------|
+| `src/pages/admin/AdminNfcCards.tsx` | Full admin page for batch generation and card management |
+
+### Files to modify
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Change route from `/c/:code` to `/setup` |
-| `src/pages/CardResolver.tsx` | Remove URL param logic; show card code input form instead |
-| `src/pages/CardActivation.tsx` | Add card code as first step before claim code |
-| `src/lib/reservedUsernames.ts` | Replace "c" with "setup" |
+| `src/App.tsx` | Add lazy import and route for `/admin/nfc-cards` |
+| `src/pages/Admin.tsx` | Add "NFC Cards" button in the admin nav section |
+
+### Component structure
+- Uses `useAdminAccess` hook for auth guard (same pattern as other admin pages)
+- Back arrow to `/admin`
+- "Generate Batch" section at top with count + batch ID inputs
+- Table section below using the existing `Table` UI components
+- Toast notifications for success/error
+- CSV download triggers browser download via `Blob` + `URL.createObjectURL`
+
+### Data flow
+- **Generate**: Calls `supabase.functions.invoke("admin-create-nfc-cards", { body: { count, batchId } })` -- returns cards with plaintext claim codes
+- **List**: Queries `supabase.from("nfc_cards").select("*").order("created_at", { ascending: false })` -- admin RLS policy already grants full access
+- **Download**: For freshly generated batches, uses the response CSV directly. For historical batches, exports public_code + status only (claim codes are gone)
+
