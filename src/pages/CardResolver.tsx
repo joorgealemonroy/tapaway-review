@@ -22,11 +22,11 @@ const CardResolver = () => {
     setNotFound(false);
 
     try {
-      const { data, error } = await supabase
-        .from("nfc_cards")
-        .select("*")
-        .eq("public_code", code)
-        .maybeSingle();
+      const { data, error } = await supabase.
+      from("nfc_cards").
+      select("*").
+      eq("public_code", code).
+      maybeSingle();
 
       if (error || !data) {
         setNotFound(true);
@@ -37,7 +37,7 @@ const CardResolver = () => {
       // Record the tap (fire and forget)
       supabase.from("nfc_card_taps").insert({
         card_id: data.id,
-        user_agent: navigator.userAgent,
+        user_agent: navigator.userAgent
       }).then(() => {});
 
       if (data.status === "claimed" && data.destination_value) {
@@ -70,7 +70,7 @@ const CardResolver = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto mb-2" />
+          
         </div>
 
         <div className="bg-card rounded-2xl border p-6 shadow-sm space-y-6">
@@ -96,29 +96,29 @@ const CardResolver = () => {
               }}
               maxLength={6}
               disabled={loading}
-              className="text-center text-lg tracking-widest font-mono uppercase"
-            />
+              className="text-center text-lg tracking-widest font-mono uppercase" />
+
           </div>
 
-          {notFound && (
-            <p className="text-sm text-destructive text-center">
+          {notFound &&
+          <p className="text-sm text-destructive text-center">
               Card not found. Please check the code and try again.
             </p>
-          )}
+          }
 
           <Button
             onClick={handleLookup}
             disabled={cardCode.length !== 6 || loading}
             className="w-full"
-            size="lg"
-          >
+            size="lg">
+
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Continue
           </Button>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 };
 
 export default CardResolver;
