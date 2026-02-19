@@ -245,14 +245,6 @@ const CardResolver = () => {
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto" />
-        </motion.div>
 
         {/* Card Image with float animation */}
         <motion.div
