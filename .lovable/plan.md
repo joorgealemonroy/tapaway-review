@@ -1,45 +1,55 @@
 
+# Fix Card Activation Flow: Password Toggle, Pre-fill, Email Sender, and Restart
 
-# Replace Card Image with Animated Generic Card
+## Issues Found
 
-## What Changes
+1. **No password visibility toggle** on the CardResolver page (password step has a plain input with no eye icon)
+2. **No data bridging** between card activation and signup -- email and password are not carried over to the signup form
+3. **Email sender address** may show raw system address if `EMAIL_FROM` secret doesn't include a display name
+4. **No restart option** -- users can't go back from the password step to start over
 
-Replace the static TapAway card PNG image with a custom animated SVG/div card element that:
+## Changes
 
-- Is oriented horizontally (landscape / credit card aspect ratio ~85.6mm x 53.98mm = ~1.586:1)
-- Cycles through 5 background colors: green, pink, red, gray, and yellow with smooth transitions
-- Displays "tapaway.co" centered on the card in League Spartan font
-- Retains the existing floating animation
-- Has rounded corners and shadow matching the current premium feel
+### 1. `src/pages/CardResolver.tsx`
 
-## Visual Design
+**Password eye toggle:**
+- Add `showPassword` state
+- Import `Eye`, `EyeOff` from lucide-react
+- Wrap password input in a relative div with an eye toggle button (same pattern as IdentityStep)
 
-```text
-+------------------------------------------+
-|                                          |
-|                                          |
-|             tapaway.co                   |
-|          (League Spartan)                |
-|                                          |
-|                                          |
-+------------------------------------------+
-        ^^ cycles green -> pink -> red -> gray -> yellow
-```
+**Store credentials before navigating to signup:**
+- Before every `navigate('/personal/signup?card=...')` call, save email and password to `sessionStorage`:
+  ```
+  sessionStorage.setItem("tapaway_card_email", email)
+  sessionStorage.setItem("tapaway_card_password", password)
+  ```
 
-## Technical Details
+**Add restart / back button:**
+- On the password step, add a "Start over" link below the submit button that resets state (email, otp, password) and goes back to step "email"
 
-### File: `index.html`
-- Add Google Fonts import for League Spartan: `<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700&display=swap" rel="stylesheet">`
+### 2. `src/components/personal/signup/IdentityStep.tsx`
 
-### File: `src/pages/CardResolver.tsx`
+**Pre-fill from sessionStorage:**
+- On mount, check for `tapaway_card_email` and `tapaway_card_password` in sessionStorage
+- If found, call `updateFormData({ email, password })` and clear them from sessionStorage
+- Also check `supabase.auth.getUser()` -- if user is already authenticated, pre-fill email from the session and make the email field read-only with a lock icon and helper text ("Verified via card activation")
 
-Replace the card image section (lines 257-271) with an animated div:
+### 3. `supabase/functions/send-custom-otp/index.ts`
 
-- Use a `div` with credit card aspect ratio (`aspect-[1.586/1]`, approx `w-64` wide which gives ~161px tall)
-- Use `framer-motion`'s `animate` prop to cycle through background colors: `["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"]` (Tailwind green-500, pink-500, red-500, gray-400, yellow-500)
-- Transition duration: ~3s per color, infinite repeat
-- Center "tapaway.co" text using `fontFamily: "'League Spartan', sans-serif"`, bold, white with a subtle text shadow for contrast
-- Keep the existing float animation (`y: [0, -6, 0]`)
-- Rounded corners (`rounded-2xl`) and shadow (`shadow-2xl shadow-teal-200/50`) stay the same
+**Fix email sender display name:**
+- On line 97, after reading `EMAIL_FROM`, check if it already contains `<`. If not, wrap it:
+  ```
+  const raw = Deno.env.get("EMAIL_FROM") || "no-reply@tapaway.co";
+  const fromEmail = raw.includes("<") ? raw : `TapAway <${raw}>`;
+  ```
+- Apply the same fix on line 197 where it's read again for logging
 
-No other files change. The rest of the activation flow (steps, OTP, etc.) remains untouched.
+### 4. No new files needed
+
+## Summary Table
+
+| File | What Changes |
+|------|-------------|
+| `src/pages/CardResolver.tsx` | Add password eye toggle, sessionStorage bridge, restart button |
+| `src/components/personal/signup/IdentityStep.tsx` | Read sessionStorage on mount, pre-fill email/password, read-only email if authenticated |
+| `supabase/functions/send-custom-otp/index.ts` | Wrap bare EMAIL_FROM with display name |
