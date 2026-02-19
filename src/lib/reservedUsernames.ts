@@ -73,6 +73,9 @@ export const RESERVED_USERNAMES = new Set([
   
   // Legacy route
   "u",
+  
+  // NFC card route
+  "c",
 ]);
 
 export const isUsernameReserved = (username: string): boolean => {
