@@ -1,45 +1,46 @@
 
 
-# Replace Card Image with Animated Generic Card
+# Fix Email Sender, Add Password Toggle, and Streamline Card-to-Signup Flow
 
-## What Changes
+## Three Issues to Fix
 
-Replace the static TapAway card PNG image with a custom animated SVG/div card element that:
+### 1. Email sender showing ugly address
 
-- Is oriented horizontally (landscape / credit card aspect ratio ~85.6mm x 53.98mm = ~1.586:1)
-- Cycles through 5 background colors: green, pink, red, gray, and yellow with smooth transitions
-- Displays "tapaway.co" centered on the card in League Spartan font
-- Retains the existing floating animation
-- Has rounded corners and shadow matching the current premium feel
+The `EMAIL_FROM` secret is set to just `no-reply@tapaway.co` without a display name. The edge function has a fallback `"TapAway <no-reply@tapaway.co>"` but the secret overrides it with the raw address. Fix: update the `send-custom-otp` edge function to always wrap the `EMAIL_FROM` value with a display name if it doesn't already have one.
 
-## Visual Design
+**File: `supabase/functions/send-custom-otp/index.ts`**
+- Update the `sendEmail` function (line 97) to ensure the `from` field always has the format `TapAway <address>` even if the `EMAIL_FROM` secret is just a bare email address
+- Add a helper that checks if `EMAIL_FROM` already contains `<` -- if not, wrap it: `TapAway <${emailFrom}>`
 
-```text
-+------------------------------------------+
-|                                          |
-|                                          |
-|             tapaway.co                   |
-|          (League Spartan)                |
-|                                          |
-|                                          |
-+------------------------------------------+
-        ^^ cycles green -> pink -> red -> gray -> yellow
-```
+### 2. Password visibility toggle on CardResolver
 
-## Technical Details
+The password step in `CardResolver.tsx` uses a plain `type="password"` input with no toggle. The `IdentityStep` already has this pattern (eye/eye-off button).
 
-### File: `index.html`
-- Add Google Fonts import for League Spartan: `<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700&display=swap" rel="stylesheet">`
+**File: `src/pages/CardResolver.tsx`**
+- Add `showPassword` state (boolean, default false)
+- Import `Eye` and `EyeOff` from lucide-react
+- Wrap the password input in a `relative` div, add an eye toggle button on the right side
+- Change input type to `showPassword ? "text" : "password"`
 
-### File: `src/pages/CardResolver.tsx`
+### 3. Don't re-ask for email and password in signup
 
-Replace the card image section (lines 257-271) with an animated div:
+After CardResolver creates the account (email + OTP + password), the user is signed in and redirected to `/personal/signup?card=XXX`. The IdentityStep then asks for email and password again -- redundant.
 
-- Use a `div` with credit card aspect ratio (`aspect-[1.586/1]`, approx `w-64` wide which gives ~161px tall)
-- Use `framer-motion`'s `animate` prop to cycle through background colors: `["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"]` (Tailwind green-500, pink-500, red-500, gray-400, yellow-500)
-- Transition duration: ~3s per color, infinite repeat
-- Center "tapaway.co" text using `fontFamily: "'League Spartan', sans-serif"`, bold, white with a subtle text shadow for contrast
-- Keep the existing float animation (`y: [0, -6, 0]`)
-- Rounded corners (`rounded-2xl`) and shadow (`shadow-2xl shadow-teal-200/50`) stay the same
+**File: `src/pages/CardResolver.tsx`**
+- Before navigating to signup, store email and password in `sessionStorage` under keys like `tapaway_card_email` and `tapaway_card_password`
 
-No other files change. The rest of the activation flow (steps, OTP, etc.) remains untouched.
+**File: `src/components/personal/signup/IdentityStep.tsx`**
+- On mount, check `sessionStorage` for `tapaway_card_email` and `tapaway_card_password`
+- If found, pre-fill the email and password fields and clear them from sessionStorage
+- Also check if the user is already authenticated (via `supabase.auth.getUser()`) -- if so, pre-fill email from the session and make the email field read-only (they already verified it)
+
+**File: `src/pages/personal/PersonalSignup.tsx`**
+- On mount, if `searchParams` has `card` and user is already authenticated, pre-fill the email from the auth session into `onboardingData` so it carries through
+
+## File Changes Summary
+
+| File | Change |
+|------|--------|
+| `supabase/functions/send-custom-otp/index.ts` | Wrap `EMAIL_FROM` with display name if bare address |
+| `src/pages/CardResolver.tsx` | Add password eye toggle; store email/password in sessionStorage before navigating to signup |
+| `src/components/personal/signup/IdentityStep.tsx` | Pre-fill email/password from sessionStorage; make email read-only if user is authenticated |
