@@ -1,91 +1,124 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import CardActivation from "./CardActivation";
 
 const CardResolver = () => {
-  const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [cardCode, setCardCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const [card, setCard] = useState<any>(null);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
-    if (!code) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
+  const handleLookup = async () => {
+    const code = cardCode.trim().toUpperCase();
+    if (code.length !== 6) return;
 
-    const resolveCard = async () => {
-      try {
-        // Look up the card
-        const { data, error } = await supabase
-          .from("nfc_cards")
-          .select("*")
-          .eq("public_code", code.toUpperCase())
-          .maybeSingle();
+    setLoading(true);
+    setNotFound(false);
 
-        if (error || !data) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
+    try {
+      const { data, error } = await supabase
+        .from("nfc_cards")
+        .select("*")
+        .eq("public_code", code)
+        .maybeSingle();
 
-        // Record the tap (fire and forget)
-        supabase.from("nfc_card_taps").insert({
-          card_id: data.id,
-          user_agent: navigator.userAgent,
-        }).then(() => {});
-
-        if (data.status === "claimed" && data.destination_value) {
-          // Redirect to profile
-          navigate(`/${data.destination_value}`, { replace: true });
-          return;
-        }
-
-        if (data.status === "disabled") {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-
-        // Card is unclaimed — show activation
-        setCard(data);
-        setLoading(false);
-      } catch {
+      if (error || !data) {
         setNotFound(true);
         setLoading(false);
+        return;
       }
-    };
 
-    resolveCard();
-  }, [code, navigate]);
+      // Record the tap (fire and forget)
+      supabase.from("nfc_card_taps").insert({
+        card_id: data.id,
+        user_agent: navigator.userAgent,
+      }).then(() => {});
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      if (data.status === "claimed" && data.destination_value) {
+        navigate(`/${data.destination_value}`, { replace: true });
+        return;
+      }
+
+      if (data.status === "disabled") {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      // Card is unclaimed — show activation
+      setCard(data);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If card has been resolved, show activation flow
+  if (card) {
+    return <CardActivation card={card} />;
   }
 
-  if (notFound) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <span className="text-2xl">🔍</span>
+  // Card code entry form
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto mb-2" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">Card not found</h1>
-        <p className="text-muted-foreground max-w-sm">
-          This card doesn't exist or has been disabled. If you think this is a mistake, contact support.
-        </p>
-      </div>
-    );
-  }
 
-  return <CardActivation card={card} />;
+        <div className="bg-card rounded-2xl border p-6 shadow-sm space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <CreditCard className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Set up your TapAway card</h1>
+            <p className="text-muted-foreground text-sm">
+              Enter the 6-character code printed on your card to get started.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="card-code">Card Code</Label>
+            <Input
+              id="card-code"
+              placeholder="AB12CD"
+              value={cardCode}
+              onChange={(e) => {
+                setCardCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6));
+                setNotFound(false);
+              }}
+              maxLength={6}
+              disabled={loading}
+              className="text-center text-lg tracking-widest font-mono uppercase"
+            />
+          </div>
+
+          {notFound && (
+            <p className="text-sm text-destructive text-center">
+              Card not found. Please check the code and try again.
+            </p>
+          )}
+
+          <Button
+            onClick={handleLookup}
+            disabled={cardCode.length !== 6 || loading}
+            className="w-full"
+            size="lg"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Continue
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default CardResolver;

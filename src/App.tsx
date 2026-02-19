@@ -144,8 +144,8 @@ const App = () => (
                 
                 <Route path="/hub/:restaurantId" element={<ReviewHub />} />
                 
-                {/* NFC Card activation */}
-                <Route path="/c/:code" element={<CardResolver />} />
+                {/* NFC Card setup — single URL for all cards */}
+                <Route path="/setup" element={<CardResolver />} />
                 
                 {/* Legacy Personal Profile URL - 301 redirect to /:username */}
                 <Route path="/u/:username" element={<LegacyProfileRedirect />} />
