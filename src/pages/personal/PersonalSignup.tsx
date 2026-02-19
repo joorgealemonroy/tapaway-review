@@ -102,6 +102,17 @@ const PersonalSignup = () => {
     }
   }, [searchParams, update]);
 
+  // Detect card-activation users
+  const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
+  const totalSteps = fromCardActivation ? 3 : 4;
+
+  // Auto-select free plan for card-activation users if no plan was pre-selected
+  useEffect(() => {
+    if (fromCardActivation && !planLocked) {
+      update({ planType: "free", cardChoice: "none" });
+    }
+  }, [fromCardActivation, planLocked, update]);
+
   const selectedPlan = onboardingData.planType;
   const isPaidPlan = selectedPlan === "monthly" || selectedPlan === "yearly";
 
@@ -152,7 +163,7 @@ const PersonalSignup = () => {
   }, [navigate]);
 
   const nextStep = () => {
-    if (currentStep < 4) {
+    if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
     }
   };
@@ -180,12 +191,9 @@ const PersonalSignup = () => {
     navigate("/personal");
   };
 
-  const stepTitles = {
-    1: "Create your TapAway",
-    2: "Build your profile",
-    3: "Get a physical card",
-    4: "Finish your order",
-  };
+  const stepTitles = fromCardActivation
+    ? { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" }
+    : { 1: "Create your TapAway", 2: "Build your profile", 3: "Get a physical card", 4: "Finish your order" };
 
   // Affiliate-referred users get a dedicated paywall
   if (affiliateRef) {
@@ -207,7 +215,7 @@ const PersonalSignup = () => {
             </a>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4].map((step) => (
+                {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
                   <div
                     key={step}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -278,7 +286,7 @@ const PersonalSignup = () => {
               />
             )}
 
-            {currentStep === 3 && (
+            {currentStep === 3 && !fromCardActivation && (
               <PreviewStep
                 formData={formData}
                 updateFormData={updateFormData}
@@ -287,7 +295,7 @@ const PersonalSignup = () => {
               />
             )}
 
-            {currentStep === 4 && (
+            {((currentStep === 4 && !fromCardActivation) || (currentStep === 3 && fromCardActivation)) && (
               <CheckoutStep
                 formData={formData}
                 updateFormData={updateFormData}

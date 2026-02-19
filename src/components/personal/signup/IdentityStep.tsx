@@ -265,12 +265,12 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
                 type="button"
                 onClick={() => {
                   updateFormData({ planType: "yearly" });
-                  toast("Switched to Pro plan — complete checkout to remove the 'tap' prefix.");
+                  toast("Free trial selected — you can try Pro free for 7 days to remove the 'tap' prefix.");
                 }}
                 className="text-xs text-muted-foreground underline cursor-pointer flex items-center gap-1"
               >
                 <Info className="h-3 w-3" />
-                Upgrade to Pro to remove the "tap" prefix
+                Start a free trial to remove the "tap" prefix
               </button>
             )}
           </>
