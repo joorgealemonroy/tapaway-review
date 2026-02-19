@@ -36,24 +36,6 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [emailFromCard, setEmailFromCard] = useState(false);
-
-  // Pre-fill from card activation flow (sessionStorage)
-  useEffect(() => {
-    const cardEmail = sessionStorage.getItem("tapaway_card_email");
-    const cardPassword = sessionStorage.getItem("tapaway_card_password");
-    if (cardEmail || cardPassword) {
-      const updates: Partial<SignupData> = {};
-      if (cardEmail) {
-        updates.email = cardEmail;
-        setEmailFromCard(true);
-      }
-      if (cardPassword) updates.password = cardPassword;
-      updateFormData(updates);
-      sessionStorage.removeItem("tapaway_card_email");
-      sessionStorage.removeItem("tapaway_card_password");
-    }
-  }, []);
 
   // Debounced username check
   useEffect(() => {
@@ -178,8 +160,6 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
           onChange={(e) => updateFormData({ email: e.target.value })}
           onBlur={() => handleBlur("email")}
           className="h-12 text-base"
-          readOnly={emailFromCard}
-          disabled={emailFromCard}
         />
         {touched.email && errors.email && (
           <p className="text-sm text-destructive">{errors.email}</p>

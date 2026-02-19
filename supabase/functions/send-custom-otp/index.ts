@@ -87,11 +87,6 @@ Need help? Reply to this email.
 — TapAway`;
 }
 
-function ensureDisplayName(rawFrom: string): string {
-  if (rawFrom.includes("<")) return rawFrom;
-  return `TapAway <${rawFrom}>`;
-}
-
 async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
@@ -99,7 +94,7 @@ async function sendEmail(to: string, subject: string, html: string, text: string
     return false;
   }
 
-  const fromEmail = ensureDisplayName(Deno.env.get("EMAIL_FROM") || "no-reply@tapaway.co");
+  const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
 
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -199,7 +194,7 @@ serve(async (req) => {
     }
 
     // Send email
-    const fromEmail = ensureDisplayName(Deno.env.get("EMAIL_FROM") || "no-reply@tapaway.co");
+    const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
     console.log("[send-custom-otp] Dispatching email", {
       email: normalizedEmail,
       ts: new Date().toISOString(),
