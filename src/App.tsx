@@ -35,9 +35,6 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ReviewHub = lazy(() => import("./pages/ReviewHub"));
 const Admin = lazy(() => import("./pages/Admin"));
 
-// NFC Card activation
-const CardResolver = lazy(() => import("./pages/CardResolver"));
-
 // Legal pages - rarely visited
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -64,7 +61,6 @@ const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts"));
 const AdminDemoRequests = lazy(() => import("./pages/admin/AdminDemoRequests"));
 const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAccounts"));
 const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
-const AdminNfcCards = lazy(() => import("./pages/admin/AdminNfcCards"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 
 // Minimal loading spinner
@@ -140,14 +136,10 @@ const App = () => (
                 <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
-                <Route path="/admin/nfc-cards" element={<AdminNfcCards />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 
                 <Route path="/hub/:restaurantId" element={<ReviewHub />} />
-                
-                {/* NFC Card setup — single URL for all cards */}
-                <Route path="/setup" element={<CardResolver />} />
                 
                 {/* Legacy Personal Profile URL - 301 redirect to /:username */}
                 <Route path="/u/:username" element={<LegacyProfileRedirect />} />

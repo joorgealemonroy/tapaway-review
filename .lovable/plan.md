@@ -1,63 +1,35 @@
 
 
-# Admin NFC Card Batch Manager
+# Fix: Banner Preview to Match Real Hub Proportions
 
-## Overview
+## Problem
 
-Add a new admin page at `/admin/nfc-cards` where you can generate NFC card batches, view all cards in a table, and download CSV files for printing trifolds.
+The "Full Banner" preview in the profile builder doesn't match how the banner actually looks on the live public profile. The banner height is nearly the same as a regular color header (`h-36` vs `h-32`), so it doesn't feel like a "full banner." Additionally, the text styling doesn't match the real hub (which shows `@username` in large bold white text overlapping the banner bottom, not the full name).
 
-## New File: `src/pages/admin/AdminNfcCards.tsx`
+## Changes
 
-A single admin page with two sections:
+### File: `src/components/personal/ProfilePreviewRenderer.tsx`
 
-### Section 1: Generate Batch
-- Input for **batch size** (number, default 10)
-- Input for **batch ID** (optional text label, e.g. "BATCH-001" or "FEB-2026")
-- "Generate Cards" button that calls `admin-create-nfc-cards`
-- On success: auto-downloads the CSV and shows the newly created cards
+**1. Increase banner height to feel proportionally "full"**
+- Change the banner container from `h-36` to `h-52` (208px out of ~560px frame = ~37%, closer to the real hub's 55vh feel while leaving room for content)
+- Keep the non-banner header at `h-32` so there's a clear visual distinction
 
-### Section 2: All Cards Table
-- Loads all cards from `nfc_cards` table on page load
-- Columns: Public Code, Status, Batch ID, Owner, Destination, Created, Claimed At
-- Search/filter by batch ID or public code
-- Status badges (unclaimed = gray, claimed = green, disabled = red)
-- Download CSV button for any batch (filters and exports)
+**2. Match real hub text styling in banner mode**
+- When `hasBanner` is true, show `@username` in larger bold white text (matching the real hub's `text-3xl font-bold text-white`) instead of the generic `full_name` heading
+- Show headline and bio below the username in white text, matching the real hub layout
+- Adjust the overlap (`-mt-16` instead of `-mt-12`) so the text floats nicely on the banner fade
 
-### CSV Format (for trifold printing)
-```
-public_code,claim_code,nfc_url
-AB12CD,Kx7mNp3Q,tapaway.co/setup
-```
+**3. Increase fade overlay height**
+- Increase the gradient fade from `h-32` to `h-40` to accommodate the taller banner and larger text overlap, ensuring text is readable against the faded area
 
-The `claim_code` column only appears in the CSV returned at generation time (it's never stored in plaintext). For existing cards, the CSV will only have `public_code` and status.
+### Summary of pixel changes:
 
-## Route Addition
+| Element | Current | Proposed | Real Hub |
+|---------|---------|----------|----------|
+| Banner height | h-36 (144px) | h-52 (208px) | 55vh (~330px) |
+| Non-banner height | h-32 (128px) | h-32 (unchanged) | h-48 (192px) |
+| Text overlap | -mt-12 | -mt-16 | -mt-24 |
+| Fade overlay | h-32 | h-40 | h-64 |
+| Name display (banner) | full_name | @username | @username |
 
-Add `/admin/nfc-cards` route in `App.tsx` with a lazy import. Add a navigation button in the main Admin page linking to it.
-
-## Technical Details
-
-### Files to create
-| File | Purpose |
-|------|---------|
-| `src/pages/admin/AdminNfcCards.tsx` | Full admin page for batch generation and card management |
-
-### Files to modify
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Add lazy import and route for `/admin/nfc-cards` |
-| `src/pages/Admin.tsx` | Add "NFC Cards" button in the admin nav section |
-
-### Component structure
-- Uses `useAdminAccess` hook for auth guard (same pattern as other admin pages)
-- Back arrow to `/admin`
-- "Generate Batch" section at top with count + batch ID inputs
-- Table section below using the existing `Table` UI components
-- Toast notifications for success/error
-- CSV download triggers browser download via `Blob` + `URL.createObjectURL`
-
-### Data flow
-- **Generate**: Calls `supabase.functions.invoke("admin-create-nfc-cards", { body: { count, batchId } })` -- returns cards with plaintext claim codes
-- **List**: Queries `supabase.from("nfc_cards").select("*").order("created_at", { ascending: false })` -- admin RLS policy already grants full access
-- **Download**: For freshly generated batches, uses the response CSV directly. For historical batches, exports public_code + status only (claim codes are gone)
-
+These changes only affect the `ProfilePreviewRenderer` component, which is used in the dashboard preview panel and signup flow. The real public profile page (`PersonalProfilePage.tsx`) is unaffected.
