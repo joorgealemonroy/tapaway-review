@@ -64,6 +64,21 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [showDowngradeWarning, setShowDowngradeWarning] = useState(false);
   const [pendingDowngradePlan, setPendingDowngradePlan] = useState<PlanType | null>(null);
   const [downgradeIssues, setDowngradeIssues] = useState<string[]>([]);
+  const [preAuthed, setPreAuthed] = useState(false);
+
+  // Detect if user is already authenticated (card activation flow)
+  useEffect(() => {
+    const checkPreAuth = async () => {
+      const flag = sessionStorage.getItem("tapaway_card_preauthed");
+      if (flag === "true") {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setPreAuthed(true);
+        }
+      }
+    };
+    checkPreAuth();
+  }, []);
 
   const freeFeatures = [
     "Up to 5 links",
@@ -478,15 +493,172 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     }
   };
 
+  const createProfileDirectly = async () => {
+    setProcessing(true);
+    setIsLoading(true);
+    setFlowStep("creating");
+    logCheckpoint("Pre-authed user — skipping OTP, creating profile directly");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found");
+
+      logCheckpoint("Session confirmed", { userId: user.id });
+
+      // Upload profile photo
+      let profilePhotoUrl = formData.profilePhotoUrl;
+      if (formData.croppedPhotoBlob) {
+        logCheckpoint("Uploading profile photo");
+        try {
+          const filePath = `${user.id}/profile.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from("personal-photos")
+            .upload(filePath, formData.croppedPhotoBlob, { upsert: true, contentType: "image/jpeg" });
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(filePath);
+            profilePhotoUrl = `${publicUrl}?t=${Date.now()}`;
+          } else {
+            console.warn("Photo upload failed:", uploadError);
+          }
+        } catch (photoErr) {
+          console.warn("Photo upload error:", photoErr);
+        }
+      }
+
+      // Upload header image
+      let headerImageUrl: string | null = null;
+      if (formData.headerType === "image" && formData.headerImageUrl) {
+        try {
+          let headerBlob: Blob | null = null;
+          if (formData.headerImageUrl.startsWith("data:")) {
+            const arr = formData.headerImageUrl.split(",");
+            const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            headerBlob = new Blob([u8arr], { type: mime });
+          } else {
+            headerImageUrl = formData.headerImageUrl;
+          }
+          if (headerBlob) {
+            const headerPath = `${user.id}/header.jpg`;
+            const { error: headerUploadError } = await supabase.storage
+              .from("personal-photos")
+              .upload(headerPath, headerBlob, { upsert: true, contentType: "image/jpeg" });
+            if (!headerUploadError) {
+              const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(headerPath);
+              headerImageUrl = `${publicUrl}?t=${Date.now()}`;
+            }
+          }
+        } catch (headerErr) {
+          console.warn("Header upload error:", headerErr);
+        }
+      }
+
+      // Create profile
+      const finalUsername = getPublicUsername(formData.planType, formData.username);
+      const profileData: Record<string, any> = {
+        user_id: user.id,
+        email: formData.email,
+        full_name: formData.fullName,
+        username: finalUsername,
+        plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
+        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        profile_photo_url: profilePhotoUrl,
+        header_type: formData.headerType || "color",
+        header_color: formData.headerColor || "#6BCB77",
+        header_image_url: headerImageUrl,
+        background_color: formData.backgroundColor || "#ffffff",
+        card_front_headline: formData.cardHeadline || null,
+      };
+
+      const { data: profileResult, error: profileError } = await supabase
+        .from("personal_profiles")
+        .insert(profileData as any)
+        .select()
+        .single();
+
+      if (profileError) {
+        if (profileError.code === "23505" || profileError.message?.includes("unique")) {
+          throw new Error("This username is already taken. Please go back and choose a different one.");
+        }
+        throw new Error(`Failed to create profile: ${profileError.message}`);
+      }
+
+      // Create links
+      if (formData.links.length > 0) {
+        const linksToInsert = formData.links.map((link, index) => ({
+          profile_id: profileResult.id,
+          link_type: link.type,
+          label: link.label,
+          url: link.url,
+          sort_order: index,
+          is_active: true,
+        }));
+        await supabase.from("personal_links").insert(linksToInsert);
+      }
+
+      // Create blocks
+      if (formData.blocks.length > 0) {
+        const blocksToInsert = formData.blocks.map((block, index) => ({
+          profile_id: profileResult.id,
+          block_type: block.type,
+          content: block.content || {},
+          sort_order: index,
+          is_active: true,
+        }));
+        await supabase.from("personal_blocks").insert(blocksToInsert);
+      }
+
+      // Send welcome email
+      try {
+        await supabase.functions.invoke("send-personal-welcome-emails", {
+          body: {
+            fullName: formData.fullName,
+            username: finalUsername,
+            email: formData.email,
+            profilePhotoUrl: profilePhotoUrl,
+            profileId: profileResult.id,
+          }
+        });
+      } catch (emailErr) {
+        console.warn("Welcome email failed:", emailErr);
+      }
+
+      // Cleanup
+      sessionStorage.removeItem("tapaway_card_preauthed");
+      sessionStorage.removeItem("tapaway_card_email");
+      sessionStorage.removeItem("tapaway_card_password");
+      localStorage.removeItem("tapaway_personal_draft");
+
+      logCheckpoint("Account creation complete (pre-authed flow)");
+      toast.success("Account created successfully! Welcome to TapAway!");
+      onComplete();
+
+    } catch (err: any) {
+      console.error("Account creation error:", err);
+      const errorMessage = err?.message || "Something went wrong";
+      setOtpError(errorMessage);
+      setDetailedError(`Error details: ${JSON.stringify(err)}`);
+      setFlowStep("plan");
+      toast.error(errorMessage);
+    } finally {
+      setProcessing(false);
+      setIsLoading(false);
+    }
+  };
+
   const handleGetCard = () => {
     if (isFreePlan) {
-      // Free plan never goes through Stripe
-      sendOTP();
+      if (preAuthed) {
+        createProfileDirectly();
+      } else {
+        sendOTP();
+      }
     } else if (PERSONAL_PAYMENTS_ENABLED) {
-      // Real payment flow - redirect to Stripe (affiliate or regular)
       handleStripeCheckout();
     } else {
-      // Test mode - send OTP for verification
       sendOTP();
     }
   };

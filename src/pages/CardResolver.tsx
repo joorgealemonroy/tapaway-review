@@ -209,6 +209,7 @@ const CardResolver = () => {
 
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
         sessionStorage.setItem("tapaway_card_password", password);
+        sessionStorage.setItem("tapaway_card_preauthed", "true");
         navigate(`/personal/signup?card=${publicCode}`);
       }
     } catch (err: any) {
