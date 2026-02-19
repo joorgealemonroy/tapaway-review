@@ -261,13 +261,27 @@ const CardResolver = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <motion.img
-            src="/tapaway-personal-front.png"
-            alt="TapAway Card"
-            className="w-52 rounded-2xl shadow-2xl shadow-teal-200/50"
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
+          <motion.div
+            className="w-64 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
+            animate={{
+              backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
+              y: [0, -6, 0],
+            }}
+            transition={{
+              backgroundColor: { duration: 12, repeat: Infinity, ease: "linear" },
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'League Spartan', sans-serif",
+                textShadow: "0 2px 8px rgba(0,0,0,0.25)",
+              }}
+              className="text-white text-2xl font-bold tracking-tight select-none"
+            >
+              tapaway.co
+            </span>
+          </motion.div>
         </motion.div>
 
         {/* Heading */}
