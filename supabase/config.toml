@@ -116,3 +116,9 @@ verify_jwt = false
 
 [functions.check-affiliate-abuse]
 verify_jwt = false
+
+[functions.claim-nfc-card]
+verify_jwt = false
+
+[functions.admin-create-nfc-cards]
+verify_jwt = false

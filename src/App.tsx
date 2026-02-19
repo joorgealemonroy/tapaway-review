@@ -35,6 +35,9 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ReviewHub = lazy(() => import("./pages/ReviewHub"));
 const Admin = lazy(() => import("./pages/Admin"));
 
+// NFC Card activation
+const CardResolver = lazy(() => import("./pages/CardResolver"));
+
 // Legal pages - rarely visited
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -140,6 +143,9 @@ const App = () => (
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 
                 <Route path="/hub/:restaurantId" element={<ReviewHub />} />
+                
+                {/* NFC Card activation */}
+                <Route path="/c/:code" element={<CardResolver />} />
                 
                 {/* Legacy Personal Profile URL - 301 redirect to /:username */}
                 <Route path="/u/:username" element={<LegacyProfileRedirect />} />
