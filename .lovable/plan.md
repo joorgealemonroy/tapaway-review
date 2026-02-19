@@ -1,35 +1,124 @@
 
 
-# Fix: Banner Preview to Match Real Hub Proportions
+# NFC Card Activation System for TapAway Personal
 
-## Problem
+## Overview
 
-The "Full Banner" preview in the profile builder doesn't match how the banner actually looks on the live public profile. The banner height is nearly the same as a regular color header (`h-36` vs `h-32`), so it doesn't feel like a "full banner." Additionally, the text styling doesn't match the real hub (which shows `@username` in large bold white text overlapping the banner bottom, not the full name).
+Build a complete NFC card activation flow using the new URL pattern `tapaway.co/c/{public_code}`. This repurposes the existing `nfc_cards` table (already has the right columns) and adds the public route, admin bulk generator, activation flow with OTP auth, and dashboard card management.
 
-## Changes
+## Database Changes
 
-### File: `src/components/personal/ProfilePreviewRenderer.tsx`
+The `nfc_cards` table already exists with the needed columns (`id`, `public_code`, `status`, `owner_user_id`, `destination_type`, `destination_value`, `claimed_at`, `created_at`, `batch_id`). Minor adjustments needed:
 
-**1. Increase banner height to feel proportionally "full"**
-- Change the banner container from `h-36` to `h-52` (208px out of ~560px frame = ~37%, closer to the real hub's 55vh feel while leaving room for content)
-- Keep the non-banner header at `h-32` so there's a clear visual distinction
+1. Drop the `claim_code_hash` NOT NULL constraint (not needed for this flow)
+2. Add index on `public_code` if not already present
+3. Update RLS policies:
+   - Public SELECT on `public_code`, `status`, `destination_type`, `destination_value` (for route resolution)
+   - Owner can UPDATE their own cards (already exists)
+   - Admin full access (already exists)
+   - INSERT only via admin (already covered)
+4. Add a validation trigger to prevent re-claiming (status = 'claimed' cannot be changed back to 'unclaimed')
 
-**2. Match real hub text styling in banner mode**
-- When `hasBanner` is true, show `@username` in larger bold white text (matching the real hub's `text-3xl font-bold text-white`) instead of the generic `full_name` heading
-- Show headline and bio below the username in white text, matching the real hub layout
-- Adjust the overlap (`-mt-16` instead of `-mt-12`) so the text floats nicely on the banner fade
+## New Routes
 
-**3. Increase fade overlay height**
-- Increase the gradient fade from `h-32` to `h-40` to accommodate the taller banner and larger text overlap, ensuring text is readable against the faded area
+| Route | Component | Purpose |
+|-------|-----------|---------|
+| `/c/:publicCode` | `CardResolver.tsx` | Public card route -- resolve, activate, or redirect |
+| `/admin/cards` | `AdminCards.tsx` | Admin bulk card generator |
 
-### Summary of pixel changes:
+Add both routes to `App.tsx` above the `/:slug` catch-all.
 
-| Element | Current | Proposed | Real Hub |
-|---------|---------|----------|----------|
-| Banner height | h-36 (144px) | h-52 (208px) | 55vh (~330px) |
-| Non-banner height | h-32 (128px) | h-32 (unchanged) | h-48 (192px) |
-| Text overlap | -mt-12 | -mt-16 | -mt-24 |
-| Fade overlay | h-32 | h-40 | h-64 |
-| Name display (banner) | full_name | @username | @username |
+## Components and Pages
 
-These changes only affect the `ProfilePreviewRenderer` component, which is used in the dashboard preview panel and signup flow. The real public profile page (`PersonalProfilePage.tsx`) is unaffected.
+### 1. Card Resolver Page (`src/pages/CardResolver.tsx`)
+
+The main public-facing route. Logic:
+
+- Fetch card by `public_code`
+- **Card not found**: Show clean "Invalid Card" error page
+- **Card unclaimed**: Show activation screen (Apple-style, mobile-first, large CTA)
+  - If user not logged in: show email input + OTP verification (reuses existing `send-custom-otp` / `verify-custom-otp` edge functions)
+  - After auth: claim card (set `owner_user_id`, `status = claimed`, `destination_type = profile`, `destination_value = username`, `claimed_at = now()`)
+  - Redirect to `/personal/dashboard?tab=cards`
+- **Card claimed**: Server-style redirect
+  - `destination_type = profile` --> redirect to `/{destination_value}`
+  - `destination_type = external_url` --> redirect to external URL
+
+### 2. Card Activation UI
+
+Mobile-first, minimal Apple-style design:
+- TapAway logo at top
+- Card illustration or icon
+- "Activate Your TapAway Card" heading
+- Email input + "Send Code" button
+- OTP input (6 digits, reuses existing `InputOTP` component)
+- Large "Activate" CTA button
+- Clean white background, no clutter
+
+### 3. Admin Cards Page (`src/pages/admin/AdminCards.tsx`)
+
+Protected by `useAdminAccess()`. Features:
+- Quantity input (default 100)
+- "Generate Cards" button
+- On submit: generate X unique 6-character uppercase alphanumeric codes, insert into `nfc_cards`
+- Show table of generated codes with columns: `public_code`, `full URL`, `status`
+- Export CSV button (columns: `public_code`, `tapaway.co/c/{public_code}`)
+- Below: table of all existing cards with search/filter
+
+### 4. Dashboard Cards Tab
+
+Add a "Cards" tab to `PersonalDashboard.tsx`:
+- Show all cards owned by current user
+- Each card shows: `public_code`, status, current destination
+- "Change Destination" button: modal to switch between `profile` (auto-fills username) or `external_url` (URL input)
+- "Disable Card" button: sets status to `disabled`
+- Add "Cards" icon to `MobileBottomNav` "More" menu
+
+## Edge Function: `claim-card`
+
+New edge function `supabase/functions/claim-card/index.ts`:
+- Accepts `{ public_code, user_id }`
+- Uses service role to:
+  1. Verify card exists and status = 'unclaimed'
+  2. Look up user's `personal_profiles.username`
+  3. Update card: `owner_user_id`, `status = claimed`, `destination_type = profile`, `destination_value = username`, `claimed_at = now()`
+- Returns success or error
+- This runs server-side to prevent race conditions on claiming
+
+## Username Change Handling
+
+Since users can now change their username after card activation, cards with `destination_type = profile` should resolve the username dynamically. Two options:
+
+- **Option A (chosen)**: When a user changes their username, update all their cards' `destination_value` to the new username. Add this logic to the existing profile save flow in `PersonalDashboard.tsx`.
+- This keeps the redirect fast (no extra DB lookup at resolve time).
+
+## File Changes Summary
+
+| File | Action |
+|------|--------|
+| `src/App.tsx` | Add `/c/:publicCode` and `/admin/cards` routes |
+| `src/pages/CardResolver.tsx` | New -- public card route page |
+| `src/pages/admin/AdminCards.tsx` | New -- admin bulk generator |
+| `src/components/personal/DashboardCardsTab.tsx` | New -- dashboard cards management |
+| `src/pages/personal/PersonalDashboard.tsx` | Add "Cards" tab |
+| `src/components/personal/MobileBottomNav.tsx` | Add "Cards" to More menu |
+| `supabase/functions/claim-card/index.ts` | New -- server-side card claiming |
+| `supabase/config.toml` | Add `claim-card` function config |
+| Database migration | Update `nfc_cards` table constraints and RLS |
+
+## Security
+
+- Card claiming happens server-side via edge function (prevents race conditions)
+- RLS ensures only owners can modify their cards
+- Admin-only bulk generation via `is_admin()` check
+- OTP auth via existing Resend-based flow (no-reply@tapaway.co)
+- Cards cannot be re-claimed once status = 'claimed'
+- Public route only reads minimal card data (no user info exposed)
+
+## Performance
+
+- `public_code` column indexed for fast lookups
+- Claimed cards redirect immediately (no UI render)
+- Card resolver uses single DB query
+- Lazy-loaded route components
+
