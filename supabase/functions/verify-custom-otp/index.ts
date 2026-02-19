@@ -33,7 +33,6 @@ serve(async (req) => {
       );
     }
     
-    // Password is required for new users but optional for returning users
     const userPassword = typeof password === "string" && password.length >= 8 ? password : null;
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -41,7 +40,6 @@ serve(async (req) => {
 
     console.log("[verify-custom-otp] Verifying OTP for:", normalizedEmail);
 
-    // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -71,11 +69,7 @@ serve(async (req) => {
       );
     }
 
-    // Mark OTP as verified
-    await supabase
-      .from("pending_otps")
-      .update({ verified_at: new Date().toISOString() })
-      .eq("id", otpRecord.id);
+    // DO NOT mark OTP as verified yet — wait until flow is fully complete
 
     // Check if user already exists
     const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
@@ -111,6 +105,12 @@ serve(async (req) => {
           throw new Error("Failed to update password");
         }
 
+        // Mark OTP as verified now that flow is complete
+        await supabase
+          .from("pending_otps")
+          .update({ verified_at: new Date().toISOString() })
+          .eq("id", otpRecord.id);
+
         console.log("[verify-custom-otp] Password updated for existing user:", existingUser.id);
         
         return new Response(
@@ -130,6 +130,12 @@ serve(async (req) => {
         email_confirm: true,
       });
 
+      // Mark OTP as verified now that flow is complete
+      await supabase
+        .from("pending_otps")
+        .update({ verified_at: new Date().toISOString() })
+        .eq("id", otpRecord.id);
+
       return new Response(
         JSON.stringify({
           success: true,
@@ -141,21 +147,23 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else {
-      // Create new user with auto-confirmed email
-      console.log("[verify-custom-otp] Creating new user:", normalizedEmail);
-      
-      // Use user-provided password or generate a temp one
+      // New user - check if password was provided
       if (!userPassword) {
+        // Return 200 with needsPassword flag so frontend can transition to password step
+        console.log("[verify-custom-otp] New user needs password:", normalizedEmail);
         return new Response(
-          JSON.stringify({ error: "Password is required to create your account" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: true, isNewUser: true, needsPassword: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Create new user with provided password
+      console.log("[verify-custom-otp] Creating new user:", normalizedEmail);
       
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: normalizedEmail,
         password: userPassword,
-        email_confirm: true, // Auto-confirm since they verified OTP
+        email_confirm: true,
       });
 
       if (createError) {
@@ -165,6 +173,12 @@ serve(async (req) => {
 
       userId = newUser.user.id;
       console.log("[verify-custom-otp] Created new user:", userId);
+
+      // Mark OTP as verified now that account is created
+      await supabase
+        .from("pending_otps")
+        .update({ verified_at: new Date().toISOString() })
+        .eq("id", otpRecord.id);
       
       console.log("[verify-custom-otp] success", {
         email: normalizedEmail,
@@ -180,7 +194,7 @@ serve(async (req) => {
           email: normalizedEmail,
           isNewUser: true,
           usedProvidedPassword: true,
-          tempPassword: userPassword, // Frontend will use this to sign in immediately
+          tempPassword: userPassword,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
