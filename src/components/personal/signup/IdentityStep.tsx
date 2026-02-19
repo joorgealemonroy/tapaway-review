@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Loader2, Eye, EyeOff, Info, LogIn } from "lucide-react";
+import { Check, X, Loader2, Eye, EyeOff, Info, LogIn, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { z } from "zod";
@@ -36,6 +36,38 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [emailReadOnly, setEmailReadOnly] = useState(false);
+
+  // Pre-fill from sessionStorage (card activation flow) or auth session
+  useEffect(() => {
+    const cardEmail = sessionStorage.getItem("tapaway_card_email");
+    const cardPassword = sessionStorage.getItem("tapaway_card_password");
+    const updates: Partial<SignupData> = {};
+
+    if (cardEmail) {
+      updates.email = cardEmail;
+      setEmailReadOnly(true);
+      sessionStorage.removeItem("tapaway_card_email");
+    }
+    if (cardPassword) {
+      updates.password = cardPassword;
+      sessionStorage.removeItem("tapaway_card_password");
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updateFormData(updates);
+    }
+
+    // Also check if user is already authenticated
+    if (!cardEmail) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user?.email && !formData.email) {
+          updateFormData({ email: user.email });
+          setEmailReadOnly(true);
+        }
+      });
+    }
+  }, []);
 
   // Debounced username check
   useEffect(() => {
@@ -152,15 +184,24 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         <Label htmlFor="email" className="text-sm font-medium text-foreground">
           Email
         </Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="john@example.com"
-          value={formData.email}
-          onChange={(e) => updateFormData({ email: e.target.value })}
-          onBlur={() => handleBlur("email")}
-          className="h-12 text-base"
-        />
+        <div className="relative">
+          <Input
+            id="email"
+            type="email"
+            placeholder="john@example.com"
+            value={formData.email}
+            onChange={(e) => !emailReadOnly && updateFormData({ email: e.target.value })}
+            onBlur={() => handleBlur("email")}
+            className={`h-12 text-base ${emailReadOnly ? "bg-muted pr-10" : ""}`}
+            readOnly={emailReadOnly}
+          />
+          {emailReadOnly && (
+            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+        {emailReadOnly && (
+          <p className="text-xs text-muted-foreground">Verified via card activation</p>
+        )}
         {touched.email && errors.email && (
           <p className="text-sm text-destructive">{errors.email}</p>
         )}

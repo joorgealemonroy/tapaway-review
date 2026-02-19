@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, Mail, ShieldCheck, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ShieldCheck, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -35,6 +35,7 @@ const CardResolver = () => {
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!publicCode) {
@@ -83,6 +84,7 @@ const CardResolver = () => {
           await claimCard(publicCode);
         } else {
           toast.info("Complete your profile setup to activate this card");
+          sessionStorage.setItem("tapaway_card_email", user.email || "");
           navigate(`/personal/signup?card=${publicCode}`);
         }
       } else {
@@ -174,6 +176,7 @@ const CardResolver = () => {
             setStep("claiming");
             await claimCard(publicCode!);
           } else {
+            sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
             navigate(`/personal/signup?card=${publicCode}`);
           }
         }
@@ -204,6 +207,8 @@ const CardResolver = () => {
           password: data.tempPassword,
         });
 
+        sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
+        sessionStorage.setItem("tapaway_card_password", password);
         navigate(`/personal/signup?card=${publicCode}`);
       }
     } catch (err: any) {
@@ -392,15 +397,24 @@ const CardResolver = () => {
               <p className="text-sm text-center text-muted-foreground">
                 Create a password for your new account
               </p>
-              <Input
-                type="password"
-                placeholder="Choose a password (8+ characters)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
-                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
-                autoFocus
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Choose a password (8+ characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                  className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400 pr-12"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <Button
                 onClick={handlePasswordSubmit}
                 disabled={password.length < 8 || verifying}
@@ -409,6 +423,12 @@ const CardResolver = () => {
                 {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                 Create Account & Activate
               </Button>
+              <button
+                onClick={() => { setStep("email"); setOtp(""); setPassword(""); setShowPassword(false); }}
+                className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+              >
+                Start over
+              </button>
             </motion.div>
           )}
 
