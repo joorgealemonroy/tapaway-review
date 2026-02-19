@@ -1,86 +1,65 @@
 
-# Eliminate Double OTP for Card-Activation Users
 
-## Problem
+# Skip Physical Card Step for Card Activators and Streamline Free Plan Selection
 
-When a user activates a card via `/c/XXXX`, they go through:
-1. Enter email
-2. Verify OTP
-3. Create password (gets signed in)
-4. Navigate to `/personal/signup?card=XXXX`
+## What Changes
 
-Then in Step 4 (Checkout), clicking "Create Free Account" sends **another OTP** and asks them to verify again. This is completely redundant — the user is already authenticated.
+### 1. Skip Step 3 ("Get a physical card") for card-activation users
 
-**Estimated time for a free user right now: ~3-4 minutes with two OTP flows.**
-**After fix: ~1.5-2 minutes with one OTP flow.**
+Users arriving from `/c/CODE` already have a physical card. Showing them the card selection step is redundant.
 
-## Solution
+**File: `src/pages/personal/PersonalSignup.tsx`**
+- Detect card-activation users via the `card` search param or the `tapaway_card_preauthed` sessionStorage flag
+- Store this in a `fromCardActivation` state
+- When `fromCardActivation` is true:
+  - Change the step sequence from [1, 2, 3, 4] to [1, 2, 3] (skip the physical card step)
+  - Map internal steps so step 3 renders the Checkout instead of PreviewStep
+  - Update the progress dots from 4 to 3
+  - Auto-set `cardChoice: "none"` since they already have a card
+  - Update `stepTitles` to exclude "Get a physical card"
 
-### File: `src/components/personal/signup/CheckoutStep.tsx`
+### 2. Auto-select Free plan when no Pro features are used
 
-Modify the checkout flow to detect when the user is already authenticated and skip the OTP entirely:
+**File: `src/pages/personal/PersonalSignup.tsx`**
+- If the user hasn't explicitly chosen a plan via URL param (`planLocked` is false) and `fromCardActivation` is true, default `planType` to `"free"`
 
-1. On component mount, check `supabase.auth.getUser()` to see if user is already signed in
-2. Store this in a `preAuthed` state variable
-3. In `handleGetCard` (for free plans), if `preAuthed` is true:
-   - Skip `sendOTP()` entirely
-   - Go directly to the account creation logic (upload photo, create profile, create links/blocks, send welcome email)
-   - Reuse the existing user session instead of creating a new one
+### 3. Update username "tap" prefix messaging to reference free trial
 
-The key change is in the `handleGetCard` function around line 482:
-
-```
-if (isFreePlan) {
-  if (preAuthed) {
-    // User came from card activation, already signed in
-    // Skip OTP, go straight to profile creation
-    createProfileDirectly();
-  } else {
-    sendOTP();
-  }
-}
-```
-
-A new `createProfileDirectly()` function will extract the profile-creation logic from `verifyOTPAndCreateAccount` (lines 263-477) into a reusable function that:
-- Gets the current user from the session (instead of signing in)
-- Uploads profile photo
-- Uploads header image
-- Creates the personal_profiles row
-- Creates links and blocks
-- Sends welcome email
-- Calls `onComplete()`
-
-### File: `src/pages/CardResolver.tsx`
-
-Add a sessionStorage flag before navigating to signup so the CheckoutStep can reliably detect card-activation users:
-
-```
-sessionStorage.setItem("tapaway_card_preauthed", "true");
-```
-
-This is set alongside the existing `tapaway_card_email` and `tapaway_card_password` items (around line 210-212).
-
-### No other changes needed
-
-The upgrade prompts are already well-balanced:
-- They only appear when the user actively tries to use a Pro feature
-- The copy says "Try Pro Free for 7 Days" which is non-aggressive
-- The "tap" prefix hint in IdentityStep is a small, unobtrusive link
-- Free users can complete the entire flow without ever seeing a paywall
+**File: `src/components/personal/signup/IdentityStep.tsx`**
+- Change the upgrade link text from:
+  > "Upgrade to Pro to remove the 'tap' prefix"
+- To:
+  > "Start a free trial to remove the 'tap' prefix"
+- Update the toast message from:
+  > "Switched to Pro plan -- complete checkout to remove the 'tap' prefix."
+- To:
+  > "Free trial selected -- you can try Pro free for 7 days to remove the 'tap' prefix."
 
 ## Technical Details
 
-The `createProfileDirectly` function will be a new async function in CheckoutStep that:
+### PersonalSignup.tsx step logic
 
-1. Sets `processing = true`, `isLoading = true`, `flowStep = "creating"`
-2. Gets user via `supabase.auth.getUser()`
-3. Runs the same upload + insert logic currently in lines 263-477 of `verifyOTPAndCreateAccount`
-4. Handles errors the same way
-5. Cleans up the `tapaway_card_preauthed` flag from sessionStorage
+```
+const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
 
-## Files Changed
+const totalSteps = fromCardActivation ? 3 : 4;
+
+// Step mapping for card-activation users:
+// Visual step 1 -> IdentityStep
+// Visual step 2 -> LinksStep  
+// Visual step 3 -> CheckoutStep (skip PreviewStep entirely)
+
+const stepTitles = fromCardActivation
+  ? { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" }
+  : { 1: "Create your TapAway", 2: "Build your profile", 3: "Get a physical card", 4: "Finish your order" };
+```
+
+The `nextStep` and `prevStep` functions will use `totalSteps` instead of hardcoded `4`. The rendering logic will conditionally show CheckoutStep at step 3 when `fromCardActivation` is true.
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/personal/signup/CheckoutStep.tsx` | Add pre-auth detection, skip OTP for authenticated users, extract profile creation into reusable function |
-| `src/pages/CardResolver.tsx` | Add `tapaway_card_preauthed` flag to sessionStorage before navigating to signup |
+| `src/pages/personal/PersonalSignup.tsx` | Detect card-activation, skip physical card step, adjust progress dots and step mapping, auto-select free plan |
+| `src/components/personal/signup/IdentityStep.tsx` | Change "Upgrade to Pro" text to "Start a free trial" language |
+
