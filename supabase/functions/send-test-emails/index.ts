@@ -139,7 +139,8 @@ serve(async (req) => {
       );
     }
 
-    const fromEmail = Deno.env.get("EMAIL_FROM") || "TapAway <no-reply@tapaway.co>";
+    const rawFrom = Deno.env.get("EMAIL_FROM") || "no-reply@tapaway.co";
+    const fromEmail = rawFrom.includes("<") ? rawFrom : `TapAway <${rawFrom}>`;
     const testCode = "123456";
     const testBusinessName = businessName || "Test Restaurant";
 
