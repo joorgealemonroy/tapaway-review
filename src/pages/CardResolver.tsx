@@ -1,14 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CreditCard, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ShieldCheck, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 type CardStatus = "loading" | "not_found" | "unclaimed" | "redirecting";
 type ActivationStep = "idle" | "email" | "otp" | "password" | "claiming";
+
+const STEPS = [
+  { key: "email", label: "Email", icon: Mail },
+  { key: "otp", label: "Verify", icon: ShieldCheck },
+  { key: "done", label: "Done", icon: CheckCircle },
+];
+
+const stepIndex = (step: ActivationStep) => {
+  if (step === "email") return 0;
+  if (step === "otp") return 1;
+  if (step === "password") return 1;
+  if (step === "claiming") return 2;
+  return 0;
+};
 
 const CardResolver = () => {
   const { publicCode } = useParams<{ publicCode: string }>();
@@ -20,9 +35,7 @@ const CardResolver = () => {
   const [password, setPassword] = useState("");
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(false);
 
-  // Resolve card on mount
   useEffect(() => {
     if (!publicCode) {
       setCardStatus("not_found");
@@ -56,11 +69,9 @@ const CardResolver = () => {
         return;
       }
 
-      // Card is unclaimed - check if user is already logged in
       setCardStatus("unclaimed");
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Check if they have a profile
         const { data: profile } = await supabase
           .from("personal_profiles")
           .select("username")
@@ -68,11 +79,9 @@ const CardResolver = () => {
           .single();
 
         if (profile) {
-          // Auto-claim
           setStep("claiming");
           await claimCard(publicCode);
         } else {
-          // Has account but no profile - need to sign up first
           toast.info("Complete your profile setup to activate this card");
           navigate(`/personal/signup?card=${publicCode}`);
         }
@@ -89,9 +98,7 @@ const CardResolver = () => {
       const { data, error } = await supabase.functions.invoke("claim-card", {
         body: { public_code: code },
       });
-
       if (error) throw error;
-
       if (data?.success) {
         toast.success("Card activated! 🎉");
         navigate("/personal/dashboard?tab=cards");
@@ -127,35 +134,34 @@ const CardResolver = () => {
     setVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-custom-otp", {
-        body: { email: email.trim().toLowerCase(), code: otp, password: isNewUser ? password : undefined },
+        body: { email: email.trim().toLowerCase(), code: otp },
       });
 
       if (error) throw error;
 
       if (data?.success) {
-        if (data.isNewUser && !password) {
-          // Need password for new user
-          setIsNewUser(true);
+        if (data.needsPassword) {
+          // New user — transition to password step (OTP stays valid)
           setStep("password");
           setVerifying(false);
           return;
         }
 
-        // Sign in
-        const signInPassword = data.tempPassword || password;
-        if (signInPassword) {
-          await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password: signInPassword,
-          });
-        } else if (data.existingAccount) {
-          // Existing user without password flow - redirect to auth
+        // Existing user — sign in and proceed
+        if (data.existingAccount) {
           toast.info("Please sign in to activate your card");
           navigate(`/auth?redirect=/c/${publicCode}`);
           return;
         }
 
-        // Check if user has a profile
+        // Sign in with temp password if available
+        if (data.tempPassword) {
+          await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password: data.tempPassword,
+          });
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase
@@ -185,7 +191,6 @@ const CardResolver = () => {
       return;
     }
     setVerifying(true);
-    // Re-send OTP and verify with password
     try {
       const { data, error } = await supabase.functions.invoke("verify-custom-otp", {
         body: { email: email.trim().toLowerCase(), code: otp, password },
@@ -199,7 +204,6 @@ const CardResolver = () => {
           password: data.tempPassword,
         });
 
-        // New user needs profile - redirect to signup with card param
         navigate(`/personal/signup?card=${publicCode}`);
       }
     } catch (err: any) {
@@ -209,11 +213,11 @@ const CardResolver = () => {
     }
   };
 
-  // Loading state
+  // Loading / redirecting
   if (cardStatus === "loading" || cardStatus === "redirecting") {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
       </div>
     );
   }
@@ -221,11 +225,11 @@ const CardResolver = () => {
   // Not found
   if (cardStatus === "not_found") {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-        <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col items-center justify-center px-6">
+        <AlertCircle className="h-16 w-16 text-gray-300 mb-4" />
         <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Card</h1>
         <p className="text-muted-foreground text-center max-w-sm">
-          This card doesn't exist or has been disabled. Please check the URL and try again.
+          This card doesn't exist or has been disabled.
         </p>
         <Button variant="outline" className="mt-6" onClick={() => navigate("/")}>
           Go Home
@@ -235,124 +239,186 @@ const CardResolver = () => {
   }
 
   // Activation UI
+  const current = stepIndex(step);
+
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
-        <div className="text-center">
-          <a href="/" className="font-black text-2xl tracking-tight text-foreground">
-            TapAway
-          </a>
-        </div>
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto" />
+        </motion.div>
 
-        {/* Card Icon */}
-        <div className="flex justify-center">
-          <div className="h-24 w-24 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <CreditCard className="h-12 w-12 text-primary" />
-          </div>
-        </div>
+        {/* Card Image with float animation */}
+        <motion.div
+          className="flex justify-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <motion.img
+            src="/tapaway-personal-front.png"
+            alt="TapAway Card"
+            className="w-52 rounded-2xl shadow-2xl shadow-teal-200/50"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
 
         {/* Heading */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">
-            Activate Your TapAway Card
+        <motion.div
+          className="text-center space-y-1"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Activate Your Card
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Link this card to your profile in seconds
-          </p>
+          <p className="text-sm text-muted-foreground">Takes 30 seconds</p>
+        </motion.div>
+
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-3">
+          {STEPS.map((s, i) => {
+            const Icon = s.icon;
+            const active = i <= current;
+            return (
+              <div key={s.key} className="flex items-center gap-2">
+                {i > 0 && (
+                  <div className={`w-8 h-px ${i <= current ? "bg-teal-500" : "bg-gray-200"} transition-colors`} />
+                )}
+                <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${active ? "text-teal-600" : "text-gray-300"}`}>
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{s.label}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Step: Email Input */}
-        {step === "email" && (
-          <div className="space-y-4">
-            <Input
-              type="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-              className="h-12 text-base"
-              autoFocus
-            />
-            <Button
-              onClick={handleSendOtp}
-              disabled={!email.trim() || sending}
-              className="w-full h-12 text-base font-semibold"
+        {/* Step Content */}
+        <AnimatePresence mode="wait">
+          {step === "email" && (
+            <motion.div
+              key="email"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
-              {sending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-              Send Code
-            </Button>
-          </div>
-        )}
+              <Input
+                type="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
+                autoFocus
+              />
+              <Button
+                onClick={handleSendOtp}
+                disabled={!email.trim() || sending}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                {sending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                Send Code
+              </Button>
+            </motion.div>
+          )}
 
-        {/* Step: OTP Input */}
-        {step === "otp" && (
-          <div className="space-y-4">
-            <p className="text-sm text-center text-muted-foreground">
-              Enter the 6-digit code sent to <strong>{email}</strong>
-            </p>
-            <div className="flex justify-center">
-              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            <Button
-              onClick={handleVerifyOtp}
-              disabled={otp.length !== 6 || verifying}
-              className="w-full h-12 text-base font-semibold"
+          {step === "otp" && (
+            <motion.div
+              key="otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
-              {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-              Verify & Activate
-            </Button>
-            <button
-              onClick={() => { setStep("email"); setOtp(""); }}
-              className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
-            >
-              Use a different email
-            </button>
-          </div>
-        )}
+              <p className="text-sm text-center text-muted-foreground">
+                Enter the 6-digit code sent to <strong>{email}</strong>
+              </p>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <Button
+                onClick={handleVerifyOtp}
+                disabled={otp.length !== 6 || verifying}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                Verify
+              </Button>
+              <button
+                onClick={() => { setStep("email"); setOtp(""); }}
+                className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+              >
+                Wrong email? Change it
+              </button>
+            </motion.div>
+          )}
 
-        {/* Step: Password (new users) */}
-        {step === "password" && (
-          <div className="space-y-4">
-            <p className="text-sm text-center text-muted-foreground">
-              Create a password for your new account
-            </p>
-            <Input
-              type="password"
-              placeholder="Choose a password (8+ characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
-              className="h-12 text-base"
-              autoFocus
-            />
-            <Button
-              onClick={handlePasswordSubmit}
-              disabled={password.length < 8 || verifying}
-              className="w-full h-12 text-base font-semibold"
+          {step === "password" && (
+            <motion.div
+              key="password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
-              {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-              Create Account & Activate
-            </Button>
-          </div>
-        )}
+              <p className="text-sm text-center text-muted-foreground">
+                Create a password for your new account
+              </p>
+              <Input
+                type="password"
+                placeholder="Choose a password (8+ characters)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
+                autoFocus
+              />
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={password.length < 8 || verifying}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                Create Account & Activate
+              </Button>
+            </motion.div>
+          )}
 
-        {/* Step: Claiming */}
-        {step === "claiming" && (
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="text-sm text-muted-foreground">Activating your card...</p>
-          </div>
-        )}
+          {step === "claiming" && (
+            <motion.div
+              key="claiming"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="text-center space-y-4"
+            >
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto" />
+              <p className="text-sm text-muted-foreground">Activating your card...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
