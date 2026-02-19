@@ -12,10 +12,10 @@ type CardStatus = "loading" | "not_found" | "unclaimed" | "redirecting";
 type ActivationStep = "idle" | "email" | "otp" | "password" | "claiming";
 
 const STEPS = [
-{ key: "email", label: "Email", icon: Mail },
-{ key: "otp", label: "Verify", icon: ShieldCheck },
-{ key: "done", label: "Done", icon: CheckCircle }];
-
+  { key: "email", label: "Email", icon: Mail },
+  { key: "otp", label: "Verify", icon: ShieldCheck },
+  { key: "done", label: "Done", icon: CheckCircle },
+];
 
 const stepIndex = (step: ActivationStep) => {
   if (step === "email") return 0;
@@ -26,7 +26,7 @@ const stepIndex = (step: ActivationStep) => {
 };
 
 const CardResolver = () => {
-  const { publicCode } = useParams<{publicCode: string;}>();
+  const { publicCode } = useParams<{ publicCode: string }>();
   const navigate = useNavigate();
   const [cardStatus, setCardStatus] = useState<CardStatus>("loading");
   const [step, setStep] = useState<ActivationStep>("idle");
@@ -43,11 +43,11 @@ const CardResolver = () => {
     }
 
     const resolveCard = async () => {
-      const { data: card, error } = await supabase.
-      from("nfc_cards").
-      select("status, destination_type, destination_value").
-      eq("public_code", publicCode.toUpperCase()).
-      single();
+      const { data: card, error } = await supabase
+        .from("nfc_cards")
+        .select("status, destination_type, destination_value")
+        .eq("public_code", publicCode.toUpperCase())
+        .single();
 
       if (error || !card) {
         setCardStatus("not_found");
@@ -72,11 +72,11 @@ const CardResolver = () => {
       setCardStatus("unclaimed");
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.
-        from("personal_profiles").
-        select("username").
-        eq("user_id", user.id).
-        single();
+        const { data: profile } = await supabase
+          .from("personal_profiles")
+          .select("username")
+          .eq("user_id", user.id)
+          .single();
 
         if (profile) {
           setStep("claiming");
@@ -96,7 +96,7 @@ const CardResolver = () => {
   const claimCard = useCallback(async (code: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("claim-card", {
-        body: { public_code: code }
+        body: { public_code: code },
       });
       if (error) throw error;
       if (data?.success) {
@@ -117,7 +117,7 @@ const CardResolver = () => {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-custom-otp", {
-        body: { email: email.trim().toLowerCase() }
+        body: { email: email.trim().toLowerCase() },
       });
       if (error) throw error;
       toast.success("Verification code sent!");
@@ -134,7 +134,7 @@ const CardResolver = () => {
     setVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-custom-otp", {
-        body: { email: email.trim().toLowerCase(), code: otp }
+        body: { email: email.trim().toLowerCase(), code: otp },
       });
 
       if (error) throw error;
@@ -158,17 +158,17 @@ const CardResolver = () => {
         if (data.tempPassword) {
           await supabase.auth.signInWithPassword({
             email: email.trim().toLowerCase(),
-            password: data.tempPassword
+            password: data.tempPassword,
           });
         }
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase.
-          from("personal_profiles").
-          select("username").
-          eq("user_id", user.id).
-          single();
+          const { data: profile } = await supabase
+            .from("personal_profiles")
+            .select("username")
+            .eq("user_id", user.id)
+            .single();
 
           if (profile) {
             setStep("claiming");
@@ -193,7 +193,7 @@ const CardResolver = () => {
     setVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("verify-custom-otp", {
-        body: { email: email.trim().toLowerCase(), code: otp, password }
+        body: { email: email.trim().toLowerCase(), code: otp, password },
       });
 
       if (error) throw error;
@@ -201,7 +201,7 @@ const CardResolver = () => {
       if (data?.success && data.tempPassword) {
         await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
-          password: data.tempPassword
+          password: data.tempPassword,
         });
 
         navigate(`/personal/signup?card=${publicCode}`);
@@ -218,8 +218,8 @@ const CardResolver = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>);
-
+      </div>
+    );
   }
 
   // Not found
@@ -234,8 +234,8 @@ const CardResolver = () => {
         <Button variant="outline" className="mt-6" onClick={() => navigate("/")}>
           Go Home
         </Button>
-      </div>);
-
+      </div>
+    );
   }
 
   // Activation UI
@@ -245,29 +245,29 @@ const CardResolver = () => {
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
-        
-
-
-
-
-
-
-
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto" />
+        </motion.div>
 
         {/* Card Image with float animation */}
         <motion.div
           className="flex justify-center"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}>
-
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <motion.img
             src="/tapaway-personal-front.png"
             alt="TapAway Card"
             className="w-52 rounded-2xl shadow-2xl shadow-teal-200/50"
             animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
-
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
         </motion.div>
 
         {/* Heading */}
@@ -275,8 +275,8 @@ const CardResolver = () => {
           className="text-center space-y-1"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}>
-
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Activate Your Card
           </h1>
@@ -290,58 +290,58 @@ const CardResolver = () => {
             const active = i <= current;
             return (
               <div key={s.key} className="flex items-center gap-2">
-                {i > 0 &&
-                <div className={`w-8 h-px ${i <= current ? "bg-teal-500" : "bg-gray-200"} transition-colors`} />
-                }
+                {i > 0 && (
+                  <div className={`w-8 h-px ${i <= current ? "bg-teal-500" : "bg-gray-200"} transition-colors`} />
+                )}
                 <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${active ? "text-teal-600" : "text-gray-300"}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{s.label}</span>
                 </div>
-              </div>);
-
+              </div>
+            );
           })}
         </div>
 
         {/* Step Content */}
         <AnimatePresence mode="wait">
-          {step === "email" &&
-          <motion.div
-            key="email"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-4">
-
+          {step === "email" && (
+            <motion.div
+              key="email"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
+            >
               <Input
-              type="email"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-              className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
-              autoFocus />
-
+                type="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
+                autoFocus
+              />
               <Button
-              onClick={handleSendOtp}
-              disabled={!email.trim() || sending}
-              className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white">
-
+                onClick={handleSendOtp}
+                disabled={!email.trim() || sending}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
                 {sending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                 Send Code
               </Button>
             </motion.div>
-          }
+          )}
 
-          {step === "otp" &&
-          <motion.div
-            key="otp"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-4">
-
+          {step === "otp" && (
+            <motion.div
+              key="otp"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
+            >
               <p className="text-sm text-center text-muted-foreground">
                 Enter the 6-digit code sent to <strong>{email}</strong>
               </p>
@@ -358,70 +358,70 @@ const CardResolver = () => {
                 </InputOTP>
               </div>
               <Button
-              onClick={handleVerifyOtp}
-              disabled={otp.length !== 6 || verifying}
-              className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white">
-
+                onClick={handleVerifyOtp}
+                disabled={otp.length !== 6 || verifying}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
                 {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                 Verify
               </Button>
               <button
-              onClick={() => {setStep("email");setOtp("");}}
-              className="w-full text-sm text-muted-foreground hover:text-foreground text-center">
-
+                onClick={() => { setStep("email"); setOtp(""); }}
+                className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+              >
                 Wrong email? Change it
               </button>
             </motion.div>
-          }
+          )}
 
-          {step === "password" &&
-          <motion.div
-            key="password"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-4">
-
+          {step === "password" && (
+            <motion.div
+              key="password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
+            >
               <p className="text-sm text-center text-muted-foreground">
                 Create a password for your new account
               </p>
               <Input
-              type="password"
-              placeholder="Choose a password (8+ characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
-              className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
-              autoFocus />
-
+                type="password"
+                placeholder="Choose a password (8+ characters)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
+                autoFocus
+              />
               <Button
-              onClick={handlePasswordSubmit}
-              disabled={password.length < 8 || verifying}
-              className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white">
-
+                onClick={handlePasswordSubmit}
+                disabled={password.length < 8 || verifying}
+                className="w-full h-12 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+              >
                 {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                 Create Account & Activate
               </Button>
             </motion.div>
-          }
+          )}
 
-          {step === "claiming" &&
-          <motion.div
-            key="claiming"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="text-center space-y-4">
-
+          {step === "claiming" && (
+            <motion.div
+              key="claiming"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="text-center space-y-4"
+            >
               <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto" />
               <p className="text-sm text-muted-foreground">Activating your card...</p>
             </motion.div>
-          }
+          )}
         </AnimatePresence>
       </div>
-    </div>);
-
+    </div>
+  );
 };
 
 export default CardResolver;
