@@ -18,7 +18,8 @@ import {
   Sparkles,
   Star,
   Users,
-  ShoppingBag
+  ShoppingBag,
+  CreditCard
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -33,6 +34,7 @@ import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
+import { DashboardCardsTab } from "@/components/personal/DashboardCardsTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
@@ -41,6 +43,7 @@ import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 
 interface PersonalProfile {
   id: string;
+  user_id: string;
   username: string;
   full_name: string;
   email: string;
@@ -125,7 +128,7 @@ const PersonalDashboard = () => {
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
-  const [activeTab, setActiveTab] = useState("links");
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -630,7 +633,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-6">
+          <TabsList className="hidden md:grid w-full grid-cols-7">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -660,6 +663,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
+            </TabsTrigger>
+            <TabsTrigger value="cards" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Cards</span>
             </TabsTrigger>
             <TabsTrigger value="shop" className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
@@ -781,6 +788,11 @@ const PersonalDashboard = () => {
             </p>
           </TabsContent>
 
+
+          {/* Cards Tab */}
+          <TabsContent value="cards" className="space-y-4">
+            <DashboardCardsTab userId={profile.user_id || ""} username={profile.username} />
+          </TabsContent>
 
           {/* Shop Tab */}
           <TabsContent value="shop" className="space-y-4">
