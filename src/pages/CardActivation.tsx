@@ -229,6 +229,10 @@ const CardActivation = ({ card }: CardActivationProps) => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {showConfetti && <ConfettiEffect />}
       <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <img src="/tapaway-logo.svg" alt="TapAway" className="h-8 mx-auto mb-2" />
+        </div>
 
         {/* Step 1: Claim Code */}
         {step === "claim" && (
