@@ -61,7 +61,9 @@ const AdminPayouts = lazy(() => import("./pages/admin/AdminPayouts"));
 const AdminDemoRequests = lazy(() => import("./pages/admin/AdminDemoRequests"));
 const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAccounts"));
 const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
+const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
+const CardResolver = lazy(() => import("./pages/CardResolver"));
 
 // Minimal loading spinner
 const PageLoader = () => (
@@ -136,8 +138,12 @@ const App = () => (
                 <Route path="/admin/demo-requests" element={<AdminDemoRequests />} />
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
+                <Route path="/admin/cards" element={<AdminCards />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
+                
+                {/* NFC Card Activation */}
+                <Route path="/c/:publicCode" element={<CardResolver />} />
                 
                 <Route path="/hub/:restaurantId" element={<ReviewHub />} />
                 
