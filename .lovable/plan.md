@@ -1,36 +1,35 @@
 
+# Add Back Button to Email Step + Fix Timing Copy
 
-# Add "Undo Copy" to Hub Showcase
+## Changes
 
-## What Changes
+### 1. Back button on the email step
+Add a "Back to examples" text link below the "Send Code" button in the email step. Clicking it sets `showOverview = true` and `step = "idle"`, returning the user to the `CardOnboarding` page where they can browse different hubs. The copied layout stays in sessionStorage so picking a new one just replaces it.
 
-When a user taps "Copy Layout" on a hub, the button currently changes to a teal "Copied" state. We'll make that "Copied" button act as an undo -- tapping it again clears the copied layout from sessionStorage, resets the visual state, and shows a toast confirming the undo.
-
-This way users can change their mind without any friction. No new UI elements needed -- the existing button just toggles.
-
-## Behavior
-
-- **First tap**: Copies layout to sessionStorage, button turns teal with checkmark and "Copied" label (current behavior)
-- **Second tap on same card**: Clears `tapaway_copied_layout` from sessionStorage, resets `copiedId` to `null`, shows toast "Layout removed"
-- **Tap a different card while one is already copied**: Replaces the previous copy with the new one (current behavior, unchanged)
+### 2. Fix timing copy
+Update line 310 from `"Takes 30 seconds"` to `"Around 3 minutes to set up"` -- makes it clear it refers to setup time, not just a vague "3 minutes."
 
 ## Technical Details
 
-### File: `src/components/card/HubShowcase.tsx`
+### File: `src/pages/CardResolver.tsx`
 
-In the button's `onClick` handler, add a check: if the clicked profile is already the `copiedId`, clear sessionStorage and reset state instead of copying again.
-
+**Line 310** -- Update subtitle:
 ```
-onClick={() => {
-  if (copiedId === p.id) {
-    sessionStorage.removeItem("tapaway_copied_layout");
-    setCopiedId(null);
-    toast("Layout removed");
-  } else {
-    handleCopyLayout(p);
-  }
-}}
+// Before
+<p className="text-sm text-muted-foreground">Takes 30 seconds</p>
+
+// After
+<p className="text-sm text-muted-foreground">Around 3 minutes to set up</p>
 ```
 
-The "Copied" button text and teal styling already exist -- they just become the visual indicator that tapping again will undo. No other files need changes.
+**After the "Send Code" button (line 359)** -- Add back link:
+```jsx
+<button
+  onClick={() => { setShowOverview(true); setStep("idle"); }}
+  className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+>
+  ← Back to examples
+</button>
+```
 
+No other files need changes.
