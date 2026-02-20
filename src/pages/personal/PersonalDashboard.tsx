@@ -161,7 +161,7 @@ const PersonalDashboard = () => {
         header_type: profileData.header_type || "color",
         header_color: profileData.header_color || "#6BCB77",
         background_color: profileData.background_color || "#ffffff",
-        pfp_position: profileData.pfp_position || "left",
+        pfp_position: profileData.pfp_position || "center",
       };
 
       // Check for expired trial and auto-downgrade
@@ -687,6 +687,7 @@ const PersonalDashboard = () => {
               fullName={profile.full_name}
               headline={profile.headline}
               bio={profile.bio}
+              planType={profile.plan_type}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
             />
             

@@ -257,8 +257,8 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         )}
         {usernameStatus === "available" && (
           <>
-            <p className="text-sm text-amber-600">
-              ⚠️ Your username cannot be changed after signup
+            <p className="text-sm text-muted-foreground">
+              You can change your username later from your dashboard
             </p>
             {selectedPlan === "free" && (
               <button

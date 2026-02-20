@@ -5,8 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, X, AlertTriangle } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { isUsernameReserved } from "@/lib/reservedUsernames";
+import { getPublicUsername } from "@/lib/personalUsername";
 
 interface Props {
   profileId: string;
@@ -14,11 +16,13 @@ interface Props {
   fullName: string;
   headline: string | null;
   bio: string | null;
+  planType: string | null;
   onUpdate: (updates: Partial<{
     full_name: string;
     headline: string | null;
     bio: string | null;
     pfp_position: string;
+    username: string;
   }>) => void;
 }
 
@@ -28,6 +32,7 @@ export const DashboardHeroEditor = ({
   fullName,
   headline,
   bio,
+  planType,
   onUpdate,
 }: Props) => {
   const [name, setName] = useState(fullName);
@@ -36,31 +41,115 @@ export const DashboardHeroEditor = ({
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Username editing state
+  const isFree = !planType || planType === "free";
+  // For free users, stored username has "tap" prefix — extract the editable part
+  const extractEditableUsername = (storedUsername: string) => {
+    if (isFree && storedUsername.startsWith("tap")) {
+      return storedUsername.slice(3);
+    }
+    return storedUsername;
+  };
+
+  const [usernameInput, setUsernameInput] = useState(extractEditableUsername(username));
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
   useEffect(() => {
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
-  }, [fullName, headline, bio]);
+    setUsernameInput(extractEditableUsername(username));
+  }, [fullName, headline, bio, username, isFree]);
 
   useEffect(() => {
-    const changed = 
+    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+    const changed =
       name !== fullName ||
       headlineValue !== (headline || "") ||
-      bioValue !== (bio || "");
+      bioValue !== (bio || "") ||
+      newPublicUsername !== username;
     setHasChanges(changed);
-  }, [name, headlineValue, bioValue, fullName, headline, bio]);
+  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType]);
+
+  // Debounced username availability check
+  useEffect(() => {
+    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+
+    // If username hasn't changed, skip check
+    if (newPublicUsername === username) {
+      setUsernameStatus("idle");
+      setUsernameError(null);
+      return;
+    }
+
+    // Validate format
+    if (usernameInput.length < 3) {
+      setUsernameStatus("invalid");
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    if (usernameInput.length > 30) {
+      setUsernameStatus("invalid");
+      setUsernameError("Username must be 30 characters or less");
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(usernameInput)) {
+      setUsernameStatus("invalid");
+      setUsernameError("Only lowercase letters, numbers, and underscores");
+      return;
+    }
+
+    // Check reserved
+    if (isUsernameReserved(newPublicUsername)) {
+      setUsernameStatus("taken");
+      setUsernameError("This username is reserved");
+      return;
+    }
+
+    setUsernameError(null);
+    const timer = setTimeout(async () => {
+      setUsernameStatus("checking");
+      try {
+        const { data, error } = await supabase.rpc("is_username_available", {
+          check_username: newPublicUsername,
+        });
+        if (error) throw error;
+        setUsernameStatus(data ? "available" : "taken");
+        if (!data) setUsernameError("This username is already taken");
+      } catch (err) {
+        console.error("Error checking username:", err);
+        setUsernameStatus("idle");
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [usernameInput, username, isFree, planType]);
 
   const handleSave = async () => {
     if (!hasChanges) return;
-    
+
+    const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+    const usernameChanged = newPublicUsername !== username;
+
+    // Block save if username is invalid/taken
+    if (usernameChanged && usernameStatus !== "available") {
+      toast.error("Please fix username issues before saving");
+      return;
+    }
+
     setSaving(true);
     try {
-      const updates = {
+      const updates: Record<string, any> = {
         full_name: name.trim(),
         headline: headlineValue.trim() || null,
         bio: bioValue.trim() || null,
-        pfp_position: "center", // Always centered
+        pfp_position: "center",
       };
+
+      if (usernameChanged) {
+        updates.username = newPublicUsername;
+      }
 
       const { error } = await supabase
         .from("personal_profiles")
@@ -69,10 +158,30 @@ export const DashboardHeroEditor = ({
 
       if (error) throw error;
 
+      // If username changed, sync NFC cards
+      if (usernameChanged) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("nfc_cards")
+            .update({ destination_value: newPublicUsername })
+            .eq("owner_user_id", user.id)
+            .eq("destination_type", "profile");
+        }
+
+        // Invalidate both old and new cache
+        invalidateProfileCache(username);
+        invalidateProfileCache(newPublicUsername);
+
+        toast.success(`Username updated! Your new URL is tapaway.co/${newPublicUsername}`);
+      } else {
+        invalidateProfileCache(username);
+        toast.success("Profile updated!");
+      }
+
       onUpdate(updates);
-      invalidateProfileCache(username);
-      toast.success("Profile updated!");
       setHasChanges(false);
+      setUsernameStatus("idle");
     } catch (err) {
       console.error("Error updating profile:", err);
       toast.error("Failed to update profile");
@@ -81,15 +190,17 @@ export const DashboardHeroEditor = ({
     }
   };
 
+  const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium text-foreground">Hero Identity</Label>
         {hasChanges && (
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || (usernameChanged && usernameStatus !== "available")}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
@@ -105,6 +216,37 @@ export const DashboardHeroEditor = ({
           placeholder="Your name"
           className="h-11"
         />
+      </div>
+
+      {/* Username */}
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Username</Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+            tapaway.co/{isFree ? "tap" : ""}
+          </span>
+          <Input
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+            placeholder="yourname"
+            className={`h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`}
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {usernameStatus === "available" && <Check className="h-4 w-4 text-green-500" />}
+            {usernameStatus === "taken" && <X className="h-4 w-4 text-destructive" />}
+            {usernameStatus === "invalid" && <X className="h-4 w-4 text-destructive" />}
+          </div>
+        </div>
+        {usernameError && (
+          <p className="text-xs text-destructive">{usernameError}</p>
+        )}
+        {usernameChanged && usernameStatus === "available" && (
+          <div className="flex items-start gap-1.5 text-xs text-amber-600">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>Changing your username will update your profile URL and all linked cards</span>
+          </div>
+        )}
       </div>
 
       {/* Headline */}
