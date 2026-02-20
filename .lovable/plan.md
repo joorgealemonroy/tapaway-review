@@ -1,102 +1,67 @@
 
-# Maximum Image Loading Speed
 
-## Overview
+# Prioritize Link Images (Instagram, TikTok, etc.) for Maximum Speed
 
-Optimize image loading across the entire app -- profile hubs, landing pages, and dashboard previews -- to be as fast as possible without sacrificing visual quality. This involves aggressive preloading, proper `fetchpriority` hints, native browser optimizations, and eliminating unnecessary lazy-loading on above-the-fold content.
+## Problem
 
-## Current State
-
-- `OptimizedImage` and `OptimizedAvatar` components exist with lazy loading, async decoding, and Supabase URL transforms
-- Profile pages preload header images via `new Image()` in a `useEffect`
-- Collage/block images use `loading="lazy"` universally (even above the fold)
-- Cover images on links (`<img src={coverImage}>`) have zero optimization -- no `loading`, `decoding`, or size hints
-- Landing page card images (TapAway3D, PersonalCard3D) use `loading="lazy"` even though they're hero content
-- No `<link rel="preload">` tags are injected for critical profile images
-- Banner images use `backgroundImage` CSS (no preload, no `fetchpriority`)
+Link cover images and thumbnails (Instagram, TikTok, etc.) are critical visual elements of the hub, but they currently load without any priority hints -- no `loading="eager"`, no `fetchPriority`, and no Supabase image optimization in `PersonalProfilePage`. Only the first cover image is preloaded.
 
 ## Changes
 
-### 1. Preload critical profile images with `<link rel="preload">` (PersonalProfilePage.tsx)
+### 1. Preload ALL link cover images and thumbnails (PersonalProfilePage.tsx)
 
-Replace the current `new Image()` preload with proper `<link rel="preload" as="image">` injected into `<head>`. This tells the browser to fetch the image **before** it even starts rendering the component:
-
-- Profile photo (avatar or banner) -- highest priority
-- Header image (if type is "image")
-- First cover image from links (if any)
-
-This is done by expanding the existing `useEffect` at line 611 to inject/remove `<link>` elements.
-
-### 2. Eager-load above-the-fold images in profile hubs (PersonalProfilePage.tsx)
-
-- **Avatar** (line 919): Already uses `priority` prop -- good, no change needed
-- **Banner** (line 840): Currently rendered as `background-image` CSS. Change to an actual `<img>` tag with `loading="eager"`, `fetchPriority="high"`, and `decoding="async"` for browser-prioritized fetching. The CSS background approach prevents the browser from discovering the image early.
-- **Header image** (line 877): Same fix -- use `<img>` with eager loading instead of CSS `background-image`
-- **Featured link cover image** (line 90-107): Add `loading="eager"` and `fetchPriority="high"` since it's rendered above fold
-- **First 2-3 cover images**: Add `loading="eager"` only for the first few items; keep `loading="lazy"` for the rest
-
-### 3. Add `decoding="async"` and size hints to all profile images (PersonalProfilePage.tsx)
-
-- Cover images in `ProfileLink` (lines 91, 122): Add `decoding="async"` and `width`/`height` attributes to prevent layout shift and speed up decode
-- Thumbnail images in regular links (line 194): Add `decoding="async"`
-- Collage images (line 243): Already have `loading="lazy"` -- add `decoding="async"` for faster off-screen decode
-
-### 4. Optimize `OptimizedImage` component fallback behavior (OptimizedImage.tsx)
-
-- Remove the 300ms opacity transition for priority images (replace with 150ms) -- users see images faster
-- Add `fetchPriority="high"` support (already present but ensure it's passed through)
-
-### 5. Landing page hero images -- eager load (TapAwayCard3D.tsx, PersonalCard3D.tsx)
-
-- Change `loading="lazy"` to `loading="eager"` for card images since they're in the hero section visible on first paint
-- Add `fetchPriority="high"` and `decoding="async"`
-
-### 6. Add image preloading to `useProfileData` hook (useProfileData.ts)
-
-After fetching profile data, immediately start preloading critical images before the component even renders them:
+Expand the existing preload `useEffect` (line 614) to include **all** link cover images and thumbnails, not just the first one:
 
 ```typescript
-// After successful fetch, preload critical images
-if (result) {
-  const preloadUrls = [
-    result.profile.profile_photo_url,
-    result.profile.header_image_url,
-  ].filter(Boolean);
-  
-  preloadUrls.forEach(url => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = getOptimizedImageUrl(url, 640, 85);
-    document.head.appendChild(link);
-  });
-}
+// Preload ALL link images
+data.links.forEach(l => {
+  if (l.cover_image_url) urls.push(getOptimizedImageUrl(l.cover_image_url, 640, 85));
+  if (l.thumbnail_url) urls.push(getOptimizedImageUrl(l.thumbnail_url, 160, 85));
+});
 ```
 
-This means images start downloading the moment the API response arrives, not when React renders.
+### 2. Add priority loading to ProfileLink component (PersonalProfilePage.tsx)
 
-### 7. Optimize ProfilePreviewRenderer images (ProfilePreviewRenderer.tsx)
+Add an `index` prop to `ProfileLink` so the first 4 links get `loading="eager"` and `fetchPriority="high"`, while the rest stay lazy:
 
-- Cover images in links (lines 352, 385): Add `decoding="async"` and use `getOptimizedImageUrl` for Supabase transforms (currently using raw URLs)
-- Thumbnail images (line 439): Add `decoding="async"`
-- Image blocks (line 515): Add `decoding="async"`
-- Collage images (line 268): Add `decoding="async"`
+- Grid cover images (line 90): Add `loading`, `fetchPriority` based on index
+- Full-width cover images (line 122): Same
+- Thumbnail images (line 196): Add `loading="eager"` and `fetchPriority="high"` for first 4
+
+Also apply `getOptimizedImageUrl` to cover images and thumbnails in PersonalProfilePage (currently raw URLs -- the ProfilePreviewRenderer already does this but the public profile page does not).
+
+### 3. Pass index through all ProfileLink call sites (PersonalProfilePage.tsx)
+
+- Featured link (line 1003): `index={0}`
+- Grid group links (line 1015): pass running index
+- Regular links (line 1020): pass running index
+
+### 4. Add priority to ProfilePreviewRenderer link images (ProfilePreviewRenderer.tsx)
+
+Same pattern: add `loading="eager"` and `fetchPriority="high"` to the first 4 link images so the dashboard preview also loads fast.
+
+### 5. Preload link images in useProfileData hook (useProfileData.ts)
+
+Expand the existing `preloadCriticalImages` function to also preload all link cover images and thumbnails (not just the first cover), so images start downloading the moment the API responds:
+
+```typescript
+// Also preload all link cover images
+data.links.forEach(l => {
+  if (l.cover_image_url) urls.push(l.cover_image_url);
+  if (l.thumbnail_url) urls.push(l.thumbnail_url);
+});
+```
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/personal/PersonalProfilePage.tsx` | Preload critical images via `<link>` tags, convert banner/header from CSS background to `<img>`, eager-load above-fold images, add `decoding="async"` everywhere |
-| `src/hooks/useProfileData.ts` | Preload profile photo + header image immediately after API fetch |
-| `src/components/personal/OptimizedImage.tsx` | Reduce fade duration for priority images (300ms to 150ms) |
-| `src/components/personal/ProfilePreviewRenderer.tsx` | Add `decoding="async"`, apply `getOptimizedImageUrl` to cover images and thumbnails |
-| `src/components/TapAwayCard3D.tsx` | Change hero card images from lazy to eager loading |
-| `src/components/PersonalCard3D.tsx` | Change hero card images from lazy to eager loading |
+| `src/pages/personal/PersonalProfilePage.tsx` | Preload all link images, add `index` prop to ProfileLink, apply `getOptimizedImageUrl` to cover/thumbnail URLs, add `loading="eager"` + `fetchPriority="high"` for first 4 links |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Add `loading="eager"` + `fetchPriority="high"` for first 4 link images |
+| `src/hooks/useProfileData.ts` | Preload all link cover images and thumbnails in `preloadCriticalImages` |
 
 ## Technical Notes
 
-- Converting banner from `background-image` to `<img>` requires using `object-fit: cover` and `object-position: center top` to maintain the same visual appearance
-- `fetchPriority="high"` is supported in Chrome 101+, Safari 17.2+, Firefox 132+ -- graceful degradation in older browsers
-- `<link rel="preload" as="image">` is the fastest way to tell the browser about an image -- it starts fetching during HTML parse, before JS even runs
-- No quality reduction -- all changes maintain the same quality settings (85-90 for transforms)
-- The preload approach in `useProfileData` means the browser has a head start of ~50-200ms on image fetching compared to waiting for React render
+- Limiting eager loading to the first 4 links prevents overloading the browser's connection pool (browsers have 6 parallel connections per domain)
+- `getOptimizedImageUrl` is already used in ProfilePreviewRenderer but was missing from PersonalProfilePage for link images -- this ensures Supabase serves right-sized images
+- All preloads use `<link rel="preload">` which fires before React renders, giving a 50-200ms head start
