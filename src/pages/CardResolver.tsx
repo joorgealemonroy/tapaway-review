@@ -307,7 +307,7 @@ const CardResolver = () => {
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Activate Your Card
           </h1>
-          <p className="text-sm text-muted-foreground">Takes 30 seconds</p>
+          <p className="text-sm text-muted-foreground">Around 3 minutes to set up</p>
         </motion.div>
 
         {/* Step Indicator */}
@@ -357,6 +357,12 @@ const CardResolver = () => {
                 {sending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                 Send Code
               </Button>
+              <button
+                onClick={() => { setShowOverview(true); setStep("idle"); }}
+                className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+              >
+                ← Back to examples
+              </button>
             </motion.div>
           )}
 
