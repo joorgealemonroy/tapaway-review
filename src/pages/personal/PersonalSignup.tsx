@@ -123,7 +123,7 @@ const PersonalSignup = () => {
     const copiedRaw = sessionStorage.getItem("tapaway_copied_layout");
     const templateId = sessionStorage.getItem("tapaway_selected_layout");
 
-    let template: { defaultLinks: Array<{ type: string; label: string; placeholder: string }>; defaultBlocks: Array<{ type: string; content: Record<string, string> }>; headerType: "color" | "image" | "banner"; style: { bgColor: string; headerColor: string } } | null = null;
+    let template: { defaultLinks: Array<{ type: string; label: string; placeholder: string; displayStyle?: string; pillColor?: string; gridSize?: string; isFeatured?: boolean; sortOrder?: number }>; defaultBlocks: Array<{ type: string; content: Record<string, string>; sortOrder?: number }>; headerType: "color" | "image" | "banner"; style: { bgColor: string; headerColor: string } } | null = null;
 
     if (copiedRaw) {
       try {
@@ -149,15 +149,20 @@ const PersonalSignup = () => {
           label: l.label,
           value: "",
           url: "",
-          sortOrder: i,
+          sortOrder: l.sortOrder ?? i,
+          displayStyle: l.displayStyle,
+          pillColor: l.pillColor,
+          gridSize: l.gridSize,
+          isFeatured: l.isFeatured,
         });
       });
 
       // Add template blocks
-      template.defaultBlocks.forEach((b) => {
+      template.defaultBlocks.forEach((b, i) => {
         addBlock({
           type: b.type as "youtube" | "image" | "text" | "button",
           content: b.content,
+          sortOrder: b.sortOrder ?? i,
         });
       });
 
