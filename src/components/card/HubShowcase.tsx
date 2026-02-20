@@ -127,10 +127,19 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
         type: l.link_type,
         label: l.label,
         placeholder: "",
+        displayStyle: l.display_style || undefined,
+        pillColor: l.pill_color || undefined,
+        gridSize: l.grid_size || undefined,
+        isFeatured: l.is_featured || undefined,
+        sortOrder: l.sort_order ?? undefined,
       })),
       defaultBlocks: profile.blocks.map((b) => ({
         type: b.block_type as "youtube" | "image" | "text" | "button",
-        content: BLOCK_PLACEHOLDER_CONTENT[b.block_type] || {},
+        content: {
+          ...(BLOCK_PLACEHOLDER_CONTENT[b.block_type] || {}),
+          ...(b.alignment ? { alignment: b.alignment } : {}),
+        },
+        sortOrder: b.sort_order,
       })),
       headerType: (profile.header_type as "color" | "image" | "banner") || "color",
       style: {

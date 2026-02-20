@@ -167,11 +167,12 @@ export const usePersonalOnboarding = () => {
     setIsDirty(true);
   }, []);
 
-  const addBlock = useCallback((block: Omit<PersonalBlock, "id" | "sortOrder">) => {
+  const addBlock = useCallback((block: Omit<PersonalBlock, "id"> & { sortOrder?: number }) => {
     const newBlock: PersonalBlock = {
-      ...block,
       id: crypto.randomUUID(),
-      sortOrder: data.blocks.length,
+      type: block.type,
+      content: block.content,
+      sortOrder: block.sortOrder ?? data.blocks.length,
     };
     setData(prev => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
     setIsDirty(true);
