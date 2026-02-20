@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { getLayoutTemplate } from "@/lib/layoutTemplates";
 import { toast } from "sonner";
 import { 
   AlertDialog, 
@@ -112,6 +113,49 @@ const PersonalSignup = () => {
       update({ planType: "free", cardChoice: "none" });
     }
   }, [fromCardActivation, planLocked, update]);
+
+  // Apply layout template from sessionStorage (set during card onboarding)
+  const [templateApplied, setTemplateApplied] = useState(false);
+  useEffect(() => {
+    if (templateApplied) return;
+    const templateId = sessionStorage.getItem("tapaway_selected_layout");
+    if (!templateId) return;
+    const template = getLayoutTemplate(templateId);
+    if (!template) return;
+
+    // Only pre-fill if user has no links/blocks yet
+    if (onboardingData.links.length === 0 && onboardingData.blocks.length === 0) {
+      // Add template links
+      template.defaultLinks.forEach((l, i) => {
+        addLink({
+          type: l.type,
+          label: l.label,
+          value: "",
+          url: "",
+          sortOrder: i,
+        });
+      });
+
+      // Add template blocks
+      template.defaultBlocks.forEach((b) => {
+        addBlock({
+          type: b.type,
+          content: b.content,
+        });
+      });
+
+      // Apply style
+      update({
+        headerType: template.headerType,
+        headerColor: template.style.headerColor,
+        backgroundColor: template.style.bgColor,
+      });
+    }
+
+    setTemplateApplied(true);
+    // Clean up sessionStorage after applying
+    sessionStorage.removeItem("tapaway_selected_layout");
+  }, [templateApplied, onboardingData.links.length, onboardingData.blocks.length, addLink, addBlock, update]);
 
   const selectedPlan = onboardingData.planType;
   const isPaidPlan = selectedPlan === "monthly" || selectedPlan === "yearly";
