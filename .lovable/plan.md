@@ -1,67 +1,102 @@
 
 
-# Prioritize Link Images (Instagram, TikTok, etc.) for Maximum Speed
+# NFC Card Landing Page — Overview, Real Hub Examples, and Layout Templates
 
-## Problem
+## Overview
 
-Link cover images and thumbnails (Instagram, TikTok, etc.) are critical visual elements of the hub, but they currently load without any priority hints -- no `loading="eager"`, no `fetchPriority`, and no Supabase image optimization in `PersonalProfilePage`. Only the first cover image is preloaded.
+When a user taps their unclaimed NFC card and lands on `/c/:code`, instead of jumping straight into the activation form, they first see an engaging overview that explains what TapAway is, showcases real hubs from active users, and offers pre-made layout templates they can copy. The activation flow remains accessible via a prominent CTA.
+
+## New User Experience Flow
+
+1. User taps card, lands on `/c/CODE`
+2. Card is unclaimed -- instead of immediately showing the email form, show an **onboarding overview page** with:
+   - Animated card visual (existing) + "Your card is ready to activate" heading
+   - **"How It Works"** section: 3 simple steps (Tap, Share, Connect)
+   - **"Real Hubs"** carousel: Live screenshots/links of active profiles (jorge, julian, jor, trepif, etc.)
+   - **"Pick a Layout"** section: 3-4 pre-made layout templates users can preview and select before signing up
+   - Prominent **"Activate Now"** CTA button that scrolls to / reveals the existing email activation form
+3. When user clicks "Activate Now" or scrolls to activation, the existing email -> OTP -> password flow appears
+4. If a layout template was selected, it's stored in sessionStorage and applied during signup
 
 ## Changes
 
-### 1. Preload ALL link cover images and thumbnails (PersonalProfilePage.tsx)
+### 1. New Component: `CardOnboarding.tsx`
 
-Expand the existing preload `useEffect` (line 614) to include **all** link cover images and thumbnails, not just the first one:
+Create `src/components/card/CardOnboarding.tsx` -- the overview section shown before activation.
 
-```typescript
-// Preload ALL link images
-data.links.forEach(l => {
-  if (l.cover_image_url) urls.push(getOptimizedImageUrl(l.cover_image_url, 640, 85));
-  if (l.thumbnail_url) urls.push(getOptimizedImageUrl(l.thumbnail_url, 160, 85));
-});
-```
+**Sections:**
+- **Hero**: Existing animated card + "Your TapAway card is ready" + "Activate Now" CTA
+- **How It Works**: 3 icons -- Tap your card, Build your hub, Share with anyone
+- **Real Hubs Showcase**: Horizontal scrollable row of real profile previews with avatars, names, and "View Live" links. Profiles are fetched from the database (active profiles with photos).
+- **Layout Templates**: 3-4 hardcoded template options (e.g., "Social Star" -- all social links; "Business Pro" -- contact card + links; "Creative" -- image grid + bio; "Minimal" -- clean links only). Each shows a visual preview and a "Use This Layout" button that stores the choice in sessionStorage.
 
-### 2. Add priority loading to ProfileLink component (PersonalProfilePage.tsx)
+### 2. Update `CardResolver.tsx`
 
-Add an `index` prop to `ProfileLink` so the first 4 links get `loading="eager"` and `fetchPriority="high"`, while the rest stay lazy:
+- Add a new state: `showOverview` (default: `true` for unclaimed cards)
+- When card is unclaimed and user is not logged in, render `CardOnboarding` first
+- "Activate Now" button sets `showOverview = false` and reveals the existing activation form
+- Pass selected layout template code to the signup flow via sessionStorage (`tapaway_selected_layout`)
 
-- Grid cover images (line 90): Add `loading`, `fetchPriority` based on index
-- Full-width cover images (line 122): Same
-- Thumbnail images (line 196): Add `loading="eager"` and `fetchPriority="high"` for first 4
+### 3. New File: `src/lib/layoutTemplates.ts`
 
-Also apply `getOptimizedImageUrl` to cover images and thumbnails in PersonalProfilePage (currently raw URLs -- the ProfilePreviewRenderer already does this but the public profile page does not).
-
-### 3. Pass index through all ProfileLink call sites (PersonalProfilePage.tsx)
-
-- Featured link (line 1003): `index={0}`
-- Grid group links (line 1015): pass running index
-- Regular links (line 1020): pass running index
-
-### 4. Add priority to ProfilePreviewRenderer link images (ProfilePreviewRenderer.tsx)
-
-Same pattern: add `loading="eager"` and `fetchPriority="high"` to the first 4 link images so the dashboard preview also loads fast.
-
-### 5. Preload link images in useProfileData hook (useProfileData.ts)
-
-Expand the existing `preloadCriticalImages` function to also preload all link cover images and thumbnails (not just the first cover), so images start downloading the moment the API responds:
+Define the template data structure:
 
 ```typescript
-// Also preload all link cover images
-data.links.forEach(l => {
-  if (l.cover_image_url) urls.push(l.cover_image_url);
-  if (l.thumbnail_url) urls.push(l.thumbnail_url);
-});
+interface LayoutTemplate {
+  id: string;
+  name: string;
+  description: string;
+  previewImage: string; // static asset or generated
+  defaultLinks: Array<{ type: string; label: string; placeholder: string }>;
+  defaultBlocks: Array<{ type: string; content: Record<string, unknown> }>;
+  headerType: string;
+  style: { bgColor: string; headerColor: string };
+}
 ```
 
-## Files Changed
+Templates:
+- **Social Star**: Instagram, TikTok, YouTube, Twitter links in pill style
+- **Business Pro**: Contact card block + website + LinkedIn + email link
+- **Creative Portfolio**: Image collage block + bio block + links
+- **Minimal**: Clean text links only, no blocks
+
+### 4. Update `PersonalSignup.tsx` — Apply Selected Layout
+
+- On mount, check `sessionStorage.getItem("tapaway_selected_layout")`
+- If a template was selected, pre-fill the `LinksStep` with the template's default links and blocks
+- User just needs to fill in their actual URLs and photos
+
+### 5. New Component: `HubShowcase.tsx`
+
+Create `src/components/card/HubShowcase.tsx` -- fetches and displays real active profiles:
+
+- Queries `personal_profiles` for active profiles with photos (limit 6)
+- Renders each as a card with avatar, name, headline, and a link to `tapaway.co/:username`
+- Horizontal scroll on mobile, grid on desktop
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/card/CardOnboarding.tsx` | Overview page with How It Works, real hubs, layout templates |
+| `src/components/card/HubShowcase.tsx` | Fetches and displays real active profile cards |
+| `src/components/card/LayoutTemplates.tsx` | Visual layout template picker UI |
+| `src/lib/layoutTemplates.ts` | Template definitions (links, blocks, styles) |
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/personal/PersonalProfilePage.tsx` | Preload all link images, add `index` prop to ProfileLink, apply `getOptimizedImageUrl` to cover/thumbnail URLs, add `loading="eager"` + `fetchPriority="high"` for first 4 links |
-| `src/components/personal/ProfilePreviewRenderer.tsx` | Add `loading="eager"` + `fetchPriority="high"` for first 4 link images |
-| `src/hooks/useProfileData.ts` | Preload all link cover images and thumbnails in `preloadCriticalImages` |
+| `src/pages/CardResolver.tsx` | Add `showOverview` state, render `CardOnboarding` before activation form, pass layout selection |
+| `src/pages/personal/PersonalSignup.tsx` | Read selected layout from sessionStorage, pre-fill links/blocks |
+| `src/components/personal/signup/LinksStep.tsx` | Accept initial links/blocks from layout template |
 
 ## Technical Notes
 
-- Limiting eager loading to the first 4 links prevents overloading the browser's connection pool (browsers have 6 parallel connections per domain)
-- `getOptimizedImageUrl` is already used in ProfilePreviewRenderer but was missing from PersonalProfilePage for link images -- this ensures Supabase serves right-sized images
-- All preloads use `<link rel="preload">` which fires before React renders, giving a 50-200ms head start
+- Real hub showcase fetches only public data (username, full_name, headline, profile_photo_url) from active profiles -- no auth needed, RLS already allows anon select on personal_profiles
+- Layout templates are hardcoded definitions (not database-stored) to keep it simple and fast
+- Selected template stored in sessionStorage survives the OTP/password flow and Stripe redirect
+- The overview page uses the same teal gradient styling as the existing CardResolver for visual consistency
+- All profile photos in the showcase use `getOptimizedImageUrl` for fast loading
+- Template previews are static illustrations (not live renders) to keep the page lightweight
+
