@@ -268,7 +268,7 @@ export const LinksStep = ({
     header_color: formData.headerColor || "#6BCB77",
     header_image_url: formData.headerImageUrl || null,
     background_color: formData.backgroundColor || "#ffffff",
-    pfp_position: null,
+    pfp_position: "center",
   };
 
   const previewLinks = formData.links.map((link, i) => ({

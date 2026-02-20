@@ -405,8 +405,14 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           link_type: link.type,
           label: link.label,
           url: link.url,
-          sort_order: index,
+          sort_order: link.sortOrder ?? index,
           is_active: true,
+          pill_color: link.pillColor || null,
+          is_featured: link.isFeatured || false,
+          display_style: link.displayStyle || "pill",
+          cover_image_url: link.coverImageUrl || null,
+          grid_size: link.gridSize || null,
+          thumbnail_url: link.thumbnailUrl || null,
         }));
 
         const { error: linksError } = await supabase
@@ -428,8 +434,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: index,
+          sort_order: block.sortOrder ?? index,
           is_active: true,
+          alignment: (block.content as any)?.alignment || "center",
         }));
 
         const { error: blocksError } = await supabase
@@ -593,8 +600,14 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           link_type: link.type,
           label: link.label,
           url: link.url,
-          sort_order: index,
+          sort_order: link.sortOrder ?? index,
           is_active: true,
+          pill_color: link.pillColor || null,
+          is_featured: link.isFeatured || false,
+          display_style: link.displayStyle || "pill",
+          cover_image_url: link.coverImageUrl || null,
+          grid_size: link.gridSize || null,
+          thumbnail_url: link.thumbnailUrl || null,
         }));
         await supabase.from("personal_links").insert(linksToInsert);
       }
@@ -605,8 +618,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: index,
+          sort_order: block.sortOrder ?? index,
           is_active: true,
+          alignment: (block.content as any)?.alignment || "center",
         }));
         await supabase.from("personal_blocks").insert(blocksToInsert);
       }
