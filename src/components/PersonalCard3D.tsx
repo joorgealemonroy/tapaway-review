@@ -93,7 +93,9 @@ const PersonalCard3D = () => {
                 <img 
                   src="/tapaway-personal-front.png" 
                   alt="TapAway personal card front" 
-                  loading="lazy" 
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                   className="w-full h-full object-cover pointer-events-none" 
                 />
               </div>

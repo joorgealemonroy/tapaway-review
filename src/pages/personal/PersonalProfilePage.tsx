@@ -90,6 +90,7 @@ const ProfileLink = memo(function ProfileLink({
         <img 
           src={coverImage} 
           alt={link.label}
+          decoding="async"
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -121,6 +122,7 @@ const ProfileLink = memo(function ProfileLink({
         <img 
           src={coverImage} 
           alt={link.label}
+          decoding="async"
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -191,7 +193,7 @@ const ProfileLink = memo(function ProfileLink({
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
-          <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" />
+          <img src={link.thumbnail_url} alt="" decoding="async" className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
@@ -244,6 +246,7 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
                 src={getOptimizedImageUrl(imgUrl, 200, 85)} 
                 alt="" 
                 loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </button>
@@ -607,14 +610,29 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [data?.profile?.id]);
 
-  // Preload optimized header image when profile loads
+  // Preload critical images via <link rel="preload"> tags
   useEffect(() => {
-    if (data?.profile?.header_image_url) {
-      const optimizedUrl = getOptimizedImageUrl(data.profile.header_image_url, 640, 85);
-      const img = new Image();
-      img.src = optimizedUrl;
-    }
-  }, [data?.profile?.header_image_url]);
+    if (!data?.profile) return;
+    const urls: string[] = [];
+    if (data.profile.header_image_url) urls.push(getOptimizedImageUrl(data.profile.header_image_url, 640, 85));
+    if (data.profile.profile_photo_url) urls.push(getOptimizedImageUrl(data.profile.profile_photo_url, 1080, 90));
+    // First cover image from links
+    const firstCover = data.links.find(l => l.cover_image_url)?.cover_image_url;
+    if (firstCover) urls.push(firstCover);
+
+    const injected: HTMLLinkElement[] = [];
+    urls.forEach(url => {
+      const existing = document.querySelector(`link[rel="preload"][href="${url}"]`);
+      if (existing) return;
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      document.head.appendChild(link);
+      injected.push(link);
+    });
+    return () => { injected.forEach(l => l.remove()); };
+  }, [data?.profile?.header_image_url, data?.profile?.profile_photo_url, data?.links]);
 
   // Set mobile browser theme-color meta tag to black for all profiles
   useEffect(() => {
@@ -837,13 +855,17 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           <div className="relative">
             {/* Banner image - fully visible */}
             <div 
-              className="w-full h-[55vh] md:h-[50vh]"
-              style={{
-                backgroundImage: `url(${bannerUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center top",
-              }}
-            />
+              className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
+            >
+              <img
+                src={bannerUrl}
+                alt="Banner"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
             <div 
               className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"

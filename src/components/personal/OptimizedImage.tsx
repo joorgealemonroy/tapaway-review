@@ -154,7 +154,7 @@ export const OptimizedImage = memo(function OptimizedImage({
           objectFit === 'cover' && 'object-cover',
           objectFit === 'contain' && 'object-contain',
           objectFit === 'fill' && 'object-fill',
-          'transition-opacity duration-300',
+          priority ? 'transition-opacity duration-150' : 'transition-opacity duration-300',
           isLoaded ? 'opacity-100' : 'opacity-0'
         )}
       />

@@ -15,6 +15,32 @@ import {
   type CachedBlock,
 } from './useProfileCache';
 import { isUsernameReserved } from '@/lib/reservedUsernames';
+import { getOptimizedImageUrl } from '@/components/personal/OptimizedImage';
+
+/**
+ * Inject <link rel="preload"> for critical profile images
+ */
+function preloadCriticalImages(data: ProfileData): void {
+  const urls = [
+    data.profile.profile_photo_url,
+    data.profile.header_image_url,
+  ].filter(Boolean) as string[];
+
+  // Also preload the first cover image from links
+  const firstCover = data.links.find(l => l.cover_image_url)?.cover_image_url;
+  if (firstCover) urls.push(firstCover);
+
+  urls.forEach(url => {
+    const optimized = getOptimizedImageUrl(url, 640, 85);
+    const existing = document.querySelector(`link[rel="preload"][href="${optimized}"]`);
+    if (existing) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = optimized;
+    document.head.appendChild(link);
+  });
+}
 
 export interface ProfileData {
   profile: CachedProfile;
@@ -127,6 +153,8 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
         setCachedProfile(username, result);
         setData(result);
         setError(null);
+        // Start preloading images immediately
+        preloadCriticalImages(result);
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
