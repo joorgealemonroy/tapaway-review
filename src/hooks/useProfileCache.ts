@@ -44,6 +44,8 @@ export interface CachedLink {
   display_style?: string | null;
   cover_image_url?: string | null;
   grid_size?: string | null;
+  thumbnail_url?: string | null;
+  is_archived?: boolean | null;
 }
 
 export interface CachedBlock {

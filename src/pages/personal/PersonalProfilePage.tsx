@@ -65,11 +65,13 @@ interface Props {
 const ProfileLink = memo(function ProfileLink({ 
   link,
   isFeatured = false,
-  isGrid = false
+  isGrid = false,
+  index = 99
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   isFeatured?: boolean;
   isGrid?: boolean;
+  index?: number;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
@@ -88,9 +90,11 @@ const ProfileLink = memo(function ProfileLink({
         whileTap={{ scale: 0.98 }}
       >
         <img 
-          src={coverImage} 
+          src={getOptimizedImageUrl(coverImage, 640, 85)} 
           alt={link.label}
           decoding="async"
+          loading={index < 4 ? "eager" : "lazy"}
+          fetchPriority={index < 4 ? "high" : undefined}
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -120,9 +124,11 @@ const ProfileLink = memo(function ProfileLink({
         whileTap={{ scale: 0.98 }}
       >
         <img 
-          src={coverImage} 
+          src={getOptimizedImageUrl(coverImage, 640, 85)} 
           alt={link.label}
           decoding="async"
+          loading={index < 4 ? "eager" : "lazy"}
+          fetchPriority={index < 4 ? "high" : undefined}
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -193,7 +199,7 @@ const ProfileLink = memo(function ProfileLink({
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
-          <img src={link.thumbnail_url} alt="" decoding="async" className="w-full h-full object-cover" />
+          <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
@@ -616,9 +622,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     const urls: string[] = [];
     if (data.profile.header_image_url) urls.push(getOptimizedImageUrl(data.profile.header_image_url, 640, 85));
     if (data.profile.profile_photo_url) urls.push(getOptimizedImageUrl(data.profile.profile_photo_url, 1080, 90));
-    // First cover image from links
-    const firstCover = data.links.find(l => l.cover_image_url)?.cover_image_url;
-    if (firstCover) urls.push(firstCover);
+    // Preload ALL link cover images and thumbnails
+    data.links.forEach(l => {
+      if (l.cover_image_url) urls.push(getOptimizedImageUrl(l.cover_image_url, 640, 85));
+      if (l.thumbnail_url) urls.push(getOptimizedImageUrl(l.thumbnail_url, 160, 85));
+    });
 
     const injected: HTMLLinkElement[] = [];
     urls.forEach(url => {
@@ -1000,28 +1008,34 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} isFeatured />
+                <ProfileLink link={featuredLink} isFeatured index={0} />
               </div>
             )}
 
           {/* Unified content - interleaved links, grid groups, and blocks */}
           {groupedItems.length > 0 && (
             <div className="space-y-3">
-              {groupedItems.map((item, idx) => {
+              {(() => {
+                let linkIndex = featuredLink ? 1 : 0;
+                return groupedItems.map((item, idx) => {
                 if (item.kind === "grid-group") {
+                  const startIndex = linkIndex;
+                  linkIndex += item.links.length;
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
-                      {item.links.map((link: any) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} isGrid />
+                      {item.links.map((link: any, i: number) => (
+                        <ProfileLink key={`grid-${link.id}`} link={link} isGrid index={startIndex + i} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} />;
+                  const currentIndex = linkIndex++;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} index={currentIndex} />;
                 } else {
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
                 }
-              })}
+              });
+              })()}
             </div>
           )}
 

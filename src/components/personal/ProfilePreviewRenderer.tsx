@@ -335,7 +335,7 @@ function ProfilePreviewRendererComponent({
     );
   };
 
-  const renderLink = (link: LinkData, isFeatured = false, isGrid = false) => {
+  const renderLink = (link: LinkData, isFeatured = false, isGrid = false, index = 99) => {
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
 
@@ -354,6 +354,8 @@ function ProfilePreviewRendererComponent({
             src={getOptimizedImageUrl(link.cover_image_url, 300)} 
             alt={link.label}
             decoding="async"
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : undefined}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -388,6 +390,8 @@ function ProfilePreviewRendererComponent({
             src={getOptimizedImageUrl(link.cover_image_url, 640)} 
             alt={link.label}
             decoding="async"
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : undefined}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -439,7 +443,7 @@ function ProfilePreviewRendererComponent({
       >
         {link.thumbnail_url ? (
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" className="w-full h-full object-cover" />
+            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
           </div>
         ) : Icon && (
           <div
@@ -762,22 +766,28 @@ function ProfilePreviewRendererComponent({
         style={hasBanner ? { backgroundColor: extractedBannerColor || '#1a1a1a' } : undefined}
       >
         {/* Featured link */}
-        {featuredLink && renderLink(featuredLink, true)}
+        {featuredLink && renderLink(featuredLink, true, false, 0)}
 
         {/* Unified content - interleaved links, grid groups, and blocks */}
-        {groupedItems.map((item, idx) => {
+        {(() => {
+          let linkIndex = featuredLink ? 1 : 0;
+          return groupedItems.map((item, idx) => {
           if (item.kind === "grid-group") {
+            const startIndex = linkIndex;
+            linkIndex += item.links.length;
             return (
               <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-2">
-                {item.links.map((link) => renderLink(link, false, true))}
+                {item.links.map((link, i) => renderLink(link, false, true, startIndex + i))}
               </div>
             );
           } else if (item.kind === "link") {
-            return renderLink(item.data);
+            const currentIndex = linkIndex++;
+            return renderLink(item.data, false, false, currentIndex);
           } else {
             return renderBlock(item.data);
           }
-        })}
+        });
+        })()}
       </div>
     </div>
   );

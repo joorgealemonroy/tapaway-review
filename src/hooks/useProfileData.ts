@@ -26,9 +26,11 @@ function preloadCriticalImages(data: ProfileData): void {
     data.profile.header_image_url,
   ].filter(Boolean) as string[];
 
-  // Also preload the first cover image from links
-  const firstCover = data.links.find(l => l.cover_image_url)?.cover_image_url;
-  if (firstCover) urls.push(firstCover);
+  // Preload ALL link cover images and thumbnails
+  data.links.forEach(l => {
+    if (l.cover_image_url) urls.push(l.cover_image_url);
+    if (l.thumbnail_url) urls.push(l.thumbnail_url);
+  });
 
   urls.forEach(url => {
     const optimized = getOptimizedImageUrl(url, 640, 85);
