@@ -1,115 +1,102 @@
 
-# Ensure All Signup Data Persists to the Hub
+# Maximum Image Loading Speed
 
-## Problem
+## Overview
 
-When users build their profile during signup, several fields are silently dropped when the data is saved to the database. This affects links (images, colors, display styles) and profile settings (photo position, headline).
+Optimize image loading across the entire app -- profile hubs, landing pages, and dashboard previews -- to be as fast as possible without sacrificing visual quality. This involves aggressive preloading, proper `fetchpriority` hints, native browser optimizations, and eliminating unnecessary lazy-loading on above-the-fold content.
 
-## What's Being Lost
+## Current State
 
-### Links (all 3 creation paths)
-The link insert only saves `link_type`, `label`, `url`, `sort_order`, `is_active`. These fields are **dropped**:
-- `pill_color` (custom button color)
-- `is_featured` (highlighted link)
-- `display_style` ("pill" / "icon" / "both")
-- `cover_image_url` (cover image added via LinkModal)
-- `grid_size` ("half" / "full")
-- `thumbnail_url` (small icon image)
-
-### Blocks
-- `alignment` field exists in the database column but is never written during signup
-
-### Profile preview during signup
-- `pfp_position` is hardcoded to `null` in the LinksStep preview, so it doesn't reflect the "center" default
-
-### Stripe payment flow
-- `headline` and `bio` are not included in the saved signup data, and `headline` is explicitly set to `null` after payment
+- `OptimizedImage` and `OptimizedAvatar` components exist with lazy loading, async decoding, and Supabase URL transforms
+- Profile pages preload header images via `new Image()` in a `useEffect`
+- Collage/block images use `loading="lazy"` universally (even above the fold)
+- Cover images on links (`<img src={coverImage}>`) have zero optimization -- no `loading`, `decoding`, or size hints
+- Landing page card images (TapAway3D, PersonalCard3D) use `loading="lazy"` even though they're hero content
+- No `<link rel="preload">` tags are injected for critical profile images
+- Banner images use `backgroundImage` CSS (no preload, no `fetchpriority`)
 
 ## Changes
 
-### 1. Fix link inserts (3 locations)
+### 1. Preload critical profile images with `<link rel="preload">` (PersonalProfilePage.tsx)
 
-**File: `src/components/personal/signup/CheckoutStep.tsx`** -- OTP flow (line ~403) and pre-auth flow (line ~591)
+Replace the current `new Image()` preload with proper `<link rel="preload" as="image">` injected into `<head>`. This tells the browser to fetch the image **before** it even starts rendering the component:
 
-Add missing fields to link inserts:
+- Profile photo (avatar or banner) -- highest priority
+- Header image (if type is "image")
+- First cover image from links (if any)
+
+This is done by expanding the existing `useEffect` at line 611 to inject/remove `<link>` elements.
+
+### 2. Eager-load above-the-fold images in profile hubs (PersonalProfilePage.tsx)
+
+- **Avatar** (line 919): Already uses `priority` prop -- good, no change needed
+- **Banner** (line 840): Currently rendered as `background-image` CSS. Change to an actual `<img>` tag with `loading="eager"`, `fetchPriority="high"`, and `decoding="async"` for browser-prioritized fetching. The CSS background approach prevents the browser from discovering the image early.
+- **Header image** (line 877): Same fix -- use `<img>` with eager loading instead of CSS `background-image`
+- **Featured link cover image** (line 90-107): Add `loading="eager"` and `fetchPriority="high"` since it's rendered above fold
+- **First 2-3 cover images**: Add `loading="eager"` only for the first few items; keep `loading="lazy"` for the rest
+
+### 3. Add `decoding="async"` and size hints to all profile images (PersonalProfilePage.tsx)
+
+- Cover images in `ProfileLink` (lines 91, 122): Add `decoding="async"` and `width`/`height` attributes to prevent layout shift and speed up decode
+- Thumbnail images in regular links (line 194): Add `decoding="async"`
+- Collage images (line 243): Already have `loading="lazy"` -- add `decoding="async"` for faster off-screen decode
+
+### 4. Optimize `OptimizedImage` component fallback behavior (OptimizedImage.tsx)
+
+- Remove the 300ms opacity transition for priority images (replace with 150ms) -- users see images faster
+- Add `fetchPriority="high"` support (already present but ensure it's passed through)
+
+### 5. Landing page hero images -- eager load (TapAwayCard3D.tsx, PersonalCard3D.tsx)
+
+- Change `loading="lazy"` to `loading="eager"` for card images since they're in the hero section visible on first paint
+- Add `fetchPriority="high"` and `decoding="async"`
+
+### 6. Add image preloading to `useProfileData` hook (useProfileData.ts)
+
+After fetching profile data, immediately start preloading critical images before the component even renders them:
+
 ```typescript
-const linksToInsert = formData.links.map((link, index) => ({
-  profile_id: profileResult.id,
-  link_type: link.type,
-  label: link.label,
-  url: link.url,
-  sort_order: link.sortOrder ?? index,
-  is_active: true,
-  pill_color: link.pillColor || null,
-  is_featured: link.isFeatured || false,
-  display_style: link.displayStyle || "pill",
-  cover_image_url: link.coverImageUrl || null,
-  grid_size: link.gridSize || null,
-  thumbnail_url: link.thumbnailUrl || null,
-}));
+// After successful fetch, preload critical images
+if (result) {
+  const preloadUrls = [
+    result.profile.profile_photo_url,
+    result.profile.header_image_url,
+  ].filter(Boolean);
+  
+  preloadUrls.forEach(url => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = getOptimizedImageUrl(url, 640, 85);
+    document.head.appendChild(link);
+  });
+}
 ```
 
-**File: `src/pages/personal/PersonalSignupComplete.tsx`** -- Stripe completion flow (line ~236)
+This means images start downloading the moment the API response arrives, not when React renders.
 
-Same fix for the links inserted after Stripe payment verification.
+### 7. Optimize ProfilePreviewRenderer images (ProfilePreviewRenderer.tsx)
 
-### 2. Fix block inserts (3 locations)
-
-**Files: `CheckoutStep.tsx` and `PersonalSignupComplete.tsx`**
-
-Add `alignment` to block inserts:
-```typescript
-const blocksToInsert = formData.blocks.map((block, index) => ({
-  profile_id: profileResult.id,
-  block_type: block.type,
-  content: block.content || {},
-  sort_order: block.sortOrder ?? index,
-  is_active: true,
-  alignment: block.content?.alignment || "center",
-}));
-```
-
-### 3. Fix preview pfp_position default
-
-**File: `src/components/personal/signup/LinksStep.tsx`** (line 271)
-
-Change `pfp_position: null` to `pfp_position: "center"` in the preview profile object.
-
-### 4. Include headline/bio in Stripe saved data
-
-**File: `src/components/personal/signup/CheckoutStep.tsx`** (line ~682)
-
-Add `headline` and `bio` to the `signupData` object saved to sessionStorage before Stripe redirect:
-```typescript
-const signupData = {
-  ...existing fields,
-  headline: formData.cardHeadline || null,
-  bio: null, // bio field if it exists
-};
-```
-
-**File: `src/pages/personal/PersonalSignupComplete.tsx`**
-
-Update the `SavedSignupData` interface to include `headline`, and use it instead of hardcoding `null`:
-```typescript
-headline: savedData.cardHeadline || null,
-```
-(This is already partially correct since `cardHeadline` maps to `card_front_headline`, but `headline` the profile field is being set to `null` explicitly.)
-
-### 5. Preserve sort_order from unified ordering
-
-All link/block inserts currently use the array index for `sort_order`, which loses the interleaved ordering the user set up. Change to use `link.sortOrder ?? index` and `block.sortOrder ?? index` to preserve drag-and-drop order.
+- Cover images in links (lines 352, 385): Add `decoding="async"` and use `getOptimizedImageUrl` for Supabase transforms (currently using raw URLs)
+- Thumbnail images (line 439): Add `decoding="async"`
+- Image blocks (line 515): Add `decoding="async"`
+- Collage images (line 268): Add `decoding="async"`
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/personal/signup/CheckoutStep.tsx` | Add all missing link fields to inserts (2 places: OTP + pre-auth), add alignment to block inserts, include headline in Stripe saved data, preserve sort_order |
-| `src/pages/personal/PersonalSignupComplete.tsx` | Add all missing link fields to insert, add alignment to block inserts, use saved headline instead of null, preserve sort_order |
-| `src/components/personal/signup/LinksStep.tsx` | Set `pfp_position: "center"` in preview profile |
+| `src/pages/personal/PersonalProfilePage.tsx` | Preload critical images via `<link>` tags, convert banner/header from CSS background to `<img>`, eager-load above-fold images, add `decoding="async"` everywhere |
+| `src/hooks/useProfileData.ts` | Preload profile photo + header image immediately after API fetch |
+| `src/components/personal/OptimizedImage.tsx` | Reduce fade duration for priority images (300ms to 150ms) |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Add `decoding="async"`, apply `getOptimizedImageUrl` to cover images and thumbnails |
+| `src/components/TapAwayCard3D.tsx` | Change hero card images from lazy to eager loading |
+| `src/components/PersonalCard3D.tsx` | Change hero card images from lazy to eager loading |
 
 ## Technical Notes
 
-- Link images (`cover_image_url`, `thumbnail_url`) are already uploaded to Supabase storage during the signup flow via LinkModal, so the URLs are valid public URLs ready to be stored
-- The `personal-link-images` bucket is public and allows unauthenticated inserts, so these URLs persist across the payment redirect
-- No database changes needed -- all columns already exist in the `personal_links` and `personal_blocks` tables
+- Converting banner from `background-image` to `<img>` requires using `object-fit: cover` and `object-position: center top` to maintain the same visual appearance
+- `fetchPriority="high"` is supported in Chrome 101+, Safari 17.2+, Firefox 132+ -- graceful degradation in older browsers
+- `<link rel="preload" as="image">` is the fastest way to tell the browser about an image -- it starts fetching during HTML parse, before JS even runs
+- No quality reduction -- all changes maintain the same quality settings (85-90 for transforms)
+- The preload approach in `useProfileData` means the browser has a head start of ~50-200ms on image fetching compared to waiting for React render
