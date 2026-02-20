@@ -5,7 +5,6 @@ export const PERSONAL_PLANS = {
     price: '$0',
     priceSubtext: 'forever',
     features: {
-      nfcCard: false,
       customHeader: false,
       photoCollage: false,
       emailCapture: false,
@@ -23,7 +22,6 @@ export const PERSONAL_PLANS = {
     price: '$10',
     priceSubtext: '/month',
     features: {
-      nfcCard: true,
       customHeader: true,
       photoCollage: true,
       emailCapture: true,
@@ -41,7 +39,6 @@ export const PERSONAL_PLANS = {
     price: '$0',
     priceSubtext: 'forever',
     features: {
-      nfcCard: true,
       customHeader: true,
       photoCollage: true,
       emailCapture: true,
