@@ -1,124 +1,115 @@
 
-# Username Change, Collision Prevention, and Bug Fixes
+# Ensure All Signup Data Persists to the Hub
 
-## Overview
+## Problem
 
-This plan addresses four issues:
-1. Allow users to change their username from the dashboard
-2. Prevent username/tap-prefixed collisions (jorge vs tapjorge)
-3. Fix profile photo defaulting to left instead of center
-4. Update outdated "username cannot be changed" warning in signup
+When users build their profile during signup, several fields are silently dropped when the data is saved to the database. This affects links (images, colors, display styles) and profile settings (photo position, headline).
 
----
+## What's Being Lost
 
-## 1. Username Collision Prevention (Database)
+### Links (all 3 creation paths)
+The link insert only saves `link_type`, `label`, `url`, `sort_order`, `is_active`. These fields are **dropped**:
+- `pill_color` (custom button color)
+- `is_featured` (highlighted link)
+- `display_style` ("pill" / "icon" / "both")
+- `cover_image_url` (cover image added via LinkModal)
+- `grid_size` ("half" / "full")
+- `thumbnail_url` (small icon image)
 
-**Problem:** "jorge" and "tapjorge" can coexist, causing confusion since free users get the "tap" prefix.
+### Blocks
+- `alignment` field exists in the database column but is never written during signup
 
-**Solution:** Replace the `is_username_available` database function to cross-check both variants:
+### Profile preview during signup
+- `pfp_position` is hardcoded to `null` in the LinksStep preview, so it doesn't reflect the "center" default
 
-```sql
-CREATE OR REPLACE FUNCTION public.is_username_available(check_username text)
-RETURNS boolean
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-  SELECT NOT EXISTS (
-    SELECT 1 FROM public.personal_profiles
-    WHERE username = lower(check_username)
-  )
-  AND NOT EXISTS (
-    -- If checking "jorge", also block if "tapjorge" exists
-    SELECT 1 FROM public.personal_profiles
-    WHERE username = 'tap' || lower(check_username)
-      AND lower(check_username) NOT LIKE 'tap%'
-  )
-  AND NOT EXISTS (
-    -- If checking "tapjorge", also block if "jorge" exists
-    SELECT 1 FROM public.personal_profiles
-    WHERE lower(check_username) LIKE 'tap%'
-      AND username = substring(lower(check_username) from 4)
-  )
-$$;
-```
+### Stripe payment flow
+- `headline` and `bio` are not included in the saved signup data, and `headline` is explicitly set to `null` after payment
 
-This enforces that if "jorge" exists, "tapjorge" is unavailable, and vice versa. Applied at the database level so it covers signup, admin edits, and the new dashboard username change.
+## Changes
 
-**Also update IdentityStep.tsx** (line 82-89): For free users, check both `tap{username}` AND the bare `{username}` via two RPC calls. For paid users, check both the bare username AND `tap{username}`. Show "taken" if either is unavailable.
+### 1. Fix link inserts (3 locations)
 
----
+**File: `src/components/personal/signup/CheckoutStep.tsx`** -- OTP flow (line ~403) and pre-auth flow (line ~591)
 
-## 2. Username Change from Dashboard
-
-**File: `src/components/personal/DashboardHeroEditor.tsx`**
-
-Add a new "Username" field below the Display Name:
-- Shows `tapaway.co/` prefix (with `tap` shown for free users)
-- 500ms debounced availability check using the updated `is_username_available` RPC
-- Validates: 3-30 chars, lowercase alphanumeric + underscores, not in reserved list
-- On save:
-  1. Update `personal_profiles.username` (with tap prefix for free users)
-  2. Update all `nfc_cards` where `owner_user_id` matches and `destination_type = 'profile'` to new username
-  3. Invalidate profile cache for both old and new usernames
-  4. Show toast with new URL
-- Shows a small warning: "Changing your username will update your profile URL and all linked cards"
-
-New prop needed: `planType` (string)
-
-**File: `src/pages/personal/PersonalDashboard.tsx`**
-
-- Pass `planType={profile.plan_type}` to `DashboardHeroEditor`
-- Update `onUpdate` handler to also accept `username` changes and refresh the profile state
-
----
-
-## 3. Fix Profile Photo Position Default
-
-**File: `src/pages/personal/PersonalDashboard.tsx` (line 164)**
-
-Change:
+Add missing fields to link inserts:
 ```typescript
-pfp_position: profileData.pfp_position || "left",
+const linksToInsert = formData.links.map((link, index) => ({
+  profile_id: profileResult.id,
+  link_type: link.type,
+  label: link.label,
+  url: link.url,
+  sort_order: link.sortOrder ?? index,
+  is_active: true,
+  pill_color: link.pillColor || null,
+  is_featured: link.isFeatured || false,
+  display_style: link.displayStyle || "pill",
+  cover_image_url: link.coverImageUrl || null,
+  grid_size: link.gridSize || null,
+  thumbnail_url: link.thumbnailUrl || null,
+}));
 ```
-To:
+
+**File: `src/pages/personal/PersonalSignupComplete.tsx`** -- Stripe completion flow (line ~236)
+
+Same fix for the links inserted after Stripe payment verification.
+
+### 2. Fix block inserts (3 locations)
+
+**Files: `CheckoutStep.tsx` and `PersonalSignupComplete.tsx`**
+
+Add `alignment` to block inserts:
 ```typescript
-pfp_position: profileData.pfp_position || "center",
+const blocksToInsert = formData.blocks.map((block, index) => ({
+  profile_id: profileResult.id,
+  block_type: block.type,
+  content: block.content || {},
+  sort_order: block.sortOrder ?? index,
+  is_active: true,
+  alignment: block.content?.alignment || "center",
+}));
 ```
 
-This aligns with the established rule that profile photos default to center.
+### 3. Fix preview pfp_position default
 
----
+**File: `src/components/personal/signup/LinksStep.tsx`** (line 271)
 
-## 4. Update Signup Warning Text
+Change `pfp_position: null` to `pfp_position: "center"` in the preview profile object.
 
-**File: `src/components/personal/signup/IdentityStep.tsx` (line 261)**
+### 4. Include headline/bio in Stripe saved data
 
-Change:
+**File: `src/components/personal/signup/CheckoutStep.tsx`** (line ~682)
+
+Add `headline` and `bio` to the `signupData` object saved to sessionStorage before Stripe redirect:
+```typescript
+const signupData = {
+  ...existing fields,
+  headline: formData.cardHeadline || null,
+  bio: null, // bio field if it exists
+};
 ```
-"Your username cannot be changed after signup"
-```
-To:
-```
-"You can change your username later from your dashboard"
-```
 
----
+**File: `src/pages/personal/PersonalSignupComplete.tsx`**
+
+Update the `SavedSignupData` interface to include `headline`, and use it instead of hardcoding `null`:
+```typescript
+headline: savedData.cardHeadline || null,
+```
+(This is already partially correct since `cardHeadline` maps to `card_front_headline`, but `headline` the profile field is being set to `null` explicitly.)
+
+### 5. Preserve sort_order from unified ordering
+
+All link/block inserts currently use the array index for `sort_order`, which loses the interleaved ordering the user set up. Change to use `link.sortOrder ?? index` and `block.sortOrder ?? index` to preserve drag-and-drop order.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| Database migration | Update `is_username_available` function to prevent tap-prefix collisions |
-| `src/components/personal/signup/IdentityStep.tsx` | Cross-check both username variants, update warning text |
-| `src/components/personal/DashboardHeroEditor.tsx` | Add username editing field with availability check, validation, NFC card sync |
-| `src/pages/personal/PersonalDashboard.tsx` | Fix pfp_position default to "center", pass planType to HeroEditor |
-
----
+| `src/components/personal/signup/CheckoutStep.tsx` | Add all missing link fields to inserts (2 places: OTP + pre-auth), add alignment to block inserts, include headline in Stripe saved data, preserve sort_order |
+| `src/pages/personal/PersonalSignupComplete.tsx` | Add all missing link fields to insert, add alignment to block inserts, use saved headline instead of null, preserve sort_order |
+| `src/components/personal/signup/LinksStep.tsx` | Set `pfp_position: "center"` in preview profile |
 
 ## Technical Notes
 
-- The database function change is the most critical piece -- it prevents collisions at the source
-- The IdentityStep already checks `tap{username}` for free users, but doesn't check if the bare username exists for paid users (or vice versa). The updated RPC handles this automatically
-- NFC cards are synced by updating `destination_value` for all cards owned by the user with `destination_type = 'profile'`
-- Profile cache is invalidated for both old and new usernames to prevent stale redirects
+- Link images (`cover_image_url`, `thumbnail_url`) are already uploaded to Supabase storage during the signup flow via LinkModal, so the URLs are valid public URLs ready to be stored
+- The `personal-link-images` bucket is public and allows unauthenticated inserts, so these URLs persist across the payment redirect
+- No database changes needed -- all columns already exist in the `personal_links` and `personal_blocks` tables
