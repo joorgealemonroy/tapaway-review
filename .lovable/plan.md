@@ -1,31 +1,36 @@
 
 
-# Remove Pushy Elements and Fix Timing Copy
+# Add "Undo Copy" to Hub Showcase
 
 ## What Changes
 
-### 1. Remove the sticky bottom CTA bar
-The user already has a physical card -- they're not a cold lead. The sticky bar feels like a hard sell to someone who's already committed. Remove the entire `AnimatePresence` sticky bar block and the `IntersectionObserver` logic that powers it (`showSticky` state, `heroCTARef`, `useEffect`).
+When a user taps "Copy Layout" on a hub, the button currently changes to a teal "Copied" state. We'll make that "Copied" button act as an undo -- tapping it again clears the copied layout from sessionStorage, resets the visual state, and shows a toast confirming the undo.
 
-### 2. Update timing claims
-Replace all "30 seconds" references with "3 minutes" to be honest about the actual setup time. Specifically:
-- Hero subtitle: "Takes 30 seconds. Free. No app needed." becomes "Takes about 3 minutes. Free. No app needed."
+This way users can change their mind without any friction. No new UI elements needed -- the existing button just toggles.
 
-### 3. Keep the rest as-is
-The funnel order (Hero, Real Hubs, Steps, Mid-CTA, Templates, Info, Bottom CTA) stays the same -- only the aggressive conversion elements are removed.
+## Behavior
+
+- **First tap**: Copies layout to sessionStorage, button turns teal with checkmark and "Copied" label (current behavior)
+- **Second tap on same card**: Clears `tapaway_copied_layout` from sessionStorage, resets `copiedId` to `null`, shows toast "Layout removed"
+- **Tap a different card while one is already copied**: Replaces the previous copy with the new one (current behavior, unchanged)
 
 ## Technical Details
 
-### File: `src/components/card/CardOnboarding.tsx`
+### File: `src/components/card/HubShowcase.tsx`
 
-**Remove:**
-- `useState` for `showSticky`
-- `useRef` for `heroCTARef`
-- `useEffect` with `IntersectionObserver`
-- The `ref={heroCTARef}` prop from the hero button
-- The entire `AnimatePresence` sticky bar block at the bottom
-- `AnimatePresence` import (if no longer used elsewhere in the file)
+In the button's `onClick` handler, add a check: if the clicked profile is already the `copiedId`, clear sessionStorage and reset state instead of copying again.
 
-**Update:**
-- Hero subtitle text from "30 seconds" to "about 3 minutes"
+```
+onClick={() => {
+  if (copiedId === p.id) {
+    sessionStorage.removeItem("tapaway_copied_layout");
+    setCopiedId(null);
+    toast("Layout removed");
+  } else {
+    handleCopyLayout(p);
+  }
+}}
+```
+
+The "Copied" button text and teal styling already exist -- they just become the visual indicator that tapping again will undo. No other files need changes.
 
