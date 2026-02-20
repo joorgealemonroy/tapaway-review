@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
-import { ExternalLink, Copy, Check } from "lucide-react";
+import { ExternalLink, Copy, Check, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface ShowcaseLink {
@@ -29,9 +30,16 @@ interface ShowcaseProfile {
   header_type: string | null;
   header_color: string | null;
   background_color: string | null;
+  plan_type: string | null;
   links: ShowcaseLink[];
   blocks: ShowcaseBlock[];
 }
+
+const usesPremiumFeatures = (profile: ShowcaseProfile): boolean => {
+  const premiumHeader = profile.header_type === "image" || profile.header_type === "banner";
+  const tooManyLinks = profile.links.length > 5;
+  return premiumHeader || tooManyLinks;
+};
 
 const BLOCK_PLACEHOLDER_CONTENT: Record<string, Record<string, string>> = {
   text: { title: "About Me", body: "Add your own text here." },
@@ -53,7 +61,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
       // Fetch profiles
       const { data: profileData } = await supabase
         .from("personal_profiles_public")
-        .select("id, username, full_name, headline, profile_photo_url, header_type, header_color, background_color")
+        .select("id, username, full_name, headline, profile_photo_url, header_type, header_color, background_color, plan_type")
         .eq("subscription_status", "active")
         .not("profile_photo_url", "is", null)
         .not("username", "in", '("lovie","tapjorge")')
@@ -112,6 +120,14 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
         blocks: blocksMap.get(p.id!) || [],
       }));
 
+      // Sort: free-compatible first, premium last
+      enriched.sort((a, b) => {
+        const aPremium = usesPremiumFeatures(a);
+        const bPremium = usesPremiumFeatures(b);
+        if (aPremium === bPremium) return 0;
+        return aPremium ? 1 : -1;
+      });
+
       setProfiles(enriched);
     };
     fetchProfiles();
@@ -152,7 +168,12 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
     // Clear any hardcoded template selection
     sessionStorage.removeItem("tapaway_selected_layout");
     setCopiedId(profile.id);
-    toast.success("Layout copied! Activate your card to use it.");
+    const isPremium = usesPremiumFeatures(profile);
+    toast.success(
+      isPremium
+        ? "Layout copied! Some features need Pro to display fully."
+        : "Layout copied! Activate your card to use it."
+    );
     onCopyLayout?.();
   };
 
@@ -168,15 +189,22 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
       <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
         {profiles.map((p) => {
           const isCopied = copiedId === p.id;
+          const isPremium = usesPremiumFeatures(p);
           return (
             <div
               key={p.username}
-              className={`snap-start flex-shrink-0 w-[160px] rounded-2xl border-2 bg-card p-3 flex flex-col items-center gap-2 transition-all ${
+              className={`snap-start flex-shrink-0 w-[160px] rounded-2xl border-2 bg-card p-3 flex flex-col items-center gap-2 transition-all relative ${
                 isCopied
                   ? "border-teal-500 shadow-md"
                   : "border-border hover:shadow-md"
               }`}
             >
+              {isPremium && (
+                <Badge className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] px-1.5 py-0 gap-0.5 border-0">
+                  <Crown className="h-2.5 w-2.5" />
+                  Pro
+                </Badge>
+              )}
               <a
                 href={`/${p.username}`}
                 target="_blank"
