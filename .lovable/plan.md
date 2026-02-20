@@ -1,102 +1,82 @@
 
 
-# NFC Card Landing Page — Overview, Real Hub Examples, and Layout Templates
+# Copy Real Hub Layouts + Revamped "How It Works" Section
 
 ## Overview
 
-When a user taps their unclaimed NFC card and lands on `/c/:code`, instead of jumping straight into the activation form, they first see an engaging overview that explains what TapAway is, showcases real hubs from active users, and offers pre-made layout templates they can copy. The activation flow remains accessible via a prominent CTA.
+Two changes to the card onboarding page (`/c/:code`):
 
-## New User Experience Flow
+1. **"Copy This Layout" on real hub examples** -- When users browse the showcase of real hubs, each card gets a "Copy Layout" button. Tapping it fetches that profile's links, blocks, and style settings from the database and stores them as a dynamic layout template in sessionStorage. During signup, these are applied exactly like the existing hardcoded templates -- the user just fills in their own info.
 
-1. User taps card, lands on `/c/CODE`
-2. Card is unclaimed -- instead of immediately showing the email form, show an **onboarding overview page** with:
-   - Animated card visual (existing) + "Your card is ready to activate" heading
-   - **"How It Works"** section: 3 simple steps (Tap, Share, Connect)
-   - **"Real Hubs"** carousel: Live screenshots/links of active profiles (jorge, julian, jor, trepif, etc.)
-   - **"Pick a Layout"** section: 3-4 pre-made layout templates users can preview and select before signing up
-   - Prominent **"Activate Now"** CTA button that scrolls to / reveals the existing email activation form
-3. When user clicks "Activate Now" or scrolls to activation, the existing email -> OTP -> password flow appears
-4. If a layout template was selected, it's stored in sessionStorage and applied during signup
+2. **Revamped informational section** -- Replace the generic "How It Works" 3-step section with a more educational, benefit-driven section that explains what an NFC card is, what a personal hub does, and highlights the one-tap contact saving feature (no account needed for the person receiving it).
 
-## Changes
+---
 
-### 1. New Component: `CardOnboarding.tsx`
+## 1. Copy Layout from Real Hubs
 
-Create `src/components/card/CardOnboarding.tsx` -- the overview section shown before activation.
+### How it works
 
-**Sections:**
-- **Hero**: Existing animated card + "Your TapAway card is ready" + "Activate Now" CTA
-- **How It Works**: 3 icons -- Tap your card, Build your hub, Share with anyone
-- **Real Hubs Showcase**: Horizontal scrollable row of real profile previews with avatars, names, and "View Live" links. Profiles are fetched from the database (active profiles with photos).
-- **Layout Templates**: 3-4 hardcoded template options (e.g., "Social Star" -- all social links; "Business Pro" -- contact card + links; "Creative" -- image grid + bio; "Minimal" -- clean links only). Each shows a visual preview and a "Use This Layout" button that stores the choice in sessionStorage.
+- `HubShowcase` already fetches profiles from `personal_profiles_public`
+- Expand the query to also fetch each profile's `personal_links` and `personal_blocks` (public data, RLS allows anon select)
+- Add a "Copy Layout" button on each showcase card
+- When tapped, store the profile's layout structure (link types, labels, display styles, block types, content templates, header style, colors) in sessionStorage as `tapaway_copied_layout`
+- The signup flow (`PersonalSignup.tsx`) already reads from sessionStorage and applies templates -- extend it to also check for `tapaway_copied_layout` with the same apply logic
 
-### 2. Update `CardResolver.tsx`
+### Data fetched per showcase profile
 
-- Add a new state: `showOverview` (default: `true` for unclaimed cards)
-- When card is unclaimed and user is not logged in, render `CardOnboarding` first
-- "Activate Now" button sets `showOverview = false` and reveals the existing activation form
-- Pass selected layout template code to the signup flow via sessionStorage (`tapaway_selected_layout`)
+From `personal_profiles_public`: `header_type`, `header_color`, `background_color`
 
-### 3. New File: `src/lib/layoutTemplates.ts`
+From `personal_links` (joined by profile_id): `link_type`, `label`, `display_style`, `grid_size`, `is_featured`, `sort_order`, `pill_color` -- but NOT the actual `url`, `cover_image_url`, or `thumbnail_url` (those are personal)
 
-Define the template data structure:
+From `personal_blocks` (joined by profile_id): `block_type`, `sort_order`, `alignment` -- but NOT `content` (replace with placeholder content based on block type)
 
-```typescript
-interface LayoutTemplate {
-  id: string;
-  name: string;
-  description: string;
-  previewImage: string; // static asset or generated
-  defaultLinks: Array<{ type: string; label: string; placeholder: string }>;
-  defaultBlocks: Array<{ type: string; content: Record<string, unknown> }>;
-  headerType: string;
-  style: { bgColor: string; headerColor: string };
-}
-```
+### Changes to HubShowcase.tsx
 
-Templates:
-- **Social Star**: Instagram, TikTok, YouTube, Twitter links in pill style
-- **Business Pro**: Contact card block + website + LinkedIn + email link
-- **Creative Portfolio**: Image collage block + bio block + links
-- **Minimal**: Clean text links only, no blocks
+- Expand the Supabase query to also fetch links and blocks for each profile (two additional queries by profile IDs)
+- Add a "Copy Layout" button below each profile card (replaces the "View" link, or sits alongside it)
+- On click: serialize the layout data into sessionStorage under `tapaway_copied_layout` as a JSON object matching the `LayoutTemplate` interface shape
+- Show a toast confirmation "Layout copied! Activate your card to use it."
+- Visual feedback: selected card gets a teal border/checkmark (similar to LayoutTemplates component)
 
-### 4. Update `PersonalSignup.tsx` — Apply Selected Layout
+### Changes to PersonalSignup.tsx
 
-- On mount, check `sessionStorage.getItem("tapaway_selected_layout")`
-- If a template was selected, pre-fill the `LinksStep` with the template's default links and blocks
-- User just needs to fill in their actual URLs and photos
+- After the existing `tapaway_selected_layout` check, add a second check for `tapaway_copied_layout`
+- If found, parse the JSON and apply links/blocks/style the same way hardcoded templates are applied
+- Clear from sessionStorage after applying
 
-### 5. New Component: `HubShowcase.tsx`
+---
 
-Create `src/components/card/HubShowcase.tsx` -- fetches and displays real active profiles:
+## 2. Revamped Informational Section
 
-- Queries `personal_profiles` for active profiles with photos (limit 6)
-- Renders each as a card with avatar, name, headline, and a link to `tapaway.co/:username`
-- Horizontal scroll on mobile, grid on desktop
+### Replace the current "How It Works" with two sections:
 
-## Files to Create
+**Section A: "What Is This Card?"** -- Educational section for NFC newcomers
+- Heading: "What Is This Card?"
+- 3 info cards in a vertical stack:
+  1. Icon: Smartphone with tap indicator. Title: "It's a smart card". Description: "This card has a tiny chip inside. When someone holds their phone near it, your personal hub opens instantly -- no app needed."
+  2. Icon: Globe/Link. Title: "Your hub, your rules". Description: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime -- your card always points to the latest version."
+  3. Icon: UserPlus/Contact. Title: "One-tap contact saving". Description: "Anyone who visits your hub can save your name, phone, and email straight to their contacts with one button. They don't need an account or an app."
 
-| File | Purpose |
-|------|---------|
-| `src/components/card/CardOnboarding.tsx` | Overview page with How It Works, real hubs, layout templates |
-| `src/components/card/HubShowcase.tsx` | Fetches and displays real active profile cards |
-| `src/components/card/LayoutTemplates.tsx` | Visual layout template picker UI |
-| `src/lib/layoutTemplates.ts` | Template definitions (links, blocks, styles) |
+**Section B: "How to Get Started"** -- Quick 3-step process (kept brief)
+- Step 1: "Activate your card" -- "Enter your email and set a password"
+- Step 2: "Pick a layout or copy one" -- "Start from a template or copy a hub you like"
+- Step 3: "Share it everywhere" -- "Tap your card, text your link, or show your QR code"
 
-## Files to Modify
+---
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/CardResolver.tsx` | Add `showOverview` state, render `CardOnboarding` before activation form, pass layout selection |
-| `src/pages/personal/PersonalSignup.tsx` | Read selected layout from sessionStorage, pre-fill links/blocks |
-| `src/components/personal/signup/LinksStep.tsx` | Accept initial links/blocks from layout template |
+| `src/components/card/HubShowcase.tsx` | Fetch links/blocks per profile, add "Copy Layout" button, store in sessionStorage, visual selection state |
+| `src/components/card/CardOnboarding.tsx` | Replace "How It Works" section with "What Is This Card?" educational section + brief "How to Get Started" steps |
+| `src/pages/personal/PersonalSignup.tsx` | Add `tapaway_copied_layout` sessionStorage check alongside existing template check |
 
-## Technical Notes
+## Technical Details
 
-- Real hub showcase fetches only public data (username, full_name, headline, profile_photo_url) from active profiles -- no auth needed, RLS already allows anon select on personal_profiles
-- Layout templates are hardcoded definitions (not database-stored) to keep it simple and fast
-- Selected template stored in sessionStorage survives the OTP/password flow and Stripe redirect
-- The overview page uses the same teal gradient styling as the existing CardResolver for visual consistency
-- All profile photos in the showcase use `getOptimizedImageUrl` for fast loading
-- Template previews are static illustrations (not live renders) to keep the page lightweight
+- The copied layout stored in sessionStorage uses the same shape as `LayoutTemplate` from `layoutTemplates.ts`, making the apply logic identical
+- Personal data (URLs, images, content text) is stripped from copied layouts -- only structure is copied (link types, labels, block types, sort order, styles)
+- Block content is replaced with placeholder text based on block type (e.g., text block gets "Add your own text here", image block gets empty url with "Add your photo" caption)
+- RLS on `personal_links` and `personal_blocks` already allows public reads for active profiles, so no migration needed
+- The "Copy Layout" action also triggers the "Activate Now" flow since the user needs to sign up to use it
 
