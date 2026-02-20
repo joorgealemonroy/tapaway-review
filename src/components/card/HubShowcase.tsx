@@ -56,6 +56,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
         .select("id, username, full_name, headline, profile_photo_url, header_type, header_color, background_color")
         .eq("subscription_status", "active")
         .not("profile_photo_url", "is", null)
+        .not("username", "in", '("lovie","tapjorge")')
         .limit(6);
 
       if (!profileData || profileData.length === 0) return;
