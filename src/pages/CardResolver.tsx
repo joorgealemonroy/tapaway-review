@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { CardOnboarding } from "@/components/card/CardOnboarding";
 
 type CardStatus = "loading" | "not_found" | "unclaimed" | "redirecting";
 type ActivationStep = "idle" | "email" | "otp" | "password" | "claiming";
@@ -29,6 +30,7 @@ const CardResolver = () => {
   const { publicCode } = useParams<{ publicCode: string }>();
   const navigate = useNavigate();
   const [cardStatus, setCardStatus] = useState<CardStatus>("loading");
+  const [showOverview, setShowOverview] = useState(true);
   const [step, setStep] = useState<ActivationStep>("idle");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -88,7 +90,8 @@ const CardResolver = () => {
           navigate(`/personal/signup?card=${publicCode}`);
         }
       } else {
-        setStep("email");
+        // Show overview first for unclaimed cards, user not logged in
+        setShowOverview(true);
       }
     };
 
@@ -241,6 +244,18 @@ const CardResolver = () => {
           Go Home
         </Button>
       </div>
+    );
+  }
+
+  // Show onboarding overview for unclaimed cards before activation
+  if (cardStatus === "unclaimed" && showOverview && step === "idle") {
+    return (
+      <CardOnboarding
+        onActivate={() => {
+          setShowOverview(false);
+          setStep("email");
+        }}
+      />
     );
   }
 
