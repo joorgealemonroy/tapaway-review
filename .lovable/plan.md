@@ -1,35 +1,29 @@
 
-# Add Back Button to Email Step + Fix Timing Copy
 
-## Changes
+# Exclude Specific Profiles from Hub Showcase
 
-### 1. Back button on the email step
-Add a "Back to examples" text link below the "Send Code" button in the email step. Clicking it sets `showOverview = true` and `step = "idle"`, returning the user to the `CardOnboarding` page where they can browse different hubs. The copied layout stays in sessionStorage so picking a new one just replaces it.
+## What Changes
 
-### 2. Fix timing copy
-Update line 310 from `"Takes 30 seconds"` to `"Around 3 minutes to set up"` -- makes it clear it refers to setup time, not just a vague "3 minutes."
+Filter out the usernames `lovie` and `tapjorge` from the HubShowcase query so they no longer appear in the "Real Hubs, Real People" section on the card onboarding page.
 
 ## Technical Details
 
-### File: `src/pages/CardResolver.tsx`
+### File: `src/components/card/HubShowcase.tsx`
 
-**Line 310** -- Update subtitle:
-```
+**Around line 55-59** -- Add a `.not("username", "in", ...)` filter to the query:
+
+```typescript
 // Before
-<p className="text-sm text-muted-foreground">Takes 30 seconds</p>
+.eq("subscription_status", "active")
+.not("profile_photo_url", "is", null)
+.limit(6);
 
 // After
-<p className="text-sm text-muted-foreground">Around 3 minutes to set up</p>
+.eq("subscription_status", "active")
+.not("profile_photo_url", "is", null)
+.not("username", "in", '("lovie","tapjorge")')
+.limit(6);
 ```
 
-**After the "Send Code" button (line 359)** -- Add back link:
-```jsx
-<button
-  onClick={() => { setShowOverview(true); setStep("idle"); }}
-  className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
->
-  ← Back to examples
-</button>
-```
+This uses PostgREST's `not.in` filter to exclude those two usernames at the database level. No other files need changes.
 
-No other files need changes.
