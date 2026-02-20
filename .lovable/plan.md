@@ -1,46 +1,52 @@
 
-# Preserve Full Layout Fidelity When Copying a Hub
 
-## Problem
+# End-to-End Flow Testing + Premium Feature Indicators in Hub Showcase
 
-When a user copies a hub layout from the "Real Hubs, Real People" section, several visual properties are lost:
+## Overview
 
-- **Link properties dropped**: `display_style`, `pill_color`, `grid_size`, `is_featured`, and the original `sort_order` are all stripped out during the copy
-- **Block properties dropped**: `alignment` and the original `sort_order` are lost; block content is replaced with generic placeholder text
-- **Interleaving lost**: Links get sequential indices (0, 1, 2...) and blocks are appended after, destroying the original mix of links and blocks the source hub had
+All current showcase profiles use premium features (banner/image headers, some have 6+ links). Users on the free plan who copy these layouts will hit limitations silently. This plan adds clear premium indicators and sorts free-friendly hubs first.
 
-This means the preview the user sees during signup doesn't match the hub they copied.
+## Changes
 
-## Solution
+### 1. Add premium feature detection and badges to HubShowcase (HubShowcase.tsx)
 
-Carry all visual/layout properties through the copy pipeline so the new profile starts as an exact structural replica of the source hub.
+**What**: For each profile in the showcase, determine if it uses premium features:
+- Header type is "image" or "banner" (free only gets "color")
+- More than 5 links (free limit)
+
+**How**:
+- Fetch `plan_type` alongside other profile fields from `personal_profiles_public`
+- Also fetch link count per profile (already fetched, just count them)
+- Sort profiles: free-compatible first, premium last
+- Add a small "Pro" badge on cards that use premium features
+- When copying a premium layout on a free plan, show a toast explaining some features require Pro
+
+### 2. Sort showcase profiles (HubShowcase.tsx)
+
+Profiles with `header_type === "color"` AND `<= 5` links appear first. Others follow with a subtle "Pro" indicator.
+
+### 3. Premium copy warning (HubShowcase.tsx)
+
+When `handleCopyLayout` is called on a profile that uses premium features, the toast message changes to: "Layout copied! Some features need Pro to display fully." The layout still copies -- nothing is blocked.
 
 ## Technical Details
 
-### 1. Expand the copied layout format (HubShowcase.tsx)
+### File: `src/components/card/HubShowcase.tsx`
 
-In `handleCopyLayout`, include all link styling properties and block alignment/sort_order in the stored layout:
+1. **Add `plan_type` to the query** (line 56): Add `plan_type` to the select fields from `personal_profiles_public`
 
-**defaultLinks** will include: `type`, `label`, `placeholder`, `displayStyle`, `pillColor`, `gridSize`, `isFeatured`, `sortOrder`
+2. **Add `plan_type` to ShowcaseProfile interface**: New optional field
 
-**defaultBlocks** will include: `type`, `content` (placeholder), `alignment`, `sortOrder`
+3. **Compute premium flag per profile**: A helper function `usesPremiumFeatures(profile)` checks:
+   - `header_type` is "image" or "banner"
+   - `links.length > 5`
 
-This preserves the original interleaved sort order so links at position 0, 2, 4 and blocks at position 1, 3 maintain their arrangement.
+4. **Sort profiles after enrichment**: Free-compatible profiles first
 
-### 2. Apply properties during signup (PersonalSignup.tsx)
+5. **Render "Pro" badge**: Small pill on the card thumbnail for premium profiles
 
-When consuming the copied layout, pass the extra properties through to `addLink` and `addBlock`:
+6. **Update copy toast**: Different message for premium vs free-compatible layouts
 
-- `addLink({ type, label, value: "", url: "", sortOrder, displayStyle, pillColor, gridSize, isFeatured })`
-- `addBlock({ type, content, sortOrder })` with alignment stored in content
+### No other files need changes
 
-Since `addLink` already accepts all `PersonalLink` fields (including `pillColor`, `displayStyle`, `gridSize`, `isFeatured`, `sortOrder`) and `addBlock` accepts `sortOrder` through the `PersonalBlock` interface, this just requires passing them through.
-
-### 3. Preserve block alignment (PersonalSignup.tsx)
-
-Block alignment needs to be included in the block content object (since `addBlock` stores content as a generic record), or stored as a top-level property. The preview mapper in `LinksStep.tsx` already reads `block.content.alignment`, so storing it in the content object works.
-
-### Files Modified
-
-- **`src/components/card/HubShowcase.tsx`**: Expand `handleCopyLayout` to include all link styling props and block alignment/sort_order
-- **`src/pages/personal/PersonalSignup.tsx`**: Update the template application logic to pass through all copied properties to `addLink`/`addBlock`
+The rest of the pipeline (PersonalSignup, LinksStep, CheckoutStep) already handles downgrade warnings and plan gating correctly -- the `checkProFeature` function in LinksStep and `getProFeaturesInUse` in CheckoutStep already warn about pro features when switching to free.
