@@ -37,7 +37,7 @@ const TapAwayCard3D = () => {
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
               }}
             >
-              <img src="/tapaway-card-front.png" alt="TapAway card front" loading="lazy" className="w-full h-full object-cover" />
+              <img src="/tapaway-card-front.png" alt="TapAway card front" loading="eager" decoding="async" fetchPriority="high" className="w-full h-full object-cover" />
             </div>
 
             {/* BACK */}
@@ -54,7 +54,8 @@ const TapAwayCard3D = () => {
                   key={logo}
                   src={logo}
                   alt="Client logo"
-                  loading="lazy"
+                  loading="eager"
+                  decoding="async"
                   className={`absolute w-[90%] h-auto object-contain transition-opacity duration-500 ${
                     index === currentLogo ? 'opacity-100' : 'opacity-0'
                   }`}

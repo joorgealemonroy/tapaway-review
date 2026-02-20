@@ -268,6 +268,7 @@ function ProfilePreviewRendererComponent({
                   src={getOptimizedImageUrl(imgUrl, 150)} 
                   alt="" 
                   loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -350,8 +351,9 @@ function ProfilePreviewRendererComponent({
           className="block relative rounded-xl overflow-hidden aspect-square shadow-md group"
         >
           <img 
-            src={link.cover_image_url} 
+            src={getOptimizedImageUrl(link.cover_image_url, 300)} 
             alt={link.label}
+            decoding="async"
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -383,8 +385,9 @@ function ProfilePreviewRendererComponent({
           className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group"
         >
           <img 
-            src={link.cover_image_url} 
+            src={getOptimizedImageUrl(link.cover_image_url, 640)} 
             alt={link.label}
+            decoding="async"
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -436,7 +439,7 @@ function ProfilePreviewRendererComponent({
       >
         {link.thumbnail_url ? (
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-            <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" />
+            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" className="w-full h-full object-cover" />
           </div>
         ) : Icon && (
           <div
@@ -515,6 +518,7 @@ function ProfilePreviewRendererComponent({
               alt=""
               className={sizeClasses}
               loading="lazy"
+              decoding="async"
             />
             {hasOverlay && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white text-center p-4">
