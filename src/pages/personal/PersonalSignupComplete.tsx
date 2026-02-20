@@ -10,8 +10,19 @@ interface SavedSignupData {
   email: string;
   username: string;
   planType: "free" | "monthly" | "yearly";
-  links: Array<{ type: string; label: string; url: string }>;
-  blocks: Array<{ block_type: string; content: unknown; sort_order: number }>;
+  links: Array<{
+    type: string;
+    label: string;
+    url: string;
+    sortOrder?: number;
+    pillColor?: string | null;
+    isFeatured?: boolean;
+    displayStyle?: string;
+    coverImageUrl?: string | null;
+    gridSize?: string | null;
+    thumbnailUrl?: string | null;
+  }>;
+  blocks: Array<{ block_type: string; content: any; sort_order: number }>;
   cardHeadline?: string;
   headerType?: string;
   headerColor?: string;
@@ -206,7 +217,7 @@ const PersonalSignupComplete = () => {
           // Update profile with complete data
           const updateData: Record<string, unknown> = {
             full_name: savedData.fullName,
-            headline: null,
+            headline: savedData.cardHeadline || null,
             header_type: savedData.headerType || "banner",
             header_color: savedData.headerColor || "#6BCB77",
             background_color: savedData.backgroundColor || "#ffffff",
@@ -241,8 +252,14 @@ const PersonalSignupComplete = () => {
               link_type: link.type,
               label: link.label,
               url: link.url,
-              sort_order: index,
+              sort_order: link.sortOrder ?? index,
               is_active: true,
+              pill_color: link.pillColor || null,
+              is_featured: link.isFeatured || false,
+              display_style: link.displayStyle || "pill",
+              cover_image_url: link.coverImageUrl || null,
+              grid_size: link.gridSize || null,
+              thumbnail_url: link.thumbnailUrl || null,
             }));
 
             await supabase
@@ -266,6 +283,7 @@ const PersonalSignupComplete = () => {
               content: (block.content || {}) as Json,
               sort_order: block.sort_order ?? index,
               is_active: true,
+              alignment: block.content?.alignment || "center",
             }));
 
             await supabase
