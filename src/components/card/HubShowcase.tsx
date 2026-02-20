@@ -195,7 +195,15 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
               </a>
 
               <button
-                onClick={() => handleCopyLayout(p)}
+                onClick={() => {
+                  if (copiedId === p.id) {
+                    sessionStorage.removeItem("tapaway_copied_layout");
+                    setCopiedId(null);
+                    toast("Layout removed");
+                  } else {
+                    handleCopyLayout(p);
+                  }
+                }}
                 className={`w-full mt-1 py-1.5 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
                   isCopied
                     ? "bg-teal-500 text-white"
