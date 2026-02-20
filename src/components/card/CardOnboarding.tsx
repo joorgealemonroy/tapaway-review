@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
-import { Smartphone, Globe, UserPlus, Zap, Palette, Send } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HubShowcase } from "./HubShowcase";
 import { LayoutTemplates } from "./LayoutTemplates";
@@ -33,17 +34,30 @@ const STEPS = [
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
+  const [showSticky, setShowSticky] = useState(false);
+  const heroCTARef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const el = heroCTARef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowSticky(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
-        {/* Hero */}
+        {/* 1. Hero */}
         <motion.div
           className="text-center space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Animated card */}
           <motion.div
             className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
             animate={{
@@ -71,46 +85,39 @@ export const CardOnboarding = ({ onActivate }: Props) => {
               Your card is ready
             </h1>
             <p className="text-muted-foreground mt-1">
-              Set up your personal hub in 30 seconds
+              Takes 30 seconds. Free. No app needed.
             </p>
           </div>
 
           <Button
+            ref={heroCTARef}
             onClick={onActivate}
             size="lg"
             className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
           >
             Activate Now
           </Button>
+
+          <button
+            onClick={() => document.getElementById("hub-showcase")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex items-center gap-1 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Scroll to see examples
+            <ChevronDown className="h-3 w-3 animate-bounce" />
+          </button>
         </motion.div>
 
-        {/* What Is This Card? */}
-        <motion.section
-          className="space-y-4"
+        {/* 2. Real Hubs (social proof first) */}
+        <motion.div
+          id="hub-showcase"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          <h2 className="text-xl font-bold text-foreground text-center">What Is This Card?</h2>
-          <div className="space-y-3">
-            {INFO_CARDS.map((card, i) => (
-              <div
-                key={i}
-                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
-              >
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-                  <card.icon className="h-5 w-5 text-teal-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
+          <HubShowcase onCopyLayout={onActivate} />
+        </motion.div>
 
-        {/* How to Get Started */}
+        {/* 3. How to Get Started (brief) */}
         <motion.section
           className="space-y-4"
           initial={{ opacity: 0 }}
@@ -133,30 +140,62 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </div>
         </motion.section>
 
-        {/* Real Hubs */}
+        {/* 4. Mid-page CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+        >
+          <Button
+            onClick={onActivate}
+            size="lg"
+            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            Activate Now
+          </Button>
+        </motion.div>
+
+        {/* 5. Layout Templates */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <HubShowcase onCopyLayout={onActivate} />
+          <LayoutTemplates onSelect={() => {}} />
         </motion.div>
 
-        {/* Layout Templates */}
+        {/* 6. What Is This Card? (educational, for those who need it) */}
+        <motion.section
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <h2 className="text-xl font-bold text-foreground text-center">What Is This Card?</h2>
+          <div className="space-y-3">
+            {INFO_CARDS.map((card, i) => (
+              <div
+                key={i}
+                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
+              >
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <card.icon className="h-5 w-5 text-teal-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* 7. Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-        >
-          <LayoutTemplates onSelect={() => {}} />
-        </motion.div>
-
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="pb-8"
+          className="pb-20"
         >
           <Button
             onClick={onActivate}
@@ -170,6 +209,30 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </p>
         </motion.div>
       </div>
+
+      {/* Sticky bottom CTA bar */}
+      <AnimatePresence>
+        {showSticky && (
+          <motion.div
+            initial={{ y: 80 }}
+            animate={{ y: 0 }}
+            exit={{ y: 80 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-teal-600 border-t border-teal-700 px-4 py-3 flex items-center justify-between gap-3"
+          >
+            <span className="text-white/90 text-xs font-medium whitespace-nowrap">
+              Free · 30 seconds
+            </span>
+            <Button
+              onClick={onActivate}
+              size="sm"
+              className="bg-white text-teal-700 hover:bg-teal-50 font-semibold rounded-lg px-5"
+            >
+              Activate Now
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
