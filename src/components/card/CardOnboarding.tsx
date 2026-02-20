@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HubShowcase } from "./HubShowcase";
@@ -34,20 +33,6 @@ const STEPS = [
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
-  const [showSticky, setShowSticky] = useState(false);
-  const heroCTARef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const el = heroCTARef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowSticky(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
@@ -85,12 +70,11 @@ export const CardOnboarding = ({ onActivate }: Props) => {
               Your card is ready
             </h1>
             <p className="text-muted-foreground mt-1">
-              Takes 30 seconds. Free. No app needed.
+              Takes about 3 minutes. Free. No app needed.
             </p>
           </div>
 
           <Button
-            ref={heroCTARef}
             onClick={onActivate}
             size="lg"
             className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
@@ -209,30 +193,6 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </p>
         </motion.div>
       </div>
-
-      {/* Sticky bottom CTA bar */}
-      <AnimatePresence>
-        {showSticky && (
-          <motion.div
-            initial={{ y: 80 }}
-            animate={{ y: 0 }}
-            exit={{ y: 80 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-teal-600 border-t border-teal-700 px-4 py-3 flex items-center justify-between gap-3"
-          >
-            <span className="text-white/90 text-xs font-medium whitespace-nowrap">
-              Free · 30 seconds
-            </span>
-            <Button
-              onClick={onActivate}
-              size="sm"
-              className="bg-white text-teal-700 hover:bg-teal-50 font-semibold rounded-lg px-5"
-            >
-              Activate Now
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
