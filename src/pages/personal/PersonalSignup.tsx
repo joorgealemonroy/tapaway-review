@@ -118,10 +118,27 @@ const PersonalSignup = () => {
   const [templateApplied, setTemplateApplied] = useState(false);
   useEffect(() => {
     if (templateApplied) return;
+
+    // Check for copied layout first, then hardcoded template
+    const copiedRaw = sessionStorage.getItem("tapaway_copied_layout");
     const templateId = sessionStorage.getItem("tapaway_selected_layout");
-    if (!templateId) return;
-    const template = getLayoutTemplate(templateId);
-    if (!template) return;
+
+    let template: { defaultLinks: Array<{ type: string; label: string; placeholder: string }>; defaultBlocks: Array<{ type: string; content: Record<string, string> }>; headerType: "color" | "image" | "banner"; style: { bgColor: string; headerColor: string } } | null = null;
+
+    if (copiedRaw) {
+      try {
+        template = JSON.parse(copiedRaw);
+      } catch { /* ignore */ }
+      sessionStorage.removeItem("tapaway_copied_layout");
+    } else if (templateId) {
+      template = getLayoutTemplate(templateId) || null;
+      sessionStorage.removeItem("tapaway_selected_layout");
+    }
+
+    if (!template) {
+      setTemplateApplied(true);
+      return;
+    }
 
     // Only pre-fill if user has no links/blocks yet
     if (onboardingData.links.length === 0 && onboardingData.blocks.length === 0) {
@@ -139,7 +156,7 @@ const PersonalSignup = () => {
       // Add template blocks
       template.defaultBlocks.forEach((b) => {
         addBlock({
-          type: b.type,
+          type: b.type as "youtube" | "image" | "text" | "button",
           content: b.content,
         });
       });
@@ -153,8 +170,6 @@ const PersonalSignup = () => {
     }
 
     setTemplateApplied(true);
-    // Clean up sessionStorage after applying
-    sessionStorage.removeItem("tapaway_selected_layout");
   }, [templateApplied, onboardingData.links.length, onboardingData.blocks.length, addLink, addBlock, update]);
 
   const selectedPlan = onboardingData.planType;

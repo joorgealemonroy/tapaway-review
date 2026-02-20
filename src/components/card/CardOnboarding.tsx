@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Smartphone, Palette, Share2 } from "lucide-react";
+import { Smartphone, Globe, UserPlus, Zap, Palette, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HubShowcase } from "./HubShowcase";
 import { LayoutTemplates } from "./LayoutTemplates";
@@ -8,10 +8,28 @@ interface Props {
   onActivate: () => void;
 }
 
+const INFO_CARDS = [
+  {
+    icon: Smartphone,
+    title: "It's a smart card",
+    desc: "This card has a tiny chip inside. When someone holds their phone near it, your personal hub opens instantly — no app needed.",
+  },
+  {
+    icon: Globe,
+    title: "Your hub, your rules",
+    desc: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime — your card always points to the latest version.",
+  },
+  {
+    icon: UserPlus,
+    title: "One-tap contact saving",
+    desc: "Anyone who visits your hub can save your name, phone, and email straight to their contacts with one button. They don't need an account or an app.",
+  },
+];
+
 const STEPS = [
-  { icon: Smartphone, title: "Tap your card", desc: "One tap opens your hub" },
-  { icon: Palette, title: "Build your hub", desc: "Add links, photos & more" },
-  { icon: Share2, title: "Share with anyone", desc: "Instantly connect" },
+  { icon: Zap, title: "Activate your card", desc: "Enter your email and set a password" },
+  { icon: Palette, title: "Pick a layout or copy one", desc: "Start from a template or copy a hub you like" },
+  { icon: Send, title: "Share it everywhere", desc: "Tap your card, text your link, or show your QR code" },
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
@@ -66,22 +84,50 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </Button>
         </motion.div>
 
-        {/* How It Works */}
+        {/* What Is This Card? */}
         <motion.section
           className="space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          <h2 className="text-xl font-bold text-foreground text-center">How It Works</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {STEPS.map((s, i) => (
-              <div key={i} className="text-center space-y-2">
-                <div className="mx-auto h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center">
-                  <s.icon className="h-5 w-5 text-teal-600" />
+          <h2 className="text-xl font-bold text-foreground text-center">What Is This Card?</h2>
+          <div className="space-y-3">
+            {INFO_CARDS.map((card, i) => (
+              <div
+                key={i}
+                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
+              >
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <card.icon className="h-5 w-5 text-teal-600" />
                 </div>
-                <p className="text-sm font-semibold text-foreground leading-tight">{s.title}</p>
-                <p className="text-xs text-muted-foreground leading-tight">{s.desc}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* How to Get Started */}
+        <motion.section
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <h2 className="text-xl font-bold text-foreground text-center">How to Get Started</h2>
+          <div className="space-y-3">
+            {STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">
+                  {i + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                  <p className="text-xs text-muted-foreground">{s.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -93,7 +139,7 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <HubShowcase />
+          <HubShowcase onCopyLayout={onActivate} />
         </motion.div>
 
         {/* Layout Templates */}
