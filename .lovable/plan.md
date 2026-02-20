@@ -1,82 +1,58 @@
 
 
-# Copy Real Hub Layouts + Revamped "How It Works" Section
+# Reorganize Card Onboarding Page for Maximum Conversion
 
-## Overview
+## Problem
 
-Two changes to the card onboarding page (`/c/:code`):
+The current page has good content but the order works against conversion. A user lands and sees:
+1. Hero + CTA
+2. "What Is This Card?" (3 cards of text)
+3. "How to Get Started" (3 steps)
+4. Real Hubs (buried deep)
+5. Layout Templates (buried deeper)
+6. Bottom CTA
 
-1. **"Copy This Layout" on real hub examples** -- When users browse the showcase of real hubs, each card gets a "Copy Layout" button. Tapping it fetches that profile's links, blocks, and style settings from the database and stores them as a dynamic layout template in sessionStorage. During signup, these are applied exactly like the existing hardcoded templates -- the user just fills in their own info.
+By the time they reach the social proof (real hubs), they may have already bounced. The heavy text sections create a wall that feels like homework before they can even see what they would get.
 
-2. **Revamped informational section** -- Replace the generic "How It Works" 3-step section with a more educational, benefit-driven section that explains what an NFC card is, what a personal hub does, and highlights the one-tap contact saving feature (no account needed for the person receiving it).
+## New Funnel Order
 
----
+The reorganization follows a proven landing page psychology: **Desire first, then logic, then action.**
 
-## 1. Copy Layout from Real Hubs
+**New order:**
 
-### How it works
+1. **Hero** -- Keep as-is but tighten the subtitle to emphasize speed and zero friction: "Takes 30 seconds. Free. No app needed." Add a small "Scroll to see examples" nudge below the CTA for users who aren't ready to commit yet.
 
-- `HubShowcase` already fetches profiles from `personal_profiles_public`
-- Expand the query to also fetch each profile's `personal_links` and `personal_blocks` (public data, RLS allows anon select)
-- Add a "Copy Layout" button on each showcase card
-- When tapped, store the profile's layout structure (link types, labels, display styles, block types, content templates, header style, colors) in sessionStorage as `tapaway_copied_layout`
-- The signup flow (`PersonalSignup.tsx`) already reads from sessionStorage and applies templates -- extend it to also check for `tapaway_copied_layout` with the same apply logic
+2. **Real Hubs** (moved UP from position 4) -- Show social proof immediately. "See what yours could look like" creates desire and answers "what am I getting?" before they have to read anything. Seeing real people using it is more convincing than any explanation.
 
-### Data fetched per showcase profile
+3. **3-Step "How to Get Started"** (kept brief, moved above the info section) -- This answers the objection "is this going to be complicated?" with just 3 short lines. Positioned here because after seeing the hubs they want to know "how do I get that?"
 
-From `personal_profiles_public`: `header_type`, `header_color`, `background_color`
+4. **Mid-page CTA** -- A second "Activate Now" button right after the steps. Users who are convinced by the hubs + simplicity can convert here without scrolling further.
 
-From `personal_links` (joined by profile_id): `link_type`, `label`, `display_style`, `grid_size`, `is_featured`, `sort_order`, `pill_color` -- but NOT the actual `url`, `cover_image_url`, or `thumbnail_url` (those are personal)
+5. **Layout Templates** -- For users still browsing, show them they can pick a pre-made layout. This further reduces perceived effort.
 
-From `personal_blocks` (joined by profile_id): `block_type`, `sort_order`, `alignment` -- but NOT `content` (replace with placeholder content based on block type)
+6. **"What Is This Card?"** (moved DOWN from position 2) -- The educational content is now last, for users who genuinely don't understand NFC. Most users who tapped the card already know what happened -- they don't need this explained first.
 
-### Changes to HubShowcase.tsx
+7. **Bottom CTA** -- Final conversion point with trust signals.
 
-- Expand the Supabase query to also fetch links and blocks for each profile (two additional queries by profile IDs)
-- Add a "Copy Layout" button below each profile card (replaces the "View" link, or sits alongside it)
-- On click: serialize the layout data into sessionStorage under `tapaway_copied_layout` as a JSON object matching the `LayoutTemplate` interface shape
-- Show a toast confirmation "Layout copied! Activate your card to use it."
-- Visual feedback: selected card gets a teal border/checkmark (similar to LayoutTemplates component)
+**New addition: Sticky bottom CTA bar** -- A slim, fixed bar at the bottom of the screen with "Activate Now" so users can convert at any scroll position without hunting for a button. It fades in after the user scrolls past the hero CTA.
 
-### Changes to PersonalSignup.tsx
+## Changes to `CardOnboarding.tsx`
 
-- After the existing `tapaway_selected_layout` check, add a second check for `tapaway_copied_layout`
-- If found, parse the JSON and apply links/blocks/style the same way hardcoded templates are applied
-- Clear from sessionStorage after applying
-
----
-
-## 2. Revamped Informational Section
-
-### Replace the current "How It Works" with two sections:
-
-**Section A: "What Is This Card?"** -- Educational section for NFC newcomers
-- Heading: "What Is This Card?"
-- 3 info cards in a vertical stack:
-  1. Icon: Smartphone with tap indicator. Title: "It's a smart card". Description: "This card has a tiny chip inside. When someone holds their phone near it, your personal hub opens instantly -- no app needed."
-  2. Icon: Globe/Link. Title: "Your hub, your rules". Description: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime -- your card always points to the latest version."
-  3. Icon: UserPlus/Contact. Title: "One-tap contact saving". Description: "Anyone who visits your hub can save your name, phone, and email straight to their contacts with one button. They don't need an account or an app."
-
-**Section B: "How to Get Started"** -- Quick 3-step process (kept brief)
-- Step 1: "Activate your card" -- "Enter your email and set a password"
-- Step 2: "Pick a layout or copy one" -- "Start from a template or copy a hub you like"
-- Step 3: "Share it everywhere" -- "Tap your card, text your link, or show your QR code"
-
----
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/components/card/HubShowcase.tsx` | Fetch links/blocks per profile, add "Copy Layout" button, store in sessionStorage, visual selection state |
-| `src/components/card/CardOnboarding.tsx` | Replace "How It Works" section with "What Is This Card?" educational section + brief "How to Get Started" steps |
-| `src/pages/personal/PersonalSignup.tsx` | Add `tapaway_copied_layout` sessionStorage check alongside existing template check |
+1. Reorder sections: Hero, HubShowcase, Steps, mid-CTA, LayoutTemplates, Info Cards, bottom CTA
+2. Add a sticky bottom bar component (appears on scroll past hero)
+3. Add "scroll to see examples" text hint below hero CTA with a small down-arrow
+4. Add a mid-page CTA between the steps section and layout templates
+5. Tighten hero subtitle copy
 
 ## Technical Details
 
-- The copied layout stored in sessionStorage uses the same shape as `LayoutTemplate` from `layoutTemplates.ts`, making the apply logic identical
-- Personal data (URLs, images, content text) is stripped from copied layouts -- only structure is copied (link types, labels, block types, sort order, styles)
-- Block content is replaced with placeholder text based on block type (e.g., text block gets "Add your own text here", image block gets empty url with "Add your photo" caption)
-- RLS on `personal_links` and `personal_blocks` already allows public reads for active profiles, so no migration needed
-- The "Copy Layout" action also triggers the "Activate Now" flow since the user needs to sign up to use it
+### File: `src/components/card/CardOnboarding.tsx`
+
+- Reorder the JSX sections (no new data, just moving existing blocks around)
+- Add a `useEffect` + `useState` to track scroll position for the sticky bar visibility
+- Add a `useRef` on the hero CTA to detect when it scrolls out of view (IntersectionObserver)
+- Sticky bar: fixed bottom, teal background, "Activate Now" button, slides up with framer-motion
+- The sticky bar includes "Free -- 30 seconds" text beside the button
+
+No other files need to change -- this is purely a layout/ordering change within a single component.
 
