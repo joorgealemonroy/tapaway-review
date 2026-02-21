@@ -1,6 +1,7 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag, CreditCard } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -25,7 +26,13 @@ const BASE_MORE_TABS = [
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
   
   const MORE_TABS = [
     ...BASE_MORE_TABS,
@@ -123,8 +130,22 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileB
                   </button>
                );
              })}
-           </div>
-         </SheetContent>
+            </div>
+
+            {/* Dark Mode Toggle */}
+            <div className="border-t border-border mt-2 pt-2">
+              <div className="flex items-center gap-4 p-4 rounded-xl">
+                <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
+                  {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium">Dark Mode</p>
+                  <p className="text-xs text-muted-foreground">Switch appearance</p>
+                </div>
+                <Switch checked={isDark} onCheckedChange={setIsDark} />
+              </div>
+            </div>
+          </SheetContent>
        </Sheet>
      </>
    );
