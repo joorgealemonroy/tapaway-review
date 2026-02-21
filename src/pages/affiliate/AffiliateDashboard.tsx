@@ -127,7 +127,7 @@ const AffiliateDashboard = () => {
 
   const copyLink = async () => {
     if (!affiliateInfo) return;
-    const link = `https://tapaway.co/personal/signup?ref=${affiliateInfo.referral_code}`;
+    const link = `https://tapaway.co/?ref=${affiliateInfo.referral_code}`;
     await navigator.clipboard.writeText(link);
     setCopied(true);
     toast.success("Referral link copied!");
@@ -227,7 +227,7 @@ const AffiliateDashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground font-mono truncate">
-              tapaway.co/personal/signup?ref={affiliateInfo?.referral_code}
+              tapaway.co/?ref={affiliateInfo?.referral_code}
             </div>
             <Button onClick={copyLink} size="sm" variant="outline">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
