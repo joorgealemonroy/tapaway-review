@@ -1,40 +1,48 @@
 
-# Fix Mobile Block Editing and Drag-and-Drop in Signup Flow
 
-## Problem 1: Cannot edit blocks on mobile
-The signup flow's `BlocksManager.tsx` always uses a `Dialog` component for the block editor. On mobile, dialogs can be clipped or have unreachable content. The dashboard already solved this — `BlockModal.tsx` uses a `Drawer` (bottom sheet) on mobile and `Dialog` on desktop.
+# Fix: Mobile Block Editing Form Not Rendering
 
-**Fix:** Replace the `BlocksManager` usage in `LinksStep.tsx` with the full-featured `BlockModal` component (which already has mobile Drawer support and `deferSave` mode). Pass `deferSave={true}` so it returns block data without hitting the database.
+## Problem
+The `BlockModal.tsx` component has a critical bug: on mobile, when a block type is selected (either by choosing a new type or editing an existing block), the form fields are **not rendered**. 
 
-### Files changed
-- `src/components/personal/signup/LinksStep.tsx` — Import `BlockModal` instead of `BlocksManager`. Wire up `onBlockSaved` to call `addBlock` or `updateBlock` with the returned data. Map the `editingBlock` from onboarding format to `BlockModal`'s expected `PersonalBlock` shape (with `block_type` instead of `type`).
+The mobile `Drawer` branch (line 541-557) only shows the block type picker when `!selectedType`, and renders `null` otherwise. All the actual form fields (YouTube URL, image upload, text editor, button config, email capture, photo collage) only exist inside the desktop `Dialog` branch.
 
----
+This is why you see "Edit block" as the title but no form below it.
 
-## Problem 2: Drag-and-drop copies text instead of reordering on mobile
-`LinksStep.tsx` uses HTML5 `draggable` + `onDragStart/onDragOver/onDragEnd` — these events do not fire on touch devices. The app already has a `useTouchHoldDrag` hook (used in the dashboard) that implements touch-hold-to-drag with haptic feedback and scroll conflict prevention.
+## Fix
 
-**Fix:** Integrate `useTouchHoldDrag` into the unified content list in `LinksStep.tsx`.
+**File:** `src/components/personal/BlockModal.tsx`
 
-### Files changed
-- `src/components/personal/signup/LinksStep.tsx`:
-  1. Import `useTouchHoldDrag`
-  2. Initialize the hook with the `unifiedContent` array and a reorder callback
-  3. Add `onTouchStart`, `onTouchMove`, `onTouchEnd` handlers to each draggable row
-  4. Add `select-none` class to rows during drag to prevent text selection
-  5. Remove the manual `draggedIndex` state (the hook manages it)
+Extract the form content (the block type selector + all form fields + save button) into a shared helper function or variable, then render it in both the mobile Drawer and desktop Dialog branches. This eliminates the duplication issue and ensures both paths show identical content.
 
----
+### Step-by-step:
 
-## Technical Details
+1. **Extract shared content** (lines ~570-1020): Pull the entire form body (type selector grid, YouTube/Image/Text/Button/EmailCapture/PhotoCollage forms, alignment picker, and Save button) into a local `renderFormContent()` function.
 
-### BlockModal integration mapping
-The onboarding `PersonalBlock` uses `{ type, content, sortOrder }` while `BlockModal` expects `{ block_type, content, sort_order, alignment }`. The conversion is:
-- `block.type` maps to `block_type`
-- `block.sortOrder` maps to `sort_order`
-- `block.content.alignment` maps to `alignment`
+2. **Update the mobile Drawer branch** (lines 540-558): Replace the partial content (`!selectedType ? ... : null`) with a call to `renderFormContent()`.
 
-When `BlockModal` returns a saved block, convert back before calling `addBlock`/`updateBlock`.
+3. **Update the desktop Dialog branch** (lines 562-end): Replace the inline form JSX with the same `renderFormContent()` call.
 
-### Touch drag reorder callback
-The `useTouchHoldDrag` hook calls `onReorder` with the full reordered array. Since the unified content list mixes links and blocks, the reorder callback needs to call `reorderContent(newItems)` (same as the existing desktop `handleDragOver` logic).
+This is a refactor that moves ~450 lines of duplicated-but-missing JSX into a single shared function, fixing the bug where mobile shows an empty drawer.
+
+### Technical Detail
+
+Current mobile branch:
+```tsx
+<div className="overflow-y-auto flex-1 px-4 pb-8">
+  {!selectedType ? (
+    <div className="space-y-2 pt-2">
+      {BLOCK_TYPES.map(...)}
+    </div>
+  ) : null}   // <-- BUG: no form rendered
+</div>
+```
+
+Fixed mobile branch:
+```tsx
+<div className="overflow-y-auto flex-1 px-4 pb-8">
+  {renderFormContent()}
+</div>
+```
+
+Where `renderFormContent()` contains the full type selector + form fields + save button (currently only in the Dialog branch).
