@@ -152,6 +152,12 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
           </Button>
         </motion.div>
 
+        {/* Free layouts nudge */}
+        <div className="text-center text-sm text-muted-foreground flex flex-col items-center gap-1">
+          <span>Want something free? Pick a starter layout below</span>
+          <ChevronDown className="h-4 w-4 animate-bounce" />
+        </div>
+
         {/* 5. Layout Templates */}
         <motion.div
           initial={{ opacity: 0 }}
