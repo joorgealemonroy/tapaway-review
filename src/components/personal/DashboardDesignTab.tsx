@@ -47,12 +47,15 @@ const FADE_PRESETS = [
   { value: "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)", label: "Grey" },
 ];
 
-const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
+const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a", "#0a0a0a", "#1e293b", "#fef3c7", "#ecfdf5"];
 
 const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #fdfcfb 0%, #e2d1c3 100%)", label: "Warm" },
   { value: "linear-gradient(180deg, #e0eafc 0%, #cfdef3 100%)", label: "Sky" },
   { value: "linear-gradient(180deg, #f3e7e9 0%, #e3eeff 100%)", label: "Rose" },
+  { value: "linear-gradient(180deg, #fceabb 0%, #f8b500 100%)", label: "Sunset" },
+  { value: "linear-gradient(180deg, #667db6 0%, #0082c8 50%, #667db6 100%)", label: "Ocean" },
+  { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
 ];
 
 export const DashboardDesignTab = ({
@@ -72,6 +75,7 @@ export const DashboardDesignTab = ({
   const [extractingColor, setExtractingColor] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const userPickedBg = useRef(false);
 
   // --- Pending (buffered) state for deferred save ---
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
@@ -123,6 +127,7 @@ export const DashboardDesignTab = ({
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
       });
+      userPickedBg.current = false;
       toast.success("Design saved!");
     } catch (err) {
       console.error("Save error:", err);
@@ -133,6 +138,7 @@ export const DashboardDesignTab = ({
   };
 
   const handleDiscard = () => {
+    userPickedBg.current = false;
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
@@ -154,6 +160,7 @@ export const DashboardDesignTab = ({
   };
 
   const handleBgColorChange = (color: string) => {
+    userPickedBg.current = true;
     setPendingBgColor(color);
     setBgColorInput(color);
     onUpdate({ backgroundColor: color });
@@ -169,6 +176,7 @@ export const DashboardDesignTab = ({
 
   // Auto-apply ambient gradient when banner mode is active
   useEffect(() => {
+    if (userPickedBg.current) return;
     const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
     if (!imageSource) {
       setImageBasedColor(null);
