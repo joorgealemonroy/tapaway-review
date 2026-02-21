@@ -527,471 +527,458 @@ export const BlockModal = ({
     }
   };
 
+  const renderFormContent = () => (
+    <>
+      {!selectedType ? (
+        <div className="space-y-2 pt-2">
+          {BLOCK_TYPES.map((type) => (
+            <button
+              key={type.type}
+              onClick={() => setSelectedType(type.type)}
+              className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
+            >
+              <type.icon className="h-5 w-5 text-foreground" />
+              <div>
+                <p className="text-sm font-medium">{type.label}</p>
+                <p className="text-xs text-muted-foreground">{type.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4 pt-2">
+          {selectedType === "youtube" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>YouTube URL</Label>
+                <Input
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+              
+              {/* Text overlay options */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Text Overlay (optional)</Label>
+                <Input
+                  placeholder="Title text..."
+                  value={youtubeOverlayTitle}
+                  onChange={(e) => setYoutubeOverlayTitle(e.target.value)}
+                  className="h-10"
+                />
+                <Input
+                  placeholder="Subtitle text..."
+                  value={youtubeOverlaySubtitle}
+                  onChange={(e) => setYoutubeOverlaySubtitle(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          )}
+
+          {selectedType === "image" && (
+            <>
+              <div className="space-y-2">
+                <Label>Image</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {imageUrl ? (
+                  <div className="relative">
+                    <img 
+                      src={imageUrl} 
+                      alt="Preview" 
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <div className="absolute bottom-2 right-2 flex gap-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:bg-muted/50 transition-colors"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <Crop className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload & crop</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              
+              {/* Size toggle */}
+              <div className="space-y-2">
+                <Label>Display Size</Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImageSize("small")}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      imageSize === "small" 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover:bg-muted/80 text-foreground"
+                    }`}
+                  >
+                    Small
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageSize("large")}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      imageSize === "large" 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover:bg-muted/80 text-foreground"
+                    }`}
+                  >
+                    Large
+                  </button>
+                </div>
+              </div>
+              
+              {/* Link URL (optional) */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  Link URL (optional)
+                </Label>
+                <Input
+                  placeholder="https://example.com"
+                  value={imageLinkUrl}
+                  onChange={(e) => setImageLinkUrl(e.target.value)}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">Make image clickable</p>
+              </div>
+              
+              {/* Text Overlay (optional) */}
+              {imageUrl && (
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <Label className="text-sm font-medium">Text Overlay (optional)</Label>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Title (e.g., NEW DROP 🔥)"
+                      value={overlayTitle}
+                      onChange={(e) => setOverlayTitle(e.target.value)}
+                      className="h-10"
+                    />
+                    <Input
+                      placeholder="Subtitle (e.g., Limited availability)"
+                      value={overlaySubtitle}
+                      onChange={(e) => setOverlaySubtitle(e.target.value)}
+                      className="h-10"
+                    />
+                    <Input
+                      placeholder="CTA text (e.g., Shop Now →)"
+                      value={overlayCta}
+                      onChange={(e) => setOverlayCta(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Text will appear on top of the image</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {selectedType === "text" && (
+            <>
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  placeholder="Section title"
+                  value={textTitle}
+                  onChange={(e) => setTextTitle(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Body (optional)</Label>
+                <Textarea
+                  placeholder="Add some details..."
+                  value={textBody}
+                  onChange={(e) => setTextBody(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </>
+          )}
+
+          {selectedType === "button" && (
+            <>
+              <div className="space-y-2">
+                <Label>Button Label</Label>
+                <Input
+                  placeholder="Book Now"
+                  value={buttonLabel}
+                  onChange={(e) => setButtonLabel(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Link URL</Label>
+                <Input
+                  placeholder="https://..."
+                  value={buttonUrl}
+                  onChange={(e) => setButtonUrl(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedType === "email_capture" && (
+            <>
+              <div className="space-y-2">
+                <Label>Headline</Label>
+                <Input
+                  placeholder="Stay Connected 💌"
+                  value={emailHeadline}
+                  onChange={(e) => setEmailHeadline(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Leave your email and I'll reach out!"
+                  value={emailDescription}
+                  onChange={(e) => setEmailDescription(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button Text</Label>
+                <Input
+                  placeholder="Submit"
+                  value={emailButtonText}
+                  onChange={(e) => setEmailButtonText(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-3 pt-2 border-t border-border">
+                <Label className="text-sm font-medium">Contact Fields</Label>
+                {/* Phone first, then Email */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Collect Phone</p>
+                      <p className="text-xs text-muted-foreground">Ask for their phone number</p>
+                    </div>
+                    <Switch checked={collectPhone} onCheckedChange={setCollectPhone} />
+                  </div>
+                  {collectPhone && (
+                    <div className="flex items-center justify-between pl-4 py-1">
+                      <p className="text-sm text-muted-foreground">Required</p>
+                      <Switch checked={phoneRequired} onCheckedChange={setPhoneRequired} />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Collect Email</p>
+                      <p className="text-xs text-muted-foreground">Ask for their email address</p>
+                    </div>
+                    <Switch checked={collectEmail} onCheckedChange={setCollectEmail} />
+                  </div>
+                  {collectEmail && (
+                    <div className="flex items-center justify-between pl-4 py-1">
+                      <p className="text-sm text-muted-foreground">Required</p>
+                      <Switch checked={emailRequired} onCheckedChange={setEmailRequired} />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3 pt-2 border-t border-border">
+                <Label className="text-sm font-medium">Additional Fields</Label>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Collect Name</p>
+                      <p className="text-xs text-muted-foreground">Ask visitors for their name</p>
+                    </div>
+                    <Switch checked={collectName} onCheckedChange={setCollectName} />
+                  </div>
+                  {collectName && (
+                    <div className="flex items-center justify-between pl-4 py-1">
+                      <p className="text-sm text-muted-foreground">Required</p>
+                      <Switch checked={nameRequired} onCheckedChange={setNameRequired} />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Collect Message</p>
+                      <p className="text-xs text-muted-foreground">Let visitors add a message</p>
+                    </div>
+                    <Switch checked={collectMessage} onCheckedChange={setCollectMessage} />
+                  </div>
+                  {collectMessage && (
+                    <div className="flex items-center justify-between pl-4 py-1">
+                      <p className="text-sm text-muted-foreground">Required</p>
+                      <Switch checked={messageRequired} onCheckedChange={setMessageRequired} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {selectedType === "photo_collage" && (
+            <>
+              <div className="space-y-2">
+                <Label>Images (max 9)</Label>
+                <p className="text-xs text-muted-foreground">Displays as a 3-column grid on your profile</p>
+                <input
+                  ref={collageFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCollageImageSelect}
+                  className="hidden"
+                />
+                <div className="grid grid-cols-4 gap-2">
+                  {collageImages.map((imgUrl, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                      <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => handleRemoveCollageImage(idx)}
+                        className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                      >
+                        <X className="h-3 w-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {collageImages.length < 9 && (
+                    <button
+                      onClick={() => collageFileInputRef.current?.click()}
+                      disabled={uploadingCollageImage}
+                      className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
+                    >
+                      {uploadingCollageImage ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          <Plus className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Add</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Alignment picker */}
+          <div className="space-y-2">
+            <Label>Alignment</Label>
+            <RadioGroup 
+              value={alignment} 
+              onValueChange={setAlignment}
+              className="flex gap-2"
+            >
+              <div className="flex items-center">
+                <RadioGroupItem value="left" id="align-left" className="sr-only" />
+                <Label
+                  htmlFor="align-left"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                    alignment === "left" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  <AlignLeft className="h-4 w-4" />
+                </Label>
+              </div>
+              <div className="flex items-center">
+                <RadioGroupItem value="center" id="align-center" className="sr-only" />
+                <Label
+                  htmlFor="align-center"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                    alignment === "center" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  <AlignCenter className="h-4 w-4" />
+                </Label>
+              </div>
+              <div className="flex items-center">
+                <RadioGroupItem value="right" id="align-right" className="sr-only" />
+                <Label
+                  htmlFor="align-right"
+                  className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                    alignment === "right" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  <AlignRight className="h-4 w-4" />
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            {!editingBlock && (
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setSelectedType(null)}
+              >
+                Back
+              </Button>
+            )}
+            <Button 
+              className="flex-1"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingBlock ? "Save" : "Add"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  const modalTitle = editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block";
+
   return (
     <>
       {isMobile ? (
         <Drawer open={open} onOpenChange={onOpenChange}>
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader className="text-left">
-              <DrawerTitle>
-                {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
-              </DrawerTitle>
+              <DrawerTitle>{modalTitle}</DrawerTitle>
             </DrawerHeader>
             <div className="overflow-y-auto flex-1 px-4 pb-8">
-              {!selectedType ? (
-                <div className="space-y-2 pt-2">
-                  {BLOCK_TYPES.map((type) => (
-                    <button
-                      key={type.type}
-                      onClick={() => setSelectedType(type.type)}
-                      className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
-                    >
-                      <type.icon className="h-5 w-5 text-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{type.label}</p>
-                        <p className="text-xs text-muted-foreground">{type.description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
+              {renderFormContent()}
             </div>
           </DrawerContent>
         </Drawer>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent className="max-w-sm mx-4 max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingBlock ? "Edit block" : selectedType ? "Configure block" : "Add a block"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {!selectedType ? (
-            <div className="space-y-2 pt-2">
-              {BLOCK_TYPES.map((type) => (
-                <button
-                  key={type.type}
-                  onClick={() => setSelectedType(type.type)}
-                  className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
-                >
-                  <type.icon className="h-5 w-5 text-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{type.label}</p>
-                    <p className="text-xs text-muted-foreground">{type.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4 pt-2">
-              {selectedType === "youtube" && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>YouTube URL</Label>
-                    <Input
-                      placeholder="https://youtube.com/watch?v=..."
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                      className="h-12"
-                    />
-                  </div>
-                  
-                  {/* Text overlay options */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Text Overlay (optional)</Label>
-                    <Input
-                      placeholder="Title text..."
-                      value={youtubeOverlayTitle}
-                      onChange={(e) => setYoutubeOverlayTitle(e.target.value)}
-                      className="h-10"
-                    />
-                    <Input
-                      placeholder="Subtitle text..."
-                      value={youtubeOverlaySubtitle}
-                      onChange={(e) => setYoutubeOverlaySubtitle(e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedType === "image" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Image</Label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-                    {imageUrl ? (
-                      <div className="relative">
-                        <img 
-                          src={imageUrl} 
-                          alt="Preview" 
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <div className="absolute bottom-2 right-2 flex gap-1">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            Change
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:bg-muted/50 transition-colors"
-                      >
-                        {uploadingImage ? (
-                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        ) : (
-                          <>
-                            <Crop className="h-6 w-6 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Click to upload & crop</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Size toggle */}
-                  <div className="space-y-2">
-                    <Label>Display Size</Label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setImageSize("small")}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          imageSize === "small" 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-muted hover:bg-muted/80 text-foreground"
-                        }`}
-                      >
-                        Small
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setImageSize("large")}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          imageSize === "large" 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-muted hover:bg-muted/80 text-foreground"
-                        }`}
-                      >
-                        Large
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Link URL (optional) */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <LinkIcon className="h-3.5 w-3.5" />
-                      Link URL (optional)
-                    </Label>
-                    <Input
-                      placeholder="https://example.com"
-                      value={imageLinkUrl}
-                      onChange={(e) => setImageLinkUrl(e.target.value)}
-                      className="h-11"
-                    />
-                    <p className="text-xs text-muted-foreground">Make image clickable</p>
-                  </div>
-                  
-                  {/* Text Overlay (optional) */}
-                  {imageUrl && (
-                    <div className="space-y-3 pt-2 border-t border-border">
-                      <Label className="text-sm font-medium">Text Overlay (optional)</Label>
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Title (e.g., NEW DROP 🔥)"
-                          value={overlayTitle}
-                          onChange={(e) => setOverlayTitle(e.target.value)}
-                          className="h-10"
-                        />
-                        <Input
-                          placeholder="Subtitle (e.g., Limited availability)"
-                          value={overlaySubtitle}
-                          onChange={(e) => setOverlaySubtitle(e.target.value)}
-                          className="h-10"
-                        />
-                        <Input
-                          placeholder="CTA text (e.g., Shop Now →)"
-                          value={overlayCta}
-                          onChange={(e) => setOverlayCta(e.target.value)}
-                          className="h-10"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">Text will appear on top of the image</p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {selectedType === "text" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Title</Label>
-                    <Input
-                      placeholder="Section title"
-                      value={textTitle}
-                      onChange={(e) => setTextTitle(e.target.value)}
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Body (optional)</Label>
-                    <Textarea
-                      placeholder="Add some details..."
-                      value={textBody}
-                      onChange={(e) => setTextBody(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-
-              {selectedType === "button" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Button Label</Label>
-                    <Input
-                      placeholder="Book Now"
-                      value={buttonLabel}
-                      onChange={(e) => setButtonLabel(e.target.value)}
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Link URL</Label>
-                    <Input
-                      placeholder="https://..."
-                      value={buttonUrl}
-                      onChange={(e) => setButtonUrl(e.target.value)}
-                      className="h-12"
-                    />
-                  </div>
-                </>
-              )}
-
-              {selectedType === "email_capture" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Headline</Label>
-                    <Input
-                      placeholder="Stay Connected 💌"
-                      value={emailHeadline}
-                      onChange={(e) => setEmailHeadline(e.target.value)}
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                      placeholder="Leave your email and I'll reach out!"
-                      value={emailDescription}
-                      onChange={(e) => setEmailDescription(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Button Text</Label>
-                    <Input
-                      placeholder="Submit"
-                      value={emailButtonText}
-                      onChange={(e) => setEmailButtonText(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-3 pt-2 border-t border-border">
-                    <Label className="text-sm font-medium">Contact Fields</Label>
-                    {/* Phone first, then Email */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Collect Phone</p>
-                          <p className="text-xs text-muted-foreground">Ask for their phone number</p>
-                        </div>
-                        <Switch checked={collectPhone} onCheckedChange={setCollectPhone} />
-                      </div>
-                      {collectPhone && (
-                        <div className="flex items-center justify-between pl-4 py-1">
-                          <p className="text-sm text-muted-foreground">Required</p>
-                          <Switch checked={phoneRequired} onCheckedChange={setPhoneRequired} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Collect Email</p>
-                          <p className="text-xs text-muted-foreground">Ask for their email address</p>
-                        </div>
-                        <Switch checked={collectEmail} onCheckedChange={setCollectEmail} />
-                      </div>
-                      {collectEmail && (
-                        <div className="flex items-center justify-between pl-4 py-1">
-                          <p className="text-sm text-muted-foreground">Required</p>
-                          <Switch checked={emailRequired} onCheckedChange={setEmailRequired} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-3 pt-2 border-t border-border">
-                    <Label className="text-sm font-medium">Additional Fields</Label>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Collect Name</p>
-                          <p className="text-xs text-muted-foreground">Ask visitors for their name</p>
-                        </div>
-                        <Switch checked={collectName} onCheckedChange={setCollectName} />
-                      </div>
-                      {collectName && (
-                        <div className="flex items-center justify-between pl-4 py-1">
-                          <p className="text-sm text-muted-foreground">Required</p>
-                          <Switch checked={nameRequired} onCheckedChange={setNameRequired} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Collect Message</p>
-                          <p className="text-xs text-muted-foreground">Let visitors add a message</p>
-                        </div>
-                        <Switch checked={collectMessage} onCheckedChange={setCollectMessage} />
-                      </div>
-                      {collectMessage && (
-                        <div className="flex items-center justify-between pl-4 py-1">
-                          <p className="text-sm text-muted-foreground">Required</p>
-                          <Switch checked={messageRequired} onCheckedChange={setMessageRequired} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {selectedType === "photo_collage" && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Images (max 9)</Label>
-                    <p className="text-xs text-muted-foreground">Displays as a 3-column grid on your profile</p>
-                    <input
-                      ref={collageFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCollageImageSelect}
-                      className="hidden"
-                    />
-                    <div className="grid grid-cols-4 gap-2">
-                      {collageImages.map((imgUrl, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                          <img src={imgUrl} alt="" className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => handleRemoveCollageImage(idx)}
-                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
-                          >
-                            <X className="h-3 w-3 text-white" />
-                          </button>
-                        </div>
-                      ))}
-                      {collageImages.length < 9 && (
-                        <button
-                          onClick={() => collageFileInputRef.current?.click()}
-                          disabled={uploadingCollageImage}
-                          className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors"
-                        >
-                          {uploadingCollageImage ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                          ) : (
-                            <>
-                              <Plus className="h-5 w-5 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">Add</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Alignment picker */}
-              <div className="space-y-2">
-                <Label>Alignment</Label>
-                <RadioGroup 
-                  value={alignment} 
-                  onValueChange={setAlignment}
-                  className="flex gap-2"
-                >
-                  <div className="flex items-center">
-                    <RadioGroupItem value="left" id="align-left" className="sr-only" />
-                    <Label
-                      htmlFor="align-left"
-                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                        alignment === "left" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                      }`}
-                    >
-                      <AlignLeft className="h-4 w-4" />
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <RadioGroupItem value="center" id="align-center" className="sr-only" />
-                    <Label
-                      htmlFor="align-center"
-                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                        alignment === "center" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                      }`}
-                    >
-                      <AlignCenter className="h-4 w-4" />
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <RadioGroupItem value="right" id="align-right" className="sr-only" />
-                    <Label
-                      htmlFor="align-right"
-                      className={`p-2 rounded-lg cursor-pointer transition-colors ${
-                        alignment === "right" ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                      }`}
-                    >
-                      <AlignRight className="h-4 w-4" />
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                {!editingBlock && (
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => setSelectedType(null)}
-                  >
-                    Back
-                  </Button>
-                )}
-                <Button 
-                  className="flex-1"
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingBlock ? "Save" : "Add"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <DialogHeader>
+              <DialogTitle>{modalTitle}</DialogTitle>
+            </DialogHeader>
+            {renderFormContent()}
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Image Cropper */}
