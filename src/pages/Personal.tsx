@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { PersonalHero } from "@/components/landing/personal/PersonalHero";
 import { PersonalHowItWorks } from "@/components/landing/personal/PersonalHowItWorks";
@@ -6,8 +6,17 @@ import { PersonalUseCases } from "@/components/landing/personal/PersonalUseCases
 import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
 import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
+import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding";
 
 const Personal = () => {
+  const [searchParams] = useSearchParams();
+  const affiliateRef = searchParams.get("ref");
+
+  if (affiliateRef) {
+    sessionStorage.setItem("tapaway_ref", affiliateRef);
+    return <AffiliateOnboarding refCode={affiliateRef} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
