@@ -6,7 +6,7 @@ import { Wifi, WifiOff, Sparkles, Smartphone, CreditCard } from "lucide-react";
 const PRODUCTS = [
   {
     name: "Basic NFC Card",
-    price: "$10",
+    price: "$20",
     priceNote: "one-time",
     description: "Pre-designed TapAway card with your profile linked. Tap any phone to share instantly.",
     features: ["TapAway branded design", "Pre-programmed with your profile", "Works with all smartphones"],
