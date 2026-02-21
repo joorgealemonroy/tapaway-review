@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageCropper } from "./ImageCropper";
+import { UnsavedChangesBar } from "./UnsavedChangesBar";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Paintbrush, 
@@ -66,21 +67,109 @@ export const DashboardDesignTab = ({
 }: Props) => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
-  const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [uploading, setUploading] = useState(false);
   const [imageBasedColor, setImageBasedColor] = useState<string | null>(null);
   const [extractingColor, setExtractingColor] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // For banner mode, we use the profile photo as the banner (no separate upload)
-  // When in banner mode, use the profilePhotoUrl for color extraction
-  const bannerImageSource = headerType === "banner" ? profilePhotoUrl : null;
+  // --- Pending (buffered) state for deferred save ---
+  const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
+  const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
+  const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
+  const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
+  const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
-  // Auto-apply ambient gradient when banner mode is active (uses profile photo)
+  // Sync pending state when props change (e.g. after save or external refresh)
   useEffect(() => {
-    // When NOT in banner mode, or no profile photo exists, clear the extracted color
-    const imageSource = headerType === "banner" ? bannerImageSource : profilePhotoUrl;
+    setPendingHeaderType(headerType);
+  }, [headerType]);
+  useEffect(() => {
+    setPendingHeaderColor(headerColor);
+    setCustomColorInput(headerColor || "#6BCB77");
+  }, [headerColor]);
+  useEffect(() => {
+    setPendingBgColor(backgroundColor);
+    setBgColorInput(backgroundColor || "#ffffff");
+  }, [backgroundColor]);
+
+  const hasChanges = useMemo(() => {
+    return (
+      pendingHeaderType !== headerType ||
+      pendingHeaderColor !== headerColor ||
+      pendingBgColor !== backgroundColor
+    );
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updates: Record<string, string | null> = {};
+      if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
+      if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
+      if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
+
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase
+          .from("personal_profiles")
+          .update(updates)
+          .eq("id", profileId);
+        if (error) throw error;
+      }
+
+      // Push to parent so preview updates with saved values
+      onUpdate({
+        headerType: pendingHeaderType,
+        headerColor: pendingHeaderColor,
+        backgroundColor: pendingBgColor,
+      });
+      toast.success("Design saved!");
+    } catch (err) {
+      console.error("Save error:", err);
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setPendingHeaderType(headerType);
+    setPendingHeaderColor(headerColor);
+    setPendingBgColor(backgroundColor);
+    setCustomColorInput(headerColor || "#6BCB77");
+    setBgColorInput(backgroundColor || "#ffffff");
+    // Reset preview back to saved values
+    onUpdate({
+      headerType,
+      headerColor,
+      backgroundColor,
+    });
+  };
+
+  // Local-only setters (update preview + pending state, no DB write)
+  const handleColorChange = (color: string) => {
+    setPendingHeaderColor(color);
+    setCustomColorInput(color);
+    onUpdate({ headerColor: color });
+  };
+
+  const handleBgColorChange = (color: string) => {
+    setPendingBgColor(color);
+    setBgColorInput(color);
+    onUpdate({ backgroundColor: color });
+  };
+
+  const handleTypeChange = (type: string) => {
+    setPendingHeaderType(type);
+    onUpdate({ headerType: type });
+  };
+
+  // For banner mode, we use the profile photo as the banner (no separate upload)
+  const bannerImageSource = pendingHeaderType === "banner" ? profilePhotoUrl : null;
+
+  // Auto-apply ambient gradient when banner mode is active
+  useEffect(() => {
+    const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
     if (!imageSource) {
       setImageBasedColor(null);
       return;
@@ -92,13 +181,9 @@ export const DashboardDesignTab = ({
         setImageBasedColor(color);
         const ambientGradient = generateAmbientGradient(color);
         
-        // Auto-apply if:
-        // 1. No background is set yet, OR
-        // 2. Current background is a legacy linear-gradient (old preset), OR
-        // 3. Current background is already a radial-gradient (update to new extraction)
-        const isLegacyGradient = backgroundColor?.startsWith('linear-gradient');
-        const isRadialGradient = backgroundColor?.startsWith('radial-gradient');
-        const shouldAutoApply = !backgroundColor || isLegacyGradient || isRadialGradient;
+        const isLegacyGradient = pendingBgColor?.startsWith('linear-gradient');
+        const isRadialGradient = pendingBgColor?.startsWith('radial-gradient');
+        const shouldAutoApply = !pendingBgColor || isLegacyGradient || isRadialGradient;
         
         if (shouldAutoApply) {
           handleBgColorChange(ambientGradient);
@@ -112,8 +197,9 @@ export const DashboardDesignTab = ({
         setExtractingColor(false);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headerType, bannerImageSource, backgroundColor]);
+  }, [pendingHeaderType, bannerImageSource, backgroundColor]);
 
+  // --- Image upload stays immediate ---
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -121,7 +207,6 @@ export const DashboardDesignTab = ({
         const canvas = document.createElement("canvas");
         const maxDim = 1200;
         let { width, height } = img;
-        
         if (width > maxDim || height > maxDim) {
           if (width > height) {
             height = (height / width) * maxDim;
@@ -131,22 +216,14 @@ export const DashboardDesignTab = ({
             height = maxDim;
           }
         }
-
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("No 2d context"));
-          return;
-        }
+        if (!ctx) { reject(new Error("No 2d context")); return; }
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Compression failed"));
-          },
-          "image/jpeg",
-          0.85
+          (blob) => { if (blob) resolve(blob); else reject(new Error("Compression failed")); },
+          "image/jpeg", 0.85
         );
       };
       img.onerror = reject;
@@ -157,28 +234,14 @@ export const DashboardDesignTab = ({
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return; }
+    if (file.size > 20 * 1024 * 1024) { toast.error("Image must be less than 20MB"); return; }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("Image must be less than 20MB");
-      return;
-    }
-
-    // Compress if > 2MB
     let processedFile: Blob = file;
     if (file.size > 2 * 1024 * 1024) {
-      try {
-        processedFile = await compressImage(file);
-      } catch {
-        toast.error("Failed to process image");
-        return;
-      }
+      try { processedFile = await compressImage(file); }
+      catch { toast.error("Failed to process image"); return; }
     }
-
     setRawImageUrl(URL.createObjectURL(processedFile));
     setCropperOpen(true);
   };
@@ -188,98 +251,44 @@ export const DashboardDesignTab = ({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
       const filePath = `${user.id}/header.jpg`;
-
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
         .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
-
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("personal-photos")
-        .getPublicUrl(filePath);
-
+      const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(filePath);
       const urlWithBust = `${publicUrl}?t=${Date.now()}`;
-
-      // Update DB
-      await supabase
-        .from("personal_profiles")
-        .update({ header_image_url: urlWithBust, header_type: "image" })
-        .eq("id", profileId);
-
+      await supabase.from("personal_profiles").update({ header_image_url: urlWithBust, header_type: "image" }).eq("id", profileId);
       onUpdate({ headerImageUrl: urlWithBust, headerType: "image" });
+      setPendingHeaderType("image");
       toast.success("Header image updated!");
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload header image");
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   const handleRemoveImage = async () => {
     try {
-      await supabase
-        .from("personal_profiles")
-        .update({ header_image_url: null, header_type: "color" })
-        .eq("id", profileId);
-
+      await supabase.from("personal_profiles").update({ header_image_url: null, header_type: "color" }).eq("id", profileId);
       onUpdate({ headerImageUrl: null, headerType: "color" });
+      setPendingHeaderType("color");
     } catch (err) {
       console.error("Error removing image:", err);
       toast.error("Failed to remove image");
     }
   };
 
-  const handleColorChange = async (color: string) => {
-    try {
-      await supabase
-        .from("personal_profiles")
-        .update({ header_color: color })
-        .eq("id", profileId);
-
-      onUpdate({ headerColor: color });
-      setCustomColorInput(color);
-    } catch (err) {
-      console.error("Error updating color:", err);
-    }
-  };
-
-  const handleBgColorChange = async (color: string) => {
-    try {
-      await supabase
-        .from("personal_profiles")
-        .update({ background_color: color })
-        .eq("id", profileId);
-
-      onUpdate({ backgroundColor: color });
-      setBgColorInput(color);
-    } catch (err) {
-      console.error("Error updating bg color:", err);
-    }
-  };
-
-  const handleTypeChange = async (type: string) => {
-    try {
-      await supabase
-        .from("personal_profiles")
-        .update({ header_type: type })
-        .eq("id", profileId);
-
-      onUpdate({ headerType: type });
-    } catch (err) {
-      console.error("Error updating type:", err);
-    }
-  };
-
-  // PFP position removed - always centered
-
-  // Banner mode now uses the profile photo - no separate banner upload needed
-
   return (
     <div className="space-y-8">
+      {/* Sticky save bar */}
+      <UnsavedChangesBar
+        hasPendingChanges={hasChanges}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={saving}
+      />
+
       {/* Header Style Section */}
       <div className="space-y-4">
         <div>
@@ -290,11 +299,10 @@ export const DashboardDesignTab = ({
         </div>
         
         <RadioGroup 
-          value={headerType} 
+          value={pendingHeaderType} 
           onValueChange={handleTypeChange}
           className="grid grid-cols-3 gap-3"
         >
-          {/* Solid Color option */}
           <div>
             <RadioGroupItem value="color" id="header-color" className="peer sr-only" />
             <Label 
@@ -305,8 +313,6 @@ export const DashboardDesignTab = ({
               <span className="text-xs font-medium">Solid Color</span>
             </Label>
           </div>
-          
-          {/* Custom Image option */}
           <div>
             <RadioGroupItem value="image" id="header-image" className="peer sr-only" />
             <Label 
@@ -317,8 +323,6 @@ export const DashboardDesignTab = ({
               <span className="text-xs font-medium">Image</span>
             </Label>
           </div>
-          
-          {/* Full Banner (Premium only) */}
           {isPremium && (
             <div>
               <RadioGroupItem value="banner" id="header-banner" className="peer sr-only" />
@@ -333,22 +337,19 @@ export const DashboardDesignTab = ({
           )}
         </RadioGroup>
 
-        {headerType === "banner" ? (
-          /* Full Banner mode - uses profile photo as banner (no separate upload) */
+        {pendingHeaderType === "banner" ? (
           <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
             <div className="flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Full-Screen Banner Mode
-                </p>
+                <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Your profile photo displays as a stunning full-screen banner with ambient color matching.
                 </p>
               </div>
             </div>
           </div>
-        ) : headerType === "color" ? (
+        ) : pendingHeaderType === "color" ? (
           <div className="space-y-4">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
@@ -358,7 +359,7 @@ export const DashboardDesignTab = ({
                     key={color}
                     onClick={() => handleColorChange(color)}
                     className={`h-10 w-10 rounded-full border-2 transition-all ${
-                      headerColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                      pendingHeaderColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                     }`}
                     style={{ backgroundColor: color }}
                     title={color}
@@ -374,7 +375,7 @@ export const DashboardDesignTab = ({
                     key={fade.label}
                     onClick={() => handleColorChange(fade.value)}
                     className={`h-10 w-10 rounded-full border-2 transition-all ${
-                      headerColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                      pendingHeaderColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                     }`}
                     style={{ background: fade.value }}
                     title={fade.label}
@@ -410,27 +411,16 @@ export const DashboardDesignTab = ({
           <div className="space-y-3">
             {headerImageUrl ? (
               <div className="relative">
-                <img 
-                  src={headerImageUrl} 
-                  alt="Header" 
-                  className="w-full h-24 object-cover rounded-lg"
-                />
+                <img src={headerImageUrl} alt="Header" className="w-full h-24 object-cover rounded-lg" />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
                   >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 text-white animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 text-white" />
-                    )}
+                    {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
                   </button>
-                  <button
-                    onClick={handleRemoveImage}
-                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                  >
+                  <button onClick={handleRemoveImage} className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors">
                     <X className="h-4 w-4 text-white" />
                   </button>
                 </div>
@@ -451,27 +441,18 @@ export const DashboardDesignTab = ({
                 )}
               </button>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
           </div>
         )}
       </div>
 
-      {/* Divider */}
       <div className="h-px bg-border" />
 
       {/* Background Section */}
       <div className="space-y-4">
         <div>
           <h3 className="text-base font-semibold text-foreground">Background</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Set your page's background color
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">Set your page's background color</p>
         </div>
         
         <div>
@@ -482,7 +463,7 @@ export const DashboardDesignTab = ({
                 key={color}
                 onClick={() => handleBgColorChange(color)}
                 className={`h-10 w-10 rounded-full border-2 transition-all ${
-                  backgroundColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                  pendingBgColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                 }`}
                 style={{ backgroundColor: color }}
                 title={color}
@@ -498,7 +479,7 @@ export const DashboardDesignTab = ({
                 key={fade.label}
                 onClick={() => handleBgColorChange(fade.value)}
                 className={`h-10 w-10 rounded-full border-2 transition-all ${
-                  backgroundColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                  pendingBgColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                 }`}
                 style={{ background: fade.value }}
                 title={fade.label}
@@ -507,16 +488,12 @@ export const DashboardDesignTab = ({
           </div>
         </div>
         
-        {/* Show ambient preview when banner mode is active (uses profile photo) */}
         {(bannerImageSource || profilePhotoUrl) && imageBasedColor && (
           <button
             onClick={() => handleBgColorChange(generateAmbientGradient(imageBasedColor))}
             className="w-full flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
           >
-            <div
-              className="h-10 w-10 rounded-full flex-shrink-0 ring-2 ring-primary/20"
-              style={{ background: generateAmbientGradient(imageBasedColor) }}
-            />
+            <div className="h-10 w-10 rounded-full flex-shrink-0 ring-2 ring-primary/20" style={{ background: generateAmbientGradient(imageBasedColor) }} />
             <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-medium text-foreground">Auto match to photo</p>
               <p className="text-xs text-muted-foreground">Tap to apply ambient gradient</p>
@@ -550,7 +527,6 @@ export const DashboardDesignTab = ({
         </div>
       </div>
 
-      {/* Image Cropper for Header */}
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
@@ -561,7 +537,6 @@ export const DashboardDesignTab = ({
           cropShape="rect"
         />
       )}
-      {/* Banner mode no longer needs separate cropper - uses profile photo */}
     </div>
   );
 };
