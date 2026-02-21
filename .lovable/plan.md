@@ -1,31 +1,16 @@
 
 
-# Fix Referral Link Using Lovable Preview Domain
+# Update Affiliate Referral Links
 
-## Problem
-The referral link on the Affiliate Dashboard uses `window.location.origin` to build the URL. In the Lovable preview environment, this produces a long, ugly link like:
-`https://db97f54f-4c1d-4910-ae17-ca4c23111c49.lovableproject.com/personal/signup?ref=jorge`
+## What's changing
+The affiliate referral link currently sends people directly to the signup form (`tapaway.co/personal/signup?ref=CODE`). Instead, it should send them to the full landing page experience (`tapaway.co/?ref=CODE`) — the page with the animated card, hub showcase, layout templates, and "Create My Hub" buttons. The tracking still works the same because the landing page already stores the `ref` code and passes it through to the signup wizard.
 
-Instead, it should always show the production domain:
-`https://tapaway.co/personal/signup?ref=jorge`
-
-This is the same pattern already documented in your project memory -- email links use `FRONTEND_URL` to avoid leaking preview domains.
-
-## Fix
+## Technical changes
 
 **File:** `src/pages/affiliate/AffiliateDashboard.tsx`
 
-Replace `window.location.origin` on line 130 with a hardcoded production base URL (matching the pattern used elsewhere in the app).
+1. Update the `copyLink` function URL from `/personal/signup?ref=` to `/?ref=`
+2. Update the displayed link text in the UI from `tapaway.co/personal/signup?ref=...` to `tapaway.co/?ref=...`
 
-Change:
-```tsx
-const link = `${window.location.origin}/personal/signup?ref=${affiliateInfo.referral_code}`;
-```
-
-To:
-```tsx
-const link = `https://tapaway.co/personal/signup?ref=${affiliateInfo.referral_code}`;
-```
-
-This is a one-line change. The link will always show the clean production URL regardless of which environment the dashboard is viewed from.
+Both are one-line changes. No tracking logic needs to change — the `AffiliateOnboarding` component already saves the ref code to `sessionStorage` and passes it to the signup wizard via the navigate call.
 
