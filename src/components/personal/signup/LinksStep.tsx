@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LinkModal } from "@/components/personal/LinkModal";
-import { BlocksManager } from "@/components/personal/BlocksManager";
+import { BlockModal } from "@/components/personal/BlockModal";
+import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { HeaderCustomizer } from "@/components/personal/HeaderCustomizer";
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
@@ -102,7 +103,7 @@ export const LinksStep = ({
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
   const [deleteId, setDeleteId] = useState<{ id: string; kind: "link" | "block" } | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  // draggedIndex state removed — managed by useTouchHoldDrag hook
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [styleOpen, setStyleOpen] = useState(false);
@@ -217,34 +218,30 @@ export const LinksStep = ({
   };
 
   // --- Unified content list ---
-  const unifiedContent: ContentItem[] = [
+  const unifiedContent: ContentItem[] = useMemo(() => [
     ...formData.links.map((link): ContentItem => ({ kind: "link", item: link })),
     ...formData.blocks.map((block): ContentItem => ({ kind: "block", item: block })),
   ].sort((a, b) => {
     const aOrder = a.kind === "link" ? (a.item.sortOrder ?? 0) : a.item.sortOrder;
     const bOrder = b.kind === "link" ? (b.item.sortOrder ?? 0) : b.item.sortOrder;
     return aOrder - bOrder;
+  }), [formData.links, formData.blocks]);
+
+  // Touch hold-to-drag for mobile reordering
+  const {
+    draggedIndex,
+    isDragEnabled,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+  } = useTouchHoldDrag({
+    items: unifiedContent,
+    onReorder: reorderContent,
+    itemHeight: 64,
   });
-
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const newItems = [...unifiedContent];
-    const [dragged] = newItems.splice(draggedIndex, 1);
-    newItems.splice(index, 0, dragged);
-    
-    reorderContent(newItems);
-    setDraggedIndex(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
 
   const handleDeleteConfirm = () => {
     if (!deleteId) return;
@@ -398,8 +395,10 @@ export const LinksStep = ({
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    style={{ touchAction: "manipulation" }}
-                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all ${
+                    onTouchStart={(e) => handleTouchStart(e, index)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all select-none ${
                       draggedIndex === index ? "opacity-50 scale-95" : ""
                     }`}
                   >
@@ -435,8 +434,10 @@ export const LinksStep = ({
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    style={{ touchAction: "manipulation" }}
-                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all ${
+                    onTouchStart={(e) => handleTouchStart(e, index)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all select-none ${
                       draggedIndex === index ? "opacity-50 scale-95" : ""
                     }`}
                   >
@@ -571,16 +572,34 @@ export const LinksStep = ({
         existingTypes={existingTypes}
       />
 
-      {/* Block Modal (reuse BlocksManager for add/edit) */}
-      <BlocksManager
-        blocks={formData.blocks}
-        onAdd={addBlock}
-        onUpdate={updateBlock}
-        onRemove={removeBlock}
-        onReorder={reorderBlocks}
-        externalModalOpen={blockModalOpen}
-        onExternalModalClose={() => { setBlockModalOpen(false); setEditingBlock(null); }}
-        externalEditingBlock={editingBlock}
+      {/* Block Modal (mobile-friendly drawer) */}
+      <BlockModal
+        open={blockModalOpen}
+        onOpenChange={(open) => { if (!open) { setBlockModalOpen(false); setEditingBlock(null); } }}
+        profileId="signup-draft"
+        editingBlock={editingBlock ? {
+          id: editingBlock.id,
+          block_type: editingBlock.type,
+          content: editingBlock.content,
+          sort_order: editingBlock.sortOrder,
+          alignment: (editingBlock.content.alignment as string) || null,
+        } : null}
+        currentMaxOrder={Math.max(0, ...unifiedContent.map((ci, i) => ci.kind === "block" ? ci.item.sortOrder : (ci.item as PersonalLink).sortOrder ?? i))}
+        deferSave
+        onBlockSaved={(savedBlock) => {
+          const converted = {
+            type: savedBlock.block_type as PersonalBlock["type"],
+            content: savedBlock.content as Record<string, string>,
+            sortOrder: savedBlock.sort_order,
+          };
+          if (editingBlock) {
+            updateBlock(editingBlock.id, converted);
+          } else {
+            addBlock(converted);
+          }
+          setBlockModalOpen(false);
+          setEditingBlock(null);
+        }}
       />
 
       {/* Image Cropper */}
