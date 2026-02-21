@@ -33,20 +33,26 @@ interface Props {
 }
 
 const COLOR_PRESETS = [
-  "#6BCB77", "#1DA1F2", "#E91E63", "#9C27B0",
-  "#FF5722", "#607D8B", "#000000", "#FFFFFF",
+  "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
+  "#e63946", "#4361ee", "#f4a261", "#9b5de5",
 ];
 
-const GRADIENT_PRESETS = [
-  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-  "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-  "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-  "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-  "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+const FADE_PRESETS = [
+  { value: "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)", label: "Blush" },
+  { value: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", label: "Lavender" },
+  { value: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", label: "Cool Blue" },
+  { value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", label: "Peach" },
+  { value: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", label: "Mint" },
+  { value: "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)", label: "Grey" },
 ];
 
 const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#f0f0f0", "#e8e8e8", "#1a1a1a"];
+
+const BG_FADE_PRESETS = [
+  { value: "linear-gradient(180deg, #fdfcfb 0%, #e2d1c3 100%)", label: "Warm" },
+  { value: "linear-gradient(180deg, #e0eafc 0%, #cfdef3 100%)", label: "Sky" },
+  { value: "linear-gradient(180deg, #f3e7e9 0%, #e3eeff 100%)", label: "Rose" },
+];
 
 export const DashboardDesignTab = ({
   profileId,
@@ -345,31 +351,33 @@ export const DashboardDesignTab = ({
         ) : headerType === "color" ? (
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Solid Colors</p>
-              <div className="grid grid-cols-8 gap-2">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
+              <div className="flex flex-wrap gap-2">
                 {COLOR_PRESETS.map((color) => (
                   <button
                     key={color}
                     onClick={() => handleColorChange(color)}
-                    className={`aspect-square rounded-full border-2 transition-all ${
-                      headerColor === color ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:scale-110"
+                    className={`h-10 w-10 rounded-full border-2 transition-all ${
+                      headerColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                     }`}
                     style={{ backgroundColor: color }}
+                    title={color}
                   />
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Gradients</p>
-              <div className="grid grid-cols-6 gap-2">
-                {GRADIENT_PRESETS.map((gradient, i) => (
+              <p className="text-xs font-medium text-muted-foreground mb-2">Fades</p>
+              <div className="flex flex-wrap gap-2">
+                {FADE_PRESETS.map((fade) => (
                   <button
-                    key={i}
-                    onClick={() => handleColorChange(gradient)}
-                    className={`aspect-square rounded-full border-2 transition-all ${
-                      headerColor === gradient ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:scale-110"
+                    key={fade.label}
+                    onClick={() => handleColorChange(fade.value)}
+                    className={`h-10 w-10 rounded-full border-2 transition-all ${
+                      headerColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
                     }`}
-                    style={{ background: gradient }}
+                    style={{ background: fade.value }}
+                    title={fade.label}
                   />
                 ))}
               </div>
@@ -377,7 +385,7 @@ export const DashboardDesignTab = ({
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={customColorInput.startsWith("#") ? customColorInput : "#6BCB77"}
+                value={customColorInput.startsWith("#") ? customColorInput : "#000000"}
                 onChange={(e) => {
                   setCustomColorInput(e.target.value);
                   handleColorChange(e.target.value);
@@ -386,7 +394,7 @@ export const DashboardDesignTab = ({
               />
               <Input
                 type="text"
-                placeholder="#6BCB77"
+                placeholder="#000000"
                 value={customColorInput}
                 onChange={(e) => setCustomColorInput(e.target.value)}
                 onBlur={() => {
@@ -466,17 +474,37 @@ export const DashboardDesignTab = ({
           </p>
         </div>
         
-        <div className="grid grid-cols-6 gap-2">
-          {BG_PRESETS.map((color) => (
-            <button
-              key={color}
-              onClick={() => handleBgColorChange(color)}
-              className={`aspect-square rounded-full border-2 transition-all ${
-                backgroundColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
-              }`}
-              style={{ backgroundColor: color }}
-            />
-          ))}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
+          <div className="flex flex-wrap gap-2">
+            {BG_PRESETS.map((color) => (
+              <button
+                key={color}
+                onClick={() => handleBgColorChange(color)}
+                className={`h-10 w-10 rounded-full border-2 transition-all ${
+                  backgroundColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+              />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Fades</p>
+          <div className="flex flex-wrap gap-2">
+            {BG_FADE_PRESETS.map((fade) => (
+              <button
+                key={fade.label}
+                onClick={() => handleBgColorChange(fade.value)}
+                className={`h-10 w-10 rounded-full border-2 transition-all ${
+                  backgroundColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
+                }`}
+                style={{ background: fade.value }}
+                title={fade.label}
+              />
+            ))}
+          </div>
         </div>
         
         {/* Show ambient preview when banner mode is active (uses profile photo) */}
