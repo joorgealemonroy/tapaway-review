@@ -140,39 +140,39 @@ const PersonalSignup = () => {
       return;
     }
 
-    // Only pre-fill if user has no links/blocks yet
-    if (onboardingData.links.length === 0 && onboardingData.blocks.length === 0) {
-      // Add template links
-      template.defaultLinks.forEach((l, i) => {
-        addLink({
-          type: l.type,
-          label: l.label,
-          value: "",
-          url: "",
-          sortOrder: l.sortOrder ?? i,
-          displayStyle: l.displayStyle,
-          pillColor: l.pillColor,
-          gridSize: l.gridSize,
-          isFeatured: l.isFeatured,
-        });
-      });
+    // Clear existing draft content before applying new template
+    update({ links: [], blocks: [] });
 
-      // Add template blocks
-      template.defaultBlocks.forEach((b, i) => {
-        addBlock({
-          type: b.type as "youtube" | "image" | "text" | "button",
-          content: b.content,
-          sortOrder: b.sortOrder ?? i,
-        });
+    // Add template links
+    template.defaultLinks.forEach((l, i) => {
+      addLink({
+        type: l.type,
+        label: l.label,
+        value: "",
+        url: "",
+        sortOrder: l.sortOrder ?? i,
+        displayStyle: l.displayStyle,
+        pillColor: l.pillColor,
+        gridSize: l.gridSize,
+        isFeatured: l.isFeatured,
       });
+    });
 
-      // Apply style
-      update({
-        headerType: template.headerType,
-        headerColor: template.style.headerColor,
-        backgroundColor: template.style.bgColor,
+    // Add template blocks
+    template.defaultBlocks.forEach((b, i) => {
+      addBlock({
+        type: b.type as "youtube" | "image" | "text" | "button",
+        content: b.content,
+        sortOrder: b.sortOrder ?? i,
       });
-    }
+    });
+
+    // Apply style
+    update({
+      headerType: template.headerType,
+      headerColor: template.style.headerColor,
+      backgroundColor: template.style.bgColor,
+    });
 
     setTemplateApplied(true);
   }, [templateApplied, onboardingData.links.length, onboardingData.blocks.length, addLink, addBlock, update]);
