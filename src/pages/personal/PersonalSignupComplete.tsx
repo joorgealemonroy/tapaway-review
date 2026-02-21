@@ -326,8 +326,41 @@ const PersonalSignupComplete = () => {
 
               console.log("[PersonalSignupComplete] Affiliate referral logged");
 
-              // Commission deferred until user converts from trial — created by stripe webhook
+              // Create commission immediately for free signups
               if (referralRow) {
+                try {
+                  // Count prior referrals for this affiliate to determine tier
+                  const { count: referralCount } = await supabase
+                    .from("affiliate_referrals")
+                    .select("id", { count: "exact", head: true })
+                    .eq("affiliate_id", affiliate.id);
+
+                  // Get affiliate settings for tiered rates
+                  const { data: affSettings } = await supabase
+                    .from("affiliate_settings")
+                    .select("commission_free_base, commission_free_bonus, bonus_threshold")
+                    .limit(1)
+                    .single();
+
+                  const threshold = affSettings?.bonus_threshold ?? 25;
+                  const amount = (referralCount ?? 0) > threshold
+                    ? Number(affSettings?.commission_free_bonus ?? 5)
+                    : Number(affSettings?.commission_free_base ?? 3);
+
+                  await supabase
+                    .from("affiliate_commissions")
+                    .insert({
+                      affiliate_id: affiliate.id,
+                      referral_id: referralRow.id,
+                      amount,
+                      status: "pending",
+                    } as any);
+
+                  console.log(`[PersonalSignupComplete] Created $${amount} free-signup commission`);
+                } catch (commErr) {
+                  console.warn("[PersonalSignupComplete] Commission creation failed (non-fatal):", commErr);
+                }
+
                 // Trigger abuse check (fire and forget)
                 try {
                   supabase.functions.invoke("check-affiliate-abuse", {

@@ -442,6 +442,104 @@ if (event.type === 'checkout.session.completed') {
       console.log('[stripe-webhook] Successfully processed checkout session');
     }
 
+    // ============================================================
+    // AFFILIATE PAID CONVERSION COMMISSION
+    // When a subscription transitions from trialing → active, grant paid-tier commission
+    // ============================================================
+    if (event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object as any;
+      const previousAttributes = (event.data as any).previous_attributes;
+
+      // Only fire when status changed TO active FROM trialing
+      if (subscription.status === 'active' && previousAttributes?.status === 'trialing') {
+        const customerId = subscription.customer as string;
+        console.log(`[stripe-webhook] Subscription converted from trial to active for customer ${customerId}`);
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+          mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          })
+        );
+
+        // Find the personal profile by stripe_customer_id
+        const { data: profile } = await supabaseAdmin
+          .from('personal_profiles')
+          .select('id, referred_by, user_id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle();
+
+        if (profile?.referred_by) {
+          try {
+            // Look up affiliate by referral code
+            const { data: affiliate } = await supabaseAdmin
+              .from('affiliates')
+              .select('id')
+              .eq('referral_code', profile.referred_by.toLowerCase())
+              .eq('is_active', true)
+              .maybeSingle();
+
+            if (affiliate) {
+              // Find the referral record
+              const { data: referral } = await supabaseAdmin
+                .from('affiliate_referrals')
+                .select('id')
+                .eq('affiliate_id', affiliate.id)
+                .eq('referred_user_id', profile.user_id)
+                .maybeSingle();
+
+              if (referral) {
+                // Check if a paid commission already exists for this referral
+                const { data: existingComm } = await supabaseAdmin
+                  .from('affiliate_commissions')
+                  .select('id')
+                  .eq('referral_id', referral.id)
+                  .eq('note', 'paid_conversion')
+                  .maybeSingle();
+
+                if (!existingComm) {
+                  // Count total referrals for tiering
+                  const { count: referralCount } = await supabaseAdmin
+                    .from('affiliate_referrals')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('affiliate_id', affiliate.id);
+
+                  // Get tiered settings
+                  const { data: affSettings } = await supabaseAdmin
+                    .from('affiliate_settings')
+                    .select('*')
+                    .limit(1)
+                    .single();
+
+                  const threshold = affSettings?.bonus_threshold ?? 25;
+                  const amount = (referralCount ?? 0) > threshold
+                    ? Number(affSettings?.commission_paid_bonus ?? 8)
+                    : Number(affSettings?.commission_paid_base ?? 5);
+
+                  await supabaseAdmin
+                    .from('affiliate_commissions')
+                    .insert({
+                      affiliate_id: affiliate.id,
+                      referral_id: referral.id,
+                      amount,
+                      status: 'pending',
+                      note: 'paid_conversion',
+                    });
+
+                  console.log(`[stripe-webhook] Created $${amount} paid-conversion commission for affiliate ${affiliate.id}`);
+                } else {
+                  console.log('[stripe-webhook] Paid conversion commission already exists, skipping');
+                }
+              }
+            }
+          } catch (affErr) {
+            console.error('[stripe-webhook] Affiliate paid commission error (non-fatal):', affErr);
+          }
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

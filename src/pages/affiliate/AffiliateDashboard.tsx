@@ -40,7 +40,13 @@ interface Commission {
   created_at: string;
 }
 
-const COMMISSION_RATE = 5;
+interface AffiliateSettingsData {
+  commission_free_base: number;
+  commission_free_bonus: number;
+  commission_paid_base: number;
+  commission_paid_bonus: number;
+  bonus_threshold: number;
+}
 
 const AffiliateDashboard = () => {
   const navigate = useNavigate();
@@ -50,6 +56,7 @@ const AffiliateDashboard = () => {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [affSettings, setAffSettings] = useState<AffiliateSettingsData | null>(null);
 
   const loadData = useCallback(async () => {
     if (!affiliateInfo) return;
@@ -86,6 +93,23 @@ const AffiliateDashboard = () => {
         .order("created_at", { ascending: false });
 
       setCommissions(commData || []);
+
+      // Load affiliate settings for tiered display
+      const { data: settingsData } = await supabase
+        .from("affiliate_settings")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (settingsData) {
+        setAffSettings({
+          commission_free_base: Number((settingsData as any).commission_free_base ?? 3),
+          commission_free_bonus: Number((settingsData as any).commission_free_bonus ?? 5),
+          commission_paid_base: Number((settingsData as any).commission_paid_base ?? 5),
+          commission_paid_bonus: Number((settingsData as any).commission_paid_bonus ?? 8),
+          bonus_threshold: Number((settingsData as any).bonus_threshold ?? 25),
+        });
+      }
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -159,7 +183,7 @@ const AffiliateDashboard = () => {
 
   const totalEarned = commissions.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.amount), 0);
   const pendingPayout = commissions.filter(c => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
-  const potentialPayout = activeTrials * COMMISSION_RATE;
+  const potentialPayout = commissions.filter(c => c.status === "pending").reduce((s, c) => s + Number(c.amount), 0);
 
   const remainingInvites = affiliateInfo?.max_invites
     ? Math.max(0, affiliateInfo.max_invites - referrals.length)
@@ -170,7 +194,7 @@ const AffiliateDashboard = () => {
     const { subscription_status, trial_ends_at } = ref.referred_profile;
     const isTrialing = subscription_status === "trialing" && trial_ends_at && new Date(trial_ends_at) > new Date();
     if (subscription_status === "active") {
-      return { label: "Converted", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", earnings: `$${COMMISSION_RATE}.00 earned` };
+      return { label: "Converted", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", earnings: "Paid" };
     }
     if (isTrialing) {
       return { label: "Active Trial", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", earnings: "Pending conversion" };
@@ -225,11 +249,17 @@ const AffiliateDashboard = () => {
           <ul className="text-sm text-muted-foreground space-y-1.5">
             <li className="flex items-start gap-2">
               <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              You earn <span className="font-medium text-foreground">${COMMISSION_RATE}.00</span> for each referred user who completes at least one payment
+              <span>
+                <span className="font-medium text-foreground">Free signups:</span>{" "}
+                ${affSettings?.commission_free_base?.toFixed(2) ?? "3.00"} each (first {affSettings?.bonus_threshold ?? 25}), then ${affSettings?.commission_free_bonus?.toFixed(2) ?? "5.00"} each
+              </span>
             </li>
             <li className="flex items-start gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-              Trial signups show as "Active Trial" — no commission until they convert
+              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <span>
+                <span className="font-medium text-foreground">Paid signups:</span>{" "}
+                ${affSettings?.commission_paid_base?.toFixed(2) ?? "5.00"} each (first {affSettings?.bonus_threshold ?? 25}), then ${affSettings?.commission_paid_bonus?.toFixed(2) ?? "8.00"} each
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <Zap className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
