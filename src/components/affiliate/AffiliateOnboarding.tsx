@@ -30,7 +30,7 @@ const INFO_CARDS = [
 const STEPS = [
   { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
   { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card — all in one place" },
-  { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or show your QR code" },
+  { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or simply use a tapaway card." },
 ];
 
 export const AffiliateOnboarding = ({ refCode }: Props) => {
