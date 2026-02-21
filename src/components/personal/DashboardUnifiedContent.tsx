@@ -342,9 +342,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   };
 
   // Touch handlers for mobile - with hold delay for better UX
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentIndex, setTouchCurrentIndex] = useState<number | null>(null);
   const HOLD_DELAY_MS = 200;
+  const initialTouchXRef = useRef<number | null>(null);
 
   const clearTouchTimer = useCallback(() => {
     if (touchHoldTimerRef.current) {
@@ -357,13 +356,11 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     e.preventDefault(); // Block iOS long-press text selection/callout
     // Store initial touch position
     initialTouchYRef.current = e.touches[0].clientY;
-    touchCurrentIndex !== null && setTouchCurrentIndex(null);
+    initialTouchXRef.current = e.touches[0].clientX;
     
     // Start hold timer - only enable drag after delay
     touchHoldTimerRef.current = setTimeout(() => {
       setIsDragEnabled(true);
-      setTouchStartY(initialTouchYRef.current);
-      setTouchCurrentIndex(index);
       setDraggedItem({ index, item });
       document.documentElement.classList.add("dragging-active");
       
@@ -377,14 +374,17 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const handleTouchMove = (e: React.TouchEvent) => {
     // If drag not enabled yet, check if user is scrolling
     if (!isDragEnabled) {
-      if (initialTouchYRef.current !== null) {
+      if (initialTouchYRef.current !== null && initialTouchXRef.current !== null) {
         const currentY = e.touches[0].clientY;
-        const diff = Math.abs(currentY - initialTouchYRef.current);
+        const currentX = e.touches[0].clientX;
+        const diffY = Math.abs(currentY - initialTouchYRef.current);
+        const diffX = Math.abs(currentX - initialTouchXRef.current);
         
-        // If user moved more than 10px, they're scrolling - cancel the hold timer
-        if (diff > 10) {
+        // If user moved more than 10px in any direction, they're scrolling - cancel the hold timer
+        if (diffY > 10 || diffX > 10) {
           clearTouchTimer();
           initialTouchYRef.current = null;
+          initialTouchXRef.current = null;
         }
       }
       return; // Let the page scroll normally
@@ -393,43 +393,51 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     // Prevent scrolling when dragging
     e.preventDefault();
 
-    if (touchStartY === null || touchCurrentIndex === null || !draggedItem) return;
+    if (!draggedItem) return;
 
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY;
-    const itemHeight = 64;
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(unifiedItems.length - 1, touchCurrentIndex + indexDiff));
+    const touch = e.touches[0];
+    
+    // Temporarily hide the dragged element so elementFromPoint sees what's underneath
+    const draggedEl = (e.currentTarget as HTMLElement);
+    draggedEl.style.pointerEvents = 'none';
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    draggedEl.style.pointerEvents = '';
 
-    if (newIndex !== draggedItem.index) {
-      const newItems = [...unifiedItems];
-      const [removed] = newItems.splice(draggedItem.index, 1);
-      newItems.splice(newIndex, 0, removed);
+    if (!target) return;
 
-      const updatedItems = newItems.map((item, i) => ({
-        ...item,
-        data: { ...item.data, sort_order: i }
-      }));
+    // Walk up DOM to find the closest draggable item with data-drag-index
+    const dropTarget = target.closest('[data-drag-index]');
+    if (!dropTarget) return;
 
-      const newLinks = updatedItems
-        .filter((item): item is { kind: "link"; data: DbPersonalLink } => item.kind === "link")
-        .map(item => item.data);
-      const newBlocks = updatedItems
-        .filter((item): item is { kind: "block"; data: PersonalBlock } => item.kind === "block")
-        .map(item => item.data);
+    const newIndex = Number(dropTarget.getAttribute('data-drag-index'));
+    if (isNaN(newIndex) || newIndex === draggedItem.index) return;
 
-      onLinksChange(newLinks);
-      onBlocksChange(newBlocks);
-      setDraggedItem({ index: newIndex, item: draggedItem.item });
-    }
+    const newItems = [...unifiedItems];
+    const [removed] = newItems.splice(draggedItem.index, 1);
+    newItems.splice(newIndex, 0, removed);
+
+    const updatedItems = newItems.map((item, i) => ({
+      ...item,
+      data: { ...item.data, sort_order: i }
+    }));
+
+    const newLinks = updatedItems
+      .filter((item): item is { kind: "link"; data: DbPersonalLink } => item.kind === "link")
+      .map(item => item.data);
+    const newBlocks = updatedItems
+      .filter((item): item is { kind: "block"; data: PersonalBlock } => item.kind === "block")
+      .map(item => item.data);
+
+    onLinksChange(newLinks);
+    onBlocksChange(newBlocks);
+    setDraggedItem({ index: newIndex, item: draggedItem.item });
   };
 
   const handleTouchEnd = () => {
     clearTouchTimer();
     document.documentElement.classList.remove("dragging-active");
     initialTouchYRef.current = null;
-    setTouchStartY(null);
-    setTouchCurrentIndex(null);
+    initialTouchXRef.current = null;
     
     if (isDragEnabled && draggedItem) {
       setDraggedItem(null);
@@ -684,6 +692,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                     return (
                       <div
                         key={`link-${link.id}`}
+                        data-drag-index={index}
                         draggable
                         onDragStart={() => handleDragStart(index, { kind: "link", data: link })}
                         onDragOver={(e) => handleDragOver(e, index)}
@@ -784,6 +793,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
               return (
                 <div
                   key={`link-${link.id}`}
+                  data-drag-index={index}
                   draggable
                   onDragStart={() => handleDragStart(index, item)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -854,6 +864,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
               return (
                 <div
                   key={`block-${block.id}`}
+                  data-drag-index={index}
                   draggable
                   onDragStart={() => handleDragStart(index, item)}
                   onDragOver={(e) => handleDragOver(e, index)}
