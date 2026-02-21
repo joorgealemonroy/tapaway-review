@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,6 @@ export const DashboardHeroEditor = ({
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
   const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
 
   // Username editing state
   const isFree = !planType || planType === "free";
@@ -62,14 +61,14 @@ export const DashboardHeroEditor = ({
     setUsernameInput(extractEditableUsername(username));
   }, [fullName, headline, bio, username, isFree]);
 
-  useEffect(() => {
+  const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
-    const changed =
+    return (
       name !== fullName ||
       headlineValue !== (headline || "") ||
       bioValue !== (bio || "") ||
-      newPublicUsername !== username;
-    setHasChanges(changed);
+      newPublicUsername !== username
+    );
   }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType]);
 
   // Debounced username availability check
@@ -180,7 +179,6 @@ export const DashboardHeroEditor = ({
       }
 
       onUpdate(updates);
-      setHasChanges(false);
       setUsernameStatus("idle");
     } catch (err) {
       console.error("Error updating profile:", err);
