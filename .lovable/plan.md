@@ -1,93 +1,97 @@
 
-# Tiered Affiliate Commission System
 
-## Problem
+# Affiliate Flow Audit -- Bugs Found and Fixes
 
-The affiliate commission system has two gaps:
+## Bugs Discovered
 
-1. **Commissions are never created.** The code logs referrals in `affiliate_referrals` but the comment says commissions are "deferred until trial converts." However, there is no webhook handler for `customer.subscription.updated` (trial-to-active conversion), so **no commissions are ever recorded**.
+### Bug 1: Double Commission for Paid Signups (CRITICAL)
 
-2. **No tiered rates.** The current `affiliate_settings` table has a single flat `commission_per_referral` ($5.00). Your new requirements need tiered rates based on referral count and signup type (free vs paid).
+When an affiliate-referred user signs up through the AffiliatePaywall (paid plan with trial):
 
-## New Commission Tiers
+1. After Stripe checkout, `PersonalSignupComplete.tsx` runs and creates a commission using **free-tier rates** ($3/$5)
+2. Later, when the trial converts to active, `stripe-webhook` fires `customer.subscription.updated` and creates a **second** commission using paid-tier rates ($5/$8)
 
-| Signup Type | First 25 Referrals | After 25 |
-|-------------|-------------------|----------|
-| Free        | $3.00             | $5.00    |
-| Paid        | $5.00             | $8.00    |
+Result: The affiliate gets TWO commissions per referral instead of one.
 
-## Changes
+**Fix**: In `PersonalSignupComplete.tsx`, check the user's `planType` from the saved data. If it's a paid plan (`monthly`/`yearly`), do NOT create an immediate commission -- let the webhook handle it with the correct paid rates. Only create an immediate commission for `free` plan signups.
 
-### 1. Update `affiliate_settings` table
+### Bug 2: Free-Plan Users Cannot Use Affiliate Links (CRITICAL)
 
-Replace the single `commission_per_referral` column with four new columns:
+In `PersonalSignup.tsx` (line ~180), if `affiliateRef` is set, the component renders `<AffiliatePaywall>` which only offers a paid monthly plan. There is no way for an affiliate-referred user to sign up for a free plan.
 
-- `commission_free_base` (default $3.00) -- free signup, first 25
-- `commission_free_bonus` (default $5.00) -- free signup, after 25
-- `commission_paid_base` (default $5.00) -- paid signup, first 25
-- `commission_paid_bonus` (default $8.00) -- paid signup, after 25
-- `bonus_threshold` (default 25) -- the count at which rates bump up
+**Fix**: Remove the early return that renders `AffiliatePaywall` when an affiliate ref is present. Instead, let referred users go through the normal signup wizard. The referral code is already persisted in `sessionStorage` and handled by both `CheckoutStep` (for paid) and `PersonalSignupComplete` (post-Stripe).
 
-Keep the old `commission_per_referral` column for backward compatibility but it will no longer be used.
+### Bug 3: Free Signup via Normal Wizard Never Logs Referrals (CRITICAL)
 
-### 2. Create commission at signup time (for free users)
+When a user picks the free plan in CheckoutStep, account creation happens directly in `CheckoutStep.tsx` (via `verifyOTPAndCreateAccount` or `createProfileDirectly`). Neither of these paths checks `sessionStorage.tapaway_ref` or creates a referral record.
 
-Update `PersonalSignupComplete.tsx` to create an `affiliate_commissions` record immediately when a free user signs up via a referral link. The commission amount is calculated based on how many prior referrals the affiliate has.
+The comment on line 453 says "affiliate referral logging is now handled in PersonalSignupComplete," but free-plan users never reach `PersonalSignupComplete` -- they complete entirely within `CheckoutStep`.
 
-### 3. Add webhook handler for paid conversions
+**Fix**: Add affiliate referral logging + free-tier commission creation to the free-plan paths in `CheckoutStep.tsx` (after profile creation in both `verifyOTPAndCreateAccount` and `createProfileDirectly`).
 
-Add a `customer.subscription.updated` event handler in `stripe-webhook/index.ts` that detects when a subscription transitions from `trialing` to `active`. When this happens:
-- Look up the user's `personal_profile` by `stripe_customer_id`
-- Check if they have a `referred_by` code
-- Look up the affiliate and count their prior referrals
-- Insert a commission at the appropriate tiered rate (paid tier)
+### Bug 4: Existing-Account Affiliate Path Also Missing
 
-### 4. Update Admin Settings UI
+The `handleExistingAccountSignIn` flow in `CheckoutStep.tsx` (line 744+) creates a profile but never logs referrals either. Same gap as Bug 3.
 
-Update `AffiliateSettings.tsx` to show the four new rate fields and the bonus threshold instead of the single flat rate.
+**Fix**: Add referral logging after profile creation in `handleExistingAccountSignIn` as well.
 
-### 5. Update Affiliate Dashboard display
+### Bug 5: Wrong Rates Used in PersonalSignupComplete
 
-Update `AffiliateDashboard.tsx` to show the tiered commission structure in the "Commission Rules" card so affiliates understand the tiers.
+Even after fixing Bug 1 (only creating commissions for free users), the commission code in `PersonalSignupComplete.tsx` always uses `commission_free_base`/`commission_free_bonus`. This happens to be correct once Bug 1 is fixed (since only free users will hit this path), but we should make the intent explicit.
+
+---
+
+## Summary of Changes
+
+### File 1: `src/pages/personal/PersonalSignup.tsx`
+
+Remove the `AffiliatePaywall` early return (around line 180). Let affiliate-referred users go through the normal signup wizard. The `tapaway_ref` is already in sessionStorage and will be picked up downstream.
+
+### File 2: `src/components/personal/signup/CheckoutStep.tsx`
+
+Add referral logging + free-tier commission creation after profile creation in THREE places:
+- `verifyOTPAndCreateAccount` (after blocks insert, ~line 450)
+- `createProfileDirectly` (after blocks insert, ~line 625)
+- `handleExistingAccountSignIn` (after blocks insert, ~line 913)
+
+The logic: Check `sessionStorage.tapaway_ref`. If present, look up the affiliate, insert into `affiliate_referrals`, update `personal_profiles.referred_by`, create a commission using free-tier rates, fire the abuse check, then clear the ref from storage.
+
+### File 3: `src/pages/personal/PersonalSignupComplete.tsx`
+
+Wrap the commission creation (lines 329-362) in a condition: only create a commission if the user's `planType` is `free`. For paid plans, skip -- the `stripe-webhook` handles it when the trial converts.
+
+### File 4: No changes needed to `stripe-webhook/index.ts`
+
+The webhook logic is correct. It properly:
+- Checks for `trialing` to `active` transition
+- Deduplicates via the `paid_conversion` note check
+- Uses paid-tier rates
 
 ---
 
 ## Technical Details
 
-### Database Migration
+### Referral logging helper (shared logic for CheckoutStep)
+
+The referral logging code that needs to be added to CheckoutStep is essentially the same block from PersonalSignupComplete, adapted:
 
 ```text
-ALTER TABLE affiliate_settings
-  ADD COLUMN commission_free_base numeric NOT NULL DEFAULT 3.00,
-  ADD COLUMN commission_free_bonus numeric NOT NULL DEFAULT 5.00,
-  ADD COLUMN commission_paid_base numeric NOT NULL DEFAULT 5.00,
-  ADD COLUMN commission_paid_bonus numeric NOT NULL DEFAULT 8.00,
-  ADD COLUMN bonus_threshold integer NOT NULL DEFAULT 25;
-
-UPDATE affiliate_settings SET
-  commission_free_base = 3.00,
-  commission_free_bonus = 5.00,
-  commission_paid_base = 5.00,
-  commission_paid_bonus = 8.00,
-  bonus_threshold = 25;
+1. Read sessionStorage/localStorage "tapaway_ref"
+2. If present, look up affiliate by referral_code
+3. Insert affiliate_referrals row
+4. Update personal_profiles.referred_by
+5. If planType is "free":
+   - Count affiliate's referrals
+   - Read affiliate_settings for free tier rates
+   - Insert affiliate_commissions
+6. Fire check-affiliate-abuse (non-fatal)
+7. Clear tapaway_ref from storage
 ```
 
-### Commission Calculation Logic (used in both frontend and webhook)
+### Testing Plan
 
-```text
-1. Count total referrals for this affiliate from affiliate_referrals
-2. If count <= threshold:
-     use base rate (free_base or paid_base)
-   Else:
-     use bonus rate (free_bonus or paid_bonus)
-3. Determine free vs paid from the user's plan_type
-4. Insert into affiliate_commissions with calculated amount
-```
-
-### Files Modified
-
-- **Database**: Add 5 new columns to `affiliate_settings`
-- **`src/pages/personal/PersonalSignupComplete.tsx`**: Create commission immediately for free signups
-- **`supabase/functions/stripe-webhook/index.ts`**: Add `customer.subscription.updated` handler for paid conversion commissions
-- **`src/components/admin/affiliate/AffiliateSettings.tsx`**: Show tiered rate fields
-- **`src/pages/affiliate/AffiliateDashboard.tsx`**: Update commission rules display
+After implementation:
+1. Sign up with `?ref=tapoxydgo` and pick the **free** plan -- verify referral + $3 commission created
+2. Sign up with `?ref=tapoxydgo` and pick a **paid** plan -- verify referral created but NO immediate commission; commission only appears after trial-to-active webhook
+3. Check `affiliate_referrals` and `affiliate_commissions` tables to confirm correct data
+4. Verify no double commissions exist
