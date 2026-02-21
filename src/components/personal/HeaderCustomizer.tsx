@@ -21,23 +21,17 @@ interface Props {
 }
 
 const COLOR_PRESETS = [
-  "#6BCB77", // Green
-  "#1DA1F2", // Blue
-  "#E91E63", // Pink
-  "#9C27B0", // Purple
-  "#FF5722", // Orange
-  "#607D8B", // Gray
-  "#000000", // Black
-  "#FFFFFF", // White
+  "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
+  "#e63946", "#4361ee", "#f4a261", "#9b5de5",
 ];
 
-const GRADIENT_PRESETS = [
-  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-  "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-  "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-  "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-  "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+const FADE_PRESETS = [
+  { value: "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)", label: "Blush" },
+  { value: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", label: "Lavender" },
+  { value: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", label: "Cool Blue" },
+  { value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", label: "Peach" },
+  { value: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", label: "Mint" },
+  { value: "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)", label: "Grey" },
 ];
 
 export const HeaderCustomizer = ({
@@ -160,35 +154,43 @@ export const HeaderCustomizer = ({
 
       {headerType === "color" ? (
         <div className="space-y-3">
-          {/* Color presets */}
-          <div className="flex flex-wrap gap-2">
-            {COLOR_PRESETS.map((color) => (
-              <button
-                key={color}
-                onClick={() => {
-                  onUpdate({ headerColor: color });
-                  setCustomColorInput(color);
-                }}
-                className={`h-8 w-8 rounded-full border-2 transition-all ${
-                  headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
-                }`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
+          {/* Popular colors */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_PRESETS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    onUpdate({ headerColor: color });
+                    setCustomColorInput(color);
+                  }}
+                  className={`h-10 w-10 rounded-full border-2 transition-all ${
+                    headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Gradient presets */}
-          <div className="flex flex-wrap gap-2">
-            {GRADIENT_PRESETS.map((gradient, i) => (
-              <button
-                key={i}
-                onClick={() => onUpdate({ headerColor: gradient })}
-                className={`h-8 w-8 rounded-full border-2 transition-all ${
-                  headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
-                }`}
-                style={{ background: gradient }}
-              />
-            ))}
+          {/* Fade presets */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Fades</p>
+            <div className="flex flex-wrap gap-2">
+              {FADE_PRESETS.map((fade) => (
+                <button
+                  key={fade.label}
+                  onClick={() => onUpdate({ headerColor: fade.value })}
+                  className={`h-10 w-10 rounded-full border-2 transition-all ${
+                    headerColor === fade.value ? "border-primary scale-110" : "border-border hover:scale-105"
+                  }`}
+                  style={{ background: fade.value }}
+                  title={fade.label}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Custom hex input */}
