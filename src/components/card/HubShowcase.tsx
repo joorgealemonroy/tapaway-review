@@ -169,11 +169,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
     sessionStorage.removeItem("tapaway_selected_layout");
     setCopiedId(profile.id);
     const isPremium = usesPremiumFeatures(profile);
-    toast.success(
-      isPremium
-        ? "Layout copied! Some features need Pro to display fully."
-        : "Layout copied! Activate your card to use it."
-    );
+    toast.success("Layout copied! Requires Pro — 7-day free trial included.");
     onCopyLayout?.();
   };
 
@@ -183,7 +179,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
     <section className="space-y-4">
       <div className="text-center">
         <h2 className="text-xl font-bold text-foreground">Real Hubs, Real People</h2>
-        <p className="text-sm text-muted-foreground mt-1">See what others are building — copy any layout you like</p>
+        <p className="text-sm text-muted-foreground mt-1">These layouts require Pro — try free for 7 days, cancel anytime</p>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pt-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">

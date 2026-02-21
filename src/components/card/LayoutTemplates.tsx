@@ -26,7 +26,7 @@ export const LayoutTemplates = ({ onSelect }: Props) => {
   return (
     <section className="space-y-4">
       <div className="text-center">
-        <h2 className="text-xl font-bold text-foreground">Pick a Layout</h2>
+        <h2 className="text-xl font-bold text-foreground">Pick a Layout <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full align-middle">Free</span></h2>
         <p className="text-sm text-muted-foreground mt-1">
           Start with a template — customize it later
         </p>
