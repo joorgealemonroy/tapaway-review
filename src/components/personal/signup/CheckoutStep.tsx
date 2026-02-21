@@ -162,6 +162,94 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const isFreePlan = formData.planType === "free";
 
 
+  const logAffiliateReferral = async (userId: string, profileId: string, planType: string) => {
+    const referralCode = sessionStorage.getItem("tapaway_ref") || localStorage.getItem("tapaway_ref");
+    if (!referralCode) return;
+
+    try {
+      const { data: affiliate } = await supabase
+        .from("affiliates")
+        .select("id")
+        .eq("referral_code", referralCode.toLowerCase())
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!affiliate) return;
+
+      // Insert referral record
+      const { data: referralRow } = await supabase
+        .from("affiliate_referrals")
+        .insert({
+          affiliate_id: affiliate.id,
+          referred_user_id: userId,
+          referred_profile_id: profileId,
+        } as any)
+        .select("id")
+        .single();
+
+      // Update profile with referred_by
+      await supabase
+        .from("personal_profiles")
+        .update({ referred_by: referralCode } as any)
+        .eq("id", profileId);
+
+      console.log("[CheckoutStep] Affiliate referral logged");
+
+      // Create commission for free signups
+      if (referralRow && planType === "free") {
+        try {
+          const { count: referralCount } = await supabase
+            .from("affiliate_referrals")
+            .select("id", { count: "exact", head: true })
+            .eq("affiliate_id", affiliate.id);
+
+          const { data: affSettings } = await supabase
+            .from("affiliate_settings")
+            .select("commission_free_base, commission_free_bonus, bonus_threshold")
+            .limit(1)
+            .single();
+
+          const threshold = affSettings?.bonus_threshold ?? 25;
+          const amount = (referralCount ?? 0) > threshold
+            ? Number(affSettings?.commission_free_bonus ?? 5)
+            : Number(affSettings?.commission_free_base ?? 3);
+
+          await supabase
+            .from("affiliate_commissions")
+            .insert({
+              affiliate_id: affiliate.id,
+              referral_id: referralRow.id,
+              amount,
+              status: "pending",
+            } as any);
+
+          console.log(`[CheckoutStep] Created $${amount} free-signup commission`);
+        } catch (commErr) {
+          console.warn("[CheckoutStep] Commission creation failed (non-fatal):", commErr);
+        }
+
+        // Fire abuse check (non-fatal)
+        try {
+          supabase.functions.invoke("check-affiliate-abuse", {
+            body: {
+              referralId: referralRow.id,
+              affiliateId: affiliate.id,
+              referredEmail: formData.email,
+            },
+          });
+        } catch {
+          // Non-fatal
+        }
+      }
+    } catch (refErr) {
+      console.warn("[CheckoutStep] Referral logging failed (non-fatal):", refErr);
+    }
+
+    // Clear ref from storage
+    sessionStorage.removeItem("tapaway_ref");
+    localStorage.removeItem("tapaway_ref");
+  };
+
   const logCheckpoint = (checkpoint: string, data?: Record<string, any>) => {
     const logData = {
       checkpoint,
@@ -450,8 +538,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
-      // Note: affiliate referral logging is now handled in PersonalSignupComplete
-      // after Stripe payment verification for referred users
+      // Affiliate referral logging for free-plan signups (paid plans go through PersonalSignupComplete -> stripe-webhook)
+      if (isFreePlan) {
+        await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
+      }
 
       // Step 8: Send welcome email with correct public username
       logCheckpoint("Sending welcome email");
@@ -638,6 +728,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         });
       } catch (emailErr) {
         console.warn("Welcome email failed:", emailErr);
+      }
+
+      // Affiliate referral logging for free-plan signups
+      if (isFreePlan) {
+        await logAffiliateReferral(user.id, profileResult.id, formData.planType);
       }
 
       // Cleanup
@@ -911,6 +1006,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }));
 
         await supabase.from("personal_blocks").insert(blocksToInsert);
+      }
+
+      // Affiliate referral logging for free-plan signups
+      if (isFreePlan) {
+        await logAffiliateReferral(signInData.user.id, profileResult.id, formData.planType);
       }
 
       // Send welcome email

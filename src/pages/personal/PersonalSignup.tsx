@@ -15,7 +15,7 @@ import {
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
 import { X } from "lucide-react";
-import { AffiliatePaywall } from "@/components/personal/signup/AffiliatePaywall";
+
 
 // Step components
 import { IdentityStep } from "@/components/personal/signup/IdentityStep";
@@ -258,11 +258,6 @@ const PersonalSignup = () => {
   const stepTitles = fromCardActivation
     ? { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" }
     : { 1: "Create your TapAway", 2: "Build your profile", 3: "Get a physical card", 4: "Finish your order" };
-
-  // Affiliate-referred users get a dedicated paywall
-  if (affiliateRef) {
-    return <AffiliatePaywall referralCode={affiliateRef} />;
-  }
 
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} />;

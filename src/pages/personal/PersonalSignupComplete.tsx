@@ -326,8 +326,10 @@ const PersonalSignupComplete = () => {
 
               console.log("[PersonalSignupComplete] Affiliate referral logged");
 
-              // Create commission immediately for free signups
-              if (referralRow) {
+              // Create commission immediately for FREE signups only
+              // Paid plans get their commission via stripe-webhook when trial converts to active
+              const storedPlanType = savedData?.planType || verifiedPlanType;
+              if (referralRow && storedPlanType === "free") {
                 try {
                   // Count prior referrals for this affiliate to determine tier
                   const { count: referralCount } = await supabase
