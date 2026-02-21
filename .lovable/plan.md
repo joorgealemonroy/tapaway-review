@@ -1,97 +1,70 @@
 
 
-# Affiliate Flow Audit -- Bugs Found and Fixes
+# Affiliate Landing Page -- Hub-Focused (No Card References)
 
-## Bugs Discovered
+## Overview
 
-### Bug 1: Double Commission for Paid Signups (CRITICAL)
+Create a dedicated landing experience for affiliate-referred visitors that focuses entirely on the **hub** (digital profile page) -- no mention of NFC cards, tapping, or physical products since those aren't for sale yet and these users won't know what a card is.
 
-When an affiliate-referred user signs up through the AffiliatePaywall (paid plan with trial):
+## New File: `src/components/affiliate/AffiliateOnboarding.tsx`
 
-1. After Stripe checkout, `PersonalSignupComplete.tsx` runs and creates a commission using **free-tier rates** ($3/$5)
-2. Later, when the trial converts to active, `stripe-webhook` fires `customer.subscription.updated` and creates a **second** commission using paid-tier rates ($5/$8)
+A standalone, mobile-first landing page with the same structure and visual polish as `CardOnboarding.tsx`, but rewritten around the hub concept.
 
-Result: The affiliate gets TWO commissions per referral instead of one.
+### Section Order (Desire > Logic > Action)
 
-**Fix**: In `PersonalSignupComplete.tsx`, check the user's `planType` from the saved data. If it's a paid plan (`monthly`/`yearly`), do NOT create an immediate commission -- let the webhook handle it with the correct paid rates. Only create an immediate commission for `free` plan signups.
+1. **Hero** -- Animated color-cycling card visual (same as CardOnboarding), headline: "Your digital hub -- one link for everything", subtext: "Set up in about 3 minutes. Free. No app needed.", primary CTA: "Create My Hub"
+2. **Hub Showcase** -- Reuse `HubShowcase` component (real profiles, "Copy Layout" buttons). The `onCopyLayout` callback navigates to `/personal/signup?ref=CODE` so the referral is preserved.
+3. **How It Works** -- 3 steps reframed for hub users:
+   - (1) Pick a username -- "Choose your unique tapaway.co/username"
+   - (2) Add your links and info -- "Instagram, TikTok, payments, contact card -- all in one place"
+   - (3) Share it everywhere -- "Text your link, post it in your bio, or show your QR code"
+4. **Mid-page CTA** -- "Create My Hub"
+5. **Layout Templates** -- Reuse `LayoutTemplates` component (starter templates)
+6. **What Is a Hub?** -- Educational cards (same card-style layout as CardOnboarding's "What Is This Card?" section), but with hub-relevant content:
+   - "All your links in one place" -- "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime."
+   - "One-tap contact saving" -- "Anyone who visits your hub can save your name, phone, and email straight to their contacts. No app needed."
+   - "Works everywhere" -- "Share your hub link in your Instagram bio, texts, email signatures -- anywhere you want people to find you."
+7. **Bottom CTA** -- "Create My Hub" + "Free to start - No credit card required"
 
-### Bug 2: Free-Plan Users Cannot Use Affiliate Links (CRITICAL)
+### Visual Style
+- Same teal gradient background (`bg-gradient-to-b from-teal-50 via-white to-white`)
+- Same `framer-motion` animations and staggered reveals
+- Same max-width container (`max-w-sm mx-auto px-6 py-10`)
+- Mobile-first, single-column layout
 
-In `PersonalSignup.tsx` (line ~180), if `affiliateRef` is set, the component renders `<AffiliatePaywall>` which only offers a paid monthly plan. There is no way for an affiliate-referred user to sign up for a free plan.
+### CTA Behavior
+- All "Create My Hub" buttons call `navigate(\`/personal/signup?ref=\${refCode}\`)`
+- HubShowcase's `onCopyLayout` does the same (layout is saved to sessionStorage, then navigates to signup)
 
-**Fix**: Remove the early return that renders `AffiliatePaywall` when an affiliate ref is present. Instead, let referred users go through the normal signup wizard. The referral code is already persisted in `sessionStorage` and handled by both `CheckoutStep` (for paid) and `PersonalSignupComplete` (post-Stripe).
+## Modified File: `src/pages/Personal.tsx`
 
-### Bug 3: Free Signup via Normal Wizard Never Logs Referrals (CRITICAL)
-
-When a user picks the free plan in CheckoutStep, account creation happens directly in `CheckoutStep.tsx` (via `verifyOTPAndCreateAccount` or `createProfileDirectly`). Neither of these paths checks `sessionStorage.tapaway_ref` or creates a referral record.
-
-The comment on line 453 says "affiliate referral logging is now handled in PersonalSignupComplete," but free-plan users never reach `PersonalSignupComplete` -- they complete entirely within `CheckoutStep`.
-
-**Fix**: Add affiliate referral logging + free-tier commission creation to the free-plan paths in `CheckoutStep.tsx` (after profile creation in both `verifyOTPAndCreateAccount` and `createProfileDirectly`).
-
-### Bug 4: Existing-Account Affiliate Path Also Missing
-
-The `handleExistingAccountSignIn` flow in `CheckoutStep.tsx` (line 744+) creates a profile but never logs referrals either. Same gap as Bug 3.
-
-**Fix**: Add referral logging after profile creation in `handleExistingAccountSignIn` as well.
-
-### Bug 5: Wrong Rates Used in PersonalSignupComplete
-
-Even after fixing Bug 1 (only creating commissions for free users), the commission code in `PersonalSignupComplete.tsx` always uses `commission_free_base`/`commission_free_bonus`. This happens to be correct once Bug 1 is fixed (since only free users will hit this path), but we should make the intent explicit.
-
----
-
-## Summary of Changes
-
-### File 1: `src/pages/personal/PersonalSignup.tsx`
-
-Remove the `AffiliatePaywall` early return (around line 180). Let affiliate-referred users go through the normal signup wizard. The `tapaway_ref` is already in sessionStorage and will be picked up downstream.
-
-### File 2: `src/components/personal/signup/CheckoutStep.tsx`
-
-Add referral logging + free-tier commission creation after profile creation in THREE places:
-- `verifyOTPAndCreateAccount` (after blocks insert, ~line 450)
-- `createProfileDirectly` (after blocks insert, ~line 625)
-- `handleExistingAccountSignIn` (after blocks insert, ~line 913)
-
-The logic: Check `sessionStorage.tapaway_ref`. If present, look up the affiliate, insert into `affiliate_referrals`, update `personal_profiles.referred_by`, create a commission using free-tier rates, fire the abuse check, then clear the ref from storage.
-
-### File 3: `src/pages/personal/PersonalSignupComplete.tsx`
-
-Wrap the commission creation (lines 329-362) in a condition: only create a commission if the user's `planType` is `free`. For paid plans, skip -- the `stripe-webhook` handles it when the trial converts.
-
-### File 4: No changes needed to `stripe-webhook/index.ts`
-
-The webhook logic is correct. It properly:
-- Checks for `trialing` to `active` transition
-- Deduplicates via the `paid_conversion` note check
-- Uses paid-tier rates
-
----
+- Import `useSearchParams` and the new `AffiliateOnboarding` component
+- At the top of the component, check for `ref` query param
+- If `ref` exists: save to `sessionStorage.tapaway_ref` and render `<AffiliateOnboarding refCode={ref} />` instead of the normal landing page
+- Otherwise: render the existing landing page as-is
 
 ## Technical Details
 
-### Referral logging helper (shared logic for CheckoutStep)
-
-The referral logging code that needs to be added to CheckoutStep is essentially the same block from PersonalSignupComplete, adapted:
+### Props for AffiliateOnboarding
 
 ```text
-1. Read sessionStorage/localStorage "tapaway_ref"
-2. If present, look up affiliate by referral_code
-3. Insert affiliate_referrals row
-4. Update personal_profiles.referred_by
-5. If planType is "free":
-   - Count affiliate's referrals
-   - Read affiliate_settings for free tier rates
-   - Insert affiliate_commissions
-6. Fire check-affiliate-abuse (non-fatal)
-7. Clear tapaway_ref from storage
+interface Props {
+  refCode: string;
+}
 ```
 
-### Testing Plan
+### Key Differences from CardOnboarding
 
-After implementation:
-1. Sign up with `?ref=tapoxydgo` and pick the **free** plan -- verify referral + $3 commission created
-2. Sign up with `?ref=tapoxydgo` and pick a **paid** plan -- verify referral created but NO immediate commission; commission only appears after trial-to-active webhook
-3. Check `affiliate_referrals` and `affiliate_commissions` tables to confirm correct data
-4. Verify no double commissions exist
+| Aspect | CardOnboarding | AffiliateOnboarding |
+|--------|---------------|-------------------|
+| Headline | "Your card is ready" | "Your digital hub -- one link for everything" |
+| CTA text | "Activate Now" | "Create My Hub" |
+| Card mention | NFC card, chip, tapping | None -- hub only |
+| Target URL | Inline activation flow | /personal/signup?ref=CODE |
+| Educational section | "What Is This Card?" | "What Is a Hub?" |
+| Trust signal | "Around 3 minutes to set up" | "Set up in about 3 minutes" |
+
+### Files
+
+- **Create:** `src/components/affiliate/AffiliateOnboarding.tsx`
+- **Modify:** `src/pages/Personal.tsx` (add ref check + conditional render)
