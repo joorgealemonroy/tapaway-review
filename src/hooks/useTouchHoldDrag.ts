@@ -31,6 +31,8 @@ export function useTouchHoldDrag<T>({
   }, []);
 
   const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
+    e.preventDefault(); // Block iOS long-press text selection/callout
+    
     // Store initial touch position
     initialTouchYRef.current = e.touches[0].clientY;
     touchCurrentIndexRef.current = index;
@@ -40,6 +42,7 @@ export function useTouchHoldDrag<T>({
       setIsDragEnabled(true);
       setDraggedIndex(index);
       touchStartYRef.current = initialTouchYRef.current;
+      document.documentElement.classList.add("dragging-active");
       
       // Haptic feedback on supported devices
       if (navigator.vibrate) {
@@ -87,6 +90,7 @@ export function useTouchHoldDrag<T>({
 
   const handleTouchEnd = useCallback(() => {
     clearTimer();
+    document.documentElement.classList.remove("dragging-active");
     initialTouchYRef.current = null;
     touchStartYRef.current = null;
     touchCurrentIndexRef.current = null;
