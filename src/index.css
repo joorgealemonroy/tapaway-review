@@ -318,6 +318,19 @@ All colors MUST be HSL.
   }
 }
 
+/* Prevent iOS copy/paste callout on draggable items */
+.touch-none {
+  -webkit-touch-callout: none;
+}
+
+/* During active drag, suppress all text selection globally */
+.dragging-active,
+.dragging-active * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
 /* Hide scrollbar for horizontal scroll areas */
 .scrollbar-hide {
   -ms-overflow-style: none;
