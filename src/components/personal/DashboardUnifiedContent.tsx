@@ -354,6 +354,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent, index: number, item: UnifiedItem) => {
+    e.preventDefault(); // Block iOS long-press text selection/callout
     // Store initial touch position
     initialTouchYRef.current = e.touches[0].clientY;
     touchCurrentIndex !== null && setTouchCurrentIndex(null);
@@ -364,6 +365,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       setTouchStartY(initialTouchYRef.current);
       setTouchCurrentIndex(index);
       setDraggedItem({ index, item });
+      document.documentElement.classList.add("dragging-active");
       
       // Haptic feedback on supported devices
       if (navigator.vibrate) {
@@ -424,6 +426,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
 
   const handleTouchEnd = () => {
     clearTouchTimer();
+    document.documentElement.classList.remove("dragging-active");
     initialTouchYRef.current = null;
     setTouchStartY(null);
     setTouchCurrentIndex(null);
