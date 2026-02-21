@@ -22,6 +22,7 @@ export function useTouchHoldDrag<T>({
   const touchStartYRef = useRef<number | null>(null);
   const touchCurrentIndexRef = useRef<number | null>(null);
   const initialTouchYRef = useRef<number | null>(null);
+  const initialTouchXRef = useRef<number | null>(null);
 
   const clearTimer = useCallback(() => {
     if (touchHoldTimerRef.current) {
@@ -33,8 +34,8 @@ export function useTouchHoldDrag<T>({
   const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
     e.preventDefault(); // Block iOS long-press text selection/callout
     
-    // Store initial touch position
     initialTouchYRef.current = e.touches[0].clientY;
+    initialTouchXRef.current = e.touches[0].clientX;
     touchCurrentIndexRef.current = index;
     
     // Start hold timer - only enable drag after delay
@@ -56,10 +57,12 @@ export function useTouchHoldDrag<T>({
     if (!isDragEnabled) {
       if (initialTouchYRef.current !== null) {
         const currentY = e.touches[0].clientY;
-        const diff = Math.abs(currentY - initialTouchYRef.current);
+        const currentX = e.touches[0].clientX;
+        const diffY = Math.abs(currentY - initialTouchYRef.current);
+        const diffX = Math.abs(currentX - (initialTouchXRef.current ?? currentX));
         
-        // If user moved more than 10px, they're scrolling - cancel the hold timer
-        if (diff > 10) {
+        // If user moved more than 10px in any direction, they're scrolling - cancel the hold timer
+        if (diffY > 10 || diffX > 10) {
           clearTimer();
           initialTouchYRef.current = null;
         }
@@ -70,30 +73,37 @@ export function useTouchHoldDrag<T>({
     // Prevent scrolling when dragging
     e.preventDefault();
 
-    if (touchStartYRef.current === null || touchCurrentIndexRef.current === null || draggedIndex === null) {
-      return;
-    }
+    if (draggedIndex === null) return;
 
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartYRef.current;
-    const indexDiff = Math.round(diff / itemHeight);
-    const newIndex = Math.max(0, Math.min(items.length - 1, touchCurrentIndexRef.current + indexDiff));
+    const touch = e.touches[0];
+    const draggedEl = e.currentTarget as HTMLElement;
+    
+    // Temporarily hide dragged element so elementFromPoint sees what's underneath
+    draggedEl.style.pointerEvents = 'none';
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    draggedEl.style.pointerEvents = '';
 
-    if (newIndex !== draggedIndex) {
-      const newItems = [...items];
-      const [removed] = newItems.splice(draggedIndex, 1);
-      newItems.splice(newIndex, 0, removed);
-      onReorder(newItems);
-      setDraggedIndex(newIndex);
-    }
-  }, [isDragEnabled, draggedIndex, items, onReorder, itemHeight, clearTimer]);
+    if (!target) return;
+
+    const dropTarget = target.closest('[data-drag-index]');
+    if (!dropTarget) return;
+
+    const newIndex = Number(dropTarget.getAttribute('data-drag-index'));
+    if (isNaN(newIndex) || newIndex === draggedIndex) return;
+
+    const newItems = [...items];
+    const [removed] = newItems.splice(draggedIndex, 1);
+    newItems.splice(newIndex, 0, removed);
+    onReorder(newItems);
+    setDraggedIndex(newIndex);
+  }, [isDragEnabled, draggedIndex, items, onReorder, clearTimer]);
 
   const handleTouchEnd = useCallback(() => {
     clearTimer();
     document.documentElement.classList.remove("dragging-active");
     initialTouchYRef.current = null;
+    initialTouchXRef.current = null;
     touchStartYRef.current = null;
-    touchCurrentIndexRef.current = null;
     
     if (isDragEnabled && draggedIndex !== null) {
       onDragEnd?.();
