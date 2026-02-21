@@ -1,44 +1,31 @@
 
-# Fix Auto-Match Toast + Save Button Visibility
 
-## Two Bugs
+# Fix Referral Link Using Lovable Preview Domain
 
-### Bug 1: "Background auto-matched" toast fires on every tab entry
-The ambient `useEffect` (line 178) runs on mount because `backgroundColor` is in its dependency array. On first render, if the current background is already a gradient, `shouldAutoApply` is `true`, so it overwrites the value and shows the toast -- even though nothing changed. 
+## Problem
+The referral link on the Affiliate Dashboard uses `window.location.origin` to build the URL. In the Lovable preview environment, this produces a long, ugly link like:
+`https://db97f54f-4c1d-4910-ae17-ca4c23111c49.lovableproject.com/personal/signup?ref=jorge`
 
-**Fix:** Add a `hasInitialized` ref that starts `false`, is set to `true` after the first run, and skips the toast + overwrite on the initial mount.
+Instead, it should always show the production domain:
+`https://tapaway.co/personal/signup?ref=jorge`
 
-### Bug 2: Save button never appears for background changes
-`handleBgColorChange` calls `onUpdate({ backgroundColor: color })`, which tells the parent to update. The parent passes the new value back as the `backgroundColor` prop. The sync `useEffect` (line 95-98) then resets `pendingBgColor` to match the prop. This means `pendingBgColor === backgroundColor` is always true, so `hasChanges` stays `false`.
+This is the same pattern already documented in your project memory -- email links use `FRONTEND_URL` to avoid leaking preview domains.
 
-**Fix:** Stop calling `onUpdate` from `handleBgColorChange` (and `handleColorChange` / `handleTypeChange`). These handlers should ONLY update local pending state. The preview panel should read from the pending values, not the parent prop. `onUpdate` should only be called inside `handleSave`.
+## Fix
 
-## Changes
+**File:** `src/pages/affiliate/AffiliateDashboard.tsx`
 
-**File:** `src/components/personal/DashboardDesignTab.tsx`
+Replace `window.location.origin` on line 130 with a hardcoded production base URL (matching the pattern used elsewhere in the app).
 
-### 1. Add initialization ref to prevent auto-match on mount
+Change:
 ```tsx
-const hasInitialized = useRef(false);
+const link = `${window.location.origin}/personal/signup?ref=${affiliateInfo.referral_code}`;
 ```
-In the ambient `useEffect`, on the first run set `hasInitialized.current = true` and return early (skip auto-apply). This prevents the toast from firing every time the design tab loads.
 
-### 2. Remove `onUpdate` calls from local handlers
-Remove `onUpdate(...)` from:
-- `handleColorChange` (line 159)
-- `handleBgColorChange` (line 166)
-- `handleTypeChange` (line 171)
+To:
+```tsx
+const link = `https://tapaway.co/personal/signup?ref=${affiliateInfo.referral_code}`;
+```
 
-These should only set local pending state. The preview should reflect pending values without writing to the parent until save.
+This is a one-line change. The link will always show the clean production URL regardless of which environment the dashboard is viewed from.
 
-### 3. Remove sync effects that reset pending state
-Remove or guard the three `useEffect` blocks (lines 88-98) that sync pending state from props. These are resetting pending values whenever the parent re-renders, defeating the purpose of buffering. Instead, only reset pending state inside `handleDiscard` and after a successful `handleSave` (which is already done).
-
-### 4. Pass pending values to preview
-If the preview panel reads from parent props, update it to read from `pendingHeaderType`, `pendingHeaderColor`, and `pendingBgColor` instead, so users see their selection immediately without a DB write.
-
-## Result
-- Auto-match toast only fires once when user first uploads a profile photo, not on every tab visit
-- Selecting any color (solid or fade) for background or header immediately shows the sticky "Save Changes" bar
-- Changes are only persisted when the user clicks Save
-- Discarding resets everything to the last saved state
