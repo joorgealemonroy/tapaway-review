@@ -50,28 +50,6 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <motion.div
-            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
-            animate={{
-              backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
-              y: [0, -6, 0],
-            }}
-            transition={{
-              backgroundColor: { duration: 12, repeat: Infinity, ease: "linear" },
-              y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'League Spartan', sans-serif",
-                textShadow: "0 2px 8px rgba(0,0,0,0.25)",
-              }}
-              className="text-white text-xl font-bold tracking-tight select-none"
-            >
-              tapaway.co
-            </span>
-          </motion.div>
-
           <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               All Your Links, One TapAway
