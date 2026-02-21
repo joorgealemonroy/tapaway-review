@@ -1,58 +1,49 @@
 
 
-# Fix iOS Text Selection During Touch Drag-and-Drop
+# Add Dark Mode Toggle to Mobile "More" Sheet
 
-## Problem
-On iPhone (iOS Safari), long-pressing to initiate a drag triggers the native text selection/copy callout instead of (or in addition to) the drag behavior. This is because iOS uses `-webkit-touch-callout` for its long-press menu, which is not disabled by Tailwind's `select-none` or `touch-none` classes.
+## What's changing
+A dark/light mode switch will be added to the bottom of the "More" sheet in the mobile bottom navigation. When toggled, it will add or remove the `dark` class on the `<html>` element, which activates the existing dark mode CSS variables already defined in `index.css`. The preference will be saved to `localStorage` so it persists across sessions.
 
-## Root Cause
-Three things combine to cause this:
-1. Tailwind's `select-none` adds `user-select: none` but does NOT add `-webkit-touch-callout: none` (the iOS-specific property that controls the copy/paste callout on long-press)
-2. The `handleTouchStart` handler does not call `e.preventDefault()`, so iOS default long-press behavior fires
-3. During the 200ms hold delay, iOS's own long-press detection kicks in and shows the text selection UI
+## How it works
+The project already has a complete `.dark` color palette defined in `index.css` (lines 124-168). All UI components use CSS variable-based colors (`bg-background`, `text-foreground`, `bg-card`, etc.), so toggling the `dark` class on `<html>` will automatically update every component's colors -- no per-component changes needed.
 
-## Fix (2 files)
+## Changes
 
-### 1. `src/hooks/useTouchHoldDrag.ts`
-- In `handleTouchStart`, call `e.preventDefault()` to block iOS default long-press behavior immediately
-- When drag is enabled (after hold timer fires), add a class to `document.documentElement` that disables text selection globally during the drag
-- In `handleTouchEnd`, remove that global class
+### 1. `src/components/personal/MobileBottomNav.tsx`
+- Import `Moon`, `Sun` icons from lucide-react and the `Switch` component
+- Add state for dark mode, initialized from `localStorage` (key: `tapaway_dashboard_theme`)
+- Add a `useEffect` that toggles the `dark` class on `document.documentElement` and saves to `localStorage`
+- Add a row at the bottom of the More sheet (below the tab buttons, separated by a divider) with a Sun/Moon icon, "Dark Mode" label, and a Switch toggle
 
-### 2. `src/index.css`
-- Add a global CSS rule: when a `dragging-active` class is on `<html>`, apply `-webkit-touch-callout: none` and `-webkit-user-select: none` to everything
-- Add `-webkit-touch-callout: none` to all elements with Tailwind's `touch-none` class (the draggable rows) so that even without active dragging, the iOS callout is suppressed on those elements
+### 2. `src/index.css` (minor)
+- No changes needed -- the `.dark` variables are already comprehensive and all components use semantic color tokens
 
-### Changes Detail
+## Visual layout of the new row in the More sheet
 
-**`src/hooks/useTouchHoldDrag.ts`:**
-```typescript
-// In handleTouchStart - add preventDefault to block iOS callout
-const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
-  e.preventDefault(); // Block iOS long-press text selection
-  initialTouchYRef.current = e.touches[0].clientY;
-  // ... rest unchanged
-
-// When drag enabled (in setTimeout), add global class:
-  document.documentElement.classList.add("dragging-active");
-
-// In handleTouchEnd, remove it:
-  document.documentElement.classList.remove("dragging-active");
+```text
++------------------------------------------+
+|  More Options                            |
++------------------------------------------+
+|  [Mail]  Leads - View email captures     |
+|  [Card]  Cards - Manage your NFC cards   |
+|  [Shop]  Shop - Get a physical NFC card  |
+|  [Star]  Plan - Subscription & billing   |
++------------------------------------------+
+|  [Moon]  Dark Mode          [====Switch] |
++------------------------------------------+
 ```
 
-**`src/index.css`:**
-```css
-/* Prevent iOS copy/paste callout on draggable items */
-.touch-none {
-  -webkit-touch-callout: none;
-}
+The switch row uses the same styling as the tab rows (rounded, padded, with icon circle) but replaces the click-to-navigate behavior with a toggle switch on the right side.
 
-/* During active drag, suppress all text selection globally */
-.dragging-active,
-.dragging-active * {
-  -webkit-touch-callout: none !important;
-  -webkit-user-select: none !important;
-  user-select: none !important;
-}
-```
+## Technical details
+- Theme state: `useState` initialized from `localStorage.getItem('tapaway_dashboard_theme')`, defaulting to `'light'`
+- Toggle effect: `useEffect` that runs `document.documentElement.classList.toggle('dark', isDark)` and writes to `localStorage`
+- The Switch component from `@/components/ui/switch` is already available
+- The existing `.dark` CSS block covers all semantic tokens (background, foreground, card, popover, muted, border, primary, destructive, sidebar, surface, etc.)
 
-This is a minimal, targeted fix that solves the iOS-specific issue without affecting desktop behavior or normal scrolling.
+## Files modified
+| Action | File |
+|--------|------|
+| UPDATE | `src/components/personal/MobileBottomNav.tsx` |
+
