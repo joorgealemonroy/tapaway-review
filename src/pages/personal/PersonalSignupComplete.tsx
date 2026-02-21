@@ -362,7 +362,7 @@ const PersonalSignupComplete = () => {
           const { error: otpError } = await supabase.auth.signInWithOtp({
             email: data.email,
             options: {
-              emailRedirectTo: `${window.location.origin}/personal/dashboard`,
+              emailRedirectTo: `${window.location.origin}/personal/dashboard?welcome=true`,
             },
           });
 

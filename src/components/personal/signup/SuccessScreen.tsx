@@ -178,10 +178,10 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
               // Check if user is logged in
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
-                navigate("/personal/dashboard");
+                navigate("/personal/dashboard?welcome=true");
               } else {
                 // Not logged in, redirect to auth
-                navigate("/auth?redirect=/personal/dashboard");
+                navigate("/auth?redirect=/personal/dashboard?welcome=true");
               }
             }}
             className="w-full h-12 text-sm"
