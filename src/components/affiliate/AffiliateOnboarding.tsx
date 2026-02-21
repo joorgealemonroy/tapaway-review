@@ -107,10 +107,10 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
         >
           <HubShowcase onCopyLayout={goToSignup} />
           <button
-            onClick={goToSignup}
+            onClick={() => document.getElementById("layout-templates")?.scrollIntoView({ behavior: "smooth" })}
             className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
           >
-            Create yours — free →
+            Or pick a free layout below ↓
           </button>
         </motion.div>
 
@@ -160,6 +160,7 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
 
         {/* 5. Layout Templates */}
         <motion.div
+          id="layout-templates"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
