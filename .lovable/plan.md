@@ -1,33 +1,25 @@
 
 
-# Update Affiliate Onboarding Copy and Add CTA to Showcase
+# Fix Pro Badges Being Cut Off
 
-## Changes
+## The Problem
 
-### 1. Update Hero Headline (line 76-78)
+The "Pro" badges on profile cards in the Hub Showcase use `absolute -top-2 -right-2` positioning, placing them slightly outside the card boundaries. The horizontally scrolling container (`overflow-x-auto`) clips these badges because there's no top padding to accommodate them.
 
-Change from:
-> Your digital hub -- one link for everything
+## The Fix
 
-To a two-line treatment:
-> **All Your Links, One TapAway**
-> One link for everything
+**File:** `src/components/card/HubShowcase.tsx` (line 189)
 
-The main headline becomes "All Your Links, One TapAway" (bold, large), and "One link for everything" becomes the subtitle/subtext below it.
+Add top padding (`pt-2`) to the scrollable container so the badges have room to render above the cards without being clipped.
 
-### 2. Add "Create yours free" button next to Hub Showcase header (lines 101-109)
+Change:
+```
+<div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
+```
+To:
+```
+<div className="flex gap-3 overflow-x-auto pt-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
+```
 
-Below the "Real Hubs, Real People" section heading (rendered by the `HubShowcase` component), add a small secondary CTA button like "Create yours -- free" or a text link that navigates to signup. Since the heading is inside `HubShowcase`, we'll add this button right after the `HubShowcase` component, styled to feel like it belongs to that section.
+One line change, one file.
 
-## Technical Details
-
-**File:** `src/components/affiliate/AffiliateOnboarding.tsx`
-
-- **Line 76-78**: Replace the `<h1>` content with "All Your Links, One TapAway" and move "One link for everything" to the `<p>` subtitle (replacing or combining with the existing "Set up in about 3 minutes" text).
-- **Lines 102-109**: After the `<HubShowcase>` component, add a small centered button/link like:
-  ```
-  <button onClick={goToSignup} className="...">
-    Create yours — free →
-  </button>
-  ```
-  Styled as a text-style link (teal, small, centered) so it doesn't compete with the main CTAs but gives an action point right after seeing the examples.
