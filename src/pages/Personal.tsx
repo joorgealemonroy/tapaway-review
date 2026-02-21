@@ -37,7 +37,7 @@ const Personal = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm">© 2025 TapAway. Share everything with one tap.</p>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
               <Link to="/business" className="hover:text-background transition-colors">
                 For Business
               </Link>
@@ -46,6 +46,12 @@ const Personal = () => {
               </a>
               <a href="/privacy" className="hover:text-background transition-colors">
                 Privacy
+              </a>
+              <a href="/refund" className="hover:text-background transition-colors">
+                Refund
+              </a>
+              <a href="/cookie-policy" className="hover:text-background transition-colors">
+                Cookies
               </a>
             </div>
           </div>

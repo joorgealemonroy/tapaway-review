@@ -23,8 +23,8 @@ const Refund = () => {
       </nav>
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <h1 className="text-4xl font-bold mb-8">Refund Policy</h1>
-        <p className="text-muted-foreground mb-8">Last Updated: December 7, 2025</p>
+        <h1 className="text-4xl font-bold mb-8">Refund & Subscription Policy</h1>
+        <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
           {/* 1. NO REFUNDS DEFAULT */}
@@ -90,9 +90,44 @@ const Refund = () => {
             </ul>
           </section>
 
-          {/* 4. SUBSCRIPTION TIME IS NON-REFUNDABLE */}
+          {/* 4. AUTOMATIC RENEWAL DISCLOSURE */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">4. Subscription Time is Non-Refundable</h2>
+            <h2 className="text-2xl font-bold mb-4">4. Automatic Renewal Disclosure</h2>
+            <p className="text-muted-foreground mb-4">
+              <strong>YOUR SUBSCRIPTION AUTOMATICALLY RENEWS.</strong> In accordance with California Business and 
+              Professions Code §§ 17600-17606 (California Automatic Renewal Law) and applicable federal and state 
+              regulations:
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
+              <li>All TapAway paid subscriptions (monthly and annual) automatically renew at the end of each billing 
+                  period unless you cancel before the renewal date</li>
+              <li>You will be charged the then-current subscription price upon each automatic renewal</li>
+              <li>You may cancel at any time through your Stripe billing portal or by contacting tap@tapaway.co</li>
+              <li>Cancellation stops future billing but does not entitle you to a refund for the current period</li>
+              <li>We will provide at least 30 days' notice before any price increases take effect</li>
+              <li>If your payment method fails at renewal, we may suspend access until payment is received</li>
+            </ul>
+            <p className="text-muted-foreground">
+              <strong>HOW TO CANCEL:</strong> Log into your TapAway dashboard, navigate to Settings or Billing, and 
+              click "Manage Subscription" to access your Stripe billing portal. Alternatively, email tap@tapaway.co 
+              with the subject line "Cancel Subscription."
+            </p>
+          </section>
+
+          {/* 5. FREE TIER */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">5. Free Plan Clarification</h2>
+            <p className="text-muted-foreground">
+              TapAway offers a free personal plan with limited features. Free plans are provided at TapAway's 
+              discretion and may be modified, limited, or discontinued at any time. Free plan users are not 
+              charged and therefore no refund questions arise. If a free plan user upgrades to a paid plan, this 
+              Refund Policy applies in full from the date of the first paid charge.
+            </p>
+          </section>
+
+          {/* 6. SUBSCRIPTION TIME IS NON-REFUNDABLE */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">6. Subscription Time is Non-Refundable</h2>
             <p className="text-muted-foreground">
               <strong>ALL SUBSCRIPTION TIME USED IS NON-REFUNDABLE.</strong> If you cancel your subscription, 
               you will retain access until the end of your current billing period, but no pro-rated refunds 
@@ -101,9 +136,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 5. PHYSICAL PRODUCTS */}
+          {/* 7. PHYSICAL PRODUCTS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">5. Physical Products Are Non-Refundable</h2>
+            <h2 className="text-2xl font-bold mb-4">7. Physical Products Are Non-Refundable</h2>
             <p className="text-muted-foreground mb-4">
               <strong>ALL PRINTED OR SHIPPED CARDS ARE NON-REFUNDABLE</strong> under all circumstances, including:
             </p>
@@ -116,16 +151,16 @@ const Refund = () => {
               <li>Business closure or change of ownership</li>
               <li>Incorrect shipping address provided by customer</li>
             </ul>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground">
               <strong>LIMITED EXCEPTION:</strong> We may replace (not refund) cards that arrive damaged during 
               shipping or have defective NFC chips upon delivery, provided you report the issue within 7 days 
               of delivery with photographic evidence. This is at our sole discretion.
             </p>
           </section>
 
-          {/* 6. ADD-ONS */}
+          {/* 8. ADD-ONS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">6. Add-On Features & Services</h2>
+            <h2 className="text-2xl font-bold mb-4">8. Add-On Features & Services</h2>
             <p className="text-muted-foreground mb-4">
               All add-on items and services are non-refundable once delivered or activated, including:
             </p>
@@ -140,9 +175,9 @@ const Refund = () => {
             </ul>
           </section>
 
-          {/* 7. CANCELLATION ≠ REFUND */}
+          {/* 9. CANCELLATION ≠ REFUND */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">7. Cancellation Does NOT Equal Refund</h2>
+            <h2 className="text-2xl font-bold mb-4">9. Cancellation Does NOT Equal Refund</h2>
             <p className="text-muted-foreground mb-4">
               <strong>CANCELING YOUR SUBSCRIPTION ONLY STOPS FUTURE BILLING.</strong> It does not entitle you 
               to a refund for:
@@ -159,9 +194,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 8. CHARGEBACKS */}
+          {/* 10. CHARGEBACKS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">8. Chargeback Policy</h2>
+            <h2 className="text-2xl font-bold mb-4">10. Chargeback Policy</h2>
             <p className="text-muted-foreground mb-4">
               <strong>CHARGEBACK ABUSE WILL RESULT IN IMMEDIATE ACCOUNT TERMINATION.</strong>
             </p>
@@ -171,7 +206,7 @@ const Refund = () => {
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2 mb-4">
               <li>Your TapAway account will be immediately suspended</li>
-              <li>Access to the dashboard, Review Hub, and all features will be revoked</li>
+              <li>Access to the dashboard, hub, profile, and all features will be revoked</li>
               <li>Your account may be permanently terminated without refund</li>
               <li>You may be banned from creating future accounts</li>
               <li>We will contest the chargeback and provide evidence to Stripe</li>
@@ -183,9 +218,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 9. REFUND DECISIONS ARE FINAL */}
+          {/* 11. REFUND DECISIONS ARE FINAL */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">9. All Refund Decisions Are Final</h2>
+            <h2 className="text-2xl font-bold mb-4">11. All Refund Decisions Are Final</h2>
             <p className="text-muted-foreground mb-4">
               <strong>ALL REFUND DECISIONS ARE MADE AT TAPAWAY'S SOLE DISCRETION AND ARE FINAL.</strong>
             </p>
@@ -198,9 +233,9 @@ const Refund = () => {
             </ul>
           </section>
 
-          {/* 10. FREE TRIALS */}
+          {/* 12. FREE TRIALS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">10. Free Trials</h2>
+            <h2 className="text-2xl font-bold mb-4">12. Free Trials</h2>
             <p className="text-muted-foreground mb-4">
               If TapAway offers a free trial, you will not be charged until the trial period ends. You may 
               cancel at any time during the trial to avoid billing.
@@ -212,9 +247,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 11. STRIPE */}
+          {/* 13. STRIPE */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">11. Stripe Payment Processing</h2>
+            <h2 className="text-2xl font-bold mb-4">13. Stripe Payment Processing</h2>
             <p className="text-muted-foreground">
               All payments and refunds are processed through Stripe. TapAway does not store your credit card 
               information. Any refunds issued will be processed by Stripe to your original payment method. 
@@ -222,9 +257,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 12. HOW TO REQUEST */}
+          {/* 14. HOW TO REQUEST */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">12. How to Request a Refund</h2>
+            <h2 className="text-2xl font-bold mb-4">14. How to Request a Refund</h2>
             <p className="text-muted-foreground mb-4">
               If you believe you qualify for a refund under Section 2 of this policy, email:
             </p>
@@ -244,9 +279,9 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 13. CHANGES */}
+          {/* 15. CHANGES */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">13. Changes to This Refund Policy</h2>
+            <h2 className="text-2xl font-bold mb-4">15. Changes to This Refund Policy</h2>
             <p className="text-muted-foreground">
               We may update this Refund Policy at any time, with or without prior notice. The "Last Updated" 
               date at the top reflects the most recent revision. Your continued use of TapAway after any 
@@ -255,18 +290,18 @@ const Refund = () => {
             </p>
           </section>
 
-          {/* 14. CONSISTENCY */}
+          {/* 16. CONSISTENCY */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">14. Consistency Across Documents</h2>
+            <h2 className="text-2xl font-bold mb-4">16. Consistency Across Documents</h2>
             <p className="text-muted-foreground">
               This Refund Policy is consistent with and incorporated into our Terms of Service. In the event 
               of any perceived conflict, the more restrictive interpretation (in TapAway's favor) shall apply.
             </p>
           </section>
 
-          {/* 15. CONTACT */}
+          {/* 17. CONTACT */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">15. Contact Us</h2>
+            <h2 className="text-2xl font-bold mb-4">17. Contact Us</h2>
             <p className="text-muted-foreground">
               For questions about this Refund Policy, contact us at: <strong>tap@tapaway.co</strong>
             </p>

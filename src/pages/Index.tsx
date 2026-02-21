@@ -51,7 +51,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm">© 2025 TapAway. More 5-star reviews, effortlessly.</p>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
               <Link to="/personal" className="hover:text-background transition-colors">
                 Personal Cards
               </Link>
@@ -63,6 +63,9 @@ const Index = () => {
               </a>
               <a href="/refund" className="hover:text-background transition-colors">
                 Refund
+              </a>
+              <a href="/cookie-policy" className="hover:text-background transition-colors">
+                Cookies
               </a>
               <a href="/rep/apply" className="hover:text-background transition-colors">
                 Sales Partners

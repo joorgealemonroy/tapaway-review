@@ -40,6 +40,13 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Refund = lazy(() => import("./pages/Refund"));
 const Support = lazy(() => import("./pages/Support"));
+const AcceptableUse = lazy(() => import("./pages/AcceptableUse"));
+const AffiliateTerms = lazy(() => import("./pages/AffiliateTerms"));
+const NFCDisclaimer = lazy(() => import("./pages/NFCDisclaimer"));
+const AIDisclaimer = lazy(() => import("./pages/AIDisclaimer"));
+const DMCA = lazy(() => import("./pages/DMCA"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const DPA = lazy(() => import("./pages/DPA"));
 
 // Sales Rep Portal - lazy loaded
 const RepHome = lazy(() => import("./pages/rep/RepHome"));
@@ -117,6 +124,13 @@ const App = () => (
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/refund" element={<Refund />} />
                 <Route path="/support" element={<Support />} />
+                <Route path="/acceptable-use" element={<AcceptableUse />} />
+                <Route path="/affiliate-terms" element={<AffiliateTerms />} />
+                <Route path="/nfc-disclaimer" element={<NFCDisclaimer />} />
+                <Route path="/ai-disclaimer" element={<AIDisclaimer />} />
+                <Route path="/dmca" element={<DMCA />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/dpa" element={<DPA />} />
                 
                 {/* Sales Rep Portal */}
                 <Route path="/rep" element={<RepHome />} />
