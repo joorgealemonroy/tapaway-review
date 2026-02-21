@@ -1,34 +1,47 @@
 
 
-# Add Sticky "Save Changes" Button to Design Tab
+# Fix Background Color Bugs + Add More Colors
 
-## Problem
-Currently, every color/setting change in the Design tab saves immediately to the database. Users don't realize changes are saving, and if they navigate away accidentally, there's no clear save flow. The user wants a visible sticky "Save Changes" button that appears when changes are made, and changes should only persist when explicitly saved.
+## Bugs Found
 
-## Approach
-Refactor `DashboardDesignTab` to buffer changes locally and only write to the database when the user clicks "Save Changes". A sticky floating bar (reusing the existing `UnsavedChangesBar` component) will appear at the top of the viewport when unsaved changes exist.
+### Bug 1: "Background auto-matched to your profile photo" on manual selection
+The `useEffect` on line 171-200 runs whenever the `backgroundColor` prop changes. When a user picks a background fade (a `linear-gradient`), the flow is:
+1. `handleBgColorChange` sets `pendingBgColor` and calls `onUpdate`
+2. Parent re-renders, passing the new value back as the `backgroundColor` prop
+3. The ambient `useEffect` fires because `backgroundColor` (a dependency) changed
+4. It checks `pendingBgColor` -- sees it starts with `linear-gradient` -- decides to auto-apply
+5. Overwrites the user's selection with the ambient gradient and shows the incorrect toast
 
-## Changes
+### Bug 2: Save button doesn't appear
+Because the ambient effect immediately overwrites `pendingBgColor` with its own gradient AND calls `onUpdate` (which syncs the prop), `pendingBgColor === backgroundColor` becomes true instantly, so `hasChanges` stays `false`.
+
+## Fix
 
 **File:** `src/components/personal/DashboardDesignTab.tsx`
 
-1. **Buffer changes locally instead of saving immediately**
-   - Add local state for pending changes: `pendingHeaderColor`, `pendingHeaderType`, `pendingBgColor`
-   - Replace all direct DB writes (`handleColorChange`, `handleBgColorChange`, `handleTypeChange`) with local state setters that only update the UI preview
-   - Track whether any changes differ from the original props using `useMemo`
+### 1. Track manual user selections with a ref
+Add a `userPickedBg` ref that is set to `true` whenever the user manually picks a background color, and reset to `false` after save/discard. In the ambient `useEffect`, skip auto-apply when `userPickedBg.current` is true.
 
-2. **Add a save function**
-   - A single `handleSave` function that writes all pending changes to the database at once
-   - A `handleDiscard` function that resets local state back to prop values
+### 2. Add more background color and fade presets
 
-3. **Render the `UnsavedChangesBar`**
-   - Import and render the existing `UnsavedChangesBar` component (already built and styled with sticky positioning)
-   - It appears when `hasChanges` is true and disappears after save/discard
+Expand `BG_PRESETS` from 6 to 8 colors:
+```
+"#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a",
+"#0a0a0a", "#1e293b", "#fef3c7", "#ecfdf5"
+```
 
-4. **Keep image uploads as immediate** -- image uploads already involve a multi-step flow (crop, upload to storage) so those will continue saving immediately. Only color/type selections get the deferred save.
+Expand `BG_FADE_PRESETS` from 3 to 6 fades:
+```
+Warm, Sky, Rose (existing)
++ Sunset, Ocean, Midnight
+```
 
-## Result
-- User picks colors/fades freely -- preview updates instantly, no DB writes
-- A sticky "Save Changes" bar slides in from the bottom
-- Clicking Save writes all changes at once
-- Navigating away without saving discards changes automatically
+### 3. Detailed changes
+
+- Add `const userPickedBg = useRef(false);` near other state declarations
+- In `handleBgColorChange`: set `userPickedBg.current = true` before updating state
+- In `handleDiscard`: reset `userPickedBg.current = false`
+- In `handleSave` (after success): reset `userPickedBg.current = false`
+- In the ambient `useEffect` (line 171-200): add `if (userPickedBg.current) return;` at the top so it never overwrites a manual pick
+- Update `BG_PRESETS` and `BG_FADE_PRESETS` constants with additional options
+
