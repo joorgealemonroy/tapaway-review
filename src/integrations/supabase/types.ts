@@ -181,6 +181,11 @@ export type Database = {
       }
       affiliate_settings: {
         Row: {
+          bonus_threshold: number
+          commission_free_base: number
+          commission_free_bonus: number
+          commission_paid_base: number
+          commission_paid_bonus: number
           commission_per_referral: number
           id: string
           payout_minimum: number
@@ -188,6 +193,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bonus_threshold?: number
+          commission_free_base?: number
+          commission_free_bonus?: number
+          commission_paid_base?: number
+          commission_paid_bonus?: number
           commission_per_referral?: number
           id?: string
           payout_minimum?: number
@@ -195,6 +205,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bonus_threshold?: number
+          commission_free_base?: number
+          commission_free_bonus?: number
+          commission_paid_base?: number
+          commission_paid_bonus?: number
           commission_per_referral?: number
           id?: string
           payout_minimum?: number
