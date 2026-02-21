@@ -186,7 +186,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
         <p className="text-sm text-muted-foreground mt-1">See what others are building — copy any layout you like</p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
+      <div className="flex gap-3 overflow-x-auto pt-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
         {profiles.map((p) => {
           const isCopied = copiedId === p.id;
           const isPremium = usesPremiumFeatures(p);
