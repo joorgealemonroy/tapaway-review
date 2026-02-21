@@ -1,25 +1,12 @@
 
 
-# Fix Pro Badges Being Cut Off
+# Remove Animated Card Visual from Hero
 
-## The Problem
+## Change
 
-The "Pro" badges on profile cards in the Hub Showcase use `absolute -top-2 -right-2` positioning, placing them slightly outside the card boundaries. The horizontally scrolling container (`overflow-x-auto`) clips these badges because there's no top padding to accommodate them.
+**File:** `src/components/affiliate/AffiliateOnboarding.tsx`
 
-## The Fix
+Delete the animated color-cycling card block (lines 53-73) -- the `motion.div` that shows a floating card with "tapaway.co" text. Everything else in the hero and the rest of the page stays exactly as-is, including the Hub Showcase section with real profiles.
 
-**File:** `src/components/card/HubShowcase.tsx` (line 189)
-
-Add top padding (`pt-2`) to the scrollable container so the badges have room to render above the cards without being clipped.
-
-Change:
-```
-<div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
-```
-To:
-```
-<div className="flex gap-3 overflow-x-auto pt-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
-```
-
-One line change, one file.
+No other files change. Nothing is added.
 
