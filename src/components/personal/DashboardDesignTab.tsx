@@ -76,6 +76,7 @@ export const DashboardDesignTab = ({
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const userPickedBg = useRef(false);
+  const hasInitialized = useRef(false);
 
   // --- Pending (buffered) state for deferred save ---
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
@@ -83,19 +84,6 @@ export const DashboardDesignTab = ({
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
-
-  // Sync pending state when props change (e.g. after save or external refresh)
-  useEffect(() => {
-    setPendingHeaderType(headerType);
-  }, [headerType]);
-  useEffect(() => {
-    setPendingHeaderColor(headerColor);
-    setCustomColorInput(headerColor || "#6BCB77");
-  }, [headerColor]);
-  useEffect(() => {
-    setPendingBgColor(backgroundColor);
-    setBgColorInput(backgroundColor || "#ffffff");
-  }, [backgroundColor]);
 
   const hasChanges = useMemo(() => {
     return (
@@ -156,19 +144,16 @@ export const DashboardDesignTab = ({
   const handleColorChange = (color: string) => {
     setPendingHeaderColor(color);
     setCustomColorInput(color);
-    onUpdate({ headerColor: color });
   };
 
   const handleBgColorChange = (color: string) => {
     userPickedBg.current = true;
     setPendingBgColor(color);
     setBgColorInput(color);
-    onUpdate({ backgroundColor: color });
   };
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
-    onUpdate({ headerType: type });
   };
 
   // For banner mode, we use the profile photo as the banner (no separate upload)
@@ -177,6 +162,20 @@ export const DashboardDesignTab = ({
   // Auto-apply ambient gradient when banner mode is active
   useEffect(() => {
     if (userPickedBg.current) return;
+
+    // Skip auto-apply on initial mount to prevent toast on every tab visit
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      // Still extract color for the "Auto match" button, just don't auto-apply
+      const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
+      if (imageSource) {
+        extractBottomColor(imageSource)
+          .then((color) => setImageBasedColor(color))
+          .catch(() => setImageBasedColor(null));
+      }
+      return;
+    }
+
     const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
     if (!imageSource) {
       setImageBasedColor(null);
@@ -194,7 +193,8 @@ export const DashboardDesignTab = ({
         const shouldAutoApply = !pendingBgColor || isLegacyGradient || isRadialGradient;
         
         if (shouldAutoApply) {
-          handleBgColorChange(ambientGradient);
+          setPendingBgColor(ambientGradient);
+          setBgColorInput(ambientGradient);
           toast.success("Background auto-matched to your profile photo");
         }
       })
@@ -205,7 +205,7 @@ export const DashboardDesignTab = ({
         setExtractingColor(false);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingHeaderType, bannerImageSource, backgroundColor]);
+  }, [pendingHeaderType, bannerImageSource]);
 
   // --- Image upload stays immediate ---
   const compressImage = (file: File): Promise<Blob> => {
