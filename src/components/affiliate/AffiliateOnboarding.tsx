@@ -73,11 +73,11 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
           </motion.div>
 
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Your digital hub — one link for everything
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              All Your Links, One TapAway
             </h1>
             <p className="text-muted-foreground mt-1">
-              Set up in about 3 minutes. Free. No app needed.
+              One link for everything. Set up in about 3 minutes — free.
             </p>
           </div>
 
@@ -106,6 +106,12 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
           transition={{ delay: 0.3 }}
         >
           <HubShowcase onCopyLayout={goToSignup} />
+          <button
+            onClick={goToSignup}
+            className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            Create yours — free →
+          </button>
         </motion.div>
 
         {/* 3. How It Works */}
