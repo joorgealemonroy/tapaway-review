@@ -127,7 +127,7 @@ const AffiliateDashboard = () => {
 
   const copyLink = async () => {
     if (!affiliateInfo) return;
-    const link = `${window.location.origin}/personal/signup?ref=${affiliateInfo.referral_code}`;
+    const link = `https://tapaway.co/personal/signup?ref=${affiliateInfo.referral_code}`;
     await navigator.clipboard.writeText(link);
     setCopied(true);
     toast.success("Referral link copied!");
