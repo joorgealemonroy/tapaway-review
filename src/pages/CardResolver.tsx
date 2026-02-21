@@ -106,7 +106,7 @@ const CardResolver = () => {
       if (error) throw error;
       if (data?.success) {
         toast.success("Card activated! 🎉");
-        navigate("/personal/dashboard?tab=cards");
+        navigate("/personal/dashboard?tab=cards&welcome=true");
       } else {
         throw new Error(data?.error || "Failed to activate card");
       }
