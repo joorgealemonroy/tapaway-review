@@ -74,7 +74,7 @@ export const AffiliateOnboarding = ({ refCode }: Props) => {
 
           <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              All Your Links, One TapAway
+              All Your Links,<br />One TapAway
             </h1>
             <p className="text-muted-foreground mt-1">
               One link for everything. Set up in about 3 minutes — free.
