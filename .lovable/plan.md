@@ -1,21 +1,48 @@
 
 
-# Fix Misleading "Why Go Physical?" Benefits
+# Fix Dark Mode on Main Landing Page (tapaway.co)
 
 ## Problem
-The "Share without Wi-Fi" benefit is inaccurate -- while NFC tapping works without Wi-Fi, the links that open still require an internet connection. This could mislead users.
+Several landing page sections use hardcoded `bg-white` instead of the theme-aware `bg-background` or `bg-card` Tailwind classes. In dark mode, this creates white backgrounds with dark-themed text, making content unreadable.
 
-## Changes
+## Affected Files and Changes
 
-### File: `src/components/personal/PersonalShopTab.tsx`
+### 1. `src/components/landing/HeroSection.tsx`
+- Line 29: `bg-white` -> `bg-background`
+- Line 31: `from-white via-white to-muted/30` -> `from-background via-background to-muted/30`
+- Line 137: Inner phone screen `bg-white` stays as-is (it's a phone mockup, should look like a real phone)
+- Line 192: Analytics overlay `bg-white` -> `bg-card`
+- Line 210: Done-for-you badge `bg-white` -> `bg-card`
 
-Replace the three benefits in the `BENEFITS` array:
+### 2. `src/components/landing/DoneForYouSection.tsx`
+- Line 30: `bg-white` -> `bg-background`
 
-| Current | New |
-|---------|-----|
-| **Share without Wi-Fi** "Works with just a tap -- no internet needed" | **No app needed** "Just tap -- works instantly on any phone" |
-| **Make a lasting impression** "Stand out with a physical card people remember" | **Make a lasting impression** "Stand out with a physical card people remember" (keep as-is) |
-| **Works with any smartphone** "Compatible with iPhone and Android -- no app needed" | **Always on you** "Fits in your wallet -- never miss a connection" |
+### 3. `src/components/landing/ComparisonSection.tsx`
+- Line 49: TapAway column `bg-white` -> `bg-card`
+- Line 81: Competitor column `bg-white` -> `bg-card`
 
-The first benefit shifts focus from the false Wi-Fi claim to the no-app-required convenience. The third benefit changes to avoid repeating the "no app" point (now covered by the first) and highlights the portability angle instead. The icon for the first benefit changes from `WifiOff` to `Smartphone`, and the third changes from `Smartphone` to `CreditCard` (wallet-sized card).
+### 4. `src/components/landing/QRComparisonSection.tsx`
+- Line 58: TapAway NFC card `bg-white` -> `bg-card`
+- Line 87: QR Code card `bg-white` -> `bg-card`
 
+### 5. `src/components/landing/HowItWorksNew.tsx`
+- Line 33: Section `bg-white` -> `bg-background`
+- Line 63: Step cards `bg-white` -> `bg-card`
+
+### 6. `src/components/landing/RiskReversalSection.tsx`
+- Line 12: Section `bg-white` -> `bg-background`
+
+### 7. `src/components/landing/ProofSection.tsx`
+- Line 61: Result cards `bg-white` -> `bg-card`
+- Line 114: Highlight pill `bg-white` -> `bg-card`
+
+### 8. `src/components/landing/FAQSection.tsx`
+- Line 82: Accordion items `bg-white` -> `bg-card`
+
+## Approach
+- `bg-white` on **section** backgrounds becomes `bg-background` (maps to the page-level background, dark-mode aware)
+- `bg-white` on **cards/overlays** becomes `bg-card` (maps to card surface, dark-mode aware)
+- Sections using `bg-muted/30` and semantic classes like `bg-foreground` are already dark-mode safe -- no changes needed
+- The phone mockup screen in HeroSection keeps `bg-white` intentionally (it's simulating a real phone screen)
+
+This is a straightforward find-and-replace of hardcoded color classes with their semantic equivalents that are already defined in the CSS variables.
