@@ -1,24 +1,18 @@
 
 
-# Fix Dark Mode on Personal Landing Page
+# Add Dark/Light Mode Toggle to Mobile Landing Navigation
 
-## Problem
-The previous dark mode fix only addressed the Business landing page components. The Personal landing page (`/personal`) — which is what you're currently viewing — still has hardcoded `bg-white` backgrounds, making text unreadable in dark mode.
+## What Changes
+Add a dark/light mode toggle switch to the mobile hamburger menu (the slide-out sheet) on the landing pages, so visitors can switch between light and dark mode.
 
-## Changes
+## Technical Details
 
-### 1. `src/components/landing/personal/PersonalHero.tsx`
-- Line 56: `bg-white` -> `bg-background`
-- Line 57: `from-white via-white` -> `from-background via-background`
+### File: `src/components/landing/MobileNav.tsx`
 
-### 2. `src/components/landing/personal/PersonalHowItWorks.tsx`
-- Line 32: Section `bg-white` -> `bg-background`
-- Line 61: Step cards `bg-white` -> `bg-card`
+- Import `Moon`, `Sun` icons from lucide-react and `Switch` from the UI library
+- Add state for `isDark`, initialized from `localStorage.getItem('tapaway_dashboard_theme')`
+- Add a `useEffect` to apply/remove the `dark` class on `document.documentElement` and persist the preference to localStorage (same pattern used in `MobileBottomNav.tsx`)
+- Add a toggle row at the bottom of the menu items (above the footer links), showing a Sun/Moon icon and a Switch component
 
-### 3. `src/components/landing/personal/PersonalUseCases.tsx`
-- Line 73: Use case cards `bg-white` -> `bg-card`
+The toggle will use the exact same localStorage key (`tapaway_dashboard_theme`) and class-toggling logic already used in the dashboard's mobile nav, keeping behavior consistent across the app.
 
-### 4. `src/components/landing/personal/PersonalFAQ.tsx`
-- Line 44: Section `bg-white` -> `bg-background`
-
-All other text and border classes already use theme-aware tokens (`text-foreground`, `text-muted-foreground`, `border-border`), so fixing these backgrounds will resolve the readability issue.
