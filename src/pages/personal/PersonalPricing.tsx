@@ -1,205 +1,213 @@
-import { useState } from "react";
-import { Check, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Globe, UserPlus, Share2, ChevronDown, User, Link2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { HubShowcase } from "@/components/card/HubShowcase";
+import { LayoutTemplates } from "@/components/card/LayoutTemplates";
+import { useNavigate } from "react-router-dom";
 
-const proFeatures = [
-  "Your own URL: tapaway.co/yourname",
-  "Unlimited links & content blocks",
-  "Custom header image",
-  "Photo collage block",
-  "Email capture form",
-  "Advanced analytics",
-  "Priority support",
+const INFO_CARDS = [
+  {
+    icon: Globe,
+    title: "All your links in one place",
+    desc: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime.",
+  },
+  {
+    icon: UserPlus,
+    title: "One-tap contact saving",
+    desc: "Anyone who visits your hub can save your name, phone, and email straight to their contacts. No app needed.",
+  },
+  {
+    icon: Share2,
+    title: "Works everywhere",
+    desc: "Share your hub link in your Instagram bio, texts, email signatures — anywhere you want people to find you.",
+  },
 ];
 
-const freeFeatures = [
-  "Up to 5 links",
-  "Basic content blocks",
-  "Social icon bar",
-  "YouTube & image blocks",
+const STEPS = [
+  { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
+  { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card — all in one place" },
+  { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or simply use a tapaway card." },
 ];
 
 const PersonalPricing = () => {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState<"free" | "pro">("pro");
-  const [billing, setBilling] = useState<"yearly" | "monthly">("yearly");
+
+  const goToSignup = () => {
+    navigate("/personal/signup");
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/personal" className="text-xl font-black text-foreground">
-            TapAway
-          </Link>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
-            Sign in
-          </Button>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="pt-10 pb-6 px-4 text-center">
+    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
+      <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
+        {/* 1. Hero */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          className="text-center space-y-6"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2 tracking-tight">
-            Pick your vibe
-          </h1>
-          <p className="text-muted-foreground text-base">
-            Start free, upgrade when you're ready.
+          <motion.div
+            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
+            animate={{
+              backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
+              y: [0, -6, 0],
+            }}
+            transition={{
+              backgroundColor: { duration: 12, repeat: Infinity, ease: "linear" },
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'League Spartan', sans-serif",
+                textShadow: "0 2px 8px rgba(0,0,0,0.25)",
+              }}
+              className="text-white text-xl font-bold tracking-tight select-none"
+            >
+              tapaway.co
+            </span>
+          </motion.div>
+
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              All Your Links,<br />One TapAway
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              One link for everything. Set up in about 3 minutes — free.
+            </p>
+          </div>
+
+          <Button
+            onClick={goToSignup}
+            size="lg"
+            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            Create My Hub
+          </Button>
+
+          <button
+            onClick={() => document.getElementById("hub-showcase")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex items-center gap-1 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Scroll to see examples
+            <ChevronDown className="h-3 w-3 animate-bounce" />
+          </button>
+        </motion.div>
+
+        {/* 2. Hub Showcase */}
+        <motion.div
+          id="hub-showcase"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <HubShowcase onCopyLayout={goToSignup} />
+          <button
+            onClick={() => document.getElementById("layout-templates")?.scrollIntoView({ behavior: "smooth" })}
+            className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            Or pick a free layout below ↓
+          </button>
+        </motion.div>
+
+        {/* 3. How It Works */}
+        <motion.section
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <h2 className="text-xl font-bold text-foreground text-center">How It Works</h2>
+          <div className="space-y-3">
+            {STEPS.map((s, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">
+                  {i + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{s.title}</p>
+                  <p className="text-xs text-muted-foreground">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* 4. Mid-page CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+        >
+          <Button
+            onClick={goToSignup}
+            size="lg"
+            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            Create My Hub
+          </Button>
+        </motion.div>
+
+        {/* Free layouts nudge */}
+        <div className="text-center text-sm text-muted-foreground flex flex-col items-center gap-1">
+          <span>Want something free? Pick a starter layout below</span>
+          <ChevronDown className="h-4 w-4 animate-bounce" />
+        </div>
+
+        {/* 5. Layout Templates */}
+        <motion.div
+          id="layout-templates"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <LayoutTemplates onSelect={() => {}} />
+        </motion.div>
+
+        {/* 6. What Is a Hub? */}
+        <motion.section
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <h2 className="text-xl font-bold text-foreground text-center">What Is a Hub?</h2>
+          <div className="space-y-3">
+            {INFO_CARDS.map((card, i) => (
+              <div
+                key={i}
+                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
+              >
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <card.icon className="h-5 w-5 text-teal-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* 7. Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="pb-20"
+        >
+          <Button
+            onClick={goToSignup}
+            size="lg"
+            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            Create My Hub
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Free to start · No credit card required
           </p>
         </motion.div>
-      </section>
-
-      {/* Plan Toggle */}
-      <div className="flex justify-center px-4 pb-6">
-        <div className="relative flex bg-muted rounded-full p-1 w-56">
-          {(["free", "pro"] as const).map((plan) => (
-            <button
-              key={plan}
-              onClick={() => setSelectedPlan(plan)}
-              className="relative z-10 flex-1 py-2 text-sm font-semibold rounded-full transition-colors duration-200"
-              style={{ color: selectedPlan === plan ? "hsl(var(--background))" : "hsl(var(--muted-foreground))" }}
-            >
-              {plan === "free" ? "Free" : "Pro"}
-            </button>
-          ))}
-          <motion.div
-            layoutId="plan-toggle"
-            className="absolute top-1 bottom-1 rounded-full bg-foreground"
-            style={{ width: "calc(50% - 4px)" }}
-            animate={{ left: selectedPlan === "free" ? 4 : "calc(50%)" }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          />
-        </div>
-      </div>
-
-      {/* Plan Card */}
-      <section className="px-4 pb-6 max-w-md mx-auto">
-        <AnimatePresence mode="wait">
-          {selectedPlan === "pro" ? (
-            <motion.div
-              key="pro"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="bg-card border border-border rounded-2xl px-5 py-6"
-            >
-              {/* Billing toggle */}
-              <div className="flex gap-2 mb-5">
-                {(["yearly", "monthly"] as const).map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => setBilling(b)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                      billing === b
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {b === "yearly" ? "Yearly" : "Monthly"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Price */}
-              <div className="mb-1">
-                <span className="text-4xl font-black text-foreground">
-                  {billing === "yearly" ? "$6.25" : "$10"}
-                </span>
-                <span className="text-muted-foreground ml-1">/month</span>
-              </div>
-              {billing === "yearly" ? (
-                <p className="text-xs text-primary font-medium mb-5">
-                  Billed annually $75
-                </p>
-              ) : (
-                <div className="mb-5" />
-              )}
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-6">
-                {proFeatures.map((f) => (
-                  <li key={f} className="flex items-start gap-3">
-                    <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-foreground">{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Button
-                size="lg"
-                className="w-full h-12 text-base font-semibold rounded-xl"
-                onClick={() =>
-                  navigate(
-                    `/personal/signup?plan=${billing === "yearly" ? "yearly" : "monthly"}&trial=7`
-                  )
-                }
-              >
-                Try Pro Free for 7 Days
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                No charge today — cancel anytime
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="free"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="bg-card border border-border rounded-2xl px-5 py-6"
-            >
-              {/* Price */}
-              <div className="mb-5">
-                <span className="text-4xl font-black text-foreground">$0</span>
-                <span className="text-muted-foreground ml-1">forever</span>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-6">
-                {freeFeatures.map((f) => (
-                  <li key={f} className="flex items-start gap-3">
-                    <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-foreground">{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full h-12 text-base font-semibold rounded-xl"
-                onClick={() => navigate("/personal/signup?plan=free")}
-              >
-                Start Free
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
-
-      {/* Bottom */}
-      <div className="text-center pb-12 px-4">
-        <p className="text-muted-foreground text-xs mb-1">
-          30-day money-back guarantee on paid plans
-        </p>
-        <p className="text-muted-foreground text-xs">
-          Questions?{" "}
-          <Link to="/support" className="text-primary underline hover:no-underline">
-            Contact us
-          </Link>
-        </p>
       </div>
     </div>
   );
