@@ -30,7 +30,7 @@ export const HowItWorksNew = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="how-it-works" ref={ref} className="py-20 px-4 bg-white">
+    <section id="how-it-works" ref={ref} className="py-20 px-4 bg-background">
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -60,7 +60,7 @@ export const HowItWorksNew = () => {
                 <div className="hidden md:block absolute top-12 left-[60%] w-full h-0.5 bg-border" />
               )}
 
-              <div className="relative bg-white rounded-2xl border border-border p-8 hover:border-primary/30 hover:shadow-lg transition-all">
+              <div className="relative bg-card rounded-2xl border border-border p-8 hover:border-primary/30 hover:shadow-lg transition-all">
                 {/* Step Number */}
                 <div className="text-6xl font-black text-muted/20 absolute top-4 right-4">
                   {step.number}

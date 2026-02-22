@@ -46,7 +46,7 @@ export const ComparisonSection = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white rounded-2xl border-2 border-primary p-8 shadow-lg shadow-primary/10"
+            className="bg-card rounded-2xl border-2 border-primary p-8 shadow-lg shadow-primary/10"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
@@ -78,7 +78,7 @@ export const ComparisonSection = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-white rounded-2xl border border-border p-8"
+            className="bg-card rounded-2xl border border-border p-8"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">

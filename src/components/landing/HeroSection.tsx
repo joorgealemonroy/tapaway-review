@@ -26,9 +26,9 @@ export const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-white">
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
       {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-muted/30" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
       
       <div className="relative max-w-6xl mx-auto px-4 py-12 md:py-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
@@ -189,7 +189,7 @@ export const HeroSection = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.6 }}
-                  className="absolute -right-3 bottom-1/4 bg-white rounded-xl shadow-xl p-3 border border-border"
+                  className="absolute -right-3 bottom-1/4 bg-card rounded-xl shadow-xl p-3 border border-border"
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -207,7 +207,7 @@ export const HeroSection = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6, delay: 0.8 }}
-                  className="absolute -left-2 top-1/4 bg-white rounded-lg shadow-lg p-2 border border-border"
+                  className="absolute -left-2 top-1/4 bg-card rounded-lg shadow-lg p-2 border border-border"
                 >
                   <div className="flex items-center gap-1.5">
                     <CheckCircle className="w-3.5 h-3.5 text-green-500" />

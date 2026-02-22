@@ -58,7 +58,7 @@ export const ProofSection = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
-              className="bg-white rounded-2xl border border-border p-6 hover:shadow-lg transition-all"
+              className="bg-card rounded-2xl border border-border p-6 hover:shadow-lg transition-all"
             >
               {/* Restaurant Info */}
               <div className="mb-6">
@@ -111,7 +111,7 @@ export const ProofSection = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <div className="inline-flex items-center gap-4 bg-white rounded-full px-8 py-4 border border-border shadow-sm">
+          <div className="inline-flex items-center gap-4 bg-card rounded-full px-8 py-4 border border-border shadow-sm">
             <div className="text-4xl font-black text-primary">+16</div>
             <div className="text-left">
               <p className="font-semibold text-foreground">average new 5-star reviews</p>

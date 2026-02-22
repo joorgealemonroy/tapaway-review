@@ -55,7 +55,7 @@ export const QRComparisonSection = () => {
           className="grid md:grid-cols-2 gap-6"
         >
           {/* TapAway Card */}
-          <div className="bg-white rounded-2xl border-2 border-primary p-8 relative overflow-hidden">
+          <div className="bg-card rounded-2xl border-2 border-primary p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-primary text-background text-xs font-bold px-3 py-1 rounded-bl-lg">
               RECOMMENDED
             </div>
@@ -84,7 +84,7 @@ export const QRComparisonSection = () => {
           </div>
 
           {/* QR Code Card */}
-          <div className="bg-white rounded-2xl border border-border p-8 opacity-75">
+          <div className="bg-card rounded-2xl border border-border p-8 opacity-75">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
                 <QrCode className="w-6 h-6 text-muted-foreground" />
