@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, LogOut, LayoutDashboard, UserPlus } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, UserPlus, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -14,6 +15,12 @@ export const MobileNav = () => {
   const { isSalesRep } = useSalesRep();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+  
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
   
   const isBusiness = location.pathname === "/business";
   const dashboardLink = isSalesRep ? "/rep" : isBusiness ? "/dashboard" : "/personal/dashboard";
@@ -91,6 +98,15 @@ export const MobileNav = () => {
                 )}
               </div>
               
+              {/* Dark Mode Toggle */}
+              <div className="border-t border-border px-4 py-2">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl">
+                  {isDark ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
+                  <span className="flex-1 font-medium text-foreground">Dark Mode</span>
+                  <Switch checked={isDark} onCheckedChange={setIsDark} />
+                </div>
+              </div>
+
               {/* Footer Links */}
               <div className="border-t border-border px-4 py-4">
                 <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
