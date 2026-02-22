@@ -1,55 +1,35 @@
 
 
-# Fix Touch Drag to Support Both Horizontal and Vertical Movement
+# Redesign /personal/pricing to Match Referral Page Flow
 
-## Problem
-The current `handleTouchMove` in `DashboardUnifiedContent.tsx` only tracks Y-axis (vertical) movement and uses a fixed `itemHeight = 64` to calculate which item to swap with. This means:
+## Overview
+Replace the current minimal pricing page (`PersonalPricing.tsx`) with the same conversion funnel used in the referral/affiliate onboarding page (`AffiliateOnboarding.tsx`). The new page will follow the Hook -> Explain -> Action flow: animated hero card, Hub Showcase (real profiles), How It Works steps, Layout Templates, What Is a Hub explainer, and multiple CTAs throughout.
 
-- **Grid items** (2-column layout with square tiles) can't be dragged left/right because horizontal movement is ignored
-- The fixed 64px height assumption is wrong for grid tiles (which are `aspect-square` and much taller)
-- On iPhone, dragging feels broken because moving your finger sideways does nothing
+## What changes
 
-## Solution
-Replace the Y-only math-based approach with `document.elementFromPoint()` hit-testing. Instead of calculating index from vertical offset, we find the actual DOM element under the user's finger and determine which item it belongs to. This naturally supports any layout -- vertical lists, horizontal grids, or mixed.
+The `PersonalPricing.tsx` file will be rewritten to mirror `AffiliateOnboarding.tsx` with these sections in order:
 
-## Changes (1 file)
+1. **Hero** -- Animated color-cycling card with "All Your Links, One TapAway" headline and "Create My Hub" CTA button
+2. **Hub Showcase** -- Real customer profiles carousel (reuses `<HubShowcase />` component), with "Copy Layout" functionality
+3. **How It Works** -- 3-step numbered list (Pick a username, Add your links, Share it everywhere)
+4. **Mid-page CTA** -- "Create My Hub" button
+5. **Layout Templates** -- Free starter templates grid (reuses `<LayoutTemplates />` component)
+6. **What Is a Hub?** -- 3 info cards explaining the product (all links in one place, one-tap contact saving, works everywhere)
+7. **Bottom CTA** -- Final "Create My Hub" button with "Free to start" reassurance
 
-### `src/components/personal/DashboardUnifiedContent.tsx`
-
-**1. Add `data-drag-index` attribute to all draggable items**
-Each draggable `div` (grid links, regular links, blocks) gets a `data-drag-index={index}` attribute so we can identify which item is under the touch point.
-
-**2. Replace `handleTouchMove` logic**
-Instead of:
-```
-const diff = currentY - touchStartY;
-const indexDiff = Math.round(diff / itemHeight);
-const newIndex = touchCurrentIndex + indexDiff;
-```
-
-Use:
-```
-// Temporarily hide dragged element so elementFromPoint sees what's underneath
-const draggedEl = e.currentTarget;
-draggedEl.style.pointerEvents = 'none';
-const target = document.elementFromPoint(touchX, touchY);
-draggedEl.style.pointerEvents = '';
-
-// Walk up DOM to find [data-drag-index]
-const dropTarget = target?.closest('[data-drag-index]');
-const newIndex = Number(dropTarget?.getAttribute('data-drag-index'));
-```
-
-**3. Also track X-axis in scroll detection**
-Update the scroll-vs-drag detection to check both X and Y movement (if the user moves more than 10px in any direction before the hold timer fires, cancel it).
-
-**4. Remove unused `touchStartY` and `touchCurrentIndex` state**
-These are no longer needed since we use hit-testing instead of offset math.
+## Key differences from AffiliateOnboarding
+- No `refCode` prop needed -- CTAs navigate to `/personal/signup` directly (no `?ref=` param)
+- Same teal color scheme and gradient background
+- Same components reused: `HubShowcase`, `LayoutTemplates`
+- Header removed (the referral page doesn't have a nav header either -- clean single-page feel)
 
 ## Technical details
 
-- `document.elementFromPoint(x, y)` returns the topmost element at a given coordinate
-- `.closest('[data-drag-index]')` walks up the DOM tree to find the draggable parent
-- We temporarily set `pointer-events: none` on the dragged element so `elementFromPoint` sees the element underneath it, not the dragged element itself
-- This approach works for any layout (list, grid, mixed) without needing to know item dimensions
-
+### File: `src/pages/personal/PersonalPricing.tsx`
+- Remove old imports (Check, ArrowRight, Button toggle logic, plan/billing state)
+- Import `HubShowcase` from `@/components/card/HubShowcase`
+- Import `LayoutTemplates` from `@/components/card/LayoutTemplates`
+- Import motion icons: `Globe`, `UserPlus`, `Share2`, `ChevronDown`, `User`, `Link2`, `QrCode` from lucide-react
+- Copy the same section structure and constants (INFO_CARDS, STEPS) from `AffiliateOnboarding.tsx`
+- CTA buttons navigate to `/personal/signup` (no ref param)
+- Keep the same staggered `motion` animations and scroll-to-section behavior
