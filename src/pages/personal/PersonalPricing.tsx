@@ -80,7 +80,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
           >
             Create My Hub
           </Button>
@@ -142,7 +142,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
           >
             Create My Hub
           </Button>
@@ -200,7 +200,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
           >
             Create My Hub
           </Button>
