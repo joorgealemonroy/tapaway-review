@@ -53,8 +53,8 @@ const XIcon = () =>
 
 export const PersonalHero = () => {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-white">
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-muted/30" />
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
 
       <div className="relative max-w-6xl mx-auto px-4 py-12 md:py-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">

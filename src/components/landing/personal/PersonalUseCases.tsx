@@ -70,7 +70,7 @@ export const PersonalUseCases = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
-              className="bg-white rounded-xl border border-border p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+              className="bg-card rounded-xl border border-border p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
             >
               {/* Icon + Title row */}
               <div className="flex items-center gap-2 mb-2">
