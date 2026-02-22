@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wifi, WifiOff, Sparkles, Smartphone, CreditCard } from "lucide-react";
+import { Sparkles, Smartphone, CreditCard } from "lucide-react";
 
 const PRODUCTS = [
   {
@@ -27,9 +27,9 @@ const PRODUCTS = [
 ];
 
 const BENEFITS = [
-  { icon: WifiOff, label: "Share without Wi-Fi", description: "Works with just a tap — no internet needed" },
+  { icon: Smartphone, label: "No app needed", description: "Just tap — works instantly on any phone" },
   { icon: Sparkles, label: "Make a lasting impression", description: "Stand out with a physical card people remember" },
-  { icon: Smartphone, label: "Works with any smartphone", description: "Compatible with iPhone & Android — no app needed" },
+  { icon: CreditCard, label: "Always on you", description: "Fits in your wallet — never miss a connection" },
 ];
 
 export function PersonalShopTab() {
