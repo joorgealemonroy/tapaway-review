@@ -19,6 +19,7 @@ interface NfcCard {
   claimed_at: string | null;
   created_at: string;
   batch_id: string | null;
+  card_type: string;
 }
 
 function generateCode(): string {
@@ -34,6 +35,7 @@ const AdminCards = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [quantity, setQuantity] = useState(100);
+  const [cardType, setCardType] = useState<"standard" | "vip">("standard");
   const [generating, setGenerating] = useState(false);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
   const [cards, setCards] = useState<NfcCard[]>([]);
@@ -91,6 +93,7 @@ const AdminCards = () => {
           status: "unclaimed",
           claim_code_hash: "",
           batch_id: batchId,
+          card_type: cardType,
         }));
 
         const { error } = await supabase.from("nfc_cards").insert(batch);
@@ -167,7 +170,7 @@ const AdminCards = () => {
         {/* Generator Section */}
         <section className="bg-card rounded-xl border border-border p-6 space-y-4">
           <h2 className="font-semibold text-foreground">Generate Cards</h2>
-          <div className="flex gap-3 items-end">
+          <div className="flex gap-3 items-end flex-wrap">
             <div className="flex-1 max-w-[200px]">
               <label className="text-sm text-muted-foreground mb-1 block">Quantity</label>
               <Input
@@ -177,6 +180,23 @@ const AdminCards = () => {
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
               />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Type</label>
+              <div className="flex rounded-lg border border-border overflow-hidden">
+                <button
+                  onClick={() => setCardType("standard")}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${cardType === "standard" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                >
+                  Standard
+                </button>
+                <button
+                  onClick={() => setCardType("vip")}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${cardType === "vip" ? "bg-amber-500 text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                >
+                  ⭐ VIP
+                </button>
+              </div>
             </div>
             <Button onClick={handleGenerate} disabled={generating}>
               {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -248,7 +268,12 @@ const AdminCards = () => {
                       <TableCell className="text-sm text-muted-foreground">
                         tapaway.co/c/{card.public_code}
                       </TableCell>
-                      <TableCell>{statusBadge(card.status)}</TableCell>
+                      <TableCell className="space-x-1">
+                        {statusBadge(card.status)}
+                        {card.card_type === "vip" && (
+                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">⭐ VIP</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm">
                         {card.destination_value ? (
                           <span>

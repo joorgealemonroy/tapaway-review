@@ -48,7 +48,7 @@ const CardResolver = () => {
     const resolveCard = async () => {
       const { data: card, error } = await supabase
         .from("nfc_cards")
-        .select("status, destination_type, destination_value")
+        .select("status, destination_type, destination_value, card_type")
         .eq("public_code", publicCode.toUpperCase())
         .single();
 
@@ -73,6 +73,14 @@ const CardResolver = () => {
       }
 
       setCardStatus("unclaimed");
+      
+      // Set VIP flag in sessionStorage if applicable
+      if (card.card_type === "vip") {
+        sessionStorage.setItem("tapaway_card_vip", "true");
+      } else {
+        sessionStorage.removeItem("tapaway_card_vip");
+      }
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase

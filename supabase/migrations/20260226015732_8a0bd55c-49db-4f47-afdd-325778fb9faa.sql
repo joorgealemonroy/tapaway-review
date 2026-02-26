@@ -1,0 +1,1 @@
+ALTER TABLE public.nfc_cards ADD COLUMN card_type text NOT NULL DEFAULT 'standard';
