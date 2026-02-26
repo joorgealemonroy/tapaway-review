@@ -15,6 +15,7 @@ export interface PersonalLink {
   gridSize?: string | null; // "half" | "full" - controls 2-col grid
   thumbnailUrl?: string | null; // optional small icon image
   sortOrder?: number; // unified ordering with blocks
+  placeholder?: string; // ghost cue text from template (e.g. "@yourhandle")
 }
 
 export type ContentItem =
@@ -49,6 +50,7 @@ export interface PersonalOnboardingData {
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
   isOAuthUser: boolean;
+  selectedTemplate?: string | null;
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
@@ -75,6 +77,7 @@ const initialData: PersonalOnboardingData = {
   cardChoice: "none",
   basicCardColor: null,
   isOAuthUser: false,
+  selectedTemplate: null,
 };
 
 export const usePersonalOnboarding = () => {

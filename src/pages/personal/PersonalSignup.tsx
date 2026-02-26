@@ -153,7 +153,11 @@ const PersonalSignup = () => {
     // Clear existing draft content before applying new template
     update({ links: [], blocks: [] });
 
-    // Add template links
+    // Store selected template ID
+    const appliedTemplateId = copiedRaw ? "copied" : templateId;
+    update({ selectedTemplate: appliedTemplateId });
+
+    // Add template links with placeholder cues
     template.defaultLinks.forEach((l, i) => {
       addLink({
         type: l.type,
@@ -165,6 +169,7 @@ const PersonalSignup = () => {
         pillColor: l.pillColor,
         gridSize: l.gridSize,
         isFeatured: l.isFeatured,
+        placeholder: l.placeholder,
       });
     });
 
@@ -354,6 +359,7 @@ const PersonalSignup = () => {
                 removeBlock={removeBlock}
                 reorderBlocks={reorderBlocks}
                 reorderContent={reorderContent}
+                selectedTemplate={onboardingData.selectedTemplate}
               />
             )}
 
