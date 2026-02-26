@@ -36,7 +36,7 @@ const STEPS = [
 
 export const CardOnboarding = ({ onActivate }: Props) => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
+    <div className="min-h-screen bg-background">
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
         {/* 1. Hero */}
         <motion.div
@@ -46,7 +46,7 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
+            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-500/20 dark:shadow-teal-400/10 flex items-center justify-center"
             animate={{
               backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
               y: [0, -6, 0],
@@ -168,8 +168,8 @@ export const CardOnboarding = ({ onActivate }: Props) => {
                 key={i}
                 className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
               >
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-                  <card.icon className="h-5 w-5 text-teal-600" />
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                  <card.icon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">{card.title}</p>

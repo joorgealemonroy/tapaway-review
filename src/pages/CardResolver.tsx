@@ -241,8 +241,8 @@ const CardResolver = () => {
   // Not found
   if (cardStatus === "not_found") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col items-center justify-center px-6">
-        <AlertCircle className="h-16 w-16 text-gray-300 mb-4" />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <AlertCircle className="h-16 w-16 text-muted-foreground/40 mb-4" />
         <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Card</h1>
         <p className="text-muted-foreground text-center max-w-sm">
           This card doesn't exist or has been disabled.
@@ -270,7 +270,7 @@ const CardResolver = () => {
   const current = stepIndex(step);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white flex flex-col items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
 
@@ -282,7 +282,7 @@ const CardResolver = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <motion.div
-            className="w-64 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
+            className="w-64 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-500/20 dark:shadow-teal-400/10 flex items-center justify-center"
             animate={{
               backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
               y: [0, -6, 0],
@@ -325,9 +325,9 @@ const CardResolver = () => {
             return (
               <div key={s.key} className="flex items-center gap-2">
                 {i > 0 && (
-                  <div className={`w-8 h-px ${i <= current ? "bg-teal-500" : "bg-gray-200"} transition-colors`} />
+                  <div className={`w-8 h-px ${i <= current ? "bg-teal-500" : "bg-border"} transition-colors`} />
                 )}
-                <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${active ? "text-teal-600" : "text-gray-300"}`}>
+                <div className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${active ? "text-teal-600 dark:text-teal-400" : "text-muted-foreground/40"}`}>
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{s.label}</span>
                 </div>
@@ -353,7 +353,7 @@ const CardResolver = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400"
+                className="h-12 text-base rounded-xl border-border focus:border-teal-500 focus:ring-teal-500"
                 autoFocus
               />
               <Button
@@ -433,7 +433,7 @@ const CardResolver = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
-                  className="h-12 text-base rounded-xl border-gray-200 focus:border-teal-400 focus:ring-teal-400 pr-12"
+                  className="h-12 text-base rounded-xl border-border focus:border-teal-500 focus:ring-teal-500 pr-12"
                   autoFocus
                 />
                 <button
@@ -469,7 +469,7 @@ const CardResolver = () => {
               transition={{ duration: 0.3 }}
               className="text-center space-y-4"
             >
-              <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto" />
+              <Loader2 className="h-8 w-8 animate-spin text-teal-600 dark:text-teal-400 mx-auto" />
               <p className="text-sm text-muted-foreground">Activating your card...</p>
             </motion.div>
           )}
