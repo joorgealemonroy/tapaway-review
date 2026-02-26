@@ -45,12 +45,13 @@ interface Props {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   planLocked?: boolean; // If true, skip plan selection (plan was chosen from pricing page)
+  cardCode?: string; // NFC card public_code to claim after profile creation
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating" | "existing_account";
 type PlanType = "free" | "monthly" | "yearly";
 
-export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false }: Props) => {
+export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false, cardCode }: Props) => {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [flowStep, setFlowStep] = useState<FlowStep>("plan");
@@ -565,6 +566,18 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         // Non-fatal, continue
       }
 
+      // Claim NFC card if this signup originated from card activation
+      if (cardCode) {
+        try {
+          await supabase.functions.invoke("claim-card", {
+            body: { public_code: cardCode },
+          });
+          logCheckpoint("Card claimed", { cardCode });
+        } catch (claimErr) {
+          console.warn("Card claim failed (non-fatal):", claimErr);
+        }
+      }
+
       logCheckpoint("Account creation complete");
       toast.success("Account created successfully! Welcome to TapAway!");
       
@@ -749,6 +762,18 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       sessionStorage.removeItem("tapaway_card_password");
       sessionStorage.removeItem("tapaway_card_vip");
       localStorage.removeItem("tapaway_personal_draft");
+
+      // Claim NFC card if this signup originated from card activation
+      if (cardCode) {
+        try {
+          await supabase.functions.invoke("claim-card", {
+            body: { public_code: cardCode },
+          });
+          logCheckpoint("Card claimed (pre-authed)", { cardCode });
+        } catch (claimErr) {
+          console.warn("Card claim failed (non-fatal):", claimErr);
+        }
+      }
 
       logCheckpoint("Account creation complete (pre-authed flow)");
       toast.success("Account created successfully! Welcome to TapAway!");
