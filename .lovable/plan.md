@@ -1,22 +1,25 @@
 
 
-# Center Layout + Add Bio for adrianlasislas
+# Default pfp_position to "center" Everywhere
 
-## What Needs to Happen
+## Current State
+- The database column `pfp_position` defaults to `'left'` (set in migration `20260105061710`)
+- The `create-personal-account` edge function already hardcodes `"center"`
+- The signup flow (`LinksStep.tsx`, `DashboardHeroEditor.tsx`) already hardcodes `"center"`
+- But any profile created before those hardcodes, or via other paths, got `'left'`
+- The code in `ProfilePreviewRenderer.tsx` falls back to `"center"` if null, but not if `"left"`
 
-A single database update on the `personal_profiles` table for username `adrianlasislas`:
+## Changes Needed
 
-- Set `pfp_position` from `"left"` to `"center"` — this centers the username and text in the banner layout (the code already handles this)
-- Set `bio` to `"vendo mariscos"`
+### 1. Database migration — change column default + fix existing rows
+- `ALTER TABLE personal_profiles ALTER COLUMN pfp_position SET DEFAULT 'center'`
+- `UPDATE personal_profiles SET pfp_position = 'center' WHERE pfp_position = 'left' OR pfp_position IS NULL`
 
-No code changes are needed. The profile page already renders the bio when it exists and centers content when `pfp_position === "center"`.
+This fixes all existing profiles and ensures every new profile defaults to center.
 
-## Technical Detail
+### 2. No code changes needed
+All the code paths already either hardcode `"center"` or fall back to `"center"`. The only source of `"left"` was the database default, which this migration fixes.
 
-SQL to execute:
-```sql
-UPDATE personal_profiles
-SET pfp_position = 'center', bio = 'vendo mariscos'
-WHERE username = 'adrianlasislas';
-```
+## Files Modified
+- New database migration (schema default change + data backfill)
 
