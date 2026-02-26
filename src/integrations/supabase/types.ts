@@ -1054,6 +1054,7 @@ export type Database = {
       nfc_cards: {
         Row: {
           batch_id: string | null
+          card_type: string
           claim_code_hash: string | null
           claimed_at: string | null
           created_at: string
@@ -1066,6 +1067,7 @@ export type Database = {
         }
         Insert: {
           batch_id?: string | null
+          card_type?: string
           claim_code_hash?: string | null
           claimed_at?: string | null
           created_at?: string
@@ -1078,6 +1080,7 @@ export type Database = {
         }
         Update: {
           batch_id?: string | null
+          card_type?: string
           claim_code_hash?: string | null
           claimed_at?: string | null
           created_at?: string

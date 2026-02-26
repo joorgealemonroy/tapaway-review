@@ -103,16 +103,18 @@ const PersonalSignup = () => {
     }
   }, [searchParams, update]);
 
-  // Detect card-activation users
+  // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
+  const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+  // VIP cards skip checkout entirely (only 3 steps: Identity, Links, Preview→auto-complete)
   const totalSteps = fromCardActivation ? 3 : 4;
 
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
     if (fromCardActivation && !planLocked) {
-      update({ planType: "free", cardChoice: "none" });
+      update({ planType: isVipCard ? "free" : "free", cardChoice: "none" });
     }
-  }, [fromCardActivation, planLocked, update]);
+  }, [fromCardActivation, planLocked, isVipCard, update]);
 
   // Apply layout template from sessionStorage (set during card onboarding)
   const [templateApplied, setTemplateApplied] = useState(false);

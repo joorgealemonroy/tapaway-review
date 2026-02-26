@@ -442,16 +442,20 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       // Step 5: Create the personal profile with ALL theme settings
       logCheckpoint("Creating personal profile");
       
+      // Detect VIP card activation
+      const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+      const effectivePlanType = isVipCard ? "vip" : formData.planType;
+      
       // Use the helper to get the correct public username
-      const finalUsername = getPublicUsername(formData.planType, formData.username);
+      const finalUsername = getPublicUsername(effectivePlanType as any, formData.username);
       
       const profileData: Record<string, any> = {
         user_id: signInData.user.id,
         email: formData.email,
         full_name: formData.fullName,
         username: finalUsername,
-        plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
-        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        plan_type: isVipCard ? "vip" : (PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus),
+        subscription_status: isVipCard ? "active" : PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
         // Include ALL theme settings
         header_type: formData.headerType || "color",
@@ -653,15 +657,19 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         }
       }
 
+      // Detect VIP card activation
+      const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+      const effectivePlanType = isVipCard ? "vip" : formData.planType;
+      
       // Create profile
-      const finalUsername = getPublicUsername(formData.planType, formData.username);
+      const finalUsername = getPublicUsername(effectivePlanType as any, formData.username);
       const profileData: Record<string, any> = {
         user_id: user.id,
         email: formData.email,
         full_name: formData.fullName,
         username: finalUsername,
-        plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
-        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        plan_type: isVipCard ? "vip" : (PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus),
+        subscription_status: isVipCard ? "active" : PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
         header_type: formData.headerType || "color",
         header_color: formData.headerColor || "#6BCB77",
@@ -739,6 +747,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       sessionStorage.removeItem("tapaway_card_preauthed");
       sessionStorage.removeItem("tapaway_card_email");
       sessionStorage.removeItem("tapaway_card_password");
+      sessionStorage.removeItem("tapaway_card_vip");
       localStorage.removeItem("tapaway_personal_draft");
 
       logCheckpoint("Account creation complete (pre-authed flow)");
@@ -951,15 +960,17 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       }
 
       // Step 5: Create the personal profile
-      const finalUsername = getPublicUsername(formData.planType, formData.username);
+      const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+      const effectivePlanType = isVipCard ? "vip" : formData.planType;
+      const finalUsername = getPublicUsername(effectivePlanType as any, formData.username);
       
       const profileData = {
         user_id: signInData.user.id,
         email: formData.email,
         full_name: formData.fullName,
         username: finalUsername,
-        plan_type: PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus,
-        subscription_status: PERSONAL_TRIAL_CONFIG.subscriptionStatus,
+        plan_type: isVipCard ? "vip" : (PERSONAL_PAYMENTS_ENABLED ? formData.planType : PERSONAL_TRIAL_CONFIG.paymentStatus),
+        subscription_status: isVipCard ? "active" : PERSONAL_TRIAL_CONFIG.subscriptionStatus,
         profile_photo_url: profilePhotoUrl,
         header_type: formData.headerType || "color",
         header_color: formData.headerColor || "#6BCB77",

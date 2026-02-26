@@ -56,7 +56,7 @@ serve(async (req) => {
     // 1. Verify card exists and is unclaimed
     const { data: card, error: cardError } = await serviceClient
       .from("nfc_cards")
-      .select("id, status, owner_user_id")
+      .select("id, status, owner_user_id, card_type")
       .eq("public_code", public_code.toUpperCase())
       .single();
 
@@ -109,16 +109,36 @@ serve(async (req) => {
       );
     }
 
+    // 4. If VIP card, upgrade user's profile to VIP plan
+    if (card.card_type === "vip") {
+      const { error: vipError } = await serviceClient
+        .from("personal_profiles")
+        .update({
+          plan_type: "vip",
+          subscription_status: "active",
+        })
+        .eq("user_id", userId);
+
+      if (vipError) {
+        console.error("[claim-card] Error setting VIP:", vipError);
+        // Card is already claimed, don't fail the whole request
+      } else {
+        console.log("[claim-card] VIP plan granted to user", userId);
+      }
+    }
+
     console.log("[claim-card] Card claimed successfully", {
       cardId: card.id,
       userId,
       username: profile.username,
+      cardType: card.card_type,
     });
 
     return new Response(
       JSON.stringify({
         success: true,
         username: profile.username,
+        cardType: card.card_type,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
