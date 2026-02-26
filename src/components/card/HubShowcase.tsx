@@ -169,7 +169,12 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
     sessionStorage.removeItem("tapaway_selected_layout");
     setCopiedId(profile.id);
     const isPremium = usesPremiumFeatures(profile);
-    toast.success("Layout copied! Requires Pro — 7-day free trial included.");
+    const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+    if (isVipCard) {
+      toast.success("Layout copied!");
+    } else {
+      toast.success("Layout copied! Requires Pro — 7-day free trial included.");
+    }
     onCopyLayout?.();
   };
 

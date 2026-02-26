@@ -768,7 +768,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   };
 
   const handleGetCard = () => {
-    if (isFreePlan) {
+    const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
+    if (isVipCard || isFreePlan) {
       if (preAuthed) {
         createProfileDirectly();
       } else {
@@ -1310,28 +1311,36 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       {planLocked && !showPlanSelector ? (
         // Compact plan summary (plan was chosen from pricing page)
         <div className={`p-4 rounded-xl border-2 ${formData.planType === "free" ? "border-muted bg-muted/30" : "border-primary bg-primary/5"}`}>
-          <div className="flex items-center justify-between">
+         <div className="flex items-center justify-between">
             <div>
               <span className="font-bold text-lg text-foreground">
-                {formData.planType === "yearly" 
+                {sessionStorage.getItem("tapaway_card_vip") === "true"
+                  ? "⭐ VIP Access — $0"
+                  : formData.planType === "yearly" 
                   ? "Pro Annual — $6.25/month"
                   : formData.planType === "monthly"
                   ? `Pro Monthly — $${PERSONAL_PRICING.monthly}/month`
                   : "Free Plan — $0"
                 }
               </span>
-              {formData.planType === "yearly" && (
+              {sessionStorage.getItem("tapaway_card_vip") === "true" ? (
+                <p className="text-xs text-primary font-medium mt-1">
+                  Full Pro features included with your VIP card
+                </p>
+              ) : formData.planType === "yearly" ? (
                 <p className="text-xs text-primary font-medium mt-1">
                   Billed annually $75
                 </p>
-              )}
+              ) : null}
             </div>
-            <button
-              onClick={() => setShowPlanSelector(true)}
-              className="text-xs text-primary hover:underline"
-            >
-              Change
-            </button>
+            {sessionStorage.getItem("tapaway_card_vip") !== "true" && (
+              <button
+                onClick={() => setShowPlanSelector(true)}
+                className="text-xs text-primary hover:underline"
+              >
+                Change
+              </button>
+            )}
           </div>
         </div>
       ) : (
