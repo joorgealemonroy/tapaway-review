@@ -1,36 +1,69 @@
 
 
-# Fix: VIP Card Users See "tap" Prefix on Username
+# Fix VIP Checkout Price + Redesign Success Screen
 
-## Problem
-When a VIP card user goes through signup, the username field shows `tapaway.co/tapjorge` instead of `tapaway.co/jorge`. This happens because VIP card activation sets `planType: "free"` in the onboarding data, and the IdentityStep uses `selectedPlan === "free"` to decide whether to show the "tap" prefix.
+## Issue 1: VIP Checkout Shows $10
 
-The profile creation code in CheckoutStep correctly detects VIP via sessionStorage and passes `"vip"` to `getPublicUsername()`, but the IdentityStep UI and username availability check both rely on `selectedPlan` which is `"free"`.
+`calculateTotal()` on line 113-116 only returns `$0` for `"free"` — the `"vip"` plan type falls through to monthly pricing ($10). Same issue with `isFreePlan` on line 162.
 
-## Root Cause
-In `PersonalSignup.tsx` line 114:
-```typescript
-update({ planType: isVipCard ? "free" : "free" });
+### Changes in `src/components/personal/signup/CheckoutStep.tsx`:
+- **Line 113-116**: Update `calculateTotal` — return `0` when `planType` is `"free"` OR `"vip"`
+- **Line 162**: Update `isFreePlan` to `formData.planType === "free" || formData.planType === "vip"`
+- **Lines 1446-1477**: Order summary — show "VIP Access" / "$0" for VIP users instead of "Monthly plan" / "$10"
+- **Lines 1490-1497**: CTA button — show "Create My TapAway" (no credit card icon) for VIP
+- **Lines 1505-1510**: Hide "Secure checkout powered by Stripe" for VIP
+
+---
+
+## Issue 2: Success Screen Redesign — Premium "Wow" with Bio CTA
+
+Complete rewrite of `src/components/personal/signup/SuccessScreen.tsx` with a polished, high-end feel that still drives action (putting the link in their bio).
+
+### Design approach:
+- **Confetti burst** on load using existing `ConfettiEffect` component
+- **Animated checkmark** — a smooth SVG draw animation inside a glowing circle (replaces party popper)
+- **Bold headline**: "You're in." — short, confident
+- **Subtitle**: "Your TapAway is live and ready to share."
+- **Profile link card** — clean, prominent, with a large copy button and pulsing glow to draw attention
+- **"Add it to your bio" callout** — a distinct, visually engaging section with platform icons (Instagram, TikTok, LinkedIn, Twitter) showing where to paste the link. Not a boring list — a row of recognizable platform badges
+- **Two CTAs**: "View Your Profile" (primary, full-width) and "Go to Dashboard" (ghost)
+- **Remove** the generic "What's next" card list — replaced by the bio callout which is more specific and actionable
+- **Typography**: `tracking-tight` headings, generous spacing, smooth staggered `framer-motion` animations
+- **No emoji** in headings — let the animation do the talking
+
+### Visual structure:
+```text
+┌─────────────────────────────┐
+│  TapAway                    │
+├─────────────────────────────┤
+│     🎊 (confetti burst)     │
+│                             │
+│      ✓ (animated draw)      │
+│                             │
+│       You're in.            │
+│  Your TapAway is live and   │
+│     ready to share.         │
+│                             │
+│  ┌─────────────────────┐    │
+│  │  tapaway.co/jorge    │ 📋│
+│  └─────────────────────┘    │
+│                             │
+│  ┌─────────────────────────┐│
+│  │ 📱 Add it to your bio   ││
+│  │                         ││
+│  │ [IG] [TikTok] [X] [LI] ││
+│  │                         ││
+│  │ Paste your link so      ││
+│  │ followers find you      ││
+│  └─────────────────────────┘│
+│                             │
+│  [ View Your Profile ]      │
+│    Go to Dashboard          │
+│                             │
+└─────────────────────────────┘
 ```
-VIP cards should set `planType: "vip"` so the entire flow knows not to add the "tap" prefix.
 
-## Changes
-
-### 1. `src/pages/personal/PersonalSignup.tsx`
-- Change the card-activation effect to set `planType: "vip"` when `isVipCard` is true:
-```typescript
-update({ planType: isVipCard ? "vip" : "free", cardChoice: "none" });
-```
-
-### 2. `src/components/personal/signup/IdentityStep.tsx`
-- Update the `selectedPlan` prop type to include `"vip"`
-- Update line 83: username check should NOT add "tap" prefix for VIP users
-- Update line 217: username display should NOT show "tap" for VIP users
-
-Both lines currently check `selectedPlan === "free"`. Change to: the "tap" prefix is only added when `selectedPlan === "free"` (VIP is no longer "free", so this works automatically once planType is set correctly).
-
-### 3. `src/components/personal/signup/CheckoutStep.tsx`
-- The `createProfileDirectly` and OTP flows already detect VIP via sessionStorage and pass `"vip"` to `getPublicUsername()` — no changes needed here. However, the `effectivePlanType` logic can be simplified since `formData.planType` will now already be `"vip"` for VIP users.
-
-These changes ensure the username prefix, availability check, and final profile creation all consistently treat VIP users as non-free (no "tap" prefix).
+### Files modified:
+- `src/components/personal/signup/CheckoutStep.tsx` — VIP $0 fix
+- `src/components/personal/signup/SuccessScreen.tsx` — full redesign
 
