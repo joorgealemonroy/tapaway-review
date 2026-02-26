@@ -825,7 +825,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const bgStyle = isGradientBg 
     ? { background: bgColor } 
     : { backgroundColor: bgColor };
-  const pfpCentered = profile.pfp_position === "center";
+  const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
   const isDarkBg = hasBanner || isGradientBg || isColorDark(bgColor);
   
   // Dynamic text classes based on background
