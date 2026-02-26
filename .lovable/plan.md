@@ -1,118 +1,72 @@
 
 
-# Add Google & Apple Sign-In to Personal Signup
+# Add Google & Apple OAuth to Login Page
 
-## Current Flow
-```text
-Step 1 (IdentityStep): Name, Email, Username, Password → Continue
-Step 4 (CheckoutStep): Send OTP → Verify OTP → Create account → Sign in with password
-```
+## Verification of Signup OAuth
 
-The user must type an email, create a password, receive a 6-digit OTP code, and verify it. This is 3 friction points that OAuth eliminates.
+The signup page (`/personal/signup`) already has working Google and Apple OAuth buttons. The `IdentityStep` correctly:
+- Shows OAuth buttons at the top with a divider
+- Detects OAuth session on return and pre-fills name/email
+- Hides password field for OAuth users
+- `CheckoutStep` skips OTP for `isOAuthUser` via `createProfileDirectly()`
 
-## Proposed Flow
+The console logs show "Sign in was cancelled" errors which are expected — those fire when the OAuth popup is closed without completing (normal behavior during testing in the preview iframe).
 
-Add "Continue with Google" and "Continue with Apple" buttons at the top of **IdentityStep**. When a user taps one:
+## Plan: Add OAuth to Auth.tsx Login Page
 
-1. OAuth redirects to Google/Apple, then back to `/personal/signup?step=1`
-2. On return, the component detects the authenticated session
-3. Pre-fills **name** (from OAuth profile) and **email** (locked, read-only)
-4. **Hides the password field** entirely (not needed — user is already authenticated)
-5. User only needs to pick a **username** and hit Continue
-6. In CheckoutStep, the OTP step is **skipped entirely** — user is already verified via OAuth
-7. Profile creation proceeds directly (no OTP send, no OTP verify, no signInWithPassword)
+### Changes to `src/pages/Auth.tsx`
 
-```text
-OAuth Flow:
-  Tap "Continue with Google" → Google consent → redirect back
-  → Name + Email pre-filled, password hidden
-  → Pick username → Continue
-  → CheckoutStep: skip OTP, go straight to profile creation
-```
+Add Google and Apple OAuth buttons to the **standard login form** (mode === `"login"`), placed between the title and the email/password fields:
 
-## Technical Changes
+1. **Import** `lovable` from `@/integrations/lovable/index` and add `Loader2` (already imported)
+2. **Add state**: `oauthLoading` boolean
+3. **Add `handleOAuth` function** — same pattern as `IdentityStep`:
+   ```typescript
+   const handleOAuth = async (provider: "google" | "apple") => {
+     setOauthLoading(true);
+     try {
+       const { error } = await lovable.auth.signInWithOAuth(provider, {
+         redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(redirectTo)}`,
+       });
+       if (error) {
+         setError("Sign-in failed. Please try again.");
+       }
+     } catch {
+       setError("Sign-in failed. Please try again.");
+     } finally {
+       setOauthLoading(false);
+     }
+   };
+   ```
+4. **Add `useEffect` to detect OAuth return** — On mount, check `supabase.auth.getUser()`. If a session exists and user arrived via OAuth (not post-checkout mode), run `determineRedirectDestination()` and navigate immediately. This handles the case where a user taps "Continue with Google", authenticates, and returns to `/auth`.
+5. **Render OAuth buttons** inside the `mode === "login"` form block, before the email field:
+   - "Continue with Google" button (outlined, full-width, Google SVG icon)
+   - "Continue with Apple" button (black bg, full-width, Apple SVG icon)
+   - Divider: "or sign in with email"
 
-### 0. Configure Social Auth (Tool Call)
-Use the `configure-social-auth` tool to enable Google and Apple providers. This generates the `src/integrations/lovable/` module automatically.
+6. **Only show OAuth in standard login mode** — Not in `post-checkout-signup`, `post-checkout-login`, or `forgot` modes (those have specific email-locked flows).
 
-### 1. `src/components/personal/signup/IdentityStep.tsx` — Add OAuth buttons + detect session
-
-**Add at the top of the form** (before the Name field):
-- "Continue with Google" button (full-width, outlined, with Google icon)
-- "Continue with Apple" button (full-width, black, with Apple icon)
-- A horizontal divider: "or sign up with email"
-
-**Add state**: `oauthUser` — set when returning from OAuth or when session is already active.
-
-**On mount**: Check `supabase.auth.getUser()`. If authenticated, extract `user.user_metadata.full_name` and `user.email`, pre-fill the form, lock email, and hide the password field.
-
-**OAuth click handler**:
-```typescript
-import { lovable } from "@/integrations/lovable/index";
-
-const handleOAuth = async (provider: "google" | "apple") => {
-  const { error } = await lovable.auth.signInWithOAuth(provider, {
-    redirect_uri: window.location.origin + "/personal/signup?step=1",
-  });
-  if (error) toast.error("Sign-in failed");
-};
-```
-
-**Form validation**: When `oauthUser` is set, skip password validation entirely. `isFormValid` becomes:
-```typescript
-const isFormValid = formData.fullName.length >= 2 &&
-  formData.email.includes('@') &&
-  formData.username.length >= 3 &&
-  usernameStatus === "available" &&
-  (isOAuthUser || (formData.password?.length || 0) >= 8);
-```
-
-### 2. `src/pages/personal/PersonalSignup.tsx` — Restore step from URL + pass OAuth state
-
-Read `?step=1` from URL params on mount to restore the correct step after OAuth redirect. Pass an `isOAuthUser` boolean down to `IdentityStep` and `CheckoutStep`.
-
-### 3. `src/components/personal/signup/CheckoutStep.tsx` — Skip OTP for OAuth users
-
-Add a new prop `isOAuthUser: boolean`. When true:
-- Skip the `sendOTP` / `verifyOTPAndCreateAccount` flow entirely
-- On "Complete" click, go directly to profile creation (Step 3 onward in the existing code)
-- Use the already-authenticated session (`supabase.auth.getUser()`) instead of `signInWithPassword`
-- The profile creation, link creation, block creation, welcome email, and card claiming logic remain unchanged
-
-### 4. `src/lib/authGuard.ts` — No changes needed
-The auth guard only blocks `signUp`, `signInWithOtp`, `resetPasswordForEmail`, `verifyOtp`. OAuth uses `signInWithOAuth` which is not blocked.
-
-### 5. `src/hooks/usePersonalOnboarding.ts` — Add `isOAuthUser` to draft state
-Add an `isOAuthUser` boolean field so the OAuth state persists across steps (stored in the draft alongside other form data).
-
-## UI Design (IdentityStep)
-
+### UI Layout (login mode only)
 ```text
 ┌──────────────────────────────┐
-│  [G] Continue with Google    │  ← white bg, border, Google icon
+│         Welcome back         │
+│  Log in to your TapAway...   │
 ├──────────────────────────────┤
-│  [] Continue with Apple     │  ← black bg, white text, Apple icon
+│  [G] Continue with Google    │
+│  [] Continue with Apple     │
+│      ── or sign in with email ──
 ├──────────────────────────────┤
-│      ── or sign up with email ──
-├──────────────────────────────┤
-│  Name         [John Smith  ] │
-│  Email        [john@...]     │  ← locked if OAuth
-│  Username     [yourname   ]  │
-│  Password     [••••••••]     │  ← HIDDEN if OAuth
-│                              │
-│  [        Continue         ] │
+│  Email        [you@...]      │
+│  Password     [••••••••]     │
+│  □ Remember me  Forgot pw?   │
+│  [        Sign in          ] │
+│  [    Create an account    ] │
 └──────────────────────────────┘
 ```
 
-## Files Modified
-- `src/components/personal/signup/IdentityStep.tsx` — OAuth buttons, session detection, conditional password
-- `src/pages/personal/PersonalSignup.tsx` — step restoration from URL, `isOAuthUser` prop threading
-- `src/components/personal/signup/CheckoutStep.tsx` — skip OTP when `isOAuthUser`
-- `src/hooks/usePersonalOnboarding.ts` — add `isOAuthUser` field
-- `src/integrations/lovable/` — auto-generated by configure-social-auth tool
+### Redirect Preservation
+The `redirect_uri` includes the current `redirect` query param so that after OAuth completes, the user lands back on `/auth?redirect=...` and the `useEffect` auto-redirects them to the correct destination (admin, rep, personal dashboard, etc.) using the existing `determineRedirectDestination()` logic.
 
-## Impact
-- Reduces signup friction from 7 fields + OTP to 2 fields (name + username) for OAuth users
-- No changes to existing email/password flow — it remains as a fallback
-- Works with both card-activation and standard signup paths
+## Files Modified
+- `src/pages/Auth.tsx` — Add OAuth buttons, session detection on mount, and auto-redirect for OAuth returns
 
