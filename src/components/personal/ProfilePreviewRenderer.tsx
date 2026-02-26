@@ -125,7 +125,7 @@ function ProfilePreviewRendererComponent({
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
   const textClass = isDarkBg ? "text-white/80" : "text-gray-600";
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
-  const pfpPosition = profile.pfp_position || "center";
+  const pfpPosition = profile.header_type === "banner" ? "center" : (profile.pfp_position || "center");
 
   const activeLinks = useMemo(
     () => links.filter((l) => l.is_active !== false),
