@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { Loader2, AlertCircle, Mail, ShieldCheck, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ShieldCheck, CheckCircle, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -40,6 +40,23 @@ const CardResolver = () => {
   const [verifying, setVerifying] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  const ThemeToggle = () => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="fixed top-4 right-4 z-50 h-9 w-9 rounded-full"
+      onClick={() => setIsDark(!isDark)}
+    >
+      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </Button>
+  );
 
   const handleOAuthSignIn = async (provider: "google" | "apple") => {
     setOauthLoading(provider);
@@ -260,6 +277,7 @@ const CardResolver = () => {
   if (cardStatus === "not_found") {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <ThemeToggle />
         <AlertCircle className="h-16 w-16 text-muted-foreground/40 mb-4" />
         <h1 className="text-2xl font-bold text-foreground mb-2">Invalid Card</h1>
         <p className="text-muted-foreground text-center max-w-sm">
@@ -289,6 +307,7 @@ const CardResolver = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
+      <ThemeToggle />
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
 
