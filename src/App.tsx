@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Personal from "./pages/Personal";
 import UsernameResolver from "./pages/UsernameResolver";
+import CardResolver from "./pages/CardResolver";
 import NotFound from "./pages/NotFound";
 
 // Auth routes - relatively lightweight
@@ -70,7 +71,7 @@ const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAcco
 const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
 const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
-const CardResolver = lazy(() => import("./pages/CardResolver"));
+
 
 // Minimal loading spinner
 const PageLoader = () => (

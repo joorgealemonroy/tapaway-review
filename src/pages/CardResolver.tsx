@@ -60,7 +60,7 @@ const CardResolver = () => {
       if (card.status === "claimed" && card.destination_value) {
         setCardStatus("redirecting");
         if (card.destination_type === "profile") {
-          window.location.href = `/${card.destination_value}`;
+          navigate(`/${card.destination_value}`, { replace: true });
         } else if (card.destination_type === "external_url") {
           window.location.href = card.destination_value;
         }
@@ -81,26 +81,28 @@ const CardResolver = () => {
         sessionStorage.removeItem("tapaway_card_vip");
       }
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
+      // Defer auth check — only needed for unclaimed cards
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) {
+          setShowOverview(true);
+          return;
+        }
+        supabase
           .from("personal_profiles")
           .select("username")
           .eq("user_id", user.id)
-          .single();
-
-        if (profile) {
-          setStep("claiming");
-          await claimCard(publicCode);
-        } else {
-          toast.info("Complete your profile setup to activate this card");
-          sessionStorage.setItem("tapaway_card_email", user.email || "");
-          navigate(`/personal/signup?card=${publicCode}`);
-        }
-      } else {
-        // Show overview first for unclaimed cards, user not logged in
-        setShowOverview(true);
-      }
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setStep("claiming");
+              claimCard(publicCode);
+            } else {
+              toast.info("Complete your profile setup to activate this card");
+              sessionStorage.setItem("tapaway_card_email", user.email || "");
+              navigate(`/personal/signup?card=${publicCode}`);
+            }
+          });
+      });
     };
 
     resolveCard();

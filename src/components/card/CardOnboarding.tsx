@@ -1,8 +1,10 @@
+import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HubShowcase } from "./HubShowcase";
-import { LayoutTemplates } from "./LayoutTemplates";
+
+const HubShowcase = lazy(() => import("./HubShowcase").then(m => ({ default: m.HubShowcase })));
+const LayoutTemplates = lazy(() => import("./LayoutTemplates").then(m => ({ default: m.LayoutTemplates })));
 
 interface Props {
   onActivate: () => void;
@@ -98,7 +100,9 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          <HubShowcase onCopyLayout={onActivate} />
+          <Suspense fallback={<div className="h-48" />}>
+            <HubShowcase onCopyLayout={onActivate} />
+          </Suspense>
         </motion.div>
 
         {/* 3. How to Get Started (brief) */}
@@ -145,7 +149,9 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <LayoutTemplates onSelect={() => {}} />
+          <Suspense fallback={<div className="h-48" />}>
+            <LayoutTemplates onSelect={() => {}} />
+          </Suspense>
         </motion.div>
 
         {/* 6. What Is This Card? (educational, for those who need it) */}
