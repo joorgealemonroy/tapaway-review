@@ -113,6 +113,7 @@ const PersonalSignup = () => {
   useEffect(() => {
     if (fromCardActivation && !planLocked) {
       update({ planType: isVipCard ? "free" : "free", cardChoice: "none" });
+      setPlanLocked(true);
     }
   }, [fromCardActivation, planLocked, isVipCard, update]);
 
