@@ -1,6 +1,6 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown } from "lucide-react";
+import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const HubShowcase = lazy(() => import("./HubShowcase").then(m => ({ default: m.HubShowcase })));
@@ -35,8 +35,23 @@ const STEPS = [
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
   return (
     <div className="min-h-screen bg-background">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-4 right-4 z-50 h-9 w-9 rounded-full"
+        onClick={() => setIsDark(!isDark)}
+      >
+        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </Button>
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
         {/* 1. Hero */}
         <motion.div
