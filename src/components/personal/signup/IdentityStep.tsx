@@ -259,7 +259,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       {isOAuthUser && (
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground">
           <Check className="h-4 w-4 text-green-500 shrink-0" />
-          Signed in — just pick a username to continue
+          Signed in — confirm your name and pick a username
         </div>
       )}
 
