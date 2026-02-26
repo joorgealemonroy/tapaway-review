@@ -15,7 +15,7 @@ import { getPublicProfileUrl } from "@/lib/personalUsername";
 
 interface Props {
   username: string;
-  planType?: "free" | "monthly" | "yearly";
+  planType?: "free" | "monthly" | "yearly" | "vip";
 }
 
 export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {

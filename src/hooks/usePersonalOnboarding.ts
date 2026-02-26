@@ -45,7 +45,7 @@ export interface PersonalOnboardingData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "free" | "monthly" | "yearly";
+  planType: "free" | "monthly" | "yearly" | "vip";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
 }

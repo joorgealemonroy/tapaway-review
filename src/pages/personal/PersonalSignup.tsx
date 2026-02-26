@@ -47,7 +47,7 @@ export interface SignupData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "free" | "monthly" | "yearly";
+  planType: "free" | "monthly" | "yearly" | "vip";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
 }
@@ -59,7 +59,7 @@ const PersonalSignup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
-  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly">("yearly");
+  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   const { 
@@ -112,7 +112,7 @@ const PersonalSignup = () => {
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
     if (fromCardActivation && !planLocked) {
-      update({ planType: isVipCard ? "free" : "free", cardChoice: "none" });
+      update({ planType: isVipCard ? "vip" : "free", cardChoice: "none" });
       setPlanLocked(true);
     }
   }, [fromCardActivation, planLocked, isVipCard, update]);

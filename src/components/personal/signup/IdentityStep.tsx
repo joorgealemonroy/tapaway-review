@@ -27,7 +27,7 @@ interface Props {
   onNext: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  selectedPlan?: "free" | "monthly" | "yearly";
+  selectedPlan?: "free" | "monthly" | "yearly" | "vip";
 }
 
 export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setIsLoading, selectedPlan = "free" }: Props) => {
