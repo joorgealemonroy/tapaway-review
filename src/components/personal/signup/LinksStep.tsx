@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,7 @@ interface Props {
   removeBlock: (id: string) => void;
   reorderBlocks: (blocks: PersonalBlock[]) => void;
   reorderContent: (items: ContentItem[]) => void;
+  selectedTemplate?: string | null;
 }
 
 // Helper to get a block icon
@@ -98,6 +99,7 @@ export const LinksStep = ({
   removeBlock,
   reorderBlocks,
   reorderContent,
+  selectedTemplate,
 }: Props) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
@@ -113,6 +115,32 @@ export const LinksStep = ({
   const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoOpenedRef = useRef(false);
+
+  // Template-aware banner text
+  const templateBannerText = useMemo(() => {
+    switch (selectedTemplate) {
+      case "social-star": return "Fill in your handles below — tap any link to edit";
+      case "business-pro": return "Add your professional info — tap any link to edit";
+      case "creative": return "Showcase your work — tap any link to edit, add images below";
+      case "minimal": return "Just the essentials — tap any link to edit";
+      default: return null;
+    }
+  }, [selectedTemplate]);
+
+  // Auto-open first empty template link for editing
+  useEffect(() => {
+    if (autoOpenedRef.current || !selectedTemplate) return;
+    const firstEmpty = formData.links.find(l => !l.value);
+    if (firstEmpty) {
+      autoOpenedRef.current = true;
+      // Small delay to let the UI render first
+      setTimeout(() => {
+        setEditingLink(firstEmpty);
+        setLinkModalOpen(true);
+      }, 400);
+    }
+  }, [selectedTemplate, formData.links]);
 
   const isFreePlan = formData.planType === "free";
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
@@ -373,9 +401,15 @@ export const LinksStep = ({
       {/* Section 2: Content (unified links + blocks) */}
       <div className="space-y-3">
         <Label className="text-sm font-semibold text-foreground">Content</Label>
-        <p className="text-xs text-muted-foreground">
-          Add links and blocks. Drag to reorder — they'll appear exactly like this on your profile.
-        </p>
+        {templateBannerText ? (
+          <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+            {templateBannerText}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Add links and blocks. Drag to reorder — they'll appear exactly like this on your profile.
+          </p>
+        )}
 
         {/* Unified content list */}
         {unifiedContent.length > 0 && (
@@ -386,30 +420,36 @@ export const LinksStep = ({
 
               if (isLink) {
                 const link = ci.item as PersonalLink;
-                const config = getPlatformConfig(link.type);
-                const Icon = config?.icon;
-                return (
-                  <div
-                    key={`link-${link.id}`}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, index)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all select-none ${
-                      draggedIndex === index ? "opacity-50 scale-95" : ""
-                    }`}
-                  >
-                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
-                      {Icon && <Icon className={`h-4 w-4 ${config?.color || "text-primary"}`} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
-                      <p className="text-xs text-muted-foreground truncate">{link.value}</p>
-                    </div>
+                  const config = getPlatformConfig(link.type);
+                  const Icon = config?.icon;
+                  const isEmpty = !link.value;
+                  return (
+                    <div
+                      key={`link-${link.id}`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onClick={isEmpty ? () => { setEditingLink(link); setLinkModalOpen(true); } : undefined}
+                      className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border cursor-move transition-all select-none ${
+                        draggedIndex === index ? "opacity-50 scale-95" : ""
+                      } ${isEmpty ? "border-dashed border-amber-400/60" : "border-border"}`}
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
+                        {Icon && <Icon className={`h-4 w-4 ${config?.color || "text-primary"}`} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
+                        {isEmpty && link.placeholder ? (
+                          <p className="text-xs text-amber-500/80 italic truncate">{link.placeholder} — tap to fill in</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground truncate">{link.value}</p>
+                        )}
+                      </div>
                     <button
                       onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
                       className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
