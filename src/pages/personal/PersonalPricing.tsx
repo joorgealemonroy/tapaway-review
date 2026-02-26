@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Globe, UserPlus, Share2, ChevronDown, User, Link2, QrCode } from "lucide-react";
+import { Globe, UserPlus, Share2, ChevronDown, User, Link2, QrCode, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HubShowcase } from "@/components/card/HubShowcase";
 import { LayoutTemplates } from "@/components/card/LayoutTemplates";
@@ -39,6 +39,16 @@ const PersonalPricing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/")}
+          className="-ml-2 -mt-4"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+
         {/* 1. Hero */}
         <motion.div
           className="text-center space-y-6"
