@@ -366,6 +366,7 @@ const PersonalSignup = () => {
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 planLocked={planLocked}
+                cardCode={searchParams.get("card") || sessionStorage.getItem("tapaway_card_code") || undefined}
               />
             )}
           </motion.div>
