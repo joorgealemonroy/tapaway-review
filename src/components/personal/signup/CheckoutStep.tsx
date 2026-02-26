@@ -44,14 +44,15 @@ interface Props {
   onComplete: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  planLocked?: boolean; // If true, skip plan selection (plan was chosen from pricing page)
-  cardCode?: string; // NFC card public_code to claim after profile creation
+  planLocked?: boolean;
+  cardCode?: string;
+  isOAuthUser?: boolean;
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating" | "existing_account";
 type PlanType = "free" | "monthly" | "yearly";
 
-export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false, cardCode }: Props) => {
+export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false, cardCode, isOAuthUser = false }: Props) => {
   const navigate = useNavigate();
   const [processing, setProcessing] = useState(false);
   const [flowStep, setFlowStep] = useState<FlowStep>("plan");
@@ -67,11 +68,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [downgradeIssues, setDowngradeIssues] = useState<string[]>([]);
   const [preAuthed, setPreAuthed] = useState(false);
 
-  // Detect if user is already authenticated (card activation flow)
+  // Detect if user is already authenticated (card activation flow or OAuth)
   useEffect(() => {
     const checkPreAuth = async () => {
       const flag = sessionStorage.getItem("tapaway_card_preauthed");
-      if (flag === "true") {
+      if (flag === "true" || isOAuthUser) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setPreAuthed(true);
@@ -79,7 +80,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       }
     };
     checkPreAuth();
-  }, []);
+  }, [isOAuthUser]);
 
   const freeFeatures = [
     "Up to 5 links",
