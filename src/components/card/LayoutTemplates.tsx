@@ -26,7 +26,7 @@ export const LayoutTemplates = ({ onSelect }: Props) => {
   return (
     <section className="space-y-4">
       <div className="text-center">
-        <h2 className="text-xl font-bold text-foreground">Pick a Layout <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full align-middle">Free</span></h2>
+        <h2 className="text-xl font-bold text-foreground">Pick a Layout <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full align-middle">Free</span></h2>
         <p className="text-sm text-muted-foreground mt-1">
           Start with a template — customize it later
         </p>
@@ -42,12 +42,12 @@ export const LayoutTemplates = ({ onSelect }: Props) => {
               whileTap={{ scale: 0.97 }}
               className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
                 isSelected
-                  ? "border-teal-500 bg-teal-50/50 shadow-md"
+                  ? "border-primary bg-primary/10 shadow-md"
                   : "border-border bg-card hover:border-muted-foreground/30 hover:shadow-sm"
               }`}
             >
               {isSelected && (
-                <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-teal-500 flex items-center justify-center">
+                <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
                   <Check className="h-3 w-3 text-white" />
                 </div>
               )}

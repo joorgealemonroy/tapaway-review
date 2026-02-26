@@ -191,12 +191,12 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
               key={p.username}
               className={`snap-start flex-shrink-0 w-[160px] rounded-2xl border-2 bg-card p-3 flex flex-col items-center gap-2 transition-all relative ${
                 isCopied
-                  ? "border-teal-500 shadow-md"
+                  ? "border-primary shadow-md"
                   : "border-border hover:shadow-md"
               }`}
             >
               {isPremium && (
-                <Badge className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] px-1.5 py-0 gap-0.5 border-0">
+                <Badge className="absolute -top-2 -right-2 bg-accent text-accent-foreground text-[10px] px-1.5 py-0 gap-0.5 border-0">
                   <Crown className="h-2.5 w-2.5" />
                   Pro
                 </Badge>
@@ -240,7 +240,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
                 }}
                 className={`w-full mt-1 py-1.5 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
                   isCopied
-                    ? "bg-teal-500 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted hover:bg-muted-foreground/10 text-foreground"
                 }`}
               >
