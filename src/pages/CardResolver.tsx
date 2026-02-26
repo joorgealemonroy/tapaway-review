@@ -60,7 +60,7 @@ const CardResolver = () => {
       if (card.status === "claimed" && card.destination_value) {
         setCardStatus("redirecting");
         if (card.destination_type === "profile") {
-          navigate(`/${card.destination_value}`, { replace: true });
+          navigate(`/${card.destination_value}`, { replace: true, state: { type: 'personal' } });
         } else if (card.destination_type === "external_url") {
           window.location.href = card.destination_value;
         }
@@ -156,20 +156,17 @@ const CardResolver = () => {
 
       if (data?.success) {
         if (data.needsPassword) {
-          // New user — transition to password step (OTP stays valid)
           setStep("password");
           setVerifying(false);
           return;
         }
 
-        // Existing user — sign in and proceed
         if (data.existingAccount) {
           toast.info("Please sign in to activate your card");
           navigate(`/auth?redirect=/c/${publicCode}`);
           return;
         }
 
-        // Sign in with temp password if available
         if (data.tempPassword) {
           await supabase.auth.signInWithPassword({
             email: email.trim().toLowerCase(),
@@ -232,11 +229,11 @@ const CardResolver = () => {
     }
   };
 
-  // Loading / redirecting
+  // Loading / redirecting — dark to match profile theme
   if (cardStatus === "loading" || cardStatus === "redirecting") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-white/60" />
       </div>
     );
   }
