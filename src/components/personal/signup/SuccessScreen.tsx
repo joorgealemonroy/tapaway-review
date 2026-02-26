@@ -13,7 +13,7 @@ interface Props {
   planType?: "free" | "monthly" | "yearly" | "vip";
 }
 
-/* ── Inline platform SVG icons (no CDN dependency) ── */
+/* ── Inline platform SVG icons ── */
 const InstagramIcon = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
@@ -45,61 +45,40 @@ const PLATFORMS = [
   { name: "LinkedIn", Icon: LinkedInIcon },
 ];
 
-/* ── Animated checkmark with filled badge ── */
-const AnimatedCheck = () => (
+/* ── Animated sparkle (4-point star) ── */
+const AnimatedSparkle = () => (
   <motion.div
-    initial={{ scale: 0, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
-    className="relative mx-auto"
-    style={{ width: 112, height: 112 }}
+    initial={{ scale: 0, opacity: 0, rotate: -30 }}
+    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+    className="relative mx-auto flex items-center justify-center"
+    style={{ width: 72, height: 72 }}
   >
-    {/* Outer glow pulse */}
+    {/* Glow */}
     <motion.div
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity: [0, 0.4, 0.15], scale: [0.6, 1.4, 1.3] }}
-      transition={{ duration: 1.8, delay: 0.3 }}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: [0, 0.5, 0.2], scale: [0.5, 1.6, 1.4] }}
+      transition={{ duration: 1.5, delay: 0.2 }}
       className="absolute inset-0 rounded-full bg-primary/20 blur-2xl"
     />
-    <svg width="112" height="112" viewBox="0 0 112 112" fill="none" className="relative z-10">
-      {/* Soft filled background circle */}
-      <motion.circle
-        cx="56" cy="56" r="52"
-        fill="hsl(var(--primary) / 0.08)"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      />
-      {/* Border circle */}
-      <motion.circle
-        cx="56" cy="56" r="52"
-        stroke="hsl(var(--primary))"
-        strokeWidth="2.5"
-        fill="none"
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-      />
-      {/* Checkmark */}
+    {/* Star */}
+    <motion.svg
+      width="56"
+      height="56"
+      viewBox="0 0 64 64"
+      fill="none"
+      className="relative z-10"
+      animate={{ rotate: [0, 8, 0, -8, 0], scale: [1, 1.06, 1] }}
+      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+    >
       <motion.path
-        d="M34 58 L48 72 L78 40"
-        stroke="hsl(var(--primary))"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.4, delay: 0.7, ease: "easeOut" }}
+        d="M32 0L39.5 24.5L64 32L39.5 39.5L32 64L24.5 39.5L0 32L24.5 24.5L32 0Z"
+        fill="hsl(var(--primary))"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
       />
-    </svg>
-    {/* Subtle scale pulse after draw */}
-    <motion.div
-      className="absolute inset-0 rounded-full border-2 border-primary/20"
-      initial={{ scale: 1, opacity: 0 }}
-      animate={{ scale: [1, 1.15, 1.1], opacity: [0, 0.5, 0] }}
-      transition={{ duration: 1, delay: 1.2 }}
-    />
+    </motion.svg>
   </motion.div>
 );
 
@@ -109,7 +88,6 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
   const [showConfetti, setShowConfetti] = useState(true);
 
   const publicUsername = getPublicUsername(planType as any, username);
-  // Always show production domain, not preview URL
   const displayUrl = `tapaway.co/${publicUsername}`;
   const fullUrl = `https://${displayUrl}`;
 
@@ -128,41 +106,55 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6 py-16"
       style={{
-        background: "radial-gradient(ellipse at 50% 30%, hsl(var(--primary) / 0.04) 0%, hsl(var(--background)) 70%)",
+        background:
+          "radial-gradient(ellipse at 50% 25%, hsl(var(--primary) / 0.05) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, hsl(var(--primary) / 0.03) 0%, hsl(var(--background)) 70%)",
       }}
     >
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
 
       <div className="w-full max-w-md flex flex-col items-center">
-        {/* Checkmark */}
-        <AnimatedCheck />
+        {/* Sparkle */}
+        <AnimatedSparkle />
 
         {/* Headline */}
         <motion.h1
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 0.5 }}
-          className="mt-10 text-4xl font-bold tracking-tight text-foreground text-center"
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="mt-8 text-3xl font-bold tracking-tight text-foreground text-center"
         >
-          You're in.
+          Welcome to TapAway
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.05, duration: 0.5 }}
-          className="mt-3 text-muted-foreground text-center text-lg"
+          transition={{ delay: 0.75, duration: 0.5 }}
+          className="mt-2 text-muted-foreground text-center text-base"
         >
-          Your TapAway is live and ready to share.
+          Your profile is live and ready to share.
         </motion.p>
 
-        {/* Glassmorphic Profile Link Card */}
+        {/* Profile Link Card with shimmer */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
-          className="w-full mt-10"
+          transition={{ delay: 0.95, duration: 0.5 }}
+          className="w-full mt-8 relative"
         >
+          {/* Shimmer border overlay */}
+          <div className="absolute -inset-[1px] rounded-2xl overflow-hidden pointer-events-none">
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: "200%" }}
+              transition={{ duration: 1.5, delay: 1.4, ease: "easeInOut" }}
+              className="absolute inset-0 w-1/2"
+              style={{
+                background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.3), transparent)",
+              }}
+            />
+          </div>
+
           <button
             onClick={copyToClipboard}
             className="w-full group relative flex items-center justify-between gap-3 p-5 rounded-2xl bg-white/60 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg shadow-black/[0.03] dark:shadow-black/20 hover:shadow-xl transition-all duration-300"
@@ -172,9 +164,9 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
             </span>
             <span className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-200">
               {copied ? (
-                <Check className="h-4.5 w-4.5 text-primary" />
+                <Check className="h-4 w-4 text-primary" />
               ) : (
-                <Copy className="h-4.5 w-4.5 text-primary" />
+                <Copy className="h-4 w-4 text-primary" />
               )}
             </span>
           </button>
@@ -184,8 +176,8 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.4, duration: 0.5 }}
-          className="w-full mt-6 p-6 rounded-2xl bg-gradient-to-br from-primary/[0.04] to-primary/[0.08]"
+          transition={{ delay: 1.1, duration: 0.5 }}
+          className="w-full mt-5 p-6 rounded-2xl bg-gradient-to-br from-primary/[0.04] to-primary/[0.08]"
         >
           <p className="text-sm font-semibold text-foreground mb-1">
             Add it to your bio
@@ -194,13 +186,24 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
             Paste your link so followers can find everything in one tap.
           </p>
           <div className="flex items-center gap-5 justify-center">
-            {PLATFORMS.map((p) => (
-              <div key={p.name} className="flex flex-col items-center gap-1.5 group/icon">
-                <div className="h-12 w-12 rounded-xl bg-background/80 dark:bg-background/50 flex items-center justify-center shadow-sm text-muted-foreground group-hover/icon:text-foreground group-hover/icon:scale-110 transition-all duration-200">
+            {PLATFORMS.map((p, i) => (
+              <motion.div
+                key={p.name}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  delay: 1.3 + i * 0.08,
+                }}
+                className="flex flex-col items-center gap-1.5 group/icon"
+              >
+                <div className="h-12 w-12 rounded-xl bg-background/80 dark:bg-background/50 flex items-center justify-center shadow-sm text-muted-foreground group-hover/icon:text-foreground group-hover/icon:scale-110 group-hover/icon:shadow-md group-hover/icon:shadow-primary/10 transition-all duration-200">
                   <p.Icon />
                 </div>
                 <span className="text-[10px] text-muted-foreground">{p.name}</span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </motion.div>
@@ -209,7 +212,7 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.6, duration: 0.5 }}
+          transition={{ delay: 1.5, duration: 0.5 }}
           className="w-full mt-10 space-y-3"
         >
           <Button
