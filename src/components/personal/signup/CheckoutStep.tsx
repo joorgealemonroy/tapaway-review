@@ -111,7 +111,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   }, [resendCooldown]);
 
   const calculateTotal = () => {
-    if (formData.planType === "free") return 0;
+    if (formData.planType === "free" || formData.planType === "vip") return 0;
     return formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
   };
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
@@ -159,7 +159,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setShowPlanSelector(false);
     toast.info("Switched to Free plan. Some Pro features were removed.");
   };
-  const isFreePlan = formData.planType === "free";
+  const isFreePlan = formData.planType === "free" || formData.planType === "vip";
 
 
   const logAffiliateReferral = async (userId: string, profileId: string, planType: string) => {
@@ -1447,7 +1447,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       <div className="space-y-2 py-4 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {formData.planType === "free" 
+            {formData.planType === "vip"
+              ? "VIP Access"
+              : formData.planType === "free" 
               ? "Free plan" 
               : formData.planType === "yearly" 
               ? "Annual plan" 
@@ -1455,7 +1457,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           </span>
           <div className="text-right">
             <span className="font-medium">
-              {formData.planType === "free"
+              {formData.planType === "free" || formData.planType === "vip"
                 ? "$0"
                 : formData.planType === "yearly"
                 ? "$6.25/mo"
@@ -1488,7 +1490,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             Processing...
           </>
         ) : isFreePlan ? (
-          "Create Free Account"
+          formData.planType === "vip" ? "Create My TapAway" : "Create Free Account"
         ) : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />
