@@ -81,13 +81,11 @@ const ProfileLink = memo(function ProfileLink({
   // Grid card-style link with cover image (square, 2-column layout)
   if (coverImage && isGrid) {
     return (
-      <motion.a
+      <a
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block relative rounded-2xl overflow-hidden aspect-square shadow-lg group"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        className="block relative rounded-2xl overflow-hidden aspect-square shadow-lg group active:scale-[0.98] transition-transform"
       >
         <img 
           src={getOptimizedImageUrl(coverImage, 640, 85)} 
@@ -108,20 +106,18 @@ const ProfileLink = memo(function ProfileLink({
             {link.label}
           </span>
         </div>
-      </motion.a>
+      </a>
     );
   }
-  
+   
   // Full-width card-style link with cover image
   if (coverImage) {
     return (
-      <motion.a
+      <a
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group active:scale-[0.98] transition-transform"
       >
         <img 
           src={getOptimizedImageUrl(coverImage, 640, 85)} 
@@ -142,25 +138,23 @@ const ProfileLink = memo(function ProfileLink({
             {link.label}
           </span>
         </div>
-      </motion.a>
+      </a>
     );
   }
-  
+   
   // Featured links are larger and more prominent
   if (isFeatured) {
     return (
-      <motion.a
+      <a
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`block p-5 rounded-2xl transition-all shadow-lg ${
+        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${
           customColor 
             ? "" 
             : config?.gradient || config?.bgColor || "bg-primary"
         }`}
         style={customColor ? { backgroundColor: customColor } : undefined}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
       >
         <div className="flex items-center gap-4">
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
@@ -178,24 +172,22 @@ const ProfileLink = memo(function ProfileLink({
           </div>
           <ExternalLink className={`h-5 w-5 ${customColor ? "text-white" : config?.color || "text-white"} opacity-70`} />
         </div>
-      </motion.a>
+      </a>
     );
   }
-  
+   
   // Regular links
   return (
-    <motion.a
+    <a
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
+      className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
         customColor 
           ? "" 
           : config?.gradient || config?.bgColor || "bg-card border border-border"
       }`}
       style={customColor ? { backgroundColor: customColor } : undefined}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -212,7 +204,7 @@ const ProfileLink = memo(function ProfileLink({
         {link.label}
       </span>
       <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
-    </motion.a>
+    </a>
   );
 });
 
@@ -454,16 +446,14 @@ const ProfileBlock = memo(function ProfileBlock({
       // Wrap in link if linkUrl exists
       if (linkUrl) {
         return (
-          <motion.a
+          <a
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+            className="block w-full active:scale-[0.99] transition-transform"
           >
             {imageWithOverlay}
-          </motion.a>
+          </a>
         );
       }
       
@@ -854,7 +844,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           ...bgStyle,
           // Larger, softer glow that blends the frame edge into the outer background
           boxShadow: hasBanner && extractedBannerColor 
-            ? `0 0 80px 30px ${extractedBannerColor}30, 0 0 120px 60px ${extractedBannerColor}15, 0 0 160px 80px ${extractedBannerColor}08`
+            ? `0 0 60px 20px ${extractedBannerColor}25`
             : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}
       >
@@ -864,6 +854,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Banner image - fully visible */}
             <div 
               className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
+              style={{ willChange: 'transform' }}
             >
               <img
                 src={bannerUrl}
@@ -886,7 +877,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               {profile.contact_enabled && (
                 <button
                   onClick={handleSaveContact}
-                  className="h-10 w-10 backdrop-blur-sm bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                  className="h-10 w-10 bg-black/30 hover:bg-black/40 rounded-full flex items-center justify-center shadow-sm transition-colors"
                   aria-label="Save contact"
                 >
                   <UserPlus className="h-4 w-4 text-white" />
@@ -894,7 +885,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               )}
               <button
                 onClick={handleShare}
-                className="h-10 w-10 backdrop-blur-sm bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                className="h-10 w-10 bg-black/30 hover:bg-black/40 rounded-full flex items-center justify-center shadow-sm transition-colors"
                 aria-label="Share profile"
               >
                 <Share2 className="h-4 w-4 text-white" />
@@ -927,7 +918,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               {profile.contact_enabled && (
                 <button
                   onClick={handleSaveContact}
-                  className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
                   aria-label="Save contact"
                 >
                   <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
@@ -935,7 +926,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               )}
               <button
                 onClick={handleShare}
-                className={`h-10 w-10 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-white/20 hover:bg-white/30' : 'bg-white/90 hover:bg-white'}`}
+                className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
                 aria-label="Share profile"
               >
                 <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
@@ -1057,7 +1048,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             >
               <a
                 href="/personal"
-                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-2xl border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-all duration-300 text-sm ${isDarkBg ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-white/20 border-white/30 hover:bg-white/30'}`}
+                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors duration-300 text-sm ${isDarkBg ? 'bg-white/15 border-white/20 hover:bg-white/25' : 'bg-white/40 border-white/30 hover:bg-white/50'}`}
               >
                 <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
