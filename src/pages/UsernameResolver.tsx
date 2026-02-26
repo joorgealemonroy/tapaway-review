@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
@@ -17,17 +17,20 @@ const MinimalLoader = memo(() => (
   </div>
 ));
 
-/**
- * UsernameResolver - Optimized to determine if /:slug is a personal profile or restaurant hub
- * Priority: personal profiles > restaurant slugs
- * 
- * Optimizations:
- * - Single query for personal profiles (most common case)
- * - Memoized components
- * - Lazy loaded fallback routes
- */
 const UsernameResolver = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
+  const routeState = location.state as { type?: string } | null;
+
+  // If CardResolver already confirmed this is a personal profile, skip the DB query entirely
+  if (routeState?.type === 'personal') {
+    return <PersonalProfilePage />;
+  }
+
+  return <UsernameResolverInner slug={slug} />;
+};
+
+const UsernameResolverInner = memo(({ slug }: { slug?: string }) => {
   const [loading, setLoading] = useState(true);
   const [resolvedType, setResolvedType] = useState<"personal" | "restaurant" | "notfound" | null>(null);
 
@@ -103,6 +106,6 @@ const UsernameResolver = () => {
       <NotFound />
     </Suspense>
   );
-};
+});
 
 export default memo(UsernameResolver);
