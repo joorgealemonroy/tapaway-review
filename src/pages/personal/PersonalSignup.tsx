@@ -58,6 +58,7 @@ const PersonalSignup = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
   const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -99,7 +100,13 @@ const PersonalSignup = () => {
     const planParam = searchParams.get("plan");
     if (planParam === "free" || planParam === "monthly" || planParam === "yearly") {
       update({ planType: planParam });
-      setPlanLocked(true); // Plan was chosen from pricing page, skip selection in checkout
+      setPlanLocked(true);
+    }
+    // Restore step from URL (OAuth redirect back)
+    const stepParam = searchParams.get("step");
+    if (stepParam) {
+      const step = parseInt(stepParam, 10);
+      if (step >= 1 && step <= 4) setCurrentStep(step);
     }
   }, [searchParams, update]);
 
@@ -325,6 +332,8 @@ const PersonalSignup = () => {
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 selectedPlan={selectedPlan}
+                isOAuthUser={isOAuthUser}
+                setIsOAuthUser={setIsOAuthUser}
               />
             )}
 
@@ -367,6 +376,7 @@ const PersonalSignup = () => {
                 setIsLoading={setIsLoading}
                 planLocked={planLocked}
                 cardCode={searchParams.get("card") || sessionStorage.getItem("tapaway_card_code") || undefined}
+                isOAuthUser={isOAuthUser}
               />
             )}
           </motion.div>
