@@ -1,94 +1,118 @@
 
 
-# Fix: Laggy/Glitchy Scrolling on Safari Mobile
+# Add Google & Apple Sign-In to Personal Signup
 
-## Root Causes
-
-After reviewing `PersonalProfilePage.tsx` and `index.css`, there are several known iOS Safari scroll-jank triggers stacked on this page:
-
-1. **Framer Motion `motion.a` on every link** (lines 84, 118, 152, 187, 457) — Each `ProfileLink` uses `motion.a` with `whileHover`/`whileTap` gesture listeners. Framer attaches touch event handlers to every one of these, intercepting scroll gestures and causing micro-jank as the browser decides if the user is scrolling or tapping.
-
-2. **`backdrop-blur-sm` and `backdrop-blur-2xl`** (lines 889, 897, 930, 938, 1060) — iOS Safari composites blur effects on a separate GPU layer. During scroll, each blurred element forces a GPU re-composite per frame. With 4-5 blurred elements, this stacks up.
-
-3. **Multi-layer `boxShadow` on the phone frame** (line 856-858) — Three nested `box-shadow` layers with large spread values are re-painted on every scroll frame.
-
-4. **`transition-all` on interactive elements** (lines 156, 191) — Transitions ALL CSS properties instead of only the ones that change, causing the browser to check every property for animation on each frame.
-
-5. **No hardware acceleration hint on the banner image** — The 55vh banner image isn't promoted to its own GPU layer, so the compositor has to handle it on the main thread.
-
-## Fixes
-
-### 1. `src/pages/personal/PersonalProfilePage.tsx` — Replace `motion.a` with plain `<a>` in ProfileLink
-
-The `whileHover: { scale: 1.02 }` and `whileTap: { scale: 0.98 }` animations are nearly imperceptible on mobile and cause scroll interference. Replace all `motion.a` with plain `<a>` tags and use CSS `active:scale-[0.98]` for tap feedback instead (CSS-only, no JS gesture listeners):
-
-```tsx
-// Before (every link variant):
-<motion.a whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} ...>
-
-// After:
-<a className="... active:scale-[0.98] transition-transform" ...>
+## Current Flow
+```text
+Step 1 (IdentityStep): Name, Email, Username, Password → Continue
+Step 4 (CheckoutStep): Send OTP → Verify OTP → Create account → Sign in with password
 ```
 
-This applies to all 5 link/block variants: grid cover, full cover, featured, regular, and image block with link.
+The user must type an email, create a password, receive a 6-digit OTP code, and verify it. This is 3 friction points that OAuth eliminates.
 
-### 2. `src/pages/personal/PersonalProfilePage.tsx` — Remove `backdrop-blur` from action buttons
+## Proposed Flow
 
-Replace `backdrop-blur-sm bg-white/20` with solid semi-transparent backgrounds that don't require GPU blur compositing:
+Add "Continue with Google" and "Continue with Apple" buttons at the top of **IdentityStep**. When a user taps one:
 
-```tsx
-// Before:
-className="h-10 w-10 backdrop-blur-sm bg-white/20 ..."
+1. OAuth redirects to Google/Apple, then back to `/personal/signup?step=1`
+2. On return, the component detects the authenticated session
+3. Pre-fills **name** (from OAuth profile) and **email** (locked, read-only)
+4. **Hides the password field** entirely (not needed — user is already authenticated)
+5. User only needs to pick a **username** and hit Continue
+6. In CheckoutStep, the OTP step is **skipped entirely** — user is already verified via OAuth
+7. Profile creation proceeds directly (no OTP send, no OTP verify, no signInWithPassword)
 
-// After:
-className="h-10 w-10 bg-black/30 ..."
+```text
+OAuth Flow:
+  Tap "Continue with Google" → Google consent → redirect back
+  → Name + Email pre-filled, password hidden
+  → Pick username → Continue
+  → CheckoutStep: skip OTP, go straight to profile creation
 ```
 
-Also replace `backdrop-blur-2xl` on the footer CTA pill (line 1060) with a solid background.
+## Technical Changes
 
-### 3. `src/pages/personal/PersonalProfilePage.tsx` — Simplify boxShadow on phone frame
+### 0. Configure Social Auth (Tool Call)
+Use the `configure-social-auth` tool to enable Google and Apple providers. This generates the `src/integrations/lovable/` module automatically.
 
-Replace the triple-layer shadow on line 856-858 with a single simpler shadow:
+### 1. `src/components/personal/signup/IdentityStep.tsx` — Add OAuth buttons + detect session
 
-```tsx
-// Before:
-boxShadow: `0 0 80px 30px ${c}30, 0 0 120px 60px ${c}15, 0 0 160px 80px ${c}08`
+**Add at the top of the form** (before the Name field):
+- "Continue with Google" button (full-width, outlined, with Google icon)
+- "Continue with Apple" button (full-width, black, with Apple icon)
+- A horizontal divider: "or sign up with email"
 
-// After:
-boxShadow: `0 0 60px 20px ${c}25`
+**Add state**: `oauthUser` — set when returning from OAuth or when session is already active.
+
+**On mount**: Check `supabase.auth.getUser()`. If authenticated, extract `user.user_metadata.full_name` and `user.email`, pre-fill the form, lock email, and hide the password field.
+
+**OAuth click handler**:
+```typescript
+import { lovable } from "@/integrations/lovable/index";
+
+const handleOAuth = async (provider: "google" | "apple") => {
+  const { error } = await lovable.auth.signInWithOAuth(provider, {
+    redirect_uri: window.location.origin + "/personal/signup?step=1",
+  });
+  if (error) toast.error("Sign-in failed");
+};
 ```
 
-### 4. `src/pages/personal/PersonalProfilePage.tsx` — Add GPU promotion to banner image
-
-Add `will-change: transform` to the banner image container so iOS promotes it to its own compositing layer:
-
-```tsx
-<div className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
-     style={{ willChange: 'transform' }}>
+**Form validation**: When `oauthUser` is set, skip password validation entirely. `isFormValid` becomes:
+```typescript
+const isFormValid = formData.fullName.length >= 2 &&
+  formData.email.includes('@') &&
+  formData.username.length >= 3 &&
+  usernameStatus === "available" &&
+  (isOAuthUser || (formData.password?.length || 0) >= 8);
 ```
 
-### 5. `src/pages/personal/PersonalProfilePage.tsx` — Replace `transition-all` with specific properties
+### 2. `src/pages/personal/PersonalSignup.tsx` — Restore step from URL + pass OAuth state
 
-On link elements, change `transition-all` to `transition-transform` since only transform changes.
+Read `?step=1` from URL params on mount to restore the correct step after OAuth redirect. Pass an `isOAuthUser` boolean down to `IdentityStep` and `CheckoutStep`.
 
-### 6. `src/index.css` — Add scroll performance hints
+### 3. `src/components/personal/signup/CheckoutStep.tsx` — Skip OTP for OAuth users
 
-Add `-webkit-overflow-scrolling: touch` to body for momentum scrolling, and `transform: translateZ(0)` to the profile container for GPU layer promotion:
+Add a new prop `isOAuthUser: boolean`. When true:
+- Skip the `sendOTP` / `verifyOTPAndCreateAccount` flow entirely
+- On "Complete" click, go directly to profile creation (Step 3 onward in the existing code)
+- Use the already-authenticated session (`supabase.auth.getUser()`) instead of `signInWithPassword`
+- The profile creation, link creation, block creation, welcome email, and card claiming logic remain unchanged
 
-```css
-body {
-  -webkit-overflow-scrolling: touch;
-}
+### 4. `src/lib/authGuard.ts` — No changes needed
+The auth guard only blocks `signUp`, `signInWithOtp`, `resetPasswordForEmail`, `verifyOtp`. OAuth uses `signInWithOAuth` which is not blocked.
+
+### 5. `src/hooks/usePersonalOnboarding.ts` — Add `isOAuthUser` to draft state
+Add an `isOAuthUser` boolean field so the OAuth state persists across steps (stored in the draft alongside other form data).
+
+## UI Design (IdentityStep)
+
+```text
+┌──────────────────────────────┐
+│  [G] Continue with Google    │  ← white bg, border, Google icon
+├──────────────────────────────┤
+│  [] Continue with Apple     │  ← black bg, white text, Apple icon
+├──────────────────────────────┤
+│      ── or sign up with email ──
+├──────────────────────────────┤
+│  Name         [John Smith  ] │
+│  Email        [john@...]     │  ← locked if OAuth
+│  Username     [yourname   ]  │
+│  Password     [••••••••]     │  ← HIDDEN if OAuth
+│                              │
+│  [        Continue         ] │
+└──────────────────────────────┘
 ```
 
 ## Files Modified
-- `src/pages/personal/PersonalProfilePage.tsx` — remove Framer Motion from links, remove backdrop-blur, simplify shadows, add GPU hints
-- `src/index.css` — add `-webkit-overflow-scrolling: touch`
+- `src/components/personal/signup/IdentityStep.tsx` — OAuth buttons, session detection, conditional password
+- `src/pages/personal/PersonalSignup.tsx` — step restoration from URL, `isOAuthUser` prop threading
+- `src/components/personal/signup/CheckoutStep.tsx` — skip OTP when `isOAuthUser`
+- `src/hooks/usePersonalOnboarding.ts` — add `isOAuthUser` field
+- `src/integrations/lovable/` — auto-generated by configure-social-auth tool
 
 ## Impact
-- Eliminates Framer Motion gesture listener overhead during scroll (biggest win)
-- Removes 5 `backdrop-blur` compositing layers
-- Reduces box-shadow repaint cost by ~60%
-- Tap feedback preserved via CSS `active:scale` (zero-cost, no JS)
-- No visual difference at normal scrolling speed
+- Reduces signup friction from 7 fields + OTP to 2 fields (name + username) for OAuth users
+- No changes to existing email/password flow — it remains as a fallback
+- Works with both card-activation and standard signup paths
 
