@@ -1,78 +1,73 @@
 
 
-# Fix: Black Screen on Safari When Tapping NFC Card
+# Eliminate Redundant DB Query in NFC Card → Profile Flow
 
-## Root Cause
+## Current Flow (3 sequential DB queries)
 
-The profile for `adrianlasislas` has a radial gradient background:
-```
-radial-gradient(ellipse at top, rgb(21, 21, 21) 0%, rgb(11, 11, 11) 40%, #0a0a0a 100%)
-```
-
-On line 825-827 of `PersonalProfilePage.tsx`, gradient backgrounds get `backgroundAttachment: 'fixed'`:
-```js
-const bgStyle = isGradientBg 
-  ? { background: bgColor, backgroundAttachment: 'fixed' as const } 
-  : { backgroundColor: bgColor };
+```text
+/c/9NNB3N
+  → CardResolver: SELECT from nfc_cards          (~100ms)
+  → navigate("/adrianlasislas")
+  → UsernameResolver: SELECT from personal_profiles  (~100ms)  ← REDUNDANT
+  → PersonalProfilePage: SELECT profile + links + blocks  (~150ms)
 ```
 
-**`background-attachment: fixed` is broken on iOS Safari.** It's a long-standing WebKit bug — the browser either doesn't render the gradient at all or collapses it to nothing. The result: the user sees only the outer wrapper's solid black `backgroundColor` with no content contrast, making it look like an all-black screen.
+CardResolver already knows `destination_type === "profile"`, yet UsernameResolver re-queries the database just to confirm it is a personal profile. That is a wasted round-trip.
 
-Additionally, the profile uses `header_type: "banner"` with a profile photo as the banner image. If that image hasn't loaded yet on a cold Safari tap, the entire viewport is black gradient + unloaded image = all black.
+## Optimized Flow (2 sequential DB queries)
 
-## Fix
-
-### 1. `src/pages/personal/PersonalProfilePage.tsx` — Remove `backgroundAttachment: 'fixed'`
-
-The "parallax" effect this was meant to create doesn't work on mobile Safari anyway. Remove it entirely:
-
-```js
-const bgStyle = isGradientBg 
-  ? { background: bgColor } 
-  : { backgroundColor: bgColor };
+```text
+/c/9NNB3N
+  → CardResolver: SELECT from nfc_cards          (~100ms)
+  → navigate("/adrianlasislas", { state: { type: "personal" } })
+  → UsernameResolver: sees state.type === "personal" → SKIP query
+  → PersonalProfilePage: SELECT profile + links + blocks  (~150ms)
 ```
 
-This is a one-line change on line 825-827.
+## Changes
 
-### 2. `src/pages/personal/PersonalProfilePage.tsx` — Match loading skeleton to dark theme
+### 1. `src/pages/CardResolver.tsx` — Pass route state on profile redirect
 
-The loading skeleton (line 731-743) uses `bg-background` (white), which flashes white before the dark profile appears. Since the default profile background is now always dark (`#000000` fallback), make the loading skeleton dark too:
+Change the navigate call (line 63) to include state indicating this is a known personal profile:
 
-```jsx
-if (loading) {
+```typescript
+navigate(`/${card.destination_value}`, { replace: true, state: { type: 'personal' } });
+```
+
+Also change the loading/redirecting screen (lines 237-241) from teal gradient to dark, matching the profile theme to prevent a color flash:
+
+```typescript
+if (cardStatus === "loading" || cardStatus === "redirecting") {
   return (
-    <div className="min-h-screen bg-black">
-      <div className="h-32 bg-white/10 animate-pulse" />
-      <div className="max-w-md mx-auto px-4 -mt-16 pb-12">
-        <div className="h-28 w-28 rounded-full bg-white/10 animate-pulse border-4 border-black" />
-        <div className="mt-4 space-y-2">
-          <div className="h-6 w-40 bg-white/10 animate-pulse rounded" />
-          <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
-        </div>
-      </div>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-white/60" />
     </div>
   );
 }
 ```
 
-### 3. `src/pages/UsernameResolver.tsx` — Dark loading spinner
+### 2. `src/pages/UsernameResolver.tsx` — Skip DB query when state confirms type
 
-The `MinimalLoader` in UsernameResolver also flashes white. Match it to the dark theme:
+Read `location.state?.type` and if it equals `"personal"`, immediately render `PersonalProfilePage` without any database query:
 
-```jsx
-const MinimalLoader = memo(() => (
-  <div className="min-h-screen bg-black flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
-  </div>
-));
+```typescript
+const location = useLocation();
+const routeState = location.state as { type?: string } | null;
+
+// If we already know the type from navigation state (e.g. from CardResolver), skip the query
+if (routeState?.type === 'personal') {
+  return <PersonalProfilePage />;
+}
 ```
 
+This eliminates the ~100ms redundant query entirely for NFC card taps.
+
 ## Files Modified
-- `src/pages/personal/PersonalProfilePage.tsx` — remove `backgroundAttachment: 'fixed'`, dark loading skeleton
-- `src/pages/UsernameResolver.tsx` — dark loading spinner
+- `src/pages/CardResolver.tsx` — pass `{ type: 'personal' }` state, dark loading screen
+- `src/pages/UsernameResolver.tsx` — skip DB query when state confirms profile type
 
 ## Impact
-- Fixes the all-black-screen bug on iOS Safari caused by `background-attachment: fixed`
-- Eliminates the white flash during loading transitions on dark profiles
-- No visual change on desktop browsers (the parallax effect was imperceptible anyway)
+- Saves one full database round-trip (~100ms) on every NFC card tap to a claimed profile
+- Eliminates teal-to-dark color flash during redirect
+- No change to behavior for direct URL visits (no state = existing query path)
 
