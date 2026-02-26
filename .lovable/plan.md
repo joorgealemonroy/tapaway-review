@@ -1,73 +1,52 @@
 
 
-# Eliminate Redundant DB Query in NFC Card → Profile Flow
+# Fix: adrianlasislas Profile Not Centered
 
-## Current Flow (3 sequential DB queries)
+## Problem
 
-```text
-/c/9NNB3N
-  → CardResolver: SELECT from nfc_cards          (~100ms)
-  → navigate("/adrianlasislas")
-  → UsernameResolver: SELECT from personal_profiles  (~100ms)  ← REDUNDANT
-  → PersonalProfilePage: SELECT profile + links + blocks  (~150ms)
-```
+The database shows `pfp_position = 'left'` for `adrianlasislas` — it's the only account out of 12 that wasn't set to `center`. The previous backfill migration missed it or something overwrote it afterward.
 
-CardResolver already knows `destination_type === "profile"`, yet UsernameResolver re-queries the database just to confirm it is a personal profile. That is a wasted round-trip.
+## Root Cause
 
-## Optimized Flow (2 sequential DB queries)
-
-```text
-/c/9NNB3N
-  → CardResolver: SELECT from nfc_cards          (~100ms)
-  → navigate("/adrianlasislas", { state: { type: "personal" } })
-  → UsernameResolver: sees state.type === "personal" → SKIP query
-  → PersonalProfilePage: SELECT profile + links + blocks  (~150ms)
-```
-
-## Changes
-
-### 1. `src/pages/CardResolver.tsx` — Pass route state on profile redirect
-
-Change the navigate call (line 63) to include state indicating this is a known personal profile:
+The `DashboardHeroEditor` (line 146) and `LinksStep` (line 268) both hardcode `pfp_position: "center"` on save, which is correct. However, the `PersonalDashboard` save handler (line 463) passes through whatever value is already stored:
 
 ```typescript
-navigate(`/${card.destination_value}`, { replace: true, state: { type: 'personal' } });
+pfp_position: updates.pfpPosition ?? profile.pfp_position,
 ```
 
-Also change the loading/redirecting screen (lines 237-241) from teal gradient to dark, matching the profile theme to prevent a color flash:
+And the `AdminPersonalAccounts` page (line 870) allows admins to set any value including `left`. If an admin edited this account, or if the value was set before the backfill, it would persist.
+
+## Fix
+
+### 1. Database — Fix the single record
+
+Run a migration to update `adrianlasislas` to `center` and change the column default to `'center'` with a constraint so it can only ever be `'center'`:
+
+```sql
+UPDATE personal_profiles SET pfp_position = 'center' WHERE pfp_position != 'center' OR pfp_position IS NULL;
+ALTER TABLE personal_profiles ALTER COLUMN pfp_position SET DEFAULT 'center';
+```
+
+### 2. `src/pages/personal/PersonalProfilePage.tsx` — Hardcode center
+
+Since all full-banner profiles must be centered, ignore the DB value and always treat `pfpCentered` as `true` when `header_type === 'banner'`:
 
 ```typescript
-if (cardStatus === "loading" || cardStatus === "redirecting") {
-  return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-white/60" />
-    </div>
-  );
-}
+const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
 ```
 
-### 2. `src/pages/UsernameResolver.tsx` — Skip DB query when state confirms type
+This is a one-line change on line 828.
 
-Read `location.state?.type` and if it equals `"personal"`, immediately render `PersonalProfilePage` without any database query:
+### 3. `src/components/personal/ProfilePreviewRenderer.tsx` — Same hardcode in preview
+
+Apply the same logic on line 128:
 
 ```typescript
-const location = useLocation();
-const routeState = location.state as { type?: string } | null;
-
-// If we already know the type from navigation state (e.g. from CardResolver), skip the query
-if (routeState?.type === 'personal') {
-  return <PersonalProfilePage />;
-}
+const pfpPosition = profile.header_type === "banner" ? "center" : (profile.pfp_position || "center");
 ```
-
-This eliminates the ~100ms redundant query entirely for NFC card taps.
 
 ## Files Modified
-- `src/pages/CardResolver.tsx` — pass `{ type: 'personal' }` state, dark loading screen
-- `src/pages/UsernameResolver.tsx` — skip DB query when state confirms profile type
-
-## Impact
-- Saves one full database round-trip (~100ms) on every NFC card tap to a claimed profile
-- Eliminates teal-to-dark color flash during redirect
-- No change to behavior for direct URL visits (no state = existing query path)
+- Database migration — fix `adrianlasislas` record
+- `src/pages/personal/PersonalProfilePage.tsx` — force center for banner profiles (line 828)
+- `src/components/personal/ProfilePreviewRenderer.tsx` — force center in preview (line 128)
 
