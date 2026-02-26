@@ -1,61 +1,36 @@
 
 
-# Fix: VIP Card Users Hitting Paywall When Copying Pro Layouts
+# Fix: VIP Card Users See "tap" Prefix on Username
 
 ## Problem
-When a VIP card user copies a Pro hub layout during signup, they reach the CheckoutStep which shows a full plan selector (Free / Monthly / Yearly). The copied layout has Pro features (custom header image, >5 links), and the toast says "Requires Pro — 7-day free trial included", nudging the user to select a paid plan. If they select Monthly or Yearly, the flow calls `handleStripeCheckout()` which redirects to Stripe — a paywall that VIP users should never see.
+When a VIP card user goes through signup, the username field shows `tapaway.co/tapjorge` instead of `tapaway.co/jorge`. This happens because VIP card activation sets `planType: "free"` in the onboarding data, and the IdentityStep uses `selectedPlan === "free"` to decide whether to show the "tap" prefix.
 
-The root cause is two-fold:
-1. `PersonalSignup.tsx` does NOT set `planLocked = true` for card-activation users, so the full plan selector is shown in CheckoutStep
-2. `CheckoutStep.tsx` does not detect VIP status in its plan selection UI — it shows Free/Monthly/Yearly options even for VIP users who should get Pro access for free
+The profile creation code in CheckoutStep correctly detects VIP via sessionStorage and passes `"vip"` to `getPublicUsername()`, but the IdentityStep UI and username availability check both rely on `selectedPlan` which is `"free"`.
+
+## Root Cause
+In `PersonalSignup.tsx` line 114:
+```typescript
+update({ planType: isVipCard ? "free" : "free" });
+```
+VIP cards should set `planType: "vip"` so the entire flow knows not to add the "tap" prefix.
 
 ## Changes
 
 ### 1. `src/pages/personal/PersonalSignup.tsx`
-- Set `planLocked = true` for all card-activation users (both standard and VIP) so the plan selector is not shown in CheckoutStep
-- This prevents VIP users from accidentally selecting a paid plan
-
-**Line ~114**: Update the card-activation effect to also lock the plan:
+- Change the card-activation effect to set `planType: "vip"` when `isVipCard` is true:
 ```typescript
-useEffect(() => {
-  if (fromCardActivation && !planLocked) {
-    update({ planType: isVipCard ? "free" : "free", cardChoice: "none" });
-    setPlanLocked(true);
-  }
-}, [fromCardActivation, planLocked, isVipCard, update]);
+update({ planType: isVipCard ? "vip" : "free", cardChoice: "none" });
 ```
 
-### 2. `src/components/personal/signup/CheckoutStep.tsx`
-- Detect VIP card in the plan summary display: show "VIP Access — $0" instead of "Free Plan — $0"
-- In `handleGetCard`, ensure VIP users always go through the free/direct path (never Stripe), even if `formData.planType` somehow gets set to a paid plan
-- Update the "Total due today" and CTA text for VIP users
+### 2. `src/components/personal/signup/IdentityStep.tsx`
+- Update the `selectedPlan` prop type to include `"vip"`
+- Update line 83: username check should NOT add "tap" prefix for VIP users
+- Update line 217: username display should NOT show "tap" for VIP users
 
-**In the plan summary section (~line 1310-1336)**: When VIP flag is detected, show a VIP-specific summary instead of "Free Plan — $0":
-```
-⭐ VIP Access — $0
-Full Pro features included with your VIP card
-```
+Both lines currently check `selectedPlan === "free"`. Change to: the "tap" prefix is only added when `selectedPlan === "free"` (VIP is no longer "free", so this works automatically once planType is set correctly).
 
-**In `handleGetCard` (~line 770-782)**: Add VIP check at the top:
-```typescript
-const handleGetCard = () => {
-  const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  if (isVipCard || isFreePlan) {
-    if (preAuthed) {
-      createProfileDirectly();
-    } else {
-      sendOTP();
-    }
-  } else if (PERSONAL_PAYMENTS_ENABLED) {
-    handleStripeCheckout();
-  } else {
-    sendOTP();
-  }
-};
-```
+### 3. `src/components/personal/signup/CheckoutStep.tsx`
+- The `createProfileDirectly` and OTP flows already detect VIP via sessionStorage and pass `"vip"` to `getPublicUsername()` — no changes needed here. However, the `effectivePlanType` logic can be simplified since `formData.planType` will now already be `"vip"` for VIP users.
 
-### 3. `src/components/card/HubShowcase.tsx`
-- Update the toast message for card-activation users: when `tapaway_card_vip` is set, say "Layout copied!" without the "Requires Pro — 7-day free trial" messaging, since VIP users already have Pro access
-
-These changes ensure VIP card users can copy any Pro layout and complete signup without ever seeing a plan selector or Stripe checkout.
+These changes ensure the username prefix, availability check, and final profile creation all consistently treat VIP users as non-free (no "tap" prefix).
 
