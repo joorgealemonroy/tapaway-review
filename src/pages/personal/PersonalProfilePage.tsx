@@ -730,13 +730,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="h-32 bg-muted animate-pulse" />
+      <div className="min-h-screen bg-black">
+        <div className="h-32 bg-white/10 animate-pulse" />
         <div className="max-w-md mx-auto px-4 -mt-16 pb-12">
-          <div className="h-28 w-28 rounded-full bg-muted animate-pulse border-4 border-background" />
+          <div className="h-28 w-28 rounded-full bg-white/10 animate-pulse border-4 border-black" />
           <div className="mt-4 space-y-2">
-            <div className="h-6 w-40 bg-muted animate-pulse rounded" />
-            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+            <div className="h-6 w-40 bg-white/10 animate-pulse rounded" />
+            <div className="h-4 w-24 bg-white/10 animate-pulse rounded" />
           </div>
         </div>
       </div>
@@ -823,7 +823,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const isGradientBg = bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient');
   // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
   const bgStyle = isGradientBg 
-    ? { background: bgColor, backgroundAttachment: 'fixed' as const } 
+    ? { background: bgColor } 
     : { backgroundColor: bgColor };
   const pfpCentered = profile.pfp_position === "center";
   const isDarkBg = hasBanner || isGradientBg || isColorDark(bgColor);
