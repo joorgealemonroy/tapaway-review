@@ -37,7 +37,7 @@ const PersonalPricing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-teal-50 via-white to-white">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background">
       <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
         {/* Back button */}
         <Button
@@ -57,7 +57,7 @@ const PersonalPricing = () => {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-200/50 flex items-center justify-center"
+            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-primary/20 flex items-center justify-center"
             animate={{
               backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
               y: [0, -6, 0],
@@ -90,7 +90,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Create My Hub
           </Button>
@@ -114,7 +114,7 @@ const PersonalPricing = () => {
           <HubShowcase onCopyLayout={goToSignup} />
           <button
             onClick={() => document.getElementById("layout-templates")?.scrollIntoView({ behavior: "smooth" })}
-            className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
+            className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
           >
             Or pick a free layout below ↓
           </button>
@@ -131,7 +131,7 @@ const PersonalPricing = () => {
           <div className="space-y-3">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-start gap-3">
-                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                   {i + 1}
                 </div>
                 <div>
@@ -152,7 +152,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Create My Hub
           </Button>
@@ -188,8 +188,8 @@ const PersonalPricing = () => {
                 key={i}
                 className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
               >
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-                  <card.icon className="h-5 w-5 text-teal-600" />
+                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <card.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">{card.title}</p>
@@ -210,7 +210,7 @@ const PersonalPricing = () => {
           <Button
             onClick={goToSignup}
             size="lg"
-            className="w-full h-16 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Create My Hub
           </Button>
