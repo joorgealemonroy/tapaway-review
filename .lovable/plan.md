@@ -1,26 +1,19 @@
 
 
-# Add Dark/Light Mode Toggle to Card Activation Pages
+# Remove "Get a Physical Card" Step from Signup
 
 ## What's Changing
-A small sun/moon toggle button will appear in the top-right corner of all `/c/:code` screens so users can switch between light and dark mode. It follows the same pattern already used on the landing page and dashboard.
+The PreviewStep (step 3 — "Get a physical card") is being removed from the standard signup flow, reducing it from 4 steps to 3 for all users. The flow becomes: (1) Identity, (2) Build profile, (3) Checkout.
 
-## Technical Details
+## Changes in `src/pages/personal/PersonalSignup.tsx`
 
-### 1. `src/pages/CardResolver.tsx`
-- Import `Sun`, `Moon` from lucide-react
-- Add `isDark` state initialized from `localStorage.getItem('tapaway_dashboard_theme')`
-- Add `useEffect` to toggle `.dark` class on `document.documentElement` and persist to localStorage
-- Render a small icon button (absolute top-right) in both the not-found screen and the activation UI wrapper
-
-### 2. `src/components/card/CardOnboarding.tsx`
-- Same `isDark` state + `useEffect` pattern
-- Render the same toggle button in the top-right corner of the onboarding overview page
-
-### Button Style
-A ghost-variant icon button positioned `fixed top-4 right-4` with `Sun` (in dark mode) or `Moon` (in light mode), matching the existing app convention. Uses `z-50` to stay above animated content.
-
-### Files Modified
-- `src/pages/CardResolver.tsx`
-- `src/components/card/CardOnboarding.tsx`
+1. **Remove PreviewStep import** — delete the import of `PreviewStep`
+2. **Set `totalSteps` to 3** — remove the conditional; it's always 3 now
+3. **Remove `fromCardActivation` / `isVipCard` conditional logic around totalSteps** (keep the card-activation plan defaults)
+4. **Update step URL restore** — cap at 3 instead of 4
+5. **Update `stepTitles`** — remove step 3 "Get a physical card", rename step 3 to "Finish your order"
+6. **Remove the PreviewStep render block** (the `currentStep === 3 && !fromCardActivation` block)
+7. **Simplify CheckoutStep render** — always render on `currentStep === 3`
+8. **Update progress dots** — already derived from `totalSteps`, so automatic
+9. **Default `cardChoice` to `"none"`** for all users since the card selection UI is removed
 
