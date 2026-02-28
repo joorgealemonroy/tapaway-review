@@ -20,7 +20,6 @@ import { X } from "lucide-react";
 // Step components
 import { IdentityStep } from "@/components/personal/signup/IdentityStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
-import { PreviewStep } from "@/components/personal/signup/PreviewStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
@@ -106,20 +105,19 @@ const PersonalSignup = () => {
     const stepParam = searchParams.get("step");
     if (stepParam) {
       const step = parseInt(stepParam, 10);
-      if (step >= 1 && step <= 4) setCurrentStep(step);
+      if (step >= 1 && step <= 3) setCurrentStep(step);
     }
   }, [searchParams, update]);
 
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  // VIP cards skip checkout entirely (only 3 steps: Identity, Links, Preview→auto-complete)
-  const totalSteps = fromCardActivation ? 3 : 4;
+  const totalSteps = 3;
 
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
     if (fromCardActivation && !planLocked) {
-      update({ planType: isVipCard ? "vip" : "free", cardChoice: "none" });
+      update({ planType: isVipCard ? "vip" : "free" });
       setPlanLocked(true);
     }
   }, [fromCardActivation, planLocked, isVipCard, update]);
@@ -270,9 +268,7 @@ const PersonalSignup = () => {
     navigate("/personal");
   };
 
-  const stepTitles = fromCardActivation
-    ? { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" }
-    : { 1: "Create your TapAway", 2: "Build your profile", 3: "Get a physical card", 4: "Finish your order" };
+  const stepTitles = { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} />;
@@ -363,16 +359,7 @@ const PersonalSignup = () => {
               />
             )}
 
-            {currentStep === 3 && !fromCardActivation && (
-              <PreviewStep
-                formData={formData}
-                updateFormData={updateFormData}
-                onNext={nextStep}
-                onBack={prevStep}
-              />
-            )}
-
-            {((currentStep === 4 && !fromCardActivation) || (currentStep === 3 && fromCardActivation)) && (
+            {currentStep === 3 && (
               <CheckoutStep
                 formData={formData}
                 updateFormData={updateFormData}
