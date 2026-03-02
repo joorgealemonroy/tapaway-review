@@ -24,12 +24,22 @@ import useEmblaCarousel from "embla-carousel-react";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
-  // Try to extract the last color from the gradient
   const colorMatch = gradient.match(/#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgb\([^)]+\)|rgba\([^)]+\)/g);
   if (colorMatch && colorMatch.length > 0) {
     return colorMatch[colorMatch.length - 1];
   }
   return "#000000";
+}
+
+// Helper to compute luminance from an rgb() color string — returns 0 (dark) to 1 (light)
+function getRgbLuminance(rgbColor: string | null): number | null {
+  if (!rgbColor) return null;
+  const match = rgbColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (!match) return null;
+  const r = parseInt(match[1]);
+  const g = parseInt(match[2]);
+  const b = parseInt(match[3]);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
@@ -665,7 +675,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     }
   }, [bannerUrlForExtraction]);
 
-  // Compute document background color for useAppBackground hook
+  // Detect if banner color is light (white/bright image) — need stronger overlay + dark text
+  const bannerLuminance = getRgbLuminance(extractedBannerColor);
+  const isLightBanner = bannerLuminance !== null && bannerLuminance > 0.7;
+
   // Must be called before early returns to comply with React Rules of Hooks
   const docBgColor = (() => {
     if (!data?.profile) return null;
@@ -869,7 +882,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             <div 
               className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
               style={{
-                background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
+                background: isLightBanner
+                  ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
+                  : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
               }}
             />
             {/* Action buttons - top right for banner profiles */}
@@ -877,18 +892,18 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               {profile.contact_enabled && (
                 <button
                   onClick={handleSaveContact}
-                  className="h-10 w-10 bg-black/30 hover:bg-black/40 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                  className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
                   aria-label="Save contact"
                 >
-                  <UserPlus className="h-4 w-4 text-white" />
+                  <UserPlus className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
                 </button>
               )}
               <button
                 onClick={handleShare}
-                className="h-10 w-10 bg-black/30 hover:bg-black/40 rounded-full flex items-center justify-center shadow-sm transition-colors"
+                className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
                 aria-label="Share profile"
               >
-                <Share2 className="h-4 w-4 text-white" />
+                <Share2 className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
               </button>
             </div>
           </div>
@@ -953,23 +968,23 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
           {/* Name & Username & Headline/Bio */}
           {hasBanner ? (
-            // Banner mode: Large white username and bio like Linktree
+            // Banner mode: adaptive text based on banner brightness
             <>
-              <h1 className="text-3xl font-bold text-white drop-shadow-lg">
+              <h1 className={`text-3xl font-bold drop-shadow-lg ${isLightBanner ? 'text-gray-900' : 'text-white'}`}>
                 @{profile.username}
               </h1>
               {profile.headline && (
-                <p className="text-base text-white/90 mt-2 drop-shadow-md">
+                <p className={`text-base mt-2 drop-shadow-md ${isLightBanner ? 'text-gray-800' : 'text-white/90'}`}>
                   {profile.headline}
                 </p>
               )}
                 {profile.bio && (
-                  <p className="text-base text-white font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed">
+                  <p className={`text-base font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed ${isLightBanner ? 'text-gray-900' : 'text-white'}`}>
                     {profile.bio}
                   </p>
                 )}
-              {/* Social icon bar - white icons for banner */}
-              <SocialIconBar links={iconLinks} isDarkBg={true} />
+              {/* Social icon bar */}
+              <SocialIconBar links={iconLinks} isDarkBg={!isLightBanner} />
               <div className="mb-3" />
             </>
           ) : (
@@ -994,7 +1009,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           {/* Links section - solid background starts here for banner mode */}
           <div 
             className={hasBanner ? "rounded-3xl pt-4 pb-6 -mx-4 px-4" : ""}
-            style={hasBanner && extractedBannerColor ? { backgroundColor: extractedBannerColor } : undefined}
+            style={hasBanner ? { backgroundColor: isLightBanner ? '#1a1a1a' : (extractedBannerColor || undefined) } : undefined}
           >
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
