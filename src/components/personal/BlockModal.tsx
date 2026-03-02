@@ -47,7 +47,9 @@ interface Props {
   editingBlock: PersonalBlock | null;
   currentMaxOrder: number;
   onBlockSaved: (block: PersonalBlock) => void;
-  deferSave?: boolean; // If true, don't save to DB, just return the block data
+  deferSave?: boolean;
+  planType?: string | null;
+  onUpgrade?: () => void;
 }
 
 const BLOCK_TYPES = [
@@ -68,6 +70,8 @@ export const BlockModal = ({
   currentMaxOrder,
   onBlockSaved,
   deferSave = false,
+  planType,
+  onUpgrade,
 }: Props) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -531,19 +535,33 @@ export const BlockModal = ({
     <>
       {!selectedType ? (
         <div className="space-y-2 pt-2">
-          {BLOCK_TYPES.map((type) => (
-            <button
-              key={type.type}
-              onClick={() => setSelectedType(type.type)}
-              className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left"
-            >
-              <type.icon className="h-5 w-5 text-foreground" />
-              <div>
-                <p className="text-sm font-medium">{type.label}</p>
-                <p className="text-xs text-muted-foreground">{type.description}</p>
-              </div>
-            </button>
-          ))}
+          {BLOCK_TYPES.map((type) => {
+            const isProLocked = type.type === "photo_collage" && (planType === "free");
+            return (
+              <button
+                key={type.type}
+                onClick={() => {
+                  if (isProLocked) {
+                    onUpgrade?.();
+                  } else {
+                    setSelectedType(type.type);
+                  }
+                }}
+                className="w-full flex items-center gap-3 p-3 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-left relative"
+              >
+                <type.icon className="h-5 w-5 text-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{type.label}</p>
+                  <p className="text-xs text-muted-foreground">{type.description}</p>
+                </div>
+                {isProLocked && (
+                  <span className="flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                    Pro
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-4 pt-2">

@@ -702,6 +702,8 @@ const PersonalDashboard = () => {
                 onBlocksChange={setBlocks}
                 onPendingChangesChange={setHasPendingChanges}
                 onDiscardRequest={loadData}
+                planType={profile.plan_type}
+                onUpgrade={() => handleUpgrade("yearly")}
               />
             </div>
 
@@ -735,6 +737,7 @@ const PersonalDashboard = () => {
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
+              onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
 
