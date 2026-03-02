@@ -205,95 +205,107 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     thumbnailUrl: dbLink.thumbnail_url,
   });
 
-  // Save all pending changes to DB
-  const saveAllChanges = async () => {
-    setSaving(true);
+  // Core save logic — returns array of error strings (empty = success)
+  const executeSave = async (): Promise<string[]> => {
     const errors: string[] = [];
 
+    // Save deleted items first
+    for (const id of pendingChanges.deletedLinkIds) {
+      const { error } = await supabase.from("personal_links").delete().eq("id", id);
+      if (error) errors.push(`Delete link: ${error.message}`);
+    }
+    for (const id of pendingChanges.deletedBlockIds) {
+      const { error } = await supabase.from("personal_blocks").delete().eq("id", id);
+      if (error) errors.push(`Delete block: ${error.message}`);
+    }
+
+    // Abort early if deletes failed — stale data would cause conflicts
+    if (errors.length > 0) return errors;
+
+    // Save added items
+    for (const link of pendingChanges.addedLinks) {
+      const { error } = await supabase.from("personal_links").insert({
+        id: link.id,
+        profile_id: profileId,
+        link_type: link.link_type,
+        label: link.label,
+        url: link.url,
+        sort_order: link.sort_order,
+        pill_color: link.pill_color,
+        is_active: link.is_active,
+        is_featured: link.is_featured,
+        display_style: link.display_style || 'pill',
+        cover_image_url: link.cover_image_url || null,
+        grid_size: link.grid_size || null,
+        thumbnail_url: link.thumbnail_url || null,
+      });
+      if (error) errors.push(`Add link "${link.label}": ${error.message}`);
+    }
+    for (const block of pendingChanges.addedBlocks) {
+      const { error } = await supabase.from("personal_blocks").insert({
+        profile_id: profileId,
+        block_type: block.block_type,
+        content: block.content as import("@/integrations/supabase/types").Json,
+        sort_order: block.sort_order,
+        alignment: block.alignment,
+        is_active: block.is_active,
+      });
+      if (error) errors.push(`Add block: ${error.message}`);
+    }
+
+    // Save updated items
+    for (const [id, updates] of pendingChanges.updatedLinks) {
+      const { error } = await supabase.from("personal_links").update(updates).eq("id", id);
+      if (error) errors.push(`Update link: ${error.message}`);
+    }
+    for (const [id, updates] of pendingChanges.updatedBlocks) {
+      const { error } = await supabase.from("personal_blocks").update(updates as Record<string, unknown>).eq("id", id);
+      if (error) errors.push(`Update block: ${error.message}`);
+    }
+
+    // Save order changes if any
+    if (pendingChanges.orderChanged) {
+      for (const link of links) {
+        const { error } = await supabase
+          .from("personal_links")
+          .update({ sort_order: link.sort_order })
+          .eq("id", link.id);
+        if (error) errors.push(`Reorder link: ${error.message}`);
+      }
+      for (const block of blocks) {
+        const { error } = await supabase
+          .from("personal_blocks")
+          .update({ sort_order: block.sort_order })
+          .eq("id", block.id);
+        if (error) errors.push(`Reorder block: ${error.message}`);
+      }
+    }
+
+    return errors;
+  };
+
+  // Save all pending changes to DB with auto-retry on failure
+  const saveAllChanges = async () => {
+    setSaving(true);
+
     try {
-      // Save deleted items first
-      for (const id of pendingChanges.deletedLinkIds) {
-        const { error } = await supabase.from("personal_links").delete().eq("id", id);
-        if (error) errors.push(`Delete link: ${error.message}`);
-      }
-      for (const id of pendingChanges.deletedBlockIds) {
-        const { error } = await supabase.from("personal_blocks").delete().eq("id", id);
-        if (error) errors.push(`Delete block: ${error.message}`);
-      }
+      let errors = await executeSave();
 
-      // Abort early if deletes failed — stale data would cause conflicts
+      // Auto-retry once after 2 seconds if there were errors
       if (errors.length > 0) {
-        toast.error("Some changes failed to save", {
-          description: errors.join("; "),
-        });
-        return;
-      }
-
-      // Save added items
-      for (const link of pendingChanges.addedLinks) {
-        const { error } = await supabase.from("personal_links").insert({
-          id: link.id,
-          profile_id: profileId,
-          link_type: link.link_type,
-          label: link.label,
-          url: link.url,
-          sort_order: link.sort_order,
-          pill_color: link.pill_color,
-          is_active: link.is_active,
-          is_featured: link.is_featured,
-          display_style: link.display_style || 'pill',
-          cover_image_url: link.cover_image_url || null,
-          grid_size: link.grid_size || null,
-          thumbnail_url: link.thumbnail_url || null,
-        });
-        if (error) errors.push(`Add link "${link.label}": ${error.message}`);
-      }
-      for (const block of pendingChanges.addedBlocks) {
-        const { error } = await supabase.from("personal_blocks").insert({
-          profile_id: profileId,
-          block_type: block.block_type,
-          content: block.content as import("@/integrations/supabase/types").Json,
-          sort_order: block.sort_order,
-          alignment: block.alignment,
-          is_active: block.is_active,
-        });
-        if (error) errors.push(`Add block: ${error.message}`);
-      }
-
-      // Save updated items
-      for (const [id, updates] of pendingChanges.updatedLinks) {
-        const { error } = await supabase.from("personal_links").update(updates).eq("id", id);
-        if (error) errors.push(`Update link: ${error.message}`);
-      }
-      for (const [id, updates] of pendingChanges.updatedBlocks) {
-        const { error } = await supabase.from("personal_blocks").update(updates as Record<string, unknown>).eq("id", id);
-        if (error) errors.push(`Update block: ${error.message}`);
-      }
-
-      // Save order changes if any
-      if (pendingChanges.orderChanged) {
-        for (const link of links) {
-          const { error } = await supabase
-            .from("personal_links")
-            .update({ sort_order: link.sort_order })
-            .eq("id", link.id);
-          if (error) errors.push(`Reorder link: ${error.message}`);
-        }
-        for (const block of blocks) {
-          const { error } = await supabase
-            .from("personal_blocks")
-            .update({ sort_order: block.sort_order })
-            .eq("id", block.id);
-          if (error) errors.push(`Reorder block: ${error.message}`);
-        }
+        console.warn("Save attempt 1 failed, retrying in 2s:", errors);
+        toast.loading("Retrying save…", { id: "save-retry" });
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        errors = await executeSave();
+        toast.dismiss("save-retry");
       }
 
       if (errors.length > 0) {
-        console.error("Save errors:", errors);
+        console.error("Save errors after retry:", errors);
         toast.error("Some changes failed to save", {
           description: errors.join("; "),
         });
-        return;
+        return; // Keep pendingChanges so Save bar stays visible
       }
 
       // Invalidate cache
