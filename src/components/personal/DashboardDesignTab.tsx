@@ -12,8 +12,10 @@ import {
   X, 
   Upload,
   Loader2,
-  Sparkles
+  Sparkles,
+  Lock
 } from "lucide-react";
+import { ProUpgradeDialog } from "./ProUpgradeDialog";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 
@@ -25,6 +27,7 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   isPremium: boolean;
+  onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
     headerColor?: string | null;
@@ -66,8 +69,10 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   isPremium,
+  onUpgrade,
   onUpdate,
 }: Props) => {
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -331,7 +336,7 @@ export const DashboardDesignTab = ({
               <span className="text-xs font-medium">Image</span>
             </Label>
           </div>
-          {isPremium && (
+          {isPremium ? (
             <div>
               <RadioGroupItem value="banner" id="header-banner" className="peer sr-only" />
               <Label 
@@ -342,8 +347,31 @@ export const DashboardDesignTab = ({
                 <span className="text-xs font-medium">Full Banner</span>
               </Label>
             </div>
+          ) : (
+            <div
+              onClick={() => setUpgradeFeature("Full Banner Mode")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all hover:bg-muted/50 relative"
+            >
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span className="text-xs font-medium">Full Banner</span>
+              <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                <Lock className="h-2.5 w-2.5" />
+                Pro
+              </span>
+            </div>
           )}
         </RadioGroup>
+
+        {/* Pro upgrade dialog */}
+        <ProUpgradeDialog
+          open={!!upgradeFeature}
+          onOpenChange={(open) => !open && setUpgradeFeature(null)}
+          featureName={upgradeFeature || ""}
+          onUpgrade={() => {
+            setUpgradeFeature(null);
+            onUpgrade?.();
+          }}
+        />
 
         {pendingHeaderType === "banner" ? (
           <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
@@ -415,43 +443,57 @@ export const DashboardDesignTab = ({
               />
             </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {headerImageUrl ? (
-              <div className="relative">
-                <img src={headerImageUrl} alt="Header" className="w-full h-24 object-cover rounded-lg" />
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                  >
-                    {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
-                  </button>
-                  <button onClick={handleRemoveImage} className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors">
-                    <X className="h-4 w-4 text-white" />
-                  </button>
+        ) : pendingHeaderType === "image" ? (
+          !isPremium ? (
+            <div 
+              onClick={() => setUpgradeFeature("Custom Header Image")}
+              className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors cursor-pointer relative"
+            >
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Upload header image</span>
+              <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                <Lock className="h-2.5 w-2.5" />
+                Pro
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {headerImageUrl ? (
+                <div className="relative">
+                  <img src={headerImageUrl} alt="Header" className="w-full h-24 object-cover rounded-lg" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
+                    </button>
+                    <button onClick={handleRemoveImage} className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors">
+                      <X className="h-4 w-4 text-white" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-              >
-                {uploading ? (
-                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-                ) : (
-                  <>
-                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Upload header image</span>
-                  </>
-                )}
-              </button>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-          </div>
-        )}
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+                  ) : (
+                    <>
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Upload header image</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+            </div>
+          )
+        ) : null}
       </div>
 
       <div className="h-px bg-border" />

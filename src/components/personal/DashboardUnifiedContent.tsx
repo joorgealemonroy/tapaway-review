@@ -97,6 +97,8 @@ interface Props {
   onBlocksChange: (blocks: PersonalBlock[]) => void;
   onPendingChangesChange: (hasPending: boolean) => void;
   onDiscardRequest?: () => void;
+  planType?: string | null;
+  onUpgrade?: () => void;
 }
 
 const createEmptyPendingChanges = (): PendingChanges => ({
@@ -118,6 +120,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   onBlocksChange,
   onPendingChangesChange,
   onDiscardRequest,
+  planType,
+  onUpgrade,
 }, ref) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
@@ -996,6 +1000,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         currentMaxOrder={Math.max(...unifiedItems.map(i => i.data.sort_order), -1)}
         onBlockSaved={handleBlockSaved}
         deferSave={true}
+        planType={planType}
+        onUpgrade={onUpgrade}
       />
 
       {/* Delete confirmation */}

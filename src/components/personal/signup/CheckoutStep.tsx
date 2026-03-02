@@ -122,8 +122,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     const issues: string[] = [];
     if (formData.headerType === "image") issues.push("Custom header image will revert to a solid color");
     if (formData.links.length > maxFreeLinks) issues.push(`Links beyond ${maxFreeLinks} will be removed`);
-    const proBlocks = formData.blocks.filter(b => ["photo_collage", "email_capture"].includes(b.type));
-    if (proBlocks.length > 0) issues.push("Pro-only blocks (photo collage, email capture) will be removed");
+    const proBlocks = formData.blocks.filter(b => (b.type as string) === "photo_collage");
+    if (proBlocks.length > 0) issues.push("Pro-only blocks (photo collage) will be removed");
     return issues;
   };
 
