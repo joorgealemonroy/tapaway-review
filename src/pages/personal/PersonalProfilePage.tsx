@@ -724,11 +724,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     setShowShareModal(true);
   }, [data?.profile]);
 
-  const handleSaveContact = useCallback(() => {
+  const handleSaveContact = useCallback(async () => {
     if (!data?.profile) return;
     
     const profile = data.profile;
-    downloadVCard({
+    await downloadVCard({
       fullName: profile.contact_name || profile.full_name,
       email: profile.contact_email || undefined,
       phone: profile.contact_phone || undefined,
