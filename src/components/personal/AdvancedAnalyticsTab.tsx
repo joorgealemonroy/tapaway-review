@@ -32,6 +32,7 @@ import { Json } from "@/integrations/supabase/types";
 interface AdvancedAnalyticsTabProps {
   profileId: string;
   planType: string | null;
+  subscriptionStatus?: string | null;
   onUpgrade: () => void;
 }
 
@@ -41,14 +42,18 @@ type AnalyticsRow = {
   visitor_info: Json | null;
 };
 
-const isPro = (plan: string | null) => plan === "pro" || plan === "premium";
+const hasProAccess = (plan: string | null, status: string | null | undefined) => {
+  if (!!plan && ["pro", "premium", "vip"].includes(plan)) return true;
+  if (status === "trialing") return true;
+  return false;
+};
 
-export const AdvancedAnalyticsTab = ({ profileId, planType, onUpgrade }: AdvancedAnalyticsTabProps) => {
+export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, onUpgrade }: AdvancedAnalyticsTabProps) => {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<AnalyticsRow[]>([]);
   const [basicCounts, setBasicCounts] = useState({ "7d": 0, "30d": 0, all: 0 });
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const pro = isPro(planType);
+  const pro = hasProAccess(planType, subscriptionStatus);
 
   useEffect(() => {
     const load = async () => {
