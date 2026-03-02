@@ -25,9 +25,34 @@ function escapeVCardValue(value: string): string {
 }
 
 /**
+ * Fetch an image URL and return its base64 encoding + type.
+ * Returns null if anything fails (CORS, network, etc.)
+ */
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; type: string } | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('Content-Type') || 'image/jpeg';
+    const imageType = contentType.split('/')[1]?.toUpperCase().replace('SVG+XML', 'PNG') || 'JPEG';
+
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    return { base64, type: imageType };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Generate a vCard 3.0 formatted string
  */
-export function generateVCard(data: VCardData): string {
+export async function generateVCard(data: VCardData): Promise<string> {
   const lines: string[] = [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -71,6 +96,14 @@ export function generateVCard(data: VCardData): string {
     lines.push(`URL:${data.website}`);
   }
 
+  // Photo - fetch and embed as base64
+  if (data.profilePhotoUrl) {
+    const photo = await fetchImageAsBase64(data.profilePhotoUrl);
+    if (photo) {
+      lines.push(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`);
+    }
+  }
+
   lines.push('END:VCARD');
 
   return lines.join('\r\n');
@@ -79,8 +112,8 @@ export function generateVCard(data: VCardData): string {
 /**
  * Generate vCard and trigger download
  */
-export function downloadVCard(data: VCardData, filename?: string): void {
-  const vcard = generateVCard(data);
+export async function downloadVCard(data: VCardData, filename?: string): Promise<void> {
+  const vcard = await generateVCard(data);
   const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   
