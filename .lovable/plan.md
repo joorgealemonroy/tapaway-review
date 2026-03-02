@@ -1,33 +1,29 @@
 
 
-# Fix: Dashboard Content Save Reliability
+# Plan: Add Auto-Retry on Save Failure + End-to-End Test
 
-## Root Cause
-The `saveAllChanges` method in `DashboardUnifiedContent.tsx` has two critical bugs:
+## Current State
+The save flow now properly detects errors and shows them to the user. When a save fails, pending changes are preserved (the `return` before clearing `pendingChanges` keeps them intact), so the Save bar stays visible. However, the user must manually click Save again — there is no automatic retry.
 
-1. **Silent failures**: All insert/update/delete operations ignore their return `error`. The toast shows "Changes saved!" even when DB operations fail. Users are told their changes saved when nothing actually persisted.
+## Changes
 
-2. **Block double-insert**: `BlockModal` has `deferSave={false}`, meaning blocks get inserted into the DB immediately when created. But `saveAllChanges` also tries to insert them again from `pendingChanges.addedBlocks`, causing a duplicate key error that's silently swallowed.
+### 1. Add automatic retry logic to `saveAllChanges`
+**File**: `src/components/personal/DashboardUnifiedContent.tsx`
 
-## Fixes in `src/components/personal/DashboardUnifiedContent.tsx`
+When a save operation fails:
+- Wait 2 seconds, then automatically retry once
+- Show a toast like "Retrying save..." during the retry
+- If the retry also fails, show the error toast and keep the Save bar visible (as it does now)
+- Track retry state so the Save button shows "Retrying..." spinner during the automatic attempt
+- Maximum 1 automatic retry to avoid infinite loops
 
-### 1. Add error handling to all DB operations in `saveAllChanges`
-- Check `error` on every `supabase.from()` call (delete, insert, update)
-- Collect all errors and only show "Changes saved!" if zero errors
-- Show "Some changes failed to save" with details if any errors occurred
-- Throw on first critical error so the user knows something went wrong
+Implementation: wrap the core save logic in a helper, call it from `saveAllChanges`, and if it returns errors, schedule one retry via `setTimeout`. Use a `retryCount` parameter to cap retries at 1.
 
-### 2. Fix block double-insert
-- Change `deferSave` to `true` on the `BlockModal` (line 960) so blocks are NOT saved immediately
-- OR remove blocks from `pendingChanges.addedBlocks` tracking when they're already saved by BlockModal
-- The cleaner fix is `deferSave={true}` since the entire component's design is "buffer then save"
+### 2. Browser test after implementation
+- Navigate to the personal dashboard
+- Verify the save bar appears when changes are made
+- Confirm successful saves clear the bar and persist to DB
 
-### 3. Ensure delete operations actually succeed before proceeding
-- Currently deletes run with no error check — if RLS blocks the delete, the old link stays and the user never knows
-
-## Files to modify (1):
-- `src/components/personal/DashboardUnifiedContent.tsx`
-  - Add error checking to every DB call in `saveAllChanges`
-  - Change `deferSave={false}` to `deferSave={true}` on BlockModal (line 960)
-  - Abort and report on first error instead of silently continuing
+### Files to modify (1):
+- `src/components/personal/DashboardUnifiedContent.tsx` — add retry wrapper around save logic
 
