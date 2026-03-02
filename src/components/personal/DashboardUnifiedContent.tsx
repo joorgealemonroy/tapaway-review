@@ -131,6 +131,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const [isDragEnabled, setIsDragEnabled] = useState(false);
   const touchHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
   const initialTouchYRef = useRef<number | null>(null);
+  const draggedElRef = useRef<HTMLElement | null>(null);
   
   // Track pending changes - these haven't been saved to DB yet
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
@@ -394,6 +395,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     // Store initial touch position
     initialTouchYRef.current = e.touches[0].clientY;
     initialTouchXRef.current = e.touches[0].clientX;
+    // Track the dragged DOM element for elementFromPoint hit-testing
+    draggedElRef.current = e.currentTarget as HTMLElement;
     
     // Start hold timer - only enable drag after delay
     touchHoldTimerRef.current = setTimeout(() => {
@@ -435,10 +438,10 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     const touch = e.touches[0];
     
     // Temporarily hide the dragged element so elementFromPoint sees what's underneath
-    const draggedEl = (e.currentTarget as HTMLElement);
-    draggedEl.style.pointerEvents = 'none';
+    const draggedEl = draggedElRef.current;
+    if (draggedEl) draggedEl.style.pointerEvents = 'none';
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    draggedEl.style.pointerEvents = '';
+    if (draggedEl) draggedEl.style.pointerEvents = '';
 
     if (!target) return;
 
@@ -475,6 +478,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     document.documentElement.classList.remove("dragging-active");
     initialTouchYRef.current = null;
     initialTouchXRef.current = null;
+    draggedElRef.current = null;
     
     if (isDragEnabled && draggedItem) {
       setDraggedItem(null);
@@ -711,7 +715,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       <Label className="text-sm font-medium text-foreground">Content</Label>
       
       {groupedItems.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2" onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           {groupedItems.map((groupedItem, groupIdx) => {
             // Grid group - render as 2-column grid
             if (groupedItem.kind === "grid-group") {
@@ -735,8 +739,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
                         onTouchStart={(e) => handleTouchStart(e, index, { kind: "link", data: link })}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
+                        
                         className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
                           isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                         } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
@@ -836,8 +839,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
+                  
                   className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none select-none ${
                     isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
@@ -907,8 +909,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
+                  
                   className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none select-none ${
                     isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
