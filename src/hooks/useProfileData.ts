@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   getCachedProfile, 
   setCachedProfile,
+  invalidateProfileCache,
   type CachedProfile,
   type CachedLink,
   type CachedBlock,
@@ -100,8 +101,6 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<'not_found' | 'error' | null>(null);
-  const fetchedRef = useRef<string | null>(null);
-
   const loadProfile = useCallback(async () => {
     if (!username) {
       setError('not_found');
@@ -140,10 +139,6 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
       return;
     }
 
-    // Prevent duplicate fetches
-    if (fetchedRef.current === username) return;
-    fetchedRef.current = username;
-
     try {
       setLoading(true);
       const result = await fetchProfileData(username);
@@ -171,9 +166,9 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
   }, [loadProfile]);
 
   const refetch = useCallback(async () => {
-    fetchedRef.current = null;
+    invalidateProfileCache(username || '');
     await loadProfile();
-  }, [loadProfile]);
+  }, [loadProfile, username]);
 
   return { data, loading, error, refetch };
 }
