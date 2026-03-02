@@ -133,7 +133,7 @@ const PersonalDashboard = () => {
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Load profile data - optimized with parallel fetches
+  // Load profile data - always fresh from DB, never cached
   const loadData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
