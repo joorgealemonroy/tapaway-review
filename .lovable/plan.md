@@ -1,19 +1,37 @@
 
 
-# Remove "Get a Physical Card" Step from Signup
+# Add Desktop Dark Mode Toggle + Default to Dark
 
 ## What's Changing
-The PreviewStep (step 3 — "Get a physical card") is being removed from the standard signup flow, reducing it from 4 steps to 3 for all users. The flow becomes: (1) Identity, (2) Build profile, (3) Checkout.
+1. **Default theme becomes dark** — First-time visitors (no localStorage value) will see dark mode
+2. **Desktop nav gets a theme toggle** — A Sun/Moon icon button added to DesktopNav, matching the mobile pattern
+3. **Early theme initialization** — Apply dark class in `main.tsx` before React renders to prevent flash of light mode
 
-## Changes in `src/pages/personal/PersonalSignup.tsx`
+## Technical Details
 
-1. **Remove PreviewStep import** — delete the import of `PreviewStep`
-2. **Set `totalSteps` to 3** — remove the conditional; it's always 3 now
-3. **Remove `fromCardActivation` / `isVipCard` conditional logic around totalSteps** (keep the card-activation plan defaults)
-4. **Update step URL restore** — cap at 3 instead of 4
-5. **Update `stepTitles`** — remove step 3 "Get a physical card", rename step 3 to "Finish your order"
-6. **Remove the PreviewStep render block** (the `currentStep === 3 && !fromCardActivation` block)
-7. **Simplify CheckoutStep render** — always render on `currentStep === 3`
-8. **Update progress dots** — already derived from `totalSteps`, so automatic
-9. **Default `cardChoice` to `"none"`** for all users since the card selection UI is removed
+### 1. `src/main.tsx` — Early theme init
+Add a synchronous script before `createRoot` that reads `localStorage.getItem('tapaway_dashboard_theme')` and applies the `.dark` class to `document.documentElement`. If no value exists, default to dark (add `.dark` class).
+
+### 2. `src/components/landing/DesktopNav.tsx` — Add toggle button
+- Import `Sun`, `Moon` from lucide-react and `useState`, `useEffect` from react
+- Add `isDark` state initialized from localStorage (default: `true` when no value)
+- Add `useEffect` to sync `.dark` class + localStorage
+- Render a ghost icon button next to the nav links
+
+### 3. Update default in all 4 existing files
+Change the `useState` initializer from `=== 'dark'` to `!== 'light'` so the default (no localStorage) is dark:
+- `src/components/landing/MobileNav.tsx` (line 18)
+- `src/components/personal/MobileBottomNav.tsx` (line 29)
+- `src/pages/CardResolver.tsx` (line 43)
+- `src/components/card/CardOnboarding.tsx` (line 38)
+
+### Files Modified (6 total)
+- `src/main.tsx`
+- `src/components/landing/DesktopNav.tsx`
+- `src/components/landing/MobileNav.tsx`
+- `src/components/personal/MobileBottomNav.tsx`
+- `src/pages/CardResolver.tsx`
+- `src/components/card/CardOnboarding.tsx`
+
+Note: ReviewHub uses a separate theme key (`tapaway_hub_theme`) with its own light-mode default — that stays unchanged per existing design memory.
 
