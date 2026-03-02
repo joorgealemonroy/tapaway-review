@@ -1,38 +1,25 @@
 
 
-# Why Content Is Missing From the Public Hub
+# Fix: Touch Drag Reordering Not Working Properly
 
-## What's Happening
+## Root Cause
 
-The database for the `socials` profile currently has:
-- **Links**: Only Instagram and Support (2 links)
-- **Blocks**: 5 blocks — but with **duplicates** (2 email_capture, 2 button blocks from the old `deferSave={false}` bug)
+The touch drag handler (`onTouchMove`) is attached to each individual item `<div>`. Once the user's finger moves beyond that element's bounds, touch events stop firing reliably on it. The `elementFromPoint` lookup then either fails to find the right target or returns stale results, causing items to snap to the bottom instead of the intended position.
 
-The TikTok link, X/Twitter link, and any other items you see in the dashboard are **only in local React state** — they were added before the save-reliability fix was applied, so they were never actually written to the database. The dashboard shows them because it keeps them in memory, but the public profile fetches from the DB and correctly shows only what's persisted.
+## Fix
 
-## Root Issue
+Move the touch move and touch end handlers from individual items to the **parent container** `<div className="space-y-2">` that wraps all items. This ensures touch events continue to fire as the finger moves across different items.
 
-This is a **stale local state** problem, not a rendering bug. The previous silent-failure bug (now fixed) caused items to appear saved when they weren't. The dashboard never re-fetched from the DB, so it kept showing the phantom items.
+### Changes in `src/components/personal/DashboardUnifiedContent.tsx`:
 
-## Fix Plan
+1. **Attach `onTouchMove` and `onTouchEnd` to the parent container** (the `<div className="space-y-2">` at line 714) instead of on each individual item.
 
-### 1. Re-sync dashboard state from DB on mount
-**File**: `src/components/personal/DashboardUnifiedContent.tsx`
+2. **Keep `onTouchStart` on each item** so we know which item index started the drag.
 
-After the initial data loads (the `links` and `blocks` props from the parent), the component should be the source of truth from the DB. Currently when the parent fetches fresh data, it does flow into this component — but the parent may also be using stale cached data.
+3. **Remove `onTouchMove` and `onTouchEnd`** from every individual item div (grid links at ~738-739, regular links at ~839-840, blocks at ~910-911).
 
-### 2. Force re-fetch on dashboard mount
-**File**: `src/pages/personal/PersonalDashboard.tsx`
+4. **Fix `elementFromPoint` logic** — instead of toggling `e.currentTarget.style.pointerEvents`, track the dragged element via a ref and toggle its pointer events. This ensures the correct element is hidden during hit-testing.
 
-When the dashboard mounts, it should always fetch fresh links and blocks from the DB, not rely on potentially stale cached state. Add an explicit re-fetch of `personal_links` and `personal_blocks` for the profile on mount to ensure the dashboard always reflects the actual DB state.
-
-### 3. Clean up duplicate blocks in DB
-Run a one-time cleanup to remove the duplicate blocks that were double-inserted by the old `deferSave={false}` bug. This prevents users from seeing duplicate content on their public profile.
-
-### Files to modify:
-- `src/pages/personal/PersonalDashboard.tsx` — force fresh DB fetch of links/blocks on mount
-- Database: delete duplicate blocks for the `socials` profile
-
-### Technical detail
-The dashboard parent component needs to call `supabase.from("personal_links").select("*").eq("profile_id", profileId)` on mount rather than relying on any cached state. This ensures that after the save-reliability fix, the dashboard always starts from the true DB state, and any items that failed to save previously won't appear as phantom entries.
+### Files to modify (1):
+- `src/components/personal/DashboardUnifiedContent.tsx`
 
