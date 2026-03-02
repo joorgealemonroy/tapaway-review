@@ -723,6 +723,7 @@ const PersonalDashboard = () => {
             <AdvancedAnalyticsTab
               profileId={profile.id}
               planType={profile.plan_type}
+              subscriptionStatus={profile.subscription_status}
               onUpgrade={() => handleUpgrade("yearly")}
             />
           </TabsContent>
