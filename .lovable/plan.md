@@ -1,29 +1,38 @@
 
 
-# Plan: Add Auto-Retry on Save Failure + End-to-End Test
+# Why Content Is Missing From the Public Hub
 
-## Current State
-The save flow now properly detects errors and shows them to the user. When a save fails, pending changes are preserved (the `return` before clearing `pendingChanges` keeps them intact), so the Save bar stays visible. However, the user must manually click Save again — there is no automatic retry.
+## What's Happening
 
-## Changes
+The database for the `socials` profile currently has:
+- **Links**: Only Instagram and Support (2 links)
+- **Blocks**: 5 blocks — but with **duplicates** (2 email_capture, 2 button blocks from the old `deferSave={false}` bug)
 
-### 1. Add automatic retry logic to `saveAllChanges`
+The TikTok link, X/Twitter link, and any other items you see in the dashboard are **only in local React state** — they were added before the save-reliability fix was applied, so they were never actually written to the database. The dashboard shows them because it keeps them in memory, but the public profile fetches from the DB and correctly shows only what's persisted.
+
+## Root Issue
+
+This is a **stale local state** problem, not a rendering bug. The previous silent-failure bug (now fixed) caused items to appear saved when they weren't. The dashboard never re-fetched from the DB, so it kept showing the phantom items.
+
+## Fix Plan
+
+### 1. Re-sync dashboard state from DB on mount
 **File**: `src/components/personal/DashboardUnifiedContent.tsx`
 
-When a save operation fails:
-- Wait 2 seconds, then automatically retry once
-- Show a toast like "Retrying save..." during the retry
-- If the retry also fails, show the error toast and keep the Save bar visible (as it does now)
-- Track retry state so the Save button shows "Retrying..." spinner during the automatic attempt
-- Maximum 1 automatic retry to avoid infinite loops
+After the initial data loads (the `links` and `blocks` props from the parent), the component should be the source of truth from the DB. Currently when the parent fetches fresh data, it does flow into this component — but the parent may also be using stale cached data.
 
-Implementation: wrap the core save logic in a helper, call it from `saveAllChanges`, and if it returns errors, schedule one retry via `setTimeout`. Use a `retryCount` parameter to cap retries at 1.
+### 2. Force re-fetch on dashboard mount
+**File**: `src/pages/personal/PersonalDashboard.tsx`
 
-### 2. Browser test after implementation
-- Navigate to the personal dashboard
-- Verify the save bar appears when changes are made
-- Confirm successful saves clear the bar and persist to DB
+When the dashboard mounts, it should always fetch fresh links and blocks from the DB, not rely on potentially stale cached state. Add an explicit re-fetch of `personal_links` and `personal_blocks` for the profile on mount to ensure the dashboard always reflects the actual DB state.
 
-### Files to modify (1):
-- `src/components/personal/DashboardUnifiedContent.tsx` — add retry wrapper around save logic
+### 3. Clean up duplicate blocks in DB
+Run a one-time cleanup to remove the duplicate blocks that were double-inserted by the old `deferSave={false}` bug. This prevents users from seeing duplicate content on their public profile.
+
+### Files to modify:
+- `src/pages/personal/PersonalDashboard.tsx` — force fresh DB fetch of links/blocks on mount
+- Database: delete duplicate blocks for the `socials` profile
+
+### Technical detail
+The dashboard parent component needs to call `supabase.from("personal_links").select("*").eq("profile_id", profileId)` on mount rather than relying on any cached state. This ensures that after the save-reliability fix, the dashboard always starts from the true DB state, and any items that failed to save previously won't appear as phantom entries.
 
