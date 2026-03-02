@@ -26,7 +26,7 @@ const BASE_MORE_TABS = [
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   const navigate = useNavigate();
 
   useEffect(() => {

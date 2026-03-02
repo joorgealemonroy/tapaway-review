@@ -40,7 +40,7 @@ const CardResolver = () => {
   const [verifying, setVerifying] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);

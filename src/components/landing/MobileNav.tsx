@@ -15,7 +15,7 @@ export const MobileNav = () => {
   const { isSalesRep } = useSalesRep();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
