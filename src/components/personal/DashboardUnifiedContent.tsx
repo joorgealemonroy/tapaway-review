@@ -208,18 +208,30 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   // Save all pending changes to DB
   const saveAllChanges = async () => {
     setSaving(true);
+    const errors: string[] = [];
+
     try {
       // Save deleted items first
       for (const id of pendingChanges.deletedLinkIds) {
-        await supabase.from("personal_links").delete().eq("id", id);
+        const { error } = await supabase.from("personal_links").delete().eq("id", id);
+        if (error) errors.push(`Delete link: ${error.message}`);
       }
       for (const id of pendingChanges.deletedBlockIds) {
-        await supabase.from("personal_blocks").delete().eq("id", id);
+        const { error } = await supabase.from("personal_blocks").delete().eq("id", id);
+        if (error) errors.push(`Delete block: ${error.message}`);
+      }
+
+      // Abort early if deletes failed — stale data would cause conflicts
+      if (errors.length > 0) {
+        toast.error("Some changes failed to save", {
+          description: errors.join("; "),
+        });
+        return;
       }
 
       // Save added items
       for (const link of pendingChanges.addedLinks) {
-        await supabase.from("personal_links").insert({
+        const { error } = await supabase.from("personal_links").insert({
           id: link.id,
           profile_id: profileId,
           link_type: link.link_type,
@@ -234,41 +246,54 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           grid_size: link.grid_size || null,
           thumbnail_url: link.thumbnail_url || null,
         });
+        if (error) errors.push(`Add link "${link.label}": ${error.message}`);
       }
       for (const block of pendingChanges.addedBlocks) {
         const { error } = await supabase.from("personal_blocks").insert({
           profile_id: profileId,
           block_type: block.block_type,
-          content: block.content as any,
+          content: block.content as import("@/integrations/supabase/types").Json,
           sort_order: block.sort_order,
           alignment: block.alignment,
           is_active: block.is_active,
         });
-        if (error) console.error("Block insert error:", error);
+        if (error) errors.push(`Add block: ${error.message}`);
       }
 
       // Save updated items
       for (const [id, updates] of pendingChanges.updatedLinks) {
-        await supabase.from("personal_links").update(updates).eq("id", id);
+        const { error } = await supabase.from("personal_links").update(updates).eq("id", id);
+        if (error) errors.push(`Update link: ${error.message}`);
       }
       for (const [id, updates] of pendingChanges.updatedBlocks) {
-        await supabase.from("personal_blocks").update(updates as any).eq("id", id);
+        const { error } = await supabase.from("personal_blocks").update(updates as Record<string, unknown>).eq("id", id);
+        if (error) errors.push(`Update block: ${error.message}`);
       }
 
       // Save order changes if any
       if (pendingChanges.orderChanged) {
         for (const link of links) {
-          await supabase
+          const { error } = await supabase
             .from("personal_links")
             .update({ sort_order: link.sort_order })
             .eq("id", link.id);
+          if (error) errors.push(`Reorder link: ${error.message}`);
         }
         for (const block of blocks) {
-          await supabase
+          const { error } = await supabase
             .from("personal_blocks")
             .update({ sort_order: block.sort_order })
             .eq("id", block.id);
+          if (error) errors.push(`Reorder block: ${error.message}`);
         }
+      }
+
+      if (errors.length > 0) {
+        console.error("Save errors:", errors);
+        toast.error("Some changes failed to save", {
+          description: errors.join("; "),
+        });
+        return;
       }
 
       // Invalidate cache
@@ -957,7 +982,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         editingBlock={editingBlock}
         currentMaxOrder={Math.max(...unifiedItems.map(i => i.data.sort_order), -1)}
         onBlockSaved={handleBlockSaved}
-        deferSave={false}
+        deferSave={true}
       />
 
       {/* Delete confirmation */}
