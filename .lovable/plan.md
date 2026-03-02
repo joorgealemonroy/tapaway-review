@@ -1,29 +1,33 @@
 
 
-# Fix: Stale Profile Data + White Banner Readability
+# Fix: Dashboard Content Save Reliability
 
-## Issue 1: Changes not showing up instantly on profile page
+## Root Cause
+The `saveAllChanges` method in `DashboardUnifiedContent.tsx` has two critical bugs:
 
-**Root cause**: In `useProfileData.ts`, there's a `fetchedRef` guard (line 142) that prevents re-fetching if the username hasn't changed. When you edit in the dashboard, `invalidateProfileCache()` clears the cache correctly, but when you navigate back to the profile page, `fetchedRef.current === username` is still true, so it returns early without fetching fresh data.
+1. **Silent failures**: All insert/update/delete operations ignore their return `error`. The toast shows "Changes saved!" even when DB operations fail. Users are told their changes saved when nothing actually persisted.
 
-**Fix in `src/hooks/useProfileData.ts`**:
-- Remove the `fetchedRef` guard entirely — the in-memory cache already handles deduplication
-- Without `fetchedRef`, the flow becomes: check cache → miss (it was invalidated) → fetch fresh data → update cache
-- This is safe because concurrent fetches are already prevented by React's state batching
+2. **Block double-insert**: `BlockModal` has `deferSave={false}`, meaning blocks get inserted into the DB immediately when created. But `saveAllChanges` also tries to insert them again from `pendingChanges.addedBlocks`, causing a duplicate key error that's silently swallowed.
 
-## Issue 2: White banner image makes text unreadable
+## Fixes in `src/components/personal/DashboardUnifiedContent.tsx`
 
-**Root cause**: In `PersonalProfilePage.tsx`, the banner gradient fade uses `${extractedBannerColor}40` (25% opacity) and text is hardcoded to `text-white`. When the profile image is white/light, both the gradient and text are invisible.
+### 1. Add error handling to all DB operations in `saveAllChanges`
+- Check `error` on every `supabase.from()` call (delete, insert, update)
+- Collect all errors and only show "Changes saved!" if zero errors
+- Show "Some changes failed to save" with details if any errors occurred
+- Throw on first critical error so the user knows something went wrong
 
-**Fix in `src/pages/personal/PersonalProfilePage.tsx`**:
-1. Add a luminance check on the extracted banner color (parse `rgb(r,g,b)` → compute luminance)
-2. When the banner color is light (luminance > 0.7):
-   - Increase gradient opacity from `40` to `CC` (80%) and use a dark overlay instead of the extracted color
-   - Switch banner text from `text-white` to `text-gray-900`
-   - Switch action buttons from `bg-black/30` to `bg-white/80` with dark icons
-3. Pass `isLightBanner` flag to the links container background section
+### 2. Fix block double-insert
+- Change `deferSave` to `true` on the `BlockModal` (line 960) so blocks are NOT saved immediately
+- OR remove blocks from `pendingChanges.addedBlocks` tracking when they're already saved by BlockModal
+- The cleaner fix is `deferSave={true}` since the entire component's design is "buffer then save"
 
-### Files to modify (2):
-- `src/hooks/useProfileData.ts` — remove `fetchedRef` guard
-- `src/pages/personal/PersonalProfilePage.tsx` — add light-banner detection and adaptive styling
+### 3. Ensure delete operations actually succeed before proceeding
+- Currently deletes run with no error check — if RLS blocks the delete, the old link stays and the user never knows
+
+## Files to modify (1):
+- `src/components/personal/DashboardUnifiedContent.tsx`
+  - Add error checking to every DB call in `saveAllChanges`
+  - Change `deferSave={false}` to `deferSave={true}` on BlockModal (line 960)
+  - Abort and report on first error instead of silently continuing
 
