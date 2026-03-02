@@ -1,67 +1,41 @@
 
 
-# Plan: Free Plan Limits + Pro Feature Upsell
+# Advanced Analytics for Pro Users
 
-## Summary
-1. Raise free link limit from 5 to 10
-2. Make email capture available on free plan
-3. Add a soft upgrade prompt throughout the dashboard when free users interact with locked Pro features (custom header image, photo collage, advanced analytics, full-screen banner)
+## What exists today
+The Stats tab shows 3 simple counters (7d / 30d / all-time profile visits). The `personal_analytics` table stores `event_type` and `visitor_info` (JSON with referrer + userAgent). Currently only `profile_visit` and `contact_save` events are tracked — **no link click tracking exists**.
 
-## Changes
+## Plan
 
-### 1. Update plan limits (`src/lib/personalPlanLimits.ts`)
-- Change `free.maxLinks` from `5` to `10`
-- Change `free.features.emailCapture` from `false` to `true`
-- Update `FEATURE_LIST` to reflect `10 links` for free and email capture included for free
+### 1. Add link click tracking on the public profile
+**File**: `src/pages/personal/PersonalProfilePage.tsx`
 
-### 2. Add `planType` prop to `DashboardUnifiedContent` and soft upgrade dialog
-**File**: `src/components/personal/DashboardUnifiedContent.tsx`
-- Accept `planType` as a new prop
-- No changes needed here for block gating since BlockModal already shows all block types and email_capture will now be free
+Wrap every link `<a>` click with an `onClick` handler that inserts into `personal_analytics` with `event_type: "link_click"` and `visitor_info: { link_id, link_label, link_url, referrer, userAgent }`. Fire-and-forget, non-blocking. Apply to pill links, grid links, social icon links, and block buttons.
 
-### 3. Pass `planType` and add upgrade dialog to `PersonalDashboard`
+### 2. Create `AdvancedAnalyticsTab` component
+**File**: `src/components/personal/AdvancedAnalyticsTab.tsx` (new)
+
+Props: `profileId`, `planType`, `onUpgrade`
+
+**For free users**: Show the basic 3-counter grid (profile visits) + a blurred/locked preview of the advanced section with a gentle "Unlock with Pro" prompt using `ProUpgradeDialog`.
+
+**For Pro users**, fetch all `personal_analytics` rows for the profile and display:
+
+- **Visitors over time chart** — Line chart (Recharts) showing daily profile visits for the last 30 days
+- **Top links** — Ranked table of links by click count (label, clicks, % of total)
+- **Engagement breakdown** — Pie or bar chart: profile_visit vs link_click vs contact_save
+- **Referrer sources** — Table showing top referrer domains extracted from `visitor_info.referrer`
+- **Device breakdown** — Simple mobile vs desktop split parsed from `visitor_info.userAgent`
+
+### 3. Replace inline analytics in PersonalDashboard
 **File**: `src/pages/personal/PersonalDashboard.tsx`
-- Pass `planType={profile.plan_type}` to `DashboardUnifiedContent`
 
-### 4. Add Pro lock UI to `DashboardDesignTab`
-**File**: `src/components/personal/DashboardDesignTab.tsx`
-- Currently hides banner mode entirely for non-premium users (`{isPremium && (...)}`)
-- Change to: always show banner option but with a small lock icon and "Pro" badge
-- On click, show a gentle upgrade dialog instead of selecting it
-- Same for custom header image upload — show it but lock it for free users
-
-### 5. Create a reusable `ProUpgradeDialog` component
-**File**: `src/components/personal/ProUpgradeDialog.tsx` (new)
-- A gentle, non-pushy `AlertDialog` with:
-  - Title: "Unlock [Feature Name]"
-  - Body: "Try Pro free for 7 days — no charge today. Get unlimited links, custom headers, photo collages, and more."
-  - Primary CTA: "Start Free Trial" → navigates to upgrade checkout (yearly plan with 7-day trial)
-  - Secondary: "Maybe later" dismiss button
-- Props: `open`, `onOpenChange`, `featureName`, `onUpgrade`
-
-### 6. Wire upgrade dialog in BlockModal
-**File**: `src/components/personal/BlockModal.tsx`
-- Accept optional `planType` prop
-- For `photo_collage` block type (the only remaining Pro-only block): show it in the list with a "Pro" badge
-- On click, if free user, open `ProUpgradeDialog` instead of selecting the block type
-
-### 7. Wire upgrade dialog in DashboardDesignTab
-- Show banner mode and custom header image options to all users
-- Add lock icon + "Pro" badge on those options for free users
-- On click, open `ProUpgradeDialog`
-
-### 8. Update `CheckoutStep.tsx` downgrade logic
-**File**: `src/components/personal/signup/CheckoutStep.tsx`
-- Update `maxFreeLinks` reference (already reads from `PERSONAL_PLANS.free.maxLinks`, so auto-updates)
-- Remove `email_capture` from Pro-only block stripping on downgrade
+Replace the current inline Stats `<TabsContent>` (lines 774-793) with `<AdvancedAnalyticsTab profileId={profile.id} planType={profile.plan_type} onUpgrade={() => handleUpgrade("yearly")} />`. Remove the `analytics` state and `loadAnalytics` callback since the new component manages its own data.
 
 ### Files to create (1):
-- `src/components/personal/ProUpgradeDialog.tsx`
+- `src/components/personal/AdvancedAnalyticsTab.tsx`
 
-### Files to modify (5):
-- `src/lib/personalPlanLimits.ts` — limits + feature list
-- `src/components/personal/BlockModal.tsx` — Pro badge on photo_collage for free users
-- `src/components/personal/DashboardDesignTab.tsx` — show locked Pro options
-- `src/pages/personal/PersonalDashboard.tsx` — pass planType, wire upgrade handler
-- `src/components/personal/signup/CheckoutStep.tsx` — update downgrade stripping logic
+### Files to modify (2):
+- `src/pages/personal/PersonalProfilePage.tsx` — add link click tracking
+- `src/pages/personal/PersonalDashboard.tsx` — swap in new analytics component, remove old analytics state
 
