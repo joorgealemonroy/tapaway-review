@@ -1,25 +1,67 @@
 
 
-# Fix: Touch Drag Reordering Not Working Properly
+# Plan: Free Plan Limits + Pro Feature Upsell
 
-## Root Cause
+## Summary
+1. Raise free link limit from 5 to 10
+2. Make email capture available on free plan
+3. Add a soft upgrade prompt throughout the dashboard when free users interact with locked Pro features (custom header image, photo collage, advanced analytics, full-screen banner)
 
-The touch drag handler (`onTouchMove`) is attached to each individual item `<div>`. Once the user's finger moves beyond that element's bounds, touch events stop firing reliably on it. The `elementFromPoint` lookup then either fails to find the right target or returns stale results, causing items to snap to the bottom instead of the intended position.
+## Changes
 
-## Fix
+### 1. Update plan limits (`src/lib/personalPlanLimits.ts`)
+- Change `free.maxLinks` from `5` to `10`
+- Change `free.features.emailCapture` from `false` to `true`
+- Update `FEATURE_LIST` to reflect `10 links` for free and email capture included for free
 
-Move the touch move and touch end handlers from individual items to the **parent container** `<div className="space-y-2">` that wraps all items. This ensures touch events continue to fire as the finger moves across different items.
+### 2. Add `planType` prop to `DashboardUnifiedContent` and soft upgrade dialog
+**File**: `src/components/personal/DashboardUnifiedContent.tsx`
+- Accept `planType` as a new prop
+- No changes needed here for block gating since BlockModal already shows all block types and email_capture will now be free
 
-### Changes in `src/components/personal/DashboardUnifiedContent.tsx`:
+### 3. Pass `planType` and add upgrade dialog to `PersonalDashboard`
+**File**: `src/pages/personal/PersonalDashboard.tsx`
+- Pass `planType={profile.plan_type}` to `DashboardUnifiedContent`
 
-1. **Attach `onTouchMove` and `onTouchEnd` to the parent container** (the `<div className="space-y-2">` at line 714) instead of on each individual item.
+### 4. Add Pro lock UI to `DashboardDesignTab`
+**File**: `src/components/personal/DashboardDesignTab.tsx`
+- Currently hides banner mode entirely for non-premium users (`{isPremium && (...)}`)
+- Change to: always show banner option but with a small lock icon and "Pro" badge
+- On click, show a gentle upgrade dialog instead of selecting it
+- Same for custom header image upload — show it but lock it for free users
 
-2. **Keep `onTouchStart` on each item** so we know which item index started the drag.
+### 5. Create a reusable `ProUpgradeDialog` component
+**File**: `src/components/personal/ProUpgradeDialog.tsx` (new)
+- A gentle, non-pushy `AlertDialog` with:
+  - Title: "Unlock [Feature Name]"
+  - Body: "Try Pro free for 7 days — no charge today. Get unlimited links, custom headers, photo collages, and more."
+  - Primary CTA: "Start Free Trial" → navigates to upgrade checkout (yearly plan with 7-day trial)
+  - Secondary: "Maybe later" dismiss button
+- Props: `open`, `onOpenChange`, `featureName`, `onUpgrade`
 
-3. **Remove `onTouchMove` and `onTouchEnd`** from every individual item div (grid links at ~738-739, regular links at ~839-840, blocks at ~910-911).
+### 6. Wire upgrade dialog in BlockModal
+**File**: `src/components/personal/BlockModal.tsx`
+- Accept optional `planType` prop
+- For `photo_collage` block type (the only remaining Pro-only block): show it in the list with a "Pro" badge
+- On click, if free user, open `ProUpgradeDialog` instead of selecting the block type
 
-4. **Fix `elementFromPoint` logic** — instead of toggling `e.currentTarget.style.pointerEvents`, track the dragged element via a ref and toggle its pointer events. This ensures the correct element is hidden during hit-testing.
+### 7. Wire upgrade dialog in DashboardDesignTab
+- Show banner mode and custom header image options to all users
+- Add lock icon + "Pro" badge on those options for free users
+- On click, open `ProUpgradeDialog`
 
-### Files to modify (1):
-- `src/components/personal/DashboardUnifiedContent.tsx`
+### 8. Update `CheckoutStep.tsx` downgrade logic
+**File**: `src/components/personal/signup/CheckoutStep.tsx`
+- Update `maxFreeLinks` reference (already reads from `PERSONAL_PLANS.free.maxLinks`, so auto-updates)
+- Remove `email_capture` from Pro-only block stripping on downgrade
+
+### Files to create (1):
+- `src/components/personal/ProUpgradeDialog.tsx`
+
+### Files to modify (5):
+- `src/lib/personalPlanLimits.ts` — limits + feature list
+- `src/components/personal/BlockModal.tsx` — Pro badge on photo_collage for free users
+- `src/components/personal/DashboardDesignTab.tsx` — show locked Pro options
+- `src/pages/personal/PersonalDashboard.tsx` — pass planType, wire upgrade handler
+- `src/components/personal/signup/CheckoutStep.tsx` — update downgrade stripping logic
 
