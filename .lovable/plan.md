@@ -1,37 +1,29 @@
 
 
-# Add Desktop Dark Mode Toggle + Default to Dark
+# Fix: Stale Profile Data + White Banner Readability
 
-## What's Changing
-1. **Default theme becomes dark** — First-time visitors (no localStorage value) will see dark mode
-2. **Desktop nav gets a theme toggle** — A Sun/Moon icon button added to DesktopNav, matching the mobile pattern
-3. **Early theme initialization** — Apply dark class in `main.tsx` before React renders to prevent flash of light mode
+## Issue 1: Changes not showing up instantly on profile page
 
-## Technical Details
+**Root cause**: In `useProfileData.ts`, there's a `fetchedRef` guard (line 142) that prevents re-fetching if the username hasn't changed. When you edit in the dashboard, `invalidateProfileCache()` clears the cache correctly, but when you navigate back to the profile page, `fetchedRef.current === username` is still true, so it returns early without fetching fresh data.
 
-### 1. `src/main.tsx` — Early theme init
-Add a synchronous script before `createRoot` that reads `localStorage.getItem('tapaway_dashboard_theme')` and applies the `.dark` class to `document.documentElement`. If no value exists, default to dark (add `.dark` class).
+**Fix in `src/hooks/useProfileData.ts`**:
+- Remove the `fetchedRef` guard entirely — the in-memory cache already handles deduplication
+- Without `fetchedRef`, the flow becomes: check cache → miss (it was invalidated) → fetch fresh data → update cache
+- This is safe because concurrent fetches are already prevented by React's state batching
 
-### 2. `src/components/landing/DesktopNav.tsx` — Add toggle button
-- Import `Sun`, `Moon` from lucide-react and `useState`, `useEffect` from react
-- Add `isDark` state initialized from localStorage (default: `true` when no value)
-- Add `useEffect` to sync `.dark` class + localStorage
-- Render a ghost icon button next to the nav links
+## Issue 2: White banner image makes text unreadable
 
-### 3. Update default in all 4 existing files
-Change the `useState` initializer from `=== 'dark'` to `!== 'light'` so the default (no localStorage) is dark:
-- `src/components/landing/MobileNav.tsx` (line 18)
-- `src/components/personal/MobileBottomNav.tsx` (line 29)
-- `src/pages/CardResolver.tsx` (line 43)
-- `src/components/card/CardOnboarding.tsx` (line 38)
+**Root cause**: In `PersonalProfilePage.tsx`, the banner gradient fade uses `${extractedBannerColor}40` (25% opacity) and text is hardcoded to `text-white`. When the profile image is white/light, both the gradient and text are invisible.
 
-### Files Modified (6 total)
-- `src/main.tsx`
-- `src/components/landing/DesktopNav.tsx`
-- `src/components/landing/MobileNav.tsx`
-- `src/components/personal/MobileBottomNav.tsx`
-- `src/pages/CardResolver.tsx`
-- `src/components/card/CardOnboarding.tsx`
+**Fix in `src/pages/personal/PersonalProfilePage.tsx`**:
+1. Add a luminance check on the extracted banner color (parse `rgb(r,g,b)` → compute luminance)
+2. When the banner color is light (luminance > 0.7):
+   - Increase gradient opacity from `40` to `CC` (80%) and use a dark overlay instead of the extracted color
+   - Switch banner text from `text-white` to `text-gray-900`
+   - Switch action buttons from `bg-black/30` to `bg-white/80` with dark icons
+3. Pass `isLightBanner` flag to the links container background section
 
-Note: ReviewHub uses a separate theme key (`tapaway_hub_theme`) with its own light-mode default — that stays unchanged per existing design memory.
+### Files to modify (2):
+- `src/hooks/useProfileData.ts` — remove `fetchedRef` guard
+- `src/pages/personal/PersonalProfilePage.tsx` — add light-banner detection and adaptive styling
 
