@@ -71,14 +71,34 @@ interface Props {
   usernameOverride?: string;
 }
 
+// Fire-and-forget link click tracker
+const trackLinkClick = (profileId: string, link: { id: string; label: string; url: string }) => {
+  supabase
+    .from("personal_analytics")
+    .insert({
+      profile_id: profileId,
+      event_type: "link_click",
+      visitor_info: {
+        link_id: link.id,
+        link_label: link.label,
+        link_url: link.url,
+        referrer: document.referrer || null,
+        userAgent: navigator.userAgent,
+      },
+    })
+    .then(() => {});
+};
+
 // Memoized link component to prevent re-renders
 const ProfileLink = memo(function ProfileLink({ 
   link,
+  profileId,
   isFeatured = false,
   isGrid = false,
   index = 99
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
+  profileId?: string;
   isFeatured?: boolean;
   isGrid?: boolean;
   index?: number;
@@ -95,6 +115,7 @@ const ProfileLink = memo(function ProfileLink({
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => profileId && trackLinkClick(profileId, link)}
         className="block relative rounded-2xl overflow-hidden aspect-square shadow-lg group active:scale-[0.98] transition-transform"
       >
         <img 
@@ -127,6 +148,7 @@ const ProfileLink = memo(function ProfileLink({
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => profileId && trackLinkClick(profileId, link)}
         className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group active:scale-[0.98] transition-transform"
       >
         <img 
@@ -159,6 +181,7 @@ const ProfileLink = memo(function ProfileLink({
         href={link.url}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => profileId && trackLinkClick(profileId, link)}
         className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${
           customColor 
             ? "" 
@@ -188,10 +211,11 @@ const ProfileLink = memo(function ProfileLink({
    
   // Regular links
   return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      <a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
         customColor 
           ? "" 
@@ -275,10 +299,12 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
 // Social icon bar for icon-style links - with branded colors
 const SocialIconBar = memo(function SocialIconBar({ 
   links, 
-  isDarkBg 
+  isDarkBg,
+  profileId
 }: { 
-  links: { id: string; link_type: string; url: string }[];
+  links: { id: string; link_type: string; url: string; label?: string }[];
   isDarkBg?: boolean;
+  profileId?: string;
 }) {
   if (links.length === 0) return null;
 
@@ -298,6 +324,7 @@ const SocialIconBar = memo(function SocialIconBar({
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => profileId && trackLinkClick(profileId, { id: link.id, label: link.label || config?.label || link.link_type, url: link.url })}
             className={`h-11 w-11 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md ${bgStyle}`}
             title={config?.label}
           >
@@ -984,7 +1011,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   </p>
                 )}
               {/* Social icon bar */}
-              <SocialIconBar links={iconLinks} isDarkBg={!isLightBanner} />
+              <SocialIconBar links={iconLinks} isDarkBg={!isLightBanner} profileId={profile.id} />
               <div className="mb-3" />
             </>
           ) : (
@@ -997,7 +1024,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
               
               {/* Social icon bar - shows icon-style links */}
-              <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} />
+              <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} profileId={profile.id} />
               
               {profile.bio && (
                 <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
@@ -1014,7 +1041,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} isFeatured index={0} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} />
               </div>
             )}
 
@@ -1030,13 +1057,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} isGrid index={startIndex + i} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} index={currentIndex} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} />;
                 } else {
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
                 }
