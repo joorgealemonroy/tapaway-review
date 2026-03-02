@@ -31,6 +31,7 @@ import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
+import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
@@ -102,7 +103,7 @@ interface PersonalBlock {
   is_active?: boolean | null;
 }
 
-type TimeRange = "7d" | "30d" | "all";
+
 
 const PersonalDashboard = () => {
   const navigate = useNavigate();
@@ -112,11 +113,6 @@ const PersonalDashboard = () => {
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
   const [blocks, setBlocks] = useState<PersonalBlock[]>([]);
-  const [analytics, setAnalytics] = useState<Record<TimeRange, number>>({
-    "7d": 0,
-    "30d": 0,
-    "all": 0,
-  });
   const [copied, setCopied] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -124,7 +120,6 @@ const PersonalDashboard = () => {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const analyticsLoadedRef = useRef(false);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
@@ -275,53 +270,6 @@ const PersonalDashboard = () => {
     }
   }, [searchParams, profile, setSearchParams, loadData]);
 
-  // Load analytics lazily after initial render
-  useEffect(() => {
-    if (profile && !analyticsLoadedRef.current) {
-      analyticsLoadedRef.current = true;
-      // Defer analytics loading
-      const timer = setTimeout(() => loadAllAnalytics(), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [profile]);
-
-  const loadAllAnalytics = useCallback(async () => {
-    if (!profile) return;
-
-    const ranges: TimeRange[] = ["7d", "30d", "all"];
-    const results: Record<TimeRange, number> = { "7d": 0, "30d": 0, "all": 0 };
-
-    // Parallel analytics queries
-    const promises = ranges.map(async (range) => {
-      let startDate = new Date();
-      switch (range) {
-        case "7d":
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case "30d":
-          startDate.setDate(startDate.getDate() - 30);
-          break;
-        case "all":
-          startDate = new Date(0);
-          break;
-      }
-
-      const { count } = await supabase
-        .from("personal_analytics")
-        .select("*", { count: "exact", head: true })
-        .eq("profile_id", profile.id)
-        .gte("created_at", startDate.toISOString());
-
-      return { range, count: count || 0 };
-    });
-
-    const counts = await Promise.all(promises);
-    counts.forEach(({ range, count }) => {
-      results[range] = count;
-    });
-
-    setAnalytics(results);
-  }, [profile]);
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -772,24 +720,11 @@ const PersonalDashboard = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { label: "Last 7 days", key: "7d" as TimeRange },
-                { label: "Last 30 days", key: "30d" as TimeRange },
-                { label: "All time", key: "all" as TimeRange },
-              ].map((item) => (
-                <div
-                  key={item.key}
-                  className="p-4 bg-card rounded-xl border border-border text-center sm:text-left"
-                >
-                  <p className="text-3xl sm:text-2xl font-bold text-foreground">{analytics[item.key]}</p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground text-center">
-              Profile visits
-            </p>
+            <AdvancedAnalyticsTab
+              profileId={profile.id}
+              planType={profile.plan_type}
+              onUpgrade={() => handleUpgrade("yearly")}
+            />
           </TabsContent>
 
 
