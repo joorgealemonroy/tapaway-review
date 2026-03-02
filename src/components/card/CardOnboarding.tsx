@@ -35,7 +35,7 @@ const STEPS = [
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') === 'dark');
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);

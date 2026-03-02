@@ -1,12 +1,21 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { ProductNavToggle } from "./ProductNavToggle";
+import { Button } from "@/components/ui/button";
 
 export const DesktopNav = () => {
   const { user } = useAuth();
   const { isSalesRep } = useSalesRep();
   const location = useLocation();
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
   
   const isBusiness = location.pathname === "/business";
   const dashboardLink = isSalesRep ? "/rep" : !isBusiness ? "/personal/dashboard" : "/dashboard";
@@ -25,6 +34,14 @@ export const DesktopNav = () => {
             <ProductNavToggle />
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              onClick={() => setIsDark(!isDark)}
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
             {isBusiness && (
               <Link
                 to="/"
