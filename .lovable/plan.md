@@ -1,41 +1,31 @@
 
 
-# Advanced Analytics for Pro Users
+# Why Contact Photos Don't Show on Mobile
 
-## What exists today
-The Stats tab shows 3 simple counters (7d / 30d / all-time profile visits). The `personal_analytics` table stores `event_type` and `visitor_info` (JSON with referrer + userAgent). Currently only `profile_visit` and `contact_save` events are tracked — **no link click tracking exists**.
+## Root Cause
 
-## Plan
+The `profilePhotoUrl` is passed to `downloadVCard()` correctly (line 739), but the `generateVCard()` function in `src/lib/vcard.ts` **never writes a `PHOTO` property** into the vCard output. The field exists in the interface but is completely ignored in the generation logic (lines 30-76). So the `.vcf` file has no photo data at all.
 
-### 1. Add link click tracking on the public profile
-**File**: `src/pages/personal/PersonalProfilePage.tsx`
+## Fix
 
-Wrap every link `<a>` click with an `onClick` handler that inserts into `personal_analytics` with `event_type: "link_click"` and `visitor_info: { link_id, link_label, link_url, referrer, userAgent }`. Fire-and-forget, non-blocking. Apply to pill links, grid links, social icon links, and block buttons.
+**File**: `src/lib/vcard.ts`
 
-### 2. Create `AdvancedAnalyticsTab` component
-**File**: `src/components/personal/AdvancedAnalyticsTab.tsx` (new)
+In `generateVCard()`, after the website block and before `END:VCARD`, fetch the image URL as a base64-encoded blob and embed it using the vCard `PHOTO` property:
 
-Props: `profileId`, `planType`, `onUpgrade`
+```
+PHOTO;ENCODING=b;TYPE=JPEG:<base64data>
+```
 
-**For free users**: Show the basic 3-counter grid (profile visits) + a blurred/locked preview of the advanced section with a gentle "Unlock with Pro" prompt using `ProUpgradeDialog`.
+Since fetching and encoding the image is async, the function signatures need to change:
+- `generateVCard` becomes `async` and returns `Promise<string>`
+- `downloadVCard` becomes `async` and returns `Promise<void>`
+- Inside `generateVCard`: fetch the `profilePhotoUrl`, convert the response to an `ArrayBuffer`, then base64-encode it
+- Determine the image type from the response `Content-Type` header (JPEG, PNG, etc.)
+- If the fetch fails (CORS, network), silently skip the photo — the contact still saves without it
 
-**For Pro users**, fetch all `personal_analytics` rows for the profile and display:
-
-- **Visitors over time chart** — Line chart (Recharts) showing daily profile visits for the last 30 days
-- **Top links** — Ranked table of links by click count (label, clicks, % of total)
-- **Engagement breakdown** — Pie or bar chart: profile_visit vs link_click vs contact_save
-- **Referrer sources** — Table showing top referrer domains extracted from `visitor_info.referrer`
-- **Device breakdown** — Simple mobile vs desktop split parsed from `visitor_info.userAgent`
-
-### 3. Replace inline analytics in PersonalDashboard
-**File**: `src/pages/personal/PersonalDashboard.tsx`
-
-Replace the current inline Stats `<TabsContent>` (lines 774-793) with `<AdvancedAnalyticsTab profileId={profile.id} planType={profile.plan_type} onUpgrade={() => handleUpgrade("yearly")} />`. Remove the `analytics` state and `loadAnalytics` callback since the new component manages its own data.
-
-### Files to create (1):
-- `src/components/personal/AdvancedAnalyticsTab.tsx`
+The caller in `PersonalProfilePage.tsx` (`handleSaveContact`) needs to `await downloadVCard(...)` instead of calling it synchronously.
 
 ### Files to modify (2):
-- `src/pages/personal/PersonalProfilePage.tsx` — add link click tracking
-- `src/pages/personal/PersonalDashboard.tsx` — swap in new analytics component, remove old analytics state
+- `src/lib/vcard.ts` — add async photo fetching + base64 embedding in the PHOTO field
+- `src/pages/personal/PersonalProfilePage.tsx` — make `handleSaveContact` async to await the download
 
