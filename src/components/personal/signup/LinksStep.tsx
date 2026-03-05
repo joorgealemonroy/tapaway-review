@@ -292,7 +292,7 @@ export const LinksStep = ({
     header_type: formData.headerType || "color",
     header_color: formData.headerColor || "#6BCB77",
     header_image_url: formData.headerImageUrl || null,
-    background_color: formData.backgroundColor || "#ffffff",
+    background_color: formData.backgroundColor || "#000000",
     pfp_position: "center",
   };
 

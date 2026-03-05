@@ -463,7 +463,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_type: formData.headerType || "color",
         header_color: formData.headerColor || "#6BCB77",
         header_image_url: headerImageUrl,
-        background_color: formData.backgroundColor || "#ffffff",
+        background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
       };
 
@@ -688,7 +688,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_type: formData.headerType || "color",
         header_color: formData.headerColor || "#6BCB77",
         header_image_url: headerImageUrl,
-        background_color: formData.backgroundColor || "#ffffff",
+        background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
       };
 
@@ -1002,7 +1002,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_type: formData.headerType || "color",
         header_color: formData.headerColor || "#6BCB77",
         header_image_url: headerImageUrl,
-        background_color: formData.backgroundColor || "#ffffff",
+        background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
       };
 

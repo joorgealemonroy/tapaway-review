@@ -41,12 +41,18 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
   const [showPassword, setShowPassword] = useState(false);
   const [emailReadOnly, setEmailReadOnly] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [isCardPreAuthed, setIsCardPreAuthed] = useState(false);
 
   // Pre-fill from sessionStorage (card activation flow) or auth session
   useEffect(() => {
     const cardEmail = sessionStorage.getItem("tapaway_card_email");
     const cardPassword = sessionStorage.getItem("tapaway_card_password");
+    const cardPreAuthed = sessionStorage.getItem("tapaway_card_preauthed") === "true";
     const updates: Partial<SignupData> = {};
+
+    if (cardPreAuthed) {
+      setIsCardPreAuthed(true);
+    }
 
     if (cardEmail) {
       updates.email = cardEmail;
@@ -164,12 +170,13 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       email: formData.email,
       username: formData.username,
     };
-    if (!isOAuthUser) {
+    const skipPassword = isOAuthUser || isCardPreAuthed;
+    if (!skipPassword) {
       fieldsToValidate.password = formData.password;
     }
 
     // Validate only required fields
-    const schema = isOAuthUser
+    const schema = skipPassword
       ? identitySchema.omit({ password: true })
       : identitySchema;
 
@@ -183,7 +190,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         }
       });
       setErrors(newErrors);
-      setTouched({ fullName: true, email: true, username: true, ...(!isOAuthUser ? { password: true } : {}) });
+      setTouched({ fullName: true, email: true, username: true, ...(!skipPassword ? { password: true } : {}) });
       return;
     }
 
@@ -200,7 +207,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
     formData.email.includes('@') &&
     formData.username.length >= 3 &&
     usernameStatus === "available" &&
-    (isOAuthUser || (formData.password?.length || 0) >= 8);
+    (isOAuthUser || isCardPreAuthed || (formData.password?.length || 0) >= 8);
 
   return (
     <div className="space-y-6">
@@ -382,8 +389,8 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
         )}
       </div>
 
-      {/* Password — hidden for OAuth users */}
-      {!isOAuthUser && (
+      {/* Password — hidden for OAuth and card pre-authed users */}
+      {!isOAuthUser && !isCardPreAuthed && (
         <div className="space-y-2">
           <Label htmlFor="password" className="text-sm font-medium text-foreground">
             Create a password
