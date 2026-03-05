@@ -59,7 +59,7 @@ export const PersonalUseCases = () => {
             Perfect For
           </h2>
           <p className="text-muted-foreground text-base">
-            One card. Every link. Anyone can use it.
+            One hub. Every link. Anyone can use it.
           </p>
         </motion.div>
 

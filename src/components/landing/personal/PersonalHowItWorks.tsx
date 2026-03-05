@@ -1,26 +1,29 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { Palette, Truck, Smartphone } from "lucide-react";
+import { Globe, Share2, TrendingUp } from "lucide-react";
 
 const steps = [
   {
     number: "01",
-    icon: Palette,
-    title: "Choose your design",
-    description: "Pick a branded card with your handle or go with a clean, minimal look.",
+    icon: Globe,
+    title: "Create your hub in minutes",
+    description:
+      "Add all your links, social platforms, and payment apps — one beautiful page with your own URL (tapaway.co/you).",
   },
   {
     number: "02",
-    icon: Truck,
-    title: "We print + ship in 1–2 business days",
-    description: "Your custom NFC card ships fast. Free shipping included.",
+    icon: Share2,
+    title: "Share it anywhere",
+    description:
+      "Send your link via text, add it to your bio, or upgrade to an NFC card for instant tap-to-share.",
   },
   {
     number: "03",
-    icon: Smartphone,
-    title: "Tap to share your links instantly",
-    description: "One tap opens all your links — Instagram, TikTok, payments, and more.",
+    icon: TrendingUp,
+    title: "Grow your network",
+    description:
+      "Collect contacts, capture emails and phone numbers, and track who's visiting with built-in analytics.",
   },
 ];
 
@@ -41,7 +44,7 @@ export const PersonalHowItWorks = () => {
             How It Works
           </h2>
           <p className="text-muted-foreground text-lg">
-            Three steps to share everything with one tap.
+            Your personal hub — set up in minutes, share everywhere.
           </p>
         </motion.div>
 

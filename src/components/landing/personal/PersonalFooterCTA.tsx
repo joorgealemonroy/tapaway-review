@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Truck, Package } from "lucide-react";
+import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const PersonalFooterCTA = () => {
@@ -17,7 +17,7 @@ export const PersonalFooterCTA = () => {
           transition={{ duration: 0.5 }}
           className="text-3xl md:text-4xl font-black mb-4"
         >
-          Get your custom NFC card
+          Create your free hub today
         </motion.h2>
 
         <motion.p
@@ -26,7 +26,7 @@ export const PersonalFooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-background/70 text-lg mb-6"
         >
-          We design, print, and ship your personalized TapAway card — all set up for you.
+          Set up your personal page in minutes. Add an NFC card later if you want.
         </motion.p>
 
         {/* Trust badges */}
@@ -37,12 +37,12 @@ export const PersonalFooterCTA = () => {
           className="flex flex-wrap gap-4 justify-center text-sm text-background/60 mb-8"
         >
           <div className="flex items-center gap-2">
-            <Truck className="w-4 h-4" />
-            <span>Free shipping</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Free forever</span>
           </div>
           <div className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            <span>Ships in 1-2 days</span>
+            <Zap className="w-4 h-4" />
+            <span>Pro from $6.25/mo</span>
           </div>
         </motion.div>
 
@@ -55,7 +55,7 @@ export const PersonalFooterCTA = () => {
             to="/personal/pricing"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
-            Get Your Custom NFC Card
+            Get Started Free
             <ArrowRight className="w-5 h-5" />
           </Link>
         </motion.div>
@@ -66,7 +66,7 @@ export const PersonalFooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-background/50 text-sm mt-6"
         >
-          Starting at $75/year — or try free without a card
+          No credit card required · Upgrade anytime
         </motion.p>
       </div>
     </section>
