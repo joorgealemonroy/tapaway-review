@@ -1,66 +1,41 @@
 
 
-# Revamp Personal Landing "How It Works" — Hub-First, Cards as Add-On
+# Redesign Card Activation Landing — Keep HubShowcase, Remove LayoutTemplates
 
-## Current Problem
-The `PersonalHowItWorks` section frames NFC cards as the main product (Choose design → We ship → Tap to share). The actual main product is the online hub/profile where users manage all their links, collect contacts, capture emails, and see analytics. Cards should be positioned as an optional add-on.
+## Changes to `src/components/card/CardOnboarding.tsx`
 
-## Plan
+### Hero (above the fold)
+- Keep the animated color-cycling card visual
+- Rewrite headline: "You just got a smart card" with subtext "Tap it. Your page opens. All your links, one place."
+- Enlarge CTA button to `h-14 text-lg` with subtle pulse animation on mount
+- Trust line: "Free · 3 minutes · No app needed"
 
-### 1. Replace `PersonalHowItWorks` with a new feature-showcase section
-**File**: `src/components/landing/personal/PersonalHowItWorks.tsx` (rewrite)
+### Benefits section (replace current INFO_CARDS)
+Rewrite to 3 outcome-focused benefit rows:
+1. "Share everything with one tap" — All your links, socials, payments in one page
+2. "Let anyone save your contact instantly" — One button saves your info to their phone
+3. "See who's checking you out" — Track views and clicks with Pro analytics
 
-Replace the 3-step card-centric flow with a hub-first "How It Works" that highlights the online profile as the core product:
+### Keep HubShowcase
+- Keep the real profile showcase with "Copy Layout" buttons (drives Pro trial conversions)
+- Move it below the benefits section
 
-**Step 1 — "Create your hub in minutes"**
-- Icon: Layout/Globe
-- Description: Add all your links, social platforms, payment apps — one beautiful page, your own URL (tapaway.co/you)
+### How to Get Started
+- Keep 3 steps but tighten copy to be benefit-driven
 
-**Step 2 — "Share it anywhere"**
-- Icon: Share2/QrCode
-- Description: Send your link via text, add it to your bio, or upgrade to an NFC card for instant tap-to-share
+### Remove LayoutTemplates
+- Remove the "Pick a Layout" grid entirely from this page (it's available during signup)
 
-**Step 3 — "Grow your network"**
-- Icon: TrendingUp/BarChart
-- Description: Collect contacts, capture emails and phone numbers, and track who's visiting with built-in analytics
+### Bottom CTA
+- Keep final activate button with trust text
 
-### 2. Add a "Features" visual showcase section below How It Works
-**File**: `src/components/landing/personal/PersonalFeatures.tsx` (new)
+### Page flow order:
+1. Hero + big CTA
+2. 3 benefit rows
+3. HubShowcase (Pro social proof)
+4. How to Get Started (3 steps)
+5. Mid CTA
+6. Bottom CTA
 
-A section highlighting key hub features with mini visual previews:
-
-- **Save Contact button** — Show a mock phone UI with the "Save Contact" button and a contact card being added. Explain visitors can save your info with one tap.
-- **Collect leads** — Show a mini form with Name/Email/Phone fields. Explain owners can capture visitor info directly from their profile.
-- **Analytics dashboard** — Show a screenshot/mock of the Pro analytics view (line chart, top links table). Explain Pro users see exactly who visits, what they click, and where they come from.
-- **NFC Card add-on** — Small card showing the physical card as a premium add-on option. "Want to go physical? Add an NFC card for instant tap-to-share."
-
-Each feature block: icon + heading + 1-2 sentence description + a small visual/illustration on the right (alternating left/right layout on desktop). Keep it scannable — no walls of text.
-
-### 3. Update `PersonalFooterCTA` messaging
-**File**: `src/components/landing/personal/PersonalFooterCTA.tsx`
-
-Change from "Get your custom NFC card" to hub-first CTA:
-- Headline: "Create your free hub today"
-- Subtext: "Set up your personal page in minutes. Add an NFC card later if you want."
-- Button: "Get Started Free" (keep linking to /personal/pricing)
-- Remove shipping/package trust badges, replace with "Free forever • Pro from $6.25/mo"
-
-### 4. Wire new section into the page
-**File**: `src/pages/Personal.tsx`
-
-Add `<PersonalFeatures />` between `<PersonalHowItWorks />` and `<PersonalUseCases />`.
-
-### 5. Update `PersonalUseCases` subtitle
-**File**: `src/components/landing/personal/PersonalUseCases.tsx`
-
-Change subtitle from "One card. Every link. Anyone can use it." to "One hub. Every link. Anyone can use it."
-
-### Files to create (1):
-- `src/components/landing/personal/PersonalFeatures.tsx`
-
-### Files to modify (4):
-- `src/components/landing/personal/PersonalHowItWorks.tsx` — hub-first steps
-- `src/components/landing/personal/PersonalFooterCTA.tsx` — hub-first CTA
-- `src/components/landing/personal/PersonalUseCases.tsx` — subtitle tweak
-- `src/pages/Personal.tsx` — add PersonalFeatures import
+**File**: `src/components/card/CardOnboarding.tsx` — rewrite content and layout, remove LayoutTemplates import
 
