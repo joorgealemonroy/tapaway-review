@@ -180,16 +180,7 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </div>
         </motion.section>
 
-        {/* 5. Mid CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-        >
-          <ActivateButton />
-        </motion.div>
-
-        {/* 6. Bottom CTA */}
+        {/* 5. Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
