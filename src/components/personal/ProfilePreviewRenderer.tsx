@@ -119,7 +119,7 @@ function ProfilePreviewRendererComponent({
     }
   }, [hasBanner, profile.profile_photo_url]);
   
-  const isDarkBg = useMemo(() => hasBanner || isGradientBg || isColorDark(backgroundColor), [backgroundColor, isGradientBg, hasBanner]);
+  const isDarkBg = useMemo(() => hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg, hasBanner]);
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
