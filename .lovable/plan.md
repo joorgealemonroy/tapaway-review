@@ -1,31 +1,34 @@
 
 
-# Why Contact Photos Don't Show on Mobile
+# Fix: Unreadable Text on Light Backgrounds (Gradients + Solid Colors)
 
 ## Root Cause
 
-The `profilePhotoUrl` is passed to `downloadVCard()` correctly (line 739), but the `generateVCard()` function in `src/lib/vcard.ts` **never writes a `PHOTO` property** into the vCard output. The field exists in the interface but is completely ignored in the generation logic (lines 30-76). So the `.vcf` file has no photo data at all.
+Line 859 of `PersonalProfilePage.tsx`:
+```
+const isDarkBg = hasBanner || isGradientBg || isColorDark(bgColor);
+```
+
+All gradients are treated as dark (`isGradientBg` = always dark text = white). Light gradients like "Warm" (`#fdfcfb → #e2d1c3`) or "Sky" (`#e0eafc → #cfdef3`) get white text on a near-white background, making everything unreadable.
+
+The same `getBaseColorFromGradient` helper already extracts a color from gradients but is only used for the fade — never for the darkness check.
 
 ## Fix
 
-**File**: `src/lib/vcard.ts`
+**File**: `src/pages/personal/PersonalProfilePage.tsx`
 
-In `generateVCard()`, after the website block and before `END:VCARD`, fetch the image URL as a base64-encoded blob and embed it using the vCard `PHOTO` property:
+1. Change the `isDarkBg` calculation to also check gradient luminance instead of assuming all gradients are dark:
+   - Extract the dominant (last) color from the gradient using the existing `getBaseColorFromGradient` helper
+   - Run `isColorDark()` on that extracted color
+   - Replace `isGradientBg` in the condition with `(isGradientBg && isColorDark(getBaseColorFromGradient(bgColor)))`
 
-```
-PHOTO;ENCODING=b;TYPE=JPEG:<base64data>
-```
+2. Apply the same fix to the `docBgColor` early-return block (lines 710-717) — this affects the document background color set via `useAppBackground`, ensuring the browser chrome also matches.
 
-Since fetching and encoding the image is async, the function signatures need to change:
-- `generateVCard` becomes `async` and returns `Promise<string>`
-- `downloadVCard` becomes `async` and returns `Promise<void>`
-- Inside `generateVCard`: fetch the `profilePhotoUrl`, convert the response to an `ArrayBuffer`, then base64-encode it
-- Determine the image type from the response `Content-Type` header (JPEG, PNG, etc.)
-- If the fetch fails (CORS, network), silently skip the photo — the contact still saves without it
+3. In the `ProfilePreviewRenderer.tsx` (dashboard preview), apply the same logic so the preview matches the live profile.
 
-The caller in `PersonalProfilePage.tsx` (`handleSaveContact`) needs to `await downloadVCard(...)` instead of calling it synchronously.
+**Result**: Light gradients get dark text, dark gradients keep white text, solid colors work as before.
 
 ### Files to modify (2):
-- `src/lib/vcard.ts` — add async photo fetching + base64 embedding in the PHOTO field
-- `src/pages/personal/PersonalProfilePage.tsx` — make `handleSaveContact` async to await the download
+- `src/pages/personal/PersonalProfilePage.tsx` — fix `isDarkBg` gradient check
+- `src/components/personal/ProfilePreviewRenderer.tsx` — same fix for dashboard preview consistency
 
