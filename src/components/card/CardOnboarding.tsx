@@ -1,37 +1,36 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Smartphone, Globe, UserPlus, Zap, Palette, Send, ChevronDown, Sun, Moon } from "lucide-react";
+import { Share2, UserPlus, BarChart3, Zap, Palette, Send, ChevronDown, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const HubShowcase = lazy(() => import("./HubShowcase").then(m => ({ default: m.HubShowcase })));
-const LayoutTemplates = lazy(() => import("./LayoutTemplates").then(m => ({ default: m.LayoutTemplates })));
 
 interface Props {
   onActivate: () => void;
 }
 
-const INFO_CARDS = [
+const BENEFITS = [
   {
-    icon: Smartphone,
-    title: "It's a smart card",
-    desc: "This card has a tiny chip inside. When someone holds their phone near it, your personal hub opens instantly — no app needed.",
-  },
-  {
-    icon: Globe,
-    title: "Your hub, your rules",
-    desc: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime — your card always points to the latest version.",
+    icon: Share2,
+    title: "Share everything with one tap",
+    desc: "All your links, socials, and payment apps — one page, always up to date.",
   },
   {
     icon: UserPlus,
-    title: "One-tap contact saving",
-    desc: "Anyone who visits your hub can save your name, phone, and email straight to their contacts with one button. They don't need an account or an app.",
+    title: "Let anyone save your contact instantly",
+    desc: "One button adds your name, phone, and email straight to their phone. No app needed.",
+  },
+  {
+    icon: BarChart3,
+    title: "See who's checking you out",
+    desc: "Track views, taps, and which links get clicked — upgrade to Pro for full analytics.",
   },
 ];
 
 const STEPS = [
-  { icon: Zap, title: "Activate your card", desc: "Enter your email and set a password" },
-  { icon: Palette, title: "Pick a layout or copy one", desc: "Start from a template or copy a hub you like" },
-  { icon: Send, title: "Share it everywhere", desc: "Tap your card, text your link, or show your QR code" },
+  { icon: Zap, title: "Activate your card", desc: "Enter your email and create a password" },
+  { icon: Palette, title: "Make it yours", desc: "Add your links, photo, and pick a style" },
+  { icon: Send, title: "Start sharing", desc: "Tap your card, text your link, or show your QR" },
 ];
 
 export const CardOnboarding = ({ onActivate }: Props) => {
@@ -41,6 +40,22 @@ export const CardOnboarding = ({ onActivate }: Props) => {
     document.documentElement.classList.toggle('dark', isDark);
     localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  const ActivateButton = ({ className = "" }: { className?: string }) => (
+    <motion.div
+      initial={{ scale: 1 }}
+      animate={{ scale: [1, 1.02, 1] }}
+      transition={{ duration: 2, repeat: 2, ease: "easeInOut" }}
+    >
+      <Button
+        onClick={onActivate}
+        size="lg"
+        className={`w-full h-14 text-lg font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20 ${className}`}
+      >
+        Activate My Card
+      </Button>
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +67,8 @@ export const CardOnboarding = ({ onActivate }: Props) => {
       >
         {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
       </Button>
-      <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
+
+      <div className="max-w-sm mx-auto px-6 py-10 space-y-12">
         {/* 1. Hero */}
         <motion.div
           className="text-center space-y-6"
@@ -61,7 +77,7 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="mx-auto w-56 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-500/20 dark:shadow-teal-400/10 flex items-center justify-center"
+            className="mx-auto w-60 aspect-[1.586/1] rounded-2xl shadow-2xl shadow-teal-500/20 dark:shadow-teal-400/10 flex items-center justify-center"
             animate={{
               backgroundColor: ["#10B981", "#EC4899", "#EF4444", "#9CA3AF", "#EAB308"],
               y: [0, -6, 0],
@@ -84,48 +100,69 @@ export const CardOnboarding = ({ onActivate }: Props) => {
 
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Your card is ready
+              You just got a smart card
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Takes about 3 minutes. Free. No app needed.
+            <p className="text-muted-foreground mt-2 text-base">
+              Tap it. Your page opens. All your links, one place.
             </p>
           </div>
 
-          <Button
-            onClick={onActivate}
-            size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            Activate Now
-          </Button>
+          <ActivateButton />
+
+          <p className="text-xs text-muted-foreground">
+            Free · 3 minutes · No app needed
+          </p>
 
           <button
-            onClick={() => document.getElementById("hub-showcase")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("benefits")?.scrollIntoView({ behavior: "smooth" })}
             className="flex items-center gap-1 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Scroll to see examples
+            See what you can do
             <ChevronDown className="h-3 w-3 animate-bounce" />
           </button>
         </motion.div>
 
-        {/* 2. Real Hubs (social proof first) */}
-        <motion.div
-          id="hub-showcase"
+        {/* 2. Benefits */}
+        <motion.section
+          id="benefits"
+          className="space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
+        >
+          {BENEFITS.map((b, i) => (
+            <div
+              key={i}
+              className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
+            >
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                <b.icon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{b.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{b.desc}</p>
+              </div>
+            </div>
+          ))}
+        </motion.section>
+
+        {/* 3. HubShowcase (Pro social proof) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
         >
           <Suspense fallback={<div className="h-48" />}>
             <HubShowcase onCopyLayout={onActivate} />
           </Suspense>
         </motion.div>
 
-        {/* 3. How to Get Started (brief) */}
+        {/* 4. How to Get Started */}
         <motion.section
           className="space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           <h2 className="text-xl font-bold text-foreground text-center">How to Get Started</h2>
           <div className="space-y-3">
@@ -143,73 +180,24 @@ export const CardOnboarding = ({ onActivate }: Props) => {
           </div>
         </motion.section>
 
-        {/* 4. Mid-page CTA */}
+        {/* 5. Mid CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
+          transition={{ delay: 0.55 }}
         >
-          <Button
-            onClick={onActivate}
-            size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            Activate Now
-          </Button>
+          <ActivateButton />
         </motion.div>
 
-        {/* 5. Layout Templates */}
+        {/* 6. Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Suspense fallback={<div className="h-48" />}>
-            <LayoutTemplates onSelect={() => {}} />
-          </Suspense>
-        </motion.div>
-
-        {/* 6. What Is This Card? (educational, for those who need it) */}
-        <motion.section
-          className="space-y-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <h2 className="text-xl font-bold text-foreground text-center">What Is This Card?</h2>
-          <div className="space-y-3">
-            {INFO_CARDS.map((card, i) => (
-              <div
-                key={i}
-                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
-              >
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                  <card.icon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* 7. Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.65 }}
           className="pb-20"
         >
-          <Button
-            onClick={onActivate}
-            size="lg"
-            className="w-full h-13 text-base font-semibold rounded-xl bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            Activate Now
-          </Button>
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          <ActivateButton />
+          <p className="text-xs text-muted-foreground text-center mt-3">
             Free to start · No credit card required
           </p>
         </motion.div>
