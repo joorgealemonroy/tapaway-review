@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
@@ -19,7 +20,13 @@ import {
   DollarSign,
   FileText,
   Video,
-  BookOpen
+  BookOpen,
+  FlaskConical,
+  CheckCircle2,
+  Copy,
+  Download,
+  ChevronDown,
+  Terminal
 } from "lucide-react";
 
 interface CreatorProduct {
@@ -31,6 +38,16 @@ interface CreatorProduct {
   file_url: string | null;
   cover_image_url: string | null;
   is_active: boolean;
+  created_at: string;
+}
+
+interface CreatorPurchase {
+  id: string;
+  product_id: string;
+  buyer_email: string;
+  stripe_session_id: string;
+  access_token: string;
+  access_expires_at: string;
   created_at: string;
 }
 
@@ -60,10 +77,18 @@ export function PersonalShopTab({
   const [description, setDescription] = useState("");
   const [priceDollars, setPriceDollars] = useState("");
   const [productType, setProductType] = useState("pdf");
-  const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Test mode state
+  const [testCheckoutUrls, setTestCheckoutUrls] = useState<Record<string, string>>({});
+  const [generatingCheckout, setGeneratingCheckout] = useState<string | null>(null);
+  const [testConsoleOpen, setTestConsoleOpen] = useState(false);
+  const [testPurchases, setTestPurchases] = useState<CreatorPurchase[]>([]);
+  const [previousPurchaseCount, setPreviousPurchaseCount] = useState(0);
+
+  const isDev = import.meta.env.DEV;
 
   // Load products
   const loadProducts = useCallback(async () => {
@@ -86,6 +111,36 @@ export function PersonalShopTab({
     }
   }, [isStripeOnboarded, loadProducts]);
 
+  // Poll for test purchases when console is open
+  useEffect(() => {
+    if (!isDev || !testConsoleOpen || !isStripeOnboarded) return;
+
+    const poll = async () => {
+      const productIds = products.map(p => p.id);
+      if (productIds.length === 0) return;
+
+      const { data: purchases } = await supabase
+        .from("creator_purchases")
+        .select("*")
+        .in("product_id", productIds)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (purchases) {
+        const typed = purchases as unknown as CreatorPurchase[];
+        if (typed.length > previousPurchaseCount && previousPurchaseCount > 0) {
+          toast.success("✅ New purchase detected! Webhook succeeded.");
+        }
+        setPreviousPurchaseCount(typed.length);
+        setTestPurchases(typed);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [isDev, testConsoleOpen, isStripeOnboarded, products, previousPurchaseCount]);
+
   // Check onboarding status on return from Stripe
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -102,7 +157,6 @@ export function PersonalShopTab({
         }
         setVerifying(false);
       });
-      // Clean URL
       const url = new URL(window.location.href);
       url.searchParams.delete("stripe_connect");
       window.history.replaceState({}, "", url.toString());
@@ -124,6 +178,48 @@ export function PersonalShopTab({
       toast.error("Failed to start Stripe setup");
       setConnecting(false);
     }
+  };
+
+  const handleSimulateConnect = async () => {
+    const fakeAccountId = `acct_test_${crypto.randomUUID().slice(0, 8)}`;
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update({ 
+        stripe_connect_account_id: fakeAccountId, 
+        is_stripe_onboarded: true 
+      } as any)
+      .eq("id", profileId);
+
+    if (error) {
+      toast.error("Failed to simulate connect: " + error.message);
+    } else {
+      toast.success(`Simulated Stripe Connect: ${fakeAccountId}`);
+      onProfileUpdate();
+    }
+  };
+
+  const handleGenerateTestCheckout = async (productId: string) => {
+    setGeneratingCheckout(productId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-product-checkout", {
+        body: { productId, testMode: true },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        setTestCheckoutUrls(prev => ({ ...prev, [productId]: data.url }));
+        toast.success("Test checkout link generated!");
+      }
+    } catch (err: any) {
+      console.error("Test checkout error:", err);
+      toast.error(err.message || "Failed to generate test checkout");
+    } finally {
+      setGeneratingCheckout(null);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard!");
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +254,6 @@ export function PersonalShopTab({
       const priceCents = Math.round(parseFloat(priceDollars) * 100);
       const productId = crypto.randomUUID();
 
-      // Upload product file to creator-files bucket
       const fileExt = selectedFile.name.split('.').pop();
       const filePath = `${userId}/${productId}/product.${fileExt}`;
       
@@ -168,7 +263,6 @@ export function PersonalShopTab({
 
       if (uploadError) throw uploadError;
 
-      // Upload cover image if provided
       let coverImageUrl: string | null = null;
       if (coverFile) {
         const coverPath = `${userId}/${productId}/cover.jpg`;
@@ -184,7 +278,6 @@ export function PersonalShopTab({
         }
       }
 
-      // Insert product record
       const { error: insertError } = await supabase
         .from("creator_products")
         .insert({
@@ -233,7 +326,6 @@ export function PersonalShopTab({
   const handleDeleteProduct = async (product: CreatorProduct) => {
     if (!confirm(`Delete "${product.title}"? This cannot be undone.`)) return;
 
-    // Delete file from storage
     if (product.file_url) {
       await supabase.storage.from("creator-files").remove([product.file_url]);
     }
@@ -310,6 +402,27 @@ export function PersonalShopTab({
                   Resume setup
                 </button>
               </p>
+            )}
+
+            {/* Dev-only: Simulate Connect */}
+            {isDev && (
+              <div className="border-t border-dashed border-amber-500/30 pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FlaskConical className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-amber-500 uppercase tracking-wide">Dev Only</span>
+                </div>
+                <Button 
+                  onClick={handleSimulateConnect}
+                  variant="outline"
+                  className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                >
+                  <FlaskConical className="h-4 w-4 mr-2" />
+                  Simulate Stripe Connect (Test)
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Bypasses real Stripe onboarding. Sets a fake acct_test_xxx ID.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -449,10 +562,150 @@ export function PersonalShopTab({
                     </Button>
                   </div>
                 </div>
+
+                {/* Dev-only: Generate Test Checkout */}
+                {isDev && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-amber-500/30">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateTestCheckout(product.id)}
+                        disabled={generatingCheckout === product.id}
+                        className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 text-xs"
+                      >
+                        {generatingCheckout === product.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <FlaskConical className="h-3 w-3 mr-1" />
+                        )}
+                        Generate Test Checkout
+                      </Button>
+                    </div>
+                    {testCheckoutUrls[product.id] && (
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Input 
+                            value={testCheckoutUrls[product.id]} 
+                            readOnly 
+                            className="text-xs font-mono h-8 bg-muted"
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 flex-shrink-0"
+                            onClick={() => copyToClipboard(testCheckoutUrls[product.id])}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 flex-shrink-0"
+                            onClick={() => window.open(testCheckoutUrls[product.id], "_blank")}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Use test card: <code className="bg-muted px-1 rounded">4242 4242 4242 4242</code> | Any future exp | Any CVC
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Dev-only: Test Console */}
+      {isDev && products.length > 0 && (
+        <Collapsible open={testConsoleOpen} onOpenChange={setTestConsoleOpen}>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+            >
+              <Terminal className="h-4 w-4 mr-2" />
+              Test Console — Webhook Monitor
+              <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${testConsoleOpen ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="mt-2 border-amber-500/30 bg-amber-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <FlaskConical className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-amber-500 uppercase tracking-wide">
+                    Purchase Monitor (polling every 5s)
+                  </span>
+                  <Badge variant="outline" className="ml-auto text-xs border-amber-500/50 text-amber-600">
+                    {testPurchases.length} purchase{testPurchases.length !== 1 ? "s" : ""}
+                  </Badge>
+                </div>
+
+                {testPurchases.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-amber-500 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Waiting for purchases… Complete a test checkout to see results here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {testPurchases.map(purchase => {
+                      const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-product?token=${purchase.access_token}`;
+                      const isExpired = new Date(purchase.access_expires_at) < new Date();
+                      return (
+                        <div 
+                          key={purchase.id} 
+                          className="p-3 rounded-lg bg-background border border-border space-y-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                            <span className="text-sm font-medium text-foreground truncate">{purchase.buyer_email}</span>
+                            <Badge variant={isExpired ? "destructive" : "default"} className="ml-auto text-xs">
+                              {isExpired ? "Expired" : "Active"}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 gap-1 text-xs font-mono text-muted-foreground">
+                            <div><span className="text-foreground/60">session:</span> {purchase.stripe_session_id.slice(0, 30)}…</div>
+                            <div><span className="text-foreground/60">token:</span> {purchase.access_token.slice(0, 20)}…</div>
+                            <div><span className="text-foreground/60">expires:</span> {new Date(purchase.access_expires_at).toLocaleString()}</div>
+                            <div><span className="text-foreground/60">created:</span> {new Date(purchase.created_at || "").toLocaleString()}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => window.open(downloadUrl, "_blank")}
+                              disabled={isExpired}
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Test Download
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => copyToClipboard(downloadUrl)}
+                            >
+                              <Copy className="h-3 w-3 mr-1" />
+                              Copy URL
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   );
