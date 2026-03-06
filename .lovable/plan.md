@@ -1,88 +1,75 @@
 
 
-# Creator Marketplace End-to-End Testing Setup
+# Product Images, Shop Section & Product Block
 
-This plan adds a testing harness to let you simulate the full marketplace flow without real Stripe onboarding, plus a test console for real-time webhook feedback.
+## 1. Database Migration
 
----
+Add columns to `creator_products`:
+- `image_urls TEXT[]` — array of additional gallery image URLs
+- Keep existing `cover_image_url` as the primary/thumbnail image
 
-## 1. "Simulate Stripe Connect" Button (Dashboard)
+Add column to `personal_profiles`:
+- `show_shop_section BOOLEAN DEFAULT true` — toggle for the shop section visibility
 
-**File: `src/components/personal/PersonalShopTab.tsx`**
+## 2. PersonalShopTab — Image Upload Enhancements
 
-Add a "Test Mode: Simulate Connect" button (only visible in dev) on the pre-onboarding screen. When clicked, it directly updates the profile in the database with a fake `stripe_connect_account_id` (`acct_test_xxx`) and sets `is_stripe_onboarded = true`, then calls `onProfileUpdate()` to reload. This bypasses real Stripe identity checks so you can immediately access the product management UI.
+**In the product creation form:**
+- Add a multi-image uploader below the existing cover image input. Allow uploading multiple gallery images to the `personal-photos` bucket under `{userId}/{productId}/gallery/`.
+- Store the resulting public URLs in `image_urls` array on the product.
+- Show a live **preview card** of the product while editing (cover image, title, price, description).
 
-```typescript
-// Only in dev mode
-if (import.meta.env.DEV) {
-  // Show "Simulate Connect (Test)" button
-  // On click: update personal_profiles set stripe_connect_account_id = 'acct_test_' + randomId, is_stripe_onboarded = true
-}
-```
+**In the product list:**
+- Display the cover image thumbnail on each product card.
+- Add a "Show Shop on Profile" toggle at the top that updates `personal_profiles.show_shop_section`.
 
----
-
-## 2. Test Product Creation + Checkout Link Generator
-
-After simulating connect, you'll use the existing product form to create a test product (upload a small PDF, set price to $1.00).
-
-**Add a "Generate Test Checkout Link" button** on each product card in the dashboard (dev-only). This calls `create-product-checkout` with the product ID and displays the returned Stripe Checkout URL in a copyable text field. You can then open it in a browser and use test card `4242 4242 4242 4242`.
-
-**However**: The `create-product-checkout` edge function checks `is_stripe_onboarded` and requires a real `stripe_connect_account_id` for Stripe's `transfer_data.destination`. A fake `acct_test_xxx` will fail at Stripe's API.
-
-**Solution**: Add a **test mode bypass** in `create-product-checkout` that, when `productId` starts with `test_` OR a `testMode: true` flag is passed, skips the `transfer_data` / `application_fee_amount` and creates a simple checkout session on the platform account directly. This lets the checkout succeed in test mode.
-
-**File: `supabase/functions/create-product-checkout/index.ts`**
-- Accept optional `testMode` boolean
-- When true, omit `payment_intent_data` (no destination/fee), add `metadata.test_mode: 'true'`
-
----
-
-## 3. Webhook Verification + Test Console
-
-### 3a. Webhook already handles marketplace purchases
-
-The `stripe-webhook` already processes `checkout.session.completed` with `metadata.type === 'creator_marketplace'`. It creates the `creator_purchases` record with access token. This will fire automatically when the test checkout completes.
-
-### 3b. Add a "Test Console" panel to the Shop tab (dev-only)
-
-**File: `src/components/personal/PersonalShopTab.tsx`**
-
-Add a collapsible "Test Console" at the bottom of the shop tab that:
-- Polls `creator_purchases` every 5 seconds for new records matching the creator's products
-- Displays each purchase with: `stripe_session_id`, `buyer_email`, `access_token`, `access_expires_at`, and a computed download URL
-- Shows a green checkmark when a new purchase appears (webhook succeeded)
-- Provides a "Test Download" button that opens the `download-product` edge function URL with the access token
-
----
-
-## 4. Download Verification
-
-The test console's "Test Download" button constructs the URL:
-```
-{SUPABASE_URL}/functions/v1/download-product?token={access_token}
-```
-Clicking it triggers the `download-product` edge function which validates the token, checks expiry, and returns a 302 redirect to a signed URL for the file in the private `creator-files` bucket.
-
----
-
-## 5. Profile Page Purchase Banner
+## 3. Shop Section on Profile (Automatic)
 
 **File: `src/pages/personal/PersonalProfilePage.tsx`**
 
-The profile page already checks for `?purchase=success&session_id=...` query params. Verify it shows a success banner and the download link. Add a lookup: when these params are present, query `creator_purchases` by `stripe_session_id` to get the `access_token`, then show a "Download Your Purchase" button that links to the download function.
+- Fetch `show_shop_section` from the profile (via the existing `personal_profiles_public` view or the profile query).
+- Only render the "Shop" section if `show_shop_section` is true AND `creatorProducts.length > 0`.
+- Update `ProductCard` to show gallery images as a mini carousel/swipeable strip when the card is tapped/expanded.
+- The shop section remains at the bottom of the content area but is rendered as a distinct section.
 
-Currently the profile page likely doesn't have this lookup — need to add it.
+## 4. Product Block (Draggable)
 
----
+Add a new block type `"product"` to the existing block system so creators can embed individual products inline with their links/blocks.
 
-## Summary of Changes
+**File: `src/components/personal/BlockModal.tsx`**
+- Add `product` to `BLOCK_TYPES` array with a ShoppingBag icon.
+- In the product block editor: show a dropdown of the creator's existing products (fetched from `creator_products`).
+- Store `{ product_id: string }` in the block's content.
+
+**File: `src/pages/personal/PersonalProfilePage.tsx`**
+- In the `ProfileBlock` component, add a `case "product"` that:
+  - Looks up the product from the `creatorProducts` array by `product_id`.
+  - Renders a styled card with cover image, title, price tag, and a "Get it Now" CTA button.
+  - On click, triggers the same `handleBuyProduct` flow.
+
+**File: `src/components/personal/DashboardUnifiedContent.tsx`**
+- Add the `product` block type icon to the block type display map.
+
+**File: `src/components/personal/ProfilePreviewRenderer.tsx`**
+- Add product block rendering to the preview renderer (mirrors profile page logic).
+
+## 5. UI Design for Product Block
+
+The product block renders as a rounded card matching existing link/block design:
+- Cover image across the top (aspect-ratio 16/9).
+- Title in bold, description truncated to 2 lines.
+- Price badge (e.g., `$9.99`) styled as a prominent pill in the top-right corner of the image.
+- "Get it Now" CTA button spanning full width at the bottom.
+- Matches the dark/light theme of the profile.
+
+## 6. Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/personal/PersonalShopTab.tsx` | Add dev-only "Simulate Connect" button, "Generate Test Checkout" per product, "Test Console" panel polling purchases |
-| `supabase/functions/create-product-checkout/index.ts` | Add `testMode` bypass that skips `transfer_data` for platform-only checkout |
-| `src/pages/personal/PersonalProfilePage.tsx` | Add post-purchase lookup by `session_id` to show download banner with access token link |
-
-No database changes needed — all tables and buckets already exist.
+| DB migration | Add `image_urls` to `creator_products`, `show_shop_section` to `personal_profiles` |
+| `src/components/personal/PersonalShopTab.tsx` | Multi-image upload, preview card, shop toggle |
+| `src/components/personal/BlockModal.tsx` | Add `product` block type with product picker dropdown |
+| `src/pages/personal/PersonalProfilePage.tsx` | Conditional shop section, product block rendering, gallery carousel in ProductCard |
+| `src/components/personal/DashboardUnifiedContent.tsx` | Add product block icon |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Add product block preview rendering |
+| `src/components/admin/AdminBlocksManager.tsx` | Add product to `BLOCK_TYPE_INFO` |
 
