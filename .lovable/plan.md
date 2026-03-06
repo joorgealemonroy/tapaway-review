@@ -1,34 +1,55 @@
 
 
-# Update Plan Features List
+# Post-Purchase Emails & Creator Sales Dashboard
 
-The "Plan Features" section in the billing tab and the checkout step have incorrect/outdated feature lists that don't match the actual plan limits defined in `personalPlanLimits.ts`. Here's what needs to change:
+## 1. Webhook Update — Email Sending
 
-## Current vs Correct (from `personalPlanLimits.ts`)
+**File: `supabase/functions/stripe-webhook/index.ts`**
 
-| Feature | Currently Shows | Should Be |
-|---------|----------------|-----------|
-| Free links | Up to 5 links | Up to 10 links |
-| Email capture | Pro-only | Free (included in both) |
+In the existing `creator_marketplace` block (lines 448-482), after creating the purchase record, add non-blocking email sending using Resend (already configured via `RESEND_API_KEY` secret):
 
-## Files to Update
+**Buyer Email:**
+- Subject: "Your purchase: {product title}"
+- Body: Product name, price, secure download link (`FRONTEND_URL/functions/v1/download-product?token={accessToken}`), 72-hour expiry note
+- Sent from `EMAIL_FROM` env var
 
-### 1. `src/components/personal/PersonalBillingTab.tsx` (lines 149-193)
+**Creator Notification Email:**
+- Look up the creator's email via `personal_profiles.user_id` → `auth.users.email`
+- Subject: "You made a sale! 🎉"
+- Body: Product title, buyer email (masked), amount earned, link to dashboard
 
-Update the Free features list:
-- "Up to 5 links" → "Up to 10 links"
-- Add "Email capture block" to Free list
+Both emails are fire-and-forget (wrapped in try/catch, don't block the webhook response).
 
-Update the Pro features list:
-- Remove "Email capture block" (it's already free)
-- Keep: Unlimited links, Custom header image, Photo collage block, Advanced analytics
+## 2. Sales Dashboard in PersonalShopTab
 
-### 2. `src/components/personal/signup/CheckoutStep.tsx`
+**File: `src/components/personal/PersonalShopTab.tsx`**
 
-Update `freeFeatures` array:
-- "Up to 5 links" → "Up to 10 links"
+Add a "Sales Summary" section at the top of the onboarded view (between the shop toggle and "Your Products" header), only visible when `isStripeOnboarded`:
 
-### 3. `src/lib/personalPlanLimits.ts`
+**Sales Summary Header Card:**
+- **Total Earnings**: Sum of `price_cents` from `creator_products` joined with `creator_purchases` for this creator's products
+- **Total Sales**: Count of purchases
+- Displayed as two stat cards side-by-side with DollarSign and ShoppingBag icons
 
-The `FEATURE_LIST` constant already has the correct values — no changes needed here.
+**Recent Transactions Table:**
+- Below the summary, a scrollable list showing the last 10 sales
+- Columns: Buyer Email (truncated), Product Name, Date, Price
+- Fetched via a join query: `creator_purchases` with `creator_products` filtered by `creator_id = profileId`
+- Uses the existing Table components from `@/components/ui/table`
+
+**Data fetching:**
+- New `loadSalesData` callback that runs on mount when onboarded
+- Single query using `.select('*, product:creator_products!product_id(title, price_cents, creator_id)')` filtered by creator_id
+- Stored in local state: `salesTotal`, `salesCount`, `recentSales`
+
+## 3. No Database Migration Needed
+
+The `creator_purchases` table already has all needed columns (`buyer_email`, `product_id`, `created_at`, `stripe_session_id`). Product price is available via the join to `creator_products.price_cents`.
+
+## 4. Files to Modify
+
+| File | Change |
+|------|--------|
+| `supabase/functions/stripe-webhook/index.ts` | Add Resend email sending for buyer + creator after marketplace purchase |
+| `src/components/personal/PersonalShopTab.tsx` | Add sales summary header + recent transactions table |
 
