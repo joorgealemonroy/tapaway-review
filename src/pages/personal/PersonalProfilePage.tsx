@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+
 import { 
   CheckCircle2,
   ExternalLink,
@@ -628,13 +629,116 @@ const ProfileBlock = memo(function ProfileBlock({
   }
 });
 
+// Product card for marketplace
+const ProductCard = memo(function ProductCard({ 
+  product, 
+  isDarkBg,
+  onBuy
+}: { 
+  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null };
+  isDarkBg?: boolean;
+  onBuy: (productId: string) => void;
+}) {
+  return (
+    <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
+      {product.cover_image_url && (
+        <img src={product.cover_image_url} alt={product.title} className="w-full h-32 object-cover" loading="lazy" />
+      )}
+      <div className="p-4 space-y-2">
+        <h4 className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>{product.title}</h4>
+        {product.description && (
+          <p className={`text-xs line-clamp-2 ${isDarkBg ? 'text-white/60' : 'text-muted-foreground'}`}>{product.description}</p>
+        )}
+        <div className="flex items-center justify-between pt-1">
+          <span className={`font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
+            ${(product.price_cents / 100).toFixed(2)}
+          </span>
+          <button
+            onClick={() => onBuy(product.id)}
+            className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Buy Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const { username: paramUsername, slug } = useParams<{ username?: string; slug?: string }>();
+  const [searchParams] = useSearchParams();
   const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   
   // Use optimized data fetching with caching
   const { data, loading, error } = useProfileData(username);
+
+  // Creator products state
+  const [creatorProducts, setCreatorProducts] = useState<any[]>([]);
+  const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
+  const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+
+  // Fetch creator products when profile loads
+  useEffect(() => {
+    if (!data?.profile?.id) return;
+    
+    supabase
+      .from("creator_products")
+      .select("*")
+      .eq("creator_id", data.profile.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .then(({ data: products }) => {
+        if (products) setCreatorProducts(products);
+      });
+  }, [data?.profile?.id]);
+
+  // Handle purchase success - lookup access token
+  useEffect(() => {
+    const sessionId = searchParams.get("session_id");
+    const purchaseStatus = searchParams.get("purchase");
+    
+    if (purchaseStatus === "success" && sessionId) {
+      // Poll for the purchase record (webhook may take a moment)
+      const checkPurchase = async () => {
+        for (let i = 0; i < 10; i++) {
+          const { data: purchases } = await supabase
+            .from("creator_purchases")
+            .select("access_token")
+            .eq("stripe_session_id", sessionId)
+            .limit(1);
+          
+          if (purchases && purchases.length > 0) {
+            setPurchaseToken((purchases[0] as any).access_token);
+            toast.success("Purchase complete! Your download is ready.");
+            return;
+          }
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        toast.info("Payment received! Your download link will be available shortly.");
+      };
+      checkPurchase();
+    }
+  }, [searchParams]);
+
+  const handleBuyProduct = async (productId: string) => {
+    setBuyingProductId(productId);
+    try {
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke("create-product-checkout", {
+        body: { productId },
+      });
+      if (checkoutError) throw checkoutError;
+      if (checkoutData?.url) {
+        window.location.href = checkoutData.url;
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast.error("Failed to start checkout");
+    } finally {
+      setBuyingProductId(null);
+    }
+  };
 
   // Track visit after data loads (non-blocking)
   useEffect(() => {
@@ -1078,6 +1182,41 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               </p>
             )}
           </div>
+
+          {/* Purchase Success Download Banner */}
+          {purchaseToken && (
+            <div className={`mt-6 p-4 rounded-xl border text-center ${isDarkBg ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
+              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>🎉 Purchase Complete!</p>
+              <a
+                href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-product?token=${purchaseToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 px-6 py-2 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Download Your File
+              </a>
+              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-muted-foreground'}`}>Link expires in 72 hours</p>
+            </div>
+          )}
+
+          {/* Creator Products Shop Section */}
+          {creatorProducts.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
+                Shop
+              </h3>
+              <div className="grid gap-3">
+                {creatorProducts.map(product => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={product} 
+                    isDarkBg={isDarkBg} 
+                    onBuy={handleBuyProduct}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <footer className="mt-12 pb-6 text-center space-y-3">

@@ -736,7 +736,13 @@ const PersonalDashboard = () => {
 
           {/* Shop Tab */}
           <TabsContent value="shop" className="space-y-4">
-            <PersonalShopTab />
+            <PersonalShopTab 
+              profileId={profile.id}
+              userId={profile.user_id}
+              stripeConnectAccountId={(profile as any).stripe_connect_account_id || null}
+              isStripeOnboarded={(profile as any).is_stripe_onboarded || false}
+              onProfileUpdate={loadData}
+            />
           </TabsContent>
 
           {/* Plan Tab */}
