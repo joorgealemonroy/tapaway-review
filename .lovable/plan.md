@@ -1,60 +1,34 @@
 
 
-# Product Preview Feature — Modal, Dual Buttons & Enhanced Descriptions
+# Update Plan Features List
 
-## 1. Database Migration
+The "Plan Features" section in the billing tab and the checkout step have incorrect/outdated feature lists that don't match the actual plan limits defined in `personalPlanLimits.ts`. Here's what needs to change:
 
-Add `long_description TEXT` column to `creator_products` for rich, long-form product descriptions (the existing `description` stays as the short teaser shown on cards).
+## Current vs Correct (from `personalPlanLimits.ts`)
 
-## 2. New Component: `ProductPreviewModal.tsx`
+| Feature | Currently Shows | Should Be |
+|---------|----------------|-----------|
+| Free links | Up to 5 links | Up to 10 links |
+| Email capture | Pro-only | Free (included in both) |
 
-**File: `src/components/personal/ProductPreviewModal.tsx`**
+## Files to Update
 
-A responsive modal (Dialog on desktop, Drawer on mobile via the existing `ResponsiveModal` pattern) that shows:
-- **Image carousel** using Embla (already installed) displaying `cover_image_url` + all `image_urls` with dot indicators and swipe navigation
-- **Full title, price badge, product type tag**
-- **Long description** (falls back to `description` if no `long_description`), rendered with `whitespace-pre-line` for line break support
-- **Sticky "Buy Now" button** at the bottom of the modal content
+### 1. `src/components/personal/PersonalBillingTab.tsx` (lines 149-193)
 
-## 3. Dual-Button UI on Product Cards
+Update the Free features list:
+- "Up to 5 links" → "Up to 10 links"
+- Add "Email capture block" to Free list
 
-**File: `src/pages/personal/PersonalProfilePage.tsx`**
+Update the Pro features list:
+- Remove "Email capture block" (it's already free)
+- Keep: Unlimited links, Custom header image, Photo collage block, Advanced analytics
 
-### `ProductCard` (Shop Section):
-- Keep "Buy Now" as the primary CTA
-- Add a secondary "View Details" outlined button next to it
-- Clicking "View Details" opens the `ProductPreviewModal`
+### 2. `src/components/personal/signup/CheckoutStep.tsx`
 
-### `ProductBlockCard` (Draggable Block):
-- Replace single "Get it Now" with two stacked buttons: primary "Get it Now" + outlined "Preview"
-- Both trigger their respective actions
+Update `freeFeatures` array:
+- "Up to 5 links" → "Up to 10 links"
 
-Both components receive a new `onPreview` callback prop.
+### 3. `src/lib/personalPlanLimits.ts`
 
-## 4. State Management in `PersonalProfilePage`
-
-Add state for the preview modal:
-```typescript
-const [previewProduct, setPreviewProduct] = useState<any | null>(null);
-```
-
-Pass `onPreview={(product) => setPreviewProduct(product)}` to both `ProductCard` and `ProductBlockCard`. Render `<ProductPreviewModal>` once at the page level.
-
-## 5. Creator Dashboard — Enhanced Form
-
-**File: `src/components/personal/PersonalShopTab.tsx`**
-
-- Change gallery max from 8 → 5 per the user's request
-- Add a "Long Description" textarea below the existing description field, with a hint like "Sell your product — supports line breaks"
-- Update `handleSaveProduct` to save `long_description` to the database
-- Update the live preview card to show a truncated version of the long description
-
-## 6. Files Summary
-
-| File | Change |
-|------|--------|
-| DB migration | Add `long_description TEXT` to `creator_products` |
-| `src/components/personal/ProductPreviewModal.tsx` | New — responsive modal with image carousel + full description + sticky buy button |
-| `src/pages/personal/PersonalProfilePage.tsx` | Add dual buttons to `ProductCard` and `ProductBlockCard`, add preview modal state + render |
-| `src/components/personal/PersonalShopTab.tsx` | Add long description field, cap gallery at 5 |
+The `FEATURE_LIST` constant already has the correct values — no changes needed here.
 
