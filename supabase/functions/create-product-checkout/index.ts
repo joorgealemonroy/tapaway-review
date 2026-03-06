@@ -28,7 +28,7 @@ serve(async (req) => {
       })
     );
 
-    const { productId, buyerEmail } = await req.json();
+    const { productId, buyerEmail, testMode } = await req.json();
 
     if (!productId) {
       return new Response(JSON.stringify({ error: 'productId required' }), {
@@ -53,18 +53,20 @@ serve(async (req) => {
     }
 
     const creator = product.creator as any;
-    if (!creator?.stripe_connect_account_id || !creator?.is_stripe_onboarded) {
-      return new Response(JSON.stringify({ error: 'Creator not set up for payments' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const isTestMode = testMode === true || creator?.stripe_connect_account_id?.startsWith('acct_test_');
+
+    if (!isTestMode) {
+      if (!creator?.stripe_connect_account_id || !creator?.is_stripe_onboarded) {
+        return new Response(JSON.stringify({ error: 'Creator not set up for payments' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
-
-    const feeAmount = Math.round(product.price_cents * APPLICATION_FEE_PERCENT);
 
     const sessionParams: any = {
       mode: 'payment',
@@ -79,20 +81,27 @@ serve(async (req) => {
         },
         quantity: 1,
       }],
-      payment_intent_data: {
-        application_fee_amount: feeAmount,
-        transfer_data: {
-          destination: creator.stripe_connect_account_id,
-        },
-      },
       success_url: `${frontendUrl}/${creator.username}?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/${creator.username}`,
       metadata: {
         product_id: productId,
         creator_profile_id: creator.id,
         type: 'creator_marketplace',
+        ...(isTestMode ? { test_mode: 'true' } : {}),
       },
     };
+
+    // In test mode, skip transfer_data (fake acct_test_ IDs won't work with Stripe)
+    // In production, use direct charges with application fee
+    if (!isTestMode) {
+      const feeAmount = Math.round(product.price_cents * APPLICATION_FEE_PERCENT);
+      sessionParams.payment_intent_data = {
+        application_fee_amount: feeAmount,
+        transfer_data: {
+          destination: creator.stripe_connect_account_id,
+        },
+      };
+    }
 
     // Pre-fill buyer email if provided
     if (buyerEmail) {
