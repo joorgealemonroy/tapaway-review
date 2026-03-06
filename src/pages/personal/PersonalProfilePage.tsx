@@ -19,6 +19,7 @@ import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
 import { ProfileSignupBar } from "@/components/personal/ProfileSignupBar";
+import { ProductPreviewModal } from "@/components/personal/ProductPreviewModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
@@ -634,11 +635,13 @@ const ProfileBlock = memo(function ProfileBlock({
 const ProductCard = memo(function ProductCard({ 
   product, 
   isDarkBg,
-  onBuy
+  onBuy,
+  onPreview
 }: { 
   product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null; image_urls?: string[] | null };
   isDarkBg?: boolean;
   onBuy: (productId: string) => void;
+  onPreview: (product: any) => void;
 }) {
   return (
     <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
@@ -654,12 +657,20 @@ const ProductCard = memo(function ProductCard({
           <span className={`font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
             ${(product.price_cents / 100).toFixed(2)}
           </span>
-          <button
-            onClick={() => onBuy(product.id)}
-            className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-          >
-            Buy Now
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPreview(product)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
+            >
+              View Details
+            </button>
+            <button
+              onClick={() => onBuy(product.id)}
+              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Buy Now
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -671,10 +682,12 @@ const ProductBlockCard = memo(function ProductBlockCard({
   product,
   isDarkBg,
   onBuy,
+  onPreview,
 }: {
   product: { id: string; title: string; description: string | null; price_cents: number; cover_image_url: string | null };
   isDarkBg?: boolean;
   onBuy: (productId: string) => void;
+  onPreview: (product: any) => void;
 }) {
   return (
     <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'} shadow-sm`}>
@@ -696,12 +709,20 @@ const ProductBlockCard = memo(function ProductBlockCard({
             ${(product.price_cents / 100).toFixed(2)}
           </span>
         )}
-        <button
-          onClick={() => onBuy(product.id)}
-          className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          Get it Now
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onBuy(product.id)}
+            className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Get it Now
+          </button>
+          <button
+            onClick={() => onPreview(product)}
+            className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
+          >
+            Preview
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -720,6 +741,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const [creatorProducts, setCreatorProducts] = useState<any[]>([]);
   const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
   const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+  const [previewProduct, setPreviewProduct] = useState<any | null>(null);
 
   // Fetch creator products when profile loads
   useEffect(() => {
@@ -1217,7 +1239,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   if (blockData.block_type === "product" && blockContent.product_id) {
                     const product = creatorProducts.find((p: any) => p.id === blockContent.product_id);
                     if (product) {
-                      return <ProductBlockCard key={`block-${blockData.id}`} product={product} isDarkBg={isDarkBg} onBuy={handleBuyProduct} />;
+                      return <ProductBlockCard key={`block-${blockData.id}`} product={product} isDarkBg={isDarkBg} onBuy={handleBuyProduct} onPreview={setPreviewProduct} />;
                     }
                     return null;
                   }
@@ -1264,6 +1286,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                     product={product} 
                     isDarkBg={isDarkBg} 
                     onBuy={handleBuyProduct}
+                    onPreview={setPreviewProduct}
                   />
                 ))}
               </div>
@@ -1325,6 +1348,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       />
 
       <ProfileSignupBar profileId={profile.id} />
+
+      {/* Product Preview Modal */}
+      <ProductPreviewModal
+        product={previewProduct}
+        isOpen={!!previewProduct}
+        onClose={() => setPreviewProduct(null)}
+        onBuy={handleBuyProduct}
+      />
     </div>
   );
 };

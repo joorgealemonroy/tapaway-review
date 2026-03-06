@@ -660,6 +660,7 @@ export type Database = {
           id: string
           image_urls: string[] | null
           is_active: boolean | null
+          long_description: string | null
           price_cents: number
           product_type: string
           title: string
@@ -674,6 +675,7 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           is_active?: boolean | null
+          long_description?: string | null
           price_cents: number
           product_type?: string
           title: string
@@ -688,6 +690,7 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           is_active?: boolean | null
+          long_description?: string | null
           price_cents?: number
           product_type?: string
           title?: string
