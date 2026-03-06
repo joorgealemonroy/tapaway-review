@@ -119,3 +119,15 @@ verify_jwt = false
 
 [functions.claim-card]
 verify_jwt = false
+
+[functions.create-connect-account-link]
+verify_jwt = true
+
+[functions.verify-connect-onboarding]
+verify_jwt = true
+
+[functions.create-product-checkout]
+verify_jwt = false
+
+[functions.download-product]
+verify_jwt = false

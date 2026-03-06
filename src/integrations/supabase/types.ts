@@ -650,6 +650,101 @@ export type Database = {
           },
         ]
       }
+      creator_products: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          price_cents: number
+          product_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_cents: number
+          product_type?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_cents?: number
+          product_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_products_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_products_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_purchases: {
+        Row: {
+          access_expires_at: string
+          access_token: string
+          buyer_email: string
+          created_at: string | null
+          id: string
+          product_id: string
+          stripe_session_id: string
+        }
+        Insert: {
+          access_expires_at: string
+          access_token: string
+          buyer_email: string
+          created_at?: string | null
+          id?: string
+          product_id: string
+          stripe_session_id: string
+        }
+        Update: {
+          access_expires_at?: string
+          access_token?: string
+          buyer_email?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          stripe_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_purchases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "creator_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fulfillment_orders: {
         Row: {
           created_at: string
@@ -1413,11 +1508,13 @@ export type Database = {
           header_type: string | null
           headline: string | null
           id: string
+          is_stripe_onboarded: boolean | null
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
           stripe_billing_email: string | null
+          stripe_connect_account_id: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -1454,11 +1551,13 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           stripe_billing_email?: string | null
+          stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -1495,11 +1594,13 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           stripe_billing_email?: string | null
+          stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null

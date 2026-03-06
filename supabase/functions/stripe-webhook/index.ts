@@ -443,6 +443,45 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
+    // CREATOR MARKETPLACE PURCHASE HANDLING
+    // ============================================================
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      if (session.metadata?.type === 'creator_marketplace' && session.metadata?.product_id) {
+        console.log('[stripe-webhook] Processing creator marketplace purchase');
+        
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+          mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          })
+        );
+
+        const buyerEmail = session.customer_email || session.customer_details?.email || '';
+        const accessToken = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(); // 72 hours
+
+        const { error: insertError } = await supabaseAdmin
+          .from('creator_purchases')
+          .insert({
+            product_id: session.metadata.product_id,
+            buyer_email: buyerEmail,
+            stripe_session_id: session.id,
+            access_token: accessToken,
+            access_expires_at: expiresAt,
+          });
+
+        if (insertError) {
+          console.error('[stripe-webhook] Failed to create purchase record:', insertError);
+        } else {
+          console.log('[stripe-webhook] Created marketplace purchase with access token');
+        }
+      }
+    }
+
+    // ============================================================
     // AFFILIATE PAID CONVERSION COMMISSION
     // When a subscription transitions from trialing → active, grant paid-tier commission
     // ============================================================
