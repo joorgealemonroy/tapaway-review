@@ -33,6 +33,7 @@ interface CreatorProduct {
   id: string;
   title: string;
   description: string | null;
+  long_description: string | null;
   price_cents: number;
   product_type: string;
   file_url: string | null;
@@ -82,6 +83,7 @@ export function PersonalShopTab({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [longDescription, setLongDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [showShopSection, setShowShopSection] = useState(true);
   const [loadingShopToggle, setLoadingShopToggle] = useState(false);
@@ -281,8 +283,8 @@ export function PersonalShopTab({
       return true;
     });
     const total = galleryFiles.length + validFiles.length;
-    if (total > 8) {
-      toast.error("Maximum 8 gallery images");
+    if (total > 5) {
+      toast.error("Maximum 5 gallery images");
       return;
     }
     setGalleryFiles(prev => [...prev, ...validFiles]);
@@ -355,6 +357,7 @@ export function PersonalShopTab({
           creator_id: profileId,
           title: title.trim(),
           description: description.trim() || null,
+          long_description: longDescription.trim() || null,
           price_cents: priceCents,
           product_type: productType,
           file_url: filePath,
@@ -367,6 +370,7 @@ export function PersonalShopTab({
       toast.success("Product created!");
       setTitle("");
       setDescription("");
+      setLongDescription("");
       setPriceDollars("");
       setProductType("pdf");
       setSelectedFile(null);
@@ -546,8 +550,18 @@ export function PersonalShopTab({
               <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. My Fitness Guide" />
             </div>
             <div className="space-y-2">
-              <Label>Description (optional)</Label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What's included..." rows={3} />
+              <Label>Short Description (optional)</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief teaser shown on cards..." rows={2} />
+            </div>
+            <div className="space-y-2">
+              <Label>Long Description (optional)</Label>
+              <Textarea 
+                value={longDescription} 
+                onChange={e => setLongDescription(e.target.value)} 
+                placeholder="Sell your product — tell buyers everything they need to know. Supports line breaks." 
+                rows={5} 
+              />
+              <p className="text-xs text-muted-foreground">Shown in the product preview modal. Supports line breaks.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -590,7 +604,7 @@ export function PersonalShopTab({
               )}
             </div>
             <div className="space-y-2">
-              <Label>Gallery Images (optional, max 8)</Label>
+              <Label>Gallery Images (optional, max 5)</Label>
               <Input type="file" accept="image/*" multiple onChange={handleGallerySelect} />
               {galleryPreviews.length > 0 && (
                 <div className="flex gap-2 flex-wrap">

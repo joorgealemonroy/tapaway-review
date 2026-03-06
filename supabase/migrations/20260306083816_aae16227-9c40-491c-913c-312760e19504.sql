@@ -1,0 +1,1 @@
+ALTER TABLE public.creator_products ADD COLUMN IF NOT EXISTS long_description TEXT;
