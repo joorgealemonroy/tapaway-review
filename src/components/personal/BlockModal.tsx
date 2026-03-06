@@ -25,8 +25,10 @@ import {
   Mail,
   Grid,
   X,
-  Plus
+  Plus,
+  ShoppingBag
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -59,6 +61,7 @@ const BLOCK_TYPES = [
   { type: "button", label: "Featured Button", icon: MousePointerClick, description: "Big CTA button" },
   { type: "email_capture", label: "Email Capture", icon: Mail, description: "Collect visitor emails" },
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
+  { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
 
 export const BlockModal = ({ 
@@ -116,6 +119,10 @@ export const BlockModal = ({
   const [collageColumns, setCollageColumns] = useState<2 | 3>(3);
   const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
   
+  // Product block options
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [creatorProducts, setCreatorProducts] = useState<{ id: string; title: string; price_cents: number }[]>([]);
+  
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
@@ -126,6 +133,21 @@ export const BlockModal = ({
   const collageFileInputRef = useRef<HTMLInputElement>(null);
 
   const isMobile = useIsMobile();
+
+  // Load creator products when product type is selected
+  useEffect(() => {
+    if (selectedType === "product" && profileId) {
+      supabase
+        .from("creator_products")
+        .select("id, title, price_cents")
+        .eq("creator_id", profileId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .then(({ data }) => {
+          if (data) setCreatorProducts(data as any);
+        });
+    }
+  }, [selectedType, profileId]);
 
   // Reset/populate form when modal opens or editingBlock changes
   useEffect(() => {
@@ -179,6 +201,8 @@ export const BlockModal = ({
           }
           setCollageImages(images);
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
+        } else if (editingBlock.block_type === "product") {
+          setSelectedProductId(content.product_id || "");
         }
       } else {
         resetForm();
@@ -220,6 +244,7 @@ export const BlockModal = ({
     setCollageImages([]);
     setCollageColumns(3);
     setCollageRawImage(null);
+    setSelectedProductId("");
   };
 
   const handleClose = () => {
@@ -450,6 +475,14 @@ export const BlockModal = ({
           images: JSON.stringify(collageImages),
           columns: collageColumns.toString(),
         };
+        break;
+      }
+      case "product": {
+        if (!selectedProductId) {
+          toast.error("Please select a product");
+          return;
+        }
+        content = { product_id: selectedProductId };
         break;
       }
     }
@@ -904,6 +937,28 @@ export const BlockModal = ({
                 </div>
               </div>
             </>
+          )}
+
+          {selectedType === "product" && (
+            <div className="space-y-2">
+              <Label>Select Product</Label>
+              {creatorProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active products found. Create a product in the Shop tab first.</p>
+              ) : (
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a product..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creatorProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.title} — ${(p.price_cents / 100).toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           )}
 
           {/* Alignment picker */}

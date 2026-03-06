@@ -658,6 +658,7 @@ export type Database = {
           description: string | null
           file_url: string | null
           id: string
+          image_urls: string[] | null
           is_active: boolean | null
           price_cents: number
           product_type: string
@@ -671,6 +672,7 @@ export type Database = {
           description?: string | null
           file_url?: string | null
           id?: string
+          image_urls?: string[] | null
           is_active?: boolean | null
           price_cents: number
           product_type?: string
@@ -684,6 +686,7 @@ export type Database = {
           description?: string | null
           file_url?: string | null
           id?: string
+          image_urls?: string[] | null
           is_active?: boolean | null
           price_cents?: number
           product_type?: string
@@ -1513,6 +1516,7 @@ export type Database = {
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
+          show_shop_section: boolean | null
           stripe_billing_email: string | null
           stripe_connect_account_id: string | null
           stripe_customer_id: string | null
@@ -1556,6 +1560,7 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          show_shop_section?: boolean | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -1599,6 +1604,7 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          show_shop_section?: boolean | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -2332,6 +2338,7 @@ export type Database = {
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
+          show_shop_section: boolean | null
           subscription_status: string | null
           username: string | null
         }
@@ -2357,6 +2364,7 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          show_shop_section?: boolean | null
           subscription_status?: string | null
           username?: string | null
         }
@@ -2382,6 +2390,7 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          show_shop_section?: boolean | null
           subscription_status?: string | null
           username?: string | null
         }
