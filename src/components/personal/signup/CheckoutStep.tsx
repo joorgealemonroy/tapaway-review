@@ -83,7 +83,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   }, [isOAuthUser]);
 
   const freeFeatures = [
-    "Up to 5 links",
+    "Up to 10 links",
     "Basic profile page",
     "Limited customization",
   ];
