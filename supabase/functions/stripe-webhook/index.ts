@@ -477,6 +477,125 @@ if (event.type === 'checkout.session.completed') {
           console.error('[stripe-webhook] Failed to create purchase record:', insertError);
         } else {
           console.log('[stripe-webhook] Created marketplace purchase with access token');
+
+          // ---- Fire-and-forget: send buyer + creator emails via Resend ----
+          (async () => {
+            try {
+              const resendApiKey = Deno.env.get('RESEND_API_KEY');
+              const emailFromRaw = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
+              const emailFrom = emailFromRaw.includes('<') ? emailFromRaw : `TapAway <${emailFromRaw}>`;
+              const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
+
+              if (!resendApiKey) {
+                console.warn('[stripe-webhook] RESEND_API_KEY not set, skipping emails');
+                return;
+              }
+
+              // Look up product details for the email
+              const { data: product } = await supabaseAdmin
+                .from('creator_products')
+                .select('title, price_cents, creator_id')
+                .eq('id', session.metadata!.product_id)
+                .single();
+
+              if (!product) {
+                console.error('[stripe-webhook] Product not found for email');
+                return;
+              }
+
+              const priceFormatted = `$${(product.price_cents / 100).toFixed(2)}`;
+              const downloadUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/download-product?token=${accessToken}`;
+
+              // 1. BUYER EMAIL
+              if (buyerEmail) {
+                const buyerHtml = `
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
+                    <img src="${frontendUrl}/tapaway-logo-email.png" alt="TapAway" style="height: 32px; margin-bottom: 24px;" />
+                    <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">Your purchase is ready!</h1>
+                    <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+                      Thank you for purchasing <strong>${product.title}</strong> for ${priceFormatted}.
+                    </p>
+                    <a href="${downloadUrl}" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                      Download Now
+                    </a>
+                    <p style="color: #999; font-size: 13px; margin-top: 20px;">
+                      This download link expires in 72 hours. If you need help, reply to this email.
+                    </p>
+                  </div>
+                `;
+
+                const buyerRes = await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    from: emailFrom,
+                    to: [buyerEmail],
+                    subject: `Your purchase: ${product.title}`,
+                    html: buyerHtml,
+                  }),
+                });
+                if (!buyerRes.ok) {
+                  console.error('[stripe-webhook] Buyer email failed:', await buyerRes.text());
+                } else {
+                  console.log('[stripe-webhook] Buyer email sent to', buyerEmail);
+                }
+              }
+
+              // 2. CREATOR NOTIFICATION EMAIL
+              // Look up creator's email via personal_profiles → auth.users
+              const { data: creatorProfile } = await supabaseAdmin
+                .from('personal_profiles')
+                .select('user_id, username')
+                .eq('id', product.creator_id)
+                .single();
+
+              if (creatorProfile) {
+                const { data: creatorUser } = await supabaseAdmin.auth.admin.getUserById(creatorProfile.user_id);
+                const creatorEmail = creatorUser?.user?.email;
+
+                if (creatorEmail) {
+                  const maskedBuyer = buyerEmail
+                    ? buyerEmail.replace(/(.{2}).*(@.*)/, '$1***$2')
+                    : 'a buyer';
+
+                  const creatorHtml = `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
+                      <img src="${frontendUrl}/tapaway-logo-email.png" alt="TapAway" style="height: 32px; margin-bottom: 24px;" />
+                      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">You made a sale! 🎉</h1>
+                      <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+                        <strong>${maskedBuyer}</strong> just purchased your product:
+                      </p>
+                      <div style="background: #f8f8f8; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                        <p style="margin: 0 0 4px; font-weight: 600; color: #111;">${product.title}</p>
+                        <p style="margin: 0; color: #22c55e; font-weight: 700; font-size: 18px;">${priceFormatted}</p>
+                      </div>
+                      <a href="${frontendUrl}/personal/dashboard" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                        View Dashboard
+                      </a>
+                    </div>
+                  `;
+
+                  const creatorRes = await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      from: emailFrom,
+                      to: [creatorEmail],
+                      subject: `You made a sale! 🎉 — ${product.title}`,
+                      html: creatorHtml,
+                    }),
+                  });
+                  if (!creatorRes.ok) {
+                    console.error('[stripe-webhook] Creator email failed:', await creatorRes.text());
+                  } else {
+                    console.log('[stripe-webhook] Creator email sent to', creatorEmail);
+                  }
+                }
+              }
+            } catch (emailErr) {
+              console.error('[stripe-webhook] Email sending error (non-blocking):', emailErr);
+            }
+          })();
         }
       }
     }

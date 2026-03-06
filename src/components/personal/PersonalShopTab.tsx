@@ -11,6 +11,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
   Loader2, 
   Plus, 
   Trash2, 
@@ -88,6 +96,17 @@ export function PersonalShopTab({
   const [showShopSection, setShowShopSection] = useState(true);
   const [loadingShopToggle, setLoadingShopToggle] = useState(false);
 
+  // Sales dashboard state
+  const [salesTotal, setSalesTotal] = useState(0);
+  const [salesCount, setSalesCount] = useState(0);
+  const [recentSales, setRecentSales] = useState<Array<{
+    buyer_email: string;
+    product_title: string;
+    price_cents: number;
+    created_at: string;
+  }>>([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+
   // Test mode state
   const [testCheckoutUrls, setTestCheckoutUrls] = useState<Record<string, string>>({});
   const [generatingCheckout, setGeneratingCheckout] = useState<string | null>(null);
@@ -112,10 +131,43 @@ export function PersonalShopTab({
     setLoadingProducts(false);
   }, [profileId]);
 
-  // Load shop toggle state
+  // Load sales data
+  const loadSalesData = useCallback(async () => {
+    setLoadingSales(true);
+    try {
+      const { data, error } = await supabase
+        .from("creator_purchases")
+        .select("buyer_email, created_at, product:creator_products!product_id(title, price_cents, creator_id)")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        // Filter to only this creator's products (client-side since we can't filter on joined column easily)
+        const creatorSales = (data as any[]).filter(
+          (p: any) => p.product?.creator_id === profileId
+        );
+        
+        const mapped = creatorSales.map((s: any) => ({
+          buyer_email: s.buyer_email,
+          product_title: s.product?.title || "Unknown",
+          price_cents: s.product?.price_cents || 0,
+          created_at: s.created_at,
+        }));
+
+        setSalesCount(mapped.length);
+        setSalesTotal(mapped.reduce((sum, s) => sum + s.price_cents, 0));
+        setRecentSales(mapped.slice(0, 10));
+      }
+    } catch (err) {
+      console.error("Failed to load sales data:", err);
+    }
+    setLoadingSales(false);
+  }, [profileId]);
+
+  // Load shop toggle state + sales
   useEffect(() => {
     if (isStripeOnboarded) {
       loadProducts();
+      loadSalesData();
       // Load show_shop_section from profile
       supabase
         .from("personal_profiles")
@@ -126,7 +178,7 @@ export function PersonalShopTab({
           if (data) setShowShopSection((data as any).show_shop_section ?? true);
         });
     }
-  }, [isStripeOnboarded, loadProducts, profileId]);
+  }, [isStripeOnboarded, loadProducts, loadSalesData, profileId]);
 
   const handleToggleShopSection = async (checked: boolean) => {
     setLoadingShopToggle(true);
@@ -523,6 +575,81 @@ export function PersonalShopTab({
           disabled={loadingShopToggle}
         />
       </div>
+
+
+      {/* Sales Summary */}
+      {(salesCount > 0 || loadingSales) && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Earnings</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {loadingSales ? "..." : `$${(salesTotal / 100).toFixed(2)}`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <ShoppingBag className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Sales</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {loadingSales ? "..." : salesCount}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {recentSales.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Recent Transactions</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-64 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Buyer</TableHead>
+                        <TableHead className="text-xs">Product</TableHead>
+                        <TableHead className="text-xs">Date</TableHead>
+                        <TableHead className="text-xs text-right">Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentSales.map((sale, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs truncate max-w-[120px]">
+                            {sale.buyer_email}
+                          </TableCell>
+                          <TableCell className="text-xs truncate max-w-[120px]">
+                            {sale.product_title}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(sale.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-xs text-right font-medium">
+                            ${(sale.price_cents / 100).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
