@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Type,
   MousePointerClick,
+  ShoppingBag,
 } from "lucide-react";
 import { 
   AlertDialog, 
@@ -663,6 +664,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return <Type className="h-5 w-5 text-muted-foreground" />;
       case "button":
         return <MousePointerClick className="h-5 w-5 text-primary" />;
+      case "product":
+        return <ShoppingBag className="h-5 w-5 text-emerald-500" />;
       default:
         return null;
     }
@@ -679,6 +682,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return content.title || "Text block";
       case "button":
         return content.label || "Button";
+      case "product":
+        return "Product block";
       default:
         return "Block";
     }

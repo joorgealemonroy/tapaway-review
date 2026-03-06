@@ -614,6 +614,21 @@ function ProfilePreviewRendererComponent({
           <CollagePreview key={block.id} images={images} isPreview={isPreview} onLinkClick={onLinkClick} />
         );
       }
+      case "product": {
+        const productId = content.product_id as string;
+        if (!productId) return null;
+        return (
+          <div key={block.id} className={`rounded-xl overflow-hidden border shadow-sm ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`} style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}>
+            <div className="p-3 space-y-1.5">
+              <p className={`font-bold text-xs ${headingClass}`}>Product Block</p>
+              <p className={`text-[10px] ${textClass}`}>Product will render here</p>
+              <button className="w-full py-1.5 text-xs rounded-lg font-semibold text-white" style={{ backgroundColor: headerColor }}>
+                Get it Now
+              </button>
+            </div>
+          </div>
+        );
+      }
       default:
         return null;
     }

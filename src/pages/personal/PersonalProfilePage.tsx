@@ -625,6 +625,7 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     default:
+      // Product block handled outside switch via creatorProducts lookup
       return null;
   }
 });
@@ -635,7 +636,7 @@ const ProductCard = memo(function ProductCard({
   isDarkBg,
   onBuy
 }: { 
-  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null };
+  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null; image_urls?: string[] | null };
   isDarkBg?: boolean;
   onBuy: (productId: string) => void;
 }) {
@@ -660,6 +661,47 @@ const ProductCard = memo(function ProductCard({
             Buy Now
           </button>
         </div>
+      </div>
+    </div>
+  );
+});
+
+// Inline Product Block - rendered within the unified content stream
+const ProductBlockCard = memo(function ProductBlockCard({
+  product,
+  isDarkBg,
+  onBuy,
+}: {
+  product: { id: string; title: string; description: string | null; price_cents: number; cover_image_url: string | null };
+  isDarkBg?: boolean;
+  onBuy: (productId: string) => void;
+}) {
+  return (
+    <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'} shadow-sm`}>
+      {product.cover_image_url && (
+        <div className="relative aspect-video">
+          <img src={product.cover_image_url} alt={product.title} className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg">
+            ${(product.price_cents / 100).toFixed(2)}
+          </div>
+        </div>
+      )}
+      <div className="p-4 space-y-2">
+        <h4 className={`font-bold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>{product.title}</h4>
+        {product.description && (
+          <p className={`text-xs line-clamp-2 ${isDarkBg ? 'text-white/60' : 'text-muted-foreground'}`}>{product.description}</p>
+        )}
+        {!product.cover_image_url && (
+          <span className={`font-bold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
+            ${(product.price_cents / 100).toFixed(2)}
+          </span>
+        )}
+        <button
+          onClick={() => onBuy(product.id)}
+          className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+        >
+          Get it Now
+        </button>
       </div>
     </div>
   );
@@ -1169,6 +1211,16 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   const currentIndex = linkIndex++;
                   return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} />;
                 } else {
+                  // Check if it's a product block
+                  const blockData = item.data;
+                  const blockContent = blockData.content as Record<string, string>;
+                  if (blockData.block_type === "product" && blockContent.product_id) {
+                    const product = creatorProducts.find((p: any) => p.id === blockContent.product_id);
+                    if (product) {
+                      return <ProductBlockCard key={`block-${blockData.id}`} product={product} isDarkBg={isDarkBg} onBuy={handleBuyProduct} />;
+                    }
+                    return null;
+                  }
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
                 }
               });
@@ -1199,8 +1251,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </div>
           )}
 
-          {/* Creator Products Shop Section */}
-          {creatorProducts.length > 0 && (
+          {/* Creator Products Shop Section - only if show_shop_section is true */}
+          {creatorProducts.length > 0 && (data?.profile as any)?.show_shop_section !== false && (
             <div className="mt-6 space-y-3">
               <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
                 Shop

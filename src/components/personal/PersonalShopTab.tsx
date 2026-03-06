@@ -37,6 +37,7 @@ interface CreatorProduct {
   product_type: string;
   file_url: string | null;
   cover_image_url: string | null;
+  image_urls: string[] | null;
   is_active: boolean;
   created_at: string;
 }
@@ -79,7 +80,11 @@ export function PersonalShopTab({
   const [productType, setProductType] = useState("pdf");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showShopSection, setShowShopSection] = useState(true);
+  const [loadingShopToggle, setLoadingShopToggle] = useState(false);
 
   // Test mode state
   const [testCheckoutUrls, setTestCheckoutUrls] = useState<Record<string, string>>({});
@@ -105,11 +110,35 @@ export function PersonalShopTab({
     setLoadingProducts(false);
   }, [profileId]);
 
+  // Load shop toggle state
   useEffect(() => {
     if (isStripeOnboarded) {
       loadProducts();
+      // Load show_shop_section from profile
+      supabase
+        .from("personal_profiles")
+        .select("show_shop_section")
+        .eq("id", profileId)
+        .single()
+        .then(({ data }) => {
+          if (data) setShowShopSection((data as any).show_shop_section ?? true);
+        });
     }
-  }, [isStripeOnboarded, loadProducts]);
+  }, [isStripeOnboarded, loadProducts, profileId]);
+
+  const handleToggleShopSection = async (checked: boolean) => {
+    setLoadingShopToggle(true);
+    setShowShopSection(checked);
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update({ show_shop_section: checked } as any)
+      .eq("id", profileId);
+    if (error) {
+      toast.error("Failed to update shop visibility");
+      setShowShopSection(!checked);
+    }
+    setLoadingShopToggle(false);
+  };
 
   // Poll for test purchases when console is open
   useEffect(() => {
@@ -244,6 +273,30 @@ export function PersonalShopTab({
     }
   };
 
+  const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(f => {
+      if (!f.type.startsWith("image/")) { toast.error(`${f.name} is not an image`); return false; }
+      if (f.size > 20 * 1024 * 1024) { toast.error(`${f.name} is too large (max 20MB)`); return false; }
+      return true;
+    });
+    const total = galleryFiles.length + validFiles.length;
+    if (total > 8) {
+      toast.error("Maximum 8 gallery images");
+      return;
+    }
+    setGalleryFiles(prev => [...prev, ...validFiles]);
+    validFiles.forEach(f => {
+      setGalleryPreviews(prev => [...prev, URL.createObjectURL(f)]);
+    });
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    URL.revokeObjectURL(galleryPreviews[index]);
+    setGalleryFiles(prev => prev.filter((_, i) => i !== index));
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSaveProduct = async () => {
     if (!title.trim()) { toast.error("Title is required"); return; }
     if (!priceDollars || parseFloat(priceDollars) <= 0) { toast.error("Enter a valid price"); return; }
@@ -278,6 +331,23 @@ export function PersonalShopTab({
         }
       }
 
+      // Upload gallery images
+      const imageUrls: string[] = [];
+      for (let i = 0; i < galleryFiles.length; i++) {
+        const gFile = galleryFiles[i];
+        const gExt = gFile.name.split('.').pop();
+        const gPath = `${userId}/${productId}/gallery/${i}.${gExt}`;
+        const { error: gError } = await supabase.storage
+          .from("personal-photos")
+          .upload(gPath, gFile, { upsert: true, contentType: gFile.type });
+        if (!gError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(gPath);
+          imageUrls.push(publicUrl);
+        }
+      }
+
       const { error: insertError } = await supabase
         .from("creator_products")
         .insert({
@@ -289,6 +359,7 @@ export function PersonalShopTab({
           product_type: productType,
           file_url: filePath,
           cover_image_url: coverImageUrl,
+          image_urls: imageUrls.length > 0 ? imageUrls : null,
         } as any);
 
       if (insertError) throw insertError;
@@ -300,6 +371,9 @@ export function PersonalShopTab({
       setProductType("pdf");
       setSelectedFile(null);
       setCoverFile(null);
+      setGalleryFiles([]);
+      galleryPreviews.forEach(p => URL.revokeObjectURL(p));
+      setGalleryPreviews([]);
       setShowForm(false);
       loadProducts();
     } catch (err: any) {
@@ -433,6 +507,19 @@ export function PersonalShopTab({
   // Onboarded — show product management
   return (
     <div className="space-y-6">
+      {/* Shop toggle */}
+      <div className="flex items-center justify-between p-3 bg-card border rounded-lg">
+        <div>
+          <p className="text-sm font-medium text-foreground">Show Shop on Profile</p>
+          <p className="text-xs text-muted-foreground">Display your products as a section on your public profile</p>
+        </div>
+        <Switch
+          checked={showShopSection}
+          onCheckedChange={handleToggleShopSection}
+          disabled={loadingShopToggle}
+        />
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -498,7 +585,47 @@ export function PersonalShopTab({
             <div className="space-y-2">
               <Label>Cover Image (optional)</Label>
               <Input type="file" accept="image/*" onChange={handleCoverSelect} />
+              {coverFile && (
+                <img src={URL.createObjectURL(coverFile)} alt="Cover preview" className="h-20 w-32 object-cover rounded-lg" />
+              )}
             </div>
+            <div className="space-y-2">
+              <Label>Gallery Images (optional, max 8)</Label>
+              <Input type="file" accept="image/*" multiple onChange={handleGallerySelect} />
+              {galleryPreviews.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {galleryPreviews.map((preview, idx) => (
+                    <div key={idx} className="relative h-16 w-16">
+                      <img src={preview} alt="" className="h-16 w-16 object-cover rounded-lg" />
+                      <button
+                        onClick={() => handleRemoveGalleryImage(idx)}
+                        className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Live Preview Card */}
+            {title.trim() && (
+              <div className="border rounded-xl overflow-hidden bg-muted/30">
+                <p className="text-xs font-medium text-muted-foreground px-3 pt-2">Preview</p>
+                {coverFile && (
+                  <img src={URL.createObjectURL(coverFile)} alt="" className="w-full h-32 object-cover mt-1" />
+                )}
+                <div className="p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm text-foreground">{title}</h4>
+                    {priceDollars && <Badge variant="default">${parseFloat(priceDollars || "0").toFixed(2)}</Badge>}
+                  </div>
+                  {description && <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button onClick={handleSaveProduct} disabled={saving} className="flex-1">
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
