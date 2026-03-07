@@ -1153,7 +1153,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 src={profile.profile_photo_url}
                 alt={profile.full_name}
                 size={28}
-                className="border-4 border-background"
+                className={`border-4 ${isDarkBg ? 'border-black/30' : 'border-white'}`}
                 priority
                 fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
               />
