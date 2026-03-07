@@ -1271,7 +1271,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               >
                 Download Your File
               </a>
-              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-muted-foreground'}`}>Link expires in 72 hours</p>
+              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-gray-500'}`}>Link expires in 72 hours</p>
             </div>
           )}
 
