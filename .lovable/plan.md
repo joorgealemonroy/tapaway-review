@@ -1,58 +1,21 @@
 
 
-# iOS Toast + Default vCard Website (tapaway.co)
+# Send Test Post-Purchase Emails
+
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
 ## Changes
 
-### 1. `src/pages/personal/PersonalProfilePage.tsx`
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-**Default website to `https://tapaway.co/{username}`**: On line 906, when `contact_website` is empty, default to `https://tapaway.co/${username}` instead of leaving it undefined.
+Add two new email templates matching the ones in the stripe webhook:
 
-**iOS toast hint**: After `downloadVCard` (line 925), detect iOS via `navigator.userAgent` and show "Tap Create New Contact to save — photo will appear after saving" instead of the generic "Contact saved!" toast.
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-```typescript
-// Line ~899-926
-const profile = data.profile;
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-await downloadVCard({
-  fullName: profile.contact_name || profile.full_name,
-  email: profile.contact_email || undefined,
-  phone: profile.contact_phone || undefined,
-  company: profile.contact_company || undefined,
-  title: profile.contact_title || undefined,
-  address: profile.contact_address || undefined,
-  website: profile.contact_website || `https://tapaway.co/${username}`,
-  profilePhotoUrl: profile.contact_photo_url || profile.profile_photo_url || undefined,
-});
+### 2. Deploy and Invoke
 
-// ... analytics tracking ...
-
-if (isIOS) {
-  toast.success("Tap Create New Contact to save — photo will appear after saving");
-} else {
-  toast.success("Contact saved!");
-}
-```
-
-### 2. `src/components/personal/DashboardContactCard.tsx`
-
-Update the website field placeholder and helper text to show `https://tapaway.co/{username}` as the default.
-
-```
-placeholder: "https://tapaway.co"
-helper: Leave empty to use your TapAway profile link
-```
-
-### 3. `src/lib/personalUsername.ts`
-
-Update `getPublicProfileUrl` to always use `https://tapaway.co` as the origin instead of `window.location.origin`, so no preview/dev URLs ever leak.
-
-## Files
-
-| File | Change |
-|------|--------|
-| `src/pages/personal/PersonalProfilePage.tsx` | Default vCard website to `tapaway.co/{username}`, iOS-specific toast |
-| `src/components/personal/DashboardContactCard.tsx` | Update placeholder/helper text for website field |
-| `src/lib/personalUsername.ts` | Hardcode `https://tapaway.co` origin |
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

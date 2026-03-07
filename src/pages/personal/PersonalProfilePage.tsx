@@ -896,6 +896,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     if (!data?.profile) return;
     
     const profile = data.profile;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
     await downloadVCard({
       fullName: profile.contact_name || profile.full_name,
       email: profile.contact_email || undefined,
@@ -903,7 +905,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       company: profile.contact_company || undefined,
       title: profile.contact_title || undefined,
       address: profile.contact_address || undefined,
-      website: profile.contact_website || undefined,
+      website: profile.contact_website || `https://tapaway.co/${username}`,
       profilePhotoUrl: profile.contact_photo_url || profile.profile_photo_url || undefined,
     });
     
@@ -922,7 +924,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         .then(() => {});
     }
     
-    toast.success("Contact saved!");
+    if (isIOS) {
+      toast.success("Tap Create New Contact to save — photo will appear after saving");
+    } else {
+      toast.success("Contact saved!");
+    }
   }, [data?.profile]);
 
   // Loading skeleton - minimal, fast to render
