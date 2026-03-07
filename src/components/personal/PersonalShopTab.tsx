@@ -528,6 +528,8 @@ export function PersonalShopTab({
     }
   };
 
+  if (isFreeUser) return <ShopLockedPreview />;
+
   // Not onboarded yet — show Connect Stripe
   if (!isStripeOnboarded) {
     return (
