@@ -333,10 +333,13 @@ export function DashboardContactCard({
           <Input
             id="contact-website"
             type="url"
-            placeholder="https://tapaway.co"
+            placeholder={`https://tapaway.co/${username}`}
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
           />
+          <p className="text-xs text-muted-foreground">
+            Leave empty to use your TapAway profile link
+          </p>
         </div>
       </div>
 

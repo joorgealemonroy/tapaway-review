@@ -29,7 +29,5 @@ export const getPublicProfileUrl = (planType: PersonalPlanType, username: string
   const publicUsername = getPublicUsername(planType, username);
   if (!publicUsername) return "";
   
-  // Use origin for flexibility (works in dev and prod)
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://tapaway.co";
-  return `${origin}/${publicUsername}`;
+  return `https://tapaway.co/${publicUsername}`;
 };
