@@ -49,6 +49,7 @@ export interface ProfileData {
   profile: CachedProfile;
   links: CachedLink[];
   blocks: CachedBlock[];
+  hasActiveCard: boolean;
 }
 
 interface UseProfileDataResult {
