@@ -1027,9 +1027,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const isDarkBg = hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
   
   // Dynamic text classes based on background
-  const headingClass = isDarkBg ? "text-white" : "text-foreground";
-  const textClass = isDarkBg ? "text-white/80" : "text-foreground/80";
-  const mutedClass = isDarkBg ? "text-white/60" : "text-muted-foreground";
+  // Use explicit colors (not theme-aware tokens) so text is always readable
+  // against the inline background, regardless of system dark/light mode
+  const headingClass = isDarkBg ? "text-white" : "text-gray-900";
+  const textClass = isDarkBg ? "text-white/80" : "text-gray-800";
+  const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
   const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
