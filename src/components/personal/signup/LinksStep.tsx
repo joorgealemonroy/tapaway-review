@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -230,8 +231,29 @@ export const LinksStep = ({
       if (color && color !== "#1a1a1a") {
         const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
         if (match) {
-          const hex = `#${parseInt(match[1]).toString(16).padStart(2, "0")}${parseInt(match[2]).toString(16).padStart(2, "0")}${parseInt(match[3]).toString(16).padStart(2, "0")}`;
+          const r = parseInt(match[1]);
+          const g = parseInt(match[2]);
+          const b = parseInt(match[3]);
+          const hex = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+          
+          // Compute relative luminance (0 = black, 1 = white)
+          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          
           updateFormData({ headerColor: hex });
+          
+          // If the extracted color is very light, auto-set a dark background to prevent white-on-white
+          if (luminance > 0.7) {
+            const currentBg = formData.backgroundColor || "#000000";
+            const bgMatch = currentBg.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+            if (bgMatch) {
+              const bgLum = (0.299 * parseInt(bgMatch[1], 16) + 0.587 * parseInt(bgMatch[2], 16) + 0.114 * parseInt(bgMatch[3], 16)) / 255;
+              if (bgLum > 0.7) {
+                updateFormData({ backgroundColor: "#1a1a2e" });
+                toast("Background auto-darkened for readability", { icon: "🎨" });
+              }
+            }
+          }
+          
           toast.success("Style color matched to your photo");
         }
       }
@@ -545,14 +567,23 @@ export const LinksStep = ({
           </p>
         )}
 
-        {/* Focused single-input card */}
-        <div className="relative">
+        {/* Focused single-input card with Framer Motion */}
+        <div className="relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeLinkIndex}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.2 }}
+            >
           {(() => {
             if (current.kind === "link") {
               const link = current.item as PersonalLink;
               const config = getPlatformConfig(link.type);
               const Icon = config?.icon;
               const isFilled = justFilled === link.id;
+              const hasImage = !!(link.coverImageUrl || link.thumbnailUrl);
 
               return (
                 <div className={`bg-card rounded-2xl border-2 p-6 text-center space-y-4 transition-all ${
@@ -585,7 +616,6 @@ export const LinksStep = ({
                       }
                     }}
                     onPaste={(e) => {
-                      // Auto-advance after paste
                       setTimeout(() => {
                         const val = (e.target as HTMLInputElement).value;
                         if (val) handleCarouselLinkUpdate(link.id, val);
@@ -594,6 +624,31 @@ export const LinksStep = ({
                     placeholder={config?.prefix ? `${config.prefix}${config.placeholder || ""}` : link.placeholder || "Paste your link here"}
                     className="h-12 text-center text-base"
                   />
+
+                  {/* Image upload affordance for links with image properties */}
+                  {(link.displayStyle === "card" || link.displayStyle === "grid" || hasImage) && (
+                    <div className="pt-1">
+                      {link.coverImageUrl ? (
+                        <div className="relative mx-auto w-32 h-20 rounded-lg overflow-hidden bg-muted">
+                          <img src={link.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity"
+                          >
+                            <Camera className="h-5 w-5 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                          className="flex items-center justify-center gap-2 mx-auto px-4 py-2.5 bg-muted hover:bg-muted/80 rounded-xl text-sm font-medium text-muted-foreground transition-colors border border-dashed border-border"
+                        >
+                          <Camera className="h-4 w-4" />
+                          Upload cover image
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             } else {
@@ -645,15 +700,18 @@ export const LinksStep = ({
                   {block.type === "image" && (
                     <button
                       onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }}
-                      className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg text-sm text-muted-foreground transition-colors"
+                      className="flex items-center justify-center gap-2 mx-auto px-4 py-2.5 bg-muted hover:bg-muted/80 rounded-xl text-sm font-medium text-muted-foreground transition-colors border border-dashed border-border"
                     >
-                      Upload image…
+                      <Camera className="h-4 w-4" />
+                      Upload image
                     </button>
                   )}
                 </div>
               );
             }
           })()}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Carousel navigation */}
@@ -843,7 +901,7 @@ export const LinksStep = ({
         <DrawerContent className="max-h-[85vh]">
           <DrawerTitle className="sr-only">Profile Preview</DrawerTitle>
           <div className="px-4 pt-2 pb-6 overflow-y-auto">
-            <p className="text-sm text-muted-foreground text-center mb-4">This is exactly what people will see</p>
+            <p className="text-sm text-muted-foreground text-center mb-4">Mobile Preview (Example Only)</p>
             {previewPanel}
           </div>
         </DrawerContent>

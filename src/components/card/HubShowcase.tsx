@@ -49,6 +49,66 @@ const BLOCK_PLACEHOLDER_CONTENT: Record<string, Record<string, string>> = {
   button: { label: "My Link", url: "" },
 };
 
+// Known social platform types — labels keep the platform name as-is
+const KNOWN_SOCIAL_TYPES = new Set([
+  "instagram", "tiktok", "x", "youtube", "snapchat", "facebook",
+  "threads", "linkedin", "pinterest", "discord", "twitch", "telegram",
+  "whatsapp", "spotify", "applemusic", "soundcloud", "bandcamp",
+]);
+
+// Generic labels for non-social link types
+const GENERIC_LINK_LABELS: Record<string, string> = {
+  website: "My Website",
+  link: "My Link",
+  email: "Email",
+  phone: "Phone",
+  custom: "My Link",
+};
+
+// Contextual placeholder hints by link type
+const LINK_PLACEHOLDERS: Record<string, string> = {
+  instagram: "@yourhandle",
+  tiktok: "@yourhandle",
+  x: "@yourhandle",
+  youtube: "Your channel URL",
+  snapchat: "@yourhandle",
+  facebook: "Your page URL",
+  threads: "@yourhandle",
+  linkedin: "Your profile URL",
+  pinterest: "@yourhandle",
+  discord: "Your invite link",
+  twitch: "Your channel name",
+  telegram: "@yourhandle",
+  whatsapp: "Your phone number",
+  spotify: "Your profile or playlist URL",
+  applemusic: "Your profile URL",
+  soundcloud: "Your profile URL",
+  bandcamp: "Your profile URL",
+  website: "https://yourwebsite.com",
+  link: "Paste your link",
+  email: "you@example.com",
+  phone: "Your phone number",
+  custom: "Paste your link",
+};
+
+/**
+ * Sanitize a link label — keep platform names, replace personal labels with generic ones.
+ */
+function sanitizeLabel(linkType: string, originalLabel: string): string {
+  if (KNOWN_SOCIAL_TYPES.has(linkType)) {
+    // Capitalize platform name (the label should already be the platform name, keep it)
+    return originalLabel;
+  }
+  return GENERIC_LINK_LABELS[linkType] || "My Link";
+}
+
+/**
+ * Get a contextual placeholder for a given link type.
+ */
+function getPlaceholder(linkType: string): string {
+  return LINK_PLACEHOLDERS[linkType] || "Paste your link";
+}
+
 interface Props {
   onCopyLayout?: () => void;
 }
@@ -146,11 +206,13 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
   const handleCopyLayout = useCallback((profile: ShowcaseProfile) => {
     const copiedLayout = {
       id: `copied-${profile.username}`,
-      name: `${profile.full_name}'s Layout`,
-      description: `Copied from ${profile.full_name}`,
+      name: `Layout Template`,
+      description: `Professional layout template`,
       emoji: "📋",
       defaultLinks: profile.links.map((l) => ({
-        type: l.link_type, label: l.label, placeholder: "",
+        type: l.link_type,
+        label: sanitizeLabel(l.link_type, l.label),
+        placeholder: getPlaceholder(l.link_type),
         displayStyle: l.display_style || undefined, pillColor: l.pill_color || undefined,
         gridSize: l.grid_size || undefined, isFeatured: l.is_featured || undefined,
         sortOrder: l.sort_order ?? undefined,
