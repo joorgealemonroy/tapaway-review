@@ -74,8 +74,8 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
     return null;
   }
 
-  // Parallel fetch links and blocks - filter out archived content
-  const [linksResult, blocksResult] = await Promise.all([
+  // Parallel fetch links, blocks, and NFC card status
+  const [linksResult, blocksResult, nfcResult] = await Promise.all([
     supabase
       .from('personal_links')
       .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size, is_archived, thumbnail_url')
@@ -89,12 +89,19 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
       .eq('is_active', true)
       .or('is_archived.is.null,is_archived.eq.false')
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('nfc_cards')
+      .select('id')
+      .eq('owner_user_id', profileData.user_id)
+      .eq('status', 'claimed')
+      .limit(1),
   ]);
 
   return {
     profile: profileData,
     links: linksResult.data || [],
     blocks: blocksResult.data || [],
+    hasActiveCard: (nfcResult.data?.length ?? 0) > 0,
   };
 }
 

@@ -180,9 +180,15 @@ const PersonalSignup = () => {
       });
     });
 
-    // Apply style
+    // Apply style — force free users to "color" header (banner/image are Pro-only)
+    const isVipCard = onboardingData.cardChoice === "custom" || onboardingData.cardChoice === "basic";
+    const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip";
+    const effectiveHeaderType = (!isPaid && !isVipCard && (template.headerType === "banner" || template.headerType === "image"))
+      ? "color" as const
+      : template.headerType;
+
     update({
-      headerType: template.headerType,
+      headerType: effectiveHeaderType,
       headerColor: template.style.headerColor,
       backgroundColor: template.style.bgColor,
     });

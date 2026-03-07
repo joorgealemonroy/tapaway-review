@@ -1320,11 +1320,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               </a>
             </motion.div>
             
-            {/* Subtle tap-enabled indicator */}
-            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
-              <Smartphone className="h-3 w-3" />
-              Tap-enabled
-            </p>
+            {/* Subtle tap-enabled indicator — only for users with active NFC cards */}
+            {data?.hasActiveCard && (
+              <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
+                <Smartphone className="h-3 w-3" />
+                Tap-enabled
+              </p>
+            )}
           </footer>
         </div>
       </div>
