@@ -25,6 +25,22 @@ function escapeVCardValue(value: string): string {
 }
 
 /**
+ * Fold a vCard line per RFC 2426: max 75 chars per line,
+ * continuation lines start with a single space.
+ * iOS requires this for base64 PHOTO lines.
+ */
+function foldLine(line: string): string {
+  if (line.length <= 75) return line;
+  let result = line.substring(0, 75);
+  let i = 75;
+  while (i < line.length) {
+    result += '\r\n ' + line.substring(i, i + 74);
+    i += 74;
+  }
+  return result;
+}
+
+/**
  * Fetch an image URL and return its base64 encoding + type.
  * Returns null if anything fails (CORS, network, etc.)
  */
@@ -45,9 +61,36 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; type: 
     const base64 = btoa(binary);
     return { base64, type: imageType };
   } catch (err) {
-    console.warn('[vCard] Failed to fetch image as base64, will use URI fallback:', err);
+    console.warn('[vCard] Failed to fetch image as base64:', err);
     return null;
   }
+}
+
+/**
+ * Canvas-based fallback for fetching images when fetch() is blocked by CORS.
+ * Uses <img crossorigin> + <canvas> to extract base64 — works on Safari/iOS.
+ */
+async function fetchImageViaCanvas(url: string): Promise<{ base64: string; type: string } | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d')!.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const base64 = dataUrl.split(',')[1];
+        resolve({ base64, type: 'JPEG' });
+      } catch (err) {
+        console.warn('[vCard] Canvas extraction failed:', err);
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
 }
 
 /**
@@ -97,14 +140,15 @@ export async function generateVCard(data: VCardData): Promise<string> {
     lines.push(`URL:${data.website}`);
   }
 
-  // Photo - try base64 first, fall back to URI reference
+  // Photo - always base64 with line folding for iOS compatibility
   if (data.profilePhotoUrl) {
-    const photo = await fetchImageAsBase64(data.profilePhotoUrl);
+    let photo = await fetchImageAsBase64(data.profilePhotoUrl);
+    if (!photo) {
+      photo = await fetchImageViaCanvas(data.profilePhotoUrl);
+    }
     if (photo) {
-      lines.push(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`);
-    } else {
-      // Fallback: embed as URI — works on iOS/Android without CORS
-      lines.push(`PHOTO;VALUE=uri:${data.profilePhotoUrl}`);
+      const photoLine = `PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`;
+      lines.push(foldLine(photoLine));
     }
   }
 
