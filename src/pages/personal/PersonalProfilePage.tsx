@@ -1133,7 +1133,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
                   aria-label="Save contact"
                 >
-                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
                 </button>
               )}
               <button
