@@ -62,6 +62,7 @@ export interface CachedProfileData {
   profile: CachedProfile;
   links: CachedLink[];
   blocks: CachedBlock[];
+  hasActiveCard?: boolean;
   fetchedAt: number;
 }
 
