@@ -1024,7 +1024,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? { background: bgColor } 
     : { backgroundColor: bgColor };
   const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
-  const isDarkBg = hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
+  // For banners, use the extracted bottom color luminance instead of blindly assuming dark
+  const isDarkBg = hasBanner
+    ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
+    : (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
   
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
@@ -1317,11 +1320,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               </a>
             </motion.div>
             
-            {/* Subtle tap-enabled indicator */}
-            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
-              <Smartphone className="h-3 w-3" />
-              Tap-enabled
-            </p>
+            {/* Subtle tap-enabled indicator — only for users with active NFC cards */}
+            {data?.hasActiveCard && (
+              <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
+                <Smartphone className="h-3 w-3" />
+                Tap-enabled
+              </p>
+            )}
           </footer>
         </div>
       </div>

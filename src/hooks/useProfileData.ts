@@ -49,6 +49,7 @@ export interface ProfileData {
   profile: CachedProfile;
   links: CachedLink[];
   blocks: CachedBlock[];
+  hasActiveCard: boolean;
 }
 
 interface UseProfileDataResult {
@@ -65,7 +66,7 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
   // First fetch profile to get ID
   const { data: profileData, error: profileError } = await supabase
     .from('personal_profiles')
-    .select('id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section')
+    .select('id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section')
     .eq('username', username.toLowerCase())
     .single();
 
@@ -73,8 +74,8 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
     return null;
   }
 
-  // Parallel fetch links and blocks - filter out archived content
-  const [linksResult, blocksResult] = await Promise.all([
+  // Parallel fetch links, blocks, and NFC card status
+  const [linksResult, blocksResult, nfcResult] = await Promise.all([
     supabase
       .from('personal_links')
       .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size, is_archived, thumbnail_url')
@@ -88,12 +89,19 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
       .eq('is_active', true)
       .or('is_archived.is.null,is_archived.eq.false')
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('nfc_cards')
+      .select('id')
+      .eq('owner_user_id', profileData.user_id)
+      .eq('status', 'claimed')
+      .limit(1),
   ]);
 
   return {
     profile: profileData,
     links: linksResult.data || [],
     blocks: blocksResult.data || [],
+    hasActiveCard: (nfcResult.data?.length ?? 0) > 0,
   };
 }
 
@@ -122,6 +130,7 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
         profile: cached.profile,
         links: cached.links,
         blocks: cached.blocks,
+        hasActiveCard: cached.hasActiveCard ?? false,
       });
       setLoading(false);
       setError(null);

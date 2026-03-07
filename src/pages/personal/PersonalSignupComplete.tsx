@@ -215,10 +215,16 @@ const PersonalSignupComplete = () => {
 
         if (profile) {
           // Update profile with complete data
+          // Free users cannot use banner/image headers — force to "color"
+          let effectiveHeaderType = savedData.headerType || "banner";
+          if (verifiedPlanType === "free" && (effectiveHeaderType === "banner" || effectiveHeaderType === "image")) {
+            effectiveHeaderType = "color";
+          }
+
           const updateData: Record<string, unknown> = {
             full_name: savedData.fullName,
             headline: savedData.cardHeadline || null,
-            header_type: savedData.headerType || "banner",
+            header_type: effectiveHeaderType,
             header_color: savedData.headerColor || "#6BCB77",
             background_color: savedData.backgroundColor || "#ffffff",
             card_front_headline: savedData.cardHeadline || null,
