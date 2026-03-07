@@ -1318,7 +1318,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             </motion.div>
             
             {/* Subtle tap-enabled indicator */}
-            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-muted-foreground/50'}`}>
+            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
               <Smartphone className="h-3 w-3" />
               Tap-enabled
             </p>

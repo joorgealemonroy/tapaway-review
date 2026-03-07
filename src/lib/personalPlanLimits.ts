@@ -3,7 +3,7 @@ export const PERSONAL_PLANS = {
     name: 'Free',
     maxLinks: 10,
     price: '$0',
-    priceSubtext: 'forever',
+    priceSubtext: '',
     features: {
       customHeader: false,
       photoCollage: false,
