@@ -1,21 +1,38 @@
 
 
-# Send Test Post-Purchase Emails
+# Speed Up HubShowcase on /personal/pricing
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
 
-## Changes
+The "Real Hubs, Real People" section makes 3 DB queries (profiles → then links+blocks in parallel) before rendering anything. On mobile, this causes a visible delay with nothing shown. Additionally, 6 profile photos start downloading only after the queries complete.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+## Fix
 
-Add two new email templates matching the ones in the stripe webhook:
+### 1. Add skeleton loading state (`HubShowcase.tsx`)
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+Show a shimmer placeholder carousel immediately while data loads, so users see the section structure right away instead of blank space.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+```typescript
+const [loading, setLoading] = useState(true);
+// ... set loading = false after fetch
+// If loading, render 4 skeleton cards matching the card dimensions
+```
 
-### 2. Deploy and Invoke
+### 2. Lazy-load profile images
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+The 6 profile photos (128px thumbnails) all load at once. Add `loading="lazy"` to images beyond the first 2 visible cards since the carousel is horizontally scrollable.
+
+### 3. Remove unnecessary data from initial query
+
+The HubShowcase fetches links and blocks data just for the "Copy Layout" feature — but the user first sees the cards visually. Defer the links/blocks fetch until a user taps "Copy Layout" on a specific profile, or fetch them in the background after the initial render.
+
+**Approach**: Split into two phases:
+- **Phase 1 (immediate)**: Fetch profiles only → render cards with skeletons → show photos
+- **Phase 2 (background)**: Fetch links+blocks after cards are visible
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/card/HubShowcase.tsx` | Add loading skeletons, defer links/blocks fetch, lazy-load images |
 
