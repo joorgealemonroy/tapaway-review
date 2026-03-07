@@ -794,8 +794,8 @@ export const LinksStep = ({
 
           {/* Mobile compact preview */}
           <div className="lg:hidden relative">
-            <div className="h-[200px] overflow-hidden rounded-2xl border border-border bg-muted/30 flex items-center justify-center">
-              <div className="transform scale-[0.35] origin-center pointer-events-none">
+            <div className="h-[260px] overflow-hidden rounded-2xl border border-border bg-muted/30 flex items-center justify-center">
+              <div className="transform scale-[0.42] origin-center pointer-events-none">
                 {previewPanel}
               </div>
             </div>
