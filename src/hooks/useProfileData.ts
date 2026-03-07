@@ -130,6 +130,7 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
         profile: cached.profile,
         links: cached.links,
         blocks: cached.blocks,
+        hasActiveCard: cached.hasActiveCard ?? false,
       });
       setLoading(false);
       setError(null);
