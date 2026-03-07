@@ -1024,7 +1024,10 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
     ? { background: bgColor } 
     : { backgroundColor: bgColor };
   const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
-  const isDarkBg = hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
+  // For banners, use the extracted bottom color luminance instead of blindly assuming dark
+  const isDarkBg = hasBanner
+    ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
+    : (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
   
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
