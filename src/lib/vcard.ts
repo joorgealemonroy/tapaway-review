@@ -44,7 +44,8 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; type: 
     }
     const base64 = btoa(binary);
     return { base64, type: imageType };
-  } catch {
+  } catch (err) {
+    console.warn('[vCard] Failed to fetch image as base64, will use URI fallback:', err);
     return null;
   }
 }
@@ -96,11 +97,14 @@ export async function generateVCard(data: VCardData): Promise<string> {
     lines.push(`URL:${data.website}`);
   }
 
-  // Photo - fetch and embed as base64
+  // Photo - try base64 first, fall back to URI reference
   if (data.profilePhotoUrl) {
     const photo = await fetchImageAsBase64(data.profilePhotoUrl);
     if (photo) {
       lines.push(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`);
+    } else {
+      // Fallback: embed as URI — works on iOS/Android without CORS
+      lines.push(`PHOTO;VALUE=uri:${data.profilePhotoUrl}`);
     }
   }
 
