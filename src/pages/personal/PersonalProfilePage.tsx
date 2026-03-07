@@ -1278,7 +1278,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           {/* Creator Products Shop Section - only if show_shop_section is true */}
           {creatorProducts.length > 0 && (data?.profile as any)?.show_shop_section !== false && (
             <div className="mt-6 space-y-3">
-              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
+              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>
                 Shop
               </h3>
               <div className="grid gap-3">
