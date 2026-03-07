@@ -1,21 +1,82 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix Banner Access for Free Users, Tap-Enabled Indicator & Profile Readability
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Issues
 
-## Changes
+1. **Free users can get "Full Banner" header** — When copying a Pro layout from HubShowcase, the `banner` headerType is applied without plan checks. The `LinksStep` blocks banner selection in the UI, but the template application in `PersonalSignup.tsx` bypasses this.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+2. **"Tap-enabled" shows for all profiles** — Should only appear when the user has an active NFC card linked to their account.
 
-Add two new email templates matching the ones in the stripe webhook:
+3. **Footer text still unreadable on light backgrounds** — The previous fix may not have fully applied, or the `isDarkBg` logic incorrectly returns `true` for white/light profile photos used as banners.
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+## Plan
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+### 1. Downgrade banner to "color" for free users during signup
 
-### 2. Deploy and Invoke
+**File: `src/pages/personal/PersonalSignup.tsx` (~line 184)**
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+When applying a copied/template layout, check if the user is on a free plan. If so, force `headerType` to `"color"` instead of `"banner"` or `"image"`:
+
+```typescript
+const effectiveHeaderType = 
+  (!isPaidPlan && !isVipCard && (template.headerType === "banner" || template.headerType === "image"))
+    ? "color"
+    : template.headerType;
+
+update({
+  headerType: effectiveHeaderType,
+  headerColor: template.style.headerColor,
+  backgroundColor: template.style.bgColor,
+});
+```
+
+Also add the same guard in `PersonalSignupComplete.tsx` (the account creation step) as a server-side fallback — if `plan_type` is `free`, force `header_type` to `"color"`.
+
+### 2. Conditionally show "Tap-enabled" only for NFC card users
+
+**File: `src/hooks/useProfileData.ts`**
+
+Add an NFC card check to the parallel queries — query `nfc_cards` for any card owned by the profile's `user_id` with status `"active"`:
+
+```typescript
+// Add to parallel fetch
+supabase.from('nfc_cards')
+  .select('id')
+  .eq('owner_user_id', profileData.user_id)
+  .eq('status', 'active')
+  .limit(1)
+```
+
+Return a `hasActiveCard: boolean` field in the profile data.
+
+**File: `src/pages/personal/PersonalProfilePage.tsx` (~line 1320)**
+
+Only render the "Tap-enabled" indicator when `data.hasActiveCard` is true.
+
+### 3. Verify footer readability fix
+
+**File: `src/pages/personal/PersonalProfilePage.tsx`**
+
+The `isDarkBg` logic on line 1027 sets `isDarkBg = true` when `hasBanner` is true. For a white profile photo used as banner, the banner IS light — so `isDarkBg` should NOT default to `true` just because `hasBanner` is set.
+
+Fix: Use the extracted banner luminance instead of blindly assuming banners are dark:
+
+```typescript
+// Line 1027 — replace
+const isDarkBg = hasBanner 
+  ? (bannerLuminance !== null ? bannerLuminance < 0.6 : true)  // use actual luminance, fallback dark
+  : (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
+```
+
+This requires checking what `bannerLuminance` or `extractedBannerColor` luminance is available. The extracted banner color is already computed — I need to derive luminance from it.
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/pages/personal/PersonalSignup.tsx` | Force free users' headerType to "color" when applying templates |
+| `src/pages/personal/PersonalSignupComplete.tsx` | Server-side guard: free plan → header_type "color" |
+| `src/hooks/useProfileData.ts` | Add NFC card active check, return `hasActiveCard` |
+| `src/pages/personal/PersonalProfilePage.tsx` | Conditionally show "Tap-enabled"; fix `isDarkBg` for light banners |
 
