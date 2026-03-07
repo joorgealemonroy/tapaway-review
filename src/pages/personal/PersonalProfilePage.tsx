@@ -1262,7 +1262,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           {/* Purchase Success Download Banner */}
           {purchaseToken && (
             <div className={`mt-6 p-4 rounded-xl border text-center ${isDarkBg ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
-              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>🎉 Purchase Complete!</p>
+              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>🎉 Purchase Complete!</p>
               <a
                 href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-product?token=${purchaseToken}`}
                 target="_blank"
