@@ -96,11 +96,14 @@ export async function generateVCard(data: VCardData): Promise<string> {
     lines.push(`URL:${data.website}`);
   }
 
-  // Photo - fetch and embed as base64
+  // Photo - try base64 first, fall back to URI reference
   if (data.profilePhotoUrl) {
     const photo = await fetchImageAsBase64(data.profilePhotoUrl);
     if (photo) {
       lines.push(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`);
+    } else {
+      // Fallback: embed as URI — works on iOS/Android without CORS
+      lines.push(`PHOTO;VALUE=uri:${data.profilePhotoUrl}`);
     }
   }
 
