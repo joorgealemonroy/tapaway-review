@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,10 @@ import {
   Type,
   MousePointerClick,
   SkipForward,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  List,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { LinkModal } from "@/components/personal/LinkModal";
@@ -116,6 +120,10 @@ export const LinksStep = ({
   const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [activeLinkIndex, setActiveLinkIndex] = useState(0);
+  const [showListView, setShowListView] = useState(false);
+  const [justFilled, setJustFilled] = useState<string | null>(null);
+  const focusInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const autoOpenedRef = useRef(false);
 
@@ -129,18 +137,38 @@ export const LinksStep = ({
     }
   }, [selectedTemplate]);
 
-  // Auto-open first empty template link when reaching sub-step 2
+  // Social link types for grouping
+  const SOCIAL_TYPES = useMemo(() => new Set([
+    "instagram", "tiktok", "x", "youtube", "snapchat", "facebook",
+    "threads", "linkedin", "pinterest", "discord", "twitch", "telegram",
+    "whatsapp", "spotify", "applemusic", "soundcloud", "bandcamp",
+  ]), []);
+
+  // Ordered items for carousel: socials first, then action links, then blocks
+  const carouselItems = useMemo(() => {
+    const socials = formData.links.filter(l => SOCIAL_TYPES.has(l.type));
+    const actions = formData.links.filter(l => !SOCIAL_TYPES.has(l.type));
+    const blocks = formData.blocks;
+    return [
+      ...socials.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "link", item, group: "Socials" })),
+      ...actions.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "link", item, group: "Links & Buttons" })),
+      ...blocks.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "block", item, group: "Content Blocks" })),
+    ];
+  }, [formData.links, formData.blocks, SOCIAL_TYPES]);
+
+  // Focus the input when activeLinkIndex changes
   useEffect(() => {
-    if (autoOpenedRef.current || !selectedTemplate || subStep !== 2) return;
-    const firstEmpty = formData.links.find(l => !l.value);
-    if (firstEmpty) {
-      autoOpenedRef.current = true;
-      setTimeout(() => {
-        setEditingLink(firstEmpty);
-        setLinkModalOpen(true);
-      }, 400);
+    if (subStep === 2 && !showListView) {
+      setTimeout(() => focusInputRef.current?.focus(), 100);
     }
-  }, [selectedTemplate, formData.links, subStep]);
+  }, [activeLinkIndex, subStep, showListView]);
+
+  // Clamp activeLinkIndex if items are removed
+  useEffect(() => {
+    if (activeLinkIndex >= carouselItems.length && carouselItems.length > 0) {
+      setActiveLinkIndex(carouselItems.length - 1);
+    }
+  }, [carouselItems.length, activeLinkIndex]);
 
   const isFreePlan = formData.planType === "free";
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
@@ -318,116 +346,377 @@ export const LinksStep = ({
     </div>
   );
 
-  const renderSubStep2 = () => (
-    <div className="space-y-3">
-      {templateBannerText && (
-        <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
-          {templateBannerText}
-        </p>
-      )}
+  const handleCarouselLinkUpdate = useCallback((id: string, value: string) => {
+    const link = formData.links.find(l => l.id === id);
+    if (!link) return;
+    const config = getPlatformConfig(link.type);
+    const url = config?.generateUrl ? config.generateUrl(value) : value;
+    updateLink(id, { value, url });
+    setJustFilled(id);
+    // Auto-advance after brief delay
+    setTimeout(() => {
+      setJustFilled(null);
+      if (activeLinkIndex < carouselItems.length - 1) {
+        setActiveLinkIndex(i => i + 1);
+      }
+    }, 500);
+  }, [formData.links, updateLink, activeLinkIndex, carouselItems.length]);
 
-      {unifiedContent.length > 0 && (
-        <div className="space-y-2">
-          {unifiedContent.map((ci, index) => {
-            if (ci.kind === "link") {
-              const link = ci.item as PersonalLink;
+  const handleCarouselBlockUpdate = useCallback((id: string, key: string, value: string) => {
+    const block = formData.blocks.find(b => b.id === id);
+    if (!block) return;
+    updateBlock(id, { content: { ...block.content, [key]: value } });
+  }, [formData.blocks, updateBlock]);
+
+  const renderSubStep2 = () => {
+    // If user toggled to list view, show the old management UI
+    if (showListView) {
+      return (
+        <div className="space-y-3">
+          {unifiedContent.length > 0 && (
+            <div className="space-y-2">
+              {unifiedContent.map((ci, index) => {
+                if (ci.kind === "link") {
+                  const link = ci.item as PersonalLink;
+                  const config = getPlatformConfig(link.type);
+                  const Icon = config?.icon;
+                  const isEmpty = !link.value;
+                  return (
+                    <div
+                      key={`link-${link.id}`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      onClick={isEmpty ? () => { setEditingLink(link); setLinkModalOpen(true); } : undefined}
+                      className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border cursor-move transition-all select-none ${
+                        draggedIndex === index ? "opacity-50 scale-95" : ""
+                      } ${isEmpty ? "border-dashed border-amber-400/60" : "border-border"}`}
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
+                        {Icon && <Icon className={`h-4 w-4 ${config?.color || "text-primary"}`} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
+                        {isEmpty && link.placeholder ? (
+                          <p className="text-xs text-amber-500/80 italic truncate">{link.placeholder} — tap to fill in</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground truncate">{link.value}</p>
+                        )}
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setEditingLink(link); setLinkModalOpen(true); }} className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0">
+                        <Edit className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteId({ id: link.id, kind: "link" }); }} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </button>
+                    </div>
+                  );
+                } else {
+                  const block = ci.item as PersonalBlock;
+                  const BlockIcon = getBlockIcon(block.type);
+                  return (
+                    <div
+                      key={`block-${block.id}`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={(e) => handleTouchStart(e, index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all select-none ${
+                        draggedIndex === index ? "opacity-50 scale-95" : ""
+                      }`}
+                    >
+                      <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <BlockIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{getBlockLabel(block)}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{block.type} block</p>
+                      </div>
+                      <button onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }} className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0">
+                        <Edit className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                      <button onClick={() => setDeleteId({ id: block.id, kind: "block" })} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </button>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (isFreePlan && formData.links.length >= maxFreeLinks) { checkProFeature("unlimited links"); return; }
+                setEditingLink(null); setLinkModalOpen(true);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+            >
+              <Plus className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Add link</span>
+            </button>
+            <button
+              onClick={() => { setEditingBlock(null); setBlockModalOpen(true); }}
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+            >
+              <Plus className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Add block</span>
+            </button>
+          </div>
+          <button onClick={() => setShowListView(false)} className="text-xs text-primary hover:underline mx-auto block">
+            ← Back to guided view
+          </button>
+        </div>
+      );
+    }
+
+    // Empty state
+    if (carouselItems.length === 0) {
+      return (
+        <div className="space-y-4 text-center py-6">
+          <p className="text-sm text-muted-foreground">No links yet — add your first one!</p>
+          <div className="flex gap-2 justify-center">
+            <Button variant="outline" size="sm" onClick={() => { setEditingLink(null); setLinkModalOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add link
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setEditingBlock(null); setBlockModalOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add block
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    const current = carouselItems[activeLinkIndex];
+    const totalItems = carouselItems.length;
+    const filledCount = carouselItems.filter(ci => {
+      if (ci.kind === "link") return !!(ci.item as PersonalLink).value;
+      const b = ci.item as PersonalBlock;
+      return !!(b.content.url || b.content.title || b.content.label);
+    }).length;
+
+    // Determine group label transition
+    const currentGroup = current.group;
+    const prevGroup = activeLinkIndex > 0 ? carouselItems[activeLinkIndex - 1].group : null;
+    const showGroupLabel = currentGroup !== prevGroup;
+
+    return (
+      <div className="space-y-4">
+        {/* Link-level progress dots */}
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+          {carouselItems.map((ci, i) => {
+            const isFilled = ci.kind === "link"
+              ? !!(ci.item as PersonalLink).value
+              : !!((ci.item as PersonalBlock).content.url || (ci.item as PersonalBlock).content.title || (ci.item as PersonalBlock).content.label);
+            const isActive = i === activeLinkIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => setActiveLinkIndex(i)}
+                className={`relative h-2.5 rounded-full transition-all ${
+                  isActive ? "w-6 bg-primary" : isFilled ? "w-2.5 bg-primary/60" : "w-2.5 bg-muted-foreground/20"
+                }`}
+              >
+                {isFilled && !isActive && (
+                  <Check className="absolute -top-1 -right-1 h-2.5 w-2.5 text-primary" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-center text-muted-foreground">
+          {filledCount} of {totalItems} filled
+        </p>
+
+        {/* Group label */}
+        {showGroupLabel && (
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 text-center">
+            {currentGroup}
+          </p>
+        )}
+
+        {/* Focused single-input card */}
+        <div className="relative">
+          {(() => {
+            if (current.kind === "link") {
+              const link = current.item as PersonalLink;
               const config = getPlatformConfig(link.type);
               const Icon = config?.icon;
-              const isEmpty = !link.value;
+              const isFilled = justFilled === link.id;
+
               return (
-                <div
-                  key={`link-${link.id}`}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, index)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onClick={isEmpty ? () => { setEditingLink(link); setLinkModalOpen(true); } : undefined}
-                  className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border cursor-move transition-all select-none ${
-                    draggedIndex === index ? "opacity-50 scale-95" : ""
-                  } ${isEmpty ? "border-dashed border-amber-400/60" : "border-border"}`}
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className={`h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
-                    {Icon && <Icon className={`h-4 w-4 ${config?.color || "text-primary"}`} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
-                    {isEmpty && link.placeholder ? (
-                      <p className="text-xs text-amber-500/80 italic truncate">{link.placeholder} — tap to fill in</p>
+                <div className={`bg-card rounded-2xl border-2 p-6 text-center space-y-4 transition-all ${
+                  isFilled ? "border-primary bg-primary/5 scale-[1.02]" : "border-border"
+                }`}>
+                  {/* Platform icon */}
+                  <div className={`h-14 w-14 rounded-full flex items-center justify-center mx-auto ${config?.gradient || config?.bgColor || "bg-primary/10"}`}>
+                    {isFilled ? (
+                      <Check className="h-7 w-7 text-white" />
                     ) : (
-                      <p className="text-xs text-muted-foreground truncate">{link.value}</p>
+                      Icon && <Icon className={`h-7 w-7 ${config?.color || "text-primary"}`} />
                     )}
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); setEditingLink(link); setLinkModalOpen(true); }} className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0">
-                    <Edit className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); setDeleteId({ id: link.id, kind: "link" }); }} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </button>
+
+                  <div>
+                    <p className="font-semibold text-foreground">{link.label}</p>
+                    {link.placeholder && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{link.placeholder}</p>
+                    )}
+                  </div>
+
+                  {/* Inline input */}
+                  <Input
+                    ref={focusInputRef}
+                    value={link.value || ""}
+                    onChange={(e) => updateLink(link.id, { value: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && link.value) {
+                        handleCarouselLinkUpdate(link.id, link.value);
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Auto-advance after paste
+                      setTimeout(() => {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (val) handleCarouselLinkUpdate(link.id, val);
+                      }, 50);
+                    }}
+                    placeholder={config?.prefix ? `${config.prefix}${config.placeholder || ""}` : link.placeholder || "Paste your link here"}
+                    className="h-12 text-center text-base"
+                  />
                 </div>
               );
             } else {
-              const block = ci.item as PersonalBlock;
+              const block = current.item as PersonalBlock;
               const BlockIcon = getBlockIcon(block.type);
+
               return (
-                <div
-                  key={`block-${block.id}`}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, index)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  className={`flex items-center gap-3 p-3 min-h-[52px] bg-card rounded-xl border border-border cursor-move transition-all select-none ${
-                    draggedIndex === index ? "opacity-50 scale-95" : ""
-                  }`}
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <BlockIcon className="h-4 w-4 text-muted-foreground" />
+                <div className="bg-card rounded-2xl border-2 border-border p-6 text-center space-y-4">
+                  <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mx-auto">
+                    <BlockIcon className="h-7 w-7 text-muted-foreground" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground truncate">{getBlockLabel(block)}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{block.type} block</p>
-                  </div>
-                  <button onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }} className="p-2 hover:bg-muted rounded-lg transition-colors flex-shrink-0">
-                    <Edit className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                  <button onClick={() => setDeleteId({ id: block.id, kind: "block" })} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </button>
+                  <p className="font-semibold text-foreground capitalize">{block.type} Block</p>
+
+                  {block.type === "youtube" && (
+                    <Input
+                      ref={focusInputRef}
+                      value={block.content.url || ""}
+                      onChange={(e) => handleCarouselBlockUpdate(block.id, "url", e.target.value)}
+                      placeholder="Paste YouTube URL"
+                      className="h-12 text-center text-base"
+                    />
+                  )}
+                  {block.type === "text" && (
+                    <Input
+                      ref={focusInputRef}
+                      value={block.content.title || ""}
+                      onChange={(e) => handleCarouselBlockUpdate(block.id, "title", e.target.value)}
+                      placeholder="Enter text"
+                      className="h-12 text-center text-base"
+                    />
+                  )}
+                  {block.type === "button" && (
+                    <div className="space-y-2">
+                      <Input
+                        ref={focusInputRef}
+                        value={block.content.label || ""}
+                        onChange={(e) => handleCarouselBlockUpdate(block.id, "label", e.target.value)}
+                        placeholder="Button label"
+                        className="h-12 text-center text-base"
+                      />
+                      <Input
+                        value={block.content.url || ""}
+                        onChange={(e) => handleCarouselBlockUpdate(block.id, "url", e.target.value)}
+                        placeholder="Button URL"
+                        className="h-11 text-center text-sm"
+                      />
+                    </div>
+                  )}
+                  {block.type === "image" && (
+                    <button
+                      onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }}
+                      className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg text-sm text-muted-foreground transition-colors"
+                    >
+                      Upload image…
+                    </button>
+                  )}
                 </div>
               );
             }
-          })}
+          })()}
         </div>
-      )}
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => {
-            if (isFreePlan && formData.links.length >= maxFreeLinks) { checkProFeature("unlimited links"); return; }
-            setEditingLink(null); setLinkModalOpen(true);
-          }}
-          className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
-        >
-          <Plus className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Add link</span>
-        </button>
-        <button
-          onClick={() => { setEditingBlock(null); setBlockModalOpen(true); }}
-          className="flex-1 flex items-center justify-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
-        >
-          <Plus className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Add block</span>
-        </button>
+        {/* Carousel navigation */}
+        <div className="flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={activeLinkIndex === 0}
+            onClick={() => setActiveLinkIndex(i => i - 1)}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> Prev
+          </Button>
+
+          <button
+            onClick={() => {
+              if (activeLinkIndex < totalItems - 1) setActiveLinkIndex(i => i + 1);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Skip link
+          </button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={activeLinkIndex >= totalItems - 1}
+            onClick={() => setActiveLinkIndex(i => i + 1)}
+            className="gap-1"
+          >
+            Next <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Add + Edit all actions */}
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (isFreePlan && formData.links.length >= maxFreeLinks) { checkProFeature("unlimited links"); return; }
+                setEditingLink(null); setLinkModalOpen(true);
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add link
+            </button>
+            <button
+              onClick={() => { setEditingBlock(null); setBlockModalOpen(true); }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add block
+            </button>
+          </div>
+          <button
+            onClick={() => setShowListView(true)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <List className="h-3.5 w-3.5" /> Edit all
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSubStep3 = () => (
     <div className="space-y-4">
@@ -505,8 +794,8 @@ export const LinksStep = ({
 
           {/* Mobile compact preview */}
           <div className="lg:hidden relative">
-            <div className="h-[200px] overflow-hidden rounded-2xl border border-border bg-muted/30 flex items-center justify-center">
-              <div className="transform scale-[0.35] origin-center pointer-events-none">
+            <div className="h-[260px] overflow-hidden rounded-2xl border border-border bg-muted/30 flex items-center justify-center">
+              <div className="transform scale-[0.42] origin-center pointer-events-none">
                 {previewPanel}
               </div>
             </div>
