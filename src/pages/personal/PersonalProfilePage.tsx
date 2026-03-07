@@ -1157,8 +1157,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 priority
                 fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
               />
-              <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
-                <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+              <div className={`absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 shadow-sm ${isDarkBg ? 'border-black/30' : 'border-white'}`}>
+                <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
             </div>
           )}
