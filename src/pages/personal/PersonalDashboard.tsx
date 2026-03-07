@@ -742,6 +742,7 @@ const PersonalDashboard = () => {
               stripeConnectAccountId={(profile as any).stripe_connect_account_id || null}
               isStripeOnboarded={(profile as any).is_stripe_onboarded || false}
               onProfileUpdate={loadData}
+              planType={profile.plan_type}
             />
           </TabsContent>
 

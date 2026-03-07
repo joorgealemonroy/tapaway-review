@@ -1,40 +1,21 @@
 
 
-# Shop Tab Pro/VIP Gate + Cards Tab "Coming Soon"
+# Send Test Post-Purchase Emails
 
-## 1. Shop Tab — Lock for Free Users
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-**File: `src/pages/personal/PersonalDashboard.tsx`** (lines 738-746)
+## Changes
 
-Pass `planType={profile.plan_type}` to `PersonalShopTab`.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-**File: `src/components/personal/PersonalShopTab.tsx`**
+Add two new email templates matching the ones in the stripe webhook:
 
-- Add `planType` to the props interface
-- At the top of the render, if `planType === 'free'` or `planType` is null, show a locked preview instead of the full shop UI:
-  - ShoppingBag icon + "Sell Digital Products" heading
-  - Brief description of what creators can sell (courses, PDFs, templates)
-  - 3-4 bullet points showing capabilities (Stripe payouts, download links, sales dashboard)
-  - A prominent "Upgrade to Pro" button that triggers the existing `ProUpgradeDialog` or navigates to `/personal/pricing`
-- Pro and VIP users see the full existing shop experience unchanged
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-## 2. Cards Tab — Replace with "Coming Soon"
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-**File: `src/components/personal/DashboardCardsTab.tsx`**
+### 2. Deploy and Invoke
 
-Replace the entire component body with a simple "coming soon" placeholder:
-- CreditCard icon
-- "NFC Cards — Coming Soon" heading
-- Brief teaser text about tapping to share your profile
-- No functional card management (remove all the load/edit/disable logic)
-
-This is a clean swap — the tab stays visible but shows a static placeholder.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/personal/PersonalShopTab.tsx` | Add `planType` prop, render locked preview for free users |
-| `src/components/personal/DashboardCardsTab.tsx` | Replace with "Coming Soon" placeholder |
-| `src/pages/personal/PersonalDashboard.tsx` | Pass `planType` to `PersonalShopTab` |
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
