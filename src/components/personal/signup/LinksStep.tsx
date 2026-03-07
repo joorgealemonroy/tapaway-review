@@ -120,6 +120,10 @@ export const LinksStep = ({
   const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<PersonalBlock | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [activeLinkIndex, setActiveLinkIndex] = useState(0);
+  const [showListView, setShowListView] = useState(false);
+  const [justFilled, setJustFilled] = useState<string | null>(null);
+  const focusInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const autoOpenedRef = useRef(false);
 
@@ -133,18 +137,38 @@ export const LinksStep = ({
     }
   }, [selectedTemplate]);
 
-  // Auto-open first empty template link when reaching sub-step 2
+  // Social link types for grouping
+  const SOCIAL_TYPES = useMemo(() => new Set([
+    "instagram", "tiktok", "x", "youtube", "snapchat", "facebook",
+    "threads", "linkedin", "pinterest", "discord", "twitch", "telegram",
+    "whatsapp", "spotify", "applemusic", "soundcloud", "bandcamp",
+  ]), []);
+
+  // Ordered items for carousel: socials first, then action links, then blocks
+  const carouselItems = useMemo(() => {
+    const socials = formData.links.filter(l => SOCIAL_TYPES.has(l.type));
+    const actions = formData.links.filter(l => !SOCIAL_TYPES.has(l.type));
+    const blocks = formData.blocks;
+    return [
+      ...socials.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "link", item, group: "Socials" })),
+      ...actions.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "link", item, group: "Links & Buttons" })),
+      ...blocks.map((item): { kind: "link" | "block"; item: PersonalLink | PersonalBlock; group: string } => ({ kind: "block", item, group: "Content Blocks" })),
+    ];
+  }, [formData.links, formData.blocks, SOCIAL_TYPES]);
+
+  // Focus the input when activeLinkIndex changes
   useEffect(() => {
-    if (autoOpenedRef.current || !selectedTemplate || subStep !== 2) return;
-    const firstEmpty = formData.links.find(l => !l.value);
-    if (firstEmpty) {
-      autoOpenedRef.current = true;
-      setTimeout(() => {
-        setEditingLink(firstEmpty);
-        setLinkModalOpen(true);
-      }, 400);
+    if (subStep === 2 && !showListView) {
+      setTimeout(() => focusInputRef.current?.focus(), 100);
     }
-  }, [selectedTemplate, formData.links, subStep]);
+  }, [activeLinkIndex, subStep, showListView]);
+
+  // Clamp activeLinkIndex if items are removed
+  useEffect(() => {
+    if (activeLinkIndex >= carouselItems.length && carouselItems.length > 0) {
+      setActiveLinkIndex(carouselItems.length - 1);
+    }
+  }, [carouselItems.length, activeLinkIndex]);
 
   const isFreePlan = formData.planType === "free";
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
