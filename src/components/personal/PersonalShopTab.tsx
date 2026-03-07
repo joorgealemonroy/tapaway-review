@@ -67,6 +67,7 @@ interface PersonalShopTabProps {
   stripeConnectAccountId: string | null;
   isStripeOnboarded: boolean;
   onProfileUpdate: () => void;
+  planType?: string | null;
 }
 
 export function PersonalShopTab({ 
@@ -74,8 +75,52 @@ export function PersonalShopTab({
   userId,
   stripeConnectAccountId, 
   isStripeOnboarded,
-  onProfileUpdate 
+  onProfileUpdate,
+  planType
 }: PersonalShopTabProps) {
+  // Gate for free users
+  if (!planType || planType === 'free') {
+    return (
+      <div className="text-center py-16 space-y-6 max-w-md mx-auto">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+          <ShoppingBag className="h-8 w-8 text-primary" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-foreground">Sell Digital Products</h3>
+          <p className="text-sm text-muted-foreground">
+            Turn your profile into a storefront. Sell courses, PDFs, templates, presets, and more — directly to your audience.
+          </p>
+        </div>
+        <ul className="text-left space-y-3 text-sm text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <span>Instant Stripe payouts to your bank account</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <span>Secure, time-limited download links</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <span>Sales dashboard with buyer history</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <span>Automatic buyer & creator email notifications</span>
+          </li>
+        </ul>
+        <Button
+          onClick={() => window.location.href = '/personal/pricing'}
+          className="gap-2"
+          size="lg"
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Upgrade to Pro
+        </Button>
+      </div>
+    );
+  }
+
   const [connecting, setConnecting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [products, setProducts] = useState<CreatorProduct[]>([]);
