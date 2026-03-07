@@ -38,7 +38,9 @@ export function generateSrcSet(
   quality = 85
 ): string {
   if (!url || !url.includes('supabase.co/storage')) return '';
-  const baseUrl = url.split('?')[0];
+  const [baseUrl, queryString] = url.split('?');
+  const t = new URLSearchParams(queryString || '').get('t');
+  const cacheBuster = t ? `&t=${t}` : '';
   
   // Pre-optimized webp images - no srcset needed, already optimized
   if (baseUrl.endsWith('.webp')) {
@@ -46,7 +48,7 @@ export function generateSrcSet(
   }
   
   return sizes
-    .map(size => `${baseUrl}?width=${size}&quality=${quality} ${size}w`)
+    .map(size => `${baseUrl}?width=${size}&quality=${quality}${cacheBuster} ${size}w`)
     .join(', ');
 }
 
