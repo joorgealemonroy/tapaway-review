@@ -190,6 +190,9 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 <li className="flex items-center gap-2">
                   <Crown className="h-3 w-3 text-amber-500" /> Advanced analytics
                 </li>
+                <li className="flex items-center gap-2">
+                  <Crown className="h-3 w-3 text-amber-500" /> Creator Shop
+                </li>
               </ul>
             </div>
           </div>

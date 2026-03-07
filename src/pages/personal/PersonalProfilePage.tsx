@@ -1027,9 +1027,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const isDarkBg = hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
   
   // Dynamic text classes based on background
-  const headingClass = isDarkBg ? "text-white" : "text-foreground";
-  const textClass = isDarkBg ? "text-white/80" : "text-foreground/80";
-  const mutedClass = isDarkBg ? "text-white/60" : "text-muted-foreground";
+  // Use explicit colors (not theme-aware tokens) so text is always readable
+  // against the inline background, regardless of system dark/light mode
+  const headingClass = isDarkBg ? "text-white" : "text-gray-900";
+  const textClass = isDarkBg ? "text-white/80" : "text-gray-800";
+  const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
   const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
@@ -1131,7 +1133,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
                   aria-label="Save contact"
                 >
-                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
                 </button>
               )}
               <button
@@ -1139,7 +1141,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
                 aria-label="Share profile"
               >
-                <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-foreground'}`} />
+                <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
               </button>
             </div>
           )}
@@ -1151,12 +1153,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                 src={profile.profile_photo_url}
                 alt={profile.full_name}
                 size={28}
-                className="border-4 border-background"
+                className={`border-4 ${isDarkBg ? 'border-black/30' : 'border-white'}`}
                 priority
                 fallbackInitial={profile.full_name.charAt(0).toUpperCase()}
               />
-              <div className="absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 border-background shadow-sm">
-                <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+              <div className={`absolute bottom-1 right-1 h-7 w-7 bg-primary rounded-full flex items-center justify-center border-2 shadow-sm ${isDarkBg ? 'border-black/30' : 'border-white'}`}>
+                <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
             </div>
           )}
@@ -1260,7 +1262,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           {/* Purchase Success Download Banner */}
           {purchaseToken && (
             <div className={`mt-6 p-4 rounded-xl border text-center ${isDarkBg ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
-              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>🎉 Purchase Complete!</p>
+              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>🎉 Purchase Complete!</p>
               <a
                 href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-product?token=${purchaseToken}`}
                 target="_blank"
@@ -1269,14 +1271,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               >
                 Download Your File
               </a>
-              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-muted-foreground'}`}>Link expires in 72 hours</p>
+              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-gray-500'}`}>Link expires in 72 hours</p>
             </div>
           )}
 
           {/* Creator Products Shop Section - only if show_shop_section is true */}
           {creatorProducts.length > 0 && (data?.profile as any)?.show_shop_section !== false && (
             <div className="mt-6 space-y-3">
-              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
+              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>
                 Shop
               </h3>
               <div className="grid gap-3">
@@ -1304,19 +1306,19 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             >
               <a
                 href="/personal"
-                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors duration-300 text-sm ${isDarkBg ? 'bg-white/15 border-white/20 hover:bg-white/25' : 'bg-white/40 border-white/30 hover:bg-white/50'}`}
+                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors duration-300 text-sm ${isDarkBg ? 'bg-white/15 border-white/20 hover:bg-white/25' : 'bg-black/5 border-black/10 hover:bg-black/10'}`}
               >
-                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-gray-700'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-foreground/80'}`}>
+                <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-gray-800'}`}>
                   Start using TapAway
                 </span>
               </a>
             </motion.div>
             
             {/* Subtle tap-enabled indicator */}
-            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-muted-foreground/50'}`}>
+            <p className={`text-xs flex items-center justify-center gap-1 ${isDarkBg ? 'text-white/40' : 'text-gray-400'}`}>
               <Smartphone className="h-3 w-3" />
               Tap-enabled
             </p>
