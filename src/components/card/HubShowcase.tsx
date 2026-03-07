@@ -206,11 +206,13 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
   const handleCopyLayout = useCallback((profile: ShowcaseProfile) => {
     const copiedLayout = {
       id: `copied-${profile.username}`,
-      name: `${profile.full_name}'s Layout`,
-      description: `Copied from ${profile.full_name}`,
+      name: `Layout Template`,
+      description: `Professional layout template`,
       emoji: "📋",
       defaultLinks: profile.links.map((l) => ({
-        type: l.link_type, label: l.label, placeholder: "",
+        type: l.link_type,
+        label: sanitizeLabel(l.link_type, l.label),
+        placeholder: getPlaceholder(l.link_type),
         displayStyle: l.display_style || undefined, pillColor: l.pill_color || undefined,
         gridSize: l.grid_size || undefined, isFeatured: l.is_featured || undefined,
         sortOrder: l.sort_order ?? undefined,
