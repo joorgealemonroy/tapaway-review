@@ -16,16 +16,17 @@ export function getOptimizedImageUrl(
   // Non-Supabase URLs - return as-is
   if (!url.includes('supabase.co/storage')) return url;
   
-  // Clean any existing query params
-  const baseUrl = url.split('?')[0];
+  const [baseUrl, queryString] = url.split('?');
+  const t = new URLSearchParams(queryString || '').get('t');
+  const cacheBuster = t ? `&t=${t}` : '';
   
-  // Pre-optimized images (webp) - skip Supabase transforms for faster loading
+  // Pre-optimized images (webp) - just preserve cache buster
   if (baseUrl.endsWith('.webp')) {
-    return baseUrl;
+    return t ? `${baseUrl}?t=${t}` : baseUrl;
   }
   
-  // Legacy images - use Supabase transforms
-  return `${baseUrl}?width=${width}&quality=${quality}`;
+  // Legacy images - use Supabase transforms + cache buster
+  return `${baseUrl}?width=${width}&quality=${quality}${cacheBuster}`;
 }
 
 /**
@@ -37,7 +38,9 @@ export function generateSrcSet(
   quality = 85
 ): string {
   if (!url || !url.includes('supabase.co/storage')) return '';
-  const baseUrl = url.split('?')[0];
+  const [baseUrl, queryString] = url.split('?');
+  const t = new URLSearchParams(queryString || '').get('t');
+  const cacheBuster = t ? `&t=${t}` : '';
   
   // Pre-optimized webp images - no srcset needed, already optimized
   if (baseUrl.endsWith('.webp')) {
@@ -45,7 +48,7 @@ export function generateSrcSet(
   }
   
   return sizes
-    .map(size => `${baseUrl}?width=${size}&quality=${quality} ${size}w`)
+    .map(size => `${baseUrl}?width=${size}&quality=${quality}${cacheBuster} ${size}w`)
     .join(', ');
 }
 
