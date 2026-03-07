@@ -44,7 +44,8 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; type: 
     }
     const base64 = btoa(binary);
     return { base64, type: imageType };
-  } catch {
+  } catch (err) {
+    console.warn('[vCard] Failed to fetch image as base64, will use URI fallback:', err);
     return null;
   }
 }
