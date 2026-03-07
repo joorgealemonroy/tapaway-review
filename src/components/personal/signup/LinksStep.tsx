@@ -231,8 +231,29 @@ export const LinksStep = ({
       if (color && color !== "#1a1a1a") {
         const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
         if (match) {
-          const hex = `#${parseInt(match[1]).toString(16).padStart(2, "0")}${parseInt(match[2]).toString(16).padStart(2, "0")}${parseInt(match[3]).toString(16).padStart(2, "0")}`;
+          const r = parseInt(match[1]);
+          const g = parseInt(match[2]);
+          const b = parseInt(match[3]);
+          const hex = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+          
+          // Compute relative luminance (0 = black, 1 = white)
+          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          
           updateFormData({ headerColor: hex });
+          
+          // If the extracted color is very light, auto-set a dark background to prevent white-on-white
+          if (luminance > 0.7) {
+            const currentBg = formData.backgroundColor || "#000000";
+            const bgMatch = currentBg.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+            if (bgMatch) {
+              const bgLum = (0.299 * parseInt(bgMatch[1], 16) + 0.587 * parseInt(bgMatch[2], 16) + 0.114 * parseInt(bgMatch[3], 16)) / 255;
+              if (bgLum > 0.7) {
+                updateFormData({ backgroundColor: "#1a1a2e" });
+                toast("Background auto-darkened for readability", { icon: "🎨" });
+              }
+            }
+          }
+          
           toast.success("Style color matched to your photo");
         }
       }
