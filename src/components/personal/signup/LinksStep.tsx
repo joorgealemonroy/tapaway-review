@@ -567,14 +567,23 @@ export const LinksStep = ({
           </p>
         )}
 
-        {/* Focused single-input card */}
-        <div className="relative">
+        {/* Focused single-input card with Framer Motion */}
+        <div className="relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeLinkIndex}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.2 }}
+            >
           {(() => {
             if (current.kind === "link") {
               const link = current.item as PersonalLink;
               const config = getPlatformConfig(link.type);
               const Icon = config?.icon;
               const isFilled = justFilled === link.id;
+              const hasImage = !!(link.coverImageUrl || link.thumbnailUrl);
 
               return (
                 <div className={`bg-card rounded-2xl border-2 p-6 text-center space-y-4 transition-all ${
@@ -607,7 +616,6 @@ export const LinksStep = ({
                       }
                     }}
                     onPaste={(e) => {
-                      // Auto-advance after paste
                       setTimeout(() => {
                         const val = (e.target as HTMLInputElement).value;
                         if (val) handleCarouselLinkUpdate(link.id, val);
@@ -616,6 +624,31 @@ export const LinksStep = ({
                     placeholder={config?.prefix ? `${config.prefix}${config.placeholder || ""}` : link.placeholder || "Paste your link here"}
                     className="h-12 text-center text-base"
                   />
+
+                  {/* Image upload affordance for links with image properties */}
+                  {(link.displayStyle === "card" || link.displayStyle === "grid" || hasImage) && (
+                    <div className="pt-1">
+                      {link.coverImageUrl ? (
+                        <div className="relative mx-auto w-32 h-20 rounded-lg overflow-hidden bg-muted">
+                          <img src={link.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity"
+                          >
+                            <Camera className="h-5 w-5 text-white" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                          className="flex items-center justify-center gap-2 mx-auto px-4 py-2.5 bg-muted hover:bg-muted/80 rounded-xl text-sm font-medium text-muted-foreground transition-colors border border-dashed border-border"
+                        >
+                          <Camera className="h-4 w-4" />
+                          Upload cover image
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             } else {
@@ -667,15 +700,18 @@ export const LinksStep = ({
                   {block.type === "image" && (
                     <button
                       onClick={() => { setEditingBlock(block); setBlockModalOpen(true); }}
-                      className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg text-sm text-muted-foreground transition-colors"
+                      className="flex items-center justify-center gap-2 mx-auto px-4 py-2.5 bg-muted hover:bg-muted/80 rounded-xl text-sm font-medium text-muted-foreground transition-colors border border-dashed border-border"
                     >
-                      Upload image…
+                      <Camera className="h-4 w-4" />
+                      Upload image
                     </button>
                   )}
                 </div>
               );
             }
           })()}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Carousel navigation */}
