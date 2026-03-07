@@ -1306,12 +1306,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             >
               <a
                 href="/personal"
-                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors duration-300 text-sm ${isDarkBg ? 'bg-white/15 border-white/20 hover:bg-white/25' : 'bg-white/40 border-white/30 hover:bg-white/50'}`}
+                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors duration-300 text-sm ${isDarkBg ? 'bg-white/15 border-white/20 hover:bg-white/25' : 'bg-black/5 border-black/10 hover:bg-black/10'}`}
               >
-                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-foreground/70'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/70' : 'text-gray-700'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-foreground/80'}`}>
+                <span className={`font-medium ${isDarkBg ? 'text-white/80' : 'text-gray-800'}`}>
                   Start using TapAway
                 </span>
               </a>
