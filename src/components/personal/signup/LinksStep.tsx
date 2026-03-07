@@ -865,7 +865,7 @@ export const LinksStep = ({
         <DrawerContent className="max-h-[85vh]">
           <DrawerTitle className="sr-only">Profile Preview</DrawerTitle>
           <div className="px-4 pt-2 pb-6 overflow-y-auto">
-            <p className="text-sm text-muted-foreground text-center mb-4">This is exactly what people will see</p>
+            <p className="text-sm text-muted-foreground text-center mb-4">Mobile Preview (Example Only)</p>
             {previewPanel}
           </div>
         </DrawerContent>
