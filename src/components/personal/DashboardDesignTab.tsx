@@ -63,6 +63,14 @@ const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
 ];
 
+const BUTTON_THEMES = [
+  { id: 'glass', label: 'Glass', desc: 'Transparent + blur' },
+  { id: 'filled', label: 'Filled', desc: 'Solid color' },
+  { id: 'outline', label: 'Outline', desc: 'Clean border' },
+  { id: 'soft', label: 'Soft', desc: 'Shadow, no border' },
+  { id: 'shadow', label: 'Shadow', desc: 'Rounded pill' },
+];
+
 export const DashboardDesignTab = ({
   profileId,
   headerType,
@@ -71,6 +79,7 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   isPremium,
+  buttonTheme,
   onUpgrade,
   onUpdate,
 }: Props) => {
