@@ -1,21 +1,28 @@
 
 
-# Send Test Post-Purchase Emails
+# Button/Pill Theme System — Already Implemented
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+After thorough review of the codebase, the entire button/pill theme system is **already fully built** from the previous conversation turn. No additional changes are needed.
 
-## Changes
+## What's Already Done
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### Database
+- `button_theme text DEFAULT 'glass'` column on `personal_profiles` — migration applied
 
-Add two new email templates matching the ones in the stripe webhook:
+### Design Tab (`DashboardDesignTab.tsx`)
+- "Button Style" section with 5 selectable themes rendered as mini-preview cards in a 5-column grid
+- Themes: Glass, Filled, Outline, Soft, Shadow
+- Integrated into pending state, save/discard logic, and live preview updates
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### Profile Renderer (`ProfilePreviewRenderer.tsx`)
+- Theme-aware `themeClasses` switch controlling border-radius, background, border, shadow, text color, and icon visibility per theme
+- Only affects standard pill links (featured and cover-image links retain their own styles)
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+### Data Flow
+- `useProfileData.ts` fetches `button_theme`
+- `PersonalDashboard.tsx` passes it through `handleDesignUpdate`
+- `ProfilePreviewPanel.tsx` and `PersonalProfilePage.tsx` propagate it to the renderer
 
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+## Recommendation
+Test the feature end-to-end: open the Design tab, select different button styles, verify the preview updates, save, and check the live profile.
 
