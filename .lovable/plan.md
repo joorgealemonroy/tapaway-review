@@ -1,21 +1,40 @@
 
 
-# Send Test Post-Purchase Emails
+# Add "Sell From Your Hub" Feature Showcase to Landing Page
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+Inspired by the uploaded image, I'll create a new section highlighting the marketplace/shop capability — showing a profile card with links, a revenue stat card, and a product card overlay, similar to the reference image's composition.
 
-## Changes
+## New Component: `PersonalShopShowcase.tsx`
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+**Location:** `src/components/landing/personal/PersonalShopShowcase.tsx`
 
-Add two new email templates matching the ones in the stripe webhook:
+A visually rich section with:
+- **Headline:** "Sell directly from your hub" with supporting copy
+- **Visual composition** (inspired by the reference image):
+  - A mock profile card (rounded, with avatar, name, headline, link pills, social icons)
+  - A floating "Total Revenue" stat card (lime/primary accent, showing $1,536)
+  - A floating "Product" card (showing a merch item with price + CTA)
+- All three elements arranged with slight rotation/overlap using absolute positioning and framer-motion animations
+- Dark background section (like the reference's deep maroon, but using the app's dark palette `#0B1220`)
+- CTA button: "Start Selling" → links to `/personal/signup`
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+**Design details:**
+- Revenue card: primary-colored with dollar icon, total revenue number
+- Product card: white card with image placeholder, price, "Full collection" button
+- Profile card: dark card with avatar, name, link buttons, social icons
+- Mobile: stack vertically with cards centered; desktop: composed layout
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+## Integration into `Personal.tsx`
 
-### 2. Deploy and Invoke
+Insert between `PersonalFeatures` and `PersonalUseCases`:
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+```
+<PersonalFeatures />
+<PersonalShopShowcase />   ← NEW
+<PersonalUseCases />
+```
+
+## No backend or schema changes needed
+
+This is purely a frontend marketing section — no database, edge function, or migration changes.
 
