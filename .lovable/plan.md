@@ -1,20 +1,21 @@
 
 
-# Update Cards Button Subheading to "Coming soon"
+# Send Test Post-Purchase Emails
 
-## Change
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-In `src/components/personal/MobileBottomNav.tsx`, update the `description` for the "Cards" entry in `BASE_MORE_TABS` from `"Manage your NFC cards"` to `"Coming soon"`.
+## Changes
 
-**File:** `src/components/personal/MobileBottomNav.tsx` (line 25)
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-```typescript
-// Before
-{ value: "cards", label: "Cards", icon: CreditCard, description: "Manage your NFC cards" },
+Add two new email templates matching the ones in the stripe webhook:
 
-// After
-{ value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
-```
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-Single-line change, no other files affected.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
