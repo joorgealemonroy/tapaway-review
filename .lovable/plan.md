@@ -1,28 +1,30 @@
 
 
-# Button/Pill Theme System — Already Implemented
+# Improve Button Style Picker with Realistic Link Previews
 
-After thorough review of the codebase, the entire button/pill theme system is **already fully built** from the previous conversation turn. No additional changes are needed.
+## Problem
+The current theme picker shows tiny abstract rectangles — users can't visualize how their actual links (Instagram, X, etc.) will look with each theme.
 
-## What's Already Done
+## Solution
+Replace the mini-preview rectangles with realistic mock link pills showing recognizable platform names and icons, so users see exactly what each theme looks like before selecting.
 
-### Database
-- `button_theme text DEFAULT 'glass'` column on `personal_profiles` — migration applied
+## Changes
 
-### Design Tab (`DashboardDesignTab.tsx`)
-- "Button Style" section with 5 selectable themes rendered as mini-preview cards in a 5-column grid
-- Themes: Glass, Filled, Outline, Soft, Shadow
-- Integrated into pending state, save/discard logic, and live preview updates
+### `DashboardDesignTab.tsx` (lines 605-630)
+Replace the current 5-column grid of abstract rectangles with a vertical list of theme cards. Each card shows:
+- Theme name + description on the left
+- Two stacked mini link pills on the right (e.g. "Instagram" and "X / Twitter") styled with that theme's actual CSS logic
+- The pills use the user's current `headerColor` for themes that reference it (filled, glass)
+- Selected state highlighted with primary border
 
-### Profile Renderer (`ProfilePreviewRenderer.tsx`)
-- Theme-aware `themeClasses` switch controlling border-radius, background, border, shadow, text color, and icon visibility per theme
-- Only affects standard pill links (featured and cover-image links retain their own styles)
+The layout changes from a cramped 5-col grid to a more spacious list that gives each theme enough room to show realistic previews — similar to how Linktree's theme picker works.
 
-### Data Flow
-- `useProfileData.ts` fetches `button_theme`
-- `PersonalDashboard.tsx` passes it through `handleDesignUpdate`
-- `ProfilePreviewPanel.tsx` and `PersonalProfilePage.tsx` propagate it to the renderer
+### Visual per theme:
+- **Glass**: Semi-transparent pill with blur, icon box + label
+- **Filled**: Solid headerColor background, white text, no icon
+- **Outline**: Transparent with visible border, icon + label  
+- **Soft**: White pill with shadow, icon + label
+- **Shadow**: Full rounded-pill, bold shadow, centered text only
 
-## Recommendation
-Test the feature end-to-end: open the Design tab, select different button styles, verify the preview updates, save, and check the live profile.
+No other files change. The renderer and data flow are already working correctly.
 
