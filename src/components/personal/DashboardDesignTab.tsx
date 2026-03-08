@@ -602,31 +602,90 @@ export const DashboardDesignTab = ({
           <h3 className="text-base font-semibold text-foreground">Button Style</h3>
           <p className="text-sm text-muted-foreground mt-0.5">Choose how your link buttons look</p>
         </div>
-        <div className="grid grid-cols-5 gap-2">
-          {BUTTON_THEMES.map((theme) => (
-            <button
-              key={theme.id}
-              onClick={() => {
-                setPendingButtonTheme(theme.id);
-                onUpdate({ buttonTheme: theme.id });
-              }}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
-                pendingButtonTheme === theme.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted bg-card hover:bg-muted/50'
-              }`}
-            >
-              {/* Mini preview pill */}
-              <div className="w-full h-6 rounded-md" style={
-                theme.id === 'glass' ? { background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' } :
-                theme.id === 'filled' ? { background: pendingHeaderColor || '#6366f1' } :
-                theme.id === 'outline' ? { background: 'transparent', border: '2px solid rgba(0,0,0,0.3)' } :
-                theme.id === 'soft' ? { background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' } :
-                { background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '999px' }
-              } />
-              <span className="text-[10px] font-medium text-foreground leading-tight">{theme.label}</span>
-            </button>
-          ))}
+        <div className="space-y-2">
+          {BUTTON_THEMES.map((theme) => {
+            const isSelected = pendingButtonTheme === theme.id;
+            const color = pendingHeaderColor || '#6366f1';
+
+            const getPillStyle = (themeId: string): React.CSSProperties => {
+              switch (themeId) {
+                case 'glass': return { background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(8px)', borderRadius: '12px' };
+                case 'filled': return { background: color, borderRadius: '12px' };
+                case 'outline': return { background: 'transparent', border: `2px solid ${color}`, borderRadius: '12px' };
+                case 'soft': return { background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '12px' };
+                case 'shadow': return { background: 'white', boxShadow: '0 4px 14px rgba(0,0,0,0.15)', borderRadius: '999px' };
+                default: return { borderRadius: '12px' };
+              }
+            };
+
+            const getPillTextColor = (themeId: string): string => {
+              switch (themeId) {
+                case 'filled': return 'text-white';
+                case 'glass': return 'text-foreground';
+                default: return 'text-foreground';
+              }
+            };
+
+            const showIcon = theme.id !== 'filled' && theme.id !== 'shadow';
+
+            return (
+              <button
+                key={theme.id}
+                onClick={() => {
+                  setPendingButtonTheme(theme.id);
+                  onUpdate({ buttonTheme: theme.id });
+                }}
+                className={`w-full flex items-center gap-4 p-3.5 rounded-xl border-2 transition-all text-left ${
+                  isSelected
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted bg-card hover:bg-muted/50'
+                }`}
+              >
+                {/* Theme info */}
+                <div className="shrink-0 w-20">
+                  <span className="text-sm font-semibold text-foreground">{theme.label}</span>
+                  <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{theme.desc}</p>
+                </div>
+
+                {/* Realistic mini pills */}
+                <div className="flex-1 flex flex-col gap-1.5">
+                  {/* Instagram pill */}
+                  <div
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium ${getPillTextColor(theme.id)}`}
+                    style={getPillStyle(theme.id)}
+                  >
+                    {showIcon && (
+                      <span className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                        IG
+                      </span>
+                    )}
+                    <span className="truncate">Instagram</span>
+                  </div>
+                  {/* X / Twitter pill */}
+                  <div
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium ${getPillTextColor(theme.id)}`}
+                    style={getPillStyle(theme.id)}
+                  >
+                    {showIcon && (
+                      <span className="w-5 h-5 rounded-md bg-black flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                        𝕏
+                      </span>
+                    )}
+                    <span className="truncate">X / Twitter</span>
+                  </div>
+                </div>
+
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                    <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

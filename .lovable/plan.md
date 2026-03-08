@@ -1,30 +1,21 @@
 
 
-# Improve Button Style Picker with Realistic Link Previews
+# Send Test Post-Purchase Emails
 
-## Problem
-The current theme picker shows tiny abstract rectangles — users can't visualize how their actual links (Instagram, X, etc.) will look with each theme.
-
-## Solution
-Replace the mini-preview rectangles with realistic mock link pills showing recognizable platform names and icons, so users see exactly what each theme looks like before selecting.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
 ## Changes
 
-### `DashboardDesignTab.tsx` (lines 605-630)
-Replace the current 5-column grid of abstract rectangles with a vertical list of theme cards. Each card shows:
-- Theme name + description on the left
-- Two stacked mini link pills on the right (e.g. "Instagram" and "X / Twitter") styled with that theme's actual CSS logic
-- The pills use the user's current `headerColor` for themes that reference it (filled, glass)
-- Selected state highlighted with primary border
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-The layout changes from a cramped 5-col grid to a more spacious list that gives each theme enough room to show realistic previews — similar to how Linktree's theme picker works.
+Add two new email templates matching the ones in the stripe webhook:
 
-### Visual per theme:
-- **Glass**: Semi-transparent pill with blur, icon box + label
-- **Filled**: Solid headerColor background, white text, no icon
-- **Outline**: Transparent with visible border, icon + label  
-- **Soft**: White pill with shadow, icon + label
-- **Shadow**: Full rounded-pill, bold shadow, centered text only
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-No other files change. The renderer and data flow are already working correctly.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
