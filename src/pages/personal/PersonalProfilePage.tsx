@@ -217,35 +217,88 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-  // Regular links
+  // Theme-based styling for standard pills
+  const themeStyles = (() => {
+    // If link has a custom pill_color, it overrides theme
+    if (customColor) {
+      return {
+        pill: 'rounded-xl p-4 transition-transform active:scale-[0.98]',
+        pillStyle: { backgroundColor: customColor } as React.CSSProperties,
+        showIcon: true,
+        labelClass: 'text-white font-medium',
+        arrowClass: 'text-white opacity-60',
+      };
+    }
+    switch (buttonTheme) {
+      case 'filled':
+        return {
+          pill: 'rounded-xl p-4 transition-transform active:scale-[0.98]',
+          pillStyle: { backgroundColor: headerColor } as React.CSSProperties,
+          showIcon: false,
+          labelClass: 'text-white font-semibold',
+          arrowClass: 'text-white/60',
+        };
+      case 'outline':
+        return {
+          pill: `rounded-xl border-2 p-4 transition-transform active:scale-[0.98] ${isDarkBg ? 'border-white/40' : 'border-gray-300'}`,
+          pillStyle: {} as React.CSSProperties,
+          showIcon: true,
+          labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-foreground'}`,
+          arrowClass: `${isDarkBg ? 'text-white/50' : 'text-muted-foreground'} opacity-60`,
+        };
+      case 'soft':
+        return {
+          pill: `rounded-xl p-4 shadow-md transition-transform active:scale-[0.98] ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
+          pillStyle: {} as React.CSSProperties,
+          showIcon: true,
+          labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-foreground'}`,
+          arrowClass: `${isDarkBg ? 'text-white/50' : 'text-muted-foreground'} opacity-60`,
+        };
+      case 'shadow':
+        return {
+          pill: `rounded-full px-6 py-4 shadow-lg transition-transform active:scale-[0.98] text-center ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
+          pillStyle: {} as React.CSSProperties,
+          showIcon: false,
+          labelClass: `font-semibold ${isDarkBg ? 'text-white' : 'text-foreground'}`,
+          arrowClass: 'hidden',
+        };
+      default: // glass — use platform gradient/bgColor if available
+        return {
+          pill: `rounded-xl p-4 transition-transform active:scale-[0.98] ${config?.gradient || config?.bgColor || 'bg-card border border-border'}`,
+          pillStyle: {} as React.CSSProperties,
+          showIcon: true,
+          labelClass: `font-medium ${config?.color || 'text-foreground'}`,
+          arrowClass: `${config?.color || 'text-muted-foreground'} opacity-60`,
+        };
+    }
+  })();
+
   return (
-      <a
-        href={link.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => profileId && trackLinkClick(profileId, link)}
-      className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        customColor 
-          ? "" 
-          : config?.gradient || config?.bgColor || "bg-card border border-border"
-      }`}
-      style={customColor ? { backgroundColor: customColor } : undefined}
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => profileId && trackLinkClick(profileId, link)}
+      className={`flex items-center gap-4 ${themeStyles.pill}`}
+      style={themeStyles.pillStyle}
     >
-      {link.thumbnail_url ? (
-        <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
-          <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-          customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
-        }`}>
-          {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
-        </div>
+      {themeStyles.showIcon && (
+        link.thumbnail_url ? (
+          <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
+            <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+            customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
+          }`}>
+            {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
+          </div>
+        )
       )}
-      <span className={`flex-1 font-medium ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
+      <span className={`flex-1 ${themeStyles.labelClass}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
+      <ExternalLink className={`h-4 w-4 ${themeStyles.arrowClass}`} />
     </a>
   );
 });
