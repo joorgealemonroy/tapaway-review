@@ -63,12 +63,20 @@ const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
 ];
 
-const BUTTON_THEMES = [
+const BUTTON_THEMES_CLASSIC = [
   { id: 'glass', label: 'Glass', desc: 'Transparent + blur' },
   { id: 'filled', label: 'Filled', desc: 'Solid color' },
   { id: 'outline', label: 'Outline', desc: 'Clean border' },
   { id: 'soft', label: 'Soft', desc: 'Shadow, no border' },
   { id: 'shadow', label: 'Shadow', desc: 'Rounded pill' },
+];
+
+const BUTTON_THEMES_BOLD = [
+  { id: 'neon', label: 'Neon', desc: 'Glowing border' },
+  { id: 'gradient', label: 'Gradient', desc: 'Color fade fill' },
+  { id: 'minimal', label: 'Minimal', desc: 'Text only, clean' },
+  { id: 'rounded-filled', label: 'Rounded', desc: 'Pill shape, solid' },
+  { id: 'brutalist', label: 'Brutalist', desc: 'Hard edges, bold' },
 ];
 
 export const DashboardDesignTab = ({
