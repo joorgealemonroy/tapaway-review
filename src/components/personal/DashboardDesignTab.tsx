@@ -150,6 +150,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingButtonTheme(buttonTheme);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -157,6 +158,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
+      buttonTheme,
     });
   };
 
