@@ -27,14 +27,12 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   isPremium: boolean;
-  buttonTheme: string;
   onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
-    buttonTheme?: string;
   }) => void;
 }
 
@@ -63,22 +61,6 @@ const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
 ];
 
-const BUTTON_THEMES_CLASSIC = [
-  { id: 'glass', label: 'Glass', desc: 'Transparent + blur' },
-  { id: 'filled', label: 'Filled', desc: 'Solid color' },
-  { id: 'outline', label: 'Outline', desc: 'Clean border' },
-  { id: 'soft', label: 'Soft', desc: 'Shadow, no border' },
-  { id: 'shadow', label: 'Shadow', desc: 'Rounded pill' },
-];
-
-const BUTTON_THEMES_BOLD = [
-  { id: 'neon', label: 'Neon', desc: 'Glowing border' },
-  { id: 'gradient', label: 'Gradient', desc: 'Color fade fill' },
-  { id: 'minimal', label: 'Minimal', desc: 'Text only, clean' },
-  { id: 'rounded-filled', label: 'Rounded', desc: 'Pill shape, solid' },
-  { id: 'brutalist', label: 'Brutalist', desc: 'Hard edges, bold' },
-];
-
 export const DashboardDesignTab = ({
   profileId,
   headerType,
@@ -87,7 +69,6 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   isPremium,
-  buttonTheme,
   onUpgrade,
   onUpdate,
 }: Props) => {
@@ -106,7 +87,6 @@ export const DashboardDesignTab = ({
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
-  const [pendingButtonTheme, setPendingButtonTheme] = useState(buttonTheme);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -114,10 +94,9 @@ export const DashboardDesignTab = ({
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor ||
-      pendingButtonTheme !== buttonTheme
+      pendingBgColor !== backgroundColor
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingButtonTheme, buttonTheme]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -126,7 +105,6 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
-      if (pendingButtonTheme !== buttonTheme) updates.button_theme = pendingButtonTheme;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -141,7 +119,6 @@ export const DashboardDesignTab = ({
         headerType: pendingHeaderType,
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
-        buttonTheme: pendingButtonTheme,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -158,7 +135,6 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingButtonTheme(buttonTheme);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -166,7 +142,6 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
-      buttonTheme,
     });
   };
 
@@ -600,111 +575,6 @@ export const DashboardDesignTab = ({
             className="h-10 flex-1 font-mono text-sm"
           />
         </div>
-      </div>
-
-      <div className="h-px bg-border" />
-
-      {/* Button Style Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Button Style</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">Choose how your link buttons look</p>
-        </div>
-
-        {[
-          { label: 'Classic', themes: BUTTON_THEMES_CLASSIC },
-          { label: 'Bold', themes: BUTTON_THEMES_BOLD },
-        ].map((group) => {
-          const color = pendingHeaderColor || '#6366f1';
-
-          const getPillStyle = (themeId: string): React.CSSProperties => {
-            switch (themeId) {
-              case 'glass': return { background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(0,0,0,0.08)', backdropFilter: 'blur(8px)', borderRadius: '12px' };
-              case 'filled': return { background: color, borderRadius: '12px' };
-              case 'outline': return { background: 'transparent', border: `2px solid ${color}`, borderRadius: '12px' };
-              case 'soft': return { background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '12px' };
-              case 'shadow': return { background: 'white', boxShadow: '0 4px 14px rgba(0,0,0,0.15)', borderRadius: '999px' };
-              case 'neon': return { background: 'rgba(0,0,0,0.85)', border: `2px solid ${color}`, borderRadius: '12px', boxShadow: `0 0 12px ${color}80, 0 0 4px ${color}40` };
-              case 'gradient': return { background: `linear-gradient(135deg, ${color}, ${color}99)`, borderRadius: '12px' };
-              case 'minimal': return { background: 'transparent', borderBottom: '1px solid rgba(0,0,0,0.15)', borderRadius: '0' };
-              case 'rounded-filled': return { background: color, borderRadius: '999px' };
-              case 'brutalist': return { background: 'white', border: '3px solid black', borderRadius: '0' };
-              default: return { borderRadius: '12px' };
-            }
-          };
-
-          const getPillTextColor = (themeId: string): string => {
-            switch (themeId) {
-              case 'filled': case 'gradient': case 'rounded-filled': return 'text-white';
-              case 'neon': return 'text-white';
-              case 'brutalist': return 'text-black font-bold';
-              default: return 'text-foreground';
-            }
-          };
-
-          const showIcon = (id: string) => !['filled', 'shadow', 'minimal', 'brutalist', 'rounded-filled'].includes(id);
-
-          return (
-            <div key={group.label} className="space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{group.label}</p>
-              {group.themes.map((theme) => {
-                const isSelected = pendingButtonTheme === theme.id;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => {
-                      setPendingButtonTheme(theme.id);
-                      onUpdate({ buttonTheme: theme.id });
-                    }}
-                    className={`w-full flex items-center gap-4 p-3.5 rounded-xl border-2 transition-all text-left ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-muted bg-card hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="shrink-0 w-20">
-                      <span className="text-sm font-semibold text-foreground">{theme.label}</span>
-                      <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{theme.desc}</p>
-                    </div>
-
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium ${getPillTextColor(theme.id)}`}
-                        style={getPillStyle(theme.id)}
-                      >
-                        {showIcon(theme.id) && (
-                          <span className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                            IG
-                          </span>
-                        )}
-                        <span className="truncate">Instagram</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium ${getPillTextColor(theme.id)}`}
-                        style={getPillStyle(theme.id)}
-                      >
-                        {showIcon(theme.id) && (
-                          <span className="w-5 h-5 rounded-md bg-black flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                            𝕏
-                          </span>
-                        )}
-                        <span className="truncate">X / Twitter</span>
-                      </div>
-                    </div>
-
-                    {isSelected && (
-                      <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
       </div>
 
       {rawImageUrl && (

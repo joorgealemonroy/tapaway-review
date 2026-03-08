@@ -1493,7 +1493,6 @@ export type Database = {
           background_color: string | null
           banner_image_url: string | null
           bio: string | null
-          button_theme: string | null
           card_back_text: string | null
           card_confirmed: boolean | null
           card_confirmed_at: string | null
@@ -1538,7 +1537,6 @@ export type Database = {
           background_color?: string | null
           banner_image_url?: string | null
           bio?: string | null
-          button_theme?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
@@ -1583,7 +1581,6 @@ export type Database = {
           background_color?: string | null
           banner_image_url?: string | null
           bio?: string | null
-          button_theme?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null

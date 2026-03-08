@@ -53,7 +53,6 @@ interface ProfileData {
   pfp_position?: string | null;
   banner_image_url?: string | null;
   plan_type?: string | null;
-  button_theme?: string | null;
 }
 
 interface LinkData {
@@ -100,7 +99,6 @@ function ProfilePreviewRendererComponent({
   const headerImageUrl = profile.header_image_url;
   // Default to black background
   const backgroundColor = profile.background_color || "#000000";
-  const buttonTheme = profile.button_theme || "glass";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
   
   // Banner for premium users (header_type === "banner")
@@ -433,92 +431,6 @@ function ProfilePreviewRendererComponent({
       );
     }
 
-    // Theme-based styling for standard pills
-    const themeClasses = (() => {
-      switch (buttonTheme) {
-        case 'filled':
-          return {
-            pill: 'rounded-xl px-4 py-3 transition-all hover:scale-[1.01] hover:opacity-90',
-            pillStyle: { backgroundColor: link.pill_color || headerColor } as React.CSSProperties,
-            showIcon: false,
-            labelClass: 'text-white font-semibold',
-            arrowClass: 'text-white/60',
-          };
-        case 'outline':
-          return {
-            pill: `rounded-xl border-2 px-4 py-3 transition-all hover:scale-[1.01] ${isDarkBg ? 'border-white/40' : 'border-gray-300'}`,
-            pillStyle: {} as React.CSSProperties,
-            showIcon: true,
-            labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`,
-            arrowClass: `${isDarkBg ? 'text-white/50' : 'text-gray-400'}`,
-          };
-        case 'soft':
-          return {
-            pill: `rounded-xl px-4 py-3 shadow-md transition-all hover:shadow-lg hover:scale-[1.01] ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
-            pillStyle: {} as React.CSSProperties,
-            showIcon: true,
-            labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`,
-            arrowClass: `${isDarkBg ? 'text-white/50' : 'text-gray-400'}`,
-          };
-        case 'shadow':
-          return {
-            pill: `rounded-full px-6 py-3.5 shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] text-center ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
-            pillStyle: {} as React.CSSProperties,
-            showIcon: false,
-            labelClass: `font-semibold ${isDarkBg ? 'text-white' : 'text-gray-800'}`,
-            arrowClass: 'hidden',
-          };
-        case 'neon':
-          return {
-            pill: 'rounded-xl px-4 py-3 transition-all hover:scale-[1.01] bg-black/85',
-            pillStyle: { border: `2px solid ${link.pill_color || headerColor}`, boxShadow: `0 0 12px ${(link.pill_color || headerColor)}80, 0 0 4px ${(link.pill_color || headerColor)}40` } as React.CSSProperties,
-            showIcon: true,
-            labelClass: 'text-white font-medium',
-            arrowClass: 'text-white/50',
-          };
-        case 'gradient':
-          return {
-            pill: 'rounded-xl px-4 py-3 transition-all hover:scale-[1.01] hover:opacity-90',
-            pillStyle: { background: `linear-gradient(135deg, ${link.pill_color || headerColor}, ${(link.pill_color || headerColor)}99)` } as React.CSSProperties,
-            showIcon: false,
-            labelClass: 'text-white font-semibold',
-            arrowClass: 'text-white/60',
-          };
-        case 'minimal':
-          return {
-            pill: `px-4 py-3 transition-all hover:opacity-70 border-b ${isDarkBg ? 'border-white/20' : 'border-gray-200'}`,
-            pillStyle: {} as React.CSSProperties,
-            showIcon: false,
-            labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`,
-            arrowClass: `${isDarkBg ? 'text-white/40' : 'text-gray-400'}`,
-          };
-        case 'rounded-filled':
-          return {
-            pill: 'rounded-full px-6 py-3.5 transition-all hover:scale-[1.01] hover:opacity-90',
-            pillStyle: { backgroundColor: link.pill_color || headerColor } as React.CSSProperties,
-            showIcon: false,
-            labelClass: 'text-white font-semibold text-center',
-            arrowClass: 'text-white/60',
-          };
-        case 'brutalist':
-          return {
-            pill: 'px-4 py-3 transition-all hover:translate-x-0.5 hover:-translate-y-0.5',
-            pillStyle: { border: '3px solid black', borderRadius: '0', background: 'white', boxShadow: '3px 3px 0 black' } as React.CSSProperties,
-            showIcon: false,
-            labelClass: 'text-black font-bold uppercase tracking-wide',
-            arrowClass: 'text-black',
-          };
-        default: // glass
-          return {
-            pill: `rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`,
-            pillStyle: (!isDarkBg ? { borderColor: `${headerColor}30` } : {}) as React.CSSProperties,
-            showIcon: true,
-            labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`,
-            arrowClass: `${isDarkBg ? 'text-white/50' : 'text-gray-400'}`,
-          };
-      }
-    })();
-
     return (
       <a
         key={link.id}
@@ -526,25 +438,23 @@ function ProfilePreviewRendererComponent({
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
-        className={`flex items-center gap-3 ${themeClasses.pill}`}
-        style={themeClasses.pillStyle}
+        className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`}
+        style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
       >
-        {themeClasses.showIcon && (
-          link.thumbnail_url ? (
-            <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-              <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
-            </div>
-          ) : Icon ? (
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: isDarkBg ? 'rgba(255,255,255,0.1)' : `${headerColor}15` }}
-            >
-              <Icon className="h-5 w-5" style={{ color: isDarkBg ? 'white' : headerColor }} />
-            </div>
-          ) : null
+        {link.thumbnail_url ? (
+          <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
+            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
+          </div>
+        ) : Icon && (
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            style={{ backgroundColor: isDarkBg ? 'rgba(255,255,255,0.1)' : `${headerColor}15` }}
+          >
+            <Icon className="h-5 w-5" style={{ color: isDarkBg ? 'white' : headerColor }} />
+          </div>
         )}
-        <span className={`flex-1 ${themeClasses.labelClass}`}>{link.label}</span>
-        <ExternalLink className={`h-4 w-4 ${themeClasses.arrowClass}`} />
+        <span className={`flex-1 font-medium ${isDarkBg ? 'text-white' : 'text-gray-800'}`}>{link.label}</span>
+        <ExternalLink className={`h-4 w-4 ${isDarkBg ? 'text-white/50' : 'text-gray-400'}`} />
       </a>
     );
   };

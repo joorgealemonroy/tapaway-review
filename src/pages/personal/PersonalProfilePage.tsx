@@ -97,19 +97,13 @@ const ProfileLink = memo(function ProfileLink({
   profileId,
   isFeatured = false,
   isGrid = false,
-  index = 99,
-  buttonTheme = 'glass',
-  isDarkBg = false,
-  headerColor = '#6366f1',
+  index = 99
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
   isFeatured?: boolean;
   isGrid?: boolean;
   index?: number;
-  buttonTheme?: string;
-  isDarkBg?: boolean;
-  headerColor?: string;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
@@ -217,88 +211,35 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-  // Theme-based styling for standard pills
-  const themeStyles = (() => {
-    // If link has a custom pill_color, it overrides theme
-    if (customColor) {
-      return {
-        pill: 'rounded-xl p-4 transition-transform active:scale-[0.98]',
-        pillStyle: { backgroundColor: customColor } as React.CSSProperties,
-        showIcon: true,
-        labelClass: 'text-white font-medium',
-        arrowClass: 'text-white opacity-60',
-      };
-    }
-    switch (buttonTheme) {
-      case 'filled':
-        return {
-          pill: 'rounded-xl p-4 transition-transform active:scale-[0.98]',
-          pillStyle: { backgroundColor: headerColor } as React.CSSProperties,
-          showIcon: false,
-          labelClass: 'text-white font-semibold',
-          arrowClass: 'text-white/60',
-        };
-      case 'outline':
-        return {
-          pill: `rounded-xl border-2 p-4 transition-transform active:scale-[0.98] ${isDarkBg ? 'border-white/40' : 'border-gray-300'}`,
-          pillStyle: {} as React.CSSProperties,
-          showIcon: true,
-          labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-foreground'}`,
-          arrowClass: `${isDarkBg ? 'text-white/50' : 'text-muted-foreground'} opacity-60`,
-        };
-      case 'soft':
-        return {
-          pill: `rounded-xl p-4 shadow-md transition-transform active:scale-[0.98] ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
-          pillStyle: {} as React.CSSProperties,
-          showIcon: true,
-          labelClass: `font-medium ${isDarkBg ? 'text-white' : 'text-foreground'}`,
-          arrowClass: `${isDarkBg ? 'text-white/50' : 'text-muted-foreground'} opacity-60`,
-        };
-      case 'shadow':
-        return {
-          pill: `rounded-full px-6 py-4 shadow-lg transition-transform active:scale-[0.98] text-center ${isDarkBg ? 'bg-white/15' : 'bg-white'}`,
-          pillStyle: {} as React.CSSProperties,
-          showIcon: false,
-          labelClass: `font-semibold ${isDarkBg ? 'text-white' : 'text-foreground'}`,
-          arrowClass: 'hidden',
-        };
-      default: // glass — use platform gradient/bgColor if available
-        return {
-          pill: `rounded-xl p-4 transition-transform active:scale-[0.98] ${config?.gradient || config?.bgColor || 'bg-card border border-border'}`,
-          pillStyle: {} as React.CSSProperties,
-          showIcon: true,
-          labelClass: `font-medium ${config?.color || 'text-foreground'}`,
-          arrowClass: `${config?.color || 'text-muted-foreground'} opacity-60`,
-        };
-    }
-  })();
-
+  // Regular links
   return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => profileId && trackLinkClick(profileId, link)}
-      className={`flex items-center gap-4 ${themeStyles.pill}`}
-      style={themeStyles.pillStyle}
+      <a
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => profileId && trackLinkClick(profileId, link)}
+      className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
+        customColor 
+          ? "" 
+          : config?.gradient || config?.bgColor || "bg-card border border-border"
+      }`}
+      style={customColor ? { backgroundColor: customColor } : undefined}
     >
-      {themeStyles.showIcon && (
-        link.thumbnail_url ? (
-          <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
-            <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
-          </div>
-        ) : (
-          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-            customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
-          }`}>
-            {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
-          </div>
-        )
+      {link.thumbnail_url ? (
+        <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
+          <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+          customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
+        }`}>
+          {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
+        </div>
       )}
-      <span className={`flex-1 ${themeStyles.labelClass}`}>
+      <span className={`flex-1 font-medium ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${themeStyles.arrowClass}`} />
+      <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
     </a>
   );
 });
@@ -1279,7 +1220,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} buttonTheme={(profile as any).button_theme || 'glass'} isDarkBg={isDarkBg} headerColor={profile.header_color || '#6366f1'} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} />
               </div>
             )}
 
@@ -1288,8 +1229,6 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             <div className="space-y-3">
               {(() => {
                 let linkIndex = featuredLink ? 1 : 0;
-                const bTheme = (profile as any).button_theme || 'glass';
-                const hColor = profile.header_color || '#6366f1';
                 return groupedItems.map((item, idx) => {
                 if (item.kind === "grid-group") {
                   const startIndex = linkIndex;
@@ -1297,13 +1236,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} buttonTheme={bTheme} isDarkBg={isDarkBg} headerColor={hColor} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} buttonTheme={bTheme} isDarkBg={isDarkBg} headerColor={hColor} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} />;
                 } else {
                   // Check if it's a product block
                   const blockData = item.data;
