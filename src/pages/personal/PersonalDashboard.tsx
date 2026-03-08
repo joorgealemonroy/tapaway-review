@@ -687,6 +687,7 @@ const PersonalDashboard = () => {
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
+              buttonTheme={(profile as any).button_theme || 'glass'}
               onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
