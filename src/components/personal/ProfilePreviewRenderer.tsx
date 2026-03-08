@@ -100,6 +100,7 @@ function ProfilePreviewRendererComponent({
   const headerImageUrl = profile.header_image_url;
   // Default to black background
   const backgroundColor = profile.background_color || "#000000";
+  const buttonTheme = profile.button_theme || "glass";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
   
   // Banner for premium users (header_type === "banner")
