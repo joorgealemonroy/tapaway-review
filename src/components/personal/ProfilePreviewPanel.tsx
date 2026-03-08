@@ -14,6 +14,7 @@ interface ProfileData {
   header_image_url?: string | null;
   background_color?: string | null;
   pfp_position?: string | null;
+  button_theme?: string | null;
 }
 
 interface LinkData {

@@ -1,62 +1,21 @@
 
 
-# Add Button/Pill Theme System for Personal Profiles
+# Send Test Post-Purchase Emails
 
-Inspired by the Linktree-style templates in the reference images, this adds a "Button Style" picker to the Design tab so users can change how their link pills look across their profile.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Theme Options
+## Changes
 
-```text
-┌──────────────┬──────────────────────────────────────────────┐
-│ Theme ID     │ Visual Description                           │
-├──────────────┼──────────────────────────────────────────────┤
-│ glass        │ Current default: semi-transparent, border,   │
-│ (default)    │ backdrop-blur, icon box + label               │
-├──────────────┼──────────────────────────────────────────────┤
-│ filled       │ Solid header-color bg, white text, rounded,  │
-│              │ no icon box (like Lane/Healeys)               │
-├──────────────┼──────────────────────────────────────────────┤
-│ outline      │ Transparent bg, visible border, clean text   │
-│              │ (like Constance)                              │
-├──────────────┼──────────────────────────────────────────────┤
-│ soft         │ White/light pill, subtle shadow, no border   │
-│              │ (like Balcombe/Artemis)                       │
-├──────────────┼──────────────────────────────────────────────┤
-│ shadow       │ Rounded-full pill, bold shadow, centered     │
-│              │ text only (like Knox)                         │
-└──────────────┴──────────────────────────────────────────────┘
-```
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-## Changes Required
+Add two new email templates matching the ones in the stripe webhook:
 
-### 1. Database Migration
-Add a `button_theme` column to `personal_profiles`:
-```sql
-ALTER TABLE personal_profiles ADD COLUMN button_theme text DEFAULT 'glass';
-```
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-### 2. `ProfilePreviewRenderer.tsx`
-- Accept `button_theme` from profile data
-- In the `renderLink()` function (non-featured, non-cover-image pills at ~line 434), apply different className/style combos based on the theme value
-- Each theme changes: border radius, background, border, shadow, text color, icon visibility
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-### 3. `DashboardDesignTab.tsx`
-- Accept + emit `button_theme` in props and `onUpdate`
-- Add a "Button Style" section with visual mini-previews of each theme (small rectangles showing the style)
-- Track as pending state like other design options
-- Save to DB alongside other design fields
+### 2. Deploy and Invoke
 
-### 4. Data Flow Updates
-- **`PersonalDashboard.tsx`**: Fetch `button_theme`, pass to design tab and preview panel
-- **`useProfileData.ts`**: Add `button_theme` to the select query
-- **`PersonalProfilePage.tsx` / live profile**: Pass `button_theme` through to renderer
-
-### 5. Onboarding (optional, deferred)
-The existing layout templates in `layoutTemplates.ts` could include a default `buttonTheme` per template, but this can be added later.
-
-## Technical Notes
-- No new tables needed -- single column addition to existing table
-- The `button_theme` value flows: DB -> profile fetch -> renderer props -> className logic
-- Featured links and cover-image links keep their existing styles (themes only affect standard pill links)
-- All 5 themes are free tier (no plan gating)
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

@@ -27,12 +27,14 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   isPremium: boolean;
+  buttonTheme: string;
   onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
+    buttonTheme?: string;
   }) => void;
 }
 
@@ -61,6 +63,14 @@ const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
 ];
 
+const BUTTON_THEMES = [
+  { id: 'glass', label: 'Glass', desc: 'Transparent + blur' },
+  { id: 'filled', label: 'Filled', desc: 'Solid color' },
+  { id: 'outline', label: 'Outline', desc: 'Clean border' },
+  { id: 'soft', label: 'Soft', desc: 'Shadow, no border' },
+  { id: 'shadow', label: 'Shadow', desc: 'Rounded pill' },
+];
+
 export const DashboardDesignTab = ({
   profileId,
   headerType,
@@ -69,6 +79,7 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   isPremium,
+  buttonTheme,
   onUpgrade,
   onUpdate,
 }: Props) => {
@@ -87,6 +98,7 @@ export const DashboardDesignTab = ({
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
+  const [pendingButtonTheme, setPendingButtonTheme] = useState(buttonTheme);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -94,9 +106,10 @@ export const DashboardDesignTab = ({
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor
+      pendingBgColor !== backgroundColor ||
+      pendingButtonTheme !== buttonTheme
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingButtonTheme, buttonTheme]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -105,6 +118,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
+      if (pendingButtonTheme !== buttonTheme) updates.button_theme = pendingButtonTheme;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -119,6 +133,7 @@ export const DashboardDesignTab = ({
         headerType: pendingHeaderType,
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
+        buttonTheme: pendingButtonTheme,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -135,6 +150,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingButtonTheme(buttonTheme);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -142,6 +158,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
+      buttonTheme,
     });
   };
 
@@ -574,6 +591,42 @@ export const DashboardDesignTab = ({
             }}
             className="h-10 flex-1 font-mono text-sm"
           />
+        </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* Button Style Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Button Style</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">Choose how your link buttons look</p>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {BUTTON_THEMES.map((theme) => (
+            <button
+              key={theme.id}
+              onClick={() => {
+                setPendingButtonTheme(theme.id);
+                onUpdate({ buttonTheme: theme.id });
+              }}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                pendingButtonTheme === theme.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted bg-card hover:bg-muted/50'
+              }`}
+            >
+              {/* Mini preview pill */}
+              <div className="w-full h-6 rounded-md" style={
+                theme.id === 'glass' ? { background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' } :
+                theme.id === 'filled' ? { background: pendingHeaderColor || '#6366f1' } :
+                theme.id === 'outline' ? { background: 'transparent', border: '2px solid rgba(0,0,0,0.3)' } :
+                theme.id === 'soft' ? { background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' } :
+                { background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '999px' }
+              } />
+              <span className="text-[10px] font-medium text-foreground leading-tight">{theme.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

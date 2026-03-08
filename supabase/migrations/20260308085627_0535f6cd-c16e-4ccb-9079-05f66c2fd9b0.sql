@@ -1,0 +1,1 @@
+ALTER TABLE personal_profiles ADD COLUMN button_theme text DEFAULT 'glass';
