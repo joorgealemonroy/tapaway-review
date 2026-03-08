@@ -53,6 +53,7 @@ interface ProfileData {
   pfp_position?: string | null;
   banner_image_url?: string | null;
   plan_type?: string | null;
+  button_theme?: string | null;
 }
 
 interface LinkData {
