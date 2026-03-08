@@ -5,15 +5,19 @@ import { useNavigate } from "react-router-dom";
 
 const ProfileCard = () => (
   <motion.div
-    className="w-72 rounded-3xl p-6 space-y-4"
-    style={{ background: "hsl(220, 30%, 14%)", border: "1px solid hsl(220, 20%, 22%)" }}
+    className="w-72 rounded-3xl p-6 space-y-4 shadow-2xl"
+    style={{
+      background: "hsl(220, 30%, 14%)",
+      border: "1px solid hsl(220, 20%, 22%)",
+      backdropFilter: "blur(20px)",
+    }}
     initial={{ opacity: 0, scale: 0.95 }}
     whileInView={{ opacity: 1, scale: 1 }}
     viewport={{ once: true }}
     transition={{ delay: 0.15 }}
   >
     <div className="flex flex-col items-center gap-2">
-      <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xl">
+      <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xl shadow-lg">
         JD
       </div>
       <div className="text-center">
@@ -46,7 +50,10 @@ const ProfileCard = () => (
 const RevenueCard = () => (
   <motion.div
     className="w-44 rounded-2xl p-4 shadow-2xl"
-    style={{ background: "hsl(var(--primary))" }}
+    style={{
+      background: "hsl(var(--primary))",
+      boxShadow: "0 20px 50px -12px hsl(var(--primary) / 0.4)",
+    }}
     initial={{ opacity: 0, x: 30, y: -10 }}
     whileInView={{ opacity: 1, x: 0, y: 0 }}
     viewport={{ once: true }}
@@ -66,6 +73,7 @@ const RevenueCard = () => (
 const ProductCard = () => (
   <motion.div
     className="w-48 rounded-2xl overflow-hidden shadow-2xl bg-white"
+    style={{ boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35)" }}
     initial={{ opacity: 0, x: -30, y: 10 }}
     whileInView={{ opacity: 1, x: 0, y: 0 }}
     viewport={{ once: true }}
@@ -79,7 +87,7 @@ const ProductCard = () => (
       <p className="text-muted-foreground text-xs">12 video lessons</p>
       <div className="flex items-center justify-between pt-1">
         <span className="text-foreground font-bold text-sm">$49</span>
-        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: "hsl(var(--primary) / 0.15)", color: "hsl(var(--primary))" }}>
+        <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full" style={{ background: "hsl(var(--primary) / 0.15)", color: "hsl(var(--primary))" }}>
           Buy now
         </span>
       </div>
@@ -116,29 +124,30 @@ const PersonalShopShowcase = () => {
           </motion.p>
         </div>
 
-        {/* Mobile layout: stacked */}
-        <div className="flex flex-col items-center gap-6 md:hidden">
-          <ProfileCard />
-          <RevenueCard />
-          <ProductCard />
-        </div>
-
-        {/* Desktop layout: composed with floating cards */}
-        <div className="hidden md:block relative max-w-lg mx-auto" style={{ minHeight: 520 }}>
-          <div className="relative z-10 flex justify-center">
-            <ProfileCard />
-          </div>
-          <div className="absolute z-20 right-0 md:-right-8 top-4" style={{ rotate: "4deg" }}>
-            <RevenueCard />
-          </div>
-          <div className="absolute z-20 left-0 md:-left-8 bottom-8" style={{ rotate: "-3deg" }}>
-            <ProductCard />
+        {/* Single composed layout — scaled down on mobile */}
+        <div className="flex justify-center">
+          <div
+            className="relative scale-[0.78] sm:scale-[0.85] md:scale-100 origin-top"
+            style={{ width: 480, height: 520 }}
+          >
+            {/* Profile card — center */}
+            <div className="absolute z-10 left-1/2 -translate-x-1/2 top-0">
+              <ProfileCard />
+            </div>
+            {/* Revenue card — top right, slight rotation */}
+            <div className="absolute z-20 right-0 top-4" style={{ rotate: "4deg" }}>
+              <RevenueCard />
+            </div>
+            {/* Product card — bottom left, slight rotation */}
+            <div className="absolute z-20 left-0 bottom-8" style={{ rotate: "-3deg" }}>
+              <ProductCard />
+            </div>
           </div>
         </div>
 
         {/* CTA */}
         <motion.div
-          className="text-center mt-10 md:mt-12"
+          className="text-center mt-6 md:mt-12"
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

@@ -147,23 +147,23 @@ export const PersonalFeatures = () => {
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="py-20 px-4 bg-muted/20">
+    <section ref={ref} className="py-12 md:py-20 px-4 bg-muted/20">
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="text-center mb-14"
+          className="text-center mb-10 md:mb-14"
         >
-          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
+          <h2 className="text-2xl md:text-4xl font-black text-foreground mb-3 md:mb-4">
             Everything your profile can do
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">
             More than a link-in-bio — it's a hub that works for you.
           </p>
         </motion.div>
 
-        <div className="space-y-12 md:space-y-16">
+        <div className="space-y-10 md:space-y-16">
           {features.map((feature, i) => {
             const isReversed = i % 2 !== 0;
             return (
@@ -172,9 +172,9 @@ export const PersonalFeatures = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
-                className={`flex flex-col ${
+                className={`flex flex-col-reverse ${
                   isReversed ? "md:flex-row-reverse" : "md:flex-row"
-                } items-center gap-8 md:gap-12`}
+                } items-center gap-6 md:gap-12`}
               >
                 {/* Text side */}
                 <div className="flex-1 text-center md:text-left">
@@ -191,7 +191,7 @@ export const PersonalFeatures = () => {
                   </p>
                 </div>
 
-                {/* Visual side */}
+                {/* Visual side — appears first on mobile via flex-col-reverse */}
                 <div className="flex-shrink-0 flex justify-center">
                   {feature.visual}
                 </div>
