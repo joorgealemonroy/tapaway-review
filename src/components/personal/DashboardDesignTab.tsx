@@ -118,6 +118,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
+      if (pendingButtonTheme !== buttonTheme) updates.button_theme = pendingButtonTheme;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
