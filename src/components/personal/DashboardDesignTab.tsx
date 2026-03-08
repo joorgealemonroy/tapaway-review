@@ -594,6 +594,42 @@ export const DashboardDesignTab = ({
         </div>
       </div>
 
+      <div className="h-px bg-border" />
+
+      {/* Button Style Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Button Style</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">Choose how your link buttons look</p>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {BUTTON_THEMES.map((theme) => (
+            <button
+              key={theme.id}
+              onClick={() => {
+                setPendingButtonTheme(theme.id);
+                onUpdate({ buttonTheme: theme.id });
+              }}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                pendingButtonTheme === theme.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted bg-card hover:bg-muted/50'
+              }`}
+            >
+              {/* Mini preview pill */}
+              <div className="w-full h-6 rounded-md" style={
+                theme.id === 'glass' ? { background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.1)', backdropFilter: 'blur(4px)' } :
+                theme.id === 'filled' ? { background: pendingHeaderColor || '#6366f1' } :
+                theme.id === 'outline' ? { background: 'transparent', border: '2px solid rgba(0,0,0,0.3)' } :
+                theme.id === 'soft' ? { background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' } :
+                { background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '999px' }
+              } />
+              <span className="text-[10px] font-medium text-foreground leading-tight">{theme.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
