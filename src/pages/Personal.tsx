@@ -4,6 +4,7 @@ import { PersonalHero } from "@/components/landing/personal/PersonalHero";
 import { PersonalHowItWorks } from "@/components/landing/personal/PersonalHowItWorks";
 import { PersonalUseCases } from "@/components/landing/personal/PersonalUseCases";
 import { PersonalFeatures } from "@/components/landing/personal/PersonalFeatures";
+import PersonalShopShowcase from "@/components/landing/personal/PersonalShopShowcase";
 import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
 import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
@@ -30,6 +31,7 @@ const Personal = () => {
       <PersonalHero />
       <PersonalHowItWorks />
       <PersonalFeatures />
+      <PersonalShopShowcase />
       <PersonalUseCases />
       <PersonalFAQ />
       <PersonalFooterCTA />
