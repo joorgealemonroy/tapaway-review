@@ -97,13 +97,19 @@ const ProfileLink = memo(function ProfileLink({
   profileId,
   isFeatured = false,
   isGrid = false,
-  index = 99
+  index = 99,
+  buttonTheme = 'glass',
+  isDarkBg = false,
+  headerColor = '#6366f1',
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
   isFeatured?: boolean;
   isGrid?: boolean;
   index?: number;
+  buttonTheme?: string;
+  isDarkBg?: boolean;
+  headerColor?: string;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
