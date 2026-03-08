@@ -98,6 +98,7 @@ export const DashboardDesignTab = ({
   const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
+  const [pendingButtonTheme, setPendingButtonTheme] = useState(buttonTheme);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -105,9 +106,10 @@ export const DashboardDesignTab = ({
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor
+      pendingBgColor !== backgroundColor ||
+      pendingButtonTheme !== buttonTheme
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingButtonTheme, buttonTheme]);
 
   const handleSave = async () => {
     setSaving(true);
