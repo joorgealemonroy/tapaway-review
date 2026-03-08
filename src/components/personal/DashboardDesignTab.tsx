@@ -133,6 +133,7 @@ export const DashboardDesignTab = ({
         headerType: pendingHeaderType,
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
+        buttonTheme: pendingButtonTheme,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
