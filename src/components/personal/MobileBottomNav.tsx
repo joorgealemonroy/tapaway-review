@@ -18,10 +18,10 @@ interface MobileBottomNavProps {
  ];
  
 const BASE_MORE_TABS = [
+  { value: "shop", label: "Shop", icon: ShoppingBag, description: "Sell digital products" },
   { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
-  { value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
-  { value: "shop", label: "Shop", icon: ShoppingBag, description: "Get a physical NFC card" },
   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
+  { value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
 ];
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileBottomNavProps) => {
