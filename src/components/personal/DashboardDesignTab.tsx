@@ -27,12 +27,14 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   isPremium: boolean;
+  buttonTheme: string;
   onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
+    buttonTheme?: string;
   }) => void;
 }
 
