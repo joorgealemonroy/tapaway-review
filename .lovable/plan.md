@@ -1,21 +1,34 @@
 
 
-# Send Test Post-Purchase Emails
+# Restore Composed Shop Layout + Mobile-First Fixes for Both Sections
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## 1. PersonalShopShowcase.tsx — Restore composed/stacked look, higher quality
 
-## Changes
+The user preferred the original composed layout where all three cards overlap with rotations (the "cool stacked look") rather than the separated mobile layout. We'll bring back a single composed layout that works on both mobile and desktop.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+**Changes:**
+- **Remove the dual layout** (separate mobile/desktop blocks) — use ONE layout for all screens
+- Cards overlap with absolute positioning and slight rotations on all sizes, but scaled down on mobile
+- Use a wrapper with `scale-[0.85] md:scale-100` so the composed layout fits mobile without clipping
+- Increase visual polish: add subtle `backdrop-blur`, glow effects on the revenue card, and refined shadows
+- Keep the updated content (Masterclass, $4,280)
 
-Add two new email templates matching the ones in the stripe webhook:
+## 2. PersonalFeatures.tsx — Mobile-first improvements
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+Current issues on mobile:
+- The side-by-side layout (`flex-col` then `md:flex-row`) works but visuals appear after text on every item — on mobile the visual should come FIRST (above text) since it's more engaging
+- Heading is `text-3xl` which is slightly large for small phones
+- Spacing could be tighter on mobile
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+**Changes:**
+- Reorder: on mobile, show visual FIRST, then text below. On desktop keep alternating left/right
+- Change feature items to `flex-col-reverse md:flex-row` (visual on top on mobile)
+- Reduce heading to `text-2xl md:text-4xl`
+- Reduce section padding: `py-12 md:py-20`
+- Reduce spacing between items: `space-y-10 md:space-y-16`
+- Reduce `mb-14` header margin to `mb-10 md:mb-14`
 
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+## Files changed
+- `src/components/landing/personal/PersonalShopShowcase.tsx` — single composed layout with scale transform for mobile
+- `src/components/landing/personal/PersonalFeatures.tsx` — mobile-first reorder and spacing
 
