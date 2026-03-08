@@ -1279,7 +1279,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} buttonTheme={(profile as any).button_theme || 'glass'} isDarkBg={isDarkBg} headerColor={profile.header_color || '#6366f1'} />
               </div>
             )}
 
@@ -1288,6 +1288,8 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             <div className="space-y-3">
               {(() => {
                 let linkIndex = featuredLink ? 1 : 0;
+                const bTheme = (profile as any).button_theme || 'glass';
+                const hColor = profile.header_color || '#6366f1';
                 return groupedItems.map((item, idx) => {
                 if (item.kind === "grid-group") {
                   const startIndex = linkIndex;
@@ -1295,13 +1297,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} buttonTheme={bTheme} isDarkBg={isDarkBg} headerColor={hColor} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} buttonTheme={bTheme} isDarkBg={isDarkBg} headerColor={hColor} />;
                 } else {
                   // Check if it's a product block
                   const blockData = item.data;
