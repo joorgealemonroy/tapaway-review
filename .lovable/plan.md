@@ -1,36 +1,21 @@
 
 
-# Reorganize Mobile "More" Menu & Fix Shop Description
+# Send Test Post-Purchase Emails
 
-## Current Issues
-1. **Shop description is wrong** — says "Get a physical NFC card" (that's for Cards, not Shop)
-2. **Order isn't intuitive** — Leads → Cards → Shop → Plan has no logical flow
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Proposed Changes
+## Changes
 
-**File:** `src/components/personal/MobileBottomNav.tsx` (lines 20-25)
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-Reorder and update descriptions for a natural user flow:
+Add two new email templates matching the ones in the stripe webhook:
 
-```
-Current:                              New:
-1. Leads - "View email captures"      1. Shop  - "Sell digital products"
-2. Cards - "Coming soon"              2. Leads - "View email captures"  
-3. Shop  - "Get a physical NFC card"  3. Plan  - "Subscription & billing"
-4. Plan  - "Subscription & billing"   4. Cards - "Coming soon"
-```
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-**Rationale:** Monetization first (Shop), then engagement (Leads), then account management (Plan), and finally the placeholder (Cards) at the bottom since it's not functional yet.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-**Updated code:**
-```typescript
-const BASE_MORE_TABS = [
-  { value: "shop", label: "Shop", icon: ShoppingBag, description: "Sell digital products" },
-  { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
-  { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
-  { value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
-];
-```
+### 2. Deploy and Invoke
 
-Single-file, 4-line change. No other files affected.
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
