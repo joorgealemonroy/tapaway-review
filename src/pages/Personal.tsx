@@ -31,6 +31,7 @@ const Personal = () => {
       <PersonalHero />
       <PersonalHowItWorks />
       <PersonalFeatures />
+      <PersonalShopShowcase />
       <PersonalUseCases />
       <PersonalFAQ />
       <PersonalFooterCTA />
