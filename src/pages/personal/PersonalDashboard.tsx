@@ -400,6 +400,7 @@ const PersonalDashboard = () => {
     backgroundColor?: string | null;
     pfpPosition?: string;
     bannerImageUrl?: string | null;
+    buttonTheme?: string;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -410,6 +411,7 @@ const PersonalDashboard = () => {
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
         banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
+        button_theme: updates.buttonTheme !== undefined ? updates.buttonTheme : (profile as any).button_theme,
       };
       setProfile(updatedProfile);
       
