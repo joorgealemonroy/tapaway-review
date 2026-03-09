@@ -353,7 +353,7 @@ const Dashboard = () => {
   if (!restaurant) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background pb-20 md:pb-0">
       <nav className="border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <button 
@@ -364,11 +364,14 @@ const Dashboard = () => {
           </button>
           <div className="flex items-center gap-3">
             <DashboardSwitcher currentType="business" />
-            {restaurant?.custom_slug && <Button variant="outline" size="sm" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
+            {restaurant?.custom_slug && <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
               </Button>}
-            <Button variant="ghost" onClick={signOut}>Sign Out</Button>
+            <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={signOut}>Sign Out</Button>
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={signOut}>
+              <ExternalLink className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </nav>
