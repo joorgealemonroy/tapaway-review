@@ -69,7 +69,15 @@ const Dashboard = () => {
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  
+  const [theme, setTheme] = useState(() => localStorage.getItem('tapaway_dashboard_theme') || 'dark');
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('tapaway_dashboard_theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
   // Handle demo mode for sales reps - load demo restaurant first
   useEffect(() => {
     const loadDemoRestaurant = async () => {
