@@ -23,6 +23,7 @@ import {
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import { getAppSettings, setPaywallEnabled } from "@/lib/appSettings";
 import { toast } from "sonner";
+import SignupDropoffCard from "@/components/admin/SignupDropoffCard";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
