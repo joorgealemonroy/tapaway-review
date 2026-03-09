@@ -86,7 +86,14 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           dateGroups[date] = (dateGroups[date] || 0) + 1;
         });
 
-        const chartData = Object.entries(dateGroups).map(([date, taps]) => ({ date, taps }));
+        // Always show all 7 days, filling missing days with 0
+        const chartData: Array<{ date: string; taps: number }> = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          chartData.push({ date: label, taps: dateGroups[label] || 0 });
+        }
 
         const clicks = [
           { name: "Google Review", count: googleClicks },
@@ -146,7 +153,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   return (
     <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
       {/* Welcome Card */}
-      <Card className="p-4 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
+      <Card className="p-4 sm:p-8 bg-primary/5 border border-border shadow-lg animate-scale-in">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full gradient-primary flex items-center justify-center">
             <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -169,8 +176,8 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       </Card>
 
       {/* Key Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
-        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+      <div className="grid grid-cols-3 gap-2 sm:gap-6">
+        <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -183,7 +190,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
         </Card>
 
-        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+        <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
@@ -196,7 +203,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           <p className="text-xs text-muted-foreground mt-1">Most popular action</p>
         </Card>
 
-        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+        <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -216,7 +223,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
           <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
         </div>
-        {analytics.chartData.length > 0 ? (
+        {
           <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
             <AreaChart data={analytics.chartData}>
               <defs>
@@ -246,19 +253,9 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
                 dot={{ r: 4, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
                 activeDot={{ r: 6, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
               />
-            </AreaChart>
+          </AreaChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Activity className="w-8 h-8 text-primary" />
-            </div>
-            <p className="text-lg font-semibold mb-1">No activity yet</p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Place your cards on tables to start getting taps and see your activity here!
-            </p>
-          </div>
-        )}
+        }
       </Card>
 
       {/* Button Performance */}
