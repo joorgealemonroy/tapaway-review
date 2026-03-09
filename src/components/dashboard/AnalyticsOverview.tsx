@@ -236,7 +236,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       <Card className="p-6 card-elevated">
         <div className="mb-6">
           <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
-          <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
+          <p className="text-sm text-muted-foreground">Daily tap activity for the last {daysBack} days</p>
         </div>
         {
           <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
