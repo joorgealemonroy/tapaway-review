@@ -66,12 +66,14 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                   {isGrandfathered ? 'Grandfathered Plan' : 
                    isBundle ? 'Multi-Location Bundle' : 
                    isPrivateAccess ? 'Private Access' : 
+                   isTrialing ? 'Free Trial' :
                    isTestAccount ? 'Test Account' : planLabel}
                 </h3>
                 <p className="text-primary-foreground/80 text-sm">
                   {isGrandfathered ? 'Lifetime Access' : 
                    isBundle ? 'Bundle Pricing' : 
                    isPrivateAccess ? 'Custom Arrangement' :
+                   isTrialing ? 'Trial Period' :
                    isTestAccount ? 'Demo Purposes' : 'TapAway Subscription'}
                 </p>
               </div>
