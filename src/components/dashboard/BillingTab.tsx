@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar, Crown, Building2, CheckCircle2, Sparkles } from "lucide-react";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2, CheckCircle2, Sparkles, Clock } from "lucide-react";
 
 interface BillingTabProps {
   restaurant: {
