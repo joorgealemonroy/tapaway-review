@@ -56,6 +56,8 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <Building2 className="w-8 h-8" />
               ) : isPrivateAccess ? (
                 <Sparkles className="w-8 h-8" />
+              ) : isTrialing ? (
+                <Clock className="w-8 h-8" />
               ) : (
                 <CreditCard className="w-8 h-8" />
               )}
