@@ -473,31 +473,28 @@ const Dashboard = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-              <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0">
+              <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0 hidden md:block">
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
                   <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-1' : 'md:grid-cols-3'} h-auto gap-1`}>
-                    <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                    <TabsTrigger value="overview" className="text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                     {!isDemoView && (
                       <>
-                        <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                        <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                        <TabsTrigger value="settings" className="text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                        <TabsTrigger value="billing" className="text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
                       </>
                     )}
                   </TabsList>
                 ) : (
-                  <TabsList className={`inline-flex min-w-full md:grid md:w-full md:grid-cols-4 ${isDemoView ? 'lg:grid-cols-7' : 'lg:grid-cols-10'} h-auto gap-1`}>
-                    <TabsTrigger value="overview" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
-                    <TabsTrigger value="ai-coach" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">AI Coach</TabsTrigger>
-                    <TabsTrigger value="competitors" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Competitors</TabsTrigger>
-                    <TabsTrigger value="replies" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
-                    <TabsTrigger value="goals" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Goals</TabsTrigger>
-                    <TabsTrigger value="engagement" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
-                    <TabsTrigger value="menu" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
+                  <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-4' : 'md:grid-cols-7'} h-auto gap-1`}>
+                    <TabsTrigger value="overview" className="text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
+                    <TabsTrigger value="replies" className="text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
+                    <TabsTrigger value="engagement" className="text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
+                    <TabsTrigger value="menu" className="text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
                     {!isDemoView && (
                       <>
-                        <TabsTrigger value="settings" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
-                        <TabsTrigger value="support" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
-                        <TabsTrigger value="billing" className="text-xs md:text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
+                        <TabsTrigger value="settings" className="text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
+                        <TabsTrigger value="support" className="text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
+                        <TabsTrigger value="billing" className="text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
                       </>
                     )}
                   </TabsList>
@@ -520,20 +517,8 @@ const Dashboard = () => {
               </TabsContent>
 
               {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && <>
-                  <TabsContent value="ai-coach">
-                    <AICoachTab restaurantId={restaurant.id} isDemoView={isDemoView} />
-                  </TabsContent>
-
-                  <TabsContent value="competitors">
-                    <CompetitorTab restaurantId={restaurant.id} isDemoView={isDemoView} />
-                  </TabsContent>
-
                   <TabsContent value="replies">
                     <ReviewRepliesTab restaurantId={restaurant.id} isDemoView={isDemoView} />
-                  </TabsContent>
-
-                  <TabsContent value="goals">
-                    <GoalsTab restaurantId={restaurant.id} isDemoView={isDemoView} />
                   </TabsContent>
 
                   <TabsContent value="engagement">
@@ -563,6 +548,11 @@ const Dashboard = () => {
                 </>
               )}
             </Tabs>
+
+            {/* Mobile bottom navigation */}
+            {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
+              <BusinessMobileNav activeTab={activeTab} onTabChange={setActiveTab} isDemoView={isDemoView} />
+            )}
           </>}
       </div>
     </div>;
