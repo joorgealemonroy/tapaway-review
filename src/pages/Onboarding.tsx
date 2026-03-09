@@ -392,8 +392,8 @@ const Onboarding = () => {
         return;
       }
 
-      // Sign in with the password the user just set
-      const signInPassword = verifyData?.usedProvidedPassword ? password : verifyData?.tempPassword;
+      // Sign in with the password the user provided locally
+      const signInPassword = password;
       
       if (!signInPassword) {
         setOtpError("We verified your code, but couldn't start your session. Please try again.");

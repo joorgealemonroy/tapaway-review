@@ -202,11 +202,9 @@ const CardResolver = () => {
           return;
         }
 
-        if (data.tempPassword) {
-          await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password: data.tempPassword,
-          });
+        if (data.userId && data.isNewUser) {
+          // New user was created server-side; sign in not possible here
+          // since no password was provided in this flow — redirect to signup
         }
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -246,10 +244,10 @@ const CardResolver = () => {
 
       if (error) throw error;
 
-      if (data?.success && data.tempPassword) {
+      if (data?.success && data.usedProvidedPassword) {
         await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
-          password: data.tempPassword,
+          password: password,
         });
 
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
