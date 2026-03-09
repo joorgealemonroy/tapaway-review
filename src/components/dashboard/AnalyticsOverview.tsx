@@ -176,7 +176,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       </Card>
 
       {/* Key Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-6">
         <Card className="p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
