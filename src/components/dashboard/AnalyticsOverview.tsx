@@ -144,18 +144,18 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   ];
 
   return (
-    <div className="space-y-6 pb-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
       {/* Welcome Card */}
       <Card className="p-4 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full gradient-primary flex items-center justify-center">
-            <Activity className="w-6 h-6 text-white" />
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full gradient-primary flex items-center justify-center">
+            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+            <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
               Hi, {greetingName}! 👋
             </h2>
-            <p className="text-muted-foreground text-base">
+            <p className="text-muted-foreground text-sm sm:text-base">
               You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
               {analytics.totalTaps > 0 && (
                 <>
