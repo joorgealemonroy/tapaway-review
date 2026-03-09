@@ -29,6 +29,7 @@ export interface AnalyticsOverviewProps {
 }
 
 export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user, isDemoView = false }: AnalyticsOverviewProps) => {
+  const [daysBack, setDaysBack] = useState(7);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     googleClicks: 0,
