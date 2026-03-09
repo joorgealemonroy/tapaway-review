@@ -72,7 +72,7 @@ export const SupportTab = () => {
             <div>
               <p className="font-semibold mb-1">Follow up on feedback</p>
               <p className="text-muted-foreground">
-                Use AI Coach insights to improve operations and respond to reviews promptly to show you care.
+                Use your dashboard insights to improve operations and respond to reviews promptly to show you care.
               </p>
             </div>
           </div>
