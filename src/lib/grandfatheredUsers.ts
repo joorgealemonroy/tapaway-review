@@ -8,6 +8,7 @@ export const GRANDFATHERED_EMAILS = [
   'semr13@me.com',          // Sonia
   'islasfbaproducts@gmail.com', // Victor
   'placeholder@gmail.com',    // Amelia
+  'alexis@tapaway.co',       // Las Islas Marias OG
   'tester1@tapaway.co',      // Test account 1
   'tester2@tapaway.co',      // Test account 2
   'tester3@tapaway.co',      // Test account 3

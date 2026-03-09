@@ -246,60 +246,76 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
       ) : (
         <div className="space-y-4">
           {sections.map((section, sIdx) => (
-            <Card key={sIdx} className="p-6 card-elevated">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="flex-1">
-                  <Label className="text-sm font-semibold mb-2 block">Section Name</Label>
-                  <Input
-                    value={section.name}
-                    onChange={(e) => updateSection(sIdx, 'name', e.target.value)}
-                    placeholder="e.g., Appetizers, Main Dishes"
-                    className="text-lg font-semibold"
-                  />
+            <Collapsible key={sIdx} defaultOpen={false}>
+              <Card className="card-elevated overflow-hidden">
+                <div className="flex items-center gap-2 p-4 sm:p-6">
+                  <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                    <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200 [[data-state=open]>*>&]:rotate-180" />
+                    <span className="font-semibold truncate">
+                      {section.name || 'Untitled Section'}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      ({section.items.length} {section.items.length === 1 ? 'item' : 'items'})
+                    </span>
+                  </CollapsibleTrigger>
+                  <Button variant="ghost" size="sm" onClick={() => removeSection(sIdx)} className="text-destructive shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => removeSection(sIdx)} className="text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
 
-              <div className="space-y-3 mt-4">
-                {section.items.map((item, iIdx) => (
-                  <div key={iIdx} className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex gap-4">
-                      <div className="flex-1 space-y-3">
-                        <Input
-                          value={item.name}
-                          onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
-                          placeholder="Item name"
-                          className="font-medium"
-                        />
-                        <Textarea
-                          value={item.description}
-                          onChange={(e) => updateItem(sIdx, iIdx, 'description', e.target.value)}
-                          placeholder="Description (optional)"
-                          rows={2}
-                        />
-                      </div>
-                      <div className="w-24 space-y-3">
-                        <Input
-                          value={item.price}
-                          onChange={(e) => updateItem(sIdx, iIdx, 'price', e.target.value)}
-                          placeholder="$12.99"
-                        />
-                        <Button variant="ghost" size="sm" onClick={() => removeItem(sIdx, iIdx)} className="w-full text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-4">
+                    <div>
+                      <Label className="text-sm font-semibold mb-2 block">Section Name</Label>
+                      <Input
+                        value={section.name}
+                        onChange={(e) => updateSection(sIdx, 'name', e.target.value)}
+                        placeholder="e.g., Appetizers, Main Dishes"
+                        className="text-lg font-semibold"
+                      />
                     </div>
-                  </div>
-                ))}
-              </div>
 
-              <Button onClick={() => addItem(sIdx)} variant="outline" size="sm" className="mt-4 w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item
-              </Button>
-            </Card>
+                    <div className="space-y-3">
+                      {section.items.map((item, iIdx) => (
+                        <div key={iIdx} className="p-4 bg-muted/50 rounded-lg">
+                          <div className="flex gap-4">
+                            <div className="flex-1 space-y-3">
+                              <Input
+                                value={item.name}
+                                onChange={(e) => updateItem(sIdx, iIdx, 'name', e.target.value)}
+                                placeholder="Item name"
+                                className="font-medium"
+                              />
+                              <Textarea
+                                value={item.description}
+                                onChange={(e) => updateItem(sIdx, iIdx, 'description', e.target.value)}
+                                placeholder="Description (optional)"
+                                rows={2}
+                              />
+                            </div>
+                            <div className="w-24 space-y-3">
+                              <Input
+                                value={item.price}
+                                onChange={(e) => updateItem(sIdx, iIdx, 'price', e.target.value)}
+                                placeholder="$12.99"
+                              />
+                              <Button variant="ghost" size="sm" onClick={() => removeItem(sIdx, iIdx)} className="w-full text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Button onClick={() => addItem(sIdx)} variant="outline" size="sm" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           ))}
 
           <Button onClick={addSection} variant="outline" className="w-full">
