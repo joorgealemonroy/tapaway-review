@@ -22,6 +22,14 @@ serve(async (req) => {
       );
     }
 
+    // Stripe sessionId is REQUIRED to bind password-set to a valid checkout
+    if (!sessionId) {
+      return new Response(
+        JSON.stringify({ error: "Session ID is required for identity verification" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Basic password validation
     if (password.length < 8) {
       return new Response(
@@ -49,7 +57,6 @@ serve(async (req) => {
     }
 
     // Verify this user actually needs to set their password
-    // Check both explicit flag AND fallback (never signed in = needs password)
     const hasExplicitFlag = user.user.user_metadata?.must_set_password === true;
     const hasNeverSignedIn = !user.user.last_sign_in_at;
     
@@ -63,25 +70,69 @@ serve(async (req) => {
     
     console.log(`[set-user-password] User needs password - explicit flag: ${hasExplicitFlag}, never signed in: ${hasNeverSignedIn}`);
 
-    // If sessionId provided, verify it matches this user's email (extra security)
-    if (sessionId) {
-      try {
-        const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-        if (stripeSecretKey) {
-          const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
-          const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
-          const session = await stripe.checkout.sessions.retrieve(sessionId);
-          const sessionEmail = session.customer_details?.email || session.customer_email;
-          
-          if (sessionEmail && sessionEmail.toLowerCase() !== user.user.email?.toLowerCase()) {
-            // Billing email may differ from account email (e.g. Apple Pay) — warn but don't reject
-            console.warn("[set-user-password] Stripe billing email differs from account email (non-fatal):", sessionEmail, "vs", user.user.email);
-          }
-        }
-      } catch (stripeError) {
-        // Non-blocking - just log and continue
-        console.warn("[set-user-password] Could not verify Stripe session:", stripeError);
+    // BLOCKING: Verify Stripe session belongs to this user
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      console.error("[set-user-password] STRIPE_SECRET_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    try {
+      const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
+      const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (!session || session.payment_status !== "paid") {
+        console.error("[set-user-password] Stripe session not paid or not found");
+        return new Response(
+          JSON.stringify({ error: "Invalid or unpaid session" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+
+      // Verify session email matches user email (allow billing email mismatch for Apple Pay etc.)
+      const sessionEmail = session.customer_details?.email || session.customer_email;
+      const sessionMetadataEmail = session.metadata?.signup_email || session.metadata?.email;
+      const userEmail = user.user.email?.toLowerCase();
+
+      // Check if any email from the session matches the user
+      const emailsToCheck = [sessionEmail, sessionMetadataEmail].filter(Boolean).map((e: string) => e.toLowerCase());
+      
+      if (emailsToCheck.length === 0) {
+        console.error("[set-user-password] No email found in Stripe session");
+        return new Response(
+          JSON.stringify({ error: "Could not verify session ownership" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!emailsToCheck.includes(userEmail || "")) {
+        // Log but allow if metadata email matches — billing email may differ (Apple Pay, Google Pay)
+        console.warn("[set-user-password] Stripe session emails don't match user email:", emailsToCheck, "vs", userEmail);
+        // Check customer ID as fallback
+        const stripeCustomerId = user.user.user_metadata?.stripe_customer_id || 
+                                  user.user.app_metadata?.stripe_customer_id;
+        if (stripeCustomerId && session.customer === stripeCustomerId) {
+          console.log("[set-user-password] Matched via Stripe customer ID");
+        } else {
+          console.error("[set-user-password] Session does not belong to this user");
+          return new Response(
+            JSON.stringify({ error: "Session does not match this account" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      console.log("[set-user-password] Stripe session verified successfully");
+    } catch (stripeError) {
+      console.error("[set-user-password] Stripe verification failed:", stripeError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify payment session" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update the user's password and clear the must_set_password flag

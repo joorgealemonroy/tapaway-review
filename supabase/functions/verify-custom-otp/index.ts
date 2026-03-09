@@ -189,7 +189,6 @@ serve(async (req) => {
           email: normalizedEmail,
           isNewUser: true,
           usedProvidedPassword: true,
-          tempPassword: userPassword,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
