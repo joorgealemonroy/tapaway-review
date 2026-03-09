@@ -70,17 +70,17 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       if (error) throw error;
 
       if (data) {
-        // Event types must match the edge function whitelist: tap, google_click, yelp_click, directions_click, instagram_click, menu_view, menu_close
-        const tapEvents = data.filter((e: any) => e.event_type === "tap");
-        const googleClicks = data.filter((e: any) => e.event_type === "google_click").length;
-        const yelpClicks = data.filter((e: any) => e.event_type === "yelp_click").length;
-        const instagramClicks = data.filter((e: any) => e.event_type === "instagram_click").length;
-        const directionsClicks = data.filter((e: any) => e.event_type === "directions_click").length;
-        const menuViews = data.filter((e: any) => e.event_type === "menu_view").length;
-
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - daysBack);
         const recentData = data.filter(e => new Date(e.created_at) >= cutoff);
+
+        // Event types must match the edge function whitelist: tap, google_click, yelp_click, directions_click, instagram_click, menu_view, menu_close
+        const tapEvents = recentData.filter((e: any) => e.event_type === "tap");
+        const googleClicks = recentData.filter((e: any) => e.event_type === "google_click").length;
+        const yelpClicks = recentData.filter((e: any) => e.event_type === "yelp_click").length;
+        const instagramClicks = recentData.filter((e: any) => e.event_type === "instagram_click").length;
+        const directionsClicks = recentData.filter((e: any) => e.event_type === "directions_click").length;
+        const menuViews = recentData.filter((e: any) => e.event_type === "menu_view").length;
 
         const dateGroups: { [key: string]: number } = {};
         recentData.forEach(event => {
