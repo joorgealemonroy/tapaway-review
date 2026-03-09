@@ -78,9 +78,9 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
         const directionsClicks = data.filter((e: any) => e.event_type === "directions_click").length;
         const menuViews = data.filter((e: any) => e.event_type === "menu_view").length;
 
-        const last7Days = new Date();
-        last7Days.setDate(last7Days.getDate() - 7);
-        const recentData = data.filter(e => new Date(e.created_at) >= last7Days);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - daysBack);
+        const recentData = data.filter(e => new Date(e.created_at) >= cutoff);
 
         const dateGroups: { [key: string]: number } = {};
         recentData.forEach(event => {
@@ -88,9 +88,8 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           dateGroups[date] = (dateGroups[date] || 0) + 1;
         });
 
-        // Always show all 7 days, filling missing days with 0
         const chartData: Array<{ date: string; taps: number }> = [];
-        for (let i = 6; i >= 0; i--) {
+        for (let i = daysBack - 1; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
           const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
