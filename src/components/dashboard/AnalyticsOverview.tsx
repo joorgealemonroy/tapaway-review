@@ -144,18 +144,18 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   ];
 
   return (
-    <div className="space-y-6 pb-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
       {/* Welcome Card */}
-      <Card className="p-6 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full gradient-primary flex items-center justify-center">
-            <Activity className="w-6 h-6 text-white" />
+      <Card className="p-4 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full gradient-primary flex items-center justify-center">
+            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+            <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
               Hi, {greetingName}! 👋
             </h2>
-            <p className="text-muted-foreground text-base">
+            <p className="text-muted-foreground text-sm sm:text-base">
               You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
               {analytics.totalTaps > 0 && (
                 <>
@@ -169,7 +169,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       </Card>
 
       {/* Key Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
         <Card className="p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
             <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
             <BarChart data={analytics.chartData}>
               <defs>
                 <linearGradient id="colorTaps" x1="0" y1="0" x2="0" y2="1">
