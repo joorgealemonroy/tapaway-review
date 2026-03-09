@@ -23,6 +23,7 @@ import {
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import { getAppSettings, setPaywallEnabled } from "@/lib/appSettings";
 import { toast } from "sonner";
+import SignupDropoffCard from "@/components/admin/SignupDropoffCard";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
@@ -410,6 +411,9 @@ const Admin = () => {
           Logged in as {user?.email}
         </p>
       </div>
+
+      {/* Signup Drop-off Monitor */}
+      <SignupDropoffCard />
 
       {/* Sales Rep Portal Admin Links */}
       <section className="bg-card border rounded-xl p-4 space-y-3">
