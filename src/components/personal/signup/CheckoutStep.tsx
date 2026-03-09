@@ -1296,6 +1296,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               )}
             </div>
 
+            {/* Greylisting / Spam Warning */}
+            <p className="text-xs text-center text-muted-foreground px-4">
+              Email taking a while? Check your spam folder or wait a few minutes — some providers may temporarily delay delivery.
+            </p>
+
             {/* Support Link */}
             <div className="text-center pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground">
