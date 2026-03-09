@@ -1,21 +1,26 @@
 
 
-# Send Test Post-Purchase Emails
+# Update Las Islas Marias OG to Trial Status
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## What
+Change the restaurant's billing status from "active" (with no plan type) to a trial state so the Billing tab reflects they're on a trial before moving to paid.
 
-## Changes
+## Database Change
+Update the `restaurants` table for id `1d83b669-e326-4231-a8d1-686630915073`:
+- Set `subscription_status` to `'trialing'`
+- Set `plan_type` to `'monthly'` (the plan they'll transition to)
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+## UI Change — BillingTab.tsx
+The BillingTab currently doesn't handle the `trialing` status. Add trial-specific display:
+- Show "Free Trial" as the plan title with a clock icon
+- Show a blue "Trial" badge instead of "Active"
+- Add a message: "Your trial is active — you'll be moved to a paid plan soon."
+- Keep the "Manage Subscription" button and help text
 
-Add two new email templates matching the ones in the stripe webhook:
-
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
-
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+## Files
+| File | Change |
+|------|--------|
+| Database migration | Update subscription_status to `trialing`, plan_type to `monthly` |
+| `src/components/dashboard/BillingTab.tsx` | Add trialing state UI with appropriate messaging |
+| `src/lib/subscriptionStatus.ts` | Verify `trialing` is in the allowed statuses list |
 
