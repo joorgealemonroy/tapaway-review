@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard, Calendar, Crown, Building2, CheckCircle2, Sparkles } from "lucide-react";
+import { ExternalLink, CreditCard, Calendar, Crown, Building2, CheckCircle2, Sparkles, Clock } from "lucide-react";
 
 interface BillingTabProps {
   restaurant: {
@@ -28,6 +28,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
   const planLabel = planType === 'monthly' ? 'Monthly Plan' : planType === 'yearly' ? 'Yearly Plan' : 'Standard Plan';
   const isBundle = planType === 'bundle';
   const isPrivateAccess = planType === 'private_access';
+  const isTrialing = restaurant?.subscription_status === 'trialing';
   const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
 
   return (
@@ -55,6 +56,8 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 <Building2 className="w-8 h-8" />
               ) : isPrivateAccess ? (
                 <Sparkles className="w-8 h-8" />
+              ) : isTrialing ? (
+                <Clock className="w-8 h-8" />
               ) : (
                 <CreditCard className="w-8 h-8" />
               )}
@@ -63,19 +66,21 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                   {isGrandfathered ? 'Grandfathered Plan' : 
                    isBundle ? 'Multi-Location Bundle' : 
                    isPrivateAccess ? 'Private Access' : 
+                   isTrialing ? 'Free Trial' :
                    isTestAccount ? 'Test Account' : planLabel}
                 </h3>
                 <p className="text-primary-foreground/80 text-sm">
                   {isGrandfathered ? 'Lifetime Access' : 
                    isBundle ? 'Bundle Pricing' : 
                    isPrivateAccess ? 'Custom Arrangement' :
+                   isTrialing ? 'Trial Period' :
                    isTestAccount ? 'Demo Purposes' : 'TapAway Subscription'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="font-semibold">Active</span>
+            <div className={`flex items-center gap-2 backdrop-blur-sm rounded-full px-4 py-2 ${isTrialing ? 'bg-blue-500/80' : 'bg-white/20'}`}>
+              {isTrialing ? <Clock className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+              <span className="font-semibold">{isTrialing ? 'Trial' : 'Active'}</span>
             </div>
           </div>
         </div>
@@ -90,6 +95,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
                 {isGrandfathered ? 'Legacy Access' : 
                  isBundle ? 'Bundle' : 
                  isPrivateAccess ? 'Private' : 
+                 isTrialing ? 'Trial → Monthly' :
                  isTestAccount ? 'Test' : planLabel}
               </p>
             </div>
@@ -101,8 +107,18 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
             </div>
           </div>
 
+          {/* Trial Message */}
+          {isTrialing && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              <Clock className="w-5 h-5 text-blue-500 shrink-0" />
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                Your trial is active — you'll be moved to a paid plan soon.
+              </p>
+            </div>
+          )}
+
           {/* Next Billing Date - only for standard subscriptions */}
-          {!isAlwaysAllowed && !isTestAccount && restaurant?.next_billing_date && (
+          {!isAlwaysAllowed && !isTrialing && !isTestAccount && restaurant?.next_billing_date && (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <div>
