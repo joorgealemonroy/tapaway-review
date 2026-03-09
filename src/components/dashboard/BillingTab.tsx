@@ -28,6 +28,7 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
   const planLabel = planType === 'monthly' ? 'Monthly Plan' : planType === 'yearly' ? 'Yearly Plan' : 'Standard Plan';
   const isBundle = planType === 'bundle';
   const isPrivateAccess = planType === 'private_access';
+  const isTrialing = restaurant?.subscription_status === 'trialing';
   const isAlwaysAllowed = isBundle || isPrivateAccess || isGrandfathered;
 
   return (
