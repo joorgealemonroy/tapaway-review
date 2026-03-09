@@ -114,8 +114,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           count > (dayGroups[max] || 0) ? day : max, 'Monday'
         );
 
-        // Count taps from last 7 days (tap events specifically, not all events)
-        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= last7Days);
+        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= cutoff);
         
         setAnalytics({
           totalTaps: last7DaysTaps.length,
