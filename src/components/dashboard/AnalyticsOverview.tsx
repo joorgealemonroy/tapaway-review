@@ -159,11 +159,26 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
-              Hi, {greetingName}! 👋
-            </h2>
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h2 className="text-xl sm:text-3xl font-bold">
+                Hi, {greetingName}! 👋
+              </h2>
+              <ToggleGroup
+                type="single"
+                value={String(daysBack)}
+                onValueChange={(v) => v && setDaysBack(Number(v))}
+                className="bg-muted rounded-lg p-0.5"
+              >
+                <ToggleGroupItem value="7" className="text-xs px-2.5 py-1 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm">
+                  7d
+                </ToggleGroupItem>
+                <ToggleGroupItem value="30" className="text-xs px-2.5 py-1 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm">
+                  30d
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <p className="text-muted-foreground text-sm sm:text-base">
-              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
+              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last {daysBack} days.
               {analytics.totalTaps > 0 && (
                 <>
                   {" "}Your most clicked button is <span className="font-semibold text-primary">{analytics.mostClicked}</span>, 
