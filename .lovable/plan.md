@@ -1,21 +1,43 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix Analytics Overview: Readability, Chart, and Layout
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Issues
+
+1. **Welcome card unreadable in dark mode** — `gradient-subtle` is hardcoded to near-white (`hsl(213 27% 98%)` → `hsl(213 27% 96%)`), never overridden in `.dark`. Text becomes invisible.
+2. **Chart only shows days with data** — If only 2 days have events, only 2 points appear. Should always show all 7 days with 0-fill for empty days.
+3. **Empty square next to Peak Day** — The 3-column grid (`grid-cols-2 sm:grid-cols-3`) leaves the 3rd card alone on a second row on mobile, creating an empty cell.
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### 1. `src/index.css` — Add dark mode gradient-subtle override
 
-Add two new email templates matching the ones in the stripe webhook:
+Inside the `.dark` block, override `--gradient-subtle` to use dark surface colors:
+```css
+--gradient-subtle: linear-gradient(180deg, hsl(217 33% 18%), hsl(222 47% 13%));
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### 2. `src/components/dashboard/AnalyticsOverview.tsx`
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+**Chart: fill all 7 days.** After computing `dateGroups`, generate a full 7-day array from today backwards, defaulting missing days to 0 taps:
+```ts
+const allDays = [];
+for (let i = 6; i >= 0; i--) {
+  const d = new Date();
+  d.setDate(d.getDate() - i);
+  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  allDays.push({ date: label, taps: dateGroups[label] || 0 });
+}
+```
 
-### 2. Deploy and Invoke
+**Stats grid: 3 cards in a single row on mobile.** Change `grid-cols-2 sm:grid-cols-3` to `grid-cols-3` so all 3 stat cards always sit in one row, eliminating the empty cell. Reduce padding on mobile (`p-3 sm:p-6`).
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+**Welcome card: use theme-aware classes** instead of `gradient-subtle`. Replace with `bg-card border border-border` so it works in both modes, or use `bg-primary/5` for subtle tinting.
+
+## Files changed
+
+| File | Change |
+|------|--------|
+| `src/index.css` | Dark mode `--gradient-subtle` override |
+| `src/components/dashboard/AnalyticsOverview.tsx` | Full 7-day chart, fix grid to 3-col, theme-aware welcome card |
 
