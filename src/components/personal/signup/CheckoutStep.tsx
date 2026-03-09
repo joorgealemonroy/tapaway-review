@@ -319,7 +319,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       if (verifyError) {
         logCheckpoint("OTP verification failed", { error: verifyError.message });
-        throw new Error(verifyError.message || "Invalid verification code");
+        // Show a user-friendly message instead of raw Edge Function errors
+        const friendlyMsg = "We had trouble verifying your code. Please try again in a moment.";
+        setDetailedError(verifyError.message);
+        throw new Error(friendlyMsg);
       }
 
       if (!verifyData?.success) {
