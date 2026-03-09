@@ -153,7 +153,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
   return (
     <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
       {/* Welcome Card */}
-      <Card className="p-4 sm:p-8 gradient-subtle border-none shadow-lg animate-scale-in">
+      <Card className="p-4 sm:p-8 bg-primary/5 border border-border shadow-lg animate-scale-in">
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full gradient-primary flex items-center justify-center">
             <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
