@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu, Activity, Calendar } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface AnalyticsData {
   totalTaps: number;
@@ -28,6 +29,7 @@ export interface AnalyticsOverviewProps {
 }
 
 export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user, isDemoView = false }: AnalyticsOverviewProps) => {
+  const [daysBack, setDaysBack] = useState(7);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
     googleClicks: 0,
@@ -55,7 +57,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
 
   useEffect(() => {
     fetchAnalytics();
-  }, [restaurantId]);
+  }, [restaurantId, daysBack]);
 
   const fetchAnalytics = async () => {
     try {
@@ -76,9 +78,9 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
         const directionsClicks = data.filter((e: any) => e.event_type === "directions_click").length;
         const menuViews = data.filter((e: any) => e.event_type === "menu_view").length;
 
-        const last7Days = new Date();
-        last7Days.setDate(last7Days.getDate() - 7);
-        const recentData = data.filter(e => new Date(e.created_at) >= last7Days);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - daysBack);
+        const recentData = data.filter(e => new Date(e.created_at) >= cutoff);
 
         const dateGroups: { [key: string]: number } = {};
         recentData.forEach(event => {
@@ -86,9 +88,8 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           dateGroups[date] = (dateGroups[date] || 0) + 1;
         });
 
-        // Always show all 7 days, filling missing days with 0
         const chartData: Array<{ date: string; taps: number }> = [];
-        for (let i = 6; i >= 0; i--) {
+        for (let i = daysBack - 1; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
           const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -113,8 +114,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           count > (dayGroups[max] || 0) ? day : max, 'Monday'
         );
 
-        // Count taps from last 7 days (tap events specifically, not all events)
-        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= last7Days);
+        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= cutoff);
         
         setAnalytics({
           totalTaps: last7DaysTaps.length,
@@ -159,11 +159,26 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">
-              Hi, {greetingName}! 👋
-            </h2>
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h2 className="text-xl sm:text-3xl font-bold">
+                Hi, {greetingName}! 👋
+              </h2>
+              <ToggleGroup
+                type="single"
+                value={String(daysBack)}
+                onValueChange={(v) => v && setDaysBack(Number(v))}
+                className="bg-muted rounded-lg p-0.5"
+              >
+                <ToggleGroupItem value="7" className="text-xs px-2.5 py-1 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm">
+                  7d
+                </ToggleGroupItem>
+                <ToggleGroupItem value="30" className="text-xs px-2.5 py-1 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm">
+                  30d
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
             <p className="text-muted-foreground text-sm sm:text-base">
-              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last 7 days.
+              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last {daysBack} days.
               {analytics.totalTaps > 0 && (
                 <>
                   {" "}Your most clicked button is <span className="font-semibold text-primary">{analytics.mostClicked}</span>, 
@@ -187,7 +202,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             </div>
           </div>
           <p className="text-4xl font-bold text-primary">{analytics.totalTaps}</p>
-          <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+          <p className="text-xs text-muted-foreground mt-1">Last {daysBack} days</p>
         </Card>
 
         <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
@@ -221,7 +236,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       <Card className="p-6 card-elevated">
         <div className="mb-6">
           <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
-          <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
+          <p className="text-sm text-muted-foreground">Daily tap activity for the last {daysBack} days</p>
         </div>
         {
           <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>

@@ -1,22 +1,21 @@
 
 
-# Add 7-Day / 30-Day Toggle to Analytics Overview
+# Send Test Post-Purchase Emails
 
-## Change
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-Add a `ToggleGroup` (already used in `SignupDropoffCard`) to the welcome card area, letting users switch between 7-day and 30-day views. This affects:
+## Changes
 
-1. **State**: Add `daysBack` state (default `7`), re-fetch/recompute when it changes
-2. **Data filtering**: Change the `last7Days` cutoff to use `daysBack` value; fill chart with that many days instead of hardcoded 7
-3. **Toggle UI**: Small `ToggleGroup` with "7d" and "30d" buttons, placed in the welcome card header row (right-aligned)
-4. **Labels**: Update "Last 7 days" text to dynamically say "Last 7 days" or "Last 30 days"
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-## File: `src/components/dashboard/AnalyticsOverview.tsx`
+Add two new email templates matching the ones in the stripe webhook:
 
-- Import `ToggleGroup`, `ToggleGroupItem` from `@/components/ui/toggle-group`
-- Add `const [daysBack, setDaysBack] = useState(7)`
-- Add `daysBack` to `useEffect` dependency array
-- In `fetchAnalytics`: replace hardcoded `7` with `daysBack` for the date cutoff and chart day loop
-- In the welcome card header row, add the toggle group right-aligned
-- Update all "Last 7 days" labels to be dynamic
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
