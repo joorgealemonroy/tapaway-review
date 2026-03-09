@@ -217,7 +217,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
             <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
             <BarChart data={analytics.chartData}>
               <defs>
                 <linearGradient id="colorTaps" x1="0" y1="0" x2="0" y2="1">
