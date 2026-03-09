@@ -141,9 +141,9 @@ export const SupportTab = () => {
             <Lightbulb className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h3 className="font-bold mb-2">💡 Pro Tip</h3>
+            <h3 className="font-bold mb-2 text-foreground">💡 Pro Tip</h3>
             <p className="text-sm text-foreground">
-              Check your AI Coach tab regularly for personalized insights based on your restaurant's performance. 
+              Check your dashboard regularly for insights based on your restaurant's performance. 
               The more data you collect, the better recommendations you'll get!
             </p>
           </div>

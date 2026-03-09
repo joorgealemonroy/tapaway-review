@@ -372,6 +372,9 @@ const Dashboard = () => {
           </button>
           <div className="flex items-center gap-3">
             <DashboardSwitcher currentType="business" />
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {restaurant?.custom_slug && <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub
