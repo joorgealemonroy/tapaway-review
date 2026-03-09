@@ -86,7 +86,14 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           dateGroups[date] = (dateGroups[date] || 0) + 1;
         });
 
-        const chartData = Object.entries(dateGroups).map(([date, taps]) => ({ date, taps }));
+        // Always show all 7 days, filling missing days with 0
+        const chartData: Array<{ date: string; taps: number }> = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          chartData.push({ date: label, taps: dateGroups[label] || 0 });
+        }
 
         const clicks = [
           { name: "Google Review", count: googleClicks },
