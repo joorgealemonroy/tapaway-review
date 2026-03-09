@@ -435,8 +435,16 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
               <Input
                 id="instagram"
                 value={restaurant.instagram_url || ""}
-                onChange={(e) => setRestaurant({ ...restaurant, instagram_url: e.target.value })}
-                placeholder="@yourbusiness"
+                onChange={(e) => {
+                  let val = e.target.value.trim();
+                  if (val.startsWith('@')) {
+                    val = `https://instagram.com/${val.slice(1)}`;
+                  } else if (val && !val.startsWith('http')) {
+                    val = `https://instagram.com/${val}`;
+                  }
+                  setRestaurant({ ...restaurant, instagram_url: val });
+                }}
+                placeholder="https://instagram.com/yourbusiness"
               />
               {restaurant.instagram_url && (
                 <Button variant="outline" size="sm" asChild>
@@ -446,6 +454,9 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 </Button>
               )}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter your handle (e.g. @yourbusiness) or full URL
+            </p>
           </div>
           <div>
             <Label htmlFor="directions" className="text-sm font-semibold">Directions URL</Label>

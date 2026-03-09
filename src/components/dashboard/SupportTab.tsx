@@ -14,18 +14,18 @@ export const SupportTab = () => {
         <p className="text-muted-foreground">Get answers and reach out to our team</p>
       </div>
 
-      <Card className="p-6 card-elevated gradient-subtle border-none">
+      <Card className="p-6 card-elevated bg-primary/10 border-primary/20">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-            <Mail className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <Mail className="w-6 h-6 text-primary-foreground" />
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold mb-2">Need Help?</h3>
+            <h3 className="text-xl font-bold mb-2 text-foreground">Need Help?</h3>
             <p className="text-muted-foreground mb-4">
               Our team is here to help you get the most out of TapAway. Have questions about your account, 
               features, or need technical support? We're just an email away.
             </p>
-            <Button className="gradient-primary text-white" asChild>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
               <a href="mailto:tap@tapaway.co">
                 <Mail className="w-4 h-4 mr-2" />
                 Contact Support
@@ -72,7 +72,7 @@ export const SupportTab = () => {
             <div>
               <p className="font-semibold mb-1">Follow up on feedback</p>
               <p className="text-muted-foreground">
-                Use AI Coach insights to improve operations and respond to reviews promptly to show you care.
+                Use your dashboard insights to improve operations and respond to reviews promptly to show you care.
               </p>
             </div>
           </div>
@@ -141,9 +141,9 @@ export const SupportTab = () => {
             <Lightbulb className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h3 className="font-bold mb-2">💡 Pro Tip</h3>
+            <h3 className="font-bold mb-2 text-foreground">💡 Pro Tip</h3>
             <p className="text-sm text-foreground">
-              Check your AI Coach tab regularly for personalized insights based on your restaurant's performance. 
+              Check your dashboard regularly for insights based on your restaurant's performance. 
               The more data you collect, the better recommendations you'll get!
             </p>
           </div>

@@ -1,25 +1,21 @@
 
 
-# Business Dashboard UX Improvements
+# Send Test Post-Purchase Emails
 
-## Issues to Fix
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-1. **Dark/Light mode toggle** — No theme toggle exists in the business dashboard nav. Add a sun/moon icon button in the top nav bar that toggles `tapaway_dashboard_theme` in localStorage and the `.dark` class on `<html>`.
+## Changes
 
-2. **Instagram URL field** — The placeholder says `@yourbusiness` but the field expects a full URL. Change the placeholder to `https://instagram.com/yourbusiness` and add helper text. Also auto-prepend `https://instagram.com/` if user types just a handle (e.g. `@myplace`).
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-3. **"Need Help?" card not readable in dark mode** — `SupportTab.tsx` line 17 uses `gradient-subtle` which likely has hardcoded light colors. The card and its text need theme-aware classes (`bg-card`, `text-foreground`) instead of gradient classes that don't adapt to dark mode.
+Add two new email templates matching the ones in the stripe webhook:
 
-4. **Empty chart block on Overview** — When `chartData` is empty (no activity), the "Activity Over Time" section is hidden but leaves a visual gap. Show a friendly empty state instead: "No activity yet — place your cards on tables to start getting taps!"
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-5. **Activity chart aesthetic** — Current chart uses basic `BarChart` with flat gradient bars. Switch to use `AreaChart` with a smooth curve and subtle fill gradient (matching the personal hub's `LineChart` style with `ChartContainer`), plus dark-mode-aware axis/grid colors.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-## Files Changed
+### 2. Deploy and Invoke
 
-| File | Change |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Add theme toggle button in nav |
-| `src/components/dashboard/SettingsTab.tsx` | Fix Instagram placeholder, auto-prepend URL logic, helper text |
-| `src/components/dashboard/SupportTab.tsx` | Fix dark mode readability on "Need Help?" card, remove AI Coach references |
-| `src/components/dashboard/AnalyticsOverview.tsx` | Add empty state for chart, restyle chart to AreaChart with smooth curve and theme-aware colors |
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

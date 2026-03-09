@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, MapPin, Eye } from "lucide-react";
+import { ExternalLink, MapPin, Eye, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
 import { MenuTab } from "@/components/dashboard/MenuTab";
@@ -69,7 +69,15 @@ const Dashboard = () => {
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  
+  const [theme, setTheme] = useState(() => localStorage.getItem('tapaway_dashboard_theme') || 'dark');
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('tapaway_dashboard_theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
+
   // Handle demo mode for sales reps - load demo restaurant first
   useEffect(() => {
     const loadDemoRestaurant = async () => {
@@ -364,6 +372,9 @@ const Dashboard = () => {
           </button>
           <div className="flex items-center gap-3">
             <DashboardSwitcher currentType="business" />
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {restaurant?.custom_slug && <Button variant="outline" size="sm" className="hidden md:inline-flex" onClick={() => window.open(`/${restaurant.custom_slug}`, "_blank")}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View Hub

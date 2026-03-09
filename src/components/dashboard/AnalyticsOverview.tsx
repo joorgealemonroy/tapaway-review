@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu, Activity, Calendar } from "lucide-react";
 
 interface AnalyticsData {
@@ -211,36 +211,55 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
       </div>
 
       {/* Activity Chart */}
-      {analytics.chartData.length > 0 && (
-        <Card className="p-6 card-elevated">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
-            <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
-          </div>
+      <Card className="p-6 card-elevated">
+        <div className="mb-6">
+          <h3 className="text-xl font-bold mb-1">Activity Over Time</h3>
+          <p className="text-sm text-muted-foreground">Daily tap activity for the last 7 days</p>
+        </div>
+        {analytics.chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
-            <BarChart data={analytics.chartData}>
+            <AreaChart data={analytics.chartData}>
               <defs>
                 <linearGradient id="colorTaps" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(182 85% 39%)" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="hsl(182 85% 39%)" stopOpacity={0.3}/>
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.05}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-              <XAxis dataKey="date" stroke="hsl(215 16% 47%)" fontSize={12} />
-              <YAxis stroke="hsl(215 16% 47%)" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white',
-                  border: '1px solid hsl(214 32% 91%)',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+              <XAxis dataKey="date" className="fill-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis className="fill-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  color: 'hsl(var(--card-foreground))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '0.75rem',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
                 }}
               />
-              <Bar dataKey="taps" fill="url(#colorTaps)" radius={[8, 8, 0, 0]} />
-            </BarChart>
+              <Area
+                type="monotone"
+                dataKey="taps"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2.5}
+                fill="url(#colorTaps)"
+                dot={{ r: 4, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
+                activeDot={{ r: 6, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
-        </Card>
-      )}
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Activity className="w-8 h-8 text-primary" />
+            </div>
+            <p className="text-lg font-semibold mb-1">No activity yet</p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Place your cards on tables to start getting taps and see your activity here!
+            </p>
+          </div>
+        )}
+      </Card>
 
       {/* Button Performance */}
       <Card className="p-6 card-elevated">
