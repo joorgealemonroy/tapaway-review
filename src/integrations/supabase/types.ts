@@ -2537,6 +2537,7 @@ export type Database = {
           id: string
         }[]
       }
+      get_signup_dropoff_stats: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

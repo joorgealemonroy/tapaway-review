@@ -412,6 +412,9 @@ const Admin = () => {
         </p>
       </div>
 
+      {/* Signup Drop-off Monitor */}
+      <SignupDropoffCard />
+
       {/* Sales Rep Portal Admin Links */}
       <section className="bg-card border rounded-xl p-4 space-y-3">
         <h2 className="font-semibold">Sales Rep Portal</h2>
