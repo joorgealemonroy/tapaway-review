@@ -17,6 +17,7 @@ import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
+import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
 import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
