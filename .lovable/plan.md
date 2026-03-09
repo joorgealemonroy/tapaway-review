@@ -1,21 +1,26 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix: Apply Time Range Filter to Button Performance
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
+The `googleClicks`, `yelpClicks`, `instagramClicks`, `directionsClicks`, and `menuViews` counts are computed from **all** events, ignoring the 7d/30d toggle. Only `totalTaps` and chart data respect the `daysBack` filter.
 
-## Changes
+## Fix (AnalyticsOverview.tsx)
+Move the button-click counting to happen **after** the `cutoff` filter is applied, using `recentData` instead of `data`:
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+```tsx
+// BEFORE (lines 74-79): counts from ALL data
+const googleClicks = data.filter(...).length;
 
-Add two new email templates matching the ones in the stripe webhook:
+// AFTER: counts from filtered data
+const recentData = data.filter(e => new Date(e.created_at) >= cutoff);
+const googleClicks = recentData.filter(...).length;
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+The `mostClicked` calculation already uses these values so it will automatically update too.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+## File
+| File | Change |
+|------|--------|
+| `src/components/dashboard/AnalyticsOverview.tsx` | Move click counting below cutoff filter, use `recentData` |
 
