@@ -114,10 +114,8 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           count > (dayGroups[max] || 0) ? day : max, 'Monday'
         );
 
-        const last7DaysTaps = tapEvents.filter(e => new Date(e.created_at) >= cutoff);
-        
         setAnalytics({
-          totalTaps: last7DaysTaps.length,
+          totalTaps: tapEvents.length,
           googleClicks,
           yelpClicks,
           instagramClicks,
