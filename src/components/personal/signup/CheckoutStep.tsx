@@ -354,7 +354,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
-        password: verifyData.tempPassword || formData.password,
+        password: formData.password,
       });
 
       if (signInError) {

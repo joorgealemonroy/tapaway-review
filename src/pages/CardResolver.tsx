@@ -244,10 +244,10 @@ const CardResolver = () => {
 
       if (error) throw error;
 
-      if (data?.success && data.tempPassword) {
+      if (data?.success && data.usedProvidedPassword) {
         await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
-          password: data.tempPassword,
+          password: password,
         });
 
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
