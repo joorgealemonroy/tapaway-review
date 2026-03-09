@@ -203,7 +203,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           <p className="text-xs text-muted-foreground mt-1">Most popular action</p>
         </Card>
 
-        <Card className="p-6 card-elevated transition-smooth hover:scale-105">
+        <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
