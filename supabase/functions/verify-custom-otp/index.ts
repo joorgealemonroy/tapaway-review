@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 async function sha256Hex(input: string): Promise<string> {
@@ -69,22 +70,16 @@ serve(async (req) => {
       );
     }
 
-    // DO NOT mark OTP as verified yet — wait until flow is fully complete
+    // Look up existing user via DB function (efficient, no pagination issues)
+    const { data: userRows, error: lookupError } = await supabase
+      .rpc("get_auth_user_by_email", { lookup_email: normalizedEmail });
 
-    // Check if user already exists
-    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-
-    if (listError) {
-      console.error("[verify-custom-otp] Error listing users:", listError);
+    if (lookupError) {
+      console.error("[verify-custom-otp] Error looking up user:", lookupError);
       throw new Error("Failed to verify account");
     }
 
-    const existingUser = existingUsers?.users?.find(
-      (u) => u.email?.toLowerCase() === normalizedEmail
-    );
+    const existingUser = userRows?.[0] ?? null;
 
     let userId: string;
 

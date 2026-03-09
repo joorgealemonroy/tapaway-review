@@ -319,7 +319,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
       if (verifyError) {
         logCheckpoint("OTP verification failed", { error: verifyError.message });
-        throw new Error(verifyError.message || "Invalid verification code");
+        // Show a user-friendly message instead of raw Edge Function errors
+        const friendlyMsg = "We had trouble verifying your code. Please try again in a moment.";
+        setDetailedError(verifyError.message);
+        throw new Error(friendlyMsg);
       }
 
       if (!verifyData?.success) {
@@ -1292,6 +1295,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
                 </button>
               )}
             </div>
+
+            {/* Greylisting / Spam Warning */}
+            <p className="text-xs text-center text-muted-foreground px-4">
+              Email taking a while? Check your spam folder or wait a few minutes — some providers may temporarily delay delivery.
+            </p>
 
             {/* Support Link */}
             <div className="text-center pt-4 border-t border-border">
