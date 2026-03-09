@@ -1,21 +1,71 @@
 
 
-# Send Test Post-Purchase Emails
-
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+# Signup Drop-off Monitoring: Admin Dashboard Component (Revised)
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### 1. Database migration — `get_signup_dropoff_stats`
 
-Add two new email templates matching the ones in the stripe webhook:
+Secure `plpgsql` function with explicit admin check:
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+```sql
+CREATE OR REPLACE FUNCTION public.get_signup_dropoff_stats(days_back int DEFAULT 30)
+RETURNS json
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  result json;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+  SELECT json_build_object(
+    'total', COUNT(*),
+    'verified', COUNT(*) FILTER (WHERE verified_at IS NOT NULL),
+    'abandoned', COUNT(*) FILTER (WHERE verified_at IS NULL),
+    'abandoned_list', (
+      SELECT coalesce(json_agg(row_to_json(t)), '[]'::json)
+      FROM (
+        SELECT email, created_at
+        FROM pending_otps
+        WHERE verified_at IS NULL
+          AND created_at > now() - (days_back || ' days')::interval
+        ORDER BY created_at DESC
+        LIMIT 20
+      ) t
+    )
+  ) INTO result
+  FROM pending_otps
+  WHERE created_at > now() - (days_back || ' days')::interval;
 
-### 2. Deploy and Invoke
+  RETURN result;
+END;
+$$;
+```
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### 2. `src/components/admin/SignupDropoffCard.tsx` (new)
+
+Compact card showing:
+- Total OTPs sent vs verified (conversion %)
+- Color indicator: green < 5% drop-off, yellow < 15%, red >= 15%
+- List of up to 20 most recent abandoned emails with timestamps
+- 7 / 30 / 90 day filter toggle
+
+Calls `supabase.rpc('get_signup_dropoff_stats', { days_back })`.
+
+### 3. `src/pages/Admin.tsx`
+
+Import and render `<SignupDropoffCard />` near the top of the admin page.
+
+## Files changed
+
+| File | Change |
+|------|--------|
+| **Migration** | Create `get_signup_dropoff_stats` with `is_admin()` guard |
+| `src/components/admin/SignupDropoffCard.tsx` | New component |
+| `src/pages/Admin.tsx` | Add the card |
 
