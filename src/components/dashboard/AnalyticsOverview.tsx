@@ -57,7 +57,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
 
   useEffect(() => {
     fetchAnalytics();
-  }, [restaurantId]);
+  }, [restaurantId, daysBack]);
 
   const fetchAnalytics = async () => {
     try {
