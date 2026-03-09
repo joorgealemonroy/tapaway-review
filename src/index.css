@@ -157,6 +157,8 @@ All colors MUST be HSL.
     --surface-elevated: 217 33% 18%;
     --border-subtle: 217 33% 18%;
     
+    --gradient-subtle: linear-gradient(180deg, hsl(217 33% 18%), hsl(222 47% 13%));
+    
     --sidebar-background: 240 6% 10%;
     --sidebar-foreground: 240 5% 96%;
     --sidebar-primary: 187 85% 45%;

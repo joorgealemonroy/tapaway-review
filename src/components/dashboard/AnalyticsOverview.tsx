@@ -253,19 +253,9 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
                 dot={{ r: 4, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
                 activeDot={{ r: 6, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }}
               />
-            </AreaChart>
+          </AreaChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Activity className="w-8 h-8 text-primary" />
-            </div>
-            <p className="text-lg font-semibold mb-1">No activity yet</p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Place your cards on tables to start getting taps and see your activity here!
-            </p>
-          </div>
-        )}
+        }
       </Card>
 
       {/* Button Performance */}
