@@ -1,21 +1,53 @@
 
 
-# Send Test Post-Purchase Emails
+# Dashboard Menu Collapsible Sections + Account Setup
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## 1. Collapsible Menu Sections in Dashboard (`src/components/dashboard/MenuTab.tsx`)
 
-## Changes
+Currently all menu sections are fully expanded cards, requiring lots of scrolling on mobile. Wrap each section in a Collapsible component (from Radix) so owners can expand/collapse sections.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+**Changes:**
+- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible`
+- Import `ChevronDown` icon
+- Wrap each section card's content (items list + "Add Item" button) in `CollapsibleContent`
+- Make the section header row a `CollapsibleTrigger` with a chevron that rotates when open
+- Default all sections to collapsed, showing just the section name + item count
+- Keep section name input editable when expanded
 
-Add two new email templates matching the ones in the stripe webhook:
+**Layout per section (collapsed):**
+```text
+┌─────────────────────────────────┐
+│  ▶  Tacos (3 items)        🗑  │
+└─────────────────────────────────┘
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+**Layout per section (expanded):**
+```text
+┌─────────────────────────────────┐
+│  ▼  Section Name [input]   🗑  │
+│  ┌─ Item 1 ─────────────────┐  │
+│  │ Name / Desc / Price      │  │
+│  └──────────────────────────┘  │
+│  [+ Add Item]                  │
+└─────────────────────────────────┘
+```
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+## 2. Account Setup for Las Islas Marias OG
 
-### 2. Deploy and Invoke
+The restaurant exists (slug: `islasmarias`, owner_id: `42be65b3-...`) but is linked to a placeholder email. Need to:
+- Create a new auth user with email `alexis@tapaway.co` and password `Lasislasmarias`
+- Update the restaurant's `owner_id` to the new user
+- Add `alexis@tapaway.co` to the grandfathered users list so they bypass paywall
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+This requires a database migration to update the owner_id after user creation, plus an edge function call or manual SQL to create the auth user.
+
+**Approach:** Use the `create-legacy-client-account` edge function (or a new simple edge function) to create the auth user and reassign the restaurant. For now, add `alexis@tapaway.co` to grandfathered emails so login works smoothly.
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/MenuTab.tsx` | Wrap sections in Collapsible, add chevron toggle, show item count when collapsed |
+| `src/lib/grandfatheredUsers.ts` | Add `alexis@tapaway.co` to grandfathered list |
+| Edge function or SQL | Create auth user + reassign restaurant owner_id |
 
