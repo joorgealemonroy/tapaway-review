@@ -202,7 +202,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
             </div>
           </div>
           <p className="text-4xl font-bold text-primary">{analytics.totalTaps}</p>
-          <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
+          <p className="text-xs text-muted-foreground mt-1">Last {daysBack} days</p>
         </Card>
 
         <Card className="p-3 sm:p-6 card-elevated transition-smooth hover:scale-105">
