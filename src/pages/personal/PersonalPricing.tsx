@@ -132,7 +132,7 @@ const PersonalPricing = () => {
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Claim My Free Pro Hub
+            Save My Spot
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Free to start · No credit card required
