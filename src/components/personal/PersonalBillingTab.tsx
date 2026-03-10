@@ -34,18 +34,21 @@ interface PersonalBillingTabProps {
 }
 
 export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
-  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type);
+  const isFounding = isFoundingPlan(profile.plan_type);
+  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type) || isFounding;
   const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
   const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const trialDaysLeft = trialEndDate ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
   
-  const planInfo = isVIPPlan(profile.plan_type) 
-    ? PERSONAL_PLANS.vip 
-    : isPaidPlan(profile.plan_type) 
-      ? PERSONAL_PLANS.paid 
-      : PERSONAL_PLANS.free;
+  const planInfo = isFounding
+    ? PERSONAL_PLANS.founding_pro
+    : isVIPPlan(profile.plan_type) 
+      ? PERSONAL_PLANS.vip 
+      : isPaidPlan(profile.plan_type) 
+        ? PERSONAL_PLANS.paid 
+        : PERSONAL_PLANS.free;
   
-  const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
+  const isVIP = isVIPPlan(profile.plan_type) || isFounding || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
   const billingEmail = profile.stripe_billing_email || profile.email;
   const hasBillingEmail = !isVIP && isPro && !!billingEmail;
