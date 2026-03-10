@@ -1509,12 +1509,14 @@ export type Database = {
           contact_website: string | null
           created_at: string | null
           email: string
+          founding_number: number | null
           full_name: string
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
           headline: string | null
           id: string
+          is_founding_user: boolean
           is_stripe_onboarded: boolean | null
           pfp_position: string | null
           plan_type: string | null
@@ -1554,12 +1556,14 @@ export type Database = {
           contact_website?: string | null
           created_at?: string | null
           email: string
+          founding_number?: number | null
           full_name: string
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
@@ -1599,12 +1603,14 @@ export type Database = {
           contact_website?: string | null
           created_at?: string | null
           email?: string
+          founding_number?: number | null
           full_name?: string
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
@@ -2335,12 +2341,14 @@ export type Database = {
           contact_photo_url: string | null
           contact_title: string | null
           contact_website: string | null
+          founding_number: number | null
           full_name: string | null
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
           headline: string | null
           id: string | null
+          is_founding_user: boolean | null
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
@@ -2361,12 +2369,14 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
+          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
@@ -2387,12 +2397,14 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          founding_number?: number | null
           full_name?: string | null
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
           id?: string | null
+          is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
@@ -2537,6 +2549,7 @@ export type Database = {
           id: string
         }[]
       }
+      get_founding_count: { Args: never; Returns: number }
       get_signup_dropoff_stats: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {
