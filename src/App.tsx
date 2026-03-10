@@ -155,6 +155,7 @@ const App = () => (
                 <Route path="/admin/personal-accounts" element={<AdminPersonalAccounts />} />
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
                 <Route path="/admin/cards" element={<AdminCards />} />
+                <Route path="/admin/founders" element={<AdminFounders />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 

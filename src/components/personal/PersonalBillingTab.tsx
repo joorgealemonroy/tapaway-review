@@ -94,7 +94,13 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             </div>
           )}
 
-          {isVIP && (
+          {isFounding && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+              ⭐ Founding Creator — You have Pro for life. Thank you for being early!
+            </p>
+          )}
+
+          {isVIP && !isFounding && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
               ✨ You have complimentary access to all premium features - enjoy!
             </p>

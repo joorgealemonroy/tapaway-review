@@ -23,6 +23,9 @@ const Personal = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Founding Creator Banner */}
+      <FoundingBanner />
+
       {/* Navigation */}
       <LandingNav />
 
@@ -31,6 +34,7 @@ const Personal = () => {
 
       {/* Main Content */}
       <PersonalHero />
+      <FoundingCounter />
       <PersonalHowItWorks />
       <PersonalFeatures />
       <PersonalShopShowcase />
