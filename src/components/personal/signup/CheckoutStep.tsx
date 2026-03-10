@@ -84,6 +84,21 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     checkPreAuth();
   }, [isOAuthUser]);
 
+  // Detect founding creator promotion
+  useEffect(() => {
+    supabase.rpc("get_founding_count").then(({ data }) => {
+      if (typeof data === "number" && data < 1000) {
+        setIsFoundingPromo(true);
+        setFoundingSpotsLeft(1000 - data);
+        // Auto-assign founding_pro plan
+        updateFormData({ planType: "founding_pro" as any });
+      } else {
+        setIsFoundingPromo(false);
+      }
+    }).catch(() => setIsFoundingPromo(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const freeFeatures = [
     "Up to 10 links",
     "Basic profile page",
