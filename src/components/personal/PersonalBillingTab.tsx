@@ -72,8 +72,8 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                     : "Upgrade to unlock premium features"}
               </CardDescription>
             </div>
-            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
-              {isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
+            <Badge variant="default" className={isFounding ? "bg-amber-500" : isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
+              {isFounding ? "Founding Creator" : isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
             </Badge>
           </div>
         </CardHeader>
