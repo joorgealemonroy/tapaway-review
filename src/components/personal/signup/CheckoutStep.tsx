@@ -1536,7 +1536,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           </span>
           <div className="text-right">
             <span className="font-medium">
-              {formData.planType === "free" || formData.planType === "vip"
+              {formData.planType === "free" || formData.planType === "vip" || formData.planType === "founding_pro"
                 ? "$0"
                 : formData.planType === "yearly"
                 ? "$6.25/mo"
