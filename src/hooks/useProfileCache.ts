@@ -32,6 +32,9 @@ export interface CachedProfile {
   plan_type: string | null;
   show_shop_section: boolean | null;
   user_id?: string;
+  // Founding creator
+  is_founding_user?: boolean;
+  founding_number?: number | null;
 }
 
 export interface CachedLink {

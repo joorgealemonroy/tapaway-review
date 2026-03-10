@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Crown, Sparkles, ExternalLink } from "lucide-react";
-import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
+import { PERSONAL_PLANS, isPaidPlan, isVIPPlan, isFoundingPlan } from "@/lib/personalPlanLimits";
 
 const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
 
@@ -34,18 +34,21 @@ interface PersonalBillingTabProps {
 }
 
 export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
-  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type);
+  const isFounding = isFoundingPlan(profile.plan_type);
+  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type) || isFounding;
   const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
   const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const trialDaysLeft = trialEndDate ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
   
-  const planInfo = isVIPPlan(profile.plan_type) 
-    ? PERSONAL_PLANS.vip 
-    : isPaidPlan(profile.plan_type) 
-      ? PERSONAL_PLANS.paid 
-      : PERSONAL_PLANS.free;
+  const planInfo = isFounding
+    ? PERSONAL_PLANS.founding_pro
+    : isVIPPlan(profile.plan_type) 
+      ? PERSONAL_PLANS.vip 
+      : isPaidPlan(profile.plan_type) 
+        ? PERSONAL_PLANS.paid 
+        : PERSONAL_PLANS.free;
   
-  const isVIP = isVIPPlan(profile.plan_type) || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
+  const isVIP = isVIPPlan(profile.plan_type) || isFounding || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
   const billingEmail = profile.stripe_billing_email || profile.email;
   const hasBillingEmail = !isVIP && isPro && !!billingEmail;
@@ -69,8 +72,8 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                     : "Upgrade to unlock premium features"}
               </CardDescription>
             </div>
-            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
-              {isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
+            <Badge variant="default" className={isFounding ? "bg-amber-500" : isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
+              {isFounding ? "Founding Creator" : isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
             </Badge>
           </div>
         </CardHeader>
@@ -91,7 +94,13 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             </div>
           )}
 
-          {isVIP && (
+          {isFounding && (
+            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+              ⭐ Founding Creator — You have Pro for life. Thank you for being early!
+            </p>
+          )}
+
+          {isVIP && !isFounding && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
               ✨ You have complimentary access to all premium features - enjoy!
             </p>

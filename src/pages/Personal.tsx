@@ -9,6 +9,8 @@ import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
 import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
 import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding";
+import { FoundingBanner } from "@/components/landing/personal/FoundingBanner";
+import { FoundingCounter } from "@/components/landing/personal/FoundingCounter";
 
 const Personal = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +23,9 @@ const Personal = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Founding Creator Banner */}
+      <FoundingBanner />
+
       {/* Navigation */}
       <LandingNav />
 
@@ -29,6 +34,7 @@ const Personal = () => {
 
       {/* Main Content */}
       <PersonalHero />
+      <FoundingCounter />
       <PersonalHowItWorks />
       <PersonalFeatures />
       <PersonalShopShowcase />

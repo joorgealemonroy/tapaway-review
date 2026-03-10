@@ -50,6 +50,24 @@ export const PERSONAL_PLANS = {
       button: true,
     },
   },
+  founding_pro: {
+    name: 'Founding Pro',
+    maxLinks: -1, // unlimited
+    price: '$0',
+    priceSubtext: 'forever',
+    features: {
+      customHeader: true,
+      photoCollage: true,
+      emailCapture: true,
+      advancedAnalytics: true,
+      socialIconBar: true,
+      youtube: true,
+      image: true,
+      text: true,
+      button: true,
+    },
+    isLifetime: true,
+  },
 } as const;
 
 export type PlanType = keyof typeof PERSONAL_PLANS;
@@ -58,6 +76,7 @@ export type FeatureKey = keyof typeof PERSONAL_PLANS.free.features;
 export function getPlanLimits(planType: string | null) {
   if (planType === 'free') return PERSONAL_PLANS.free;
   if (planType === 'vip') return PERSONAL_PLANS.vip;
+  if (planType === 'founding_pro') return PERSONAL_PLANS.founding_pro;
   return PERSONAL_PLANS.paid;
 }
 
@@ -69,8 +88,12 @@ export function isVIPPlan(planType: string | null): boolean {
   return planType === 'vip';
 }
 
+export function isFoundingPlan(planType: string | null): boolean {
+  return planType === 'founding_pro';
+}
+
 export function isPaidPlan(planType: string | null): boolean {
-  return planType !== 'free' && planType !== 'vip' && planType !== null;
+  return planType !== 'free' && planType !== 'vip' && planType !== 'founding_pro' && planType !== null;
 }
 
 // Feature display info for pricing page
