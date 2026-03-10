@@ -1,21 +1,19 @@
 
 
-# Send Test Post-Purchase Emails
+# Skip Pricing Page — Go Straight to Signup
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Rationale
+Users clicking "Create Your Own!" have already expressed intent. The pricing page is an extra step that adds friction. Bypassing it sends users directly to the signup flow.
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### 1. Update CTA links in two files
+Change `to="/personal/pricing"` → `to="/personal/signup"` in:
+- **`src/components/landing/personal/PersonalHero.tsx`** (line 102)
+- **`src/components/landing/personal/PersonalFooterCTA.tsx`** (line 55)
 
-Add two new email templates matching the ones in the stripe webhook:
+### 2. Keep the pricing page and route intact
+The `/personal/pricing` route stays functional for direct visits or future use — we're just removing it from the main funnel path.
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
-
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+**No other files need changes.** Two one-line edits total.
 
