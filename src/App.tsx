@@ -70,6 +70,7 @@ const AdminDemoRequests = lazy(() => import("./pages/admin/AdminDemoRequests"));
 const AdminPersonalAccounts = lazy(() => import("./pages/admin/AdminPersonalAccounts"));
 const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
 const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
+const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 
 
