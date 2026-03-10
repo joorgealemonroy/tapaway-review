@@ -183,7 +183,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setShowPlanSelector(false);
     toast.info("Switched to Free plan. Some Pro features were removed.");
   };
-  const isFreePlan = formData.planType === "free" || formData.planType === "vip";
+  const isFreePlan = formData.planType === "free" || formData.planType === "vip" || formData.planType === "founding_pro";
 
 
   const logAffiliateReferral = async (userId: string, profileId: string, planType: string) => {
