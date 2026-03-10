@@ -95,7 +95,7 @@ export const HeroSection = () => {
                   to="/start"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
                 >
-                  Start Free 30-Day Trial
+                  Start My Free Trial
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
