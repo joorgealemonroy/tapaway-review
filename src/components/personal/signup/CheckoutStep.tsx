@@ -1524,7 +1524,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       <div className="space-y-2 py-4 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {formData.planType === "vip"
+            {formData.planType === "founding_pro"
+              ? "Founding Creator Pro"
+              : formData.planType === "vip"
               ? "VIP Access"
               : formData.planType === "free" 
               ? "Free plan" 
