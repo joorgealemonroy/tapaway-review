@@ -67,6 +67,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [pendingDowngradePlan, setPendingDowngradePlan] = useState<PlanType | null>(null);
   const [downgradeIssues, setDowngradeIssues] = useState<string[]>([]);
   const [preAuthed, setPreAuthed] = useState(false);
+  const [isFoundingPromo, setIsFoundingPromo] = useState<boolean | null>(null);
+  const [foundingSpotsLeft, setFoundingSpotsLeft] = useState<number>(0);
 
   // Detect if user is already authenticated (card activation flow or OAuth)
   useEffect(() => {
