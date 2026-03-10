@@ -1569,7 +1569,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             Processing...
           </>
         ) : isFreePlan ? (
-          formData.planType === "vip" ? "Create My TapAway" : "Create Free Account"
+          (formData.planType === "vip" || formData.planType === "founding_pro") ? "Create My TapAway" : "Create Free Account"
         ) : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />
