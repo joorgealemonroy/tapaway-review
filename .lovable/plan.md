@@ -1,30 +1,21 @@
 
 
-# Fix: Hide Pricing During Founding Creator Promotion
+# Send Test Post-Purchase Emails
 
-## Problem
-The CheckoutStep shows plan selection with Pro pricing ($6.25/mo, $10/mo, Free), but during the Founding Creator Access promotion (first 1,000 signups), all users should get Pro free for life — no plan picker, no pricing.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Solution
-Two changes:
+## Changes
 
-### 1. `CheckoutStep.tsx` — Detect founding promotion and auto-assign `founding_pro`
-- On mount, call `supabase.rpc("get_founding_count")` to check if spots remain
-- If `count < 1000`: hide the plan selector entirely, show a "Founding Creator" banner instead (e.g., "You're getting Pro free for life!"), set effective plan to `founding_pro`, and skip Stripe checkout (go straight to OTP flow)
-- If `count >= 1000`: show the normal plan selector as-is
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### 2. `PersonalSignup.tsx` — Add `founding_pro` to the plan type
-- Add `founding_pro` to the `SignupData.planType` union type so the checkout step can set it
-- When founding is active, lock the plan to `founding_pro` similar to how VIP cards lock to `vip`
+Add two new email templates matching the ones in the stripe webhook:
 
-### UI During Founding Promotion (replaces plan selector)
-- Single card: "🚀 Founding Creator Access — $0 forever" with a checkmark
-- Feature list stays the same (Pro features)
-- Order summary: "Total due today: $0"
-- CTA button: "Create My TapAway" (no credit card icon)
-- No "Change" button, no plan options
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-### Files Modified
-- `src/components/personal/signup/CheckoutStep.tsx` — Add founding detection, conditional UI
-- `src/pages/personal/PersonalSignup.tsx` — Add `founding_pro` to planType union
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

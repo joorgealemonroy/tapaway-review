@@ -10,7 +10,7 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 
 interface Props {
   username: string;
-  planType?: "free" | "monthly" | "yearly" | "vip";
+  planType?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
 }
 
 /* ── Inline platform SVG icons ── */

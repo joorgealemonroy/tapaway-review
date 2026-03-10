@@ -28,7 +28,7 @@ interface Props {
   onNext: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  selectedPlan?: "free" | "monthly" | "yearly" | "vip";
+  selectedPlan?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
   isOAuthUser: boolean;
   setIsOAuthUser: (v: boolean) => void;
 }

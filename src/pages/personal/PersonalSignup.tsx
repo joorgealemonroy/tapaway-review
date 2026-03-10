@@ -46,7 +46,7 @@ export interface SignupData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "free" | "monthly" | "yearly" | "vip";
+  planType: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
 }
@@ -59,7 +59,7 @@ const PersonalSignup = () => {
   const [signupComplete, setSignupComplete] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
-  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip">("yearly");
+  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip" | "founding_pro">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   const { 
