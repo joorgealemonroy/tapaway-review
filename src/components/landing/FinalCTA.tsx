@@ -34,7 +34,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-white/60 text-sm md:text-base mb-8 max-w-md mx-auto"
         >
-          Includes cards, dashboard, and setup. December spots are limited.
+          Includes cards, dashboard, and setup. March spots are limited.
         </motion.p>
         
         <motion.div
@@ -48,7 +48,7 @@ export const FinalCTA = () => {
               whileHover={{ scale: 1.03, boxShadow: "0 20px 40px -10px rgba(255,255,255,0.2)" }}
               whileTap={{ scale: 0.98 }}
             >
-              Start Free 30-Day Trial
+              Start My Free Trial
               <ArrowRight className="w-4 h-4" />
             </motion.span>
           </Link>
