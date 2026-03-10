@@ -79,9 +79,9 @@ const PersonalPricing = () => {
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Claim My Free Pro Hub
+            Save My Spot
           </Button>
-          <p className="text-xs text-muted-foreground">No credit card required</p>
+          <p className="text-xs text-muted-foreground">No credit card · takes 2 min</p>
         </motion.div>
 
         {/* 2. How It Works */}
