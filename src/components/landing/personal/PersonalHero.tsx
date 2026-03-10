@@ -99,7 +99,7 @@ export const PersonalHero = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-4">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Link
-                  to="/personal/pricing"
+                  to="/personal/signup"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all">
 
                   Create Your Own!

@@ -52,7 +52,7 @@ export const PersonalFooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <Link
-            to="/personal/pricing"
+            to="/personal/signup"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-background text-foreground font-bold text-lg shadow-lg hover:shadow-xl transition-all"
           >
             Get Started Free
