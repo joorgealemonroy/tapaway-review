@@ -1363,8 +1363,29 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* Show plan summary if planLocked and not editing, otherwise show full selection */}
-      {planLocked && !showPlanSelector ? (
+      {/* Founding Creator Promotion - replaces plan selector */}
+      {isFoundingPromo ? (
+        <div className="p-4 rounded-xl border-2 border-primary bg-primary/5 shadow-lg shadow-primary/10">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <span className="font-bold text-lg text-foreground">Founding Creator Access</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            You're one of the first 1,000 creators — Pro is yours <span className="font-semibold text-foreground">free forever</span>.
+          </p>
+          <ul className="space-y-2 mb-3">
+            {proFeatures.map((feature, index) => (
+              <li key={index} className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 flex-shrink-0 text-primary" />
+                <span className="text-foreground">{feature}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-primary font-medium">
+            🚀 {foundingSpotsLeft} spots remaining
+          </p>
+        </div>
+      ) : (planLocked && !showPlanSelector) ? (
         // Compact plan summary (plan was chosen from pricing page)
         <div className={`p-4 rounded-xl border-2 ${formData.planType === "free" ? "border-muted bg-muted/30" : "border-primary bg-primary/5"}`}>
          <div className="flex items-center justify-between">
