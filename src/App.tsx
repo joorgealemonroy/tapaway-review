@@ -22,6 +22,7 @@ const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 
 // Personal TapAway - code split for fast public profile loads
 const PersonalSignup = lazy(() => import("./pages/personal/PersonalSignup"));
+const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));
 const PersonalSignupComplete = lazy(() => import("./pages/personal/PersonalSignupComplete"));
 const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
 const PersonalPricing = lazy(() => import("./pages/personal/PersonalPricing"));
