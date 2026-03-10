@@ -1,51 +1,36 @@
 import { motion } from "framer-motion";
-import { Globe, UserPlus, Share2, ChevronDown, User, Link2, QrCode, ArrowLeft } from "lucide-react";
+import { User, Link2, QrCode, ArrowLeft, Rocket, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HubShowcase } from "@/components/card/HubShowcase";
-import { LayoutTemplates } from "@/components/card/LayoutTemplates";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-
-const INFO_CARDS = [
-  {
-    icon: Globe,
-    title: "All your links in one place",
-    desc: "Your hub is a single page with all your links, social profiles, photos, and contact info. Update it anytime.",
-  },
-  {
-    icon: UserPlus,
-    title: "One-tap contact saving",
-    desc: "Anyone who visits your hub can save your name, phone, and email straight to their contacts. No app needed.",
-  },
-  {
-    icon: Share2,
-    title: "Works everywhere",
-    desc: "Share your hub link in your Instagram bio, texts, email signatures — anywhere you want people to find you.",
-  },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = [
   { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
   { icon: Link2, title: "Add your links and info", desc: "Instagram, TikTok, payments, contact card — all in one place" },
-  { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or simply use a tapaway card." },
+  { icon: QrCode, title: "Share it everywhere", desc: "Text your link, post it in your bio, or use a TapAway card" },
 ];
 
 const PersonalPricing = () => {
   const navigate = useNavigate();
+  const [count, setCount] = useState<number | null>(null);
 
-  const goToSignup = () => {
-    navigate("/personal/signup");
-  };
+  useEffect(() => {
+    supabase.rpc("get_founding_count").then(({ data }) => {
+      if (typeof data === "number") setCount(data);
+    });
+  }, []);
+
+  const spotsLeft = count !== null ? Math.max(1000 - count, 0) : null;
+
+  const goToSignup = () => navigate("/personal/signup");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background">
-      <div className="max-w-sm mx-auto px-6 py-10 space-y-10">
-        {/* Back button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/")}
-          className="-ml-2 -mt-4"
-        >
+      <div className="max-w-sm mx-auto px-6 py-10 space-y-12">
+        {/* Back */}
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="-ml-2 -mt-4">
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
@@ -68,10 +53,7 @@ const PersonalPricing = () => {
             }}
           >
             <span
-              style={{
-                fontFamily: "'League Spartan', sans-serif",
-                textShadow: "0 2px 8px rgba(0,0,0,0.25)",
-              }}
+              style={{ fontFamily: "'League Spartan', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
               className="text-white text-xl font-bold tracking-tight select-none"
             >
               tapaway.co
@@ -82,50 +64,32 @@ const PersonalPricing = () => {
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               All Your Links,<br />One TapAway
             </h1>
-            <p className="text-muted-foreground mt-1">
-              One link for everything. Set up in about 3 minutes — free.
-            </p>
           </div>
+
+          {/* Founding urgency badge */}
+          {spotsLeft !== null && spotsLeft > 0 && (
+            <Badge className="bg-amber-500 hover:bg-amber-500 text-black text-sm px-4 py-2 font-semibold">
+              <Rocket className="h-4 w-4 mr-1.5" />
+              {spotsLeft} spots left — Pro free for life
+            </Badge>
+          )}
 
           <Button
             onClick={goToSignup}
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Create My Hub
+            Claim My Free Pro Hub
           </Button>
-
-          <button
-            onClick={() => document.getElementById("hub-showcase")?.scrollIntoView({ behavior: "smooth" })}
-            className="flex items-center gap-1 mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Scroll to see examples
-            <ChevronDown className="h-3 w-3 animate-bounce" />
-          </button>
+          <p className="text-xs text-muted-foreground">No credit card required</p>
         </motion.div>
 
-        {/* 2. Hub Showcase */}
-        <motion.div
-          id="hub-showcase"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <HubShowcase onCopyLayout={goToSignup} />
-          <button
-            onClick={() => document.getElementById("layout-templates")?.scrollIntoView({ behavior: "smooth" })}
-            className="mt-3 mx-auto flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            Or pick a free layout below ↓
-          </button>
-        </motion.div>
-
-        {/* 3. How It Works */}
+        {/* 2. How It Works */}
         <motion.section
           className="space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
         >
           <h2 className="text-xl font-bold text-foreground text-center">How It Works</h2>
           <div className="space-y-3">
@@ -143,68 +107,24 @@ const PersonalPricing = () => {
           </div>
         </motion.section>
 
-        {/* 4. Mid-page CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-        >
-          <Button
-            onClick={goToSignup}
-            size="lg"
-            className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
+        {/* 3. Social proof strip */}
+        {count !== null && count > 0 && (
+          <motion.div
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
           >
-            Create My Hub
-          </Button>
-        </motion.div>
+            <Users className="h-4 w-4" />
+            <span>Join {count}+ creators already on TapAway</span>
+          </motion.div>
+        )}
 
-        {/* Free layouts nudge */}
-        <div className="text-center text-sm text-muted-foreground flex flex-col items-center gap-1">
-          <span>Want something free? Pick a starter layout below</span>
-          <ChevronDown className="h-4 w-4 animate-bounce" />
-        </div>
-
-        {/* 5. Layout Templates */}
+        {/* 4. Bottom CTA */}
         <motion.div
-          id="layout-templates"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-        >
-          <LayoutTemplates onSelect={() => {}} />
-        </motion.div>
-
-        {/* 6. What Is a Hub? */}
-        <motion.section
-          className="space-y-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <h2 className="text-xl font-bold text-foreground text-center">What Is a Hub?</h2>
-          <div className="space-y-3">
-            {INFO_CARDS.map((card, i) => (
-              <div
-                key={i}
-                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
-              >
-                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <card.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{card.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{card.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* 7. Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
           className="pb-20"
         >
           <Button
@@ -212,7 +132,7 @@ const PersonalPricing = () => {
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Create My Hub
+            Claim My Free Pro Hub
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Free to start · No credit card required
