@@ -1,32 +1,21 @@
 
 
-# Simplify /personal/pricing — Founding Creator Focus
+# Send Test Post-Purchase Emails
 
-## Problem
-The page has too much content (hub showcase, layout templates, "What Is a Hub?" cards, multiple scroll prompts). Visitors — especially from TikTok/Instagram — bounce before taking action. The page needs to be shorter, cleaner, and centered on the founding creator urgency.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Redesign
+## Changes
 
-Strip the page down to 4 sections (from 7):
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-1. **Hero** — Keep the animated card + headline, but replace subtitle with the founding creator pitch. Add a live spots counter (via `get_founding_count()` RPC). Remove the "scroll to see examples" link.
-   - Headline: "All Your Links, One TapAway"
-   - Urgency line: amber badge showing "🚀 X spots left — Pro free for life"
-   - CTA: "Claim My Free Pro Hub"
+Add two new email templates matching the ones in the stripe webhook:
 
-2. **How It Works** — Keep the 3 steps, unchanged.
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-3. **Social proof strip** — Replace the heavy "What Is a Hub?" info cards with a single-line trust strip: "Join 13+ creators already on TapAway" (dynamic count from the same RPC).
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-4. **Bottom CTA** — "Claim My Free Pro Hub" + "No credit card required" subtext.
+### 2. Deploy and Invoke
 
-**Removed entirely**: HubShowcase, LayoutTemplates, "Free layouts nudge", mid-page CTA, all ChevronDown scroll prompts.
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/pages/personal/PersonalPricing.tsx` | Rewrite to simplified 4-section layout with founding counter |
-
-No new components needed — we reuse the `get_founding_count` RPC inline.
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
