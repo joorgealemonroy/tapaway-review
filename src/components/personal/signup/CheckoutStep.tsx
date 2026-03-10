@@ -1498,8 +1498,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* What's Included - only show if NOT planLocked */}
-      {!planLocked && (
+      {/* What's Included - only show if NOT planLocked and NOT founding promo */}
+      {!planLocked && !isFoundingPromo && (
         <div className="p-4 bg-muted/50 rounded-xl">
           <h3 className="font-semibold text-foreground mb-3">
             {isFreePlan ? "Free plan includes" : "Pro plan includes"}
@@ -1512,7 +1512,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               </li>
             ))}
           </ul>
-          {isFreePlan && (
+          {isFreePlan && formData.planType === "free" && (
             <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
               Upgrade to Pro anytime to unlock all features
             </p>
