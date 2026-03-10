@@ -50,7 +50,6 @@ function detectLinkType(url: string): string {
 }
 
 function extractMeta(html: string, property: string): string | null {
-  // Try og: and regular meta
   const patterns = [
     new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'),
     new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${property}["']`, 'i'),
@@ -64,51 +63,42 @@ function extractMeta(html: string, property: string): string | null {
   return null;
 }
 
+function cleanTitle(raw: string): string {
+  return raw
+    .replace(/\s*\([@\w.]+\)\s*/g, '') // strip (@handle)
+    .replace(/\s*[|–—-]\s*(Linktree|Stan Store|Stan|Beacons|lnk\.bio|Bio Link|Campsite|LinkPop).*$/i, '')
+    .trim();
+}
+
 function extractTitle(html: string): string {
   const ogTitle = extractMeta(html, 'og:title');
-  if (ogTitle) {
-    // Linktree titles are like "Name | Linktree" — strip suffix
-    return ogTitle.replace(/\s*\|\s*(Linktree|Stan Store|Beacons|lnk\.bio).*$/i, '').trim();
-  }
+  if (ogTitle) return cleanTitle(ogTitle);
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (titleMatch?.[1]) {
-    return titleMatch[1].replace(/\s*\|\s*(Linktree|Stan Store|Beacons|lnk\.bio).*$/i, '').trim();
-  }
+  if (titleMatch?.[1]) return cleanTitle(titleMatch[1]);
   return '';
 }
 
 function extractLinks(html: string, sourceHostname: string): Array<{label: string; url: string; type: string}> {
   const links: Array<{label: string; url: string; type: string}> = [];
   const seen = new Set<string>();
-
-  // Match all <a> tags
   const anchorRegex = /<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match;
 
   while ((match = anchorRegex.exec(html)) !== null) {
     const href = match[1];
     const innerHtml = match[2];
-
-    // Skip empty, fragment, or same-domain links
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) continue;
 
     let url: URL;
-    try {
-      url = new URL(href);
-    } catch {
-      continue;
-    }
+    try { url = new URL(href); } catch { continue; }
 
-    // Skip links back to the same platform
     if (url.hostname.includes(sourceHostname)) continue;
-    // Skip common CDN/tracking domains
     if (url.hostname.includes('cdn.') || url.hostname.includes('analytics.') || url.hostname.includes('google-analytics')) continue;
 
     const normalizedUrl = url.origin + url.pathname.replace(/\/$/, '');
     if (seen.has(normalizedUrl)) continue;
     seen.add(normalizedUrl);
 
-    // Extract text label: strip HTML tags, trim
     const label = innerHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     if (!label || label.length > 200) continue;
 
@@ -117,6 +107,61 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
   }
 
   return links;
+}
+
+// --- Stan Store specific extraction ---
+function extractStanStore(html: string, pageUrl: string) {
+  // Profile name from SSR element
+  const nameMatch = html.match(/<div[^>]+class="[^"]*store-header__fullname[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+  const name = nameMatch ? nameMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+  // Profile photo from store header
+  const photoMatch = html.match(/<img[^>]+class="[^"]*base-preview-image[^"]*"[^>]+src=["']([^"']+)["']/i);
+  const photoUrl = photoMatch ? photoMatch[1] : null;
+
+  // Extract product/content blocks
+  const contentLinks: Array<{label: string; url: string; type: string}> = [];
+  // Match block headings — these are the product titles
+  const headingRegex = /<h4[^>]+class="[^"]*block__heading[^"]*"[^>]*>([\s\S]*?)<\/h4>/gi;
+  let m;
+  while ((m = headingRegex.exec(html)) !== null) {
+    const title = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (title && title.length <= 200) {
+      contentLinks.push({ label: title, url: pageUrl, type: 'website' });
+    }
+  }
+
+  // Also try to find social links via anchor tags (Stan does render some social <a> tags)
+  const socialLinks: Array<{label: string; url: string; type: string}> = [];
+  const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud']);
+  const anchorRegex = /<a\s[^>]*href=["']([^"']+)["'][^>]*>/gi;
+  let aMatch;
+  while ((aMatch = anchorRegex.exec(html)) !== null) {
+    const href = aMatch[1];
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) continue;
+    try { new URL(href); } catch { continue; }
+    const type = detectLinkType(href);
+    if (socialTypes.has(type)) {
+      socialLinks.push({ label: type, url: href, type });
+    }
+  }
+
+  return { name, photoUrl, contentLinks, socialLinks };
+}
+
+// --- Beacons specific extraction ---
+function extractBeacons(html: string, pageUrl: string) {
+  const contentLinks: Array<{label: string; url: string; type: string}> = [];
+  // Beacons uses data-link-title or similar patterns; try generic button/link text extraction
+  const buttonRegex = /<(?:a|button)[^>]*(?:class="[^"]*link-block[^"]*"|data-link-title)[^>]*>([\s\S]*?)<\/(?:a|button)>/gi;
+  let m;
+  while ((m = buttonRegex.exec(html)) !== null) {
+    const title = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (title && title.length <= 200) {
+      contentLinks.push({ label: title, url: pageUrl, type: 'website' });
+    }
+  }
+  return contentLinks;
 }
 
 Deno.serve(async (req) => {
@@ -134,13 +179,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Normalize URL
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    // Validate domain
     let hostname: string;
     try {
       hostname = new URL(formattedUrl).hostname.replace(/^www\./, '');
@@ -154,17 +197,13 @@ Deno.serve(async (req) => {
     const isAllowed = ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
     if (!isAllowed) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Unsupported platform. We support: ${ALLOWED_DOMAINS.join(', ')}`
-        }),
+        JSON.stringify({ success: false, error: `Unsupported platform. We support: ${ALLOWED_DOMAINS.join(', ')}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('Scraping:', formattedUrl);
 
-    // Fetch the page
     const response = await fetch(formattedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; TapAway/1.0)',
@@ -181,31 +220,41 @@ Deno.serve(async (req) => {
 
     const html = await response.text();
 
-    // Extract data using meta tags (resilient approach)
-    const name = extractTitle(html);
-    const photoUrl = extractMeta(html, 'og:image') || null;
-    const description = extractMeta(html, 'og:description') || null;
+    // Common meta fallbacks
+    const metaPhoto = extractMeta(html, 'og:image') || null;
+    const metaBio = extractMeta(html, 'og:description') || null;
+    const metaName = extractTitle(html);
 
-    // Extract all external links
-    const allLinks = extractLinks(html, hostname);
-
-    // Separate social links from content links
     const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud']);
-    const socialLinks = allLinks.filter(l => socialTypes.has(l.type));
-    const contentLinks = allLinks.filter(l => !socialTypes.has(l.type));
+
+    let name: string;
+    let photoUrl: string | null;
+    let bio: string | null = metaBio;
+    let contentLinks: Array<{label: string; url: string; type: string}>;
+    let socialLinks: Array<{label: string; url: string; type: string}>;
+
+    // Platform-specific routing
+    if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
+      const stan = extractStanStore(html, formattedUrl);
+      name = stan.name || metaName;
+      photoUrl = stan.photoUrl || metaPhoto;
+      contentLinks = stan.contentLinks;
+      socialLinks = stan.socialLinks;
+    } else {
+      // Generic anchor-based extraction (works for Linktree, lnk.bio, bio.link, etc.)
+      name = metaName;
+      photoUrl = metaPhoto;
+      const allLinks = extractLinks(html, hostname);
+      socialLinks = allLinks.filter(l => socialTypes.has(l.type));
+      contentLinks = allLinks.filter(l => !socialTypes.has(l.type));
+    }
 
     console.log(`Extracted: name="${name}", ${contentLinks.length} content links, ${socialLinks.length} social links`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: {
-          name,
-          bio: description,
-          photoUrl,
-          links: contentLinks,
-          socialLinks,
-        }
+        data: { name, bio, photoUrl, links: contentLinks, socialLinks },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
