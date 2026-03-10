@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Crown, Sparkles, ExternalLink } from "lucide-react";
-import { PERSONAL_PLANS, isPaidPlan, isVIPPlan } from "@/lib/personalPlanLimits";
+import { PERSONAL_PLANS, isPaidPlan, isVIPPlan, isFoundingPlan } from "@/lib/personalPlanLimits";
 
 const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
 
