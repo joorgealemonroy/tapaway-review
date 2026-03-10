@@ -110,6 +110,7 @@ const App = () => (
                 <Route path="/personal/dashboard" element={<PersonalDashboard />} />
                 <Route path="/personal/pricing" element={<PersonalPricing />} />
                 <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
+                <Route path="/import" element={<ImportProfile />} />
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/magic" element={<MagicLinkVerify />} />

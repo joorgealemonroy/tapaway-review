@@ -111,6 +111,14 @@ export const PersonalHero = () => {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Free plan available • Pro from $6.25/mo
             </p>
+
+            <Link
+              to="/import"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium mt-2 transition-colors"
+            >
+              Already have a Linktree? Import it
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </motion.div>
 
           {/* Right: Real Profile Mockup */}

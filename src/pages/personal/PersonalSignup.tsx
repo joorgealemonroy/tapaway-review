@@ -95,6 +95,37 @@ const PersonalSignup = () => {
     }
   }, [searchParams]);
   
+  // Consume imported profile data from /import page
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tapaway_import_data");
+      if (raw) {
+        const imported = JSON.parse(raw);
+        sessionStorage.removeItem("tapaway_import_data");
+        
+        if (imported.name) {
+          update({ fullName: imported.name });
+        }
+        
+        // Pre-fill links from import
+        if (imported.links?.length) {
+          for (const link of imported.links) {
+            addLink({
+              platform: link.type || 'website',
+              url: link.url,
+              label: link.label || link.type || 'Link',
+            });
+          }
+        }
+
+        toast.success("Profile imported! Review and customize your links.");
+      }
+    } catch (e) {
+      console.error('[PersonalSignup] Failed to consume import data:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const planParam = searchParams.get("plan");
     if (planParam === "free" || planParam === "monthly" || planParam === "yearly") {
