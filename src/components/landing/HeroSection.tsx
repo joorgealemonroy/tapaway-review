@@ -107,7 +107,7 @@ export const HeroSection = () => {
                 onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <Play className="w-4 h-4 fill-foreground" />
-                See How It Works
+                See It In Action
               </motion.button>
             </div>
 

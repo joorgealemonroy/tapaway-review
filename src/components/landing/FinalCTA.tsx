@@ -34,7 +34,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-white/60 text-sm md:text-base mb-8 max-w-md mx-auto"
         >
-          Includes cards, dashboard, and setup. December spots are limited.
+          Includes cards, dashboard, and setup. March spots are limited.
         </motion.p>
         
         <motion.div
