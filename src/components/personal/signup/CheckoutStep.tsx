@@ -50,7 +50,7 @@ interface Props {
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating" | "existing_account";
-type PlanType = "free" | "monthly" | "yearly";
+type PlanType = "free" | "monthly" | "yearly" | "founding_pro";
 
 export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false, cardCode, isOAuthUser = false }: Props) => {
   const navigate = useNavigate();
