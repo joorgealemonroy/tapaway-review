@@ -86,16 +86,21 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
 
   // Detect founding creator promotion
   useEffect(() => {
-    supabase.rpc("get_founding_count").then(({ data }) => {
-      if (typeof data === "number" && data < 1000) {
-        setIsFoundingPromo(true);
-        setFoundingSpotsLeft(1000 - data);
-        // Auto-assign founding_pro plan
-        updateFormData({ planType: "founding_pro" as any });
-      } else {
+    const checkFounding = async () => {
+      try {
+        const { data } = await supabase.rpc("get_founding_count");
+        if (typeof data === "number" && data < 1000) {
+          setIsFoundingPromo(true);
+          setFoundingSpotsLeft(1000 - data);
+          updateFormData({ planType: "founding_pro" as any });
+        } else {
+          setIsFoundingPromo(false);
+        }
+      } catch {
         setIsFoundingPromo(false);
       }
-    }).catch(() => setIsFoundingPromo(false));
+    };
+    checkFounding();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
