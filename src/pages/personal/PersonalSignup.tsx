@@ -111,9 +111,10 @@ const PersonalSignup = () => {
         if (imported.links?.length) {
           for (const link of imported.links) {
             addLink({
-              platform: link.type || 'website',
+              type: link.type || 'website',
               url: link.url,
               label: link.label || link.type || 'Link',
+              value: '',
             });
           }
         }
