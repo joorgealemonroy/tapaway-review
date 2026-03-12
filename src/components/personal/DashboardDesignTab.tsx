@@ -16,6 +16,7 @@ import {
   Lock
 } from "lucide-react";
 import { ProUpgradeDialog } from "./ProUpgradeDialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 
