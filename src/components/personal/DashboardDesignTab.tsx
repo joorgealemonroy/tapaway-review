@@ -582,6 +582,38 @@ export const DashboardDesignTab = ({
         </div>
       </div>
 
+      {/* Founding Creator Badge Toggle */}
+      {isFoundingUser && (
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Founding Creator Badge</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Show "Founding Creator #{'" + "' is not used here}" badge on your public profile
+              </p>
+            </div>
+            <Switch
+              checked={showFoundingBadge ?? false}
+              onCheckedChange={async (checked) => {
+                try {
+                  const { error } = await supabase
+                    .from("personal_profiles")
+                    .update({ show_founding_badge: checked })
+                    .eq("id", profileId);
+                  if (error) throw error;
+                  toast.success(checked ? "Badge visible on your profile" : "Badge hidden from your profile");
+                  // Force page refresh to update state
+                  window.location.reload();
+                } catch (err) {
+                  console.error("Toggle badge error:", err);
+                  toast.error("Failed to update badge visibility");
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
