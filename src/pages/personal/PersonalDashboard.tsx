@@ -80,6 +80,10 @@ interface PersonalProfile {
   referred_by: string | null;
   trial_ends_at: string | null;
   stripe_billing_email: string | null;
+  // Founding creator
+  is_founding_user?: boolean;
+  founding_number?: number | null;
+  show_founding_badge?: boolean;
 }
 
 interface DbPersonalLink {
