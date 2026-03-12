@@ -35,6 +35,7 @@ export interface CachedProfile {
   // Founding creator
   is_founding_user?: boolean;
   founding_number?: number | null;
+  show_founding_badge?: boolean;
 }
 
 export interface CachedLink {

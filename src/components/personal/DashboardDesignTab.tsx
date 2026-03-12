@@ -72,6 +72,8 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   isPremium,
+  isFoundingUser,
+  showFoundingBadge,
   onUpgrade,
   onUpdate,
 }: Props) => {
