@@ -99,8 +99,14 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
     if (seen.has(normalizedUrl)) continue;
     seen.add(normalizedUrl);
 
-    const label = innerHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    let label = innerHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     if (!label || label.length > 200) continue;
+
+    // Deduplicate repeated-word labels like "InstagramInstagram"
+    if (label.length >= 6 && label.length % 2 === 0) {
+      const half = label.substring(0, label.length / 2);
+      if (label === half + half) label = half;
+    }
 
     const type = detectLinkType(href);
     links.push({ label, url: href, type });
