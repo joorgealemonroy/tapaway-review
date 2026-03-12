@@ -1522,6 +1522,7 @@ export type Database = {
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
+          show_founding_badge: boolean
           show_shop_section: boolean | null
           stripe_billing_email: string | null
           stripe_connect_account_id: string | null
@@ -1569,6 +1570,7 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          show_founding_badge?: boolean
           show_shop_section?: boolean | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
@@ -1616,6 +1618,7 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          show_founding_badge?: boolean
           show_shop_section?: boolean | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null

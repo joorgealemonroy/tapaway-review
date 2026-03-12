@@ -80,6 +80,10 @@ interface PersonalProfile {
   referred_by: string | null;
   trial_ends_at: string | null;
   stripe_billing_email: string | null;
+  // Founding creator
+  is_founding_user?: boolean;
+  founding_number?: number | null;
+  show_founding_badge?: boolean;
 }
 
 interface DbPersonalLink {
@@ -685,6 +689,8 @@ const PersonalDashboard = () => {
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
+              isFoundingUser={profile.is_founding_user}
+              showFoundingBadge={profile.show_founding_badge}
               onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
