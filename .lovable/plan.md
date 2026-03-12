@@ -1,21 +1,42 @@
 
 
-# Send Test Post-Purchase Emails
+# Add Toggle for "Founding Creator #X" Badge on Public Profile
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## What
+Let founding creators choose whether to show or hide the "Founding Creator #X" badge on their public profile. By default it's **hidden** (off). They can toggle it on from their dashboard settings.
 
-## Changes
+## Database Change
+Add a `show_founding_badge` boolean column to `personal_profiles`, defaulting to `false`:
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+```sql
+ALTER TABLE public.personal_profiles 
+ADD COLUMN show_founding_badge boolean NOT NULL DEFAULT false;
+```
 
-Add two new email templates matching the ones in the stripe webhook:
+## Code Changes
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### 1. `src/pages/personal/PersonalProfilePage.tsx`
+Change the badge condition from:
+```tsx
+{profile.is_founding_user && (
+```
+to:
+```tsx
+{profile.is_founding_user && profile.show_founding_badge && (
+```
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+### 2. `src/components/personal/DashboardDesignTab.tsx` (or `SettingsTab`)
+Add a toggle in the dashboard for founding users:
+- Only visible when `is_founding_user` is true
+- Label: "Show Founding Creator badge on profile"
+- Toggles `show_founding_badge` in the database
 
-### 2. Deploy and Invoke
+### 3. `src/hooks/useProfileData.ts`
+Add `show_founding_badge` to the profile select query so public profiles receive the value.
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### Files Modified
+- **Migration**: Add `show_founding_badge` column
+- `src/pages/personal/PersonalProfilePage.tsx` — conditional render
+- `src/hooks/useProfileData.ts` — include in select
+- Dashboard settings component — add toggle UI
 
