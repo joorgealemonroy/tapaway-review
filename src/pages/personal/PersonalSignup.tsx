@@ -219,7 +219,7 @@ const PersonalSignup = () => {
 
     // Apply style — force free users to "color" header (banner/image are Pro-only)
     const isVipCard = onboardingData.cardChoice === "custom" || onboardingData.cardChoice === "basic";
-    const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip";
+    const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip" || onboardingData.planType === "founding_pro";
     const effectiveHeaderType = (!isPaid && !isVipCard && (template.headerType === "banner" || template.headerType === "image"))
       ? "color" as const
       : template.headerType;

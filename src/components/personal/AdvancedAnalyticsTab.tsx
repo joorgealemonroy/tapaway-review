@@ -43,7 +43,7 @@ type AnalyticsRow = {
 };
 
 const hasProAccess = (plan: string | null, status: string | null | undefined) => {
-  if (!!plan && ["pro", "premium", "vip"].includes(plan)) return true;
+  if (!!plan && ["pro", "premium", "vip", "founding_pro"].includes(plan)) return true;
   if (status === "trialing") return true;
   return false;
 };
