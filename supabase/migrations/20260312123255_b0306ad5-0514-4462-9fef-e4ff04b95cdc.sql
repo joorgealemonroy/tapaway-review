@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN show_founding_badge boolean NOT NULL DEFAULT false;
