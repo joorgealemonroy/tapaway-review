@@ -28,6 +28,8 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   isPremium: boolean;
+  isFoundingUser?: boolean;
+  showFoundingBadge?: boolean;
   onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
