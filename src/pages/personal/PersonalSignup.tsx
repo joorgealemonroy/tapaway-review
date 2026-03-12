@@ -107,13 +107,17 @@ const PersonalSignup = () => {
           update({ fullName: imported.name });
         }
         
-        // Pre-fill links from import
+        // Clear any existing draft/template links before importing
+        update({ links: [], blocks: [] });
+        
+        // Pre-fill links from import, using clean platform labels for known types
         if (imported.links?.length) {
           for (const link of imported.links) {
+            const platformConfig = getPlatformConfig(link.type);
             addLink({
               type: link.type || 'website',
               url: link.url,
-              label: link.label || link.type || 'Link',
+              label: platformConfig?.label || link.label || 'Link',
               value: '',
             });
           }
