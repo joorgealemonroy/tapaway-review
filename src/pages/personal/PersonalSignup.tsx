@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getLayoutTemplate } from "@/lib/layoutTemplates";
+import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
 import { 
   AlertDialog, 
