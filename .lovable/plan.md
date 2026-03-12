@@ -1,21 +1,34 @@
 
 
-# Send Test Post-Purchase Emails
+# Ensure Founding Pro Users Have Full Access
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problems Found
+
+Three places where `founding_pro` is missing from pro/paid access checks:
+
+1. **AdvancedAnalyticsTab.tsx** — `hasProAccess()` checks for `"pro", "premium", "vip"` but NOT `"founding_pro"`. Founding users see the locked/blurred analytics view.
+
+2. **PersonalShopTab.tsx** — `isFreeUser` check is `!planType || planType === 'free'`, which correctly allows founding_pro through. **No fix needed here.**
+
+3. **PersonalSignup.tsx** — `isPaid` check on line 222 doesn't include `"founding_pro"`, so founding users get forced to "color" headers instead of banner/image during signup.
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### File: `src/components/personal/AdvancedAnalyticsTab.tsx`
+Add `"founding_pro"` to the `hasProAccess` check:
+```typescript
+const hasProAccess = (plan: string | null, status: string | null | undefined) => {
+  if (!!plan && ["pro", "premium", "vip", "founding_pro"].includes(plan)) return true;
+  if (status === "trialing") return true;
+  return false;
+};
+```
 
-Add two new email templates matching the ones in the stripe webhook:
+### File: `src/pages/personal/PersonalSignup.tsx`
+Add `"founding_pro"` to the `isPaid` check:
+```typescript
+const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip" || onboardingData.planType === "founding_pro";
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
-
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+Two lines across two files.
 
