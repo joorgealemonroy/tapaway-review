@@ -134,7 +134,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   
   // Touch hold state for mobile UX
   const [isDragEnabled, setIsDragEnabled] = useState(false);
-  const touchHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialTouchYRef = useRef<number | null>(null);
   const draggedElRef = useRef<HTMLElement | null>(null);
   
