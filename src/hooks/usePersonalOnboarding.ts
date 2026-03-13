@@ -67,7 +67,7 @@ const initialData: PersonalOnboardingData = {
   headerType: "color",
   headerImageUrl: null,
   headerColor: "#6BCB77",
-  backgroundColor: "#ffffff",
+  backgroundColor: "#000000",
   cardHeadline: "",
   links: [],
   blocks: [],

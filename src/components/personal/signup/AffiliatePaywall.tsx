@@ -80,7 +80,7 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
         cardHeadline: "",
         headerType: "banner",
         headerColor: "#6BCB77",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#000000",
         profilePhotoBase64: null,
         addExtraCard: false,
         extraCardCount: 0,

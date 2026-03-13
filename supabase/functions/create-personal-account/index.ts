@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       // Design fields
       headerType = "color",
       headerColor = "#6BCB77",
-      backgroundColor = "#ffffff",
+      backgroundColor = "#000000",
       // pfpPosition always defaults to "center" - no longer configurable
     } = await req.json();
 
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
         is_active: link.isActive !== false,
         is_featured: link.isFeatured === true,
         display_style: link.displayStyle || "pill",
-        pill_color: link.pillColor || null,
+        pill_color: link.pillColor || "#000000",
         cover_image_url: link.coverImageUrl || null,
         grid_size: link.gridSize || null,
       }));

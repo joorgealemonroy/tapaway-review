@@ -1,38 +1,21 @@
 
 
-# Default Black Background/Pills + More Colorful Presets
+# Send Test Post-Purchase Emails
 
-## 1. Default black background & pill colors for new accounts
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-Change default `backgroundColor` from `#ffffff` to `#000000` and default `pill_color` from `null` to `#000000` across all creation paths:
+## Changes
 
-| File | Change |
-|------|--------|
-| `supabase/functions/create-personal-account/index.ts` (line 97) | `backgroundColor = "#ffffff"` → `"#000000"` |
-| `supabase/functions/create-personal-account/index.ts` (line 202) | `pill_color: link.pillColor \|\| null` → `\|\| "#000000"` |
-| `src/hooks/usePersonalOnboarding.ts` (line 70) | `backgroundColor: "#ffffff"` → `"#000000"` |
-| `src/pages/personal/PersonalSignupComplete.tsx` (line 229) | fallback `"#ffffff"` → `"#000000"` |
-| `src/pages/personal/PersonalSignupComplete.tsx` (line 263) | `pill_color: link.pillColor \|\| null` → `\|\| "#000000"` |
-| `src/components/personal/signup/CheckoutStep.tsx` (lines 491, 529, 716, 742, 1030) | fallback `"#000000"` already set for bg; change `pill_color` fallbacks from `null` to `"#000000"` |
-| `src/pages/admin/AdminPersonalAccounts.tsx` (lines 138, 184, 508) | `backgroundColor: "#ffffff"` → `"#000000"` |
-| `src/components/personal/signup/AffiliatePaywall.tsx` (line 83) | `backgroundColor: "#ffffff"` → `"#000000"` |
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-## 2. Add colorful/feminine colors to background presets
+Add two new email templates matching the ones in the stripe webhook:
 
-Expand `COLOR_PRESETS` in three files to include soft pink, rose, blush, lavender, and other feminine tones:
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-**New palette** (replacing the current 8-color list):
-```
-"#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
-"#e63946", "#4361ee", "#f4a261", "#9b5de5",
-"#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
-"#B5EAD7", "#FFDAC1", "#C3B1E1"
-```
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-Adds: soft pink, light pink, plum, dusty rose, sage green, peach, soft purple.
+### 2. Deploy and Invoke
 
-Updated in:
-- `src/components/personal/DashboardDesignTab.tsx` (line 42)
-- `src/components/personal/HeaderCustomizer.tsx` (line 23)
-- `src/pages/admin/AdminPersonalAccounts.tsx` (line 94)
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

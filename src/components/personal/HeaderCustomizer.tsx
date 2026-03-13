@@ -23,6 +23,8 @@ interface Props {
 const COLOR_PRESETS = [
   "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
   "#e63946", "#4361ee", "#f4a261", "#9b5de5",
+  "#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
+  "#B5EAD7", "#FFDAC1", "#C3B1E1",
 ];
 
 const FADE_PRESETS = [
