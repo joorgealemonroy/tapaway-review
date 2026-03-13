@@ -137,7 +137,7 @@ const AdminPersonalAccounts = () => {
     // Design fields
     headerType: "color" as "color" | "image",
     headerColor: "#6BCB77",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#000000",
     pfpPosition: "center" as "center" | "left",
   });
   const [adminLinks, setAdminLinks] = useState<AdminLink[]>([]);
