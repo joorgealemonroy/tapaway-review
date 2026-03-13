@@ -1,14 +1,21 @@
 
 
-# Add Instagram Deep Link to Restaurant Hubs
+# Send Test Post-Purchase Emails
 
-## Changes — `src/pages/ReviewHub.tsx`
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-1. **Add helper function** (after `isSafeUrl`, ~line 182): Convert stored Instagram web URLs to `instagram://user?username=...` deep links for native app opening on mobile.
+## Changes
 
-2. **Update Instagram href** (line 679): Change `href={restaurant.instagram_url!}` to `href={getInstagramDeepLink(restaurant.instagram_url!)}`.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-3. **Update `isSafeUrl` check for Instagram** (line 677): Check against the raw `instagram_url` (which is always valid if present), not the deep-linked version.
+Add two new email templates matching the ones in the stripe webhook:
 
-No other files need changes. The `isSafeUrl` function already permits `instagram:` protocol.
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
