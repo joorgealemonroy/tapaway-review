@@ -226,7 +226,7 @@ const PersonalSignupComplete = () => {
             headline: savedData.cardHeadline || null,
             header_type: effectiveHeaderType,
             header_color: savedData.headerColor || "#6BCB77",
-            background_color: savedData.backgroundColor || "#ffffff",
+            background_color: savedData.backgroundColor || "#000000",
             card_front_headline: savedData.cardHeadline || null,
           };
 
