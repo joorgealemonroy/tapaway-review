@@ -134,14 +134,7 @@ Deno.serve(async (req) => {
     }
 
     const ownerId = restaurant.owner_id;
-
-    // SAFETY CHECK: Prevent admin from deleting their own account
-    if (ownerId === caller.id) {
-      return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const isOwnAccount = ownerId === caller.id;
 
     // Delete related data first
     await supabaseAdmin.from("locations").delete().eq("restaurant_id", restaurantId);
@@ -157,6 +150,7 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from("av_meal_prep_meals").delete().eq("restaurant_id", restaurantId);
     await supabaseAdmin.from("av_meal_prep_testimonials").delete().eq("restaurant_id", restaurantId);
     await supabaseAdmin.from("av_trainer_bundles").delete().eq("restaurant_id", restaurantId);
+    await supabaseAdmin.from("rep_restaurants").delete().eq("linked_restaurant_id", restaurantId);
 
     // Delete the restaurant
     const { error: deleteRestaurantError } = await supabaseAdmin
@@ -172,6 +166,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // If the restaurant owner is the admin themselves, only delete the restaurant — not the auth user
+    if (isOwnAccount) {
+      console.log(`Admin deleted own restaurant ${restaurantId} (auth user preserved)`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Delete user roles
     await supabaseAdmin.from("user_roles").delete().eq("user_id", ownerId);
 
@@ -180,7 +183,6 @@ Deno.serve(async (req) => {
 
     if (deleteUserError) {
       console.error("Error deleting auth user:", deleteUserError);
-      // Restaurant is already deleted, so return partial success
       return new Response(JSON.stringify({ 
         success: true, 
         warning: "Restaurant deleted but could not remove auth user" 
