@@ -1,21 +1,37 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix: Restaurant Hubs Showing 404 for Unauthenticated Visitors
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Root Cause
 
-## Changes
+The `UsernameResolver` queries the `restaurants` table directly to check if a slug is a restaurant:
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+```typescript
+const { data: restaurant } = await supabase
+  .from("restaurants")
+  .select("id")
+  .eq("custom_slug", lowerSlug)
+  .maybeSingle();
+```
 
-Add two new email templates matching the ones in the stripe webhook:
+The `restaurants` table has RLS policies that **block unauthenticated users** from reading. So for any visitor not logged in, this query silently returns `null`, and the resolver falls through to "not found" — showing the 404 page.
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+Meanwhile, the `ReviewHub` component itself correctly uses the `restaurant_public_info` view (which is publicly accessible). The problem is just in the resolver's lookup step.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+This affects **all** restaurant hubs accessed via `/:slug` by unauthenticated visitors, not just `/lasislasfontana`.
 
-### 2. Deploy and Invoke
+## Fix
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+**File: `src/pages/UsernameResolver.tsx`** (2 changes, lines 50-54 and 75-79)
+
+Change both restaurant lookups from:
+```typescript
+.from("restaurants")
+```
+to:
+```typescript
+.from("restaurant_public_info")
+```
+
+This is a two-line change that fixes the issue for all restaurant slugs globally.
 
