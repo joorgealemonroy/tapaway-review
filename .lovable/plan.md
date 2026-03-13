@@ -2,34 +2,13 @@
 
 # Add Instagram Deep Link to Restaurant Hubs
 
-## Problem
-Restaurant hubs link to Instagram using standard `https://instagram.com/...` URLs, which open in the browser. Personal hubs already convert these to `instagram://user?username=...` deep links that open the native app on mobile.
+## Changes — `src/pages/ReviewHub.tsx`
 
-## Fix
+1. **Add helper function** (after `isSafeUrl`, ~line 182): Convert stored Instagram web URLs to `instagram://user?username=...` deep links for native app opening on mobile.
 
-**File: `src/pages/ReviewHub.tsx`** — Add a helper function to convert the stored Instagram URL to a deep link, and use it in the `href`:
+2. **Update Instagram href** (line 679): Change `href={restaurant.instagram_url!}` to `href={getInstagramDeepLink(restaurant.instagram_url!)}`.
 
-```typescript
-const getInstagramDeepLink = (url: string): string => {
-  try {
-    if (url.startsWith('instagram://')) return url;
-    const username = url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").split("/")[0];
-    if (username) return `instagram://user?username=${username}`;
-  } catch {}
-  return url;
-};
-```
+3. **Update `isSafeUrl` check for Instagram** (line 677): Check against the raw `instagram_url` (which is always valid if present), not the deep-linked version.
 
-Then on the Instagram `<a>` tag (~line 679), change:
-```typescript
-href={restaurant.instagram_url!}
-```
-to:
-```typescript
-href={getInstagramDeepLink(restaurant.instagram_url!)}
-```
-
-Also update the `isSafeUrl` check to allow `instagram:` protocol (already allowed on line 178).
-
-One function addition, one line change.
+No other files need changes. The `isSafeUrl` function already permits `instagram:` protocol.
 
