@@ -48,7 +48,7 @@ const UsernameResolverInner = memo(({ slug }: { slug?: string }) => {
       if (isUsernameReserved(slug)) {
         // Check restaurant slug
         const { data: restaurant } = await supabase
-          .from("restaurants")
+          .from("restaurant_public_info")
           .select("id")
           .eq("custom_slug", lowerSlug)
           .maybeSingle();
