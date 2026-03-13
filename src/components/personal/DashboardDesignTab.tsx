@@ -55,7 +55,12 @@ const FADE_PRESETS = [
   { value: "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)", label: "Grey" },
 ];
 
-const BG_PRESETS = ["#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a", "#0a0a0a", "#1e293b", "#fef3c7", "#ecfdf5"];
+const BG_PRESETS = [
+  "#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a", "#0a0a0a", "#1e293b",
+  "#fef3c7", "#ecfdf5",
+  "#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
+  "#B5EAD7", "#FFDAC1", "#C3B1E1",
+];
 
 const BG_FADE_PRESETS = [
   { value: "linear-gradient(180deg, #fdfcfb 0%, #e2d1c3 100%)", label: "Warm" },
