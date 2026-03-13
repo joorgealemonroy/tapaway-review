@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       // Design fields
       headerType = "color",
       headerColor = "#6BCB77",
-      backgroundColor = "#ffffff",
+      backgroundColor = "#000000",
       // pfpPosition always defaults to "center" - no longer configurable
     } = await req.json();
 
