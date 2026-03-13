@@ -1,21 +1,27 @@
 
 
-# Send Test Post-Purchase Emails
+# Ensure All Restaurant Hubs Are Publicly Accessible
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
 
-## Changes
+The `UsernameResolver` was already fixed to use the public `restaurant_public_info` view. However, `ReviewHub.tsx` still has a second fetch path — `fetchRestaurant()` (line 113) — that queries the RLS-protected `restaurants` table directly. This path is used when accessing hubs via `/hub/:restaurantId`.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+Any unauthenticated visitor hitting `/hub/:restaurantId` will get a blank/broken page because the `restaurants` table blocks anonymous reads.
 
-Add two new email templates matching the ones in the stripe webhook:
+## Fix
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+**File: `src/pages/ReviewHub.tsx`** — Change `fetchRestaurant` (line 113-128) to query `restaurant_public_info` instead of `restaurants`.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+```typescript
+const fetchRestaurant = async (id: string) => {
+  const { data } = await supabase
+    .from("restaurant_public_info")  // was "restaurants"
+    .select("*")
+    .eq("id", id)
+    .single();
+  // ... rest unchanged
+};
+```
 
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+This is a one-line table name change. Both fetch paths (`fetchRestaurantBySlug` and `fetchRestaurant`) will then use the publicly accessible view, ensuring all hub URLs work for unauthenticated visitors.
 
