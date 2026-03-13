@@ -1,21 +1,21 @@
 
 
-# Send Test Post-Purchase Emails
+# Add Missing Colors to Background Presets
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+The "Background" section (`BG_PRESETS`) currently only has 8 colors (whites, darks, warm yellow, mint). It's missing all the feminine/colorful colors that are already in the header's `COLOR_PRESETS`.
 
-## Changes
+## Change — `src/components/personal/DashboardDesignTab.tsx` (line 58)
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+Update `BG_PRESETS` to include the soft/feminine colors:
 
-Add two new email templates matching the ones in the stripe webhook:
+```typescript
+const BG_PRESETS = [
+  "#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a", "#0a0a0a", "#1e293b",
+  "#fef3c7", "#ecfdf5",
+  "#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
+  "#B5EAD7", "#FFDAC1", "#C3B1E1",
+];
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
-
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+Adds 7 colors: soft pink, light pink, plum, dusty rose, sage green, peach, soft purple. One line change, no other files affected.
 
