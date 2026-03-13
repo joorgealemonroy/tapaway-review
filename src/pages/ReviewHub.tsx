@@ -112,7 +112,7 @@ const ReviewHub = () => {
 
   const fetchRestaurant = async (id: string) => {
     const { data } = await supabase
-      .from("restaurants")
+      .from("restaurant_public_info")
       .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label, phone")
       .eq("id", id)
       .single();
