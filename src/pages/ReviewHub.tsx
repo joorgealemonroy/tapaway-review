@@ -181,6 +181,15 @@ const ReviewHub = () => {
     }
   };
 
+  const getInstagramDeepLink = (url: string): string => {
+    try {
+      if (url.startsWith('instagram://')) return url;
+      const username = url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").split("/")[0];
+      if (username) return `instagram://user?username=${username}`;
+    } catch {}
+    return url;
+  };
+
   const trackEvent = async (eventName: string) => {
     if (!restaurant) return;
     
