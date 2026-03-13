@@ -685,7 +685,7 @@ const ReviewHub = () => {
           {/* INSTAGRAM */}
           {isSafeUrl(restaurant.instagram_url) && (
             <a 
-              href={restaurant.instagram_url!}
+              href={getInstagramDeepLink(restaurant.instagram_url!)}
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('instagram_click')}
