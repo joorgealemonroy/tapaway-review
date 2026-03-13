@@ -507,7 +507,7 @@ Login at: ${window.location.origin}/auth`;
       bio: "",
       headerType: "color",
       headerColor: "#6BCB77",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#000000",
       pfpPosition: "center",
     });
     setAdminLinks([]);

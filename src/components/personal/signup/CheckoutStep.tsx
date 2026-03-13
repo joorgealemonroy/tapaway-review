@@ -739,7 +739,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           url: link.url,
           sort_order: link.sortOrder ?? index,
           is_active: true,
-          pill_color: link.pillColor || null,
+          pill_color: link.pillColor || "#000000",
           is_featured: link.isFeatured || false,
           display_style: link.displayStyle || "pill",
           cover_image_url: link.coverImageUrl || null,
