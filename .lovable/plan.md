@@ -1,24 +1,21 @@
 
 
-# Update Favicon to New PNG Brand Icon
+# Send Test Post-Purchase Emails
 
-## Current State
-- `index.html` already has the correct favicon references at lines 6-7:
-  ```html
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="apple-touch-icon" href="/favicon.png" />
-  ```
-- No old SVG favicon references exist in `index.html`
-- User has uploaded `user-uploads://favicon.png` with new TapAway "TA" logo
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Changes Required
+## Changes
 
-### 1. Copy Uploaded Favicon
-Copy `user-uploads://favicon.png` → `public/favicon.png` to replace the existing favicon with the new brand icon.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### 2. Verification
-The `index.html` file already has the correct tags configured (lines 6-7), so no HTML changes are needed. The new favicon will automatically be used once copied to `public/`.
+Add two new email templates matching the ones in the stripe webhook:
 
-## Files Modified
-- **Replaced**: `public/favicon.png` (new TA logo)
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
