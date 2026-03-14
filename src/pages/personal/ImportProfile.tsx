@@ -151,10 +151,11 @@ function scrapedToPreviewProps(data: ScrapedData) {
   const imageIndices: number[] = [];
   rawLinks.forEach((l, i) => { if (l.imageUrl) imageIndices.push(i); });
 
-  // Pair consecutive image links into grid groups ONLY if they share the same link_type
+  // Pair consecutive image links into grid groups ONLY if they share the same media-platform type
+  const gridEligibleTypes = new Set(["youtube", "spotify", "soundcloud", "tiktok"]);
   const gridIndices = new Set<number>();
   for (let k = 0; k < imageIndices.length; k++) {
-    if (k + 1 < imageIndices.length && rawLinks[imageIndices[k]].type === rawLinks[imageIndices[k + 1]].type) {
+    if (k + 1 < imageIndices.length && rawLinks[imageIndices[k]].type === rawLinks[imageIndices[k + 1]].type && gridEligibleTypes.has(rawLinks[imageIndices[k]].type)) {
       gridIndices.add(imageIndices[k]);
       gridIndices.add(imageIndices[k + 1]);
       k++; // skip the paired one
