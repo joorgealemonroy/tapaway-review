@@ -324,7 +324,7 @@ const SocialIconBar = memo(function SocialIconBar({
         return (
           <a
             key={link.id}
-            href={link.url}
+            href={sanitizeUrl(link.url)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => profileId && trackLinkClick(profileId, { id: link.id, label: link.label || config?.label || link.link_type, url: link.url })}
