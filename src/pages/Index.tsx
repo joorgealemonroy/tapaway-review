@@ -27,6 +27,7 @@ const Index = () => {
         <meta property="og:type" content="website" />
         <meta name="twitter:title" content="TapAway for Business — Generate 5-Star Google Reviews Instantly" />
         <meta name="twitter:description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
+        <meta name="twitter:image" content="https://tapaway.co/logo-og.png" />
       </Helmet>
       
       {/* Trial Resume Banner */}
