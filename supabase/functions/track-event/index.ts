@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getRateLimitKey } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,26 +18,6 @@ const VALID_EVENT_TYPES = [
   'menu_close',
   'phone_click'
 ];
-
-// Simple in-memory rate limiting (resets on function restart)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-const checkRateLimit = (key: string, limit: number = 50, windowMs: number = 3600000): boolean => {
-  const now = Date.now();
-  const record = rateLimitMap.get(key);
-
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-
-  if (record.count >= limit) {
-    return false;
-  }
-
-  record.count++;
-  return true;
-};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -69,13 +50,8 @@ serve(async (req) => {
       );
     }
 
-    // Get client IP for rate limiting (fallback to a default if not available)
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
-                     req.headers.get('x-real-ip') || 
-                     'unknown';
-    
     // Rate limit: 50 events per hour per IP + restaurant combination
-    const rateLimitKey = `${clientIp}:${body.restaurant_id}`;
+    const rateLimitKey = getRateLimitKey(req, `track-event:${body.restaurant_id}`);
     if (!checkRateLimit(rateLimitKey, 50, 3600000)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),

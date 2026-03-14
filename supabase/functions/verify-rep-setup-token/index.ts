@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,12 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limit: 10 requests per 15 minutes per IP
+  const rlKey = getRateLimitKey(req, "verify-rep-setup-token");
+  if (!checkRateLimit(rlKey, 10, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

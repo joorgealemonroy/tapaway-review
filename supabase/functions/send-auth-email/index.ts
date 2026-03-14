@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,6 +98,12 @@ serve(async (req) => {
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  }
+
+  // Rate limit: 5 requests per 10 minutes per IP
+  const rlKey = getRateLimitKey(req, "send-auth-email");
+  if (!checkRateLimit(rlKey, 5, 10 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

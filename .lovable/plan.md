@@ -1,62 +1,21 @@
 
 
-# Add Rate Limiting to API Routes
+# Send Test Post-Purchase Emails
 
-## Current State
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-Only 2 of ~20 public edge functions have rate limiting (`track-event`, `send-custom-otp`). The rest — including sensitive endpoints like `send-auth-email`, `set-user-password`, `claim-card`, `create-checkout-session` — are completely unprotected from abuse.
+## Changes
 
-## Approach
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### A. Create shared rate limiter — `supabase/functions/_shared/rateLimit.ts`
+Add two new email templates matching the ones in the stripe webhook:
 
-Reusable in-memory rate limiter (same pattern as `track-event` but extracted):
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-```typescript
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-export function checkRateLimit(key: string, limit: number, windowMs: number): boolean { ... }
+### 2. Deploy and Invoke
 
-export function getRateLimitKey(req: Request, suffix: string): string {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-  return `${ip}:${suffix}`;
-}
-
-export function rateLimitResponse(corsHeaders: Record<string, string>): Response { ... }
-```
-
-### B. Apply rate limiting to public endpoints
-
-Each function gets a one-line import + 3-line check near the top. Limits tuned per endpoint:
-
-| Function | Limit | Window | Key |
-|----------|-------|--------|-----|
-| `send-auth-email` | 5/10min | IP+email | Prevents email spam |
-| `set-user-password` | 5/15min | IP | Brute force protection |
-| `claim-card` | 10/hr | IP | Card claiming abuse |
-| `create-checkout-session` | 10/hr | IP | Checkout spam |
-| `create-rep-checkout` | 10/hr | IP | Checkout spam |
-| `create-product-checkout` | 10/hr | IP | Checkout spam |
-| `verify-custom-otp` | 10/15min | IP+email | OTP brute force |
-| `verify-rep-setup-token` | 10/15min | IP | Token brute force |
-| `verify-magic-link` | 10/15min | IP | Token brute force |
-| `verify-personal-upgrade` | 10/hr | IP | Verification spam |
-| `lookup-stripe-session` | 20/hr | IP | Lookup abuse |
-| `check-affiliate-abuse` | 20/hr | IP | Abuse check spam |
-| `serve-og-profile` | 60/min | IP | Scraping protection |
-| `download-product` | 20/hr | IP | Download abuse |
-| `restore-premium-content` | 10/hr | IP | Restore abuse |
-| `send-card-approval` | 10/hr | IP | Email spam |
-| `send-personal-welcome-emails` | 10/hr | IP | Email spam |
-
-Skip: `stripe-webhook` (Stripe manages its own), `send-test-emails` (admin-only by logic).
-
-### C. Refactor `track-event` to use shared utility
-
-Replace its inline rate limiter with the shared import.
-
-### Files changed
-
-- **New**: `supabase/functions/_shared/rateLimit.ts`
-- **Modified**: 18 edge function `index.ts` files (add ~5 lines each)
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

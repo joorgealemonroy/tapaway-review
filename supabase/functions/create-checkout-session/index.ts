@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +30,12 @@ function validateUuid(value: string | undefined): boolean {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limit: 10 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "create-checkout-session");
+  if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

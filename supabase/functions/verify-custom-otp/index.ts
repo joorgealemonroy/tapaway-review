@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,12 @@ serve(async (req) => {
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  }
+
+  // Rate limit: 10 requests per 15 minutes per IP
+  const rlKey = getRateLimitKey(req, "verify-custom-otp");
+  if (!checkRateLimit(rlKey, 10, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {
