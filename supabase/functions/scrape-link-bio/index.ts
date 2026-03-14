@@ -109,8 +109,12 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
       if (label === half + half) label = half;
     }
 
+    // Extract first image inside the anchor tag
+    const imgMatch = innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+    const imageUrl = imgMatch?.[1] || null;
+
     const type = detectLinkType(href);
-    links.push({ label, url: href, type });
+    links.push({ label, url: href, type, imageUrl });
   }
 
   return links;
