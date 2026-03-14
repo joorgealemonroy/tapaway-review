@@ -181,7 +181,7 @@ const ProfileLink = memo(function ProfileLink({
   if (isFeatured) {
     return (
       <a
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
