@@ -104,6 +104,7 @@ const RepApply = () => {
                 value={form.name}
                 onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Your full name"
+                maxLength={100}
                 required
               />
             </div>
