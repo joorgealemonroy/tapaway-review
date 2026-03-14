@@ -1,21 +1,36 @@
 
 
-# Send Test Post-Purchase Emails
-
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+# Brand Dominance & Social Verification SEO Updates
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### 1. Update Title Format (Personal.tsx)
+Change from em-dash to pipe format per brand guidelines:
+- **Before**: `TapAway — All Your Links, One Tap Away`
+- **After**: `TapAway | All Your Links, One Tap Away`
 
-Add two new email templates matching the ones in the stripe webhook:
+Update both `<title>` and `og:title`, `twitter:title` tags.
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### 2. Add Twitter Image Meta (Personal.tsx & Index.tsx)
+Add missing `<meta name="twitter:image" content="https://tapaway.co/logo-og.png" />` to both pages' Helmet blocks.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+### 3. Footer Social Links with rel="me" (Personal.tsx & Index.tsx)
+Replace existing footer link sections with social media links that include `rel="me"` for Google's SameAs verification:
 
-### 2. Deploy and Invoke
+**Personal.tsx footer:**
+- TikTok (@tapawayco)
+- Instagram (@tapawayco)  
+- X/Twitter (@tapawayco)
+- YouTube (@tapawayco)
+- Separator + existing legal links
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+**Index.tsx footer:**
+- Same social links + existing legal links
+
+### 4. Verify OG Image References
+All pages already point to `logo-og.png` — no changes needed.
+
+## Files Modified
+- `src/pages/Personal.tsx` — title format, twitter:image, footer social links with rel="me"
+- `src/pages/Index.tsx` — twitter:image, footer social links with rel="me"
 
