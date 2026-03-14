@@ -142,8 +142,40 @@ function scrapedToPreviewProps(data: ScrapedData) {
     background_color: "#000000",
   };
 
-  const allLinks = [
-    ...(data.socialLinks || []).map((l, i) => ({
+  // Build content links first to detect "both" YouTube links
+  let ytImageCount = 0;
+  const contentLinks = (data.links || []).map((l, i) => {
+    const hasImage = !!l.imageUrl;
+    const isYtWithImage = l.type === "youtube" && hasImage;
+    if (isYtWithImage) ytImageCount++;
+
+    const displayStyle = (isYtWithImage && ytImageCount === 1) ? "both" : "pill";
+    const gridSize = isYtWithImage ? "half" : null;
+
+    return {
+      id: `link-${i}`,
+      label: l.label,
+      url: l.url,
+      link_type: l.type,
+      is_active: true,
+      is_featured: false,
+      display_style: displayStyle as string | null,
+      sort_order: 100 + i,
+      pill_color: null as string | null,
+      cover_image_url: isYtWithImage ? l.imageUrl! : null,
+      grid_size: gridSize as string | null,
+      thumbnail_url: (!isYtWithImage && hasImage) ? l.imageUrl! : null as string | null,
+    };
+  });
+
+  // Check if any content link uses "both" for a given platform — filter that platform from social icons
+  const bothPlatforms = new Set(
+    contentLinks.filter(l => l.display_style === "both").map(l => l.link_type)
+  );
+
+  const socialLinks = (data.socialLinks || [])
+    .filter(l => !bothPlatforms.has(l.type))
+    .map((l, i) => ({
       id: `social-${i}`,
       label: l.label || l.type,
       url: l.url,
@@ -156,37 +188,9 @@ function scrapedToPreviewProps(data: ScrapedData) {
       cover_image_url: null as string | null,
       grid_size: null as string | null,
       thumbnail_url: null as string | null,
-    })),
-    ...(() => {
-      let ytImageCount = 0;
-      return (data.links || []).map((l, i) => {
-        const hasImage = !!l.imageUrl;
-        const isYtWithImage = l.type === "youtube" && hasImage;
-        if (isYtWithImage) ytImageCount++;
+    }));
 
-        // First YouTube-with-image → "both" (icon bar + half-width card)
-        // Second YouTube-with-image → half-width card
-        // Everything else → standard pill
-        const displayStyle = (isYtWithImage && ytImageCount === 1) ? "both" : "pill";
-        const gridSize = isYtWithImage ? "half" : null;
-
-        return {
-          id: `link-${i}`,
-          label: l.label,
-          url: l.url,
-          link_type: l.type,
-          is_active: true,
-          is_featured: false,
-          display_style: displayStyle as string | null,
-          sort_order: 100 + i,
-          pill_color: null as string | null,
-          cover_image_url: isYtWithImage ? l.imageUrl! : null,
-          grid_size: gridSize as string | null,
-          thumbnail_url: null as string | null,
-        };
-      });
-    })(),
-  ];
+  const allLinks = [...socialLinks, ...contentLinks];
 
   type BlockType = { id: string; block_type: string; content: Record<string, unknown>; is_active?: boolean | null; sort_order: number; alignment?: string | null };
   return { profile, links: allLinks, blocks: [] as BlockType[] };
