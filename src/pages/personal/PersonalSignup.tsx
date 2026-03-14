@@ -345,13 +345,13 @@ const PersonalSignup = () => {
             </a>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                {effectiveSteps.map((step, i) => (
                   <div
                     key={step}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       step === currentStep
                         ? "w-8 bg-primary"
-                        : step < currentStep
+                        : effectiveSteps.indexOf(currentStep) > i
                         ? "w-4 bg-primary/50"
                         : "w-4 bg-muted"
                     }`}
