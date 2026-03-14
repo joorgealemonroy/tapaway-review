@@ -221,7 +221,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
               <tr>
                 <td style="padding: 40px 32px;">
                   <p style="margin: 0 0 24px; color: #18181b; font-size: 18px; line-height: 1.6;">
-                    Hey ${data.fullName.split(' ')[0]}!
+                    Hey ${escapeHtml(data.fullName.split(' ')[0])}!
                   </p>
                   
                   <p style="margin: 0 0 24px; color: #52525b; font-size: 16px; line-height: 1.7;">
