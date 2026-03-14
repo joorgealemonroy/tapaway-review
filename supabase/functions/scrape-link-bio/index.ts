@@ -103,7 +103,22 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
     if (seen.has(normalizedUrl)) continue;
     seen.add(normalizedUrl);
 
+    // Extract first image inside the anchor tag
+    const imgMatch = innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
+    const imageUrl = imgMatch?.[1] || null;
+
     let label = innerHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+    // If no text label but has an SVG (icon-only link), treat as social icon
+    if (!label && innerHtml.match(/<svg[\s>]/i)) {
+      const type = detectLinkType(href);
+      const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud']);
+      if (socialTypes.has(type)) {
+        links.push({ label: type, url: href, type, imageUrl: null });
+      }
+      continue;
+    }
+
     if (!label || label.length > 200) continue;
 
     // Deduplicate repeated-word labels like "InstagramInstagram"
@@ -111,10 +126,6 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
       const half = label.substring(0, label.length / 2);
       if (label === half + half) label = half;
     }
-
-    // Extract first image inside the anchor tag
-    const imgMatch = innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
-    const imageUrl = imgMatch?.[1] || null;
 
     const type = detectLinkType(href);
     links.push({ label, url: href, type, imageUrl });
