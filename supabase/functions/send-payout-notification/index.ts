@@ -127,7 +127,7 @@ serve(async (req: Request): Promise<Response> => {
     const htmlContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155;">
         
-        <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi ${firstName},</p>
+        <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi ${escapeHtml(firstName)},</p>
         
         <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">Your TapAway commission payout has just been sent.</p>
         

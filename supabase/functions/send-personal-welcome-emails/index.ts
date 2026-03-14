@@ -242,7 +242,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                       <td style="padding: 20px;">
                         <p style="margin: 0 0 8px; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Your Profile</p>
                         <p style="margin: 0; color: #18181b; font-size: 18px; font-weight: 600;">
-                          tapaway.co/${data.username}
+                          tapaway.co/${safeUsername}
                         </p>
                       </td>
                     </tr>
