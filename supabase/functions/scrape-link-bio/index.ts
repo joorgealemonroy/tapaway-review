@@ -82,6 +82,12 @@ function extractTitle(html: string): string {
   return '';
 }
 
+function extractLinktreeAvatar(html: string): string | null {
+  const match = html.match(/<img[^>]+src=["'](https:\/\/ugc\.production\.linktr\.ee\/[^"'?]+[^"']*)["'][^>]*>/i);
+  if (match?.[1]) return match[1];
+  return null;
+}
+
 function extractLinks(html: string, sourceHostname: string): Array<{label: string; url: string; type: string; imageUrl: string | null}> {
   const links: Array<{label: string; url: string; type: string; imageUrl: string | null}> = [];
   const seen = new Set<string>();
