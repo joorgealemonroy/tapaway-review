@@ -278,10 +278,10 @@ Deno.serve(async (req) => {
 
     // Firecrawl fallback for JS-rendered sites with 0 links
     const isJsRendered = JS_RENDERED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
-    if (isJsRendered && contentLinks.length === 0 && socialLinks.length === 0) {
+    if (isJsRendered && contentLinks.length === 0) {
       const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
       if (firecrawlKey) {
-        console.log('Falling back to Firecrawl for JS-rendered page');
+        console.log('Falling back to Firecrawl for JS-rendered page (have social icons but no content links)');
         try {
           const fcResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
             method: 'POST',
@@ -301,10 +301,16 @@ Deno.serve(async (req) => {
             if (renderedHtml) {
               // Re-extract from rendered HTML
               const fcAllLinks = extractLinks(renderedHtml, hostname);
-              // Links with images + labels = content (even if URL is social domain)
-              // Links without images matching social domains = social icons
-              socialLinks = fcAllLinks.filter(l => socialTypes.has(l.type) && !l.imageUrl);
+              const fcSocialLinks = fcAllLinks.filter(l => socialTypes.has(l.type) && !l.imageUrl);
               contentLinks = fcAllLinks.filter(l => !socialTypes.has(l.type) || !!l.imageUrl);
+
+              // Merge Firecrawl social links with ones already found, dedup by URL
+              const existingSocialUrls = new Set(socialLinks.map(l => l.url));
+              for (const sl of fcSocialLinks) {
+                if (!existingSocialUrls.has(sl.url)) {
+                  socialLinks.push(sl);
+                }
+              }
 
               // Try to get better name/photo from rendered HTML
               const fcName = extractTitle(renderedHtml);
