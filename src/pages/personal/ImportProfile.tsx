@@ -33,22 +33,6 @@ const SUPPORTED_PLATFORMS = [
   { name: "Hoo.be", domain: "hoo.be" },
 ];
 
-const SOCIAL_ICONS: Record<string, string> = {
-  instagram: "📷",
-  tiktok: "🎵",
-  youtube: "▶️",
-  x: "𝕏",
-  spotify: "🎧",
-  facebook: "📘",
-  linkedin: "💼",
-  snapchat: "👻",
-  pinterest: "📌",
-  soundcloud: "🔊",
-  apple_music: "🎵",
-  podcast: "🎙️",
-  cashapp: "💵",
-  venmo: "💰",
-};
 
 const LOADING_PHASES = [
   "Analyzing your profile...",
