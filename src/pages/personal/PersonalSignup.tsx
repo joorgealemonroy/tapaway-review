@@ -107,6 +107,14 @@ const PersonalSignup = () => {
         if (imported.name) {
           update({ fullName: imported.name });
         }
+
+        // Auto-fill photo and bio from import
+        if (imported.photoUrl) {
+          update({ profilePhotoUrl: imported.photoUrl });
+        }
+        if (imported.bio) {
+          update({ cardHeadline: imported.bio });
+        }
         
         // Clear any existing draft/template links before importing
         update({ links: [], blocks: [] });
@@ -120,6 +128,10 @@ const PersonalSignup = () => {
               url: link.url,
               label: platformConfig?.label || link.label || 'Link',
               value: '',
+              thumbnailUrl: link.thumbnailUrl,
+              coverImageUrl: link.coverImageUrl,
+              displayStyle: link.displayStyle,
+              gridSize: link.gridSize,
             });
           }
         }
