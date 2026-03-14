@@ -159,9 +159,7 @@ function scrapedToPreviewProps(data: ScrapedData) {
     })),
     ...(data.links || []).map((l, i) => {
       const hasImage = !!l.imageUrl;
-      const isVideo = isVideoUrl(l.url);
-      // Video links with images → grid cards (2-col image layout)
-      // Non-video links with images → pill with thumbnail on left
+      // Links with images → half-width grid cards (side by side)
       // Links without images → standard pill
       return {
         id: `link-${i}`,
@@ -173,9 +171,9 @@ function scrapedToPreviewProps(data: ScrapedData) {
         display_style: "pill" as string | null,
         sort_order: 100 + i,
         pill_color: null as string | null,
-        cover_image_url: hasImage && isVideo ? l.imageUrl! : null,
-        grid_size: hasImage && isVideo ? "half" : null,
-        thumbnail_url: hasImage && !isVideo ? l.imageUrl! : null,
+        cover_image_url: hasImage ? l.imageUrl! : null,
+        grid_size: hasImage ? "half" : null,
+        thumbnail_url: null as string | null,
       };
     }),
   ];
