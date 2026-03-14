@@ -107,7 +107,7 @@ export const LinksStep = ({
   reorderContent,
   selectedTemplate,
 }: Props) => {
-  const [subStep, setSubStep] = useState(1);
+  const [subStep, setSubStep] = useState(formData.profilePhotoUrl ? 2 : 1);
   const totalSubSteps = 3;
 
   const [linkModalOpen, setLinkModalOpen] = useState(false);
