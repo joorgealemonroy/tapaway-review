@@ -189,7 +189,9 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
 };
 
 const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => {
-  const profileUrl = `${FRONTEND_URL}/${data.username}`;
+  const profileUrl = `${FRONTEND_URL}/${encodeURIComponent(data.username)}`;
+  const safeFullName = escapeHtml(data.fullName);
+  const safeUsername = escapeHtml(data.username);
   const dashboardUrl = `${FRONTEND_URL}/auth`;
 
   return `
