@@ -5,6 +5,7 @@ import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
