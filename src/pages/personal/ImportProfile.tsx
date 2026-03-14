@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
