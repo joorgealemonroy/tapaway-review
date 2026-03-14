@@ -1,29 +1,21 @@
 
 
-# Replace Logo with Back Button on /import
+# Send Test Post-Purchase Emails
+
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
 ## Changes
 
-### File: `src/pages/personal/ImportProfile.tsx`
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-**Header update (lines 252–261):**
-- Remove the `<img>` logo element
-- Replace with a back button using `ArrowLeft` from lucide-react (already importing other lucide icons) that navigates back via `navigate(-1)`
-- Keep the "Start Fresh →" link on the right
+Add two new email templates matching the ones in the stripe webhook:
 
-```tsx
-// Before
-<img src="/tapaway-logo.svg" alt="TapAway" className="h-6" />
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-// After
-<button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-  <ArrowLeft className="w-4 h-4" />
-  Back
-</button>
-```
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-- Add `ArrowLeft` to the lucide-react import on line 4
+### 2. Deploy and Invoke
 
-## Files Modified
-- `src/pages/personal/ImportProfile.tsx`
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

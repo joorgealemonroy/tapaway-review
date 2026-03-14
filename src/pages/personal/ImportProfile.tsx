@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -251,7 +251,13 @@ const ImportProfile = () => {
       {/* Header */}
       <div className="border-b border-border/50 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <img src="/tapaway-logo.svg" alt="TapAway" className="h-6" />
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
           <button
             onClick={() => navigate("/personal/signup")}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
