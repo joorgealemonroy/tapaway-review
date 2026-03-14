@@ -1,21 +1,28 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix Grid Pairing & Social Link Labels
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problems
 
-## Changes
+1. **Grid pairing too aggressive**: The current logic pairs ANY two consecutive links that have images as `grid_size: "half"`. For bsmfredo, only the two YouTube cards should be side-by-side — other links like "Work with me" and "Trenchies Candy" should be full-width pills even if they have images.
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+2. **Social links show raw platform name**: X/Twitter social icons get `label: "x"` from the scraper (since icon-only links use the platform type as label). This looks odd when rendered.
 
-Add two new email templates matching the ones in the stripe webhook:
+## Changes — `src/pages/personal/ImportProfile.tsx`
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### A. Smarter grid pairing — only pair same-platform consecutive image links
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+Replace the current "pair all consecutive image links" logic with: only pair consecutive image links that share the same `link_type` (e.g., two `youtube` links side by side). All other image links become standard pills with `thumbnail_url`.
 
-### 2. Deploy and Invoke
+```text
+Before: pair imageIndices[0]+imageIndices[1], imageIndices[2]+imageIndices[3], etc.
+After:  only pair imageIndices[k] + imageIndices[k+1] if they have the same link_type
+```
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### B. Proper social icon labels
+
+In the social link mapping, capitalize platform names properly instead of using the raw scraper label (e.g., "X" instead of "x", "Instagram" instead of "instagram"). Since these render as icons, the label is secondary but should still be presentable.
+
+## File
+- `src/pages/personal/ImportProfile.tsx` — update grid detection logic (lines 149-159) and social label mapping (line 219)
 
