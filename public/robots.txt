@@ -27,3 +27,5 @@ Disallow: /dashboard
 Disallow: /onboarding
 Disallow: /paywall
 Disallow: /auth
+
+Sitemap: https://tapaway.co/sitemap.xml
