@@ -387,6 +387,7 @@ export default function Support() {
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="you@example.com"
+                    maxLength={255}
                     className={errors.email ? 'border-destructive' : ''}
                   />
                   {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
