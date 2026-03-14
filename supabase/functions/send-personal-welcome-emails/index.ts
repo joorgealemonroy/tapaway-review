@@ -233,7 +233,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                   </p>
                   
                   <p style="margin: 0 0 32px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${data.username}</a>
+                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${safeUsername}</a>
                   </p>
                   
                   <!-- Profile Card Preview -->
