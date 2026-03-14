@@ -301,8 +301,10 @@ Deno.serve(async (req) => {
             if (renderedHtml) {
               // Re-extract from rendered HTML
               const fcAllLinks = extractLinks(renderedHtml, hostname);
-              socialLinks = fcAllLinks.filter(l => socialTypes.has(l.type));
-              contentLinks = fcAllLinks.filter(l => !socialTypes.has(l.type));
+              // Links with images + labels = content (even if URL is social domain)
+              // Links without images matching social domains = social icons
+              socialLinks = fcAllLinks.filter(l => socialTypes.has(l.type) && !l.imageUrl);
+              contentLinks = fcAllLinks.filter(l => !socialTypes.has(l.type) || !!l.imageUrl);
 
               // Try to get better name/photo from rendered HTML
               const fcName = extractTitle(renderedHtml);
