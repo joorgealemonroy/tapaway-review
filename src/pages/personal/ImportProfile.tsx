@@ -191,21 +191,44 @@ const AfterPreview = ({ data }: { data: ScrapedData }) => {
               </div>
             )}
 
-            {/* Glass pill links */}
-            <div className="w-full space-y-2">
-              {data.links?.map((link, i) => (
-                <div
-                  key={i}
-                  className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3 hover:bg-white/[0.12] transition-colors"
-                >
-                  {getLinkIcon(link)}
-                  <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
-                    {link.label}
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
-                </div>
-              ))}
-            </div>
+            {/* Image card links in 2-col grid */}
+            {(() => {
+              const imageLinks = data.links?.filter(l => l.imageUrl) || [];
+              const textLinks = data.links?.filter(l => !l.imageUrl) || [];
+              return (
+                <>
+                  {imageLinks.length > 0 && (
+                    <div className="w-full grid grid-cols-2 gap-2 mb-2">
+                      {imageLinks.map((link, i) => (
+                        <div key={`img-${i}`} className="rounded-2xl overflow-hidden bg-white/[0.08] border border-white/[0.08]">
+                          <img src={link.imageUrl!} alt={link.label} className="w-full aspect-square object-cover" />
+                          <div className="px-2 py-1.5 flex items-center gap-1.5">
+                            {getLinkIcon(link)}
+                            <span className="text-[10px] font-medium text-zinc-200 truncate flex-1">{link.label}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Glass pill links */}
+                  <div className="w-full space-y-2">
+                    {textLinks.map((link, i) => (
+                      <div
+                        key={`txt-${i}`}
+                        className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3"
+                      >
+                        {getLinkIcon(link)}
+                        <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
+                          {link.label}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
