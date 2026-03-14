@@ -34,11 +34,14 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
     timeStyle: 'short'
   });
 
-  const profileUrl = `${FRONTEND_URL}/${data.username}`;
+  const profileUrl = `${FRONTEND_URL}/${encodeURIComponent(data.username)}`;
   const adminUrl = `${FRONTEND_URL}/admin?tab=personal-accounts`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(profileUrl)}&bgcolor=ffffff&color=18181b`;
-  const accentColor = data.accentColor || '#0FB5BA';
-  const headline = data.cardHeadline || 'Tap to Connect';
+  const accentColor = escapeHtml(data.accentColor) || '#0FB5BA';
+  const headline = escapeHtml(data.cardHeadline) || 'Tap to Connect';
+  const safeFullName = escapeHtml(data.fullName);
+  const safeUsername = escapeHtml(data.username);
+  const safeEmail = escapeHtml(data.email);
 
   return `
     <!DOCTYPE html>
