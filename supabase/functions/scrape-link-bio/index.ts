@@ -11,6 +11,7 @@ const ALLOWED_DOMAINS = [
   'bio.link',
   'campsite.bio',
   'linkpop.com',
+  'hoo.be',
 ];
 
 const LINK_TYPE_MAP: Record<string, string> = {
