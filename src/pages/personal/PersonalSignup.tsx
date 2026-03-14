@@ -62,6 +62,7 @@ const PersonalSignup = () => {
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
   const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip" | "founding_pro">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [hasImportedProfile, setHasImportedProfile] = useState(false);
   
   const { 
     data: onboardingData, 
@@ -136,6 +137,7 @@ const PersonalSignup = () => {
           }
         }
 
+        setHasImportedProfile(true);
         toast.success("Profile imported! Review and customize your links.");
       }
     } catch (e) {
@@ -161,7 +163,8 @@ const PersonalSignup = () => {
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  const totalSteps = 3;
+  const effectiveSteps = hasImportedProfile ? [1, 3] : [1, 2, 3];
+  const totalSteps = effectiveSteps.length;
 
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
@@ -295,14 +298,16 @@ const PersonalSignup = () => {
   }, [navigate]);
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
+    const currentIndex = effectiveSteps.indexOf(currentStep);
+    if (currentIndex < effectiveSteps.length - 1) {
+      setCurrentStep(effectiveSteps[currentIndex + 1]);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+    const currentIndex = effectiveSteps.indexOf(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(effectiveSteps[currentIndex - 1]);
     }
   };
 
@@ -340,13 +345,13 @@ const PersonalSignup = () => {
             </a>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                {effectiveSteps.map((step, i) => (
                   <div
                     key={step}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       step === currentStep
                         ? "w-8 bg-primary"
-                        : step < currentStep
+                        : effectiveSteps.indexOf(currentStep) > i
                         ? "w-4 bg-primary/50"
                         : "w-4 bg-muted"
                     }`}
