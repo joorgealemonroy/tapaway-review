@@ -371,6 +371,7 @@ export default function Support() {
                     value={formData.businessName}
                     onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
                     placeholder="Your Restaurant"
+                    maxLength={100}
                     className={errors.businessName ? 'border-destructive' : ''}
                   />
                   {errors.businessName && <p className="text-sm text-destructive">{errors.businessName}</p>}
