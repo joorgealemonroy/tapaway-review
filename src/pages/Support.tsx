@@ -413,6 +413,7 @@ export default function Support() {
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g., Downtown location, Store #123"
+                  maxLength={200}
                 />
               </div>
             </div>

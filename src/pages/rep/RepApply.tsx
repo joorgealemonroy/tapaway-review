@@ -140,6 +140,7 @@ const RepApply = () => {
                 value={form.message}
                 onChange={(e) => setForm(prev => ({ ...prev, message: e.target.value }))}
                 placeholder="Any relevant experience, why you want to join, etc."
+                maxLength={1000}
                 rows={4}
               />
             </div>
