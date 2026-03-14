@@ -1,21 +1,39 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix Profile Photo Not Loading on Import
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
+The scraper returns `photoUrl: "https://linktr.ee/og/image/realjulioo.jpg"` — this is Linktree's OG image endpoint. Linktree blocks cross-origin image loading from other domains, so the browser cannot render it in an `<img>` tag.
 
-## Changes
+## Solution — Extract the actual profile photo from HTML
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+Linktree embeds the real profile photo as a `<img>` inside the page HTML (typically inside an avatar container) using their CDN (`ugc.production.linktr.ee`), which does allow cross-origin loading (as proven by the link thumbnails loading fine).
 
-Add two new email templates matching the ones in the stripe webhook:
+### `supabase/functions/scrape-link-bio/index.ts`
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+Add a Linktree-specific profile photo extraction that looks for the actual avatar `<img>` in the HTML before falling back to the OG image:
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+```ts
+// Extract profile photo from Linktree avatar element
+// Pattern: <img> with src pointing to their CDN inside a profile/avatar container
+function extractLinktreeAvatar(html: string): string | null {
+  // Linktree uses profile-picture or avatar img with ugc.production.linktr.ee
+  const match = html.match(/<img[^>]+src=["'](https:\/\/ugc\.production\.linktr\.ee\/[^"'?]+[^"']*)["'][^>]*>/i);
+  if (match?.[1]) return match[1];
+  return null;
+}
+```
 
-### 2. Deploy and Invoke
+In the Linktree branch of platform routing (~line 270), prefer the extracted avatar over OG image:
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+```ts
+if (hostname === 'linktr.ee' || hostname.endsWith('.linktr.ee')) {
+  photoUrl = extractLinktreeAvatar(html) || metaPhoto;
+}
+```
+
+This ensures we get the actual CDN-hosted profile photo that browsers can load, rather than the blocked OG image endpoint.
+
+## File
+- `supabase/functions/scrape-link-bio/index.ts` — add `extractLinktreeAvatar()` function; use it in the generic extraction branch for Linktree hostnames
 
