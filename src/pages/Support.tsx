@@ -509,6 +509,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Tell us about the new locations, timeline, etc."
+                    maxLength={2000}
                     rows={3}
                   />
                 </div>
