@@ -402,7 +402,17 @@ const ImportProfile = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.25 }}
                   >
-                    <AfterPreview data={result} />
+                    {(() => {
+                      const { profile, links, blocks } = scrapedToPreviewProps(result);
+                      return (
+                        <div className="flex flex-col items-center h-full">
+                          <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
+                            Your TapAway
+                          </p>
+                          <ProfilePreviewPanel profile={profile} links={links} blocks={blocks} />
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 </div>
 
