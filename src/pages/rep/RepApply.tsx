@@ -104,6 +104,7 @@ const RepApply = () => {
                 value={form.name}
                 onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Your full name"
+                maxLength={100}
                 required
               />
             </div>
@@ -116,6 +117,7 @@ const RepApply = () => {
                 value={form.email}
                 onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="you@example.com"
+                maxLength={255}
                 required
               />
             </div>
@@ -127,6 +129,7 @@ const RepApply = () => {
                 value={form.phone}
                 onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="(555) 555-5555"
+                maxLength={20}
               />
             </div>
 
@@ -137,6 +140,7 @@ const RepApply = () => {
                 value={form.message}
                 onChange={(e) => setForm(prev => ({ ...prev, message: e.target.value }))}
                 placeholder="Any relevant experience, why you want to join, etc."
+                maxLength={1000}
                 rows={4}
               />
             </div>

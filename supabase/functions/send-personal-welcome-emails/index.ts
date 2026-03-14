@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { escapeHtml } from "../_shared/sanitize.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -33,11 +34,15 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
     timeStyle: 'short'
   });
 
-  const profileUrl = `${FRONTEND_URL}/${data.username}`;
+  const profileUrl = `${FRONTEND_URL}/${encodeURIComponent(data.username)}`;
   const adminUrl = `${FRONTEND_URL}/admin?tab=personal-accounts`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(profileUrl)}&bgcolor=ffffff&color=18181b`;
-  const accentColor = data.accentColor || '#0FB5BA';
-  const headline = data.cardHeadline || 'Tap to Connect';
+  const accentColor = escapeHtml(data.accentColor) || '#0FB5BA';
+  const headline = escapeHtml(data.cardHeadline) || 'Tap to Connect';
+  const safeFullName = escapeHtml(data.fullName);
+  const safeUsername = escapeHtml(data.username);
+  const safeEmail = escapeHtml(data.email);
+  const safeProfileId = escapeHtml(data.profileId);
 
   return `
     <!DOCTYPE html>
@@ -58,7 +63,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
                     🎉 New TapAway Personal Card Order
                   </h1>
-                  <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${timestamp}</p>
+                  <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${escapeHtml(timestamp)}</p>
                 </td>
               </tr>
               
@@ -72,8 +77,8 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                     <tr>
                       <td style="padding: 24px 20px 16px; text-align: center;">
                         <!-- Name with verified badge -->
-                        <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
-                          ${data.fullName}
+                         <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
+                          ${safeFullName}
                           <span style="display: inline-block; width: 16px; height: 16px; background-color: ${accentColor}; border-radius: 50%; vertical-align: middle; margin-left: 6px; text-align: center; line-height: 16px; font-size: 10px;">✓</span>
                         </p>
                       </td>
@@ -82,10 +87,10 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                       <td style="padding: 0 20px; text-align: center;">
                         <!-- Profile Photo -->
                         ${data.profilePhotoUrl ? `
-                        <img src="${data.profilePhotoUrl}" alt="${data.fullName}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid ${accentColor};" />
+                        <img src="${escapeHtml(data.profilePhotoUrl)}" alt="${safeFullName}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid ${accentColor};" />
                         ` : `
                         <div style="width: 100px; height: 100px; border-radius: 50%; background-color: #27272a; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                          <span style="color: #71717a; font-size: 36px;">${data.fullName.charAt(0)}</span>
+                          <span style="color: #71717a; font-size: 36px;">${safeFullName.charAt(0)}</span>
                         </div>
                         `}
                       </td>
@@ -132,11 +137,11 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                     <tr>
                       <td style="padding: 12px 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;" width="50%">
                         <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Username</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px; font-weight: 600;">@${data.username}</p>
+                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px; font-weight: 600;">@${safeUsername}</p>
                       </td>
                       <td style="padding: 12px 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;" width="50%">
                         <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Email</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${data.email}</p>
+                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${safeEmail}</p>
                       </td>
                     </tr>
                     <tr>
@@ -149,7 +154,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                       </td>
                       <td style="padding: 12px 16px; background-color: #ffffff;" width="50%">
                         <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Profile ID</strong>
-                        <p style="margin: 4px 0 0; color: #71717a; font-size: 11px; font-family: monospace;">${data.profileId.substring(0, 8)}...</p>
+                        <p style="margin: 4px 0 0; color: #71717a; font-size: 11px; font-family: monospace;">${safeProfileId.substring(0, 8)}...</p>
                       </td>
                     </tr>
                   </table>
@@ -185,7 +190,9 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
 };
 
 const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => {
-  const profileUrl = `${FRONTEND_URL}/${data.username}`;
+  const profileUrl = `${FRONTEND_URL}/${encodeURIComponent(data.username)}`;
+  const safeFullName = escapeHtml(data.fullName);
+  const safeUsername = escapeHtml(data.username);
   const dashboardUrl = `${FRONTEND_URL}/auth`;
 
   return `
@@ -215,7 +222,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
               <tr>
                 <td style="padding: 40px 32px;">
                   <p style="margin: 0 0 24px; color: #18181b; font-size: 18px; line-height: 1.6;">
-                    Hey ${data.fullName.split(' ')[0]}!
+                    Hey ${escapeHtml(data.fullName.split(' ')[0])}!
                   </p>
                   
                   <p style="margin: 0 0 24px; color: #52525b; font-size: 16px; line-height: 1.7;">
@@ -227,7 +234,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                   </p>
                   
                   <p style="margin: 0 0 32px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${data.username}</a>
+                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${safeUsername}</a>
                   </p>
                   
                   <!-- Profile Card Preview -->
@@ -236,7 +243,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                       <td style="padding: 20px;">
                         <p style="margin: 0 0 8px; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Your Profile</p>
                         <p style="margin: 0; color: #18181b; font-size: 18px; font-weight: 600;">
-                          tapaway.co/${data.username}
+                          tapaway.co/${safeUsername}
                         </p>
                       </td>
                     </tr>

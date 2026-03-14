@@ -358,6 +358,7 @@ export default function Support() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="John Smith"
+                    maxLength={100}
                     className={errors.name ? 'border-destructive' : ''}
                   />
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
@@ -370,6 +371,7 @@ export default function Support() {
                     value={formData.businessName}
                     onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
                     placeholder="Your Restaurant"
+                    maxLength={100}
                     className={errors.businessName ? 'border-destructive' : ''}
                   />
                   {errors.businessName && <p className="text-sm text-destructive">{errors.businessName}</p>}
@@ -385,6 +387,7 @@ export default function Support() {
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="you@example.com"
+                    maxLength={255}
                     className={errors.email ? 'border-destructive' : ''}
                   />
                   {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
@@ -398,6 +401,7 @@ export default function Support() {
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(555) 123-4567"
+                    maxLength={20}
                   />
                 </div>
               </div>
@@ -409,6 +413,7 @@ export default function Support() {
                   value={formData.location}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="e.g., Downtown location, Store #123"
+                  maxLength={200}
                 />
               </div>
             </div>
@@ -458,6 +463,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Any details that might help us..."
+                    maxLength={2000}
                     rows={3}
                   />
                 </div>
@@ -503,6 +509,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Tell us about the new locations, timeline, etc."
+                    maxLength={2000}
                     rows={3}
                   />
                 </div>
@@ -532,6 +539,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Tell us what's happening and when it started..."
+                    maxLength={2000}
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
@@ -551,6 +559,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe your billing question or issue..."
+                    maxLength={2000}
                     rows={4}
                   />
                 </div>
@@ -567,6 +576,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Ask us anything..."
+                    maxLength={2000}
                     rows={4}
                   />
                 </div>

@@ -5,6 +5,7 @@ import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
+import { sanitizeUrl } from "@/lib/sanitizeUrl";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -319,7 +320,7 @@ function ProfilePreviewRendererComponent({
           return (
             <a
               key={link.id}
-              href={link.url}
+              href={sanitizeUrl(link.url)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => handleLinkClick(e, link.url)}
@@ -344,7 +345,7 @@ function ProfilePreviewRendererComponent({
       return (
         <a
           key={link.id}
-          href={link.url}
+          href={sanitizeUrl(link.url)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => handleLinkClick(e, link.url)}
@@ -380,7 +381,7 @@ function ProfilePreviewRendererComponent({
       return (
         <a
           key={link.id}
-          href={link.url}
+          href={sanitizeUrl(link.url)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => handleLinkClick(e, link.url)}
@@ -415,7 +416,7 @@ function ProfilePreviewRendererComponent({
       return (
         <a
           key={link.id}
-          href={link.url}
+          href={sanitizeUrl(link.url)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => handleLinkClick(e, link.url)}
@@ -434,7 +435,7 @@ function ProfilePreviewRendererComponent({
     return (
       <a
         key={link.id}
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
@@ -544,7 +545,7 @@ function ProfilePreviewRendererComponent({
           <div key={block.id} className={alignClass}>
             {linkUrl ? (
               <a
-                href={linkUrl}
+                href={sanitizeUrl(linkUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => handleLinkClick(e, linkUrl)}

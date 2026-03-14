@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { escapeHtml } from "../_shared/sanitize.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -46,6 +47,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Escape all user-provided values
+    const safeFullName = escapeHtml(fullName);
+    const safeUsername = escapeHtml(username);
+    const safeEmail = escapeHtml(email);
+    const safeProfileId = escapeHtml(profileId);
+    const safeCardHeadline = escapeHtml(cardHeadline);
+
     const timestamp = new Date().toLocaleString("en-US", {
       dateStyle: "full",
       timeStyle: "short",
@@ -56,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: "TapAway Cards <cards@tapaway.co>",
       to: ["tap@tapaway.co"],
       reply_to: email,
-      subject: `[Card Approval] ${fullName} (@${username}) - Ready to Print`,
+      subject: `[Card Approval] ${safeFullName} (@${safeUsername}) - Ready to Print`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -78,32 +86,32 @@ const handler = async (req: Request): Promise<Response> => {
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Name:</td>
-                  <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${fullName}</td>
+                  <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${safeFullName}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Username:</td>
-                  <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">@${username}</td>
+                  <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">@${safeUsername}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Profile URL:</td>
                   <td style="padding: 8px 0; font-size: 14px;">
-                    <a href="https://tapaway.co/${username}" style="color: #6BCB77; text-decoration: none;">tapaway.co/${username}</a>
+                    <a href="https://tapaway.co/${encodeURIComponent(username)}" style="color: #6BCB77; text-decoration: none;">tapaway.co/${safeUsername}</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Email:</td>
                   <td style="padding: 8px 0; font-size: 14px;">
-                    <a href="mailto:${email}" style="color: #6BCB77; text-decoration: none;">${email}</a>
+                    <a href="mailto:${safeEmail}" style="color: #6BCB77; text-decoration: none;">${safeEmail}</a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Profile ID:</td>
-                  <td style="padding: 8px 0; font-size: 12px; font-family: monospace; color: #999;">${profileId}</td>
+                  <td style="padding: 8px 0; font-size: 12px; font-family: monospace; color: #999;">${safeProfileId}</td>
                 </tr>
-                ${cardHeadline ? `
+                ${safeCardHeadline ? `
                 <tr>
                   <td style="padding: 8px 0; color: #666; font-size: 14px;">Card Headline:</td>
-                  <td style="padding: 8px 0; font-size: 14px; white-space: pre-line;">${cardHeadline}</td>
+                  <td style="padding: 8px 0; font-size: 14px; white-space: pre-line;">${safeCardHeadline}</td>
                 </tr>
                 ` : ''}
                 <tr>

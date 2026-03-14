@@ -23,6 +23,7 @@ import { ProductPreviewModal } from "@/components/personal/ProductPreviewModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
+import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -114,7 +115,7 @@ const ProfileLink = memo(function ProfileLink({
   if (coverImage && isGrid) {
     return (
       <a
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
@@ -147,7 +148,7 @@ const ProfileLink = memo(function ProfileLink({
   if (coverImage) {
     return (
       <a
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
@@ -180,7 +181,7 @@ const ProfileLink = memo(function ProfileLink({
   if (isFeatured) {
     return (
       <a
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
@@ -214,7 +215,7 @@ const ProfileLink = memo(function ProfileLink({
   // Regular links
   return (
       <a
-        href={link.url}
+        href={sanitizeUrl(link.url)}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
@@ -323,7 +324,7 @@ const SocialIconBar = memo(function SocialIconBar({
         return (
           <a
             key={link.id}
-            href={link.url}
+            href={sanitizeUrl(link.url)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => profileId && trackLinkClick(profileId, { id: link.id, label: link.label || config?.label || link.link_type, url: link.url })}
@@ -412,7 +413,7 @@ const ProfileBlock = memo(function ProfileBlock({
   switch (block.block_type) {
     case "youtube": {
       const videoId = content.videoId;
-      if (!videoId) return null;
+      if (!videoId || !isValidYouTubeVideoId(videoId)) return null;
       const ytOverlayTitle = content.overlayTitle;
       const ytOverlaySubtitle = content.overlaySubtitle;
       const hasYtOverlay = ytOverlayTitle || ytOverlaySubtitle;
@@ -486,7 +487,7 @@ const ProfileBlock = memo(function ProfileBlock({
       if (linkUrl) {
         return (
           <a
-            href={linkUrl}
+            href={sanitizeUrl(linkUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full active:scale-[0.99] transition-transform"
@@ -510,7 +511,7 @@ const ProfileBlock = memo(function ProfileBlock({
       return (
         <div className={`w-full flex ${btnAlignClass}`}>
           <a
-            href={content.url}
+            href={sanitizeUrl(content.url)}
             target="_blank"
             rel="noopener noreferrer"
             className={`px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:opacity-90 transition-opacity ${
