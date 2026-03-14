@@ -358,6 +358,7 @@ export default function Support() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="John Smith"
+                    maxLength={100}
                     className={errors.name ? 'border-destructive' : ''}
                   />
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
