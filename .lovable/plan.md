@@ -1,21 +1,23 @@
 
 
-# Send Test Post-Purchase Emails
+# Auto-Fill Imported Profile Data & Skip Photo Step
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
+When a user imports from Linktree/etc, the scraped photo and bio are available but never applied to the signup form. The user is then asked to re-upload a photo and write a headline — data they already had.
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### 1. `src/pages/personal/PersonalSignup.tsx` — Consume photo + bio from import
+In the `tapaway_import_data` consumer effect (~line 100), also set:
+- `profilePhotoUrl` from `imported.photoUrl`
+- `cardHeadline` from `imported.bio` (or `imported.name` as fallback headline)
 
-Add two new email templates matching the ones in the stripe webhook:
+Also persist additional link properties (thumbnails, cover images, display styles, grid sizes) that are already being passed from the import page but currently ignored.
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### 2. `src/components/personal/signup/LinksStep.tsx` — Auto-skip photo sub-step
+When `formData.profilePhotoUrl` is already set on mount (i.e. from import), start at `subStep: 2` instead of `subStep: 1`, skipping the "Add your photo" step entirely. The user can still go back to it if they want to change things.
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### Files
+- `src/pages/personal/PersonalSignup.tsx` — add photoUrl + bio consumption from import data
+- `src/components/personal/signup/LinksStep.tsx` — initialize subStep to 2 when photo already present
 
