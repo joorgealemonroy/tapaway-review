@@ -117,6 +117,7 @@ const RepApply = () => {
                 value={form.email}
                 onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="you@example.com"
+                maxLength={255}
                 required
               />
             </div>
