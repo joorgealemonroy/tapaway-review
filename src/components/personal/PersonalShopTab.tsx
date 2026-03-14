@@ -18,6 +18,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   Loader2, 
   Plus, 
@@ -34,7 +41,9 @@ import {
   Copy,
   Download,
   ChevronDown,
-  Terminal
+  Terminal,
+  Info,
+  TrendingUp
 } from "lucide-react";
 
 interface CreatorProduct {
