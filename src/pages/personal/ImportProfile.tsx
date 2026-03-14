@@ -255,6 +255,7 @@ const ImportProfile = () => {
       url: l.url,
       type: l.type,
       imageUrl: l.imageUrl || null,
+      displayHint: l.imageUrl ? (isVideoUrl(l.url) ? "cover" : "thumbnail") : "pill",
     }));
     sessionStorage.setItem(
       "tapaway_import_data",
