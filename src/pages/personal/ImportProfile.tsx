@@ -219,7 +219,7 @@ function scrapedToPreviewProps(data: ScrapedData) {
     .filter(l => !bothPlatforms.has(l.type))
     .map((l, i) => ({
       id: `social-${i}`,
-      label: l.label || l.type,
+      label: l.label || (l.type === 'x' ? 'X' : l.type.charAt(0).toUpperCase() + l.type.slice(1)),
       url: l.url,
       link_type: l.type,
       is_active: true,
