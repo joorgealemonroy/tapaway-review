@@ -13,6 +13,7 @@ interface ScrapedLink {
   label: string;
   url: string;
   type: string;
+  imageUrl?: string | null;
 }
 
 interface ScrapedData {
@@ -55,43 +56,66 @@ function detectSourcePlatform(inputUrl: string): string {
 }
 
 /* ─── Before Preview (generic/plain) ─── */
-const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) => (
-  <div className="flex flex-col items-center h-full">
-    <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
-      Your {source}
-    </p>
-    <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-muted bg-muted/30 shadow-lg overflow-hidden flex-1 max-h-[460px]">
-      <div className="h-full overflow-y-auto p-4 flex flex-col items-center">
-        {/* Plain avatar */}
-        <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden mt-4 mb-2">
-          {data.photoUrl ? (
-            <img src={data.photoUrl} alt="" className="w-full h-full object-cover opacity-70 grayscale" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-lg font-bold">
-              {data.name?.[0] || "?"}
+const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) => {
+  const imageLinks = [...(data.links || [])].filter(l => l.imageUrl);
+  const textLinks = [...(data.links || [])].filter(l => !l.imageUrl);
+
+  return (
+    <div className="flex flex-col items-center h-full">
+      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+        Your {source}
+      </p>
+      <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-muted bg-muted/30 shadow-lg overflow-hidden flex-1 max-h-[460px]">
+        <div className="h-full overflow-y-auto p-4 flex flex-col items-center">
+          {/* Plain avatar */}
+          <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden mt-4 mb-2">
+            {data.photoUrl ? (
+              <img src={data.photoUrl} alt="" className="w-full h-full object-cover opacity-70 grayscale" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-lg font-bold">
+                {data.name?.[0] || "?"}
+              </div>
+            )}
+          </div>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{data.name || "Your Name"}</p>
+          {data.bio && <p className="text-[10px] text-muted-foreground/60 text-center mb-3 line-clamp-2 px-2">{data.bio}</p>}
+
+          {/* Social links */}
+          <div className="w-full space-y-1.5 mt-1">
+            {data.socialLinks?.map((l, i) => (
+              <div key={`s-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
+                {l.type}
+              </div>
+            ))}
+          </div>
+
+          {/* Image links in 2-col grid */}
+          {imageLinks.length > 0 && (
+            <div className="w-full grid grid-cols-2 gap-1.5 mt-1.5">
+              {imageLinks.map((l, i) => (
+                <div key={`img-${i}`} className="rounded-lg bg-muted/60 border border-border/50 overflow-hidden">
+                  <img src={l.imageUrl!} alt={l.label} className="w-full aspect-square object-cover opacity-70 grayscale" />
+                  <p className="text-[9px] text-muted-foreground text-center py-1 px-1 truncate">{l.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text-only links */}
+          {textLinks.length > 0 && (
+            <div className="w-full space-y-1.5 mt-1.5">
+              {textLinks.map((l, i) => (
+                <div key={`l-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
+                  {l.label}
+                </div>
+              ))}
             </div>
           )}
         </div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{data.name || "Your Name"}</p>
-        {data.bio && <p className="text-[10px] text-muted-foreground/60 text-center mb-3 line-clamp-2 px-2">{data.bio}</p>}
-
-        {/* Plain link list */}
-        <div className="w-full space-y-1.5 mt-1">
-          {data.socialLinks?.map((l, i) => (
-            <div key={`s-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
-              {l.type}
-            </div>
-          ))}
-          {data.links?.map((l, i) => (
-            <div key={`l-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
-              {l.label}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── After Preview (TapAway styled) ─── */
 const AfterPreview = ({ data }: { data: ScrapedData }) => {
@@ -167,21 +191,44 @@ const AfterPreview = ({ data }: { data: ScrapedData }) => {
               </div>
             )}
 
-            {/* Glass pill links */}
-            <div className="w-full space-y-2">
-              {data.links?.map((link, i) => (
-                <div
-                  key={i}
-                  className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3 hover:bg-white/[0.12] transition-colors"
-                >
-                  {getLinkIcon(link)}
-                  <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
-                    {link.label}
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
-                </div>
-              ))}
-            </div>
+            {/* Image card links in 2-col grid */}
+            {(() => {
+              const imageLinks = data.links?.filter(l => l.imageUrl) || [];
+              const textLinks = data.links?.filter(l => !l.imageUrl) || [];
+              return (
+                <>
+                  {imageLinks.length > 0 && (
+                    <div className="w-full grid grid-cols-2 gap-2 mb-2">
+                      {imageLinks.map((link, i) => (
+                        <div key={`img-${i}`} className="rounded-2xl overflow-hidden bg-white/[0.08] border border-white/[0.08]">
+                          <img src={link.imageUrl!} alt={link.label} className="w-full aspect-square object-cover" />
+                          <div className="px-2 py-1.5 flex items-center gap-1.5">
+                            {getLinkIcon(link)}
+                            <span className="text-[10px] font-medium text-zinc-200 truncate flex-1">{link.label}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Glass pill links */}
+                  <div className="w-full space-y-2">
+                    {textLinks.map((link, i) => (
+                      <div
+                        key={`txt-${i}`}
+                        className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3"
+                      >
+                        {getLinkIcon(link)}
+                        <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
+                          {link.label}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -255,7 +302,12 @@ const ImportProfile = () => {
 
   const handleClaimPage = useCallback(() => {
     if (!result) return;
-    const allLinks = [...(result.socialLinks || []), ...(result.links || [])];
+    const allLinks = [...(result.socialLinks || []), ...(result.links || [])].map(l => ({
+      label: l.label,
+      url: l.url,
+      type: l.type,
+      imageUrl: l.imageUrl || null,
+    }));
     sessionStorage.setItem(
       "tapaway_import_data",
       JSON.stringify({
