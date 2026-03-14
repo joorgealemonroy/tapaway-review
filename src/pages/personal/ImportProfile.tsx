@@ -142,15 +142,59 @@ function scrapedToPreviewProps(data: ScrapedData) {
     background_color: "#000000",
   };
 
-  // Build content links first to detect "both" YouTube links
-  let ytImageCount = 0;
-  const contentLinks = (data.links || []).map((l, i) => {
-    const hasImage = !!l.imageUrl;
-    const isYtWithImage = l.type === "youtube" && hasImage;
-    if (isYtWithImage) ytImageCount++;
+  // Social platform types for dedup detection
+  const socialTypes = new Set(["instagram", "tiktok", "x", "youtube", "spotify", "facebook", "linkedin", "snapchat", "pinterest", "soundcloud"]);
+  const socialPlatformsInBar = new Set((data.socialLinks || []).map(l => l.type));
 
-    const displayStyle = (isYtWithImage && ytImageCount === 1) ? "both" : "pill";
-    const gridSize = isYtWithImage ? "half" : null;
+  // Pass 1: detect which image links can be paired into a grid
+  const rawLinks = data.links || [];
+  const imageIndices: number[] = [];
+  rawLinks.forEach((l, i) => { if (l.imageUrl) imageIndices.push(i); });
+
+  // Pair consecutive image links into grid groups
+  const gridIndices = new Set<number>();
+  for (let k = 0; k + 1 < imageIndices.length; k += 2) {
+    gridIndices.add(imageIndices[k]);
+    gridIndices.add(imageIndices[k + 1]);
+  }
+
+  // Pass 2: build content links with proper display styles
+  // Track which social platforms have a content link → mark first as "both"
+  const bothPlatforms = new Set<string>();
+  const contentLinks = rawLinks.map((l, i) => {
+    const hasImage = !!l.imageUrl;
+    const isSocialType = socialTypes.has(l.type);
+    const existsInIconBar = socialPlatformsInBar.has(l.type);
+
+    // Rule: Social dedup — if this platform is in icon bar AND is a content link, first one gets "both"
+    let markBoth = false;
+    if (isSocialType && existsInIconBar && !bothPlatforms.has(l.type)) {
+      markBoth = true;
+      bothPlatforms.add(l.type);
+    }
+
+    // Rule A: Grid — image link that's part of a pair
+    const isGrid = gridIndices.has(i) && hasImage;
+
+    let displayStyle: string;
+    let gridSize: string | null = null;
+    let coverImageUrl: string | null = null;
+    let thumbnailUrl: string | null = null;
+
+    if (isGrid) {
+      displayStyle = markBoth ? "both" : "pill";
+      gridSize = "half";
+      coverImageUrl = l.imageUrl!;
+    } else if (markBoth) {
+      displayStyle = "both";
+      thumbnailUrl = hasImage ? l.imageUrl! : null;
+    } else if (hasImage) {
+      // Rule C: pill with thumbnail
+      displayStyle = "pill";
+      thumbnailUrl = l.imageUrl!;
+    } else {
+      displayStyle = "pill";
+    }
 
     return {
       id: `link-${i}`,
@@ -162,16 +206,11 @@ function scrapedToPreviewProps(data: ScrapedData) {
       display_style: displayStyle as string | null,
       sort_order: 100 + i,
       pill_color: null as string | null,
-      cover_image_url: isYtWithImage ? l.imageUrl! : null,
+      cover_image_url: coverImageUrl,
       grid_size: gridSize as string | null,
-      thumbnail_url: (!isYtWithImage && hasImage) ? l.imageUrl! : null as string | null,
+      thumbnail_url: thumbnailUrl as string | null,
     };
   });
-
-  // Check if any content link uses "both" for a given platform — filter that platform from social icons
-  const bothPlatforms = new Set(
-    contentLinks.filter(l => l.display_style === "both").map(l => l.link_type)
-  );
 
   const socialLinks = (data.socialLinks || [])
     .filter(l => !bothPlatforms.has(l.type))
