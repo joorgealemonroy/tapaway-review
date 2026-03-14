@@ -140,7 +140,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                       </td>
                       <td style="padding: 12px 16px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;" width="50%">
                         <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Email</strong>
-                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${data.email}</p>
+                        <p style="margin: 4px 0 0; color: #18181b; font-size: 14px;">${safeEmail}</p>
                       </td>
                     </tr>
                     <tr>
