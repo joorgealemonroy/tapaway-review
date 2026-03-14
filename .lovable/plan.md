@@ -1,24 +1,21 @@
 
 
-# Fix: Deduplicate YouTube Icon + Show Images on Pill Links
+# Send Test Post-Purchase Emails
 
-## Problems
-1. **Two YouTube icons**: The scraper returns YouTube as a social icon AND the "Vlogs" content link uses `display_style: "both"` (which adds another YouTube icon). Need to remove the social YouTube icon when a "both" content link covers it.
-2. **Pill links missing images**: "Work with me 1 on 1" and "Trenchies Candy" have images on the source profile but the mapping sets `cover_image_url: null` and `thumbnail_url: null` for non-YouTube links. These should use `thumbnail_url` to show their images.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Changes — `src/pages/personal/ImportProfile.tsx`
+## Changes
 
-### A. Filter duplicate YouTube social icon
-Before building `allLinks`, check if any content link is YouTube with `display_style: "both"`. If so, filter out the YouTube entry from `socialLinks` to avoid a duplicate icon.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### B. Set `thumbnail_url` for non-YouTube image links
-For content links that have images but aren't YouTube, set `thumbnail_url: l.imageUrl` so they render as pills with thumbnail images (matching the source profile's appearance).
+Add two new email templates matching the ones in the stripe webhook:
 
-```text
-Before:  thumbnail_url: null  (for all links)
-After:   thumbnail_url: (!isYtWithImage && hasImage) ? l.imageUrl : null
-```
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-## File
-- `src/pages/personal/ImportProfile.tsx` — update `scrapedToPreviewProps`
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
