@@ -634,6 +634,112 @@ export function PersonalShopTab({
       </div>
 
 
+      {/* Earnings Breakdown */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between p-3 bg-card border rounded-lg text-sm font-medium text-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" />
+              Your Earnings Breakdown
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <Card className="mt-2">
+            <CardContent className="p-4 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-foreground">TapAway Commission</span>
+                  <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> 0% — Always free
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Card Processing</span>
+                    <span className="text-xs text-muted-foreground block">Industry standard · Stripe</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">~2.9% + $0.30</span>
+                </div>
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-sm font-semibold text-foreground">You Keep</span>
+                  <span className="text-sm font-bold text-emerald-600">~91–97%</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">You sell for</TableHead>
+                      <TableHead className="text-xs">You keep</TableHead>
+                      <TableHead className="text-xs text-right">Processing</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[5, 15, 50].map(p => {
+                      const kept = p - (p * 0.029 + 0.30);
+                      const pct = ((p - kept) / p * 100);
+                      return (
+                        <TableRow key={p}>
+                          <TableCell className="text-xs font-medium">${p.toFixed(2)}</TableCell>
+                          <TableCell className="text-xs text-emerald-600 font-semibold">${kept.toFixed(2)}</TableCell>
+                          <TableCell className="text-xs text-right text-muted-foreground">~{pct.toFixed(0)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Seller FAQ */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between p-3 bg-card border rounded-lg text-sm font-medium text-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              Seller FAQ
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2">
+            <Accordion type="single" collapsible className="space-y-2">
+              <AccordionItem value="payouts" className="border rounded-lg px-4">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                  How do payouts work?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  At TapAway, we believe you should keep what you earn. That's why we take <strong className="text-foreground">0% commission</strong> on your sales. Payments go directly to your Stripe account — we never touch your money. All credit card transactions include a standard processing fee handled by Stripe, the industry leader in payment security.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="minimum" className="border rounded-lg px-4">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                  Why is there a $5 minimum?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  Stripe charges a flat <strong className="text-foreground">$0.30 per transaction</strong>. On a $1.00 item, that fee eats 30% of your sale before anything else. On a $10.00 item, that same fee is only 3%. The $5.00 minimum exists to protect your profits — the higher your price, the smaller the impact of processing fees!
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="tap-to-pay" className="border rounded-lg px-4">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                  What about Tap to Pay fees?
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed">
+                  If you use Stripe's "Tap to Pay" feature on your phone for in-person sales, there's an additional ~$0.10 terminal fee per transaction charged by Stripe. This is separate from online sales through your TapAway shop and only applies to in-person tap payments.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
       {/* Sales Summary */}
       {(salesCount > 0 || loadingSales) && (
         <div className="space-y-4">
