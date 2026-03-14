@@ -275,9 +275,18 @@ const ImportProfile = () => {
     e.preventDefault();
     if (!url.trim()) return;
 
+    // Client-side domain check
+    const detected = detectSourcePlatform(url.trim());
+    if (detected === "profile") {
+      // Not a recognized platform
+      setUnsupportedPlatform(true);
+      return;
+    }
+
     setIsLoading(true);
     setResult(null);
-    setSourcePlatform(detectSourcePlatform(url.trim()));
+    setUnsupportedPlatform(false);
+    setSourcePlatform(detected);
 
     try {
       const { data, error } = await supabase.functions.invoke("scrape-link-bio", {
@@ -285,7 +294,15 @@ const ImportProfile = () => {
       });
 
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Failed to import");
+      if (!data?.success) {
+        // Handle unsupported platform error from backend gracefully
+        if (data?.error?.includes("Unsupported platform")) {
+          setUnsupportedPlatform(true);
+          setIsLoading(false);
+          return;
+        }
+        throw new Error(data?.error || "Failed to import");
+      }
 
       // Finish progress animation
       setProgress(100);
