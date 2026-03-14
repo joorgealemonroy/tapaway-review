@@ -576,6 +576,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Ask us anything..."
+                    maxLength={2000}
                     rows={4}
                   />
                 </div>
