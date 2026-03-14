@@ -163,7 +163,8 @@ const PersonalSignup = () => {
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  const totalSteps = 3;
+  const effectiveSteps = hasImportedProfile ? [1, 3] : [1, 2, 3];
+  const totalSteps = effectiveSteps.length;
 
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
