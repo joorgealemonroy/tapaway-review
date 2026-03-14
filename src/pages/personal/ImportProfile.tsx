@@ -302,7 +302,12 @@ const ImportProfile = () => {
 
   const handleClaimPage = useCallback(() => {
     if (!result) return;
-    const allLinks = [...(result.socialLinks || []), ...(result.links || [])];
+    const allLinks = [...(result.socialLinks || []), ...(result.links || [])].map(l => ({
+      label: l.label,
+      url: l.url,
+      type: l.type,
+      imageUrl: l.imageUrl || null,
+    }));
     sessionStorage.setItem(
       "tapaway_import_data",
       JSON.stringify({
