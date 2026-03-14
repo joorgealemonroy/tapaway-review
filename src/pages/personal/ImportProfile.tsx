@@ -56,43 +56,66 @@ function detectSourcePlatform(inputUrl: string): string {
 }
 
 /* ─── Before Preview (generic/plain) ─── */
-const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) => (
-  <div className="flex flex-col items-center h-full">
-    <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
-      Your {source}
-    </p>
-    <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-muted bg-muted/30 shadow-lg overflow-hidden flex-1 max-h-[460px]">
-      <div className="h-full overflow-y-auto p-4 flex flex-col items-center">
-        {/* Plain avatar */}
-        <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden mt-4 mb-2">
-          {data.photoUrl ? (
-            <img src={data.photoUrl} alt="" className="w-full h-full object-cover opacity-70 grayscale" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-lg font-bold">
-              {data.name?.[0] || "?"}
+const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) => {
+  const imageLinks = [...(data.links || [])].filter(l => l.imageUrl);
+  const textLinks = [...(data.links || [])].filter(l => !l.imageUrl);
+
+  return (
+    <div className="flex flex-col items-center h-full">
+      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+        Your {source}
+      </p>
+      <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-muted bg-muted/30 shadow-lg overflow-hidden flex-1 max-h-[460px]">
+        <div className="h-full overflow-y-auto p-4 flex flex-col items-center">
+          {/* Plain avatar */}
+          <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden mt-4 mb-2">
+            {data.photoUrl ? (
+              <img src={data.photoUrl} alt="" className="w-full h-full object-cover opacity-70 grayscale" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-lg font-bold">
+                {data.name?.[0] || "?"}
+              </div>
+            )}
+          </div>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{data.name || "Your Name"}</p>
+          {data.bio && <p className="text-[10px] text-muted-foreground/60 text-center mb-3 line-clamp-2 px-2">{data.bio}</p>}
+
+          {/* Social links */}
+          <div className="w-full space-y-1.5 mt-1">
+            {data.socialLinks?.map((l, i) => (
+              <div key={`s-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
+                {l.type}
+              </div>
+            ))}
+          </div>
+
+          {/* Image links in 2-col grid */}
+          {imageLinks.length > 0 && (
+            <div className="w-full grid grid-cols-2 gap-1.5 mt-1.5">
+              {imageLinks.map((l, i) => (
+                <div key={`img-${i}`} className="rounded-lg bg-muted/60 border border-border/50 overflow-hidden">
+                  <img src={l.imageUrl!} alt={l.label} className="w-full aspect-square object-cover opacity-70 grayscale" />
+                  <p className="text-[9px] text-muted-foreground text-center py-1 px-1 truncate">{l.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text-only links */}
+          {textLinks.length > 0 && (
+            <div className="w-full space-y-1.5 mt-1.5">
+              {textLinks.map((l, i) => (
+                <div key={`l-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
+                  {l.label}
+                </div>
+              ))}
             </div>
           )}
         </div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{data.name || "Your Name"}</p>
-        {data.bio && <p className="text-[10px] text-muted-foreground/60 text-center mb-3 line-clamp-2 px-2">{data.bio}</p>}
-
-        {/* Plain link list */}
-        <div className="w-full space-y-1.5 mt-1">
-          {data.socialLinks?.map((l, i) => (
-            <div key={`s-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
-              {l.type}
-            </div>
-          ))}
-          {data.links?.map((l, i) => (
-            <div key={`l-${i}`} className="w-full py-2 px-3 rounded-md bg-muted/60 border border-border/50 text-center text-[11px] text-muted-foreground truncate">
-              {l.label}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── After Preview (TapAway styled) ─── */
 const AfterPreview = ({ data }: { data: ScrapedData }) => {
