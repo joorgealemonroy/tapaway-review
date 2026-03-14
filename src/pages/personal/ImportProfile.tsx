@@ -157,7 +157,7 @@ function scrapedToPreviewProps(data: ScrapedData) {
       grid_size: null as string | null,
       thumbnail_url: null as string | null,
     })),
-    ...((): typeof allLinks => {
+    ...(() => {
       let ytImageCount = 0;
       return (data.links || []).map((l, i) => {
         const hasImage = !!l.imageUrl;
