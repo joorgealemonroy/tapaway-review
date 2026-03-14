@@ -14,6 +14,9 @@ const ALLOWED_DOMAINS = [
   'hoo.be',
 ];
 
+// Domains that require JS rendering (Firecrawl fallback)
+const JS_RENDERED_DOMAINS = ['hoo.be'];
+
 const LINK_TYPE_MAP: Record<string, string> = {
   'instagram.com': 'instagram',
   'tiktok.com': 'tiktok',
