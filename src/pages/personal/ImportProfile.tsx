@@ -385,7 +385,7 @@ const ImportProfile = () => {
                   type="text"
                   placeholder="linktr.ee/yourname"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => { setUrl(e.target.value); setUnsupportedPlatform(false); }}
                   className="pl-9"
                   disabled={isLoading}
                 />
