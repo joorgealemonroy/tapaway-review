@@ -1,21 +1,42 @@
 
 
-# Send Test Post-Purchase Emails
-
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+# SEO Brand Dominance — TapAway
 
 ## Changes
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+### A. Install `react-helmet-async` + wrap App in `HelmetProvider`
+- Add dependency, wrap `<App>` in `<HelmetProvider>`
 
-Add two new email templates matching the ones in the stripe webhook:
+### B. Per-page `<Helmet>` metadata
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+**Personal.tsx (`/`):**
+- Title: "TapAway — All Your Links, One Tap Away"
+- Description: "The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway."
+- Canonical: `https://tapaway.co/`
+- OG tags with `logo-og.png`
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+**Index.tsx (`/business`):**
+- Title: "TapAway for Business — Generate 5-Star Google Reviews Instantly"
+- Description: "Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot."
+- Canonical: `https://tapaway.co/business`
 
-### 2. Deploy and Invoke
+### C. JSON-LD structured data on homepage (`Personal.tsx`)
+- `Organization` schema with logo, sameAs (TikTok, Instagram, Twitter, YouTube), contactPoint
+- `WebSite` schema with SearchAction for sitelinks searchbox
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### D. Create `public/sitemap.xml`
+Priority: `/` (1.0), `/business` (0.9), `/personal/pricing` (0.8), `/personal/signup` (0.7), `/support` (0.4), legal pages (0.3), `/rep/apply` (0.4)
+
+### E. Update `public/robots.txt`
+Add `Sitemap: https://tapaway.co/sitemap.xml`
+
+### F. Fix `index.html` OG image
+Change from `.svg` to `/favicon.png` as fallback (user should later create a proper 1200x630 `logo-og.png` and drop it in `/public`)
+
+### G. Add `rel="me"` to social links in footer
+Both `Personal.tsx` and `Index.tsx` footers
+
+### Files
+- **New**: `public/sitemap.xml`
+- **Modified**: `package.json`, `src/App.tsx`, `src/pages/Personal.tsx`, `src/pages/Index.tsx`, `index.html`, `public/robots.txt`
 
