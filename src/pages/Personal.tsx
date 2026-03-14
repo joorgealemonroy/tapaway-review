@@ -56,16 +56,17 @@ const Personal = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>TapAway — All Your Links, One Tap Away</title>
+        <title>TapAway | All Your Links, One Tap Away</title>
         <meta name="description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
         <link rel="canonical" href="https://tapaway.co/" />
-        <meta property="og:title" content="TapAway — All Your Links, One Tap Away" />
+        <meta property="og:title" content="TapAway | All Your Links, One Tap Away" />
         <meta property="og:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
         <meta property="og:url" content="https://tapaway.co/" />
         <meta property="og:image" content="https://tapaway.co/logo-og.png" />
         <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="TapAway — All Your Links, One Tap Away" />
+        <meta name="twitter:title" content="TapAway | All Your Links, One Tap Away" />
         <meta name="twitter:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
+        <meta name="twitter:image" content="https://tapaway.co/logo-og.png" />
         <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
       </Helmet>
