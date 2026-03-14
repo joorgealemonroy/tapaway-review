@@ -545,7 +545,7 @@ function ProfilePreviewRendererComponent({
           <div key={block.id} className={alignClass}>
             {linkUrl ? (
               <a
-                href={linkUrl}
+                href={sanitizeUrl(linkUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => handleLinkClick(e, linkUrl)}
