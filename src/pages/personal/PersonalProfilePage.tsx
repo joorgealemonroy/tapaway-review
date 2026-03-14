@@ -413,7 +413,7 @@ const ProfileBlock = memo(function ProfileBlock({
   switch (block.block_type) {
     case "youtube": {
       const videoId = content.videoId;
-      if (!videoId) return null;
+      if (!videoId || !isValidYouTubeVideoId(videoId)) return null;
       const ytOverlayTitle = content.overlayTitle;
       const ytOverlaySubtitle = content.overlaySubtitle;
       const hasYtOverlay = ytOverlayTitle || ytOverlaySubtitle;
