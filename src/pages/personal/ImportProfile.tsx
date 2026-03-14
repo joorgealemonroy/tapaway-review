@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, Sparkles, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getPlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
+import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 
 interface ScrapedLink {
   label: string;
@@ -117,124 +117,52 @@ const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) 
   );
 };
 
-/* ─── After Preview (TapAway styled) ─── */
-const AfterPreview = ({ data }: { data: ScrapedData }) => {
-  const getSocialIcon = (type: string) => {
-    const config = getPlatformConfig(type);
-    if (!config) return null;
-    const IconComponent = config.icon;
-    return <IconComponent className="w-3.5 h-3.5" />;
+/* ─── Convert scraped data → ProfilePreviewPanel props ─── */
+function scrapedToPreviewProps(data: ScrapedData) {
+  const profile = {
+    id: "import-preview",
+    full_name: data.name || "Your Name",
+    username: "preview",
+    bio: data.bio,
+    profile_photo_url: data.photoUrl,
+    header_type: "color" as const,
+    header_color: "#6366f1",
+    background_color: "#000000",
   };
 
-  const getSocialStyle = (type: string): React.CSSProperties => {
-    const config = getPlatformConfig(type);
-    if (!config) return { background: "#374151" };
-    if (config.gradient && type === "instagram") {
-      return { background: PLATFORM_COLORS.instagramGradient };
-    }
-    const colorKey = type as keyof typeof PLATFORM_COLORS;
-    return { background: PLATFORM_COLORS[colorKey] || "#374151" };
-  };
+  const allLinks = [
+    ...(data.socialLinks || []).map((l, i) => ({
+      id: `social-${i}`,
+      label: l.label || l.type,
+      url: l.url,
+      link_type: l.type,
+      is_active: true,
+      is_featured: false,
+      display_style: "icon" as string | null,
+      sort_order: i,
+      pill_color: null as string | null,
+      cover_image_url: null as string | null,
+      grid_size: null as string | null,
+      thumbnail_url: null as string | null,
+    })),
+    ...(data.links || []).map((l, i) => ({
+      id: `link-${i}`,
+      label: l.label,
+      url: l.url,
+      link_type: l.type,
+      is_active: true,
+      is_featured: false,
+      display_style: "pill" as string | null,
+      sort_order: 100 + i,
+      pill_color: null as string | null,
+      cover_image_url: l.imageUrl || null,
+      grid_size: l.imageUrl ? "half" : null,
+      thumbnail_url: null as string | null,
+    })),
+  ];
 
-  const getLinkIcon = (link: ScrapedLink) => {
-    const platform = detectPlatformFromUrl(link.url);
-    if (platform) {
-      const config = getPlatformConfig(platform);
-      if (config) {
-        const IconComponent = config.icon;
-        return <IconComponent className="w-4 h-4 text-white/70" />;
-      }
-    }
-    return <ExternalLink className="w-4 h-4 text-white/40" />;
-  };
-
-  return (
-    <div className="flex flex-col items-center h-full">
-      <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
-        Your TapAway
-      </p>
-      <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex-1 max-h-[460px]">
-        <div className="h-full overflow-y-auto">
-          {/* Banner */}
-          <div className="h-28 bg-gradient-to-br from-cyan-500 to-blue-600 relative">
-            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-zinc-950 to-transparent" />
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-              <div className="w-[68px] h-[68px] rounded-full border-[3px] border-zinc-950 overflow-hidden bg-zinc-800 shadow-lg">
-                {data.photoUrl ? (
-                  <img src={data.photoUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-400 text-lg font-bold">
-                    {data.name?.[0] || "?"}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="px-4 pt-11 pb-4 flex flex-col items-center">
-            <p className="text-sm font-semibold text-white mb-0.5">{data.name || "Your Name"}</p>
-            {data.bio && <p className="text-[10px] text-zinc-400 text-center mb-3 line-clamp-2">{data.bio}</p>}
-
-            {/* Social icon row — branded circles */}
-            {data.socialLinks?.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-                {data.socialLinks.map((link, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm"
-                    style={getSocialStyle(link.type)}
-                    title={link.type}
-                  >
-                    {getSocialIcon(link.type) || <Globe className="w-3.5 h-3.5" />}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Image card links in 2-col grid */}
-            {(() => {
-              const imageLinks = data.links?.filter(l => l.imageUrl) || [];
-              const textLinks = data.links?.filter(l => !l.imageUrl) || [];
-              return (
-                <>
-                  {imageLinks.length > 0 && (
-                    <div className="w-full grid grid-cols-2 gap-2 mb-2">
-                      {imageLinks.map((link, i) => (
-                        <div key={`img-${i}`} className="rounded-2xl overflow-hidden bg-white/[0.08] border border-white/[0.08]">
-                          <img src={link.imageUrl!} alt={link.label} className="w-full aspect-square object-cover" />
-                          <div className="px-2 py-1.5 flex items-center gap-1.5">
-                            {getLinkIcon(link)}
-                            <span className="text-[10px] font-medium text-zinc-200 truncate flex-1">{link.label}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Glass pill links */}
-                  <div className="w-full space-y-2">
-                    {textLinks.map((link, i) => (
-                      <div
-                        key={`txt-${i}`}
-                        className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3"
-                      >
-                        {getLinkIcon(link)}
-                        <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
-                          {link.label}
-                        </span>
-                        <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+  return { profile, links: allLinks, blocks: [] as { id: string; block_type: string; content: Record<string, unknown>; is_active?: boolean | null; sort_order: number; alignment?: string | null }[] };
+}
 
 const ImportProfile = () => {
   const navigate = useNavigate();
@@ -474,7 +402,17 @@ const ImportProfile = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.25 }}
                   >
-                    <AfterPreview data={result} />
+                    {(() => {
+                      const { profile, links, blocks } = scrapedToPreviewProps(result);
+                      return (
+                        <div className="flex flex-col items-center h-full">
+                          <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
+                            Your TapAway
+                          </p>
+                          <ProfilePreviewPanel profile={profile} links={links} blocks={blocks} />
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 </div>
 
