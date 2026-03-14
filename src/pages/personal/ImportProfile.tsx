@@ -109,63 +109,100 @@ const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) 
 );
 
 /* ─── After Preview (TapAway styled) ─── */
-const AfterPreview = ({ data }: { data: ScrapedData }) => (
-  <div className="flex flex-col items-center h-full">
-    <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
-      Your TapAway
-    </p>
-    <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex-1 max-h-[460px]">
-      <div className="h-full overflow-y-auto">
-        {/* Gradient header */}
-        <div className="h-24 bg-gradient-to-br from-primary/80 to-primary/40 relative">
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-            <div className="w-16 h-16 rounded-full border-[3px] border-zinc-950 overflow-hidden bg-zinc-800">
-              {data.photoUrl ? (
-                <img src={data.photoUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-zinc-400 text-lg font-bold">
-                  {data.name?.[0] || "?"}
-                </div>
-              )}
+const AfterPreview = ({ data }: { data: ScrapedData }) => {
+  const getSocialIcon = (type: string) => {
+    const config = getPlatformConfig(type);
+    if (!config) return null;
+    const IconComponent = config.icon;
+    return <IconComponent className="w-3.5 h-3.5" />;
+  };
+
+  const getSocialStyle = (type: string): React.CSSProperties => {
+    const config = getPlatformConfig(type);
+    if (!config) return { background: "#374151" };
+    if (config.gradient && type === "instagram") {
+      return { background: PLATFORM_COLORS.instagramGradient };
+    }
+    const colorKey = type as keyof typeof PLATFORM_COLORS;
+    return { background: PLATFORM_COLORS[colorKey] || "#374151" };
+  };
+
+  const getLinkIcon = (link: ScrapedLink) => {
+    const platform = detectPlatformFromUrl(link.url);
+    if (platform) {
+      const config = getPlatformConfig(platform);
+      if (config) {
+        const IconComponent = config.icon;
+        return <IconComponent className="w-4 h-4 text-white/70" />;
+      }
+    }
+    return <ExternalLink className="w-4 h-4 text-white/40" />;
+  };
+
+  return (
+    <div className="flex flex-col items-center h-full">
+      <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
+        Your TapAway
+      </p>
+      <div className="w-full max-w-[260px] rounded-[2rem] border-[5px] border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex-1 max-h-[460px]">
+        <div className="h-full overflow-y-auto">
+          {/* Banner */}
+          <div className="h-28 bg-gradient-to-br from-cyan-500 to-blue-600 relative">
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-zinc-950 to-transparent" />
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
+              <div className="w-[68px] h-[68px] rounded-full border-[3px] border-zinc-950 overflow-hidden bg-zinc-800 shadow-lg">
+                {data.photoUrl ? (
+                  <img src={data.photoUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-400 text-lg font-bold">
+                    {data.name?.[0] || "?"}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="px-4 pt-10 pb-4 flex flex-col items-center">
-          <p className="text-sm font-semibold text-zinc-100 mb-0.5">{data.name || "Your Name"}</p>
-          {data.bio && <p className="text-[10px] text-zinc-400 text-center mb-3 line-clamp-2">{data.bio}</p>}
+          <div className="px-4 pt-11 pb-4 flex flex-col items-center">
+            <p className="text-sm font-semibold text-white mb-0.5">{data.name || "Your Name"}</p>
+            {data.bio && <p className="text-[10px] text-zinc-400 text-center mb-3 line-clamp-2">{data.bio}</p>}
 
-          {/* Social icon row */}
-          {data.socialLinks?.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mb-3">
-              {data.socialLinks.map((link, i) => (
+            {/* Social icon row — branded circles */}
+            {data.socialLinks?.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                {data.socialLinks.map((link, i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm"
+                    style={getSocialStyle(link.type)}
+                    title={link.type}
+                  >
+                    {getSocialIcon(link.type) || <Globe className="w-3.5 h-3.5" />}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Glass pill links */}
+            <div className="w-full space-y-2">
+              {data.links?.map((link, i) => (
                 <div
                   key={i}
-                  className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs"
-                  title={link.type}
+                  className="w-full py-3 px-3.5 rounded-2xl bg-white/[0.08] border border-white/[0.08] flex items-center gap-3 hover:bg-white/[0.12] transition-colors"
                 >
-                  {SOCIAL_ICONS[link.type] || "🔗"}
+                  {getLinkIcon(link)}
+                  <span className="flex-1 text-[11px] font-medium text-zinc-200 truncate">
+                    {link.label}
+                  </span>
+                  <ExternalLink className="w-3 h-3 text-white/25 shrink-0" />
                 </div>
               ))}
             </div>
-          )}
-
-          {/* Styled pill links */}
-          <div className="w-full space-y-2">
-            {data.links?.map((link, i) => (
-              <div
-                key={i}
-                className="w-full py-2.5 px-3 rounded-xl bg-zinc-800/80 border border-zinc-700/50 text-center text-[11px] font-medium text-zinc-200 truncate hover:bg-zinc-700/80 transition-colors"
-              >
-                {link.label}
-              </div>
-            ))}
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ImportProfile = () => {
   const navigate = useNavigate();
