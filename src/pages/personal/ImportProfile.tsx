@@ -26,7 +26,6 @@ interface ScrapedData {
 
 const SUPPORTED_PLATFORMS = [
   { name: "Linktree", domain: "linktr.ee" },
-  { name: "Link.me", domain: "link.me" },
   { name: "Stan Store", domain: "stan.store" },
   { name: "Beacons", domain: "beacons.ai" },
   { name: "lnk.bio", domain: "lnk.bio" },
@@ -248,6 +247,7 @@ const ImportProfile = () => {
   const [progress, setProgress] = useState(0);
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [sourcePlatform, setSourcePlatform] = useState("");
+  const [unsupportedPlatform, setUnsupportedPlatform] = useState(false);
 
   // Animated progress during loading
   useEffect(() => {
@@ -275,9 +275,18 @@ const ImportProfile = () => {
     e.preventDefault();
     if (!url.trim()) return;
 
+    // Client-side domain check
+    const detected = detectSourcePlatform(url.trim());
+    if (detected === "profile") {
+      // Not a recognized platform
+      setUnsupportedPlatform(true);
+      return;
+    }
+
     setIsLoading(true);
     setResult(null);
-    setSourcePlatform(detectSourcePlatform(url.trim()));
+    setUnsupportedPlatform(false);
+    setSourcePlatform(detected);
 
     try {
       const { data, error } = await supabase.functions.invoke("scrape-link-bio", {
@@ -285,7 +294,15 @@ const ImportProfile = () => {
       });
 
       if (error) throw new Error(error.message);
-      if (!data?.success) throw new Error(data?.error || "Failed to import");
+      if (!data?.success) {
+        // Handle unsupported platform error from backend gracefully
+        if (data?.error?.includes("Unsupported platform")) {
+          setUnsupportedPlatform(true);
+          setIsLoading(false);
+          return;
+        }
+        throw new Error(data?.error || "Failed to import");
+      }
 
       // Finish progress animation
       setProgress(100);
@@ -385,7 +402,7 @@ const ImportProfile = () => {
                   type="text"
                   placeholder="linktr.ee/yourname"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => { setUrl(e.target.value); setUnsupportedPlatform(false); }}
                   className="pl-9"
                   disabled={isLoading}
                 />
@@ -397,9 +414,46 @@ const ImportProfile = () => {
             </div>
           </motion.form>
 
+          {/* Unsupported platform fallback */}
+          <AnimatePresence>
+            {unsupportedPlatform && !isLoading && (
+              <motion.div
+                key="unsupported"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="max-w-md mx-auto text-center mb-8"
+              >
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+                  <p className="text-3xl">😕</p>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Sorry, we can't transfer from that platform yet
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    But the good news? Starting fresh on TapAway takes under 2 minutes.
+                  </p>
+                  <Button
+                    onClick={() => navigate("/personal/signup")}
+                    size="lg"
+                    className="w-full max-w-xs"
+                  >
+                    Create Your Page
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <div className="pt-2">
+                    <p className="text-xs text-muted-foreground mb-1.5">We currently support:</p>
+                    <p className="text-xs text-muted-foreground">
+                      {SUPPORTED_PLATFORMS.map(p => p.name).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Supported platforms */}
           <AnimatePresence>
-            {!result && !isLoading && (
+            {!result && !isLoading && !unsupportedPlatform && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
