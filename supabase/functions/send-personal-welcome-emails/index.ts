@@ -89,7 +89,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                         <img src="${escapeHtml(data.profilePhotoUrl)}" alt="${safeFullName}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid ${accentColor};" />
                         ` : `
                         <div style="width: 100px; height: 100px; border-radius: 50%; background-color: #27272a; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                          <span style="color: #71717a; font-size: 36px;">${data.fullName.charAt(0)}</span>
+                          <span style="color: #71717a; font-size: 36px;">${safeFullName.charAt(0)}</span>
                         </div>
                         `}
                       </td>
