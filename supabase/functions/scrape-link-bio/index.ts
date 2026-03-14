@@ -14,6 +14,9 @@ const ALLOWED_DOMAINS = [
   'hoo.be',
 ];
 
+// Domains that require JS rendering (Firecrawl fallback)
+const JS_RENDERED_DOMAINS = ['hoo.be'];
+
 const LINK_TYPE_MAP: Record<string, string> = {
   'instagram.com': 'instagram',
   'tiktok.com': 'tiktok',
@@ -261,6 +264,51 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Extracted: name="${name}", ${contentLinks.length} content links, ${socialLinks.length} social links`);
+
+    // Firecrawl fallback for JS-rendered sites with 0 links
+    const isJsRendered = JS_RENDERED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+    if (isJsRendered && contentLinks.length === 0 && socialLinks.length === 0) {
+      const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
+      if (firecrawlKey) {
+        console.log('Falling back to Firecrawl for JS-rendered page');
+        try {
+          const fcResp = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${firecrawlKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: formattedUrl,
+              formats: ['html'],
+              waitFor: 3000,
+            }),
+          });
+          if (fcResp.ok) {
+            const fcData = await fcResp.json();
+            const renderedHtml = fcData?.data?.html || '';
+            if (renderedHtml) {
+              // Re-extract from rendered HTML
+              const fcAllLinks = extractLinks(renderedHtml, hostname);
+              socialLinks = fcAllLinks.filter(l => socialTypes.has(l.type));
+              contentLinks = fcAllLinks.filter(l => !socialTypes.has(l.type));
+
+              // Try to get better name/photo from rendered HTML
+              const fcName = extractTitle(renderedHtml);
+              if (fcName) name = fcName;
+              const fcPhoto = extractMeta(renderedHtml, 'og:image');
+              if (fcPhoto) photoUrl = fcPhoto;
+              const fcBio = extractMeta(renderedHtml, 'og:description');
+              if (fcBio) bio = fcBio;
+
+              console.log(`Firecrawl extracted: ${contentLinks.length} content links, ${socialLinks.length} social links`);
+            }
+          }
+        } catch (fcErr) {
+          console.error('Firecrawl fallback failed:', fcErr);
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({
