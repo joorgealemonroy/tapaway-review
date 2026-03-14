@@ -129,6 +129,7 @@ const RepApply = () => {
                 value={form.phone}
                 onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="(555) 555-5555"
+                maxLength={20}
               />
             </div>
 
