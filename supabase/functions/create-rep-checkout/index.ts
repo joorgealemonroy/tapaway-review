@@ -12,6 +12,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 10 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "create-rep-checkout");
+  if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {

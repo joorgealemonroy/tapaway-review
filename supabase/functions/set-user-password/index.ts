@@ -13,6 +13,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 5 requests per 15 minutes per IP
+  const rlKey = getRateLimitKey(req, "set-user-password");
+  if (!checkRateLimit(rlKey, 5, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const { userId, password, sessionId } = await req.json();
 

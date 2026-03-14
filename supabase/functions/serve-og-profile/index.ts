@@ -13,6 +13,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 60 requests per minute per IP
+  const rlKey = getRateLimitKey(req, "serve-og-profile");
+  if (!checkRateLimit(rlKey, 60, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug");

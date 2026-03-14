@@ -11,6 +11,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 20 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "download-product");
+  if (!checkRateLimit(rlKey, 20, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const url = new URL(req.url);
     const accessToken = url.searchParams.get('token');

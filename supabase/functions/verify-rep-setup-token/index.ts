@@ -12,6 +12,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 10 requests per 15 minutes per IP
+  const rlKey = getRateLimitKey(req, "verify-rep-setup-token");
+  if (!checkRateLimit(rlKey, 10, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

@@ -36,6 +36,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 20 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "check-affiliate-abuse");
+  if (!checkRateLimit(rlKey, 20, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

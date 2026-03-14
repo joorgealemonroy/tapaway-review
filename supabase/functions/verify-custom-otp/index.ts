@@ -25,6 +25,12 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Rate limit: 10 requests per 15 minutes per IP
+  const rlKey = getRateLimitKey(req, "verify-custom-otp");
+  if (!checkRateLimit(rlKey, 10, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const { email, code, password } = await req.json();
 

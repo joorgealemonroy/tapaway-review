@@ -26,6 +26,12 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 10 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "send-card-approval");
+  if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const { 
       fullName, 

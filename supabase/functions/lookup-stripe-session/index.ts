@@ -26,6 +26,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit: 20 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "lookup-stripe-session");
+  if (!checkRateLimit(rlKey, 20, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const { sessionId } = await req.json();
     

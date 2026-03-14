@@ -16,6 +16,12 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Rate limit: 10 requests per hour per IP
+  const rlKey = getRateLimitKey(req, "claim-card");
+  if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

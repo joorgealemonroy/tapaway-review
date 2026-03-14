@@ -50,13 +50,8 @@ serve(async (req) => {
       );
     }
 
-    // Get client IP for rate limiting (fallback to a default if not available)
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 
-                     req.headers.get('x-real-ip') || 
-                     'unknown';
-    
     // Rate limit: 50 events per hour per IP + restaurant combination
-    const rateLimitKey = `${clientIp}:${body.restaurant_id}`;
+    const rateLimitKey = getRateLimitKey(req, `track-event:${body.restaurant_id}`);
     if (!checkRateLimit(rateLimitKey, 50, 3600000)) {
       return new Response(
         JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
