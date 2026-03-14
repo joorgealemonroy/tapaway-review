@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { escapeHtml, validateFieldLengths } from "../_shared/sanitize.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -26,12 +27,21 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { fullName, addressLine1, addressLine2, city, state, zip }: DemoRequestNotification = await req.json();
 
+    // Server-side length validation
+    const tooLong = validateFieldLengths({ fullName, addressLine1, addressLine2, city, state, zip }, 500);
+    if (tooLong) {
+      return new Response(
+        JSON.stringify({ error: `Field '${tooLong}' exceeds maximum length` }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     console.log("Sending demo request notification for:", fullName);
 
-    // Build address string
-    const addressParts = [addressLine1];
-    if (addressLine2) addressParts.push(addressLine2);
-    addressParts.push(`${city}, ${state} ${zip}`);
+    // Build address string (escaped)
+    const addressParts = [escapeHtml(addressLine1)];
+    if (addressLine2) addressParts.push(escapeHtml(addressLine2));
+    addressParts.push(`${escapeHtml(city)}, ${escapeHtml(state)} ${escapeHtml(zip)}`);
     const fullAddress = addressParts.join('\n');
 
     const emailResponse = await resend.emails.send({
@@ -42,7 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
         <h1>New Demo Kit Request</h1>
         <p>A sales rep has requested a demo kit:</p>
         <h2>Shipping Details</h2>
-        <p><strong>Name:</strong> ${fullName}</p>
+        <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
         <p><strong>Address:</strong></p>
         <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px;">${fullAddress}</pre>
         <hr>

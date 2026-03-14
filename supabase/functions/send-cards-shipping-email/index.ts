@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <tr>
                   <td style="padding: 32px;">
                     <h2 style="margin: 0 0 16px; font-size: 22px; font-weight: 700; color: #111827;">
-                      Hi ${firstName},
+                      Hi ${escapeHtml(firstName)},
                     </h2>
                     
                     <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #4b5563;">
