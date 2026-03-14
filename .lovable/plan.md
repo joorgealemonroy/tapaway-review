@@ -1,31 +1,21 @@
 
 
-# Fix: Restrict Grid Pairing to Known Media Platforms Only
+# Send Test Post-Purchase Emails
 
-## Problem
-"Work with me 1 on 1" and "Trenchies Candy" both get `type: "other"` from the scraper. The current grid logic pairs any consecutive image links with the same `link_type` — so two `"other"` links get incorrectly paired as half-width grid cards.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Fix — `src/pages/personal/ImportProfile.tsx`
+## Changes
 
-Restrict grid pairing to only known media/embed platforms (e.g., `youtube`, `spotify`, `soundcloud`). Generic `"other"` or `"link"` types should never be grid-paired, even if consecutive with images.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-Add a whitelist set:
-```ts
-const gridEligibleTypes = new Set(["youtube", "spotify", "soundcloud", "tiktok"]);
-```
+Add two new email templates matching the ones in the stripe webhook:
 
-Update the pairing condition (line 157):
-```ts
-// Before:
-rawLinks[imageIndices[k]].type === rawLinks[imageIndices[k + 1]].type
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-// After:
-rawLinks[imageIndices[k]].type === rawLinks[imageIndices[k + 1]].type
-&& gridEligibleTypes.has(rawLinks[imageIndices[k]].type)
-```
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-This ensures only media-platform links (YouTube, Spotify, etc.) get the half-width grid treatment. Everything else stays full-width pill with thumbnail.
+### 2. Deploy and Invoke
 
-## File
-- `src/pages/personal/ImportProfile.tsx` — add `gridEligibleTypes` set and update grid pairing condition (~line 155-157)
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
