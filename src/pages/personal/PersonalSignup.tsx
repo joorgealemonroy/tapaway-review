@@ -137,6 +137,7 @@ const PersonalSignup = () => {
           }
         }
 
+        setHasImportedProfile(true);
         toast.success("Profile imported! Review and customize your links.");
       }
     } catch (e) {
