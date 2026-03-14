@@ -151,11 +151,14 @@ function scrapedToPreviewProps(data: ScrapedData) {
   const imageIndices: number[] = [];
   rawLinks.forEach((l, i) => { if (l.imageUrl) imageIndices.push(i); });
 
-  // Pair consecutive image links into grid groups
+  // Pair consecutive image links into grid groups ONLY if they share the same link_type
   const gridIndices = new Set<number>();
-  for (let k = 0; k + 1 < imageIndices.length; k += 2) {
-    gridIndices.add(imageIndices[k]);
-    gridIndices.add(imageIndices[k + 1]);
+  for (let k = 0; k < imageIndices.length; k++) {
+    if (k + 1 < imageIndices.length && rawLinks[imageIndices[k]].type === rawLinks[imageIndices[k + 1]].type) {
+      gridIndices.add(imageIndices[k]);
+      gridIndices.add(imageIndices[k + 1]);
+      k++; // skip the paired one
+    }
   }
 
   // Pass 2: build content links with proper display styles
