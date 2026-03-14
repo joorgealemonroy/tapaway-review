@@ -82,6 +82,12 @@ function extractTitle(html: string): string {
   return '';
 }
 
+function extractLinktreeAvatar(html: string): string | null {
+  const match = html.match(/<img[^>]+src=["'](https:\/\/ugc\.production\.linktr\.ee\/[^"'?]+[^"']*)["'][^>]*>/i);
+  if (match?.[1]) return match[1];
+  return null;
+}
+
 function extractLinks(html: string, sourceHostname: string): Array<{label: string; url: string; type: string; imageUrl: string | null}> {
   const links: Array<{label: string; url: string; type: string; imageUrl: string | null}> = [];
   const seen = new Set<string>();
@@ -274,7 +280,9 @@ Deno.serve(async (req) => {
     } else {
       // Generic anchor-based extraction (works for Linktree, lnk.bio, bio.link, etc.)
       name = metaName;
-      photoUrl = metaPhoto;
+      photoUrl = (hostname === 'linktr.ee' || hostname.endsWith('.linktr.ee'))
+        ? (extractLinktreeAvatar(html) || metaPhoto)
+        : metaPhoto;
       const allLinks = extractLinks(html, hostname);
       socialLinks = allLinks.filter(l => socialTypes.has(l.type) && !l.imageUrl);
       contentLinks = allLinks.filter(l => !socialTypes.has(l.type) || !!l.imageUrl);
