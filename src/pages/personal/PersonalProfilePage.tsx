@@ -487,7 +487,7 @@ const ProfileBlock = memo(function ProfileBlock({
       if (linkUrl) {
         return (
           <a
-            href={linkUrl}
+            href={sanitizeUrl(linkUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full active:scale-[0.99] transition-transform"
