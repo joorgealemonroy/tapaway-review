@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Globe, Sparkles, Instagram, Youtube, Music, Facebook, Linkedin, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Globe, Sparkles, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getPlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
+import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 
 interface ScrapedLink {
   label: string;
