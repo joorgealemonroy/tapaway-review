@@ -329,8 +329,8 @@ const ImportProfile = () => {
       label: l.label,
       url: l.url,
       type: l.link_type,
-      imageUrl: l.cover_image_url || l.thumbnail_url || null,
-      displayHint: l.cover_image_url ? "cover" : l.thumbnail_url ? "thumbnail" : "pill",
+      thumbnailUrl: l.thumbnail_url || null,
+      coverImageUrl: l.cover_image_url || null,
       displayStyle: l.display_style,
       gridSize: l.grid_size,
     }));
