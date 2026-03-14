@@ -64,24 +64,17 @@ const Index = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm">© 2025 TapAway. More 5-star reviews, effortlessly.</p>
             <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
-              <Link to="/personal" className="hover:text-background transition-colors">
-                Personal Cards
-              </Link>
-              <a href="/terms" className="hover:text-background transition-colors">
-                Terms
-              </a>
-              <a href="/privacy" className="hover:text-background transition-colors">
-                Privacy
-              </a>
-              <a href="/refund" className="hover:text-background transition-colors">
-                Refund
-              </a>
-              <a href="/cookie-policy" className="hover:text-background transition-colors">
-                Cookies
-              </a>
-              <a href="/rep/apply" className="hover:text-background transition-colors">
-                Sales Partners
-              </a>
+              <a href="https://www.tiktok.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">TikTok</a>
+              <a href="https://www.instagram.com/tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">Instagram</a>
+              <a href="https://twitter.com/tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">X</a>
+              <a href="https://www.youtube.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">YouTube</a>
+              <span className="text-background/30">|</span>
+              <Link to="/personal" className="hover:text-background transition-colors">Personal Cards</Link>
+              <a href="/terms" className="hover:text-background transition-colors">Terms</a>
+              <a href="/privacy" className="hover:text-background transition-colors">Privacy</a>
+              <a href="/refund" className="hover:text-background transition-colors">Refund</a>
+              <a href="/cookie-policy" className="hover:text-background transition-colors">Cookies</a>
+              <a href="/rep/apply" className="hover:text-background transition-colors">Sales Partners</a>
             </div>
           </div>
         </div>
