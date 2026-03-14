@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
@@ -15,8 +16,18 @@ import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      {/* SEO Title */}
-      <title>TapAway for Businesses — Get More 5-Star Google Reviews</title>
+      <Helmet>
+        <title>TapAway for Business — Generate 5-Star Google Reviews Instantly</title>
+        <meta name="description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
+        <link rel="canonical" href="https://tapaway.co/business" />
+        <meta property="og:title" content="TapAway for Business — Generate 5-Star Google Reviews Instantly" />
+        <meta property="og:description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
+        <meta property="og:url" content="https://tapaway.co/business" />
+        <meta property="og:image" content="https://tapaway.co/favicon.png" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:title" content="TapAway for Business — Generate 5-Star Google Reviews Instantly" />
+        <meta name="twitter:description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
+      </Helmet>
       
       {/* Trial Resume Banner */}
       <TrialBanner />

@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { PersonalHero } from "@/components/landing/personal/PersonalHero";
 import { PersonalHowItWorks } from "@/components/landing/personal/PersonalHowItWorks";
@@ -12,6 +13,37 @@ import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding"
 import { FoundingBanner } from "@/components/landing/personal/FoundingBanner";
 import { FoundingCounter } from "@/components/landing/personal/FoundingCounter";
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "TapAway",
+  "url": "https://tapaway.co",
+  "logo": "https://tapaway.co/favicon.png",
+  "sameAs": [
+    "https://www.tiktok.com/@tapawayco",
+    "https://www.instagram.com/tapawayco",
+    "https://twitter.com/tapawayco",
+    "https://www.youtube.com/@tapawayco"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer support",
+    "url": "https://tapaway.co/support"
+  }
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "TapAway",
+  "url": "https://tapaway.co",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://tapaway.co/{username}",
+    "query-input": "required name=username"
+  }
+};
+
 const Personal = () => {
   const [searchParams] = useSearchParams();
   const affiliateRef = searchParams.get("ref");
@@ -23,14 +55,26 @@ const Personal = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>TapAway — All Your Links, One Tap Away</title>
+        <meta name="description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
+        <link rel="canonical" href="https://tapaway.co/" />
+        <meta property="og:title" content="TapAway — All Your Links, One Tap Away" />
+        <meta property="og:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
+        <meta property="og:url" content="https://tapaway.co/" />
+        <meta property="og:image" content="https://tapaway.co/favicon.png" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:title" content="TapAway — All Your Links, One Tap Away" />
+        <meta name="twitter:description" content="The ultimate digital business card and link-sharing platform. Connect with one tap using TapAway." />
+        <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
+        <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
+      </Helmet>
+
       {/* Founding Creator Banner */}
       <FoundingBanner />
 
       {/* Navigation */}
       <LandingNav />
-
-      {/* SEO Title */}
-      <title>TapAway Personal Cards — Share Everything with One Tap</title>
 
       {/* Main Content */}
       <PersonalHero />
