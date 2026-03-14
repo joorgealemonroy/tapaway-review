@@ -153,7 +153,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                       </td>
                       <td style="padding: 12px 16px; background-color: #ffffff;" width="50%">
                         <strong style="color: #71717a; font-size: 11px; text-transform: uppercase;">Profile ID</strong>
-                        <p style="margin: 4px 0 0; color: #71717a; font-size: 11px; font-family: monospace;">${data.profileId.substring(0, 8)}...</p>
+                        <p style="margin: 4px 0 0; color: #71717a; font-size: 11px; font-family: monospace;">${safeProfileId.substring(0, 8)}...</p>
                       </td>
                     </tr>
                   </table>
