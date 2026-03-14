@@ -76,8 +76,8 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                     <tr>
                       <td style="padding: 24px 20px 16px; text-align: center;">
                         <!-- Name with verified badge -->
-                        <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
-                          ${data.fullName}
+                         <p style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 700;">
+                          ${safeFullName}
                           <span style="display: inline-block; width: 16px; height: 16px; background-color: ${accentColor}; border-radius: 50%; vertical-align: middle; margin-left: 6px; text-align: center; line-height: 16px; font-size: 10px;">✓</span>
                         </p>
                       </td>
