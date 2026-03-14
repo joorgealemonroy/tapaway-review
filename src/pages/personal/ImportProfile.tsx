@@ -117,6 +117,18 @@ const BeforePreview = ({ data, source }: { data: ScrapedData; source: string }) 
   );
 };
 
+/* ─── Detect if a URL points to a video platform ─── */
+function isVideoUrl(url: string): boolean {
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, "");
+    return ["youtube.com", "youtu.be", "vimeo.com", "twitch.tv", "rumble.com"].some(
+      (d) => h === d || h.endsWith("." + d)
+    );
+  } catch {
+    return false;
+  }
+}
+
 /* ─── Convert scraped data → ProfilePreviewPanel props ─── */
 function scrapedToPreviewProps(data: ScrapedData) {
   const profile = {
@@ -145,23 +157,31 @@ function scrapedToPreviewProps(data: ScrapedData) {
       grid_size: null as string | null,
       thumbnail_url: null as string | null,
     })),
-    ...(data.links || []).map((l, i) => ({
-      id: `link-${i}`,
-      label: l.label,
-      url: l.url,
-      link_type: l.type,
-      is_active: true,
-      is_featured: false,
-      display_style: "pill" as string | null,
-      sort_order: 100 + i,
-      pill_color: null as string | null,
-      cover_image_url: l.imageUrl || null,
-      grid_size: l.imageUrl ? "half" : null,
-      thumbnail_url: null as string | null,
-    })),
+    ...(data.links || []).map((l, i) => {
+      const hasImage = !!l.imageUrl;
+      const isVideo = isVideoUrl(l.url);
+      // Video links with images → grid cards (2-col image layout)
+      // Non-video links with images → pill with thumbnail on left
+      // Links without images → standard pill
+      return {
+        id: `link-${i}`,
+        label: l.label,
+        url: l.url,
+        link_type: l.type,
+        is_active: true,
+        is_featured: false,
+        display_style: "pill" as string | null,
+        sort_order: 100 + i,
+        pill_color: null as string | null,
+        cover_image_url: hasImage && isVideo ? l.imageUrl! : null,
+        grid_size: hasImage && isVideo ? "half" : null,
+        thumbnail_url: hasImage && !isVideo ? l.imageUrl! : null,
+      };
+    }),
   ];
 
-  return { profile, links: allLinks, blocks: [] as { id: string; block_type: string; content: Record<string, unknown>; is_active?: boolean | null; sort_order: number; alignment?: string | null }[] };
+  type BlockType = { id: string; block_type: string; content: Record<string, unknown>; is_active?: boolean | null; sort_order: number; alignment?: string | null };
+  return { profile, links: allLinks, blocks: [] as BlockType[] };
 }
 
 const ImportProfile = () => {
@@ -235,6 +255,7 @@ const ImportProfile = () => {
       url: l.url,
       type: l.type,
       imageUrl: l.imageUrl || null,
+      displayHint: l.imageUrl ? (isVideoUrl(l.url) ? "cover" : "thumbnail") : "pill",
     }));
     sessionStorage.setItem(
       "tapaway_import_data",
