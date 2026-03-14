@@ -13,6 +13,7 @@ interface ScrapedLink {
   label: string;
   url: string;
   type: string;
+  imageUrl?: string | null;
 }
 
 interface ScrapedData {

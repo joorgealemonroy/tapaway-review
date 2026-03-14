@@ -79,8 +79,8 @@ function extractTitle(html: string): string {
   return '';
 }
 
-function extractLinks(html: string, sourceHostname: string): Array<{label: string; url: string; type: string}> {
-  const links: Array<{label: string; url: string; type: string}> = [];
+function extractLinks(html: string, sourceHostname: string): Array<{label: string; url: string; type: string; imageUrl: string | null}> {
+  const links: Array<{label: string; url: string; type: string; imageUrl: string | null}> = [];
   const seen = new Set<string>();
   const anchorRegex = /<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match;
