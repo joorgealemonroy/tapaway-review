@@ -301,12 +301,16 @@ const ImportProfile = () => {
 
   const handleClaimPage = useCallback(() => {
     if (!result) return;
-    const allLinks = [...(result.socialLinks || []), ...(result.links || [])].map(l => ({
+    // Build full layout-aware link data for signup prefill
+    const { links: mappedLinks } = scrapedToPreviewProps(result);
+    const allLinks = mappedLinks.map(l => ({
       label: l.label,
       url: l.url,
-      type: l.type,
-      imageUrl: l.imageUrl || null,
-      displayHint: l.imageUrl ? (isVideoUrl(l.url) ? "cover" : "thumbnail") : "pill",
+      type: l.link_type,
+      imageUrl: l.cover_image_url || l.thumbnail_url || null,
+      displayHint: l.cover_image_url ? "cover" : l.thumbnail_url ? "thumbnail" : "pill",
+      displayStyle: l.display_style,
+      gridSize: l.grid_size,
     }));
     sessionStorage.setItem(
       "tapaway_import_data",
