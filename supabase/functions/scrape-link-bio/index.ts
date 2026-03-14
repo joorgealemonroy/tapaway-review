@@ -270,8 +270,8 @@ Deno.serve(async (req) => {
       name = metaName;
       photoUrl = metaPhoto;
       const allLinks = extractLinks(html, hostname);
-      socialLinks = allLinks.filter(l => socialTypes.has(l.type));
-      contentLinks = allLinks.filter(l => !socialTypes.has(l.type));
+      socialLinks = allLinks.filter(l => socialTypes.has(l.type) && !l.imageUrl);
+      contentLinks = allLinks.filter(l => !socialTypes.has(l.type) || !!l.imageUrl);
     }
 
     console.log(`Extracted: name="${name}", ${contentLinks.length} content links, ${socialLinks.length} social links`);
