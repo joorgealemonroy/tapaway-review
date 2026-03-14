@@ -33,7 +33,7 @@ serve(async (req) => {
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://tapaway.co";
     const canonicalUrl = `${frontendUrl}/${slug}`;
-    const defaultImage = `${frontendUrl}/tapaway-logo.svg`;
+    const defaultImage = `${frontendUrl}/logo-og.png`;
 
     // Check personal profile first (priority matching UsernameResolver)
     const { data: profile } = await supabase
