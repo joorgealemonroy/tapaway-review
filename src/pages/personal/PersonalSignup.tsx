@@ -62,6 +62,7 @@ const PersonalSignup = () => {
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
   const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip" | "founding_pro">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [hasImportedProfile, setHasImportedProfile] = useState(false);
   
   const { 
     data: onboardingData, 
