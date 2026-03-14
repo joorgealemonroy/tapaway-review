@@ -42,6 +42,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
   const safeFullName = escapeHtml(data.fullName);
   const safeUsername = escapeHtml(data.username);
   const safeEmail = escapeHtml(data.email);
+  const safeProfileId = escapeHtml(data.profileId);
 
   return `
     <!DOCTYPE html>
