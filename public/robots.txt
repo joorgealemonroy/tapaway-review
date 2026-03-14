@@ -1,15 +1,31 @@
-User-agent: *
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /paywall
+Disallow: /auth
 
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /paywall
+Disallow: /auth
+
+User-agent: Twitterbot
 Allow: /
 
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /
 Disallow: /admin
-
 Disallow: /dashboard
-
 Disallow: /onboarding
-
 Disallow: /paywall
-
 Disallow: /auth
 
 Sitemap: https://tapaway.co/sitemap.xml
