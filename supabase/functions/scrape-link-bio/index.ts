@@ -103,9 +103,15 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
     if (seen.has(normalizedUrl)) continue;
     seen.add(normalizedUrl);
 
-    // Extract first image inside the anchor tag
+    // Extract image: try <img src>, then inline background-image CSS
     const imgMatch = innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
-    const imageUrl = imgMatch?.[1] || null;
+    let imageUrl = imgMatch?.[1] || null;
+    if (!imageUrl) {
+      // Check for background-image in style attribute on child elements or the anchor itself
+      const bgMatch = match[0].match(/background-image:\s*url\(["']?([^"')]+)["']?\)/i)
+        || innerHtml.match(/background-image:\s*url\(["']?([^"')]+)["']?\)/i);
+      if (bgMatch?.[1]) imageUrl = bgMatch[1];
+    }
 
     let label = innerHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
