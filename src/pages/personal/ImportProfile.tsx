@@ -26,6 +26,7 @@ interface ScrapedData {
 
 const SUPPORTED_PLATFORMS = [
   { name: "Linktree", domain: "linktr.ee" },
+  { name: "Link.me", domain: "link.me" },
   { name: "Stan Store", domain: "stan.store" },
   { name: "Beacons", domain: "beacons.ai" },
   { name: "lnk.bio", domain: "lnk.bio" },
