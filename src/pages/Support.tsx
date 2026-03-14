@@ -401,6 +401,7 @@ export default function Support() {
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="(555) 123-4567"
+                    maxLength={20}
                   />
                 </div>
               </div>
