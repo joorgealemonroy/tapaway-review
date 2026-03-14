@@ -23,6 +23,7 @@ import { ProductPreviewModal } from "@/components/personal/ProductPreviewModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
+import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
