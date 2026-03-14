@@ -320,7 +320,7 @@ function ProfilePreviewRendererComponent({
           return (
             <a
               key={link.id}
-              href={link.url}
+              href={sanitizeUrl(link.url)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => handleLinkClick(e, link.url)}
