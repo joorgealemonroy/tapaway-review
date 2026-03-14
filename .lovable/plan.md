@@ -1,21 +1,42 @@
 
 
-# Send Test Post-Purchase Emails
+# Fix Import Data Property Mismatch
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## Problem
+The import page stores link images as a single `imageUrl` field plus a `displayHint` ("cover" vs "thumbnail"), but the signup consumer reads `thumbnailUrl` and `coverImageUrl` as separate properties. They're always `undefined`, so images and grid layouts are silently lost.
 
-## Changes
+## Root Cause — `src/pages/personal/ImportProfile.tsx` line 328-336
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+`handleClaimPage` flattens both image types into one `imageUrl` field:
+```
+imageUrl: l.cover_image_url || l.thumbnail_url || null
+displayHint: "cover" | "thumbnail" | "pill"
+```
 
-Add two new email templates matching the ones in the stripe webhook:
+But the consumer in `PersonalSignup.tsx` reads:
+```
+thumbnailUrl: link.thumbnailUrl      // undefined
+coverImageUrl: link.coverImageUrl    // undefined
+```
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+## Fix — `src/pages/personal/ImportProfile.tsx`
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+In `handleClaimPage`, store `thumbnailUrl` and `coverImageUrl` as separate properties (matching what the consumer expects):
 
-### 2. Deploy and Invoke
+```js
+const allLinks = mappedLinks.map(l => ({
+  label: l.label,
+  url: l.url,
+  type: l.link_type,
+  thumbnailUrl: l.thumbnail_url || null,
+  coverImageUrl: l.cover_image_url || null,
+  displayStyle: l.display_style,
+  gridSize: l.grid_size,
+}));
+```
 
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+Remove `imageUrl` and `displayHint` — they're not consumed anywhere. This single change aligns the data shape so half-width grids and thumbnail/cover images transfer correctly.
+
+## Files
+- `src/pages/personal/ImportProfile.tsx` — fix `handleClaimPage` property names
 
