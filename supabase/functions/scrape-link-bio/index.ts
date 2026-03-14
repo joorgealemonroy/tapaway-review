@@ -5,7 +5,6 @@ const corsHeaders = {
 
 const ALLOWED_DOMAINS = [
   'linktr.ee',
-  'link.me',
   'stan.store',
   'beacons.ai',
   'lnk.bio',
