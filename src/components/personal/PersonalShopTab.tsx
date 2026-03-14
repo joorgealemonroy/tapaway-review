@@ -749,15 +749,39 @@ export function PersonalShopTab({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Price (USD)</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label>Price (USD)</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[220px] text-xs">
+                        Why $5 minimum? So you keep a bigger share after standard card processing fees.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Input 
                   type="number" 
-                  min="0.50" 
+                  min="5.00" 
                   step="0.01" 
                   value={priceDollars} 
                   onChange={e => setPriceDollars(e.target.value)} 
                   placeholder="9.99" 
                 />
+                {(() => {
+                  const price = parseFloat(priceDollars);
+                  if (!price || price < 5) return null;
+                  const kept = price - (price * 0.029 + 0.30);
+                  const pct = (kept / price) * 100;
+                  return (
+                    <p className="text-xs text-emerald-600 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" />
+                      At ${price.toFixed(2)}, you keep ~${kept.toFixed(2)} ({pct.toFixed(0)}% of the sale)
+                    </p>
+                  );
+                })()}
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
