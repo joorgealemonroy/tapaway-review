@@ -1,30 +1,21 @@
 
 
-# Allow Duplicate Links in Scraper
+# Send Test Post-Purchase Emails
 
-## Problem
-The `extractLinks` function in `scrape-link-bio/index.ts` deduplicates links by normalized URL (lines 102-104). If a profile has two buttons pointing to the same YouTube channel (e.g., "Vlogs" and "Sauce" both linking to youtube.com/@user), the second one is silently dropped.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## Fix
+## Changes
 
-### `supabase/functions/scrape-link-bio/index.ts` — Remove URL dedup (lines 102-104)
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-Remove the `seen` set and the `normalizedUrl` check. Instead, deduplicate by **label + URL** combo so truly identical duplicates (same text, same link) are still skipped, but two different buttons pointing to the same URL are preserved.
+Add two new email templates matching the ones in the stripe webhook:
 
-```ts
-// Before:
-const normalizedUrl = url.origin + url.pathname.replace(/\/$/, '');
-if (seen.has(normalizedUrl)) continue;
-seen.add(normalizedUrl);
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-// After:
-const dedupeKey = label_text + '||' + url.origin + url.pathname.replace(/\/$/, '');
-if (seen.has(dedupeKey)) continue;
-seen.add(dedupeKey);
-```
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-We need to compute `label` before the dedup check, so we'll reorder: extract label first, then dedup by `label + url`.
+### 2. Deploy and Invoke
 
-### File
-- `supabase/functions/scrape-link-bio/index.ts` — reorder label extraction before dedup, change dedup key to `label||url`
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

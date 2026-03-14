@@ -99,15 +99,10 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
     if (url.hostname.includes(sourceHostname)) continue;
     if (url.hostname.includes('cdn.') || url.hostname.includes('analytics.') || url.hostname.includes('google-analytics')) continue;
 
-    const normalizedUrl = url.origin + url.pathname.replace(/\/$/, '');
-    if (seen.has(normalizedUrl)) continue;
-    seen.add(normalizedUrl);
-
     // Extract image: try <img src>, then inline background-image CSS
     const imgMatch = innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i);
     let imageUrl = imgMatch?.[1] || null;
     if (!imageUrl) {
-      // Check for background-image in style attribute on child elements or the anchor itself
       const bgMatch = match[0].match(/background-image:\s*url\(["']?([^"')]+)["']?\)/i)
         || innerHtml.match(/background-image:\s*url\(["']?([^"')]+)["']?\)/i);
       if (bgMatch?.[1]) imageUrl = bgMatch[1];
@@ -126,6 +121,11 @@ function extractLinks(html: string, sourceHostname: string): Array<{label: strin
     }
 
     if (!label || label.length > 200) continue;
+
+    // Dedup by label+URL combo so different buttons to the same URL are kept
+    const dedupeKey = label + '||' + url.origin + url.pathname.replace(/\/$/, '');
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
 
     // Deduplicate repeated-word labels like "InstagramInstagram"
     if (label.length >= 6 && label.length % 2 === 0) {
