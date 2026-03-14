@@ -62,7 +62,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
                     🎉 New TapAway Personal Card Order
                   </h1>
-                  <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${timestamp}</p>
+                  <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${escapeHtml(timestamp)}</p>
                 </td>
               </tr>
               
