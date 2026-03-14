@@ -511,7 +511,7 @@ const ProfileBlock = memo(function ProfileBlock({
       return (
         <div className={`w-full flex ${btnAlignClass}`}>
           <a
-            href={content.url}
+            href={sanitizeUrl(content.url)}
             target="_blank"
             rel="noopener noreferrer"
             className={`px-6 py-3 bg-primary text-primary-foreground rounded-full font-semibold hover:opacity-90 transition-opacity ${
