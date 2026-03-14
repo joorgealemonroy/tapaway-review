@@ -408,7 +408,7 @@ export function PersonalShopTab({
 
   const handleSaveProduct = async () => {
     if (!title.trim()) { toast.error("Title is required"); return; }
-    if (!priceDollars || parseFloat(priceDollars) <= 0) { toast.error("Enter a valid price"); return; }
+    if (!priceDollars || parseFloat(priceDollars) < 5) { toast.error("Minimum price is $5.00"); return; }
     if (!selectedFile) { toast.error("Upload a file for your product"); return; }
 
     setSaving(true);
