@@ -298,14 +298,16 @@ const PersonalSignup = () => {
   }, [navigate]);
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
+    const currentIndex = effectiveSteps.indexOf(currentStep);
+    if (currentIndex < effectiveSteps.length - 1) {
+      setCurrentStep(effectiveSteps[currentIndex + 1]);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+    const currentIndex = effectiveSteps.indexOf(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(effectiveSteps[currentIndex - 1]);
     }
   };
 
