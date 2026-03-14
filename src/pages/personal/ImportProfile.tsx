@@ -157,25 +157,35 @@ function scrapedToPreviewProps(data: ScrapedData) {
       grid_size: null as string | null,
       thumbnail_url: null as string | null,
     })),
-    ...(data.links || []).map((l, i) => {
-      const hasImage = !!l.imageUrl;
-      // Links with images → half-width grid cards (side by side)
-      // Links without images → standard pill
-      return {
-        id: `link-${i}`,
-        label: l.label,
-        url: l.url,
-        link_type: l.type,
-        is_active: true,
-        is_featured: false,
-        display_style: "pill" as string | null,
-        sort_order: 100 + i,
-        pill_color: null as string | null,
-        cover_image_url: hasImage ? l.imageUrl! : null,
-        grid_size: hasImage ? "half" : null,
-        thumbnail_url: null as string | null,
-      };
-    }),
+    ...((): typeof allLinks => {
+      let ytImageCount = 0;
+      return (data.links || []).map((l, i) => {
+        const hasImage = !!l.imageUrl;
+        const isYtWithImage = l.type === "youtube" && hasImage;
+        if (isYtWithImage) ytImageCount++;
+
+        // First YouTube-with-image → "both" (icon bar + half-width card)
+        // Second YouTube-with-image → half-width card
+        // Everything else → standard pill
+        const displayStyle = (isYtWithImage && ytImageCount === 1) ? "both" : "pill";
+        const gridSize = isYtWithImage ? "half" : null;
+
+        return {
+          id: `link-${i}`,
+          label: l.label,
+          url: l.url,
+          link_type: l.type,
+          is_active: true,
+          is_featured: false,
+          display_style: displayStyle as string | null,
+          sort_order: 100 + i,
+          pill_color: null as string | null,
+          cover_image_url: isYtWithImage ? l.imageUrl! : null,
+          grid_size: gridSize as string | null,
+          thumbnail_url: null as string | null,
+        };
+      });
+    })(),
   ];
 
   type BlockType = { id: string; block_type: string; content: Record<string, unknown>; is_active?: boolean | null; sort_order: number; alignment?: string | null };
