@@ -36,8 +36,8 @@ const SUPPORTED_PLATFORMS = [
 
 
 const LOADING_PHASES = [
-  "Analyzing your profile...",
-  "Fetching your aesthetic...",
+  "Copying your aesthetic...",
+  "Mapping your links...",
   "Building your TapAway...",
 ];
 
