@@ -539,6 +539,7 @@ export default function Support() {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Tell us what's happening and when it started..."
+                    maxLength={2000}
                     rows={4}
                   />
                   <p className="text-sm text-muted-foreground">
