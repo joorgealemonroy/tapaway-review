@@ -201,6 +201,7 @@ export const PhoneMockup = ({ vibe, className = "", isActive = false }: PhoneMoc
                   style={{
                     backgroundColor: t.cardBg,
                     border: `1px solid ${t.border}`,
+                    boxShadow: vibe.id === "neon" ? "0 0 8px rgba(0,242,255,0.5)" : undefined,
                   }}
                 >
                   {renderIconCircle(link, 14)}
