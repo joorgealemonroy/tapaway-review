@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Mail } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
@@ -339,6 +339,30 @@ function ProfilePreviewRendererComponent({
   const renderLink = (link: LinkData, isFeatured = false, isGrid = false, index = 99) => {
     const platform = getPlatformConfig(link.link_type);
     const Icon = platform?.icon;
+
+    // Email link — inline bar with email + Connect button
+    if (link.link_type === "email") {
+      const emailAddress = link.url.replace(/^mailto:/i, "");
+      return (
+        <div
+          key={link.id}
+          className="flex items-center gap-2 rounded-full bg-gray-100 p-1 pl-3"
+        >
+          <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+          <span className="flex-1 text-xs font-medium text-gray-700 truncate">{emailAddress}</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white flex-shrink-0">
+            Connect
+            {profile.profile_photo_url ? (
+              <img src={getOptimizedImageUrl(profile.profile_photo_url, 40)} alt="" className="h-5 w-5 rounded-full object-cover" />
+            ) : (
+              <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center">
+                <Mail className="h-2.5 w-2.5 text-gray-300" />
+              </div>
+            )}
+          </span>
+        </div>
+      );
+    }
 
     // Grid card-style link with cover image (square, 2-column layout)
     if (link.cover_image_url && isGrid) {

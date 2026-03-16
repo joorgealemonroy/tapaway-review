@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   CheckCircle2,
   ExternalLink,
+  Mail,
   Share2,
   Smartphone,
   UserPlus
@@ -98,18 +99,45 @@ const ProfileLink = memo(function ProfileLink({
   profileId,
   isFeatured = false,
   isGrid = false,
-  index = 99
+  index = 99,
+  profilePhotoUrl
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
   isFeatured?: boolean;
   isGrid?: boolean;
   index?: number;
+  profilePhotoUrl?: string | null;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
   const customColor = link.pill_color;
   const coverImage = link.cover_image_url;
+
+  // Email link — inline bar with email address + Connect button
+  if (link.link_type === "email") {
+    const emailAddress = link.url.replace(/^mailto:/i, "");
+    return (
+      <a
+        href={sanitizeUrl(link.url)}
+        onClick={() => profileId && trackLinkClick(profileId, link)}
+        className="flex items-center gap-3 rounded-full bg-muted/60 p-1.5 pl-4 transition-transform active:scale-[0.98]"
+      >
+        <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <span className="flex-1 text-sm font-medium text-foreground truncate">{emailAddress}</span>
+        <span className="flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background flex-shrink-0">
+          Connect
+          {profilePhotoUrl ? (
+            <img src={getOptimizedImageUrl(profilePhotoUrl, 80, 85)} alt="" className="h-6 w-6 rounded-full object-cover" />
+          ) : (
+            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+              <Mail className="h-3 w-3 text-muted-foreground" />
+            </div>
+          )}
+        </span>
+      </a>
+    );
+  }
   
   // Grid card-style link with cover image (square, 2-column layout)
   if (coverImage && isGrid) {
@@ -1227,7 +1255,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} />
               </div>
             )}
 
@@ -1243,13 +1271,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} />;
                 } else {
                   // Check if it's a product block
                   const blockData = item.data;
