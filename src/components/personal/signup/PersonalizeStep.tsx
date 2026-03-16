@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Plus, ArrowLeft, Rocket, ImagePlus, Link2, Type, Youtube, MousePointerClick } from "lucide-react";
+import { Check, X, Plus, ArrowLeft, Rocket, ImagePlus, Link2, Type, Youtube, MousePointerClick, Camera } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
