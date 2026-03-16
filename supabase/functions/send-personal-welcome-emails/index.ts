@@ -363,7 +363,7 @@ const handler = async (req: Request): Promise<Response> => {
       const internalResult = await resend.emails.send({
         from: EMAIL_FROM,
         to: [INTERNAL_EMAIL_RECIPIENT],
-        subject: `New TapAway Personal Card Order — @${data.username}`,
+        subject: `New TapAway Personal Signup — @${data.username}`,
         html: internalHtml,
       });
       
