@@ -541,6 +541,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           };
         });
 
+        console.log("FINAL LINKS PAYLOAD:", linksToInsert);
         const { error: linksError } = await supabase
           .from("personal_links")
           .insert(linksToInsert);
@@ -574,6 +575,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           };
         });
 
+        console.log("FINAL BLOCKS PAYLOAD:", blocksToInsert);
         const { error: blocksError } = await supabase
           .from("personal_blocks")
           .insert(blocksToInsert);

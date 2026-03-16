@@ -86,6 +86,7 @@ const PersonalSignup = () => {
     reorderBlocks,
     reorderContent,
     clearDraft,
+    flushSave,
     hasDraft 
   } = usePersonalOnboarding();
 
@@ -364,6 +365,7 @@ const PersonalSignup = () => {
   }, [navigate]);
 
   const nextStep = () => {
+    flushSave();
     const currentIndex = effectiveSteps.indexOf(currentStep);
     if (currentIndex < effectiveSteps.length - 1) {
       setCurrentStep(effectiveSteps[currentIndex + 1]);
