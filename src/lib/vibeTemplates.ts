@@ -55,7 +55,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     ],
     defaultBlocks: [],
     headerType: "color",
-    style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a" },
+    style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a", bgStyle: "linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)" },
   },
   {
     id: "bloom",
