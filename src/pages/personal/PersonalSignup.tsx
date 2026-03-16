@@ -203,7 +203,7 @@ const PersonalSignup = () => {
           addLink({
             type: l.type,
             label: l.label,
-            value: "",
+            value: getFriendlyValue(l.type),
             url: "",
             sortOrder: l.sortOrder ?? i,
             displayStyle: l.displayStyle,
