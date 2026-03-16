@@ -556,14 +556,23 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       // Step 6b: Create blocks
       if (formData.blocks.length > 0) {
         logCheckpoint("Creating blocks", { count: formData.blocks.length });
-        const blocksToInsert = formData.blocks.map((block, index) => ({
-          profile_id: profileResult.id,
-          block_type: block.type,
-          content: block.content || {},
-          sort_order: block.sortOrder ?? index,
-          is_active: true,
-          alignment: (block.content as any)?.alignment || "center",
-        }));
+        const blocksToInsert = formData.blocks.map((block, index) => {
+          const content = block.content || {};
+          const hasRealContent = block.type === "image" 
+            ? !!(content as any)?.url 
+            : block.type === "text" 
+              ? !!(content as any)?.body && (content as any).body !== "Share your story and what inspires you."
+              : true;
+          return {
+            profile_id: profileResult.id,
+            block_type: block.type,
+            content,
+            sort_order: block.sortOrder ?? index,
+            is_active: true,
+            alignment: (content as any)?.alignment || "center",
+            is_placeholder: !hasRealContent,
+          };
+        });
 
         const { error: blocksError } = await supabase
           .from("personal_blocks")
