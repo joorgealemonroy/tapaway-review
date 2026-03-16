@@ -469,7 +469,17 @@ const PersonalSignup = () => {
               />
             )}
 
-            {currentStep === 2 && (
+            {currentStep === 2 && fromVibeFlow ? (
+              <PersonalizeStep
+                formData={formData}
+                updateLink={updateLink}
+                removeLink={removeLink}
+                addLink={addLink}
+                onNext={nextStep}
+                onBack={prevStep}
+                vibeMetadata={vibeMetadata}
+              />
+            ) : currentStep === 2 ? (
               <LinksStep
                 formData={formData}
                 updateFormData={updateFormData}
@@ -488,7 +498,7 @@ const PersonalSignup = () => {
                 reorderContent={reorderContent}
                 selectedTemplate={onboardingData.selectedTemplate}
               />
-            )}
+            ) : null}
 
             {currentStep === 3 && (
               <CheckoutStep
