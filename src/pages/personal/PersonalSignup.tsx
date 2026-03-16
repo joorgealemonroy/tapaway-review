@@ -203,7 +203,7 @@ const PersonalSignup = () => {
             value: getFriendlyValue(l.type),
             url: "",
             sortOrder: l.sortOrder ?? i,
-            displayStyle: l.displayStyle,
+            displayStyle: l.displayStyle || "both",
             pillColor: l.pillColor,
             gridSize: l.gridSize,
             isFeatured: l.isFeatured,
