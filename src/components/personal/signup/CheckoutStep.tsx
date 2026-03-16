@@ -492,6 +492,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
         vibe_id: formData.vibeId || null,
+        button_theme: formData.vibeId 
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
+          : "glass",
       };
 
       const { data: profileResult, error: profileError } = await supabase
