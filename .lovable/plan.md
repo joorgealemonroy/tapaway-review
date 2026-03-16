@@ -1,28 +1,45 @@
 
 
-# Vibe-Synced Identity Step
+# Bloom & Neon Refresh
 
-## Changes
+## 1. Add "Bloom" template to `vibeTemplates.ts`
 
-### 1. `src/components/personal/signup/ClaimStep.tsx` — Major UI upgrade
-- **Vibe glow background**: On mount, read `tapaway_selected_vibe` from sessionStorage (before it's cleared by PersonalSignup). Store the vibe's `glowColor` and `name` in local state. Render a full-page radial gradient overlay using that color at ~15% opacity.
-- **"← Change Vibe" button**: Top-left ghost button with low-opacity text. Navigates to `/personal/vibe` and clears `tapaway_selected_vibe` from sessionStorage.
-- **Vibe label**: Small muted text above the title: `Selected Style: [Vibe Name]`.
-- **Cycling placeholder**: Use a `useEffect` interval that rotates the username input placeholder through `["artist", "founder", "creator", "vlogger"]` every 2 seconds.
-- **Accent-colored validation**: When `usernameStatus === "available"`, apply a one-time border pulse using the vibe's `accentColor` (CSS animation). The "Available!" micro-win text uses the vibe's accent instead of hardcoded green.
-- **OAuth buttons**: Set to `w-full` matching the username input width (already the case, but ensure `h-14` matches the input height for stacked alignment).
-- **Vertical centering on mobile**: Wrap content in `min-h-[calc(100vh-120px)] flex flex-col justify-center` to avoid bottom-heavy layout.
+New entry with feminine aesthetic:
+- **id**: `bloom`, **name**: `Bloom`, **subtitle**: `Soft & Feminine`
+- **glowColor**: `rgba(255, 143, 171, 0.2)` → use `#FF8FAB` for glow
+- **mockupTheme**: bg `#FFF9F8`, text `#5C3D4E`, accent `#FF8FAB`, cardBg `#FDE2E4`, border `#F5C6CB`
+- **style**: bgColor `#FFF9F8`, headerColor `#FDE2E4`
+- **defaultLinks**: Instagram (grid/half), TikTok (grid/half), Website (pill), Email (pill)
+- **defaultBlocks**: text block ("About Me")
+- Pill buttons will use the existing cardBg/border rendering — the soft pink on cream gives high enough contrast
 
-### 2. `src/pages/personal/PersonalSignup.tsx` — Pass vibe data to ClaimStep
-- The vibe is currently consumed and cleared from sessionStorage in an effect. Before clearing, store the vibe's `glowColor`, `name`, and `accentColor` in component state (`vibeMetadata`).
-- Pass `vibeMetadata` as a new prop to `ClaimStep`.
-- The vibe template data (links, blocks, colors) is already being saved to onboarding state and persisted to the profile during checkout — no additional "save logic" changes needed since `bgColor`, `headerColor`, and `backgroundColor` are already mapped from the template's `style` object in the existing vibe consumption effect.
+## 2. Modernize "Neon" template in `vibeTemplates.ts`
 
-### 3. `src/lib/vibeTemplates.ts` — No changes needed
-The `glowColor` and `mockupTheme.accent` fields already exist on all templates.
+Update existing neon entry:
+- **bgColor/bg**: `#050505` (deepest black)
+- **accent**: `#00F2FF` (Electric Blue)
+- **headerColor**: `#0a0a1a`
+- **cardBg**: `#0f0f15`, **border**: `#1a1a2e`
+- **glowColor**: `#00F2FF`
+- **subtitle**: `Midnight Glow`
 
-## Technical notes
-- The vibe accent color for the input pulse will use a CSS `@keyframes` animation injected via inline style or a Tailwind `animate-` class with a custom keyframe in `index.css`.
-- The cycling placeholder uses `useState` + `setInterval` with cleanup.
-- No database changes — vibe style fields are already persisted via the existing onboarding flow.
+## 3. Add neon glow effect to PhoneMockup
+
+In `PhoneMockup.tsx`, for the neon vibe specifically, add a `boxShadow` glow (`0 0 8px rgba(0,242,255,0.5)`) to the pill link buttons to simulate the neon tube effect.
+
+## 4. Reorder carousel in `vibeTemplates.ts`
+
+New array order: **Pure → Organic → Bloom → Vogue → Obsidian → Neon → Elevate**
+
+## 5. Update ClaimStep placeholders
+
+In `ClaimStep.tsx`, update `PLACEHOLDERS` array to: `["paul", "sophia", "justin", "chloe", "blake", "maya", "jake", "isabella"]`
+
+## Files to modify
+
+| File | Change |
+|------|--------|
+| `src/lib/vibeTemplates.ts` | Add Bloom, update Neon colors, reorder array |
+| `src/components/personal/PhoneMockup.tsx` | Add neon glow box-shadow on pills for neon vibe |
+| `src/components/personal/signup/ClaimStep.tsx` | Update PLACEHOLDERS array |
 
