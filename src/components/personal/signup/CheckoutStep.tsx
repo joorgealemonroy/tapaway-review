@@ -13,6 +13,7 @@ import {
 } from "@/lib/personalConfig";
 import { PERSONAL_PLANS } from "@/lib/personalPlanLimits";
 import { getPublicUsername } from "@/lib/personalUsername";
+import { getVibeTemplate } from "@/lib/vibeTemplates";
 import { 
   ArrowLeft, 
   Check,
@@ -491,6 +492,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
         vibe_id: formData.vibeId || null,
+        button_theme: formData.vibeId 
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
+          : "glass",
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -547,7 +551,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           .insert(linksToInsert);
 
         if (linksError) {
-          console.warn("Links insert error:", linksError);
+          console.error("Links insert error:", linksError.message, linksError.details, linksError.hint);
           // Non-fatal, continue
         } else {
           logCheckpoint("Links created successfully");
@@ -734,6 +738,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
         vibe_id: formData.vibeId || null,
+        button_theme: formData.vibeId 
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
+          : "glass",
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -1048,6 +1055,10 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_image_url: headerImageUrl,
         background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
+        vibe_id: formData.vibeId || null,
+        button_theme: formData.vibeId 
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
+          : "glass",
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -1070,11 +1081,21 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           link_type: link.type,
           label: link.label,
           url: link.url,
-          sort_order: index,
+          sort_order: link.sortOrder ?? index,
           is_active: true,
+          pill_color: link.pillColor || "#000000",
+          is_featured: link.isFeatured || false,
+          display_style: link.displayStyle || "both",
+          cover_image_url: link.coverImageUrl || null,
+          grid_size: link.gridSize || null,
+          thumbnail_url: link.thumbnailUrl || null,
+          is_placeholder: !link.value || link.value.trim() === "",
         }));
 
-        await supabase.from("personal_links").insert(linksToInsert);
+        const { error: linksError3 } = await supabase.from("personal_links").insert(linksToInsert);
+        if (linksError3) {
+          console.error("Links insert error (path 3):", linksError3.message, linksError3.details, linksError3.hint);
+        }
       }
 
       // Create blocks
