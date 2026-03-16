@@ -51,6 +51,7 @@ export interface SignupData {
   planType: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
+  vibeId?: string | null;
 }
 
 const PersonalSignup = () => {
@@ -216,6 +217,7 @@ const PersonalSignup = () => {
           headerType: vibe.headerType,
           headerColor: vibe.style.headerColor,
           backgroundColor: vibe.style.bgColor,
+          vibeId: vibeId,
         });
       }
       sessionStorage.removeItem("tapaway_selected_vibe");
@@ -329,6 +331,7 @@ const PersonalSignup = () => {
     planType: onboardingData.planType,
     cardChoice: onboardingData.cardChoice,
     basicCardColor: onboardingData.basicCardColor,
+    vibeId: onboardingData.vibeId,
   };
 
   const updateFormData = (updates: Partial<SignupData>) => {
@@ -388,7 +391,7 @@ const PersonalSignup = () => {
   const stepTitles = { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
-    return <SuccessScreen username={completedUsername} planType={completedPlanType} />;
+    return <SuccessScreen username={completedUsername} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
   }
 
   return (

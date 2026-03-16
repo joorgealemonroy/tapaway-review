@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS vibe_id text;

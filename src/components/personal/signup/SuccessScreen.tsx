@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Copy, Check, ExternalLink, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,8 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 interface Props {
   username: string;
   planType?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  vibeName?: string;
+  accentColor?: string;
 }
 
 /* ── Inline platform SVG icons ── */
@@ -82,14 +84,24 @@ const AnimatedSparkle = () => (
   </motion.div>
 );
 
-export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
+export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentColor }: Props) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [building, setBuilding] = useState(true);
 
   const publicUsername = getPublicUsername(planType as any, username);
   const displayUrl = `tapaway.co/${publicUsername}`;
   const fullUrl = `https://${displayUrl}`;
+
+  // "Building your Hub..." loading transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuilding(false);
+      setShowConfetti(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const copyToClipboard = async () => {
     try {
@@ -101,6 +113,26 @@ export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
       toast.error("Failed to copy");
     }
   };
+
+  if (building) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16 bg-background">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2
+            className="h-10 w-10 animate-spin"
+            style={{ color: accentColor || "hsl(var(--primary))" }}
+          />
+          <p className="text-lg font-medium text-foreground">
+            Building your {vibeName ? `${vibeName} ` : ""}Hub...
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div
