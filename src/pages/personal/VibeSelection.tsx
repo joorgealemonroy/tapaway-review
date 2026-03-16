@@ -13,7 +13,7 @@ const VibeSelection = () => {
   const navigate = useNavigate();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
-  const [slideStyles, setSlideStyles] = useState<Array<{ scale: number; opacity: number; blur: number }>>([]);
+  const [slideStyles, setSlideStyles] = useState<Array<{ scale: number; opacity: number; blur: number; rotateY: number }>>([]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
