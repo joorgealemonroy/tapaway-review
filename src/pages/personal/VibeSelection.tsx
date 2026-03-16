@@ -36,10 +36,11 @@ const VibeSelection = () => {
       if (diff > 0.5) diff -= 1;
       if (diff < -0.5) diff += 1;
       const absDiff = Math.abs(diff) * VIBE_TEMPLATES.length;
-      const scale = numberInRange(1.15 - absDiff * 0.15, 0.85, 1.15);
-      const opacity = numberInRange(1 - absDiff * 0.3, 0.4, 1);
-      const blur = absDiff > 0.5 ? numberInRange(absDiff - 0.5, 0, 1) : 0;
-      return { scale, opacity, blur };
+      const scale = numberInRange(1.0 - absDiff * 0.25, 0.75, 1.0);
+      const opacity = numberInRange(1 - absDiff * 0.6, 0.4, 1);
+      const blur = absDiff > 0.1 ? 2 : 0;
+      const rotateY = absDiff < 0.05 ? 0 : diff > 0 ? 20 : -20;
+      return { scale, opacity, blur, rotateY };
     });
     setSlideStyles(styles);
   }, [emblaApi]);
