@@ -136,28 +136,29 @@ const VibeSelection = () => {
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         className="w-full max-w-[1100px] mx-auto relative z-10"
       >
-        <div ref={emblaRef} className="overflow-hidden">
+        <div ref={emblaRef} className="overflow-hidden" style={{ perspective: "1200px" }}>
           <div className="flex">
             {VIBE_TEMPLATES.map((vibe, index) => {
-              const s = slideStyles[index] ?? { scale: 0.85, opacity: 0.4, blur: 0 };
+              const s = slideStyles[index] ?? { scale: 0.75, opacity: 0.4, blur: 2, rotateY: 0 };
               const isActive = index === selectedIndex;
               return (
                 <div
                   key={vibe.id}
-                  className="flex-[0_0_70%] sm:flex-[0_0_45%] md:flex-[0_0_33%] flex justify-center px-2"
+                  className="flex-[0_0_75vw] sm:flex-[0_0_45%] md:flex-[0_0_33%] flex justify-center px-2"
                   style={{
-                    transform: `scale(${s.scale})`,
+                    transform: `scale(${s.scale}) rotateY(${s.rotateY}deg)`,
                     opacity: s.opacity,
                     filter: s.blur > 0 ? `blur(${s.blur}px)` : "none",
                     zIndex: isActive ? 20 : 10,
                     transition: "filter 0.2s ease",
+                    transformStyle: "preserve-3d",
                   }}
                 >
                   <div
                     className="rounded-[2.5rem] transition-shadow duration-500"
                     style={{
                       boxShadow: isActive
-                        ? `0 0 40px 8px ${currentGlow}33, 0 0 80px 20px ${currentGlow}15`
+                        ? `0 0 30px 4px ${currentGlow}28, 0 0 60px 12px ${currentGlow}10`
                         : "none",
                     }}
                   >
