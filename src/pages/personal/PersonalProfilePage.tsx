@@ -100,7 +100,8 @@ const ProfileLink = memo(function ProfileLink({
   isFeatured = false,
   isGrid = false,
   index = 99,
-  profilePhotoUrl
+  profilePhotoUrl,
+  accentColor
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
@@ -108,6 +109,7 @@ const ProfileLink = memo(function ProfileLink({
   isGrid?: boolean;
   index?: number;
   profilePhotoUrl?: string | null;
+  accentColor?: string | null;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
