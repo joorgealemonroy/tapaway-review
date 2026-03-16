@@ -113,7 +113,8 @@ const ProfileLink = memo(function ProfileLink({
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
-  const customColor = link.pill_color;
+  // Use pill_color, fall back to accentColor (vibe theme), then platform default
+  const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (accentColor || link.pill_color);
   const coverImage = link.cover_image_url;
 
   // Email link — inline bar with email address + Connect button
