@@ -108,8 +108,6 @@ const Personal = () => {
         </div>
       </footer>
 
-      {/* Free Trial Popup */}
-      <FreeTrialPopup />
     </div>
   );
 };
