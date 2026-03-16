@@ -176,7 +176,7 @@ const PersonalSignup = () => {
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  const effectiveSteps = (hasImportedProfile || fromVibeFlow) ? [1, 3] : [1, 2, 3];
+  const effectiveSteps = hasImportedProfile ? [1, 3] : [1, 2, 3];
   const totalSteps = effectiveSteps.length;
 
   // Vibe metadata for ClaimStep visual continuity
