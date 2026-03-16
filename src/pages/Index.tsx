@@ -80,8 +80,6 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Free Trial Popup */}
-      <FreeTrialPopup />
     </div>
   );
 };
