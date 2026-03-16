@@ -331,6 +331,7 @@ const PersonalSignup = () => {
     planType: onboardingData.planType,
     cardChoice: onboardingData.cardChoice,
     basicCardColor: onboardingData.basicCardColor,
+    vibeId: onboardingData.vibeId,
   };
 
   const updateFormData = (updates: Partial<SignupData>) => {
