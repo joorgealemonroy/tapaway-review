@@ -30,6 +30,7 @@ export interface VibeTemplate {
   style: {
     bgColor: string;
     headerColor: string;
+    bgStyle: string;
   };
 }
 
