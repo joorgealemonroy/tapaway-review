@@ -51,6 +51,7 @@ export interface SignupData {
   planType: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
+  vibeId?: string | null;
 }
 
 const PersonalSignup = () => {
