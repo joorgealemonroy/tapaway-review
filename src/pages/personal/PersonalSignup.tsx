@@ -86,6 +86,7 @@ const PersonalSignup = () => {
     reorderBlocks,
     reorderContent,
     clearDraft,
+    flushSave,
     hasDraft 
   } = usePersonalOnboarding();
 
