@@ -1306,7 +1306,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                     }
                     return null;
                   }
-                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
+                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} textColor={profileTextColor} />;
                 }
               });
               })()}
