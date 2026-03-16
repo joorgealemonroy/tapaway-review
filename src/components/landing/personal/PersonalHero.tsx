@@ -92,7 +92,7 @@ export const PersonalHero = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Zap className="w-4 h-4 text-primary" />
-                <span>Set up in minutes</span>
+                <span>Unlimited custom links</span>
               </div>
             </div>
 
@@ -102,21 +102,18 @@ export const PersonalHero = () => {
                   to="/personal/vibe"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all">
 
-                  Create Your Own!
+                  Claim Your Free Link
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Free plan available • Pro from $6.25/mo
-            </p>
 
             <Link
               to="/import"
               className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium mt-2 transition-colors"
             >
-              Already have a Linktree? Import it
+              Ditch your boring bio link. Import in 1 click
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </motion.div>
