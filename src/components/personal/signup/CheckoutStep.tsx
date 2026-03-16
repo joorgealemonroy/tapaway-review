@@ -551,7 +551,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           .insert(linksToInsert);
 
         if (linksError) {
-          console.warn("Links insert error:", linksError);
+          console.error("Links insert error:", linksError.message, linksError.details, linksError.hint);
           // Non-fatal, continue
         } else {
           logCheckpoint("Links created successfully");
