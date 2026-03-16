@@ -1,28 +1,56 @@
 
 
-# Vibe-Synced Identity Step
+# Updated Plan: Immediate Storage Upload for Images
 
-## Changes
+## The Problem
+The current `handleCropComplete` stores a Base64 data URL in state. This massive string will be lost during OTP/OAuth redirects due to sessionStorage size limits.
 
-### 1. `src/components/personal/signup/ClaimStep.tsx` — Major UI upgrade
-- **Vibe glow background**: On mount, read `tapaway_selected_vibe` from sessionStorage (before it's cleared by PersonalSignup). Store the vibe's `glowColor` and `name` in local state. Render a full-page radial gradient overlay using that color at ~15% opacity.
-- **"← Change Vibe" button**: Top-left ghost button with low-opacity text. Navigates to `/personal/vibe` and clears `tapaway_selected_vibe` from sessionStorage.
-- **Vibe label**: Small muted text above the title: `Selected Style: [Vibe Name]`.
-- **Cycling placeholder**: Use a `useEffect` interval that rotates the username input placeholder through `["artist", "founder", "creator", "vlogger"]` every 2 seconds.
-- **Accent-colored validation**: When `usernameStatus === "available"`, apply a one-time border pulse using the vibe's `accentColor` (CSS animation). The "Available!" micro-win text uses the vibe's accent instead of hardcoded green.
-- **OAuth buttons**: Set to `w-full` matching the username input width (already the case, but ensure `h-14` matches the input height for stacked alignment).
-- **Vertical centering on mobile**: Wrap content in `min-h-[calc(100vh-120px)] flex flex-col justify-center` to avoid bottom-heavy layout.
+## The Fix
+Upload cropped images to Supabase Storage **immediately** in `PersonalizeStep.tsx`, storing only the returned public URL in state.
 
-### 2. `src/pages/personal/PersonalSignup.tsx` — Pass vibe data to ClaimStep
-- The vibe is currently consumed and cleared from sessionStorage in an effect. Before clearing, store the vibe's `glowColor`, `name`, and `accentColor` in component state (`vibeMetadata`).
-- Pass `vibeMetadata` as a new prop to `ClaimStep`.
-- The vibe template data (links, blocks, colors) is already being saved to onboarding state and persisted to the profile during checkout — no additional "save logic" changes needed since `bgColor`, `headerColor`, and `backgroundColor` are already mapped from the template's `style` object in the existing vibe consumption effect.
+## Changes to the Approved Plan
 
-### 3. `src/lib/vibeTemplates.ts` — No changes needed
-The `glowColor` and `mockupTheme.accent` fields already exist on all templates.
+Everything from the previously approved plan remains — empty-value inputs, half-width image support, expanded drawer, `displayStyle: "both"`. The only addition:
 
-## Technical notes
-- The vibe accent color for the input pulse will use a CSS `@keyframes` animation injected via inline style or a Tailwind `animate-` class with a custom keyframe in `index.css`.
-- The cycling placeholder uses `useState` + `setInterval` with cleanup.
-- No database changes — vibe style fields are already persisted via the existing onboarding flow.
+### `PersonalizeStep.tsx` — Immediate upload on crop complete
+
+Replace the current `handleCropComplete` (line ~117-122) which stores a data URL:
+
+```typescript
+// BEFORE (data URL in state — breaks on redirect)
+updateBlock(activeBlockId, { content: { alt: "My Photo", url: previewUrl } });
+```
+
+With an immediate Supabase Storage upload:
+
+```typescript
+const handleCropComplete = async (blob: Blob, _previewUrl: string) => {
+  if (!activeBlockId) return;
+  const fileName = `temp/${crypto.randomUUID()}.jpg`;
+  const { data, error } = await supabase.storage
+    .from("personal-link-images")
+    .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+  if (error) { /* toast error, return */ }
+  const publicUrl = supabase.storage.from("personal-link-images").getPublicUrl(fileName).data.publicUrl;
+  updateBlock(activeBlockId, { content: { alt: "My Photo", url: publicUrl } });
+};
+```
+
+Same pattern applies for half-width link cover images — upload immediately, store the public URL in `coverImageUrl`.
+
+### `CheckoutStep.tsx` — No extra upload step needed
+
+Since images are already uploaded and URLs are short strings, the existing insert logic works as-is. No sessionStorage size risk.
+
+### Storage bucket
+
+`personal-link-images` already exists and is public — no migration needed.
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/pages/personal/PersonalSignup.tsx` | Return `""` from `getFriendlyValue`, set `displayStyle: "both"` |
+| `src/components/personal/signup/PersonalizeStep.tsx` | Empty-value inputs, immediate storage upload on crop, half-width image UI, expanded drawer, inline block editors |
+| `src/components/personal/signup/CheckoutStep.tsx` | Default `display_style` to `"both"` |
 
