@@ -29,7 +29,7 @@ interface Props {
   vibeMetadata?: VibeMetadata | null;
 }
 
-const PLACEHOLDERS = ["paul", "sarah", "justin", "blake", "maya", "jake"];
+const PLACEHOLDERS = ["paul", "sophia", "justin", "chloe", "blake", "maya", "jake", "isabella"];
 
 export const ClaimStep = ({
   formData,
