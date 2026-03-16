@@ -1,29 +1,21 @@
 
 
-# Mobile-First Carousel Polish
+# Send Test Post-Purchase Emails
 
-## Changes — `src/pages/personal/VibeSelection.tsx`
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-### 1. Embla Config — Heavier snap physics
-Add `dragFree: false` (already default) and `duration: 30` for a slower, premium settle animation.
+## Changes
 
-### 2. Transform logic — 3D perspective with rotateY
-Update `updateStyles` to compute `rotateY` based on signed diff (positive = left side = `20deg`, negative = right side = `-20deg`). New values:
-- **Active**: `scale(1.0)`, `opacity(1)`, `rotateY(0)`, `blur(0)`
-- **Sides**: `scale(0.75)`, `opacity(0.4)`, `rotateY(±20deg)`, `blur(2px)`
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-Add `perspective(1200px)` on the carousel container to enable 3D depth.
+Add two new email templates matching the ones in the stripe webhook:
 
-### 3. Slide sizing — Mobile-optimized
-Change slide basis from `flex-[0_0_70%]` to `flex-[0_0_75vw]` on mobile, keeping `sm:flex-[0_0_45%] md:flex-[0_0_33%]` for larger screens. This gives a clear "peek" of adjacent vibes.
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-### 4. Visual polish
-- **Radial glow**: Shrink from `50% 40%` to `40% 30%` and move to `50% 60%` (below header text) so it doesn't bleed into the title.
-- **Box shadow glow**: Reduce spread slightly for a softer effect.
-- **Notification bubble**: Already positioned at `top-7 right-3` with `text-[8px]` — will scale down to `text-[7px]` and add `max-w-[90px]` to prevent notch overlap.
-- **Bezel**: No changes needed — the bezel is a fixed `p-3` padding that won't distort with the outer scale transform.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-### Files
-- **Edit**: `src/pages/personal/VibeSelection.tsx` (transform logic, Embla config, slide sizing, glow position)
-- **Edit**: `src/components/personal/PhoneMockup.tsx` (notification bubble sizing)
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

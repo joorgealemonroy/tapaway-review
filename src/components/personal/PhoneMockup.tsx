@@ -94,7 +94,7 @@ export const PhoneMockup = ({ vibe, className = "", isActive = false }: PhoneMoc
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.9 }}
                 transition={{ duration: 0.3 }}
-                className="absolute top-7 right-3 z-20 px-2 py-1 rounded-full text-[8px] font-bold shadow-lg"
+                className="absolute top-7 right-3 z-20 px-2 py-1 rounded-full text-[7px] font-bold shadow-lg max-w-[90px] truncate"
                 style={{
                   backgroundColor: t.accent,
                   color: t.bg,

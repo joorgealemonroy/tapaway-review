@@ -13,13 +13,14 @@ const VibeSelection = () => {
   const navigate = useNavigate();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
-  const [slideStyles, setSlideStyles] = useState<Array<{ scale: number; opacity: number; blur: number }>>([]);
+  const [slideStyles, setSlideStyles] = useState<Array<{ scale: number; opacity: number; blur: number; rotateY: number }>>([]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: "center",
     containScroll: false,
     skipSnaps: false,
+    duration: 30,
   });
 
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
@@ -35,10 +36,11 @@ const VibeSelection = () => {
       if (diff > 0.5) diff -= 1;
       if (diff < -0.5) diff += 1;
       const absDiff = Math.abs(diff) * VIBE_TEMPLATES.length;
-      const scale = numberInRange(1.15 - absDiff * 0.15, 0.85, 1.15);
-      const opacity = numberInRange(1 - absDiff * 0.3, 0.4, 1);
-      const blur = absDiff > 0.5 ? numberInRange(absDiff - 0.5, 0, 1) : 0;
-      return { scale, opacity, blur };
+      const scale = numberInRange(1.0 - absDiff * 0.25, 0.75, 1.0);
+      const opacity = numberInRange(1 - absDiff * 0.6, 0.4, 1);
+      const blur = absDiff > 0.1 ? 2 : 0;
+      const rotateY = absDiff < 0.05 ? 0 : diff > 0 ? 20 : -20;
+      return { scale, opacity, blur, rotateY };
     });
     setSlideStyles(styles);
   }, [emblaApi]);
@@ -101,7 +103,7 @@ const VibeSelection = () => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse 50% 40% at 50% 50%, ${currentGlow}22 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 40% 30% at 50% 60%, ${currentGlow}22 0%, transparent 70%)`,
           transition: "background 0.6s ease",
         }}
       />
@@ -134,28 +136,29 @@ const VibeSelection = () => {
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         className="w-full max-w-[1100px] mx-auto relative z-10"
       >
-        <div ref={emblaRef} className="overflow-hidden">
+        <div ref={emblaRef} className="overflow-hidden" style={{ perspective: "1200px" }}>
           <div className="flex">
             {VIBE_TEMPLATES.map((vibe, index) => {
-              const s = slideStyles[index] ?? { scale: 0.85, opacity: 0.4, blur: 0 };
+              const s = slideStyles[index] ?? { scale: 0.75, opacity: 0.4, blur: 2, rotateY: 0 };
               const isActive = index === selectedIndex;
               return (
                 <div
                   key={vibe.id}
-                  className="flex-[0_0_70%] sm:flex-[0_0_45%] md:flex-[0_0_33%] flex justify-center px-2"
+                  className="flex-[0_0_75vw] sm:flex-[0_0_45%] md:flex-[0_0_33%] flex justify-center px-2"
                   style={{
-                    transform: `scale(${s.scale})`,
+                    transform: `scale(${s.scale}) rotateY(${s.rotateY}deg)`,
                     opacity: s.opacity,
                     filter: s.blur > 0 ? `blur(${s.blur}px)` : "none",
                     zIndex: isActive ? 20 : 10,
                     transition: "filter 0.2s ease",
+                    transformStyle: "preserve-3d",
                   }}
                 >
                   <div
                     className="rounded-[2.5rem] transition-shadow duration-500"
                     style={{
                       boxShadow: isActive
-                        ? `0 0 40px 8px ${currentGlow}33, 0 0 80px 20px ${currentGlow}15`
+                        ? `0 0 30px 4px ${currentGlow}28, 0 0 60px 12px ${currentGlow}10`
                         : "none",
                     }}
                   >
