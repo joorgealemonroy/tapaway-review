@@ -55,12 +55,8 @@ export interface SignupData {
   vibeId?: string | null;
 }
 
-function getFriendlyValue(type: string): string {
-  const social = ["instagram", "tiktok", "x", "youtube", "linkedin", "discord", "snapchat", "threads", "twitch", "pinterest", "spotify"];
-  if (social.includes(type)) return "@yourname";
-  if (type === "email") return "you@email.com";
-  if (type === "phone") return "+1 (555) 000-0000";
-  if (type === "website") return "yoursite.com";
+function getFriendlyValue(_type: string): string {
+  // Return empty — placeholder text is shown via HTML placeholder attribute
   return "";
 }
 
