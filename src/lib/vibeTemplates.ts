@@ -143,7 +143,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
       },
     ],
     headerType: "color",
-    style: { bgColor: "#f5f0eb", headerColor: "#3d342c" },
+    style: { bgColor: "#f5f0eb", headerColor: "#3d342c", bgStyle: "linear-gradient(180deg, #3d342c 0%, #f5f0eb 30%)" },
   },
   {
     id: "neon",
