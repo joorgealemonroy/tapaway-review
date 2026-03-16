@@ -268,7 +268,7 @@ const ProfileLink = memo(function ProfileLink({
           {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
+      <span className={`flex-1 font-medium truncate ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
         {link.label}
       </span>
       <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />

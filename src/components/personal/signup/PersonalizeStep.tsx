@@ -265,12 +265,19 @@ export const PersonalizeStep = ({
                   </label>
                   <div className="flex items-center">
                     {isHandle && <span className="text-sm text-muted-foreground/50 select-none mr-0.5 font-medium">@</span>}
-                    <Input
+                   <Input
                       value={displayValue}
                       onChange={(e) => handleValueChange(link, e.target.value)}
                       onFocus={(e) => e.target.select()}
                       placeholder={platform?.placeholder || link.placeholder || ""}
                       className={`h-8 text-sm border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${!hasReal ? "opacity-50" : ""}`}
+                      style={{ caretColor: accent }}
+                    />
+                    <Input
+                      value={link.label !== (platform?.label || link.type) ? link.label : ""}
+                      onChange={(e) => updateLink(link.id, { label: e.target.value || platform?.label || link.type })}
+                      placeholder={`Label (Optional – e.g., Shop my store!)`}
+                      className="h-7 text-xs border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0 opacity-50 mt-0.5"
                       style={{ caretColor: accent }}
                     />
                   </div>
