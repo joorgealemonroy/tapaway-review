@@ -1,21 +1,32 @@
 
 
-# Send Test Post-Purchase Emails
+# Email Link → Inline Email Display with Connect Button
 
-The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
+## What changes
+When a link has `link_type === "email"`, instead of rendering as a standard pill button, render it as an inline bar showing the actual email address with a "Connect" button that opens `mailto:`.
 
-## Changes
+## Layout (matching image 118)
+```text
+┌──────────────────────────────────────────────┐
+│  📧  user@email.com        [ Connect with 👤]│
+└──────────────────────────────────────────────┘
+```
+- Rounded container with light gray background
+- Mail icon + email address displayed as text (extracted from the `mailto:` URL)
+- Right-aligned "Connect with" button (dark, rounded-full) with the profile owner's photo
+- Clicking the button opens `mailto:` link
 
-### 1. Update `supabase/functions/send-test-emails/index.ts`
+## Files to modify
 
-Add two new email templates matching the ones in the stripe webhook:
+### 1. `src/pages/personal/PersonalProfilePage.tsx` — ProfileLink component
+- Add a check at the top: if `link.link_type === "email"`, render the inline email bar instead of the standard link pill
+- Extract the raw email from `link.url` (strip `mailto:` prefix)
+- Show a rounded container with the email text and a "Connect with [avatar]" button linking to `mailto:`
+- Need to accept `profilePhotoUrl` as an optional prop for the avatar
 
-- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
-- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
+### 2. `src/pages/personal/PersonalProfilePage.tsx` — ProfileLink usage sites (~lines 1230, 1246, 1252)
+- Pass `profilePhotoUrl={profile.profile_photo_url}` to all `<ProfileLink>` instances
 
-Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
-
-### 2. Deploy and Invoke
-
-After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
+### 3. `src/components/personal/ProfilePreviewRenderer.tsx` — renderLink
+- Add matching visual preview for email links in the dashboard preview (static, non-functional)
 
