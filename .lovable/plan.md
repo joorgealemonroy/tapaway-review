@@ -1,16 +1,24 @@
 
+# Personalize Step — Implemented ✅
 
-# Remove "Create Your Digital Card Free" Popup from Personal Landing Page
+## Changes Made
 
-The `<FreeTrialPopup />` is on **`src/pages/Personal.tsx`** (line 112), with its import on line 11. This is where the popup actually appears.
+### 1. Input UX — Empty values with placeholders
+- `getFriendlyValue()` now returns `""` for all types
+- Users see placeholder text via HTML `placeholder` attribute, type immediately
 
-**Note:** The previous removal from `Index.tsx` may have been unnecessary since the popup's `EXCLUDED_PATHS` logic and the business landing page context meant it likely wasn't showing there anyway. I'll also restore that import if it was used.
+### 2. Display Mode — "both" default
+- `PersonalSignup.tsx`: vibe links default to `displayStyle: "both"`
+- `CheckoutStep.tsx`: DB insert defaults to `display_style: "both"`
 
-## Changes
+### 3. Immediate Storage Upload
+- `PersonalizeStep.tsx`: `handleCropComplete` uploads to `personal-link-images` bucket immediately
+- Only short public URLs stored in state — safe for sessionStorage/localStorage
 
-**`src/pages/Personal.tsx`:**
-- Remove import of `FreeTrialPopup` (line 11)
-- Remove `<FreeTrialPopup />` usage (line 112)
+### 4. Half-Width Cover Images
+- Links with `gridSize === "half"` show a 1:1 image upload box
+- Separate file input ref for link cover images vs block images
 
-Two lines, one file.
-
+### 5. Expanded "Add Block" Drawer
+- Link, Image, YouTube Video, Text, Featured Button
+- Inline editors for text (title + body), youtube (URL), button (label + URL)
