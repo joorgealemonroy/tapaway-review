@@ -1269,7 +1269,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
               </div>
             )}
 
