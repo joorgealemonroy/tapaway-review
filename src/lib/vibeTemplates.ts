@@ -35,8 +35,8 @@ export interface VibeTemplate {
 
 export const VIBE_TEMPLATES: VibeTemplate[] = [
   {
-    id: "artemis",
-    name: "Artemis",
+    id: "pure",
+    name: "Pure",
     subtitle: "Minimalist",
     glowColor: "#888888",
     mockupTheme: {
