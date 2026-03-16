@@ -13,6 +13,7 @@ import {
 } from "@/lib/personalConfig";
 import { PERSONAL_PLANS } from "@/lib/personalPlanLimits";
 import { getPublicUsername } from "@/lib/personalUsername";
+import { getVibeTemplate } from "@/lib/vibeTemplates";
 import { 
   ArrowLeft, 
   Check,
