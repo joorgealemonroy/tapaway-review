@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { Copy, Check, ExternalLink, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Copy, Check, ExternalLink, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,8 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 interface Props {
   username: string;
   planType?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  vibeName?: string;
+  accentColor?: string;
 }
 
 /* ── Inline platform SVG icons ── */
