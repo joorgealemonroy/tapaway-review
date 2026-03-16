@@ -100,7 +100,8 @@ const ProfileLink = memo(function ProfileLink({
   isFeatured = false,
   isGrid = false,
   index = 99,
-  profilePhotoUrl
+  profilePhotoUrl,
+  accentColor
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
@@ -108,10 +109,12 @@ const ProfileLink = memo(function ProfileLink({
   isGrid?: boolean;
   index?: number;
   profilePhotoUrl?: string | null;
+  accentColor?: string | null;
 }) {
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
-  const customColor = link.pill_color;
+  // Use pill_color, fall back to accentColor (vibe theme), then platform default
+  const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (accentColor || link.pill_color);
   const coverImage = link.cover_image_url;
 
   // Email link — inline bar with email address + Connect button
@@ -371,11 +374,13 @@ const SocialIconBar = memo(function SocialIconBar({
 const ProfileBlock = memo(function ProfileBlock({ 
   block,
   profileId,
-  isDarkBg
+  isDarkBg,
+  textColor
 }: { 
   block: { id: string; block_type: string; content: unknown; alignment: string | null };
   profileId?: string;
   isDarkBg?: boolean;
+  textColor?: string | null;
 }) {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -386,7 +391,8 @@ const ProfileBlock = memo(function ProfileBlock({
   
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
-  const textClass = isDarkBg ? "text-white" : "text-foreground";
+  const textClass = textColor ? "" : (isDarkBg ? "text-white" : "text-foreground");
+  const textStyleObj = textColor ? { color: textColor } : undefined;
   const mutedClass = isDarkBg ? "text-white/70" : "text-muted-foreground";
   
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -530,8 +536,8 @@ const ProfileBlock = memo(function ProfileBlock({
     case "text":
       return (
         <div className={`w-full ${alignClass}`}>
-          <h3 className={`text-lg font-bold ${textClass}`}>{content.title}</h3>
-          {content.body && <p className={`${mutedClass} mt-1`}>{content.body}</p>}
+          <h3 className={`text-lg font-bold ${textClass}`} style={textStyleObj}>{content.title}</h3>
+          {content.body && <p className={`${mutedClass} mt-1`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{content.body}</p>}
         </div>
       );
     case "button": {
@@ -1019,7 +1025,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   let currentGridGroup: typeof links = [];
   
   for (const item of unifiedItems) {
-    if (item.kind === "link" && item.data.cover_image_url && item.data.grid_size === 'half') {
+    if (item.kind === "link" && item.data.grid_size === 'half') {
       currentGridGroup.push(item.data);
     } else {
       // Flush current grid group if any
@@ -1070,8 +1076,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
   // against the inline background, regardless of system dark/light mode
-  const headingClass = isDarkBg ? "text-white" : "text-gray-900";
-  const textClass = isDarkBg ? "text-white/80" : "text-gray-800";
+  const profileTextColor = (profile as any).text_color as string | null;
+  const profileAccentColor = (profile as any).button_theme as string | null;
+  const headingClass = profileTextColor ? "" : (isDarkBg ? "text-white" : "text-gray-900");
+  const headingStyle = profileTextColor ? { color: profileTextColor } : undefined;
+  const textClass = profileTextColor ? "" : (isDarkBg ? "text-white/80" : "text-gray-800");
+  const textStyle = profileTextColor ? { color: profileTextColor, opacity: 0.85 } : undefined;
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
@@ -1232,9 +1242,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           ) : (
             // Standard mode: Current styling
             <>
-              <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
+              <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
               {profile.headline && (
-                <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
+                <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}
               <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
               {profile.is_founding_user && profile.show_founding_badge && (
@@ -1248,7 +1258,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} profileId={profile.id} />
               
               {profile.bio && (
-                <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
+                <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`} style={textStyle}>{profile.bio}</p>
               )}
               <div className="mb-6" />
             </>
@@ -1262,7 +1272,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
               </div>
             )}
 
@@ -1278,13 +1288,13 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />;
                 } else {
                   // Check if it's a product block
                   const blockData = item.data;
@@ -1296,7 +1306,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                     }
                     return null;
                   }
-                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} />;
+                  return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} textColor={profileTextColor} />;
                 }
               });
               })()}

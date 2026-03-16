@@ -496,6 +496,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
         bg_style: (formData as any).bgStyle || null,
+        text_color: formData.vibeId
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.text || null
+          : null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -536,7 +539,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             url: link.url,
             sort_order: link.sortOrder ?? index,
             is_active: true,
-            pill_color: link.pillColor || "#000000",
+            pill_color: link.pillColor || (formData.vibeId ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "#000000" : "#000000"),
             is_featured: link.isFeatured || false,
             display_style: link.displayStyle || "both",
             cover_image_url: link.coverImageUrl || null,
@@ -573,7 +576,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             profile_id: profileResult.id,
             block_type: block.type,
             content,
-            sort_order: block.sortOrder ?? index,
+            sort_order: (block.sortOrder ?? index) + formData.links.length,
             is_active: true,
             alignment: (content as any)?.alignment || "center",
             is_placeholder: !hasRealContent,
@@ -743,6 +746,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
         bg_style: (formData as any).bgStyle || null,
+        text_color: formData.vibeId
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.text || null
+          : null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -767,9 +773,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           url: link.url,
           sort_order: link.sortOrder ?? index,
           is_active: true,
-          pill_color: link.pillColor || "#000000",
+          pill_color: link.pillColor || (formData.vibeId ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "#000000" : "#000000"),
           is_featured: link.isFeatured || false,
-          display_style: link.displayStyle || "pill",
+          display_style: link.displayStyle || "both",
           cover_image_url: link.coverImageUrl || null,
           grid_size: link.gridSize || null,
           thumbnail_url: link.thumbnailUrl || null,
@@ -783,7 +789,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: block.sortOrder ?? index,
+          sort_order: (block.sortOrder ?? index) + formData.links.length,
           is_active: true,
           alignment: (block.content as any)?.alignment || "center",
         }));
@@ -1062,6 +1068,9 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
         bg_style: (formData as any).bgStyle || null,
+        text_color: formData.vibeId
+          ? getVibeTemplate(formData.vibeId)?.mockupTheme.text || null
+          : null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -1086,7 +1095,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           url: link.url,
           sort_order: link.sortOrder ?? index,
           is_active: true,
-          pill_color: link.pillColor || "#000000",
+          pill_color: link.pillColor || (formData.vibeId ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "#000000" : "#000000"),
           is_featured: link.isFeatured || false,
           display_style: link.displayStyle || "both",
           cover_image_url: link.coverImageUrl || null,
@@ -1107,7 +1116,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: index,
+          sort_order: (block.sortOrder ?? index) + formData.links.length,
           is_active: true,
         }));
 
