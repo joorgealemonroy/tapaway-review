@@ -374,11 +374,13 @@ const SocialIconBar = memo(function SocialIconBar({
 const ProfileBlock = memo(function ProfileBlock({ 
   block,
   profileId,
-  isDarkBg
+  isDarkBg,
+  textColor
 }: { 
   block: { id: string; block_type: string; content: unknown; alignment: string | null };
   profileId?: string;
   isDarkBg?: boolean;
+  textColor?: string | null;
 }) {
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -389,7 +391,8 @@ const ProfileBlock = memo(function ProfileBlock({
   
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
-  const textClass = isDarkBg ? "text-white" : "text-foreground";
+  const textClass = textColor ? "" : (isDarkBg ? "text-white" : "text-foreground");
+  const textStyleObj = textColor ? { color: textColor } : undefined;
   const mutedClass = isDarkBg ? "text-white/70" : "text-muted-foreground";
   
   const handleEmailSubmit = async (e: React.FormEvent) => {
