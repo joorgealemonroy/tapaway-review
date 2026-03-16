@@ -1,0 +1,1 @@
+ALTER TABLE personal_profiles ADD COLUMN IF NOT EXISTS bg_style text;
