@@ -482,6 +482,16 @@ export const PersonalizeStep = ({
         aspectRatio={activeLinkId ? 1 : 16 / 9}
         cropShape={activeLinkId ? "round" : "rect"}
       />
+
+      {/* Avatar Cropper */}
+      <ImageCropper
+        open={avatarCropOpen}
+        onOpenChange={setAvatarCropOpen}
+        imageSrc={avatarCropSrc}
+        onCropComplete={handleAvatarCropComplete}
+        aspectRatio={1}
+        cropShape="round"
+      />
     </div>
   );
 };

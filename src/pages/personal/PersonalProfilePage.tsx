@@ -1075,10 +1075,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
-  const fadeToColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
+  const fadeToColor = profileBgStyle 
+    ? extractEndColorFromGradient(profileBgStyle) || bgColor
+    : isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
   // Get outer background color based on profile theme
-  const outerBgColor = isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
+  const outerBgColor = profileBgStyle
+    ? extractEndColorFromGradient(profileBgStyle) || bgColor
+    : isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
   return (
     // Outer wrapper - themed background visible on desktop around the phone frame
