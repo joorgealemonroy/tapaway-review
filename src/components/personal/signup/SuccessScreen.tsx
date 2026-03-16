@@ -94,6 +94,15 @@ export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentC
   const displayUrl = `tapaway.co/${publicUsername}`;
   const fullUrl = `https://${displayUrl}`;
 
+  // "Building your Hub..." loading transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuilding(false);
+      setShowConfetti(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -104,6 +113,26 @@ export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentC
       toast.error("Failed to copy");
     }
   };
+
+  if (building) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16 bg-background">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2
+            className="h-10 w-10 animate-spin"
+            style={{ color: accentColor || "hsl(var(--primary))" }}
+          />
+          <p className="text-lg font-medium text-foreground">
+            Building your {vibeName ? `${vibeName} ` : ""}Hub...
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div
