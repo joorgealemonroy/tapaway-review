@@ -1,53 +1,21 @@
 
 
-# Vibe Selection + Simplified Signup — Updated Plan
+# Send Test Post-Purchase Emails
 
-This incorporates the approved plan plus the new suggestion: the ClaimStep username input shows a celebratory real-time availability message.
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
-## New Files
+## Changes
 
-### 1. `src/lib/vibeTemplates.ts`
-Define three vibe templates (Artemis, Balcombe, Boultont) with `mockupTheme`, `style`, `defaultLinks`, and `defaultBlocks`. Extends the existing `LayoutTemplate` interface with `subtitle` and `mockupTheme` fields.
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### 2. `src/components/personal/PhoneMockup.tsx`
-Reusable phone frame component — bezel, notch, inner content area. Accepts a vibe theme and renders a static preview of sample links/blocks in that color scheme.
+Add two new email templates matching the ones in the stripe webhook:
 
-### 3. `src/pages/personal/VibeSelection.tsx`
-- Dark gradient background, "Choose Your Vibe" title
-- Embla Carousel (`loop: true, align: "center"`) with 3 PhoneMockups
-- Active slide: `scale(1), opacity(1)`; adjacent: `scale(0.8), opacity(0.5)` via scroll progress
-- Dot indicator synced to `selectedIndex`
-- "Use This Vibe →" button stores vibe ID in sessionStorage, plays a framer-motion scale-up animation, then navigates to `/personal/signup?vibe=true`
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-### 4. `src/components/personal/signup/ClaimStep.tsx`
-Minimal "Claim Your Name" step — replaces IdentityStep when coming from vibe flow.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
 
-**Username input front and center:**
-- Large input with `tapaway.co/` prefix (or `tapaway.co/tap` for free plan)
-- Debounced availability check (reuse existing `is_username_available` RPC)
-- When available, show a celebratory green message below the input:
-  ```
-  ✓ tapaway.co/yourname is available!
-  ```
-  with a subtle scale-in animation (framer-motion) to create the "micro-win" moment
+### 2. Deploy and Invoke
 
-**Auth buttons below:**
-- "Save My Hub with Google" (OAuth button with Google icon)
-- "Save My Hub with Apple" (OAuth button with Apple icon)
-- Divider: "or use email"
-- "Continue with Email" → progressive disclosure expands Name + Email + Password fields
-- Reuses existing `lovable.auth.signInWithOAuth()` logic from IdentityStep
-
-### Modified Files
-
-### 5. `src/App.tsx`
-Add `/personal/vibe` route (lazy loaded).
-
-### 6. `src/pages/personal/PersonalSignup.tsx`
-- On mount, check `tapaway_selected_vibe` in sessionStorage
-- If present, apply vibe template (same pattern as existing template logic) and set `fromVibeFlow = true`
-- When `fromVibeFlow`, render `ClaimStep` instead of `IdentityStep` for step 1, and set `effectiveSteps = [1, 3]` (skip LinksStep since vibe pre-fills content)
-
-### 7. `src/components/landing/personal/PersonalHero.tsx`
-Update primary CTA to link to `/personal/vibe` instead of `/personal/signup`.
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 
