@@ -1,55 +1,28 @@
 
 
-# Linear Onboarding: Personalize Step for Vibe Users
+# Vibe-Synced Identity Step
 
-## Overview
-Add a new "Personalize" step (Step 2) to the vibe signup flow. Currently, vibe users skip from Claim (step 1) directly to Checkout (step 3). This change inserts a focused handle-input screen between them.
+## Changes
 
-## New Component: `PersonalizeStep.tsx`
+### 1. `src/components/personal/signup/ClaimStep.tsx` — Major UI upgrade
+- **Vibe glow background**: On mount, read `tapaway_selected_vibe` from sessionStorage (before it's cleared by PersonalSignup). Store the vibe's `glowColor` and `name` in local state. Render a full-page radial gradient overlay using that color at ~15% opacity.
+- **"← Change Vibe" button**: Top-left ghost button with low-opacity text. Navigates to `/personal/vibe` and clears `tapaway_selected_vibe` from sessionStorage.
+- **Vibe label**: Small muted text above the title: `Selected Style: [Vibe Name]`.
+- **Cycling placeholder**: Use a `useEffect` interval that rotates the username input placeholder through `["artist", "founder", "creator", "vlogger"]` every 2 seconds.
+- **Accent-colored validation**: When `usernameStatus === "available"`, apply a one-time border pulse using the vibe's `accentColor` (CSS animation). The "Available!" micro-win text uses the vibe's accent instead of hardcoded green.
+- **OAuth buttons**: Set to `w-full` matching the username input width (already the case, but ensure `h-14` matches the input height for stacked alignment).
+- **Vertical centering on mobile**: Wrap content in `min-h-[calc(100vh-120px)] flex flex-col justify-center` to avoid bottom-heavy layout.
 
-Create `src/components/personal/signup/PersonalizeStep.tsx` — a mobile-first screen that:
+### 2. `src/pages/personal/PersonalSignup.tsx` — Pass vibe data to ClaimStep
+- The vibe is currently consumed and cleared from sessionStorage in an effect. Before clearing, store the vibe's `glowColor`, `name`, and `accentColor` in component state (`vibeMetadata`).
+- Pass `vibeMetadata` as a new prop to `ClaimStep`.
+- The vibe template data (links, blocks, colors) is already being saved to onboarding state and persisted to the profile during checkout — no additional "save logic" changes needed since `bgColor`, `headerColor`, and `backgroundColor` are already mapped from the template's `style` object in the existing vibe consumption effect.
 
-1. **Reads the vibe's links** from `formData.links` (already populated with placeholder values like `@yourname`)
-2. **Renders a vertical stack** of input rows, one per link:
-   - Platform icon + label on the left
-   - Input field (pre-filled with placeholder, e.g. `@yourname`) with the vibe's accent-colored border on focus
-   - "Skip" button (X icon) on the right — removes the link via `removeLink(id)`
-   - Green check icon appears when the value differs from the placeholder (i.e., user typed something real)
-3. **"+ Add another link"** button at the bottom opens the existing `LinkModal`
-4. **"Launch My Hub →"** large CTA button at the bottom, styled with the vibe's accent color
-5. **Background glow** — 15% opacity radial gradient using the vibe's `glowColor`, consistent with ClaimStep
-6. **Real-time URL sync** — as user types a handle, call `getPlatformConfig(type).generateUrl(value)` to update the link's `url` field via `updateLink`
+### 3. `src/lib/vibeTemplates.ts` — No changes needed
+The `glowColor` and `mockupTheme.accent` fields already exist on all templates.
 
-### Input validation
-- Check icon appears when: value is not empty AND differs from default placeholder (`@yourname`, `you@email.com`, etc.)
-- No blocking validation — users can launch with placeholders (they become editable later in dashboard)
-
-## Flow Changes in `PersonalSignup.tsx`
-
-1. Change `effectiveSteps` for vibe flow from `[1, 3]` to `[1, 2, 3]` — vibe users now get all 3 steps
-2. Step 2 renders `PersonalizeStep` instead of `LinksStep` when `fromVibeFlow` is true
-3. Step titles update: step 2 becomes "Personalize your links"
-4. Pass `vibeMetadata` (name, glowColor, accentColor) to `PersonalizeStep`
-
-## Component Props
-```typescript
-interface PersonalizeStepProps {
-  formData: SignupData;
-  updateLink: (id: string, updates: Partial<PersonalLink>) => void;
-  removeLink: (id: string) => void;
-  addLink: (link: Omit<PersonalLink, "id">) => void;
-  onNext: () => void;
-  onBack: () => void;
-  vibeMetadata: { name: string; glowColor: string; accentColor: string } | null;
-}
-```
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| **New** `src/components/personal/signup/PersonalizeStep.tsx` | Handle input screen with skip buttons, add-link, launch CTA |
-| `src/pages/personal/PersonalSignup.tsx` | Re-enable step 2 for vibe flow, conditionally render PersonalizeStep vs LinksStep, update step title |
-
-No route or database changes needed — `/personal/signup` already handles all steps, and CheckoutStep (step 3) already persists links to the database.
+## Technical notes
+- The vibe accent color for the input pulse will use a CSS `@keyframes` animation injected via inline style or a Tailwind `animate-` class with a custom keyframe in `index.css`.
+- The cycling placeholder uses `useState` + `setInterval` with cleanup.
+- No database changes — vibe style fields are already persisted via the existing onboarding flow.
 

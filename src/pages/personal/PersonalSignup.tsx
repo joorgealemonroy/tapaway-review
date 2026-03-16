@@ -22,6 +22,7 @@ import { X } from "lucide-react";
 // Step components
 import { ClaimStep } from "@/components/personal/signup/ClaimStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
+import { PersonalizeStep } from "@/components/personal/signup/PersonalizeStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
@@ -175,7 +176,7 @@ const PersonalSignup = () => {
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  const effectiveSteps = (hasImportedProfile || fromVibeFlow) ? [1, 3] : [1, 2, 3];
+  const effectiveSteps = hasImportedProfile ? [1, 3] : [1, 2, 3];
   const totalSteps = effectiveSteps.length;
 
   // Vibe metadata for ClaimStep visual continuity
@@ -397,7 +398,7 @@ const PersonalSignup = () => {
     navigate("/personal");
   };
 
-  const stepTitles = { 1: "Create your TapAway", 2: "Build your profile", 3: "Finish your order" };
+  const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Personalize your links" : "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
@@ -468,7 +469,17 @@ const PersonalSignup = () => {
               />
             )}
 
-            {currentStep === 2 && (
+            {currentStep === 2 && fromVibeFlow ? (
+              <PersonalizeStep
+                formData={formData}
+                updateLink={updateLink}
+                removeLink={removeLink}
+                addLink={addLink}
+                onNext={nextStep}
+                onBack={prevStep}
+                vibeMetadata={vibeMetadata}
+              />
+            ) : currentStep === 2 ? (
               <LinksStep
                 formData={formData}
                 updateFormData={updateFormData}
@@ -487,7 +498,7 @@ const PersonalSignup = () => {
                 reorderContent={reorderContent}
                 selectedTemplate={onboardingData.selectedTemplate}
               />
-            )}
+            ) : null}
 
             {currentStep === 3 && (
               <CheckoutStep
