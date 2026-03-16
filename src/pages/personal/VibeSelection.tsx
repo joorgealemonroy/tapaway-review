@@ -103,7 +103,7 @@ const VibeSelection = () => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse 50% 40% at 50% 50%, ${currentGlow}22 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 40% 30% at 50% 60%, ${currentGlow}22 0%, transparent 70%)`,
           transition: "background 0.6s ease",
         }}
       />
