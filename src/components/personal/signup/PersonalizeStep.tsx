@@ -63,6 +63,9 @@ export const PersonalizeStep = ({
   const [uploading, setUploading] = useState(false);
   const blockFileInputRef = useRef<HTMLInputElement>(null);
   const linkFileInputRef = useRef<HTMLInputElement>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
+  const [avatarCropSrc, setAvatarCropSrc] = useState("");
   const accent = vibeMetadata?.accentColor || "hsl(var(--primary))";
   const glow = vibeMetadata?.glowColor || "transparent";
 
