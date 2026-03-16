@@ -1073,8 +1073,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
   // against the inline background, regardless of system dark/light mode
-  const headingClass = isDarkBg ? "text-white" : "text-gray-900";
-  const textClass = isDarkBg ? "text-white/80" : "text-gray-800";
+  const profileTextColor = (profile as any).text_color as string | null;
+  const profileAccentColor = (profile as any).button_theme as string | null;
+  const headingClass = profileTextColor ? "" : (isDarkBg ? "text-white" : "text-gray-900");
+  const headingStyle = profileTextColor ? { color: profileTextColor } : undefined;
+  const textClass = profileTextColor ? "" : (isDarkBg ? "text-white/80" : "text-gray-800");
+  const textStyle = profileTextColor ? { color: profileTextColor, opacity: 0.85 } : undefined;
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
