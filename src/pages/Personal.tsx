@@ -8,7 +8,7 @@ import { PersonalFeatures } from "@/components/landing/personal/PersonalFeatures
 import PersonalShopShowcase from "@/components/landing/personal/PersonalShopShowcase";
 import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
-import { FreeTrialPopup } from "@/components/landing/FreeTrialPopup";
+
 import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding";
 import { FoundingBanner } from "@/components/landing/personal/FoundingBanner";
 import { FoundingCounter } from "@/components/landing/personal/FoundingCounter";
