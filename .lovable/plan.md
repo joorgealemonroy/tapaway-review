@@ -1,28 +1,48 @@
 
 
-# Vibe-Synced Identity Step
+# Identity UI Overhaul & Rebrand
 
-## Changes
+## 1. Global Rebranding — `src/lib/vibeTemplates.ts`
 
-### 1. `src/components/personal/signup/ClaimStep.tsx` — Major UI upgrade
-- **Vibe glow background**: On mount, read `tapaway_selected_vibe` from sessionStorage (before it's cleared by PersonalSignup). Store the vibe's `glowColor` and `name` in local state. Render a full-page radial gradient overlay using that color at ~15% opacity.
-- **"← Change Vibe" button**: Top-left ghost button with low-opacity text. Navigates to `/personal/vibe` and clears `tapaway_selected_vibe` from sessionStorage.
-- **Vibe label**: Small muted text above the title: `Selected Style: [Vibe Name]`.
-- **Cycling placeholder**: Use a `useEffect` interval that rotates the username input placeholder through `["artist", "founder", "creator", "vlogger"]` every 2 seconds.
-- **Accent-colored validation**: When `usernameStatus === "available"`, apply a one-time border pulse using the vibe's `accentColor` (CSS animation). The "Available!" micro-win text uses the vibe's accent instead of hardcoded green.
-- **OAuth buttons**: Set to `w-full` matching the username input width (already the case, but ensure `h-14` matches the input height for stacked alignment).
-- **Vertical centering on mobile**: Wrap content in `min-h-[calc(100vh-120px)] flex flex-col justify-center` to avoid bottom-heavy layout.
+Rename all six templates (IDs and display names):
 
-### 2. `src/pages/personal/PersonalSignup.tsx` — Pass vibe data to ClaimStep
-- The vibe is currently consumed and cleared from sessionStorage in an effect. Before clearing, store the vibe's `glowColor`, `name`, and `accentColor` in component state (`vibeMetadata`).
-- Pass `vibeMetadata` as a new prop to `ClaimStep`.
-- The vibe template data (links, blocks, colors) is already being saved to onboarding state and persisted to the profile during checkout — no additional "save logic" changes needed since `bgColor`, `headerColor`, and `backgroundColor` are already mapped from the template's `style` object in the existing vibe consumption effect.
+| Old ID | Old Name | New ID | New Name | Subtitle (keep) |
+|--------|----------|--------|----------|-----------------|
+| artemis | Artemis | pure | Pure | Minimalist |
+| balcombe | Balcombe | organic | Organic | Botanical |
+| boultont | Boultont | obsidian | Obsidian | Premium |
+| cyber | Cyber | neon | Neon | Neon Glow |
+| editorial | Editorial | vogue | Vogue | Classic & Elegant |
+| corporate | Corporate | elevate | Elevate | Professional |
 
-### 3. `src/lib/vibeTemplates.ts` — No changes needed
-The `glowColor` and `mockupTheme.accent` fields already exist on all templates.
+No other files reference old IDs directly — the vibe ID is stored in sessionStorage at runtime, so this is a clean swap.
 
-## Technical notes
-- The vibe accent color for the input pulse will use a CSS `@keyframes` animation injected via inline style or a Tailwind `animate-` class with a custom keyframe in `index.css`.
-- The cycling placeholder uses `useState` + `setInterval` with cleanup.
-- No database changes — vibe style fields are already persisted via the existing onboarding flow.
+## 2. Layout Compression — `src/components/personal/signup/ClaimStep.tsx`
+
+- Remove `min-h-[calc(100vh-120px)] flex flex-col justify-center` wrapper — replace with a tighter `pt-2` top-aligned layout inside a `max-w-[400px] mx-auto` container.
+- Move "← Change Vibe" and "Selected Style: Pure" into a single inline row at the top (below progress bar), using `text-xs opacity-60`.
+- Remove the `space-y-6` gap; tighten to `space-y-4`.
+- Title "Create your TapAway" moves immediately below the vibe indicator row.
+
+## 3. Cycling Placeholders — `ClaimStep.tsx`
+
+- Change array from `["artist", "founder", "creator", "vlogger"]` to `["paul", "sarah", "justin", "blake", "maya", "jake"]`.
+- Change interval from 2000ms to 1500ms.
+- Wrap the placeholder in an `AnimatePresence` cross-fade by keying on `placeholderIdx` (use framer-motion's `mode="wait"` on a visually hidden label, or simply apply a CSS `transition: opacity 0.2s` by toggling a fade class on each change).
+
+## 4. Auth Buttons Reveal Animation — `ClaimStep.tsx`
+
+The auth buttons section already uses `AnimatePresence` with `usernameReady` gating. Enhance the motion:
+- Change `initial` from `{ opacity: 0, y: 10 }` to `{ opacity: 0, y: 20 }`.
+- Add `transition: { type: "spring", stiffness: 300, damping: 25 }` for a smoother slide-up feel.
+
+## 5. Input Glow — `ClaimStep.tsx`
+
+Add a persistent subtle `box-shadow` on the username input using the vibe's `glowColor` (not accent) at ~20% opacity: `0 0 20px ${glowColor}33`. This is always-on, separate from the pulse animation on availability.
+
+## Files
+- **Edit**: `src/lib/vibeTemplates.ts` (rename IDs and names)
+- **Edit**: `src/components/personal/signup/ClaimStep.tsx` (layout, placeholders, glow, animation)
+
+No database changes needed.
 
