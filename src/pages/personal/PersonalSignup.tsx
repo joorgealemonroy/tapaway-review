@@ -169,6 +169,9 @@ const PersonalSignup = () => {
   const effectiveSteps = (hasImportedProfile || fromVibeFlow) ? [1, 3] : [1, 2, 3];
   const totalSteps = effectiveSteps.length;
 
+  // Vibe metadata for ClaimStep visual continuity
+  const [vibeMetadata, setVibeMetadata] = useState<{ name: string; glowColor: string; accentColor: string } | null>(null);
+
   // Consume vibe template from sessionStorage
   const [vibeApplied, setVibeApplied] = useState(false);
   useEffect(() => {
@@ -179,6 +182,12 @@ const PersonalSignup = () => {
       const vibe = getVibeTemplate(vibeId);
       if (vibe) {
         setFromVibeFlow(true);
+        // Capture vibe metadata BEFORE clearing storage
+        setVibeMetadata({
+          name: vibe.name,
+          glowColor: vibe.glowColor,
+          accentColor: vibe.mockupTheme.accent,
+        });
         update({ links: [], blocks: [] });
 
         vibe.defaultLinks.forEach((l, i) => {
@@ -444,6 +453,7 @@ const PersonalSignup = () => {
                 selectedPlan={selectedPlan}
                 isOAuthUser={isOAuthUser}
                 setIsOAuthUser={setIsOAuthUser}
+                vibeMetadata={vibeMetadata}
               />
             ) : currentStep === 1 ? (
               <IdentityStep
