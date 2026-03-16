@@ -1,56 +1,24 @@
 
+# Personalize Step — Implemented ✅
 
-# Updated Plan: Immediate Storage Upload for Images
+## Changes Made
 
-## The Problem
-The current `handleCropComplete` stores a Base64 data URL in state. This massive string will be lost during OTP/OAuth redirects due to sessionStorage size limits.
+### 1. Input UX — Empty values with placeholders
+- `getFriendlyValue()` now returns `""` for all types
+- Users see placeholder text via HTML `placeholder` attribute, type immediately
 
-## The Fix
-Upload cropped images to Supabase Storage **immediately** in `PersonalizeStep.tsx`, storing only the returned public URL in state.
+### 2. Display Mode — "both" default
+- `PersonalSignup.tsx`: vibe links default to `displayStyle: "both"`
+- `CheckoutStep.tsx`: DB insert defaults to `display_style: "both"`
 
-## Changes to the Approved Plan
+### 3. Immediate Storage Upload
+- `PersonalizeStep.tsx`: `handleCropComplete` uploads to `personal-link-images` bucket immediately
+- Only short public URLs stored in state — safe for sessionStorage/localStorage
 
-Everything from the previously approved plan remains — empty-value inputs, half-width image support, expanded drawer, `displayStyle: "both"`. The only addition:
+### 4. Half-Width Cover Images
+- Links with `gridSize === "half"` show a 1:1 image upload box
+- Separate file input ref for link cover images vs block images
 
-### `PersonalizeStep.tsx` — Immediate upload on crop complete
-
-Replace the current `handleCropComplete` (line ~117-122) which stores a data URL:
-
-```typescript
-// BEFORE (data URL in state — breaks on redirect)
-updateBlock(activeBlockId, { content: { alt: "My Photo", url: previewUrl } });
-```
-
-With an immediate Supabase Storage upload:
-
-```typescript
-const handleCropComplete = async (blob: Blob, _previewUrl: string) => {
-  if (!activeBlockId) return;
-  const fileName = `temp/${crypto.randomUUID()}.jpg`;
-  const { data, error } = await supabase.storage
-    .from("personal-link-images")
-    .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
-  if (error) { /* toast error, return */ }
-  const publicUrl = supabase.storage.from("personal-link-images").getPublicUrl(fileName).data.publicUrl;
-  updateBlock(activeBlockId, { content: { alt: "My Photo", url: publicUrl } });
-};
-```
-
-Same pattern applies for half-width link cover images — upload immediately, store the public URL in `coverImageUrl`.
-
-### `CheckoutStep.tsx` — No extra upload step needed
-
-Since images are already uploaded and URLs are short strings, the existing insert logic works as-is. No sessionStorage size risk.
-
-### Storage bucket
-
-`personal-link-images` already exists and is public — no migration needed.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/personal/PersonalSignup.tsx` | Return `""` from `getFriendlyValue`, set `displayStyle: "both"` |
-| `src/components/personal/signup/PersonalizeStep.tsx` | Empty-value inputs, immediate storage upload on crop, half-width image UI, expanded drawer, inline block editors |
-| `src/components/personal/signup/CheckoutStep.tsx` | Default `display_style` to `"both"` |
-
+### 5. Expanded "Add Block" Drawer
+- Link, Image, YouTube Video, Text, Featured Button
+- Inline editors for text (title + body), youtube (URL), button (label + URL)
