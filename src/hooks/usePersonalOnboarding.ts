@@ -53,6 +53,7 @@ export interface PersonalOnboardingData {
   selectedTemplate?: string | null;
   vibeId?: string | null;
   bgStyle?: string | null;
+  textColor?: string | null;
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
