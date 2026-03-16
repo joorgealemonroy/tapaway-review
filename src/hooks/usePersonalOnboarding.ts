@@ -79,6 +79,7 @@ const initialData: PersonalOnboardingData = {
   basicCardColor: null,
   isOAuthUser: false,
   selectedTemplate: null,
+  vibeId: null,
 };
 
 export const usePersonalOnboarding = () => {

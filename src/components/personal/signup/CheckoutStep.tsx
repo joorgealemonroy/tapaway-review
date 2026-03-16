@@ -716,6 +716,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         header_image_url: headerImageUrl,
         background_color: formData.backgroundColor || "#000000",
         card_front_headline: formData.cardHeadline || null,
+        vibe_id: formData.vibeId || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
