@@ -1081,11 +1081,21 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           link_type: link.type,
           label: link.label,
           url: link.url,
-          sort_order: index,
+          sort_order: link.sortOrder ?? index,
           is_active: true,
+          pill_color: link.pillColor || "#000000",
+          is_featured: link.isFeatured || false,
+          display_style: link.displayStyle || "both",
+          cover_image_url: link.coverImageUrl || null,
+          grid_size: link.gridSize || null,
+          thumbnail_url: link.thumbnailUrl || null,
+          is_placeholder: !link.value || link.value.trim() === "",
         }));
 
-        await supabase.from("personal_links").insert(linksToInsert);
+        const { error: linksError3 } = await supabase.from("personal_links").insert(linksToInsert);
+        if (linksError3) {
+          console.error("Links insert error (path 3):", linksError3.message, linksError3.details, linksError3.hint);
+        }
       }
 
       // Create blocks
