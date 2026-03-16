@@ -252,7 +252,7 @@ export const ClaimStep = ({
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="text-sm font-medium"
-                style={{ color: accentColor }}
+                style={{ color: "#22c55e" }}
               >
                 ✓ tapaway.co/{prefix}{formData.username} is available!
               </motion.p>
