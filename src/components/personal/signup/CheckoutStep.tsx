@@ -789,7 +789,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: block.sortOrder ?? index,
+          sort_order: (block.sortOrder ?? index) + formData.links.length,
           is_active: true,
           alignment: (block.content as any)?.alignment || "center",
         }));
