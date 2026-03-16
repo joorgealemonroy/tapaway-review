@@ -1116,7 +1116,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           profile_id: profileResult.id,
           block_type: block.type,
           content: block.content || {},
-          sort_order: index,
+          sort_order: (block.sortOrder ?? index) + formData.links.length,
           is_active: true,
         }));
 
