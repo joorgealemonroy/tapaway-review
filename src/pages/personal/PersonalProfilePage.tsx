@@ -1005,7 +1005,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Separate icon-style links from pill-style links
   // Icon links include both 'icon' and 'both' display styles
-  const iconLinks = links.filter((l: any) => l.is_active !== false && (l.display_style === 'icon' || l.display_style === 'both'));
+  const iconLinks = links.filter((l: any) => l.is_active !== false && l.url && l.url.trim() !== '' && (l.display_style === 'icon' || l.display_style === 'both'));
   // Pill links include everything except 'icon' only (so 'both' appears in both places)
   const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
 
