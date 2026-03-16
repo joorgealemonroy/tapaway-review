@@ -1,27 +1,21 @@
 
 
-# Add Calendar Icon to Corporate Vibe's "Book a Call" Button
+# Send Test Post-Purchase Emails
 
-This is a small tweak that will be part of the larger carousel upgrade (adding Cyber, Editorial, Corporate vibes + higher-fidelity mockups). Since the Corporate vibe doesn't exist yet, the full implementation covers:
+The existing `send-test-emails` edge function only sends OTP and Welcome emails. I need to update it to also send the two new marketplace emails (Buyer purchase confirmation and Creator sale notification), then invoke it.
 
 ## Changes
 
-### 1. `src/lib/vibeTemplates.ts` — Add 3 new vibes
-- Add `glowColor` to `VibeTemplate` interface
-- Add `iconHint` optional field to the `defaultLinks` type (string like `"calendar"`, `"briefcase"`)
-- Add **Cyber** vibe: dark `#0a0a0a` bg, neon `#bf00ff`/`#ff00aa` accents
-- Add **Editorial** vibe: warm beige `#f5f0eb`, serif feel, image blocks
-- Add **Corporate** vibe: navy `#1e3a5f` header, white bg, with a "Book a Call" link that has `iconHint: "calendar"`
-- Add `glowColor` to existing 3 vibes
+### 1. Update `supabase/functions/send-test-emails/index.ts`
 
-### 2. `src/components/personal/PhoneMockup.tsx` — Render icon hints
-- Import `Calendar` from `lucide-react`
-- In the link pill rendering, check `link.iconHint === "calendar"` — if so, render a tiny `<Calendar>` icon (sized ~10px, colored with `t.accent`) instead of the generic colored circle
-- This gives Corporate's "Book a Call" a distinct calendar icon while creative vibes keep their round social-style indicators
+Add two new email templates matching the ones in the stripe webhook:
 
-### 3. `src/pages/personal/VibeSelection.tsx` — Support 6 vibes
-- The carousel already maps `VIBE_TEMPLATES`, so adding new entries to the array automatically includes them
-- Update the dynamic CTA text and glow logic per the existing approved plan
+- **Buyer Email**: "Your purchase is ready!" with product name, price ($0.99), and a dummy download link
+- **Creator Email**: "You made a sale! 🎉" with product title, masked buyer email, and price
 
-No database changes needed.
+Send all 4 emails (OTP, Welcome, Buyer, Creator) to the provided email address.
+
+### 2. Deploy and Invoke
+
+After updating the function, deploy it and call it with your email to send all 4 test emails so you can see how they look in your inbox.
 

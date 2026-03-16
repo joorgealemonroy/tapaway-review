@@ -2,6 +2,7 @@ export interface VibeTemplate {
   id: string;
   name: string;
   subtitle: string;
+  glowColor: string;
   mockupTheme: {
     bg: string;
     text: string;
@@ -18,6 +19,7 @@ export interface VibeTemplate {
     gridSize?: string;
     isFeatured?: boolean;
     sortOrder?: number;
+    iconHint?: string;
   }>;
   defaultBlocks: Array<{
     type: "youtube" | "image" | "text" | "button";
@@ -36,6 +38,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     id: "artemis",
     name: "Artemis",
     subtitle: "Minimalist",
+    glowColor: "#888888",
     mockupTheme: {
       bg: "#ffffff",
       text: "#111111",
@@ -56,6 +59,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     id: "balcombe",
     name: "Balcombe",
     subtitle: "Botanical",
+    glowColor: "#4a8c5c",
     mockupTheme: {
       bg: "#f5f0e8",
       text: "#2d5a3d",
@@ -83,6 +87,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     id: "boultont",
     name: "Boultont",
     subtitle: "Premium",
+    glowColor: "#c9a96e",
     mockupTheme: {
       bg: "#1a1a1a",
       text: "#f0e6d3",
@@ -99,6 +104,82 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     defaultBlocks: [],
     headerType: "color",
     style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a" },
+  },
+  {
+    id: "cyber",
+    name: "Cyber",
+    subtitle: "Neon Glow",
+    glowColor: "#bf00ff",
+    mockupTheme: {
+      bg: "#0a0a0a",
+      text: "#e0e0e0",
+      accent: "#bf00ff",
+      cardBg: "#141414",
+      border: "#2a1a3a",
+    },
+    defaultLinks: [
+      { type: "instagram", label: "Instagram", placeholder: "@yourhandle", sortOrder: 0, displayStyle: "grid", gridSize: "half" },
+      { type: "tiktok", label: "TikTok", placeholder: "@yourhandle", sortOrder: 1, displayStyle: "grid", gridSize: "half" },
+      { type: "website", label: "Website", placeholder: "https://yoursite.com", sortOrder: 2 },
+      { type: "discord", label: "Discord", placeholder: "discord.gg/invite", sortOrder: 3 },
+    ],
+    defaultBlocks: [],
+    headerType: "color",
+    style: { bgColor: "#0a0a0a", headerColor: "#1a0a2e" },
+  },
+  {
+    id: "editorial",
+    name: "Editorial",
+    subtitle: "Classic & Elegant",
+    glowColor: "#c4a882",
+    mockupTheme: {
+      bg: "#f5f0eb",
+      text: "#2c2420",
+      accent: "#8c7355",
+      cardBg: "#ebe5dd",
+      border: "#d9d0c4",
+    },
+    defaultLinks: [
+      { type: "website", label: "Read My Blog", placeholder: "https://yourblog.com", sortOrder: 0 },
+      { type: "instagram", label: "Instagram", placeholder: "@yourhandle", sortOrder: 1 },
+      { type: "email", label: "Newsletter", placeholder: "you@email.com", sortOrder: 2 },
+    ],
+    defaultBlocks: [
+      {
+        type: "image",
+        content: { alt: "Featured Image" },
+        sortOrder: 0,
+      },
+      {
+        type: "text",
+        content: { title: "Latest", body: "A peek into what I've been working on." },
+        sortOrder: 1,
+      },
+    ],
+    headerType: "color",
+    style: { bgColor: "#f5f0eb", headerColor: "#3d342c" },
+  },
+  {
+    id: "corporate",
+    name: "Corporate",
+    subtitle: "Professional",
+    glowColor: "#3b6ba5",
+    mockupTheme: {
+      bg: "#ffffff",
+      text: "#1e293b",
+      accent: "#1e3a5f",
+      cardBg: "#f1f5f9",
+      border: "#e2e8f0",
+    },
+    defaultLinks: [
+      { type: "calendly", label: "Book a Call", placeholder: "https://calendly.com/you", sortOrder: 0, iconHint: "calendar" },
+      { type: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/you", sortOrder: 1 },
+      { type: "website", label: "Company Site", placeholder: "https://yourcompany.com", sortOrder: 2 },
+      { type: "email", label: "Email", placeholder: "you@company.com", sortOrder: 3 },
+    ],
+    defaultBlocks: [],
+    headerType: "color",
+    style: { bgColor: "#ffffff", headerColor: "#1e3a5f" },
   },
 ];
 
