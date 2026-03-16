@@ -1255,7 +1255,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               <SocialIconBar links={iconLinks} isDarkBg={isDarkBg} profileId={profile.id} />
               
               {profile.bio && (
-                <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`}>{profile.bio}</p>
+                <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`} style={textStyle}>{profile.bio}</p>
               )}
               <div className="mb-6" />
             </>
