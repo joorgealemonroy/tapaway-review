@@ -536,8 +536,8 @@ const ProfileBlock = memo(function ProfileBlock({
     case "text":
       return (
         <div className={`w-full ${alignClass}`}>
-          <h3 className={`text-lg font-bold ${textClass}`}>{content.title}</h3>
-          {content.body && <p className={`${mutedClass} mt-1`}>{content.body}</p>}
+          <h3 className={`text-lg font-bold ${textClass}`} style={textStyleObj}>{content.title}</h3>
+          {content.body && <p className={`${mutedClass} mt-1`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{content.body}</p>}
         </div>
       );
     case "button": {
