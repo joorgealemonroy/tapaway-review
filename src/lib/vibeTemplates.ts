@@ -128,8 +128,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#0a0a0a", headerColor: "#1a0a2e" },
   },
   {
-    id: "editorial",
-    name: "Editorial",
+    id: "vogue",
+    name: "Vogue",
     subtitle: "Classic & Elegant",
     glowColor: "#c4a882",
     mockupTheme: {
