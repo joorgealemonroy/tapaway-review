@@ -227,6 +227,7 @@ const PersonalSignup = () => {
           backgroundColor: vibe.style.bgColor,
           vibeId: vibeId,
           bgStyle: vibe.style.bgStyle,
+          textColor: vibe.mockupTheme.text,
         });
       }
       sessionStorage.removeItem("tapaway_selected_vibe");

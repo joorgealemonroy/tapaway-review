@@ -83,6 +83,7 @@ const initialData: PersonalOnboardingData = {
   selectedTemplate: null,
   vibeId: null,
   bgStyle: null,
+  textColor: null,
 };
 
 export const usePersonalOnboarding = () => {

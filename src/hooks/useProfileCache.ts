@@ -36,6 +36,11 @@ export interface CachedProfile {
   is_founding_user?: boolean;
   founding_number?: number | null;
   show_founding_badge?: boolean;
+  // Vibe theme
+  bg_style?: string | null;
+  vibe_id?: string | null;
+  button_theme?: string | null;
+  text_color?: string | null;
 }
 
 export interface CachedLink {
