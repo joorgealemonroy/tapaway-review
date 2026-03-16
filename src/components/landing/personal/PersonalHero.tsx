@@ -113,7 +113,7 @@ export const PersonalHero = () => {
               to="/import"
               className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium mt-2 transition-colors"
             >
-              Already have a Linktree? Import it
+              Ditch your boring bio link. Import in 1 click
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </motion.div>
