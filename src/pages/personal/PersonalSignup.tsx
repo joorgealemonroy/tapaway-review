@@ -217,6 +217,7 @@ const PersonalSignup = () => {
           headerType: vibe.headerType,
           headerColor: vibe.style.headerColor,
           backgroundColor: vibe.style.bgColor,
+          vibeId: vibeId,
         });
       }
       sessionStorage.removeItem("tapaway_selected_vibe");
