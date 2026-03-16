@@ -154,6 +154,24 @@ export const PersonalizeStep = ({
     setCropperOpen(false);
   };
 
+  // --- Avatar handling ---
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setAvatarCropSrc(reader.result as string); setAvatarCropOpen(true); };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleAvatarCropComplete = async (blob: Blob) => {
+    const publicUrl = await uploadToStorage(blob);
+    if (!publicUrl) { setAvatarCropOpen(false); return; }
+    updateFormData({ profilePhotoUrl: publicUrl });
+    setAvatarCropOpen(false);
+  };
+
   // --- Add block helpers ---
   const handleAddImageBlock = () => {
     addBlock({ type: "image", content: { alt: "My Photo" }, sortOrder: formData.links.length + formData.blocks.length });
