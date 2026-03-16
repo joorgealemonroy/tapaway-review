@@ -84,8 +84,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d" },
   },
   {
-    id: "boultont",
-    name: "Boultont",
+    id: "obsidian",
+    name: "Obsidian",
     subtitle: "Premium",
     glowColor: "#c9a96e",
     mockupTheme: {
