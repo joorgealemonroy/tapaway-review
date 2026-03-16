@@ -1076,12 +1076,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Calculate fade color for header transition
   const fadeToColor = profileBgStyle 
-    ? extractEndColorFromGradient(profileBgStyle) || bgColor
+    ? getBaseColorFromGradient(profileBgStyle)
     : isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
   // Get outer background color based on profile theme
   const outerBgColor = profileBgStyle
-    ? extractEndColorFromGradient(profileBgStyle) || bgColor
+    ? getBaseColorFromGradient(profileBgStyle)
     : isGradientBg ? getBaseColorFromGradient(bgColor) : bgColor;
 
   return (
