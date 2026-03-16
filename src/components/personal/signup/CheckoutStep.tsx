@@ -575,6 +575,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           };
         });
 
+        console.log("FINAL BLOCKS PAYLOAD:", blocksToInsert);
         const { error: blocksError } = await supabase
           .from("personal_blocks")
           .insert(blocksToInsert);
