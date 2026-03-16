@@ -53,6 +53,7 @@ export interface SignupData {
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
   vibeId?: string | null;
+  bgStyle?: string | null;
 }
 
 function getFriendlyValue(_type: string): string {
