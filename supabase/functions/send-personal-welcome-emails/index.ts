@@ -51,7 +51,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New TapAway Personal Card Order</title>
+      <title>New TapAway Personal Signup</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
@@ -62,7 +62,7 @@ const generateInternalNotificationEmail = (data: PersonalWelcomeEmailRequest): s
               <tr>
                 <td style="background-color: #18181b; padding: 24px 32px; text-align: center;">
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
-                    🎉 New TapAway Personal Card Order
+                    🎉 New TapAway Personal Signup
                   </h1>
                   <p style="margin: 8px 0 0; color: #a1a1aa; font-size: 14px;">${escapeHtml(timestamp)}</p>
                 </td>
@@ -195,6 +195,8 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
   const safeFullName = escapeHtml(data.fullName);
   const safeUsername = escapeHtml(data.username);
   const dashboardUrl = `${FRONTEND_URL}/auth`;
+  const pricingUrl = `${FRONTEND_URL}/personal/pricing`;
+  const firstName = escapeHtml(data.fullName.split(' ')[0]);
 
   return `
     <!DOCTYPE html>
@@ -205,6 +207,7 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
       <title>Welcome to TapAway</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
+      <span style="display:none;font-size:1px;color:#f4f4f5;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Start sharing your link today + tips to get started.</span>
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
         <tr>
           <td align="center">
@@ -223,35 +226,27 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
               <tr>
                 <td style="padding: 40px 32px;">
                   <p style="margin: 0 0 24px; color: #18181b; font-size: 18px; line-height: 1.6;">
-                    Hey ${escapeHtml(data.fullName.split(' ')[0])}!
+                    Hey ${firstName},
                   </p>
                   
                   <p style="margin: 0 0 24px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    Thanks for joining TapAway! Your personal profile is now live and your custom NFC card is being prepared.
+                    Welcome to TapAway! Your new personal profile is officially live and ready to be shared with the world. You now have a single, beautiful hub for all your content, links, and socials.
                   </p>
                   
-                  <p style="margin: 0 0 16px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    <strong style="color: #18181b;">Good news:</strong> You don't have to wait for your card to start using TapAway. Your link is ready now — add it to your Instagram bio, LinkedIn, email signature, or anywhere you connect with people.
-                  </p>
-                  
-                  <p style="margin: 0 0 32px; color: #52525b; font-size: 16px; line-height: 1.7;">
-                    Your link: <a href="${profileUrl}" style="color: #18181b; font-weight: 600; text-decoration: underline;">tapaway.co/${safeUsername}</a>
-                  </p>
-                  
-                  <!-- Profile Card Preview -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+                  <!-- Profile Link Box -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px; margin-bottom: 24px;">
                     <tr>
                       <td style="padding: 20px;">
-                        <p style="margin: 0 0 8px; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Your Profile</p>
-                        <p style="margin: 0; color: #18181b; font-size: 18px; font-weight: 600;">
-                          tapaway.co/${safeUsername}
+                        <p style="margin: 0 0 8px; color: #71717a; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Your Link</p>
+                        <p style="margin: 0;">
+                          <a href="${profileUrl}" style="color: #18181b; font-size: 18px; font-weight: 600; text-decoration: none;">tapaway.co/${safeUsername}</a>
                         </p>
                       </td>
                     </tr>
                   </table>
                   
                   <!-- CTA Button -->
-                  <table width="100%" cellpadding="0" cellspacing="0">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
                     <tr>
                       <td align="center">
                         <a href="${dashboardUrl}" target="_blank" style="display: inline-block; padding: 16px 40px; background-color: #18181b; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -263,39 +258,53 @@ const generateUserWelcomeEmail = (data: PersonalWelcomeEmailRequest): string => 
                 </td>
               </tr>
               
-              <!-- What's Next Section -->
+              <!-- How to Use Section -->
               <tr>
                 <td style="padding: 0 32px 40px;">
                   <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e4e4e7; padding-top: 32px;">
                     <tr>
                       <td>
-                        <h3 style="margin: 0 0 20px; color: #18181b; font-size: 16px; font-weight: 600;">What happens next?</h3>
+                        <h3 style="margin: 0 0 20px; color: #18181b; font-size: 18px; font-weight: 600;">3 ways to start using your TapAway today:</h3>
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
-                            <td style="padding: 8px 0;">
-                              <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">1</span>
-                              <span style="color: #52525b; font-size: 14px;">Start sharing your link in bios and signatures now!</span>
+                            <td style="padding: 12px 0;">
+                              <span style="font-size: 20px; margin-right: 12px; vertical-align: middle;">📱</span>
+                              <span style="color: #18181b; font-size: 15px; font-weight: 600;">Link in Bio</span>
+                              <p style="margin: 4px 0 0 36px; color: #52525b; font-size: 14px; line-height: 1.5;">Add your TapAway URL to your Instagram, TikTok, and X bios to route followers exactly where you want them.</p>
                             </td>
                           </tr>
                           <tr>
-                            <td style="padding: 8px 0;">
-                              <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">2</span>
-                              <span style="color: #52525b; font-size: 14px;">We print your custom TapAway card</span>
+                            <td style="padding: 12px 0;">
+                              <span style="font-size: 20px; margin-right: 12px; vertical-align: middle;">✉️</span>
+                              <span style="color: #18181b; font-size: 15px; font-weight: 600;">Email Signature</span>
+                              <p style="margin: 4px 0 0 36px; color: #52525b; font-size: 14px; line-height: 1.5;">Drop your link at the bottom of your emails so clients and colleagues can easily connect with your work.</p>
                             </td>
                           </tr>
                           <tr>
-                            <td style="padding: 8px 0;">
-                              <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">3</span>
-                              <span style="color: #52525b; font-size: 14px;">Your card ships within 3-5 business days</span>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style="padding: 8px 0;">
-                              <span style="display: inline-block; width: 24px; height: 24px; background-color: #18181b; color: #ffffff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600; margin-right: 12px;">4</span>
-                              <span style="color: #52525b; font-size: 14px;">Tap your card to share your profile instantly</span>
+                            <td style="padding: 12px 0;">
+                              <span style="font-size: 20px; margin-right: 12px; vertical-align: middle;">🤝</span>
+                              <span style="color: #18181b; font-size: 15px; font-weight: 600;">QR Code Sharing</span>
+                              <p style="margin: 4px 0 0 36px; color: #52525b; font-size: 14px; line-height: 1.5;">Use the QR code in your dashboard to instantly share your profile at networking events or meetings.</p>
                             </td>
                           </tr>
                         </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- NFC Card Upsell -->
+              <tr>
+                <td style="padding: 0 32px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e4e4e7; padding-top: 32px; text-align: center;">
+                    <tr>
+                      <td>
+                        <p style="margin: 0 0 8px; color: #18181b; font-size: 16px; font-weight: 600;">Want to share your profile with a simple tap?</p>
+                        <p style="margin: 0 0 20px; color: #52525b; font-size: 14px; line-height: 1.6;">Level up your networking with our premium TapAway NFC cards. No apps required — just tap your card to someone's phone to instantly share your hub.</p>
+                        <a href="${pricingUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #ffffff; color: #18181b; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; border: 2px solid #18181b;">
+                          Shop Custom NFC Cards
+                        </a>
                       </td>
                     </tr>
                   </table>
@@ -354,7 +363,7 @@ const handler = async (req: Request): Promise<Response> => {
       const internalResult = await resend.emails.send({
         from: EMAIL_FROM,
         to: [INTERNAL_EMAIL_RECIPIENT],
-        subject: `New TapAway Personal Card Order — @${data.username}`,
+        subject: `New TapAway Personal Signup — @${data.username}`,
         html: internalHtml,
       });
       
@@ -371,7 +380,7 @@ const handler = async (req: Request): Promise<Response> => {
       const welcomeResult = await resend.emails.send({
         from: EMAIL_FROM,
         to: [data.email],
-        subject: "Welcome to TapAway 👋 Your card is being prepared",
+        subject: "Welcome to TapAway! 👋 Your new hub is live.",
         html: welcomeHtml,
       });
       

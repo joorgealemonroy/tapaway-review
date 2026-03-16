@@ -1,35 +1,24 @@
 
+# Personalize Step — Implemented ✅
 
-# Welcome Email Redesign
+## Changes Made
 
-## Changes
+### 1. Input UX — Empty values with placeholders
+- `getFriendlyValue()` now returns `""` for all types
+- Users see placeholder text via HTML `placeholder` attribute, type immediately
 
-**File: `supabase/functions/send-personal-welcome-emails/index.ts`**
+### 2. Display Mode — "both" default
+- `PersonalSignup.tsx`: vibe links default to `displayStyle: "both"`
+- `CheckoutStep.tsx`: DB insert defaults to `display_style: "both"`
 
-### 1. Update subject line (line 374)
-Change from `"Welcome to TapAway 👋 Your card is being prepared"` to `"Welcome to TapAway! 👋 Your new hub is live."`
+### 3. Immediate Storage Upload
+- `PersonalizeStep.tsx`: `handleCropComplete` uploads to `personal-link-images` bucket immediately
+- Only short public URLs stored in state — safe for sessionStorage/localStorage
 
-### 2. Rewrite `generateUserWelcomeEmail` (lines 193-323)
-Replace the entire user welcome email body:
+### 4. Half-Width Cover Images
+- Links with `gridSize === "half"` show a 1:1 image upload box
+- Separate file input ref for link cover images vs block images
 
-- **Header**: Keep logo + "Welcome to TapAway 👋"
-- **Intro paragraph**: Remove NFC card mention. Replace with: "Your personal profile is officially live and ready to be shared with the world. You now have a single, beautiful hub for all your content, links, and socials."
-- **Your Link box**: Keep the grey box with `tapaway.co/username` and the "Edit Your Profile" button
-- **Replace "What happens next?" section** with "How to use TapAway" containing 3 tips:
-  1. 📱 **Link in Bio** — Add your TapAway URL to Instagram, TikTok, and X bios
-  2. ✉️ **Email Signature** — Drop your link at the bottom of your emails
-  3. 🤝 **QR Code Sharing** — Use the QR code in your dashboard for networking events
-- **Add NFC Card upsell** below a divider: soft copy about tapping to share + a "Shop Custom NFC Cards" button linking to `${FRONTEND_URL}/personal/pricing`
-
-### 3. Update internal notification subject (line 357)
-Change from `"New TapAway Personal Card Order"` to `"New TapAway Personal Signup"` (no card is being ordered automatically)
-
-### 4. Deploy
-Redeploy the `send-personal-welcome-emails` edge function after changes.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `supabase/functions/send-personal-welcome-emails/index.ts` | Rewrite welcome email body, subject, and internal subject |
-
+### 5. Expanded "Add Block" Drawer
+- Link, Image, YouTube Video, Text, Featured Button
+- Inline editors for text (title + body), youtube (URL), button (label + URL)
