@@ -20,6 +20,7 @@ const VibeSelection = () => {
     align: "center",
     containScroll: false,
     skipSnaps: false,
+    duration: 30,
   });
 
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
