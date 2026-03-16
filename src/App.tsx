@@ -108,6 +108,7 @@ const App = () => (
                 <Route path="/" element={<Personal />} />
                 <Route path="/business" element={<Index />} />
                 <Route path="/personal" element={<Navigate to="/" replace />} />
+                <Route path="/personal/vibe" element={<VibeSelection />} />
                 <Route path="/personal/signup" element={<PersonalSignup />} />
                 <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
                 <Route path="/personal/dashboard" element={<PersonalDashboard />} />
