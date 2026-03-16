@@ -1533,6 +1533,7 @@ export type Database = {
           updated_at: string | null
           user_id: string
           username: string
+          vibe_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -1581,6 +1582,7 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           username: string
+          vibe_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -1629,6 +1631,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           username?: string
+          vibe_id?: string | null
         }
         Relationships: []
       }

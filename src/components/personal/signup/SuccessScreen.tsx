@@ -84,10 +84,11 @@ const AnimatedSparkle = () => (
   </motion.div>
 );
 
-export const SuccessScreen = ({ username, planType = "yearly" }: Props) => {
+export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentColor }: Props) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [building, setBuilding] = useState(true);
 
   const publicUsername = getPublicUsername(planType as any, username);
   const displayUrl = `tapaway.co/${publicUsername}`;
