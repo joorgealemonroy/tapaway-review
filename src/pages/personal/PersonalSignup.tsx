@@ -20,7 +20,6 @@ import { X } from "lucide-react";
 
 
 // Step components
-import { IdentityStep } from "@/components/personal/signup/IdentityStep";
 import { ClaimStep } from "@/components/personal/signup/ClaimStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
@@ -443,7 +442,7 @@ const PersonalSignup = () => {
               {stepTitles[currentStep as keyof typeof stepTitles]}
             </h1>
 
-            {currentStep === 1 && fromVibeFlow ? (
+            {currentStep === 1 && (
               <ClaimStep
                 formData={formData}
                 updateFormData={updateFormData}
@@ -455,18 +454,7 @@ const PersonalSignup = () => {
                 setIsOAuthUser={setIsOAuthUser}
                 vibeMetadata={vibeMetadata}
               />
-            ) : currentStep === 1 ? (
-              <IdentityStep
-                formData={formData}
-                updateFormData={updateFormData}
-                onNext={nextStep}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-                selectedPlan={selectedPlan}
-                isOAuthUser={isOAuthUser}
-                setIsOAuthUser={setIsOAuthUser}
-              />
-            ) : null}
+            )}
 
             {currentStep === 2 && (
               <LinksStep
