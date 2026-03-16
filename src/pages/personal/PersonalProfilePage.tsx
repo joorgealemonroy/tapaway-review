@@ -167,7 +167,7 @@ const ProfileLink = memo(function ProfileLink({
           {Icon && <Icon className={`h-4 w-4 ${config?.color || 'text-white'}`} />}
         </div>
         <div className="absolute bottom-2 left-2 right-2">
-          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide">
+          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide truncate">
             {link.label}
           </span>
         </div>
@@ -200,7 +200,7 @@ const ProfileLink = memo(function ProfileLink({
           {Icon && <Icon className={`h-5 w-5 ${config?.color || 'text-white'}`} />}
         </div>
         <div className="absolute bottom-3 left-3 right-3">
-          <span className="text-white font-bold text-lg drop-shadow-lg uppercase tracking-wide">
+          <span className="text-white font-bold text-lg drop-shadow-lg uppercase tracking-wide truncate">
             {link.label}
           </span>
         </div>
@@ -230,7 +230,7 @@ const ProfileLink = memo(function ProfileLink({
             {Icon && <Icon className={`h-7 w-7 ${customColor ? "text-white" : config?.color || "text-white"}`} />}
           </div>
           <div className="flex-1">
-            <span className={`text-lg font-semibold ${customColor ? "text-white" : config?.color || "text-white"}`}>
+            <span className={`text-lg font-semibold truncate ${customColor ? "text-white" : config?.color || "text-white"}`}>
               {link.label}
             </span>
             <p className={`text-sm opacity-80 ${customColor ? "text-white" : config?.color || "text-white"}`}>
@@ -268,7 +268,7 @@ const ProfileLink = memo(function ProfileLink({
           {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
+      <span className={`flex-1 font-medium truncate ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
         {link.label}
       </span>
       <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
@@ -1005,7 +1005,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Separate icon-style links from pill-style links
   // Icon links include both 'icon' and 'both' display styles
-  const iconLinks = links.filter((l: any) => l.is_active !== false && (l.display_style === 'icon' || l.display_style === 'both'));
+  const iconLinks = links.filter((l: any) => l.is_active !== false && l.url && l.url.trim() !== '' && (l.display_style === 'icon' || l.display_style === 'both'));
   // Pill links include everything except 'icon' only (so 'both' appears in both places)
   const pillLinks = links.filter((l: any) => l.is_active !== false && l.display_style !== 'icon');
 
