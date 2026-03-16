@@ -51,6 +51,7 @@ export interface PersonalOnboardingData {
   basicCardColor: string | null;
   isOAuthUser: boolean;
   selectedTemplate?: string | null;
+  vibeId?: string | null;
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
