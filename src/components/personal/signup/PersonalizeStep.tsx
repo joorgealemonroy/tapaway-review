@@ -203,11 +203,36 @@ export const PersonalizeStep = ({
       {/* Hidden file inputs */}
       <input ref={blockFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBlockFileChange} />
       <input ref={linkFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLinkFileChange} />
+      <input ref={avatarFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
 
       {/* Back button */}
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
+
+      {/* Avatar Upload */}
+      <div className="flex flex-col items-center mb-8">
+        <button
+          onClick={() => avatarFileInputRef.current?.click()}
+          disabled={uploading}
+          className="relative w-24 h-24 rounded-full border-2 border-dashed border-border hover:border-muted-foreground/40 transition-colors overflow-hidden group"
+          style={formData.profilePhotoUrl ? undefined : { borderColor: `${accent}40` }}
+        >
+          {formData.profilePhotoUrl ? (
+            <>
+              <img src={formData.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="h-5 w-5 text-white" />
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+              <Camera className="h-6 w-6 text-muted-foreground/40" />
+              <span className="text-[10px] text-muted-foreground/50 font-medium">Add Photo</span>
+            </div>
+          )}
+        </button>
+      </div>
 
       {/* Link inputs */}
       <div className="space-y-3">
