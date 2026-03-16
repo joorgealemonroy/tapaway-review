@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Plus, ArrowLeft, Rocket, ImagePlus, Link2, Type, Youtube, MousePointerClick } from "lucide-react";
+import { Check, X, Plus, ArrowLeft, Rocket, ImagePlus, Link2, Type, Youtube, MousePointerClick, Camera } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { SignupData } from "@/pages/personal/PersonalSignup";
 import { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
@@ -26,6 +26,7 @@ interface VibeMetadata {
 
 interface PersonalizeStepProps {
   formData: SignupData;
+  updateFormData: (updates: Partial<SignupData>) => void;
   updateLink: (id: string, updates: Partial<PersonalLink>) => void;
   removeLink: (id: string) => void;
   addLink: (link: Omit<PersonalLink, "id">) => void;
@@ -42,6 +43,7 @@ const HANDLE_TYPES = new Set(["instagram", "tiktok", "x", "threads", "snapchat",
 
 export const PersonalizeStep = ({
   formData,
+  updateFormData,
   updateLink,
   removeLink,
   addLink,
@@ -61,6 +63,9 @@ export const PersonalizeStep = ({
   const [uploading, setUploading] = useState(false);
   const blockFileInputRef = useRef<HTMLInputElement>(null);
   const linkFileInputRef = useRef<HTMLInputElement>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
+  const [avatarCropSrc, setAvatarCropSrc] = useState("");
   const accent = vibeMetadata?.accentColor || "hsl(var(--primary))";
   const glow = vibeMetadata?.glowColor || "transparent";
 
@@ -149,6 +154,24 @@ export const PersonalizeStep = ({
     setCropperOpen(false);
   };
 
+  // --- Avatar handling ---
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error("File too large (max 20MB)"); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setAvatarCropSrc(reader.result as string); setAvatarCropOpen(true); };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleAvatarCropComplete = async (blob: Blob) => {
+    const publicUrl = await uploadToStorage(blob);
+    if (!publicUrl) { setAvatarCropOpen(false); return; }
+    updateFormData({ profilePhotoUrl: publicUrl });
+    setAvatarCropOpen(false);
+  };
+
   // --- Add block helpers ---
   const handleAddImageBlock = () => {
     addBlock({ type: "image", content: { alt: "My Photo" }, sortOrder: formData.links.length + formData.blocks.length });
@@ -180,11 +203,36 @@ export const PersonalizeStep = ({
       {/* Hidden file inputs */}
       <input ref={blockFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBlockFileChange} />
       <input ref={linkFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLinkFileChange} />
+      <input ref={avatarFileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
 
       {/* Back button */}
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
+
+      {/* Avatar Upload */}
+      <div className="flex flex-col items-center mb-8">
+        <button
+          onClick={() => avatarFileInputRef.current?.click()}
+          disabled={uploading}
+          className="relative w-24 h-24 rounded-full border-2 border-dashed border-border hover:border-muted-foreground/40 transition-colors overflow-hidden group"
+          style={formData.profilePhotoUrl ? undefined : { borderColor: `${accent}40` }}
+        >
+          {formData.profilePhotoUrl ? (
+            <>
+              <img src={formData.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="h-5 w-5 text-white" />
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+              <Camera className="h-6 w-6 text-muted-foreground/40" />
+              <span className="text-[10px] text-muted-foreground/50 font-medium">Add Photo</span>
+            </div>
+          )}
+        </button>
+      </div>
 
       {/* Link inputs */}
       <div className="space-y-3">
@@ -433,6 +481,16 @@ export const PersonalizeStep = ({
         onCropComplete={handleCropComplete}
         aspectRatio={activeLinkId ? 1 : 16 / 9}
         cropShape={activeLinkId ? "round" : "rect"}
+      />
+
+      {/* Avatar Cropper */}
+      <ImageCropper
+        open={avatarCropOpen}
+        onOpenChange={setAvatarCropOpen}
+        imageSrc={avatarCropSrc}
+        onCropComplete={handleAvatarCropComplete}
+        aspectRatio={1}
+        cropShape="round"
       />
     </div>
   );

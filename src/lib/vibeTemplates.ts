@@ -30,6 +30,7 @@ export interface VibeTemplate {
   style: {
     bgColor: string;
     headerColor: string;
+    bgStyle: string;
   };
 }
 
@@ -54,7 +55,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     ],
     defaultBlocks: [],
     headerType: "color",
-    style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a" },
+    style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a", bgStyle: "linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)" },
   },
   {
     id: "bloom",
@@ -82,7 +83,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
       },
     ],
     headerType: "color",
-    style: { bgColor: "#FFF9F8", headerColor: "#FDE2E4" },
+    style: { bgColor: "#FFF9F8", headerColor: "#FDE2E4", bgStyle: "linear-gradient(180deg, #FDE2E4 0%, #FFF9F8 30%)" },
   },
   {
     id: "organic",
@@ -110,7 +111,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
       },
     ],
     headerType: "color",
-    style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d" },
+    style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d", bgStyle: "linear-gradient(180deg, #4a8c5c 0%, #f5f0e8 30%)" },
   },
   {
     id: "vogue",
@@ -142,7 +143,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
       },
     ],
     headerType: "color",
-    style: { bgColor: "#f5f0eb", headerColor: "#3d342c" },
+    style: { bgColor: "#f5f0eb", headerColor: "#3d342c", bgStyle: "linear-gradient(180deg, #3d342c 0%, #f5f0eb 30%)" },
   },
   {
     id: "neon",
@@ -164,7 +165,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     ],
     defaultBlocks: [],
     headerType: "color",
-    style: { bgColor: "#050505", headerColor: "#0a0a1a" },
+    style: { bgColor: "#050505", headerColor: "#0a0a1a", bgStyle: "linear-gradient(180deg, #0a0a1a 0%, #050505 100%)" },
   },
   {
     id: "elevate",
@@ -186,7 +187,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     ],
     defaultBlocks: [],
     headerType: "color",
-    style: { bgColor: "#ffffff", headerColor: "#1e3a5f" },
+    style: { bgColor: "#ffffff", headerColor: "#1e3a5f", bgStyle: "linear-gradient(180deg, #1e3a5f 0%, #ffffff 30%)" },
   },
   {
     id: "pure",
@@ -207,7 +208,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     ],
     defaultBlocks: [],
     headerType: "color",
-    style: { bgColor: "#ffffff", headerColor: "#333333" },
+    style: { bgColor: "#ffffff", headerColor: "#333333", bgStyle: "linear-gradient(180deg, #333333 0%, #ffffff 30%)" },
   },
 ];
 

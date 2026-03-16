@@ -52,6 +52,7 @@ export interface PersonalOnboardingData {
   isOAuthUser: boolean;
   selectedTemplate?: string | null;
   vibeId?: string | null;
+  bgStyle?: string | null;
 }
 
 const STORAGE_KEY = "tapaway_personal_draft";
@@ -80,6 +81,7 @@ const initialData: PersonalOnboardingData = {
   isOAuthUser: false,
   selectedTemplate: null,
   vibeId: null,
+  bgStyle: null,
 };
 
 export const usePersonalOnboarding = () => {

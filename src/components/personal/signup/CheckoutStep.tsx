@@ -495,6 +495,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         button_theme: formData.vibeId 
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
+        bg_style: (formData as any).bgStyle || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -741,6 +742,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         button_theme: formData.vibeId 
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
+        bg_style: (formData as any).bgStyle || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase
@@ -1059,6 +1061,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         button_theme: formData.vibeId 
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "glass" 
           : "glass",
+        bg_style: (formData as any).bgStyle || null,
       };
 
       const { data: profileResult, error: profileError } = await supabase

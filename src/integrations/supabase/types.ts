@@ -1498,6 +1498,7 @@ export type Database = {
           archived_header_type: string | null
           background_color: string | null
           banner_image_url: string | null
+          bg_style: string | null
           bio: string | null
           button_theme: string | null
           card_back_text: string | null
@@ -1547,6 +1548,7 @@ export type Database = {
           archived_header_type?: string | null
           background_color?: string | null
           banner_image_url?: string | null
+          bg_style?: string | null
           bio?: string | null
           button_theme?: string | null
           card_back_text?: string | null
@@ -1596,6 +1598,7 @@ export type Database = {
           archived_header_type?: string | null
           background_color?: string | null
           banner_image_url?: string | null
+          bg_style?: string | null
           bio?: string | null
           button_theme?: string | null
           card_back_text?: string | null

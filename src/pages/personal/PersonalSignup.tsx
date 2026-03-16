@@ -53,6 +53,7 @@ export interface SignupData {
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
   vibeId?: string | null;
+  bgStyle?: string | null;
 }
 
 function getFriendlyValue(_type: string): string {
@@ -225,6 +226,7 @@ const PersonalSignup = () => {
           headerColor: vibe.style.headerColor,
           backgroundColor: vibe.style.bgColor,
           vibeId: vibeId,
+          bgStyle: vibe.style.bgStyle,
         });
       }
       sessionStorage.removeItem("tapaway_selected_vibe");
@@ -470,6 +472,7 @@ const PersonalSignup = () => {
             {currentStep === 2 && fromVibeFlow ? (
               <PersonalizeStep
                 formData={formData}
+                updateFormData={updateFormData}
                 updateLink={updateLink}
                 removeLink={removeLink}
                 addLink={addLink}
