@@ -1270,7 +1270,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} />
+                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} />
                       ))}
                     </div>
                   );
