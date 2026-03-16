@@ -6,6 +6,7 @@ import {
   ExternalLink,
   Mail,
   Share2,
+  Smartphone,
   UserPlus
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";

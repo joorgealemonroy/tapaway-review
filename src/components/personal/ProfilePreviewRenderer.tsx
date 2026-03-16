@@ -352,8 +352,8 @@ function ProfilePreviewRendererComponent({
           <span className="flex-1 text-xs font-medium text-gray-700 truncate">{emailAddress}</span>
           <span className="flex items-center gap-1.5 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white flex-shrink-0">
             Connect
-            {profilePhotoUrl ? (
-              <img src={getOptimizedImageUrl(profilePhotoUrl, 40)} alt="" className="h-5 w-5 rounded-full object-cover" />
+            {profile.profile_photo_url ? (
+              <img src={getOptimizedImageUrl(profile.profile_photo_url, 40)} alt="" className="h-5 w-5 rounded-full object-cover" />
             ) : (
               <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center">
                 <Mail className="h-2.5 w-2.5 text-gray-300" />
