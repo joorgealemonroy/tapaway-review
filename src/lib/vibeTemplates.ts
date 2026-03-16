@@ -111,7 +111,7 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
       },
     ],
     headerType: "color",
-    style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d" },
+    style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d", bgStyle: "linear-gradient(180deg, #4a8c5c 0%, #f5f0e8 30%)" },
   },
   {
     id: "vogue",
