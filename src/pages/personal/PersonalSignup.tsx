@@ -22,6 +22,7 @@ import { X } from "lucide-react";
 // Step components
 import { ClaimStep } from "@/components/personal/signup/ClaimStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
+import { PersonalizeStep } from "@/components/personal/signup/PersonalizeStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
