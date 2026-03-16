@@ -1053,11 +1053,14 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
 
   // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
-  const isGradientBg = bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient');
+  const profileBgStyle = (profile as any).bg_style as string | null;
+  const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
   // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
-  const bgStyle = isGradientBg 
-    ? { background: bgColor } 
-    : { backgroundColor: bgColor };
+  const bgStyle = profileBgStyle
+    ? { background: profileBgStyle }
+    : isGradientBg 
+      ? { background: bgColor } 
+      : { backgroundColor: bgColor };
   const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
