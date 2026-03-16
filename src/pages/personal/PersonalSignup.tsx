@@ -442,7 +442,7 @@ const PersonalSignup = () => {
               {stepTitles[currentStep as keyof typeof stepTitles]}
             </h1>
 
-            {currentStep === 1 && fromVibeFlow ? (
+            {currentStep === 1 && (
               <ClaimStep
                 formData={formData}
                 updateFormData={updateFormData}
@@ -454,18 +454,7 @@ const PersonalSignup = () => {
                 setIsOAuthUser={setIsOAuthUser}
                 vibeMetadata={vibeMetadata}
               />
-            ) : currentStep === 1 ? (
-              <IdentityStep
-                formData={formData}
-                updateFormData={updateFormData}
-                onNext={nextStep}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-                selectedPlan={selectedPlan}
-                isOAuthUser={isOAuthUser}
-                setIsOAuthUser={setIsOAuthUser}
-              />
-            ) : null}
+            )}
 
             {currentStep === 2 && (
               <LinksStep
