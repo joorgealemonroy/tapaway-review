@@ -49,13 +49,9 @@ export const PersonalizeStep = ({
     updateLink(link.id, { value: newValue, url });
   };
 
-  const handleAddLink = (linkData: { type: string; label: string; url: string; value?: string }) => {
-    const platform = getPlatformConfig(linkData.type);
+  const handleAddLink = (link: Omit<PersonalLink, "id">) => {
     addLink({
-      type: linkData.type,
-      label: platform?.label || linkData.label,
-      value: linkData.value || "",
-      url: linkData.url || "",
+      ...link,
       sortOrder: formData.links.length,
     });
     setShowLinkModal(false);
