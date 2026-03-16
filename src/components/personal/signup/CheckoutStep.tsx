@@ -520,20 +520,26 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       if (formData.links.length > 0) {
         logCheckpoint("Creating links", { count: formData.links.length });
         
-        const linksToInsert = formData.links.map((link, index) => ({
-          profile_id: profileResult.id,
-          link_type: link.type,
-          label: link.label,
-          url: link.url,
-          sort_order: link.sortOrder ?? index,
-          is_active: true,
-          pill_color: link.pillColor || "#000000",
-          is_featured: link.isFeatured || false,
-          display_style: link.displayStyle || "pill",
-          cover_image_url: link.coverImageUrl || null,
-          grid_size: link.gridSize || null,
-          thumbnail_url: link.thumbnailUrl || null,
-        }));
+        const placeholderValues = ["@yourname", "@yourhandle", "you@email.com", "+1 (555) 000-0000", "yoursite.com", "yourname", ""];
+        const linksToInsert = formData.links.map((link, index) => {
+          const trimmedValue = (link.value || "").trim();
+          const isPlaceholder = trimmedValue === "" || placeholderValues.includes(trimmedValue) || placeholderValues.includes(trimmedValue.replace(/^@/, ""));
+          return {
+            profile_id: profileResult.id,
+            link_type: link.type,
+            label: link.label,
+            url: link.url,
+            sort_order: link.sortOrder ?? index,
+            is_active: true,
+            pill_color: link.pillColor || "#000000",
+            is_featured: link.isFeatured || false,
+            display_style: link.displayStyle || "pill",
+            cover_image_url: link.coverImageUrl || null,
+            grid_size: link.gridSize || null,
+            thumbnail_url: link.thumbnailUrl || null,
+            is_placeholder: isPlaceholder,
+          };
+        });
 
         const { error: linksError } = await supabase
           .from("personal_links")
@@ -550,14 +556,23 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       // Step 6b: Create blocks
       if (formData.blocks.length > 0) {
         logCheckpoint("Creating blocks", { count: formData.blocks.length });
-        const blocksToInsert = formData.blocks.map((block, index) => ({
-          profile_id: profileResult.id,
-          block_type: block.type,
-          content: block.content || {},
-          sort_order: block.sortOrder ?? index,
-          is_active: true,
-          alignment: (block.content as any)?.alignment || "center",
-        }));
+        const blocksToInsert = formData.blocks.map((block, index) => {
+          const content = block.content || {};
+          const hasRealContent = block.type === "image" 
+            ? !!(content as any)?.url 
+            : block.type === "text" 
+              ? !!(content as any)?.body && (content as any).body !== "Share your story and what inspires you."
+              : true;
+          return {
+            profile_id: profileResult.id,
+            block_type: block.type,
+            content,
+            sort_order: block.sortOrder ?? index,
+            is_active: true,
+            alignment: (content as any)?.alignment || "center",
+            is_placeholder: !hasRealContent,
+          };
+        });
 
         const { error: blocksError } = await supabase
           .from("personal_blocks")

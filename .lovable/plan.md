@@ -1,57 +1,28 @@
 
 
-# "Obsidian" Save & Polish
+# Vibe-Synced Identity Step
 
-## Overview
-Enhance the PersonalizeStep with smart input UX, image block support, `is_placeholder` tracking, and a bottom-sheet "Add Block" menu.
+## Changes
 
-## 1. Database Migration
+### 1. `src/components/personal/signup/ClaimStep.tsx` — Major UI upgrade
+- **Vibe glow background**: On mount, read `tapaway_selected_vibe` from sessionStorage (before it's cleared by PersonalSignup). Store the vibe's `glowColor` and `name` in local state. Render a full-page radial gradient overlay using that color at ~15% opacity.
+- **"← Change Vibe" button**: Top-left ghost button with low-opacity text. Navigates to `/personal/vibe` and clears `tapaway_selected_vibe` from sessionStorage.
+- **Vibe label**: Small muted text above the title: `Selected Style: [Vibe Name]`.
+- **Cycling placeholder**: Use a `useEffect` interval that rotates the username input placeholder through `["artist", "founder", "creator", "vlogger"]` every 2 seconds.
+- **Accent-colored validation**: When `usernameStatus === "available"`, apply a one-time border pulse using the vibe's `accentColor` (CSS animation). The "Available!" micro-win text uses the vibe's accent instead of hardcoded green.
+- **OAuth buttons**: Set to `w-full` matching the username input width (already the case, but ensure `h-14` matches the input height for stacked alignment).
+- **Vertical centering on mobile**: Wrap content in `min-h-[calc(100vh-120px)] flex flex-col justify-center` to avoid bottom-heavy layout.
 
-Add `is_placeholder` to both `personal_links` and `personal_blocks`:
+### 2. `src/pages/personal/PersonalSignup.tsx` — Pass vibe data to ClaimStep
+- The vibe is currently consumed and cleared from sessionStorage in an effect. Before clearing, store the vibe's `glowColor`, `name`, and `accentColor` in component state (`vibeMetadata`).
+- Pass `vibeMetadata` as a new prop to `ClaimStep`.
+- The vibe template data (links, blocks, colors) is already being saved to onboarding state and persisted to the profile during checkout — no additional "save logic" changes needed since `bgColor`, `headerColor`, and `backgroundColor` are already mapped from the template's `style` object in the existing vibe consumption effect.
 
-```sql
-ALTER TABLE public.personal_links ADD COLUMN is_placeholder boolean NOT NULL DEFAULT false;
-ALTER TABLE public.personal_blocks ADD COLUMN is_placeholder boolean NOT NULL DEFAULT false;
-```
+### 3. `src/lib/vibeTemplates.ts` — No changes needed
+The `glowColor` and `mockupTheme.accent` fields already exist on all templates.
 
-## 2. Data Persistence — Mark Placeholders on Insert
-
-**`src/components/personal/signup/CheckoutStep.tsx`** (~line 523-536, ~line 553-559)
-- Add `is_placeholder: true` to each link/block inserted during signup when the value matches a default placeholder (`@yourname`, `you@email.com`, etc.)
-- Use the existing `DEFAULT_PLACEHOLDERS` check from PersonalizeStep
-
-## 3. Smart Input UX — `PersonalizeStep.tsx` Overhaul
-
-Replace the current input rendering with:
-
-- **Fixed `@` prefix** for social-type inputs: render a non-editable `@` span to the left of the input. Strip `@` from the stored value on change so it doesn't double up.
-- **Auto-select on focus**: add `onFocus={(e) => e.target.select()}` to each input so typing instantly replaces placeholders.
-- **Faded placeholder styling**: when `isRealValue()` is false, apply `opacity-50` to the input text.
-
-## 4. Image Block Support
-
-When the vibe has `defaultBlocks` with `type: "image"` (e.g., Vogue), render an "Add a Picture" card in the PersonalizeStep below the link inputs.
-
-- Show a dashed-border upload area with a camera/image icon
-- On click, open a file picker → pipe to the existing `ImageCropper` component (rect aspect, 16:9)
-- Store the cropped image as a data URL in the block's `content.url` field in onboarding state
-- On final save (CheckoutStep), upload to `personal-link-images` storage bucket and update the block's content
-
-## 5. Bottom Drawer for "Add Another Block"
-
-Replace the `+ Add another link` text button with `+ Add another block`:
-- On tap, open a `Drawer` (from `@/components/ui/drawer`) with two options:
-  - **Add a Link** — opens existing `LinkModal`
-  - **Add a Picture Block** — adds an image block to `formData.blocks` and scrolls to it
-
-## 6. Files to Modify
-
-| File | Change |
-|------|--------|
-| **Migration** | Add `is_placeholder` to `personal_links` and `personal_blocks` |
-| `src/components/personal/signup/PersonalizeStep.tsx` | Fixed `@` prefix, auto-select, opacity styling, image block rendering, bottom drawer |
-| `src/components/personal/signup/CheckoutStep.tsx` | Set `is_placeholder` on link/block inserts |
-| `src/hooks/usePersonalOnboarding.ts` | No changes needed — blocks already tracked in state |
-
-No real-time Supabase sync during onboarding (profile doesn't exist yet). The `is_placeholder` flag enables the dashboard to show "Click to edit" indicators post-signup.
+## Technical notes
+- The vibe accent color for the input pulse will use a CSS `@keyframes` animation injected via inline style or a Tailwind `animate-` class with a custom keyframe in `index.css`.
+- The cycling placeholder uses `useState` + `setInterval` with cleanup.
+- No database changes — vibe style fields are already persisted via the existing onboarding flow.
 

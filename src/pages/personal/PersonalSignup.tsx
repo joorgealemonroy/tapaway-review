@@ -475,6 +475,9 @@ const PersonalSignup = () => {
                 updateLink={updateLink}
                 removeLink={removeLink}
                 addLink={addLink}
+                addBlock={addBlock}
+                updateBlock={updateBlock}
+                removeBlock={removeBlock}
                 onNext={nextStep}
                 onBack={prevStep}
                 vibeMetadata={vibeMetadata}

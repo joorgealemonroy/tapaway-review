@@ -1329,6 +1329,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_archived: boolean | null
+          is_placeholder: boolean
           profile_id: string
           sort_order: number
         }
@@ -1340,6 +1341,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_archived?: boolean | null
+          is_placeholder?: boolean
           profile_id: string
           sort_order?: number
         }
@@ -1351,6 +1353,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_archived?: boolean | null
+          is_placeholder?: boolean
           profile_id?: string
           sort_order?: number
         }
@@ -1426,6 +1429,7 @@ export type Database = {
           is_active: boolean | null
           is_archived: boolean | null
           is_featured: boolean | null
+          is_placeholder: boolean
           label: string
           link_type: string
           pill_color: string | null
@@ -1443,6 +1447,7 @@ export type Database = {
           is_active?: boolean | null
           is_archived?: boolean | null
           is_featured?: boolean | null
+          is_placeholder?: boolean
           label: string
           link_type: string
           pill_color?: string | null
@@ -1460,6 +1465,7 @@ export type Database = {
           is_active?: boolean | null
           is_archived?: boolean | null
           is_featured?: boolean | null
+          is_placeholder?: boolean
           label?: string
           link_type?: string
           pill_color?: string | null
