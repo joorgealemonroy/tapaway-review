@@ -539,7 +539,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             url: link.url,
             sort_order: link.sortOrder ?? index,
             is_active: true,
-            pill_color: link.pillColor || "#000000",
+            pill_color: link.pillColor || (formData.vibeId ? getVibeTemplate(formData.vibeId)?.mockupTheme.accent || "#000000" : "#000000"),
             is_featured: link.isFeatured || false,
             display_style: link.displayStyle || "both",
             cover_image_url: link.coverImageUrl || null,
