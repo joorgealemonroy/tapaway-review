@@ -166,8 +166,54 @@ const PersonalSignup = () => {
   // Detect card-activation users and VIP cards
   const fromCardActivation = !!searchParams.get("card") || sessionStorage.getItem("tapaway_card_preauthed") === "true";
   const isVipCard = sessionStorage.getItem("tapaway_card_vip") === "true";
-  const effectiveSteps = hasImportedProfile ? [1, 3] : [1, 2, 3];
+  const effectiveSteps = (hasImportedProfile || fromVibeFlow) ? [1, 3] : [1, 2, 3];
   const totalSteps = effectiveSteps.length;
+
+  // Consume vibe template from sessionStorage
+  const [vibeApplied, setVibeApplied] = useState(false);
+  useEffect(() => {
+    if (vibeApplied) return;
+    const vibeParam = searchParams.get("vibe");
+    const vibeId = sessionStorage.getItem("tapaway_selected_vibe");
+    if (vibeParam && vibeId) {
+      const vibe = getVibeTemplate(vibeId);
+      if (vibe) {
+        setFromVibeFlow(true);
+        update({ links: [], blocks: [] });
+
+        vibe.defaultLinks.forEach((l, i) => {
+          addLink({
+            type: l.type,
+            label: l.label,
+            value: "",
+            url: "",
+            sortOrder: l.sortOrder ?? i,
+            displayStyle: l.displayStyle,
+            pillColor: l.pillColor,
+            gridSize: l.gridSize,
+            isFeatured: l.isFeatured,
+            placeholder: l.placeholder,
+          });
+        });
+
+        vibe.defaultBlocks.forEach((b, i) => {
+          addBlock({
+            type: b.type,
+            content: b.content,
+            sortOrder: b.sortOrder ?? i,
+          });
+        });
+
+        update({
+          headerType: vibe.headerType,
+          headerColor: vibe.style.headerColor,
+          backgroundColor: vibe.style.bgColor,
+        });
+      }
+      sessionStorage.removeItem("tapaway_selected_vibe");
+    }
+    setVibeApplied(true);
+  }, [vibeApplied, searchParams, addLink, addBlock, update]);
 
   // Auto-select free plan for card-activation users if no plan was pre-selected
   useEffect(() => {
