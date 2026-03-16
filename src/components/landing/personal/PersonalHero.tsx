@@ -102,7 +102,7 @@ export const PersonalHero = () => {
                   to="/personal/vibe"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background font-bold text-base shadow-lg shadow-foreground/20 hover:shadow-xl transition-all">
 
-                  Create Your Own!
+                  Claim Your Free Link
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
