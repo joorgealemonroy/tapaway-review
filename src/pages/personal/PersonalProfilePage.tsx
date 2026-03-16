@@ -167,7 +167,7 @@ const ProfileLink = memo(function ProfileLink({
           {Icon && <Icon className={`h-4 w-4 ${config?.color || 'text-white'}`} />}
         </div>
         <div className="absolute bottom-2 left-2 right-2">
-          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide">
+          <span className="text-white font-bold text-sm drop-shadow-lg uppercase tracking-wide truncate">
             {link.label}
           </span>
         </div>
