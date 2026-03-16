@@ -4,8 +4,8 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   CheckCircle2,
   ExternalLink,
+  Mail,
   Share2,
-  Smartphone,
   UserPlus
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
