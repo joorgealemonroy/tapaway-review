@@ -92,7 +92,7 @@ export const PersonalHero = () => {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Zap className="w-4 h-4 text-primary" />
-                <span>Set up in minutes</span>
+                <span>Unlimited custom links</span>
               </div>
             </div>
 
