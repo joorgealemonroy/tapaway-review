@@ -162,8 +162,8 @@ export const PersonalizeStep = ({
       {/* Link Modal */}
       <LinkModal
         open={showLinkModal}
-        onClose={() => setShowLinkModal(false)}
-        onSave={handleAddLink}
+        onOpenChange={setShowLinkModal}
+        onAdd={handleAddLink}
         existingTypes={formData.links.map((l) => l.type)}
       />
     </div>
