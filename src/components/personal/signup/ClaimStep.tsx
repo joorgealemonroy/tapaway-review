@@ -29,7 +29,7 @@ interface Props {
   vibeMetadata?: VibeMetadata | null;
 }
 
-const PLACEHOLDERS = ["artist", "founder", "creator", "vlogger"];
+const PLACEHOLDERS = ["paul", "sarah", "justin", "blake", "maya", "jake"];
 
 export const ClaimStep = ({
   formData,
@@ -54,12 +54,13 @@ export const ClaimStep = ({
 
   const prefix = selectedPlan === "free" ? "tap" : "";
   const accentColor = vibeMetadata?.accentColor || "#22c55e";
+  const glowColor = vibeMetadata?.glowColor || "transparent";
 
-  // Cycling placeholder
+  // Cycling placeholder — 1.5s interval
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIdx((prev) => (prev + 1) % PLACEHOLDERS.length);
-    }, 2000);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -179,7 +180,7 @@ export const ClaimStep = ({
   const emailFormValid = usernameReady && formData.fullName.length >= 2 && formData.email.includes("@") && (formData.password?.length || 0) >= 8;
 
   return (
-    <div className="relative min-h-[calc(100vh-120px)] flex flex-col justify-center">
+    <div className="relative pt-2">
       {/* Vibe glow background */}
       {vibeMetadata && (
         <div
@@ -190,24 +191,25 @@ export const ClaimStep = ({
         />
       )}
 
-      <div className="relative z-10 space-y-6">
-        {/* Change Vibe button */}
+      <div className="relative z-10 max-w-[400px] mx-auto space-y-4">
+        {/* Vibe indicator row — compact inline */}
         {vibeMetadata && (
-          <button
-            onClick={handleChangeVibe}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors -mt-2 mb-1"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Change Vibe
-          </button>
+          <div className="flex items-center justify-between text-xs opacity-60">
+            <button
+              onClick={handleChangeVibe}
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Change Vibe
+            </button>
+            <span className="text-muted-foreground tracking-wide uppercase">
+              Style: {vibeMetadata.name}
+            </span>
+          </div>
         )}
 
-        {/* Vibe label */}
-        {vibeMetadata && (
-          <p className="text-xs text-muted-foreground tracking-wide uppercase">
-            Selected Style: {vibeMetadata.name}
-          </p>
-        )}
+        {/* Title */}
+        <h2 className="text-xl font-bold text-foreground">Create your TapAway</h2>
 
         {/* Username — front and center */}
         <div className="space-y-3">
@@ -227,9 +229,11 @@ export const ClaimStep = ({
                 updateFormData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })
               }
               className={`h-14 text-lg font-medium ${prefix ? "pl-[8.5rem]" : "pl-[7.25rem]"} transition-shadow duration-300`}
-              style={showPulse ? {
-                boxShadow: `0 0 0 2px ${accentColor}`,
-              } : undefined}
+              style={{
+                boxShadow: showPulse
+                  ? `0 0 0 2px ${accentColor}`
+                  : `0 0 20px ${glowColor}33`,
+              }}
               autoFocus
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -264,10 +268,10 @@ export const ClaimStep = ({
         <AnimatePresence>
           {usernameReady && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="space-y-4"
             >
               {isOAuthUser ? (

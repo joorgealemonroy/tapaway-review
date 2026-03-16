@@ -35,8 +35,8 @@ export interface VibeTemplate {
 
 export const VIBE_TEMPLATES: VibeTemplate[] = [
   {
-    id: "artemis",
-    name: "Artemis",
+    id: "pure",
+    name: "Pure",
     subtitle: "Minimalist",
     glowColor: "#888888",
     mockupTheme: {
@@ -56,8 +56,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#ffffff", headerColor: "#333333" },
   },
   {
-    id: "balcombe",
-    name: "Balcombe",
+    id: "organic",
+    name: "Organic",
     subtitle: "Botanical",
     glowColor: "#4a8c5c",
     mockupTheme: {
@@ -84,8 +84,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#f5f0e8", headerColor: "#2d5a3d" },
   },
   {
-    id: "boultont",
-    name: "Boultont",
+    id: "obsidian",
+    name: "Obsidian",
     subtitle: "Premium",
     glowColor: "#c9a96e",
     mockupTheme: {
@@ -106,8 +106,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a" },
   },
   {
-    id: "cyber",
-    name: "Cyber",
+    id: "neon",
+    name: "Neon",
     subtitle: "Neon Glow",
     glowColor: "#bf00ff",
     mockupTheme: {
@@ -128,8 +128,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#0a0a0a", headerColor: "#1a0a2e" },
   },
   {
-    id: "editorial",
-    name: "Editorial",
+    id: "vogue",
+    name: "Vogue",
     subtitle: "Classic & Elegant",
     glowColor: "#c4a882",
     mockupTheme: {
@@ -160,8 +160,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#f5f0eb", headerColor: "#3d342c" },
   },
   {
-    id: "corporate",
-    name: "Corporate",
+    id: "elevate",
+    name: "Elevate",
     subtitle: "Professional",
     glowColor: "#3b6ba5",
     mockupTheme: {
