@@ -43,6 +43,7 @@ const HANDLE_TYPES = new Set(["instagram", "tiktok", "x", "threads", "snapchat",
 
 export const PersonalizeStep = ({
   formData,
+  updateFormData,
   updateLink,
   removeLink,
   addLink,

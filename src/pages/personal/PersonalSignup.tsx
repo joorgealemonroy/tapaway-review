@@ -472,6 +472,7 @@ const PersonalSignup = () => {
             {currentStep === 2 && fromVibeFlow ? (
               <PersonalizeStep
                 formData={formData}
+                updateFormData={updateFormData}
                 updateLink={updateLink}
                 removeLink={removeLink}
                 addLink={addLink}
