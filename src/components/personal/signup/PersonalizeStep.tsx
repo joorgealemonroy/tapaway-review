@@ -26,6 +26,7 @@ interface VibeMetadata {
 
 interface PersonalizeStepProps {
   formData: SignupData;
+  updateFormData: (updates: Partial<SignupData>) => void;
   updateLink: (id: string, updates: Partial<PersonalLink>) => void;
   removeLink: (id: string) => void;
   addLink: (link: Omit<PersonalLink, "id">) => void;
