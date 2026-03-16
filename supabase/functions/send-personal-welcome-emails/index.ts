@@ -380,7 +380,7 @@ const handler = async (req: Request): Promise<Response> => {
       const welcomeResult = await resend.emails.send({
         from: EMAIL_FROM,
         to: [data.email],
-        subject: "Welcome to TapAway 👋 Your card is being prepared",
+        subject: "Welcome to TapAway! 👋 Your new hub is live.",
         html: welcomeHtml,
       });
       
