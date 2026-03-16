@@ -106,8 +106,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#1a1a1a", headerColor: "#2a2a2a" },
   },
   {
-    id: "cyber",
-    name: "Cyber",
+    id: "neon",
+    name: "Neon",
     subtitle: "Neon Glow",
     glowColor: "#bf00ff",
     mockupTheme: {
