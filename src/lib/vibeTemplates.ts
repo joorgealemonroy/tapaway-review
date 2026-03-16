@@ -56,8 +56,8 @@ export const VIBE_TEMPLATES: VibeTemplate[] = [
     style: { bgColor: "#ffffff", headerColor: "#333333" },
   },
   {
-    id: "balcombe",
-    name: "Balcombe",
+    id: "organic",
+    name: "Organic",
     subtitle: "Botanical",
     glowColor: "#4a8c5c",
     mockupTheme: {
