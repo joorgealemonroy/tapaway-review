@@ -1239,9 +1239,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           ) : (
             // Standard mode: Current styling
             <>
-              <h1 className={`text-2xl font-bold ${headingClass}`}>{profile.full_name}</h1>
+              <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
               {profile.headline && (
-                <p className={`text-sm ${textClass} mt-1`}>{profile.headline}</p>
+                <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}
               <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
               {profile.is_founding_user && profile.show_founding_badge && (
