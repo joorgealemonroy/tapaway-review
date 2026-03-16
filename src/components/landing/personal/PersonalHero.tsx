@@ -108,9 +108,6 @@ export const PersonalHero = () => {
               </motion.div>
             </div>
 
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Free plan available • Pro from $6.25/mo
-            </p>
 
             <Link
               to="/import"
