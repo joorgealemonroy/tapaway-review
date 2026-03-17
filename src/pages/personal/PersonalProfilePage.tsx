@@ -255,7 +255,7 @@ const ProfileLink = memo(function ProfileLink({
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
         customColor 
-          ? "" 
+          ? "border border-black/10 shadow-sm" 
           : config?.gradient || config?.bgColor || "bg-card border border-border"
       }`}
       style={customColor ? { backgroundColor: customColor } : undefined}
@@ -268,13 +268,14 @@ const ProfileLink = memo(function ProfileLink({
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
           customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
         }`}>
-          {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
+          {Icon && <Icon className="h-6 w-6" style={{ color: customColor ? buttonTextColor : undefined }} />}
+          {Icon && !customColor && <span className="hidden" />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
+      <span className="flex-1 font-medium truncate" style={{ color: customColor ? buttonTextColor : undefined }}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
+      <ExternalLink className="h-4 w-4 opacity-60" style={{ color: customColor ? buttonTextColor : undefined }} />
     </a>
   );
 });
