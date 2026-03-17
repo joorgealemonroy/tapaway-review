@@ -1,24 +1,36 @@
 
-# Personalize Step — Implemented ✅
 
-## Changes Made
+# Fix Invisible Links & Add Color Fallbacks
 
-### 1. Input UX — Empty values with placeholders
-- `getFriendlyValue()` now returns `""` for all types
-- Users see placeholder text via HTML `placeholder` attribute, type immediately
+Three changes in `src/pages/personal/PersonalProfilePage.tsx`:
 
-### 2. Display Mode — "both" default
-- `PersonalSignup.tsx`: vibe links default to `displayStyle: "both"`
-- `CheckoutStep.tsx`: DB insert defaults to `display_style: "both"`
+## 1. Safe text color fallback for legacy profiles (line ~1079-1085)
 
-### 3. Immediate Storage Upload
-- `PersonalizeStep.tsx`: `handleCropComplete` uploads to `personal-link-images` bucket immediately
-- Only short public URLs stored in state — safe for sessionStorage/localStorage
+Currently `profileTextColor` can be `null`, falling back to `isDarkBg` logic which works — but when `isDarkBg` misdetects (gradient edge cases), text vanishes. Add a guaranteed fallback:
 
-### 4. Half-Width Cover Images
-- Links with `gridSize === "half"` show a 1:1 image upload box
-- Separate file input ref for link cover images vs block images
+```ts
+const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+```
 
-### 5. Expanded "Add Block" Drawer
-- Link, Image, YouTube Video, Text, Featured Button
-- Inline editors for text (title + body), youtube (URL), button (label + URL)
+Apply `safeTextColor` to `headingStyle`, `textStyle`, and pass it through to blocks/links so nothing is ever unstyled.
+
+## 2. Button visibility guarantee in `ProfileLink` (lines ~219-276)
+
+Add `border border-black/10 shadow-sm` to both featured and regular link containers so buttons are always distinguishable from background, even when `customColor` matches `bgColor`.
+
+- Featured links (line ~219): add `border border-black/10 shadow-sm` to the className
+- Regular links (line ~253): add `border border-black/10 shadow-sm` when `customColor` is set
+
+## 3. Dynamic button text contrast in `ProfileLink`
+
+Currently all custom-colored buttons hardcode `text-white` for labels and icons. Add a contrast check using the existing `isColorDark()` helper:
+
+```ts
+const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
+```
+
+Replace all `customColor ? "text-white"` references (lines ~230, 233, 236, 240, 268, 271, 274) with inline `style={{ color: buttonTextColor }}` so both text and icons adapt to light/dark button backgrounds.
+
+## Files Modified
+- `src/pages/personal/PersonalProfilePage.tsx` — all changes in one file
+
