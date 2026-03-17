@@ -267,14 +267,13 @@ const ProfileLink = memo(function ProfileLink({
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
           customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
         }`}>
-          {Icon && <Icon className="h-6 w-6" style={{ color: customColor ? buttonTextColor : undefined }} />}
-          {Icon && !customColor && <span className="hidden" />}
+          {Icon && <Icon className={`h-6 w-6 ${customColor ? "" : config?.color || "text-primary"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
         </div>
       )}
-      <span className="flex-1 font-medium truncate" style={{ color: customColor ? buttonTextColor : undefined }}>
+      <span className={`flex-1 font-medium truncate ${customColor ? "" : config?.color || "text-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined}>
         {link.label}
       </span>
-      <ExternalLink className="h-4 w-4 opacity-60" style={{ color: customColor ? buttonTextColor : undefined }} />
+      <ExternalLink className={`h-4 w-4 opacity-60 ${customColor ? "" : config?.color || "text-muted-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined} />
     </a>
   );
 });
