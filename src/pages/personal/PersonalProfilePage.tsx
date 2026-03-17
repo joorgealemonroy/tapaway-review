@@ -116,6 +116,8 @@ const ProfileLink = memo(function ProfileLink({
   // Use pill_color, fall back to accentColor (vibe theme), then platform default
   const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (accentColor || link.pill_color);
   const coverImage = link.cover_image_url;
+  // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
+  const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
 
   // Email link — inline bar with email address + Connect button
   if (link.link_type === "email") {
@@ -216,7 +218,7 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${
+        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg border border-black/10 ${
           customColor 
             ? "" 
             : config?.gradient || config?.bgColor || "bg-primary"
@@ -227,17 +229,17 @@ const ProfileLink = memo(function ProfileLink({
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
             customColor ? "bg-white/20" : "bg-white/20"
           }`}>
-            {Icon && <Icon className={`h-7 w-7 ${customColor ? "text-white" : config?.color || "text-white"}`} />}
+            {Icon && <Icon className={`h-7 w-7 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
           </div>
           <div className="flex-1">
-            <span className={`text-lg font-semibold truncate ${customColor ? "text-white" : config?.color || "text-white"}`}>
+            <span className={`text-lg font-semibold truncate ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
               {link.label}
             </span>
-            <p className={`text-sm opacity-80 ${customColor ? "text-white" : config?.color || "text-white"}`}>
+            <p className={`text-sm opacity-80 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
               Tap to open
             </p>
           </div>
-          <ExternalLink className={`h-5 w-5 ${customColor ? "text-white" : config?.color || "text-white"} opacity-70`} />
+          <ExternalLink className={`h-5 w-5 opacity-70 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />
         </div>
       </a>
     );
@@ -252,7 +254,7 @@ const ProfileLink = memo(function ProfileLink({
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
         customColor 
-          ? "" 
+          ? "border border-black/10 shadow-sm" 
           : config?.gradient || config?.bgColor || "bg-card border border-border"
       }`}
       style={customColor ? { backgroundColor: customColor } : undefined}
@@ -265,13 +267,13 @@ const ProfileLink = memo(function ProfileLink({
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
           customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
         }`}>
-          {Icon && <Icon className={`h-6 w-6 ${customColor ? "text-white" : config?.color || "text-primary"}`} />}
+          {Icon && <Icon className={`h-6 w-6 ${customColor ? "" : config?.color || "text-primary"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${customColor ? "text-white" : config?.color || "text-foreground"}`}>
+      <span className={`flex-1 font-medium truncate ${customColor ? "" : config?.color || "text-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${customColor ? "text-white" : config?.color || "text-muted-foreground"} opacity-60`} />
+      <ExternalLink className={`h-4 w-4 opacity-60 ${customColor ? "" : config?.color || "text-muted-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined} />
     </a>
   );
 });
@@ -1078,10 +1080,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // against the inline background, regardless of system dark/light mode
   const profileTextColor = (profile as any).text_color as string | null;
   const profileAccentColor = (profile as any).button_theme as string | null;
+  // Guaranteed fallback so legacy profiles (null text_color) never have invisible text
+  const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
   const headingClass = profileTextColor ? "" : (isDarkBg ? "text-white" : "text-gray-900");
-  const headingStyle = profileTextColor ? { color: profileTextColor } : undefined;
+  const headingStyle = { color: safeTextColor };
   const textClass = profileTextColor ? "" : (isDarkBg ? "text-white/80" : "text-gray-800");
-  const textStyle = profileTextColor ? { color: profileTextColor, opacity: 0.85 } : undefined;
+  const textStyle = { color: safeTextColor, opacity: 0.85 };
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
