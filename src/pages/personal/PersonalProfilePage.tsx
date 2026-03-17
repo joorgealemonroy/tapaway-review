@@ -1078,10 +1078,12 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
   // against the inline background, regardless of system dark/light mode
   const profileTextColor = (profile as any).text_color as string | null;
   const profileAccentColor = (profile as any).button_theme as string | null;
+  // Guaranteed fallback so legacy profiles (null text_color) never have invisible text
+  const safeTextColor = profileTextColor || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
   const headingClass = profileTextColor ? "" : (isDarkBg ? "text-white" : "text-gray-900");
-  const headingStyle = profileTextColor ? { color: profileTextColor } : undefined;
+  const headingStyle = { color: safeTextColor };
   const textClass = profileTextColor ? "" : (isDarkBg ? "text-white/80" : "text-gray-800");
-  const textStyle = profileTextColor ? { color: profileTextColor, opacity: 0.85 } : undefined;
+  const textStyle = { color: safeTextColor, opacity: 0.85 };
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
 
   // Calculate fade color for header transition
