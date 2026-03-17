@@ -888,25 +888,6 @@ const Onboarding = () => {
           </motion.form>
         )}
 
-              {/* Password */}
-              <div>
-                <Label htmlFor="password">Create a Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
-                  placeholder="At least 8 characters"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Must be 8+ characters with a letter and number
-                </p>
-                {passwordError && (
-                  <p className="text-sm text-destructive mt-1">{passwordError}</p>
-                )}
-              </div>
-
-
 
         {/* Step 3: Google Business */}
         {viewState === "google" && (
