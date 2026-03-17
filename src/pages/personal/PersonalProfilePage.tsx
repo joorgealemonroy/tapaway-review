@@ -218,7 +218,7 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${
+        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg border border-black/10 ${
           customColor 
             ? "" 
             : config?.gradient || config?.bgColor || "bg-primary"
@@ -229,17 +229,18 @@ const ProfileLink = memo(function ProfileLink({
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
             customColor ? "bg-white/20" : "bg-white/20"
           }`}>
-            {Icon && <Icon className={`h-7 w-7 ${customColor ? "text-white" : config?.color || "text-white"}`} />}
+            {Icon && <Icon className="h-7 w-7" style={{ color: customColor ? buttonTextColor : undefined }} />}
+            {Icon && !customColor && <span className="hidden" />}
           </div>
           <div className="flex-1">
-            <span className={`text-lg font-semibold truncate ${customColor ? "text-white" : config?.color || "text-white"}`}>
+            <span className="text-lg font-semibold truncate" style={{ color: customColor ? buttonTextColor : undefined }}>
               {link.label}
             </span>
-            <p className={`text-sm opacity-80 ${customColor ? "text-white" : config?.color || "text-white"}`}>
+            <p className="text-sm opacity-80" style={{ color: customColor ? buttonTextColor : undefined }}>
               Tap to open
             </p>
           </div>
-          <ExternalLink className={`h-5 w-5 ${customColor ? "text-white" : config?.color || "text-white"} opacity-70`} />
+          <ExternalLink className="h-5 w-5 opacity-70" style={{ color: customColor ? buttonTextColor : undefined }} />
         </div>
       </a>
     );
