@@ -97,13 +97,9 @@ const Onboarding = () => {
     phone: "",
   });
   
-  // Password state (collected at OTP step)
+  // Password state (collected at Step 1)
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  
-  // OTP state
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState<string | null>(null);
   
   // Logo state
   const [logoFile, setLogoFile] = useState<File | null>(null);
