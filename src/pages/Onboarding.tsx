@@ -878,9 +878,9 @@ const Onboarding = () => {
               </div>
             </Card>
 
-            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+            <Button type="submit" disabled={isLoading || password.length < 8} className="w-full h-12 text-lg">
               {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Sending code...</>
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Creating account...</>
               ) : (
                 <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
               )}
