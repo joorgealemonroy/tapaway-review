@@ -70,9 +70,9 @@ const US_STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
-const ONBOARDING_STEPS = ["Your info", "Verify email", "Connect Google", "Finish"];
+const ONBOARDING_STEPS = ["Your info", "Connect Google", "Finish"];
 
-type ViewState = "form" | "otp" | "google" | "finishing" | "success";
+type ViewState = "form" | "google" | "finishing" | "success";
 
 const Onboarding = () => {
   const navigate = useNavigate();
