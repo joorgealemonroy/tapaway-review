@@ -635,30 +635,8 @@ const Onboarding = () => {
     }
   };
 
-  // Resend OTP
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      const email = formData.email.toLowerCase().trim();
-      console.info("[Onboarding][OTP] resend send-custom-otp", {
-        email,
-        ts: new Date().toISOString(),
-        provider: "resend",
-        from: "TapAway <no-reply@tapaway.co>",
-      });
 
-      const { error } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email },
-      });
-      
-      if (error) throw error;
-      toast.success("New code sent!");
-    } catch (err: any) {
-      toast.error(err.message || "Could not resend code");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   // Loading state
   if (!initialCheckDone) {
