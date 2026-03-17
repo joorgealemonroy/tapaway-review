@@ -232,10 +232,10 @@ const ProfileLink = memo(function ProfileLink({
             {Icon && <Icon className={`h-7 w-7 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
           </div>
           <div className="flex-1">
-            <span className="text-lg font-semibold truncate" style={{ color: customColor ? buttonTextColor : undefined }}>
+            <span className={`text-lg font-semibold truncate ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
               {link.label}
             </span>
-            <p className="text-sm opacity-80" style={{ color: customColor ? buttonTextColor : undefined }}>
+            <p className={`text-sm opacity-80 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
               Tap to open
             </p>
           </div>
