@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
+import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
@@ -70,9 +70,9 @@ const US_STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
-const ONBOARDING_STEPS = ["Your info", "Verify email", "Connect Google", "Finish"];
+const ONBOARDING_STEPS = ["Your info", "Connect Google", "Finish"];
 
-type ViewState = "form" | "otp" | "google" | "finishing" | "success";
+type ViewState = "form" | "google" | "finishing" | "success";
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -97,13 +97,9 @@ const Onboarding = () => {
     phone: "",
   });
   
-  // Password state (collected at OTP step)
+  // Password state (collected at Step 1)
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  
-  // OTP state
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState<string | null>(null);
   
   // Logo state
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -284,7 +280,7 @@ const Onboarding = () => {
     setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
-  // Step 1: Submit form and send OTP
+  // Step 1: Submit form, create account, sign in, skip to Google
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -297,6 +293,14 @@ const Onboarding = () => {
       }
     }
 
+    // Validate password
+    const pwResult = passwordSchema.safeParse(password);
+    if (!pwResult.success) {
+      setPasswordError(pwResult.error.errors[0].message);
+      return;
+    }
+    setPasswordError(null);
+
     setIsLoading(true);
     const email = formData.email.toLowerCase().trim();
 
@@ -305,7 +309,6 @@ const Onboarding = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user && session.user.email?.toLowerCase() === email) {
-        // Already authenticated - save data and skip to Google step
         setUserId(session.user.id);
         await saveFormDataAndCreateRestaurant(session.user.id);
         setEmailVerified();
@@ -329,24 +332,45 @@ const Onboarding = () => {
         logoUploaded: !!logoFile,
       });
 
-       // Send custom OTP via TapAway branded email
-       console.info("[Onboarding][OTP] send-custom-otp", {
-         email,
-         ts: new Date().toISOString(),
-         provider: "resend",
-         from: "TapAway <no-reply@tapaway.co>",
-       });
+      // Create account via edge function (no OTP needed)
+      const { data: accountData, error: accountError } = await supabase.functions.invoke('create-trial-account', {
+        body: { email, password },
+      });
 
-       const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
-         body: { email, businessName: formData.businessName?.trim() || undefined },
-       });
-
-      if (otpError || otpResponse?.error) {
-        throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
+      if (accountError || accountData?.error) {
+        throw new Error(accountData?.error || accountError?.message || "Failed to create account");
       }
 
-      setViewState("otp");
-      toast.success("Check your email for a verification code");
+      // Sign in with the new account
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error("[Onboarding] Sign in error:", signInError);
+        throw new Error("Account created but couldn't log you in. Please try again.");
+      }
+
+      // Wait for session
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const { data: { session: newSession } } = await supabase.auth.getSession();
+      const currentUserId = newSession?.user?.id || accountData.userId;
+
+      if (!currentUserId) {
+        throw new Error("Could not verify your account. Please try again.");
+      }
+
+      setUserId(currentUserId);
+      setEmailVerified();
+
+      // Create or update restaurant
+      await saveFormDataAndCreateRestaurant(currentUserId);
+
+      // Move to Google step
+      setViewState("google");
+      toast.success("Account created! Let's connect your Google Business.");
     } catch (err: any) {
       console.error('[Onboarding] Step 1 error:', err);
       toast.error(err.message || "Something went wrong. Please try again.");
@@ -355,99 +379,8 @@ const Onboarding = () => {
     }
   };
 
-  // Step 2: Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!otpCode.trim() || otpCode.length < 6) {
-      setOtpError("Please enter the 6-digit code from your email");
-      return;
-    }
-    
-    // Validate password
-    const pwResult = passwordSchema.safeParse(password);
-    if (!pwResult.success) {
-      setPasswordError(pwResult.error.errors[0].message);
-      return;
-    }
-    setPasswordError(null);
 
-    setIsLoading(true);
-    setOtpError(null);
 
-    try {
-      const email = formData.email.toLowerCase().trim();
-      
-       // Verify OTP via our custom function (pass password for account creation)
-       console.info("[Onboarding][OTP] verify-custom-otp", {
-         email,
-         ts: new Date().toISOString(),
-       });
-
-       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
-         body: { email, code: otpCode.trim(), password },
-       });
-
-      if (verifyError || verifyData?.error) {
-        setOtpError(verifyData?.error || verifyError?.message || "Invalid code. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Sign in with the password the user provided locally
-      const signInPassword = password;
-      
-      if (!signInPassword) {
-        setOtpError("We verified your code, but couldn't start your session. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-      
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: signInPassword,
-      });
-
-      if (signInError) {
-        console.error("[Onboarding] Sign in error:", signInError);
-        setOtpError("We verified your code, but couldn't log you in. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Wait for session
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Get session and create/update restaurant
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id || verifyData.userId;
-      
-      if (!currentUserId) {
-        setOtpError("Could not verify your account. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-       setUserId(currentUserId);
-       setEmailVerified();
-
-       console.info("[Onboarding][OTP] verified", {
-         email,
-         ts: new Date().toISOString(),
-         success: true,
-       });
-       
-       // Create or update restaurant
-       await saveFormDataAndCreateRestaurant(currentUserId);
-       
-       // Move to Google step
-       setViewState("google");
-       toast.success("Email verified! Let's connect your Google Business.");
-    } catch (err: any) {
-      console.error('[Onboarding] OTP verification error:', err);
-      setOtpError(err.message || "Verification failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Helper: Save form data and create/update restaurant
   const saveFormDataAndCreateRestaurant = async (uid: string) => {
@@ -702,30 +635,8 @@ const Onboarding = () => {
     }
   };
 
-  // Resend OTP
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      const email = formData.email.toLowerCase().trim();
-      console.info("[Onboarding][OTP] resend send-custom-otp", {
-        email,
-        ts: new Date().toISOString(),
-        provider: "resend",
-        from: "TapAway <no-reply@tapaway.co>",
-      });
 
-      const { error } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email },
-      });
-      
-      if (error) throw error;
-      toast.success("New code sent!");
-    } catch (err: any) {
-      toast.error(err.message || "Could not resend code");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   // Loading state
   if (!initialCheckDone) {
@@ -774,9 +685,8 @@ const Onboarding = () => {
   const getStepNumber = () => {
     switch (viewState) {
       case "form": return 1;
-      case "otp": return 2;
-      case "google": return 3;
-      case "finishing": return 4;
+      case "google": return 2;
+      case "finishing": return 3;
       default: return 1;
     }
   };
@@ -799,7 +709,7 @@ const Onboarding = () => {
         <div className="mb-8">
           <OnboardingProgress 
             currentStep={getStepNumber()} 
-            totalSteps={4}
+            totalSteps={3}
             steps={ONBOARDING_STEPS}
           />
         </div>
@@ -918,6 +828,24 @@ const Onboarding = () => {
                 </p>
               </div>
 
+              {/* Password */}
+              <div>
+                <Label htmlFor="password">Create a Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
+                  placeholder="At least 8 characters"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Must be 8+ characters with a letter and number
+                </p>
+                {passwordError && (
+                  <p className="text-sm text-destructive mt-1">{passwordError}</p>
+                )}
+              </div>
+
               {/* Logo upload */}
               <div className="space-y-3 pt-2 border-t border-border">
                 <div className="flex items-start gap-3">
@@ -968,9 +896,9 @@ const Onboarding = () => {
               </div>
             </Card>
 
-            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+            <Button type="submit" disabled={isLoading || password.length < 8} className="w-full h-12 text-lg">
               {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Sending code...</>
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Creating account...</>
               ) : (
                 <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
               )}
@@ -978,100 +906,7 @@ const Onboarding = () => {
           </motion.form>
         )}
 
-        {/* Step 2: OTP Verification */}
-        {viewState === "otp" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6">
-              <div className="text-center mb-6">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold">Confirm your email to finish setup</h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  We sent a code to <span className="font-medium text-foreground">{formData.email}</span>
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="otp">6-digit code</Label>
-                  <Input
-                    id="otp"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    className="text-center text-2xl tracking-widest"
-                    autoFocus
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="password">Create a password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
-                    placeholder="At least 8 characters"
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Must be 8+ characters with a letter and number
-                  </p>
-                  {passwordError && (
-                    <p className="text-sm text-destructive mt-1">{passwordError}</p>
-                  )}
-                </div>
-
-                {otpError && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-                    <p className="text-sm text-destructive flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      {otpError}
-                    </p>
-                  </div>
-                )}
-
-                <Button 
-                  onClick={handleVerifyOtp} 
-                  disabled={isLoading || otpCode.length < 6 || password.length < 8} 
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Verifying...</>
-                  ) : (
-                    "Verify & Continue"
-                  )}
-                </Button>
-
-                <div className="flex flex-col gap-2 pt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={isLoading}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Didn't get it? Resend code
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setViewState("form"); setOtpCode(""); setOtpError(null); }}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Use a different email
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Step 3: Google Business */}
+        {/* Step 2: Google Business */}
         {viewState === "google" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

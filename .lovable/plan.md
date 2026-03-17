@@ -1,40 +1,24 @@
 
+# Personalize Step — Implemented ✅
 
-# Skip Email Verification for Restaurant Trial Signup
+## Changes Made
 
-## Current Flow
-1. Step 1: Fill form → sends OTP email
-2. Step 2: Enter OTP code + set password → creates account
-3. Step 3: Connect Google
-4. Step 4: Finish
+### 1. Input UX — Empty values with placeholders
+- `getFriendlyValue()` now returns `""` for all types
+- Users see placeholder text via HTML `placeholder` attribute, type immediately
 
-## New Flow
-1. Step 1: Fill form + set password → creates account instantly
-2. Step 2: Connect Google
-3. Step 3: Finish
+### 2. Display Mode — "both" default
+- `PersonalSignup.tsx`: vibe links default to `displayStyle: "both"`
+- `CheckoutStep.tsx`: DB insert defaults to `display_style: "both"`
 
-## Changes
+### 3. Immediate Storage Upload
+- `PersonalizeStep.tsx`: `handleCropComplete` uploads to `personal-link-images` bucket immediately
+- Only short public URLs stored in state — safe for sessionStorage/localStorage
 
-### 1. New edge function: `create-trial-account`
-Creates a user account via admin API without OTP verification.
-- Accepts: `email`, `password`
-- Creates user with `email_confirm: true` (auto-confirmed)
-- If user already exists, updates password
-- Returns `userId`
-- Rate limited to prevent abuse
+### 4. Half-Width Cover Images
+- Links with `gridSize === "half"` show a 1:1 image upload box
+- Separate file input ref for link cover images vs block images
 
-### 2. Modify `src/pages/Onboarding.tsx`
-- Add password field to Step 1 form (below shipping address)
-- Update `handleStep1Submit` to call `create-trial-account`, sign in with password, then skip directly to Google step
-- Remove the `"otp"` view state and all OTP-related UI/logic
-- Update `ONBOARDING_STEPS` from `["Your info", "Verify email", "Connect Google", "Finish"]` to `["Your info", "Connect Google", "Finish"]`
-- Update step number mapping (3 steps instead of 4)
-- Remove `handleVerifyOtp`, `handleResendOtp`, OTP state variables, and the OTP card UI
-
-### 3. Unblock `signInWithPassword` in auth guard
-The page-level auth guard in `Onboarding.tsx` (lines 222-245) blocks `signUp` and OTP methods but `signInWithPassword` is not blocked — no change needed there.
-
-### Files
-- **New**: `supabase/functions/create-trial-account/index.ts`
-- **Modified**: `src/pages/Onboarding.tsx`
-
+### 5. Expanded "Add Block" Drawer
+- Link, Image, YouTube Video, Text, Featured Button
+- Inline editors for text (title + body), youtube (URL), button (label + URL)
