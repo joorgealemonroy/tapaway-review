@@ -239,7 +239,7 @@ const ProfileLink = memo(function ProfileLink({
               Tap to open
             </p>
           </div>
-          <ExternalLink className="h-5 w-5 opacity-70" style={{ color: customColor ? buttonTextColor : undefined }} />
+          <ExternalLink className={`h-5 w-5 opacity-70 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />
         </div>
       </a>
     );
