@@ -904,9 +904,9 @@ const Onboarding = () => {
               )}
             </Button>
           </motion.form>
+        )}
 
-
-        {/* Step 3: Google Business */}
+        {/* Step 2: Google Business */}
         {viewState === "google" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
