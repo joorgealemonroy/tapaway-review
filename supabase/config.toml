@@ -131,6 +131,3 @@ verify_jwt = false
 
 [functions.download-product]
 verify_jwt = false
-
-[functions.create-trial-account]
-verify_jwt = false
