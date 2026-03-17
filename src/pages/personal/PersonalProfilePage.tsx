@@ -116,6 +116,8 @@ const ProfileLink = memo(function ProfileLink({
   // Use pill_color, fall back to accentColor (vibe theme), then platform default
   const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (accentColor || link.pill_color);
   const coverImage = link.cover_image_url;
+  // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
+  const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
 
   // Email link — inline bar with email address + Connect button
   if (link.link_type === "email") {
