@@ -229,8 +229,7 @@ const ProfileLink = memo(function ProfileLink({
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
             customColor ? "bg-white/20" : "bg-white/20"
           }`}>
-            {Icon && <Icon className="h-7 w-7" style={{ color: customColor ? buttonTextColor : undefined }} />}
-            {Icon && !customColor && <span className="hidden" />}
+            {Icon && <Icon className={`h-7 w-7 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
           </div>
           <div className="flex-1">
             <span className="text-lg font-semibold truncate" style={{ color: customColor ? buttonTextColor : undefined }}>
