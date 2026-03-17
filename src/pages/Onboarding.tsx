@@ -709,7 +709,7 @@ const Onboarding = () => {
         <div className="mb-8">
           <OnboardingProgress 
             currentStep={getStepNumber()} 
-            totalSteps={4}
+            totalSteps={3}
             steps={ONBOARDING_STEPS}
           />
         </div>
