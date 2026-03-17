@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
+import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
