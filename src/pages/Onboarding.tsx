@@ -685,9 +685,8 @@ const Onboarding = () => {
   const getStepNumber = () => {
     switch (viewState) {
       case "form": return 1;
-      case "otp": return 2;
-      case "google": return 3;
-      case "finishing": return 4;
+      case "google": return 2;
+      case "finishing": return 3;
       default: return 1;
     }
   };
