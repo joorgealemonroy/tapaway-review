@@ -280,7 +280,7 @@ const Onboarding = () => {
     setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
-  // Step 1: Submit form and send OTP
+  // Step 1: Submit form, create account, sign in, skip to Google
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -293,6 +293,14 @@ const Onboarding = () => {
       }
     }
 
+    // Validate password
+    const pwResult = passwordSchema.safeParse(password);
+    if (!pwResult.success) {
+      setPasswordError(pwResult.error.errors[0].message);
+      return;
+    }
+    setPasswordError(null);
+
     setIsLoading(true);
     const email = formData.email.toLowerCase().trim();
 
@@ -301,7 +309,6 @@ const Onboarding = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user && session.user.email?.toLowerCase() === email) {
-        // Already authenticated - save data and skip to Google step
         setUserId(session.user.id);
         await saveFormDataAndCreateRestaurant(session.user.id);
         setEmailVerified();
@@ -325,24 +332,45 @@ const Onboarding = () => {
         logoUploaded: !!logoFile,
       });
 
-       // Send custom OTP via TapAway branded email
-       console.info("[Onboarding][OTP] send-custom-otp", {
-         email,
-         ts: new Date().toISOString(),
-         provider: "resend",
-         from: "TapAway <no-reply@tapaway.co>",
-       });
+      // Create account via edge function (no OTP needed)
+      const { data: accountData, error: accountError } = await supabase.functions.invoke('create-trial-account', {
+        body: { email, password },
+      });
 
-       const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
-         body: { email, businessName: formData.businessName?.trim() || undefined },
-       });
-
-      if (otpError || otpResponse?.error) {
-        throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
+      if (accountError || accountData?.error) {
+        throw new Error(accountData?.error || accountError?.message || "Failed to create account");
       }
 
-      setViewState("otp");
-      toast.success("Check your email for a verification code");
+      // Sign in with the new account
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        console.error("[Onboarding] Sign in error:", signInError);
+        throw new Error("Account created but couldn't log you in. Please try again.");
+      }
+
+      // Wait for session
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const { data: { session: newSession } } = await supabase.auth.getSession();
+      const currentUserId = newSession?.user?.id || accountData.userId;
+
+      if (!currentUserId) {
+        throw new Error("Could not verify your account. Please try again.");
+      }
+
+      setUserId(currentUserId);
+      setEmailVerified();
+
+      // Create or update restaurant
+      await saveFormDataAndCreateRestaurant(currentUserId);
+
+      // Move to Google step
+      setViewState("google");
+      toast.success("Account created! Let's connect your Google Business.");
     } catch (err: any) {
       console.error('[Onboarding] Step 1 error:', err);
       toast.error(err.message || "Something went wrong. Please try again.");
