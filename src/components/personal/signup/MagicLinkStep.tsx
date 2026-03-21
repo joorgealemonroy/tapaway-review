@@ -249,7 +249,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <Sparkles className="w-4 h-4" />
-              Magic Import
+              Smart Scan
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">
               Let's auto-build your profile.
