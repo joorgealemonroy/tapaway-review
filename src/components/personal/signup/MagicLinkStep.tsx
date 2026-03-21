@@ -134,10 +134,26 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       await new Promise((r) => setTimeout(r, 400));
       setScrapedData(data.data);
 
+      // Update profile name/bio if found
+      if (data.data.name) {
+        updateFormData({ fullName: data.data.name });
+      }
+      if (data.data.photoUrl) {
+        updateFormData({ profilePhotoUrl: data.data.photoUrl });
+      }
+
       const totalLinks = (data.data.links?.length || 0) + (data.data.socialLinks?.length || 0);
       if (totalLinks === 0) {
         toast.info("We found your profile but no links. You can add them in the dashboard.");
         onNext();
+        return;
+      }
+
+      // If we have links but only social (no content links with images), skip the fork and go straight to pills
+      const hasContentImages = (data.data.links || []).some((l: any) => l.imageUrl);
+      if (!hasContentImages) {
+        // Auto-apply as pills and proceed — reuse handleForkChoice logic inline
+        applyLinks(data.data, "pills");
         return;
       }
 
@@ -146,17 +162,15 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       toast.error(err.message || "Failed to scan profile");
       setPhase("input");
     }
-  }, [url, onNext]);
+  }, [url, onNext, updateFormData]);
 
-  const handleForkChoice = useCallback((choice: "pills" | "cards") => {
-    if (!scrapedData) return;
-
+  const applyLinks = useCallback((data: ScrapedData, choice: "pills" | "cards") => {
     // Clear existing vibe placeholder links
     formData.links.forEach(l => removeLink(l.id));
 
     const socialTypes = new Set(["instagram", "tiktok", "x", "youtube", "spotify", "facebook", "linkedin", "snapchat", "pinterest", "soundcloud"]);
-    const socialPlatformsInBar = new Set((scrapedData.socialLinks || []).map(l => l.type));
-    const rawLinks = scrapedData.links || [];
+    const socialPlatformsInBar = new Set((data.socialLinks || []).map(l => l.type));
+    const rawLinks = data.links || [];
 
     // Grid pairing for "cards" mode
     const gridEligibleTypes = new Set(["youtube", "spotify", "soundcloud", "tiktok"]);
@@ -175,7 +189,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
     // Add social-only links as icons
     const bothPlatforms = new Set<string>();
-    (scrapedData.socialLinks || []).forEach((l, i) => {
+    (data.socialLinks || []).forEach((l, i) => {
       addLink({
         type: l.type,
         label: l.label || (l.type === 'x' ? 'X' : l.type.charAt(0).toUpperCase() + l.type.slice(1)),
@@ -227,13 +241,18 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
     // Update profile data if scraped
     const updates: Partial<SignupData> = {};
-    if (scrapedData.photoUrl) updates.profilePhotoUrl = scrapedData.photoUrl;
-    if (scrapedData.name && !formData.fullName) updates.fullName = scrapedData.name;
-    if (scrapedData.bio) updates.cardHeadline = scrapedData.bio;
+    if (data.photoUrl) updates.profilePhotoUrl = data.photoUrl;
+    if (data.name && !formData.fullName) updates.fullName = data.name;
+    if (data.bio) updates.cardHeadline = data.bio;
     if (Object.keys(updates).length > 0) updateFormData(updates);
 
     onNext();
-  }, [scrapedData, formData, addLink, removeLink, updateFormData, onNext]);
+  }, [formData, addLink, removeLink, updateFormData, onNext]);
+
+  const handleForkChoice = useCallback((choice: "pills" | "cards") => {
+    if (!scrapedData) return;
+    applyLinks(scrapedData, choice);
+  }, [scrapedData, applyLinks]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto px-4">
