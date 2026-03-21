@@ -23,6 +23,7 @@ import { X } from "lucide-react";
 import { ClaimStep } from "@/components/personal/signup/ClaimStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
 import { PersonalizeStep } from "@/components/personal/signup/PersonalizeStep";
+import { MagicLinkStep } from "@/components/personal/signup/MagicLinkStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
