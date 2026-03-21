@@ -531,7 +531,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                   <div key={link.id} className="flex items-center gap-2">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: platform?.brandColor || 'hsl(var(--muted))' }}
+                      style={{ backgroundColor: platform?.color || 'hsl(var(--muted))' }}
                     >
                       {Icon && <Icon className="w-5 h-5 text-white" />}
                     </div>
