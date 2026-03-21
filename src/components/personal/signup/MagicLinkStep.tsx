@@ -134,10 +134,27 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       await new Promise((r) => setTimeout(r, 400));
       setScrapedData(data.data);
 
+      // Update profile name/bio if found
+      if (data.data.name) {
+        update({ fullName: data.data.name });
+      }
+      if (data.data.photoUrl) {
+        update({ profilePhotoUrl: data.data.photoUrl });
+      }
+
       const totalLinks = (data.data.links?.length || 0) + (data.data.socialLinks?.length || 0);
       if (totalLinks === 0) {
         toast.info("We found your profile but no links. You can add them in the dashboard.");
         onNext();
+        return;
+      }
+
+      // If we have links but only social (no content links with images), skip the fork and go straight to pills
+      const hasContentImages = (data.data.links || []).some((l: any) => l.imageUrl);
+      if (!hasContentImages) {
+        // Auto-apply as pills and proceed
+        setScrapedData(data.data);
+        applyScrapedLinks(data.data, "pills");
         return;
       }
 
@@ -146,7 +163,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       toast.error(err.message || "Failed to scan profile");
       setPhase("input");
     }
-  }, [url, onNext]);
+  }, [url, onNext, update]);
 
   const handleForkChoice = useCallback((choice: "pills" | "cards") => {
     if (!scrapedData) return;

@@ -260,63 +260,80 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (!response.ok) {
-      // For social URLs, gracefully return the URL itself even if fetch fails (e.g. 429 rate limit)
-      const isSocialFallback = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
-      if (isSocialFallback) {
-        const detectedType = detectLinkType(formattedUrl);
-        const platformLabel = detectedType.charAt(0).toUpperCase() + detectedType.slice(1);
-        console.log(`Social URL fetch failed (${response.status}), returning graceful fallback`);
-        await response.text(); // consume body
-        return new Response(
-          JSON.stringify({
-            success: true,
-            data: {
-              name: '',
-              bio: null,
-              photoUrl: null,
-              links: [],
-              socialLinks: [{ label: platformLabel, url: formattedUrl, type: detectedType }],
-            },
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+    // For social URLs, try Microlink API first for metadata
+    const isSocialUrl = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+
+    if (isSocialUrl) {
+      const detectedType = detectLinkType(formattedUrl);
+      const platformLabel = detectedType.charAt(0).toUpperCase() + detectedType.slice(1);
+      const fallbackUsername = extractUsernameFromUrl(formattedUrl);
+
+      let name = fallbackUsername;
+      let bio: string | null = null;
+      let photoUrl: string | null = null;
+
+      // Try Microlink API for metadata
+      try {
+        console.log('Trying Microlink for social URL:', formattedUrl);
+        const mlResp = await fetch(`https://api.microlink.io?url=${encodeURIComponent(formattedUrl)}`);
+        if (mlResp.ok) {
+          const mlData = await mlResp.json();
+          if (mlData?.status === 'success' && mlData?.data) {
+            name = mlData.data.title || fallbackUsername;
+            bio = mlData.data.description || null;
+            photoUrl = mlData.data.image?.url || mlData.data.logo?.url || null;
+            console.log(`Microlink success: name="${name}", photo=${!!photoUrl}`);
+          } else {
+            await mlResp.text(); // consume if not already
+          }
+        } else {
+          await mlResp.text(); // consume body
+          console.log(`Microlink failed (${mlResp.status}), using URL fallback`);
+        }
+      } catch (mlErr) {
+        console.error('Microlink error:', mlErr);
       }
-      await response.text(); // consume body
+
+      // Clean up name — remove platform suffixes
+      if (name) {
+        name = name
+          .replace(/\s*[@•·|–—-]\s*(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify).*$/i, '')
+          .replace(/\s*on\s+(Instagram|TikTok|YouTube|X|Twitter|Twitch|Spotify)$/i, '')
+          .replace(/\([@\w.]+\)/g, '')
+          .trim();
+      }
+
+      // Consume the original response body if it exists
+      if (!response.ok) {
+        await response.text();
+      } else {
+        await response.text();
+      }
+
+      console.log(`Social URL final: name="${name}", photo=${!!photoUrl}, type=${detectedType}`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            name: name || fallbackUsername,
+            bio,
+            photoUrl,
+            links: [],
+            socialLinks: [{ label: platformLabel, url: formattedUrl, type: detectedType }],
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!response.ok) {
+      await response.text();
       return new Response(
         JSON.stringify({ success: false, error: `Failed to fetch page (${response.status})` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const html = await response.text();
-
-    // Common meta fallbacks
-    const metaPhoto = extractMeta(html, 'og:image') || null;
-    const metaBio = extractMeta(html, 'og:description') || null;
-    const metaName = extractTitle(html);
-
-    const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud', 'twitch']);
-
-    let name: string;
-    let photoUrl: string | null;
-    let bio: string | null = metaBio;
-    let contentLinks: Array<{label: string; url: string; type: string; imageUrl?: string | null}>;
-    let socialLinks: Array<{label: string; url: string; type: string}>;
-
-    // Check if this is a social media URL (OG-only fallback)
-    const isSocialUrl = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
-
-    if (isSocialUrl) {
-      // Social URL: extract OG tags only, return the URL itself as the primary link
-      name = metaName;
-      photoUrl = metaPhoto;
-      const detectedType = detectLinkType(formattedUrl);
-      const platformLabel = detectedType.charAt(0).toUpperCase() + detectedType.slice(1);
-      contentLinks = [];
-      socialLinks = [{ label: platformLabel, url: formattedUrl, type: detectedType }];
-
-      console.log(`Social URL detected (${detectedType}): name="${name}", photo=${!!photoUrl}`);
     } else if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
       // Platform-specific routing
       const stan = extractStanStore(html, formattedUrl);
