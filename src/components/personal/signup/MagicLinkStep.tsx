@@ -25,6 +25,14 @@ interface ScrapedData {
 }
 
 const SUPPORTED_PLATFORMS = [
+  { name: "Instagram", domain: "instagram.com" },
+  { name: "TikTok", domain: "tiktok.com" },
+  { name: "YouTube", domain: "youtube.com" },
+  { name: "X", domain: "x.com" },
+  { name: "Twitter", domain: "twitter.com" },
+  { name: "Twitch", domain: "twitch.tv" },
+  { name: "Spotify", domain: "spotify.com" },
+  { name: "Spotify Web", domain: "open.spotify.com" },
   { name: "Linktree", domain: "linktr.ee" },
   { name: "Stan Store", domain: "stan.store" },
   { name: "Beacons", domain: "beacons.ai" },
@@ -33,6 +41,8 @@ const SUPPORTED_PLATFORMS = [
   { name: "Campsite", domain: "campsite.bio" },
   { name: "Hoo.be", domain: "hoo.be" },
 ];
+
+const DISPLAY_PLATFORMS = ["Instagram", "TikTok", "YouTube", "X / Twitter", "Twitch", "Spotify"];
 
 const LOADING_PHASES = [
   "Scanning for links...",
@@ -239,7 +249,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <Sparkles className="w-4 h-4" />
-              Magic Import
+              Smart Scan
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">
               Let's auto-build your profile.
@@ -254,7 +264,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                 <Input
                   value={url}
                   onChange={(e) => { setUrl(e.target.value); if (phase === "unsupported") setPhase("input"); }}
-                  placeholder="linktr.ee/yourname"
+                  placeholder="instagram.com/yourname"
                   className="pl-10 h-12 text-base rounded-xl"
                   autoFocus
                 />
@@ -270,7 +280,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                 animate={{ opacity: 1 }}
                 className="text-sm text-destructive mt-3"
               >
-                We don't support that platform yet. Try Linktree, Stan Store, or Beacons.
+                We couldn't scan that link. Try pasting your Instagram, TikTok, or YouTube URL.
               </motion.p>
             )}
 
@@ -278,9 +288,9 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
             <div className="mt-5">
               <p className="text-xs text-muted-foreground mb-2">Works with:</p>
               <div className="flex flex-wrap justify-center gap-1.5">
-                {SUPPORTED_PLATFORMS.map((p) => (
-                  <span key={p.domain} className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
-                    {p.name}
+                {DISPLAY_PLATFORMS.map((p) => (
+                  <span key={p} className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
+                    {p}
                   </span>
                 ))}
               </div>
