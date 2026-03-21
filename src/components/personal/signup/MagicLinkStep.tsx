@@ -136,10 +136,10 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
       // Update profile name/bio if found
       if (data.data.name) {
-        update({ fullName: data.data.name });
+        updateFormData({ fullName: data.data.name });
       }
       if (data.data.photoUrl) {
-        update({ profilePhotoUrl: data.data.photoUrl });
+        updateFormData({ profilePhotoUrl: data.data.photoUrl });
       }
 
       const totalLinks = (data.data.links?.length || 0) + (data.data.socialLinks?.length || 0);
@@ -152,9 +152,8 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       // If we have links but only social (no content links with images), skip the fork and go straight to pills
       const hasContentImages = (data.data.links || []).some((l: any) => l.imageUrl);
       if (!hasContentImages) {
-        // Auto-apply as pills and proceed
-        setScrapedData(data.data);
-        applyScrapedLinks(data.data, "pills");
+        // Auto-apply as pills and proceed — reuse handleForkChoice logic inline
+        applyLinks(data.data, "pills");
         return;
       }
 
@@ -163,7 +162,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       toast.error(err.message || "Failed to scan profile");
       setPhase("input");
     }
-  }, [url, onNext, update]);
+  }, [url, onNext, updateFormData]);
 
   const handleForkChoice = useCallback((choice: "pills" | "cards") => {
     if (!scrapedData) return;
