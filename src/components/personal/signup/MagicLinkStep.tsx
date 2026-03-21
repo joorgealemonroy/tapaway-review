@@ -280,7 +280,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                 animate={{ opacity: 1 }}
                 className="text-sm text-destructive mt-3"
               >
-                We don't support that platform yet. Try Linktree, Stan Store, or Beacons.
+                We couldn't scan that link. Try pasting your Instagram, TikTok, or YouTube URL.
               </motion.p>
             )}
 
