@@ -326,15 +326,29 @@ const ImportProfile = () => {
     if (!result) return;
     // Build full layout-aware link data for signup prefill
     const { links: mappedLinks } = scrapedToPreviewProps(result);
-    const allLinks = mappedLinks.map(l => ({
-      label: l.label,
-      url: l.url,
-      type: l.link_type,
-      thumbnailUrl: l.thumbnail_url || null,
-      coverImageUrl: l.cover_image_url || null,
-      displayStyle: l.display_style,
-      gridSize: l.grid_size,
-    }));
+    const allLinks = mappedLinks.map(l => {
+      // If user chose "no images", strip visual data and force pill
+      if (imagePreference === 'no') {
+        return {
+          label: l.label,
+          url: l.url,
+          type: l.link_type,
+          thumbnailUrl: null,
+          coverImageUrl: null,
+          displayStyle: l.display_style === 'icon' ? 'icon' : (l.display_style === 'both' ? 'both' : 'pill'),
+          gridSize: null,
+        };
+      }
+      return {
+        label: l.label,
+        url: l.url,
+        type: l.link_type,
+        thumbnailUrl: l.thumbnail_url || null,
+        coverImageUrl: l.cover_image_url || null,
+        displayStyle: l.display_style,
+        gridSize: l.grid_size,
+      };
+    });
     sessionStorage.setItem(
       "tapaway_import_data",
       JSON.stringify({
@@ -345,7 +359,7 @@ const ImportProfile = () => {
       })
     );
     navigate("/personal/signup");
-  }, [result, navigate]);
+  }, [result, navigate, imagePreference]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
