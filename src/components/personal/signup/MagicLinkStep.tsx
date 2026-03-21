@@ -264,7 +264,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                 <Input
                   value={url}
                   onChange={(e) => { setUrl(e.target.value); if (phase === "unsupported") setPhase("input"); }}
-                  placeholder="linktr.ee/yourname"
+                  placeholder="instagram.com/yourname"
                   className="pl-10 h-12 text-base rounded-xl"
                   autoFocus
                 />
