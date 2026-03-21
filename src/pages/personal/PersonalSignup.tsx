@@ -472,18 +472,13 @@ const PersonalSignup = () => {
             )}
 
             {currentStep === 2 && fromVibeFlow ? (
-              <PersonalizeStep
+              <MagicLinkStep
                 formData={formData}
                 updateFormData={updateFormData}
-                updateLink={updateLink}
-                removeLink={removeLink}
                 addLink={addLink}
-                addBlock={addBlock}
-                updateBlock={updateBlock}
-                removeBlock={removeBlock}
+                removeLink={removeLink}
                 onNext={nextStep}
                 onBack={prevStep}
-                vibeMetadata={vibeMetadata}
               />
             ) : currentStep === 2 ? (
               <LinksStep
