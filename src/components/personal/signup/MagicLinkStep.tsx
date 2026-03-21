@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Sparkles, ArrowRight, LayoutList, LayoutGrid } from "lucide-react";
+import { Globe, Sparkles, ArrowRight, LayoutList, LayoutGrid, Check, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getPlatformConfig } from "@/lib/platformLinks";
+import { VIBE_TEMPLATES } from "@/lib/vibeTemplates";
 import type { PersonalLink, PersonalBlock } from "@/hooks/usePersonalOnboarding";
 import type { SignupData } from "@/pages/personal/PersonalSignup";
 
@@ -50,6 +52,8 @@ const LOADING_PHASES = [
   "Building your TapAway...",
 ];
 
+const HANDLE_TYPES = new Set(["instagram", "tiktok", "x", "youtube", "spotify", "snapchat", "twitch", "threads", "linkedin"]);
+
 function detectSourcePlatform(inputUrl: string): string | null {
   try {
     const hostname = new URL(
@@ -73,7 +77,7 @@ interface MagicLinkStepProps {
   onBack: () => void;
 }
 
-type Phase = "input" | "loading" | "fork" | "unsupported";
+type Phase = "input" | "loading" | "preview" | "fallback" | "unsupported";
 
 export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, onNext, onBack }: MagicLinkStepProps) {
   const [url, setUrl] = useState("");
@@ -132,37 +136,25 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
       setProgress(100);
       await new Promise((r) => setTimeout(r, 400));
-      setScrapedData(data.data);
+      
+      const result = data.data as ScrapedData;
+      setScrapedData(result);
 
-      // Update profile name/bio if found
-      if (data.data.name) {
-        updateFormData({ fullName: data.data.name });
-      }
-      if (data.data.photoUrl) {
-        updateFormData({ profilePhotoUrl: data.data.photoUrl });
-      }
+      // Update profile with scraped data
+      if (result.name) updateFormData({ fullName: result.name });
+      if (result.photoUrl) updateFormData({ profilePhotoUrl: result.photoUrl });
 
-      const totalLinks = (data.data.links?.length || 0) + (data.data.socialLinks?.length || 0);
-      if (totalLinks === 0) {
-        toast.info("We found your profile but no links. You can add them in the dashboard.");
-        onNext();
-        return;
+      const totalLinks = (result.links?.length || 0) + (result.socialLinks?.length || 0);
+      if (totalLinks > 0) {
+        setPhase("preview");
+      } else {
+        // No links found — go to fallback
+        setPhase("fallback");
       }
-
-      // If we have links but only social (no content links with images), skip the fork and go straight to pills
-      const hasContentImages = (data.data.links || []).some((l: any) => l.imageUrl);
-      if (!hasContentImages) {
-        // Auto-apply as pills and proceed — reuse handleForkChoice logic inline
-        applyLinks(data.data, "pills");
-        return;
-      }
-
-      setPhase("fork");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to scan profile");
-      setPhase("input");
+    } catch {
+      setPhase("fallback");
     }
-  }, [url, onNext, updateFormData]);
+  }, [url, updateFormData]);
 
   const applyLinks = useCallback((data: ScrapedData, choice: "pills" | "cards") => {
     // Clear existing vibe placeholder links
@@ -214,22 +206,14 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
       if (choice === "pills") {
         addLink({
-          type: l.type,
-          label: l.label,
-          value: "",
-          url: l.url,
+          type: l.type, label: l.label, value: "", url: l.url,
           displayStyle: markBoth ? "both" : "pill",
           sortOrder: 100 + i,
-          coverImageUrl: null,
-          gridSize: null,
-          thumbnailUrl: null,
+          coverImageUrl: null, gridSize: null, thumbnailUrl: null,
         });
       } else {
         addLink({
-          type: l.type,
-          label: l.label,
-          value: "",
-          url: l.url,
+          type: l.type, label: l.label, value: "", url: l.url,
           displayStyle: markBoth ? "both" : "pill",
           sortOrder: 100 + i,
           coverImageUrl: isGrid ? l.imageUrl : null,
@@ -239,7 +223,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
       }
     });
 
-    // Update profile data if scraped
+    // Update profile data
     const updates: Partial<SignupData> = {};
     if (data.photoUrl) updates.profilePhotoUrl = data.photoUrl;
     if (data.name && !formData.fullName) updates.fullName = data.name;
@@ -253,6 +237,37 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
     if (!scrapedData) return;
     applyLinks(scrapedData, choice);
   }, [scrapedData, applyLinks]);
+
+  // Fallback: handle value changes for vibe template links
+  const handleFallbackValueChange = useCallback((link: PersonalLink, newValue: string) => {
+    const platform = getPlatformConfig(link.type);
+    const cleanValue = HANDLE_TYPES.has(link.type) ? newValue.replace(/^@/, "") : newValue;
+    const newUrl = platform ? platform.generateUrl(cleanValue) : cleanValue;
+    
+    // Update the link in formData
+    const updatedLinks = formData.links.map(l => 
+      l.id === link.id ? { ...l, value: cleanValue, url: newUrl } : l
+    );
+    updateFormData({ links: updatedLinks });
+  }, [formData.links, updateFormData]);
+
+  const handleFallbackContinue = useCallback(() => {
+    // Filter out links that have no value/url
+    const filledLinks = formData.links.filter(l => l.url && l.url.length > 0 && !l.url.includes("undefined"));
+    if (filledLinks.length === 0) {
+      toast.info("You can add links later from your dashboard.");
+    }
+    onNext();
+  }, [formData.links, onNext]);
+
+  // Get vibe template links for fallback
+  const vibeTemplate = VIBE_TEMPLATES.find(v => v.id === formData.vibeId);
+
+  // Combine all scraped links for the preview
+  const allPreviewLinks = scrapedData 
+    ? [...(scrapedData.socialLinks || []), ...(scrapedData.links || [])]
+    : [];
+  const hasContentImages = scrapedData?.links?.some(l => l.imageUrl) || false;
 
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto px-4">
@@ -317,10 +332,10 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
             {/* Skip */}
             <button
-              onClick={onNext}
+              onClick={() => setPhase("fallback")}
               className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              I'll add links later →
+              I'll add links manually →
             </button>
           </motion.div>
         )}
@@ -357,59 +372,205 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
           </motion.div>
         )}
 
-        {/* ─── Design Fork Phase ─── */}
-        {phase === "fork" && scrapedData && (
+        {/* ─── Preview Phase (Success) ─── */}
+        {phase === "preview" && scrapedData && (
           <motion.div
-            key="fork"
+            key="preview"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="w-full text-center"
           >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 text-sm font-medium mb-4">
+              <Check className="w-4 h-4" />
+              Found!
+            </div>
             <h2 className="text-xl font-bold text-foreground mb-2">
-              Do you want images on your link buttons?
+              Here's what we found!
             </h2>
-            <p className="text-muted-foreground text-sm mb-6">
-              We found {(scrapedData.links?.length || 0) + (scrapedData.socialLinks?.length || 0)} links. Choose your layout style.
+            <p className="text-muted-foreground text-sm mb-5">
+              {allPreviewLinks.length} link{allPreviewLinks.length !== 1 ? "s" : ""} detected from your profile.
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Clean Pills */}
-              <button
-                onClick={() => handleForkChoice("pills")}
-                className="group p-4 rounded-2xl border-2 border-border hover:border-primary transition-all text-left bg-card"
-              >
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted mb-3">
-                  <LayoutList className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                {/* Mini preview */}
-                <div className="space-y-1.5 mb-3">
-                  <div className="h-5 rounded-full bg-muted w-full" />
-                  <div className="h-5 rounded-full bg-muted w-[85%]" />
-                  <div className="h-5 rounded-full bg-muted w-[90%]" />
-                </div>
-                <p className="font-semibold text-sm text-foreground">Clean Pills</p>
-                <p className="text-xs text-muted-foreground">Compact & scannable</p>
-              </button>
+            {/* Profile photo preview */}
+            {scrapedData.photoUrl && (
+              <div className="mb-4 flex justify-center">
+                <img
+                  src={scrapedData.photoUrl}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-border shadow-sm"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+            )}
 
-              {/* Visual Cards */}
-              <button
-                onClick={() => handleForkChoice("cards")}
-                className="group p-4 rounded-2xl border-2 border-border hover:border-primary transition-all text-left bg-card"
-              >
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted mb-3">
-                  <LayoutGrid className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                {/* Mini preview */}
-                <div className="grid grid-cols-2 gap-1 mb-3">
-                  <div className="h-10 rounded-lg bg-muted" />
-                  <div className="h-10 rounded-lg bg-muted" />
-                  <div className="h-5 rounded-lg bg-muted col-span-2" />
-                </div>
-                <p className="font-semibold text-sm text-foreground">Visual Cards</p>
-                <p className="text-xs text-muted-foreground">Rich & eye-catching</p>
-              </button>
+            {scrapedData.name && (
+              <p className="text-sm font-medium text-foreground mb-4">{scrapedData.name}</p>
+            )}
+
+            {/* Scraped links list */}
+            <div className="space-y-2 mb-6 max-h-48 overflow-y-auto">
+              {allPreviewLinks.map((link, i) => {
+                const config = getPlatformConfig(link.type);
+                const Icon = config?.icon;
+                return (
+                  <motion.div
+                    key={`${link.url}-${i}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 text-left"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: config?.color || 'hsl(var(--muted))' }}
+                    >
+                      {Icon && <Icon className="w-4 h-4 text-white" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {link.label || link.type.charAt(0).toUpperCase() + link.type.slice(1)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">{link.url}</p>
+                    </div>
+                    <Check className="w-4 h-4 text-green-500 shrink-0" />
+                  </motion.div>
+                );
+              })}
             </div>
+
+            {/* Design Fork — only show if content has images */}
+            {hasContentImages ? (
+              <>
+                <p className="text-sm font-medium text-foreground mb-3">
+                  How should your links look?
+                </p>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button
+                    onClick={() => handleForkChoice("pills")}
+                    className="group p-4 rounded-2xl border-2 border-border hover:border-primary transition-all text-left bg-card"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted mb-2">
+                      <LayoutList className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="space-y-1 mb-2">
+                      <div className="h-4 rounded-full bg-muted w-full" />
+                      <div className="h-4 rounded-full bg-muted w-[85%]" />
+                      <div className="h-4 rounded-full bg-muted w-[90%]" />
+                    </div>
+                    <p className="font-semibold text-xs text-foreground">Clean Pills</p>
+                    <p className="text-[10px] text-muted-foreground">Compact & scannable</p>
+                  </button>
+                  <button
+                    onClick={() => handleForkChoice("cards")}
+                    className="group p-4 rounded-2xl border-2 border-border hover:border-primary transition-all text-left bg-card"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted mb-2">
+                      <LayoutGrid className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 mb-2">
+                      <div className="h-8 rounded-lg bg-muted" />
+                      <div className="h-8 rounded-lg bg-muted" />
+                      <div className="h-4 rounded-lg bg-muted col-span-2" />
+                    </div>
+                    <p className="font-semibold text-xs text-foreground">Visual Cards</p>
+                    <p className="text-[10px] text-muted-foreground">Rich & eye-catching</p>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <Button
+                onClick={() => handleForkChoice("pills")}
+                className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+              >
+                Continue <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
+          </motion.div>
+        )}
+
+        {/* ─── Fallback Phase (Failure / Manual Entry) ─── */}
+        {phase === "fallback" && (
+          <motion.div
+            key="fallback"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm font-medium mb-4">
+              <AlertCircle className="w-4 h-4" />
+              Manual Setup
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              {scrapedData?.name ? `Welcome, ${scrapedData.name}!` : "Let's set up your links."}
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              {scrapedData ? "We grabbed your profile info! Add your links below." : "Add your social links and we'll build your profile."}
+            </p>
+
+            {/* Profile photo if scraped */}
+            {scrapedData?.photoUrl && (
+              <div className="mb-4 flex justify-center">
+                <img
+                  src={scrapedData.photoUrl}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-border shadow-sm"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+            )}
+
+            {/* Manual link inputs based on vibe template */}
+            <div className="space-y-3 text-left mb-6">
+              {formData.links.map((link) => {
+                const platform = getPlatformConfig(link.type);
+                const Icon = platform?.icon;
+                const isHandle = HANDLE_TYPES.has(link.type);
+                return (
+                  <div key={link.id} className="flex items-center gap-2">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: platform?.color || 'hsl(var(--muted))' }}
+                    >
+                      {Icon && <Icon className="w-5 h-5 text-white" />}
+                    </div>
+                    <div className="flex-1 relative">
+                      {isHandle && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">@</span>
+                      )}
+                      <Input
+                        value={link.value || ""}
+                        onChange={(e) => handleFallbackValueChange(link, e.target.value)}
+                        placeholder={platform?.placeholder || "https://..."}
+                        className={`h-10 rounded-xl text-sm ${isHandle ? "pl-8" : ""}`}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeLink(link.id)}
+                      className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <Button
+              onClick={handleFallbackContinue}
+              className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+            >
+              Continue <ArrowRight className="w-4 h-4" />
+            </Button>
+
+            <button
+              onClick={() => setPhase("input")}
+              className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← Try scanning again
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
