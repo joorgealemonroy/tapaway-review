@@ -288,9 +288,9 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
             <div className="mt-5">
               <p className="text-xs text-muted-foreground mb-2">Works with:</p>
               <div className="flex flex-wrap justify-center gap-1.5">
-                {SUPPORTED_PLATFORMS.map((p) => (
-                  <span key={p.domain} className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
-                    {p.name}
+                {DISPLAY_PLATFORMS.map((p) => (
+                  <span key={p} className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
+                    {p}
                   </span>
                 ))}
               </div>
