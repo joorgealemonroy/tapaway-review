@@ -400,7 +400,7 @@ const PersonalSignup = () => {
     navigate("/personal");
   };
 
-  const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Personalize your links" : "Build your profile", 3: "Finish your order" };
+  const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Auto-build your profile" : "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
