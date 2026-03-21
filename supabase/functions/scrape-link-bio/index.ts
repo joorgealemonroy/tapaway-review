@@ -265,16 +265,29 @@ Deno.serve(async (req) => {
     const metaBio = extractMeta(html, 'og:description') || null;
     const metaName = extractTitle(html);
 
-    const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud']);
+    const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud', 'twitch']);
 
     let name: string;
     let photoUrl: string | null;
     let bio: string | null = metaBio;
-    let contentLinks: Array<{label: string; url: string; type: string}>;
+    let contentLinks: Array<{label: string; url: string; type: string; imageUrl?: string | null}>;
     let socialLinks: Array<{label: string; url: string; type: string}>;
 
-    // Platform-specific routing
-    if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
+    // Check if this is a social media URL (OG-only fallback)
+    const isSocialUrl = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+
+    if (isSocialUrl) {
+      // Social URL: extract OG tags only, return the URL itself as the primary link
+      name = metaName;
+      photoUrl = metaPhoto;
+      const detectedType = detectLinkType(formattedUrl);
+      const platformLabel = detectedType.charAt(0).toUpperCase() + detectedType.slice(1);
+      contentLinks = [];
+      socialLinks = [{ label: platformLabel, url: formattedUrl, type: detectedType }];
+
+      console.log(`Social URL detected (${detectedType}): name="${name}", photo=${!!photoUrl}`);
+    } else if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
+      // Platform-specific routing
       const stan = extractStanStore(html, formattedUrl);
       name = stan.name || metaName;
       photoUrl = stan.photoUrl || metaPhoto;
