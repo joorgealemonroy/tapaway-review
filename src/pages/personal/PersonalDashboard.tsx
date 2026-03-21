@@ -820,6 +820,17 @@ const PersonalDashboard = () => {
         onTabChange={setActiveTab}
         isAffiliate={isAffiliate}
       />
+
+      {/* Setup Checklist */}
+      <SetupChecklist
+        profile={profile}
+        linkCount={links.length}
+        onAction={(action) => {
+          if (action === "photo") fileInputRef.current?.click();
+          else if (action === "design") setActiveTab("design");
+          else if (action === "links") setActiveTab("links");
+        }}
+      />
     </div>
   );
 };
