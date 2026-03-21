@@ -423,7 +423,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
                   >
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: config?.brandColor || 'hsl(var(--muted))' }}
+                      style={{ backgroundColor: config?.color || 'hsl(var(--muted))' }}
                     >
                       {Icon && <Icon className="w-4 h-4 text-white" />}
                     </div>
