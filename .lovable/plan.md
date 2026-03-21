@@ -1,45 +1,54 @@
 
 
-# Reframe MagicLinkStep as Social Scanner (with Spotify fix)
+# Fix Backend Edge Function: Add Social Media Support (Spotify Domains Fixed)
 
-## Changes — `src/components/personal/signup/MagicLinkStep.tsx`
+## Changes — `supabase/functions/scrape-link-bio/index.ts`
 
-### 1. Replace `SUPPORTED_PLATFORMS` array (lines 27-35)
-Expand to include social media domains + keep link-in-bio domains for background support. Spotify uses both `spotify.com` and `open.spotify.com`:
-
+### 1. Expand `ALLOWED_DOMAINS` (lines 6-15)
+Add social media domains with correct Spotify URLs:
 ```ts
-const SUPPORTED_PLATFORMS = [
-  { name: "Instagram", domain: "instagram.com" },
-  { name: "TikTok", domain: "tiktok.com" },
-  { name: "YouTube", domain: "youtube.com" },
-  { name: "X", domain: "x.com" },
-  { name: "Twitter", domain: "twitter.com" },
-  { name: "Twitch", domain: "twitch.tv" },
-  { name: "Spotify", domain: "spotify.com" },
-  { name: "Spotify Web", domain: "open.spotify.com" },
-  { name: "Linktree", domain: "linktr.ee" },
-  { name: "Stan Store", domain: "stan.store" },
-  { name: "Beacons", domain: "beacons.ai" },
-  { name: "lnk.bio", domain: "lnk.bio" },
-  { name: "Bio Link", domain: "bio.link" },
-  { name: "Campsite", domain: "campsite.bio" },
-  { name: "Hoo.be", domain: "hoo.be" },
+const ALLOWED_DOMAINS = [
+  'linktr.ee', 'stan.store', 'beacons.ai', 'lnk.bio',
+  'bio.link', 'campsite.bio', 'linkpop.com', 'hoo.be',
+  'instagram.com', 'tiktok.com', 'youtube.com',
+  'x.com', 'twitter.com', 'twitch.tv',
+  'spotify.com', 'open.spotify.com',
 ];
-
-const DISPLAY_PLATFORMS = ["Instagram", "TikTok", "YouTube", "X / Twitter", "Twitch", "Spotify"];
 ```
 
-### 2. Badge text (line 242)
-`Magic Import` → `Smart Scan`
+### 2. Fix `twitch.tv` in `LINK_TYPE_MAP` (line 40)
+`'twitch.tv': 'website'` → `'twitch.tv': 'twitch'`
 
-### 3. Placeholder (line 257)
-`linktr.ee/yourname` → `instagram.com/yourname`
+### 3. Social URL detection + OG-only fallback (after HTML fetch, ~line 258)
+Insert a social domain check before the platform-specific routing block:
 
-### 4. Error message (line 273)
-`We don't support that platform yet. Try Linktree, Stan Store, or Beacons.` → `We couldn't scan that link. Try pasting your Instagram, TikTok, or YouTube URL.`
+```ts
+const SOCIAL_DOMAINS = [
+  'instagram.com', 'tiktok.com', 'youtube.com',
+  'x.com', 'twitter.com', 'twitch.tv',
+  'spotify.com', 'open.spotify.com',
+];
+const isSocialUrl = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+```
 
-### 5. "Works with" badges (lines 278-287)
-Replace `SUPPORTED_PLATFORMS.map(...)` with `DISPLAY_PLATFORMS.map(...)` so only social platform names show.
+Then wrap the existing platform routing (Stan Store / generic extraction) in an `if (!isSocialUrl)` block, and add a new `else` branch for social URLs that:
+- Uses only OG meta tags for `name`, `bio`, `photoUrl`
+- Returns the input URL as the single link with auto-detected type
+- Skips all link-block extraction
 
-Single file, six edits.
+### 4. Social URL response shape
+```json
+{
+  "name": "og:title cleaned",
+  "bio": "og:description or null",
+  "photoUrl": "og:image or null",
+  "links": [{ "label": "Instagram", "url": "https://instagram.com/user", "type": "instagram", "imageUrl": null }],
+  "socialLinks": [{ "label": "instagram", "url": "https://instagram.com/user", "type": "instagram" }]
+}
+```
+
+## File
+| File | Change |
+|------|--------|
+| `supabase/functions/scrape-link-bio/index.ts` | Expand allowlist, fix twitch type, add OG-only social fallback |
 
