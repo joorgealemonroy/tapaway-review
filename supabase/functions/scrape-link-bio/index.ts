@@ -40,7 +40,7 @@ const LINK_TYPE_MAP: Record<string, string> = {
   'venmo.com': 'venmo',
   'cash.app': 'cashapp',
   'paypal.me': 'website',
-  'twitch.tv': 'website',
+  'twitch.tv': 'twitch',
   'github.com': 'website',
 };
 
