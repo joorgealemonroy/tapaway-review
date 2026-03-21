@@ -248,6 +248,7 @@ const ImportProfile = () => {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [sourcePlatform, setSourcePlatform] = useState("");
   const [unsupportedPlatform, setUnsupportedPlatform] = useState(false);
+  const [imagePreference, setImagePreference] = useState<'yes' | 'no' | null>(null);
 
   // Animated progress during loading
   useEffect(() => {
