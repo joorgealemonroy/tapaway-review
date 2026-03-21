@@ -334,7 +334,23 @@ Deno.serve(async (req) => {
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    } else if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
+
+    const html = await response.text();
+
+    // Common meta fallbacks
+    const metaPhoto = extractMeta(html, 'og:image') || null;
+    const metaBio = extractMeta(html, 'og:description') || null;
+    const metaName = extractTitle(html);
+
+    const socialTypes = new Set(['instagram', 'tiktok', 'x', 'youtube', 'spotify', 'facebook', 'linkedin', 'snapchat', 'pinterest', 'soundcloud', 'twitch']);
+
+    let name: string;
+    let photoUrl: string | null;
+    let bio: string | null = metaBio;
+    let contentLinks: Array<{label: string; url: string; type: string; imageUrl?: string | null}>;
+    let socialLinks: Array<{label: string; url: string; type: string}>;
+
+    if (hostname === 'stan.store' || hostname.endsWith('.stan.store')) {
       // Platform-specific routing
       const stan = extractStanStore(html, formattedUrl);
       name = stan.name || metaName;
