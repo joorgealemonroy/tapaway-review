@@ -41,6 +41,7 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
+import { SetupChecklist } from "@/components/personal/SetupChecklist";
 
 interface PersonalProfile {
   id: string;
@@ -818,6 +819,17 @@ const PersonalDashboard = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isAffiliate={isAffiliate}
+      />
+
+      {/* Setup Checklist */}
+      <SetupChecklist
+        profile={profile}
+        linkCount={links.length}
+        onAction={(action) => {
+          if (action === "photo") fileInputRef.current?.click();
+          else if (action === "design") setActiveTab("design");
+          else if (action === "links") setActiveTab("links");
+        }}
       />
     </div>
   );
