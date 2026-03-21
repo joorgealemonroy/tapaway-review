@@ -1,94 +1,54 @@
 
 
-# Plan: Setup Checklist + Compact Link Pills + Design Fork
+# Replace Manual Entry with Magic Link Scraper in Onboarding
 
-## Overview
+## Current Flow (Vibe Path)
+1. **ClaimStep** — username, email, password
+2. **PersonalizeStep** — manual link entry (the screen in the screenshot) ← **REMOVE THIS**
+3. **CheckoutStep** — payment/finish
 
-Three focused enhancements to the existing dashboard and import flow. No rebuilds — surgical additions.
+## New Flow
+1. **ClaimStep** — username, email, password
+2. **MagicLinkStep** (new) — "Let's auto-build your profile" with single URL input + Generate → scanning animation → Design Fork → auto-populate links
+3. **CheckoutStep** — payment/finish
 
----
+## Changes
 
-## 1. Gamified Setup Checklist Widget
+### 1. New component: `src/components/personal/signup/MagicLinkStep.tsx`
 
-**New file: `src/components/personal/SetupChecklist.tsx`**
+A clean, focused step component with:
+- Headline: "Let's auto-build your profile."
+- Subtext: "Paste your main social link and we'll do the rest."
+- Single input field with Globe icon + "Generate" button
+- "Works with:" badges (Linktree, Stan Store, Beacons, etc.)
+- **Skip link** at bottom: "I'll add links later →" that calls `onNext()` with empty links (vibe defaults stay)
+- **Loading state**: 3-phase animated text ("Scanning for links...", "Mapping your links...", "Building your TapAway...") with a progress bar, using Framer Motion
+- **Design Fork** (after scrape succeeds): "Do you want images on your link buttons?" — two visual cards: "Clean Pills" vs "Visual Cards"
+- **On selection**: Maps scraped data into `formData.links` via `addLink()`, strips images if "Clean Pills" chosen, then calls `onNext()`
+- Uses the existing `scrape-link-bio` edge function (same as ImportProfile.tsx)
 
-A floating circular progress ring widget (bottom-right on desktop, above mobile nav on mobile) that shows setup completion percentage.
+### 2. Modify `src/pages/personal/PersonalSignup.tsx`
 
-**Checklist items** (dynamically computed from profile + links data):
-- "Claim username" — checked if `profile.username` exists
-- "Choose a vibe" — checked if `profile.vibe_id` exists
-- "Add a profile picture" — checked if `profile.profile_photo_url` is non-null
-- "Add your first 3 links" — checked if `links.length >= 3`
+- Import `MagicLinkStep` instead of (or alongside) `PersonalizeStep`
+- **Step 2 rendering** (~line 473): When `fromVibeFlow` is true, render `<MagicLinkStep>` instead of `<PersonalizeStep>`
+- Pass `addLink`, `removeLink`, `update`, `onNext`, `onBack`, and `formData` props
+- Update `stepTitles[2]` to `"Auto-build your profile"` for the vibe flow
+- The `MagicLinkStep` handles its own internal sub-states (input → loading → fork → done) and calls `onNext()` when complete
 
-**UI**: 
-- Floating button: 56px circle with an SVG circular progress ring (stroke-dasharray technique), percentage text in center
-- On click: opens a bottom sheet (mobile) or popover (desktop) with the 4-item checklist, each with a check icon and label
-- Unchecked items are tappable — navigate to the relevant tab or trigger the relevant action (e.g., clicking "Add a profile picture" opens the photo upload)
-- Auto-hides permanently once all 4 items are checked (stored in localStorage)
-- Uses Framer Motion for smooth open/close transitions
+### 3. MagicLinkStep internal logic
 
-**Integration in `PersonalDashboard.tsx`**:
-- Render `<SetupChecklist>` component, passing `profile`, `links.length`
-- Position: `fixed bottom-24 right-4 md:bottom-8 md:right-8 z-40`
+- Reuses scraping logic from `ImportProfile.tsx` (call `scrape-link-bio` edge function)
+- On successful scrape + design fork selection:
+  - Clear existing vibe placeholder links via `update({ links: [], blocks: [] })`
+  - Map scraped social + content links into `addLink()` calls with proper `type`, `url`, `label`, `displayStyle`, `gridSize`, `coverImageUrl` based on fork choice
+  - If photo found, set `update({ profilePhotoUrl: data.photoUrl })`
+  - If name/bio found, set `update({ fullName: data.name, cardHeadline: data.bio })`
+- On "Skip" — keep vibe template defaults, proceed to checkout
 
----
-
-## 2. Compact Link Pills in Dashboard Editor
-
-**File: `src/components/personal/DashboardUnifiedContent.tsx`**
-
-Current regular link rows use `p-3` padding with large icon circles (`h-10 w-10`), 4 action buttons, and full URL display — making each row tall.
-
-**Changes** (~lines 842-906, regular link rendering):
-- Reduce padding from `p-3` to `p-2`
-- Shrink icon circle from `h-10 w-10` to `h-8 w-8`, icon from `h-5 w-5` to `h-4 w-4`
-- Remove the URL subtitle line (`<p className="text-xs text-muted-foreground truncate">{link.url}</p>`)
-- Collapse the 4 separate action buttons (Star, Eye, Edit, Delete) into a single "..." overflow menu using a `DropdownMenu` — keeps the row slim
-- Each row becomes a single-line compact pill: `[grip] [icon] [label] [featured badge] [...menu]`
-- Reduce `rounded-xl` to `rounded-lg`
-
-**Grid items** (~lines 730-826): Keep as-is (image cards need the space).
-
-**Block items** (~lines 908-953): Apply the same compaction — `p-2`, smaller icon, collapse Edit/Delete into overflow menu.
-
----
-
-## 3. Design Fork Question After Import
-
-**File: `src/pages/personal/ImportProfile.tsx`**
-
-After the scraper returns results and before showing the Before/After preview, insert a "Design Fork" step.
-
-**New state**: `imagePreference: 'yes' | 'no' | null` (initially `null`)
-
-**UI** (shown when `result` exists and `imagePreference === null`):
-- Animated card (Framer Motion fade-in) with the question: "Do you want images on your link buttons?"
-- Two large visual option cards side by side:
-  - **"Clean Pills"** — shows a mini preview of 3 stacked text-only pills, subtitle: "Compact & scannable"
-  - **"Visual Cards"** — shows a mini preview of image cards in a grid, subtitle: "Rich & eye-catching"
-- Selecting either sets `imagePreference` and transitions to the Before/After view
-
-**Logic change in `scrapedToPreviewProps`** and `handleClaimPage`:
-- If `imagePreference === 'no'`: strip `cover_image_url`, `thumbnail_url`, and `grid_size` from all links, force all to `display_style: 'pill'`
-- If `imagePreference === 'yes'`: keep existing logic (images + grid pairing)
-- Pass the preference through to `sessionStorage` import data so `PersonalSignup` respects it
-
----
-
-## Files to Create/Modify
+## Files
 
 | File | Change |
 |------|--------|
-| **New**: `src/components/personal/SetupChecklist.tsx` | Floating progress ring + checklist sheet |
-| `src/pages/personal/PersonalDashboard.tsx` | Import + render `SetupChecklist`, pass profile/links data |
-| `src/components/personal/DashboardUnifiedContent.tsx` | Compact link rows, overflow menu for actions |
-| `src/pages/personal/ImportProfile.tsx` | Add design fork question between scrape result and preview |
-
-## Technical Details
-
-- **SetupChecklist** uses an SVG `<circle>` with `stroke-dasharray` for the progress ring — no new dependencies needed
-- **Overflow menu** uses existing `@/components/ui/dropdown-menu` (already in the project)
-- **Framer Motion** is already imported in both `PersonalDashboard` and `ImportProfile`
-- The checklist dismissal key in localStorage: `tapaway_setup_checklist_dismissed`
-- No database changes required — all data is derived from existing profile/links queries
+| **New**: `src/components/personal/signup/MagicLinkStep.tsx` | Magic Link scraper step with loading animation + design fork |
+| `src/pages/personal/PersonalSignup.tsx` | Render `MagicLinkStep` instead of `PersonalizeStep` for vibe flow |
 
