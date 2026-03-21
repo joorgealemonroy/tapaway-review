@@ -520,9 +520,73 @@ const ImportProfile = () => {
             )}
           </AnimatePresence>
 
+          {/* Design Fork Question */}
+          <AnimatePresence mode="wait">
+            {result && imagePreference === null && (
+              <motion.div
+                key="design-fork"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="max-w-lg mx-auto space-y-4"
+              >
+                <div className="text-center">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium mb-4">
+                    <ExternalLink className="w-3 h-3" />
+                    Imported from {sourcePlatform}
+                  </span>
+                  <h2 className="text-lg font-semibold text-foreground mt-3">
+                    Do you want images on your link buttons?
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Choose how your links will look
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Clean Pills option */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setImagePreference('no')}
+                    className="rounded-2xl border-2 border-border hover:border-primary bg-card p-5 text-center transition-colors space-y-3"
+                  >
+                    <div className="space-y-1.5 mx-auto max-w-[120px]">
+                      <div className="h-6 rounded-full bg-muted border border-border" />
+                      <div className="h-6 rounded-full bg-muted border border-border" />
+                      <div className="h-6 rounded-full bg-muted border border-border" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Clean Pills</p>
+                      <p className="text-xs text-muted-foreground">Compact & scannable</p>
+                    </div>
+                  </motion.button>
+
+                  {/* Visual Cards option */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setImagePreference('yes')}
+                    className="rounded-2xl border-2 border-border hover:border-primary bg-card p-5 text-center transition-colors space-y-3"
+                  >
+                    <div className="grid grid-cols-2 gap-1.5 mx-auto max-w-[120px]">
+                      <div className="aspect-square rounded-lg bg-muted border border-border" />
+                      <div className="aspect-square rounded-lg bg-muted border border-border" />
+                      <div className="col-span-2 h-6 rounded-full bg-muted border border-border" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Visual Cards</p>
+                      <p className="text-xs text-muted-foreground">Rich & eye-catching</p>
+                    </div>
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Results — Split Screen */}
           <AnimatePresence mode="wait">
-            {result && (
+            {result && imagePreference !== null && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
@@ -554,12 +618,22 @@ const ImportProfile = () => {
                   >
                     {(() => {
                       const { profile, links, blocks } = scrapedToPreviewProps(result);
+                      // Apply image preference to preview
+                      const displayLinks = imagePreference === 'no'
+                        ? links.map(l => ({
+                            ...l,
+                            cover_image_url: null,
+                            thumbnail_url: null,
+                            grid_size: null,
+                            display_style: l.display_style === 'icon' ? 'icon' : (l.display_style === 'both' ? 'both' : 'pill'),
+                          }))
+                        : links;
                       return (
                         <div className="flex flex-col items-center h-full">
                           <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
                             Your TapAway
                           </p>
-                          <ProfilePreviewPanel profile={profile} links={links} blocks={blocks} />
+                          <ProfilePreviewPanel profile={profile} links={displayLinks} blocks={blocks} />
                         </div>
                       );
                     })()}
@@ -581,6 +655,12 @@ const ImportProfile = () => {
                     This looks better — Claim my Page
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
+                  <button
+                    onClick={() => setImagePreference(null)}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                  >
+                    ← Change layout style
+                  </button>
                   <button
                     onClick={() => navigate("/personal/signup")}
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
