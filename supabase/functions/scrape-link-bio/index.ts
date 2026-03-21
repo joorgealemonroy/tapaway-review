@@ -4,14 +4,17 @@ const corsHeaders = {
 };
 
 const ALLOWED_DOMAINS = [
-  'linktr.ee',
-  'stan.store',
-  'beacons.ai',
-  'lnk.bio',
-  'bio.link',
-  'campsite.bio',
-  'linkpop.com',
-  'hoo.be',
+  'linktr.ee', 'stan.store', 'beacons.ai', 'lnk.bio',
+  'bio.link', 'campsite.bio', 'linkpop.com', 'hoo.be',
+  'instagram.com', 'tiktok.com', 'youtube.com',
+  'x.com', 'twitter.com', 'twitch.tv',
+  'spotify.com', 'open.spotify.com',
+];
+
+const SOCIAL_DOMAINS = [
+  'instagram.com', 'tiktok.com', 'youtube.com',
+  'x.com', 'twitter.com', 'twitch.tv',
+  'spotify.com', 'open.spotify.com',
 ];
 
 // Domains that require JS rendering (Firecrawl fallback)
