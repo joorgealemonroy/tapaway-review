@@ -23,6 +23,7 @@ import { X } from "lucide-react";
 import { ClaimStep } from "@/components/personal/signup/ClaimStep";
 import { LinksStep } from "@/components/personal/signup/LinksStep";
 import { PersonalizeStep } from "@/components/personal/signup/PersonalizeStep";
+import { MagicLinkStep } from "@/components/personal/signup/MagicLinkStep";
 import { CheckoutStep } from "@/components/personal/signup/CheckoutStep";
 import { SuccessScreen } from "@/components/personal/signup/SuccessScreen";
 
@@ -399,7 +400,7 @@ const PersonalSignup = () => {
     navigate("/personal");
   };
 
-  const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Personalize your links" : "Build your profile", 3: "Finish your order" };
+  const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Auto-build your profile" : "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
     return <SuccessScreen username={completedUsername} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
@@ -471,18 +472,13 @@ const PersonalSignup = () => {
             )}
 
             {currentStep === 2 && fromVibeFlow ? (
-              <PersonalizeStep
+              <MagicLinkStep
                 formData={formData}
                 updateFormData={updateFormData}
-                updateLink={updateLink}
-                removeLink={removeLink}
                 addLink={addLink}
-                addBlock={addBlock}
-                updateBlock={updateBlock}
-                removeBlock={removeBlock}
+                removeLink={removeLink}
                 onNext={nextStep}
                 onBack={prevStep}
-                vibeMetadata={vibeMetadata}
               />
             ) : currentStep === 2 ? (
               <LinksStep
