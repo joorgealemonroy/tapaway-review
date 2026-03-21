@@ -252,6 +252,28 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
+      // For social URLs, gracefully return the URL itself even if fetch fails (e.g. 429 rate limit)
+      const isSocialFallback = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+      if (isSocialFallback) {
+        const detectedType = detectLinkType(formattedUrl);
+        const platformLabel = detectedType.charAt(0).toUpperCase() + detectedType.slice(1);
+        console.log(`Social URL fetch failed (${response.status}), returning graceful fallback`);
+        await response.text(); // consume body
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              name: '',
+              bio: null,
+              photoUrl: null,
+              links: [],
+              socialLinks: [{ label: platformLabel, url: formattedUrl, type: detectedType }],
+            },
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      await response.text(); // consume body
       return new Response(
         JSON.stringify({ success: false, error: `Failed to fetch page (${response.status})` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
