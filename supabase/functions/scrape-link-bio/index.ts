@@ -56,6 +56,15 @@ function detectLinkType(url: string): string {
   return 'website';
 }
 
+function extractUsernameFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname.replace(/^\/+|\/+$/g, '');
+    // Remove @ prefix if present
+    const username = path.split('/')[0].replace(/^@/, '');
+    return username || '';
+  } catch { return ''; }
+}
+
 function extractMeta(html: string, property: string): string | null {
   const patterns = [
     new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'),
