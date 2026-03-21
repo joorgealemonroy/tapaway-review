@@ -924,35 +924,39 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
                   
-                  className={`flex items-center gap-3 p-3 bg-card rounded-xl border border-border transition-all touch-none select-none ${
+                  className={`flex items-center gap-2 p-2 bg-card rounded-lg border border-border transition-all touch-none select-none ${
                     isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
                 >
-                  <div className="p-2 cursor-grab active:cursor-grabbing touch-none select-none">
-                    <GripVertical className="h-6 w-6 text-muted-foreground" />
+                  <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
+                    <GripVertical className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {renderBlockIcon(block.block_type)}
                   </div>
                   <div className="flex-1 min-w-0 select-none pointer-events-none">
-                    <p className="font-medium text-sm text-foreground select-none">{getBlockLabel(block)}</p>
-                    <p className="text-xs text-muted-foreground capitalize select-none">{block.block_type} block</p>
+                    <p className="font-medium text-sm text-foreground select-none truncate">{getBlockLabel(block)}</p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setEditingBlock(block);
-                      setBlockModalOpen(true);
-                    }}
-                    className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  >
-                    <Edit className="h-5 w-5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteItem({ kind: "block", id: block.id })}
-                    className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  >
-                    <Trash2 className="h-5 w-5 text-destructive" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center">
+                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => {
+                        setEditingBlock(block);
+                        setBlockModalOpen(true);
+                      }}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleteItem({ kind: "block", id: block.id })} className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               );
             }
