@@ -164,15 +164,13 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
     }
   }, [url, onNext, updateFormData]);
 
-  const handleForkChoice = useCallback((choice: "pills" | "cards") => {
-    if (!scrapedData) return;
-
+  const applyLinks = useCallback((data: ScrapedData, choice: "pills" | "cards") => {
     // Clear existing vibe placeholder links
     formData.links.forEach(l => removeLink(l.id));
 
     const socialTypes = new Set(["instagram", "tiktok", "x", "youtube", "spotify", "facebook", "linkedin", "snapchat", "pinterest", "soundcloud"]);
-    const socialPlatformsInBar = new Set((scrapedData.socialLinks || []).map(l => l.type));
-    const rawLinks = scrapedData.links || [];
+    const socialPlatformsInBar = new Set((data.socialLinks || []).map(l => l.type));
+    const rawLinks = data.links || [];
 
     // Grid pairing for "cards" mode
     const gridEligibleTypes = new Set(["youtube", "spotify", "soundcloud", "tiktok"]);
@@ -191,7 +189,7 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
     // Add social-only links as icons
     const bothPlatforms = new Set<string>();
-    (scrapedData.socialLinks || []).forEach((l, i) => {
+    (data.socialLinks || []).forEach((l, i) => {
       addLink({
         type: l.type,
         label: l.label || (l.type === 'x' ? 'X' : l.type.charAt(0).toUpperCase() + l.type.slice(1)),
@@ -243,13 +241,18 @@ export function MagicLinkStep({ formData, updateFormData, addLink, removeLink, o
 
     // Update profile data if scraped
     const updates: Partial<SignupData> = {};
-    if (scrapedData.photoUrl) updates.profilePhotoUrl = scrapedData.photoUrl;
-    if (scrapedData.name && !formData.fullName) updates.fullName = scrapedData.name;
-    if (scrapedData.bio) updates.cardHeadline = scrapedData.bio;
+    if (data.photoUrl) updates.profilePhotoUrl = data.photoUrl;
+    if (data.name && !formData.fullName) updates.fullName = data.name;
+    if (data.bio) updates.cardHeadline = data.bio;
     if (Object.keys(updates).length > 0) updateFormData(updates);
 
     onNext();
-  }, [scrapedData, formData, addLink, removeLink, updateFormData, onNext]);
+  }, [formData, addLink, removeLink, updateFormData, onNext]);
+
+  const handleForkChoice = useCallback((choice: "pills" | "cards") => {
+    if (!scrapedData) return;
+    applyLinks(scrapedData, choice);
+  }, [scrapedData, applyLinks]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-md mx-auto px-4">
