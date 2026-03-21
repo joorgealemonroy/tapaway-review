@@ -25,6 +25,14 @@ interface ScrapedData {
 }
 
 const SUPPORTED_PLATFORMS = [
+  { name: "Instagram", domain: "instagram.com" },
+  { name: "TikTok", domain: "tiktok.com" },
+  { name: "YouTube", domain: "youtube.com" },
+  { name: "X", domain: "x.com" },
+  { name: "Twitter", domain: "twitter.com" },
+  { name: "Twitch", domain: "twitch.tv" },
+  { name: "Spotify", domain: "spotify.com" },
+  { name: "Spotify Web", domain: "open.spotify.com" },
   { name: "Linktree", domain: "linktr.ee" },
   { name: "Stan Store", domain: "stan.store" },
   { name: "Beacons", domain: "beacons.ai" },
@@ -33,6 +41,8 @@ const SUPPORTED_PLATFORMS = [
   { name: "Campsite", domain: "campsite.bio" },
   { name: "Hoo.be", domain: "hoo.be" },
 ];
+
+const DISPLAY_PLATFORMS = ["Instagram", "TikTok", "YouTube", "X / Twitter", "Twitch", "Spotify"];
 
 const LOADING_PHASES = [
   "Scanning for links...",
