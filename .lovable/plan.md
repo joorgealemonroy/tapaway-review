@@ -1,54 +1,45 @@
 
 
-# Replace Manual Entry with Magic Link Scraper in Onboarding
+# Reframe MagicLinkStep as Social Scanner (with Spotify fix)
 
-## Current Flow (Vibe Path)
-1. **ClaimStep** — username, email, password
-2. **PersonalizeStep** — manual link entry (the screen in the screenshot) ← **REMOVE THIS**
-3. **CheckoutStep** — payment/finish
+## Changes — `src/components/personal/signup/MagicLinkStep.tsx`
 
-## New Flow
-1. **ClaimStep** — username, email, password
-2. **MagicLinkStep** (new) — "Let's auto-build your profile" with single URL input + Generate → scanning animation → Design Fork → auto-populate links
-3. **CheckoutStep** — payment/finish
+### 1. Replace `SUPPORTED_PLATFORMS` array (lines 27-35)
+Expand to include social media domains + keep link-in-bio domains for background support. Spotify uses both `spotify.com` and `open.spotify.com`:
 
-## Changes
+```ts
+const SUPPORTED_PLATFORMS = [
+  { name: "Instagram", domain: "instagram.com" },
+  { name: "TikTok", domain: "tiktok.com" },
+  { name: "YouTube", domain: "youtube.com" },
+  { name: "X", domain: "x.com" },
+  { name: "Twitter", domain: "twitter.com" },
+  { name: "Twitch", domain: "twitch.tv" },
+  { name: "Spotify", domain: "spotify.com" },
+  { name: "Spotify Web", domain: "open.spotify.com" },
+  { name: "Linktree", domain: "linktr.ee" },
+  { name: "Stan Store", domain: "stan.store" },
+  { name: "Beacons", domain: "beacons.ai" },
+  { name: "lnk.bio", domain: "lnk.bio" },
+  { name: "Bio Link", domain: "bio.link" },
+  { name: "Campsite", domain: "campsite.bio" },
+  { name: "Hoo.be", domain: "hoo.be" },
+];
 
-### 1. New component: `src/components/personal/signup/MagicLinkStep.tsx`
+const DISPLAY_PLATFORMS = ["Instagram", "TikTok", "YouTube", "X / Twitter", "Twitch", "Spotify"];
+```
 
-A clean, focused step component with:
-- Headline: "Let's auto-build your profile."
-- Subtext: "Paste your main social link and we'll do the rest."
-- Single input field with Globe icon + "Generate" button
-- "Works with:" badges (Linktree, Stan Store, Beacons, etc.)
-- **Skip link** at bottom: "I'll add links later →" that calls `onNext()` with empty links (vibe defaults stay)
-- **Loading state**: 3-phase animated text ("Scanning for links...", "Mapping your links...", "Building your TapAway...") with a progress bar, using Framer Motion
-- **Design Fork** (after scrape succeeds): "Do you want images on your link buttons?" — two visual cards: "Clean Pills" vs "Visual Cards"
-- **On selection**: Maps scraped data into `formData.links` via `addLink()`, strips images if "Clean Pills" chosen, then calls `onNext()`
-- Uses the existing `scrape-link-bio` edge function (same as ImportProfile.tsx)
+### 2. Badge text (line 242)
+`Magic Import` → `Smart Scan`
 
-### 2. Modify `src/pages/personal/PersonalSignup.tsx`
+### 3. Placeholder (line 257)
+`linktr.ee/yourname` → `instagram.com/yourname`
 
-- Import `MagicLinkStep` instead of (or alongside) `PersonalizeStep`
-- **Step 2 rendering** (~line 473): When `fromVibeFlow` is true, render `<MagicLinkStep>` instead of `<PersonalizeStep>`
-- Pass `addLink`, `removeLink`, `update`, `onNext`, `onBack`, and `formData` props
-- Update `stepTitles[2]` to `"Auto-build your profile"` for the vibe flow
-- The `MagicLinkStep` handles its own internal sub-states (input → loading → fork → done) and calls `onNext()` when complete
+### 4. Error message (line 273)
+`We don't support that platform yet. Try Linktree, Stan Store, or Beacons.` → `We couldn't scan that link. Try pasting your Instagram, TikTok, or YouTube URL.`
 
-### 3. MagicLinkStep internal logic
+### 5. "Works with" badges (lines 278-287)
+Replace `SUPPORTED_PLATFORMS.map(...)` with `DISPLAY_PLATFORMS.map(...)` so only social platform names show.
 
-- Reuses scraping logic from `ImportProfile.tsx` (call `scrape-link-bio` edge function)
-- On successful scrape + design fork selection:
-  - Clear existing vibe placeholder links via `update({ links: [], blocks: [] })`
-  - Map scraped social + content links into `addLink()` calls with proper `type`, `url`, `label`, `displayStyle`, `gridSize`, `coverImageUrl` based on fork choice
-  - If photo found, set `update({ profilePhotoUrl: data.photoUrl })`
-  - If name/bio found, set `update({ fullName: data.name, cardHeadline: data.bio })`
-- On "Skip" — keep vibe template defaults, proceed to checkout
-
-## Files
-
-| File | Change |
-|------|--------|
-| **New**: `src/components/personal/signup/MagicLinkStep.tsx` | Magic Link scraper step with loading animation + design fork |
-| `src/pages/personal/PersonalSignup.tsx` | Render `MagicLinkStep` instead of `PersonalizeStep` for vibe flow |
+Single file, six edits.
 
