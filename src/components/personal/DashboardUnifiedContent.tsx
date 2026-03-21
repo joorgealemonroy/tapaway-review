@@ -14,7 +14,14 @@ import {
   Type,
   MousePointerClick,
   ShoppingBag,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   AlertDialog, 
   AlertDialogAction, 
