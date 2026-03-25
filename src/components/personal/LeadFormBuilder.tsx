@@ -105,7 +105,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
         is_active: isActive,
         button_title: buttonTitle.trim() || "Get a Quote",
         form_title: formTitle.trim() || "Request a Quote",
-        fields: fields as unknown as Record<string, unknown>[],
+        fields: JSON.parse(JSON.stringify(fields)),
       };
 
       if (form) {
@@ -117,7 +117,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
       } else {
         const { error } = await supabase
           .from("lead_forms")
-          .insert(payload);
+          .insert([payload]);
         if (error) throw error;
       }
 

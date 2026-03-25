@@ -64,11 +64,11 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("lead_submissions").insert({
+      const { error } = await supabase.from("lead_submissions").insert([{
         form_id: form.id,
         profile_id: profileId,
-        submission_data: formData as unknown as Record<string, unknown>,
-      });
+        submission_data: JSON.parse(JSON.stringify(formData)),
+      }]);
 
       if (error) throw error;
 
