@@ -940,6 +940,100 @@ export type Database = {
           },
         ]
       }
+      lead_forms: {
+        Row: {
+          button_title: string
+          created_at: string
+          fields: Json
+          form_title: string
+          id: string
+          is_active: boolean
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          button_title?: string
+          created_at?: string
+          fields?: Json
+          form_title?: string
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          button_title?: string
+          created_at?: string
+          fields?: Json
+          form_title?: string
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_forms_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_forms_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_submissions: {
+        Row: {
+          created_at: string
+          form_id: string
+          id: string
+          profile_id: string
+          submission_data: Json
+        }
+        Insert: {
+          created_at?: string
+          form_id: string
+          id?: string
+          profile_id: string
+          submission_data?: Json
+        }
+        Update: {
+          created_at?: string
+          form_id?: string
+          id?: string
+          profile_id?: string
+          submission_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "lead_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_submissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_submissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
