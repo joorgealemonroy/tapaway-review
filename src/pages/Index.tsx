@@ -17,16 +17,16 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>TapAway for Business — Generate 5-Star Google Reviews Instantly</title>
-        <meta name="description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
-        <link rel="canonical" href="https://tapaway.co/business" />
-        <meta property="og:title" content="TapAway for Business — Generate 5-Star Google Reviews Instantly" />
-        <meta property="og:description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
-        <meta property="og:url" content="https://tapaway.co/business" />
+        <title>TapAway | Smart NFC Cards & Review Tools for Businesses</title>
+        <meta name="description" content="Get more 5-star Google reviews on autopilot with TapAway's NFC cards and smart review tools. Built for restaurants, salons, and local businesses." />
+        <link rel="canonical" href="https://tapaway.co" />
+        <meta property="og:title" content="TapAway | Smart NFC Cards & Review Tools for Businesses" />
+        <meta property="og:description" content="Get more 5-star Google reviews on autopilot with TapAway's NFC cards and smart review tools. Built for restaurants, salons, and local businesses." />
+        <meta property="og:url" content="https://tapaway.co" />
         <meta property="og:image" content="https://tapaway.co/logo-og.png" />
         <meta property="og:type" content="website" />
-        <meta name="twitter:title" content="TapAway for Business — Generate 5-Star Google Reviews Instantly" />
-        <meta name="twitter:description" content="Transform your customer experience. Use TapAway to capture more 5-star reviews and grow your business reputation on autopilot." />
+        <meta name="twitter:title" content="TapAway | Smart NFC Cards & Review Tools for Businesses" />
+        <meta name="twitter:description" content="Get more 5-star Google reviews on autopilot with TapAway's NFC cards and smart review tools." />
         <meta name="twitter:image" content="https://tapaway.co/logo-og.png" />
       </Helmet>
       
@@ -36,14 +36,6 @@ const Index = () => {
       {/* Navigation */}
       <LandingNav />
 
-      {/* For Businesses Label */}
-      <div className="bg-primary/5 border-b border-primary/10">
-        <div className="max-w-6xl mx-auto px-4 py-2">
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-            For Businesses
-          </span>
-        </div>
-      </div>
 
       {/* Main Content */}
       <HeroSection />

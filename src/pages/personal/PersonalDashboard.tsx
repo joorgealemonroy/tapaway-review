@@ -151,8 +151,8 @@ const PersonalDashboard = () => {
         .single();
 
       if (profileError || !profileData) {
-        // User is authenticated but has no profile - this is the only case for signup
-        navigate("/personal/signup");
+        // User is authenticated but has no profile - redirect to business onboarding
+        navigate("/start");
         return;
       }
 

@@ -110,7 +110,7 @@ const DashboardSelector = () => {
                 <User className="w-6 h-6" />
               </div>
               <div className="text-left">
-                <div className="font-semibold text-foreground">Personal Dashboard</div>
+                <div className="font-semibold text-foreground">Small Business Dashboard</div>
                 <div className="text-sm text-muted-foreground">{personalName || "Your profile"}</div>
               </div>
             </Button>

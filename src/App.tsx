@@ -11,7 +11,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
-import Personal from "./pages/Personal";
 import UsernameResolver from "./pages/UsernameResolver";
 import CardResolver from "./pages/CardResolver";
 import NotFound from "./pages/NotFound";
@@ -105,9 +104,8 @@ const App = () => (
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/" element={<Personal />} />
-                <Route path="/business" element={<Index />} />
-                <Route path="/personal" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<Index />} />
+                <Route path="/business" element={<Navigate to="/" replace />} />
                 <Route path="/personal/vibe" element={<VibeSelection />} />
                 <Route path="/personal/signup" element={<PersonalSignup />} />
                 <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
