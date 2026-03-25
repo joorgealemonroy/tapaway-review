@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSalesRep } from "@/hooks/useSalesRep";
-import { ProductNavToggle } from "./ProductNavToggle";
 import { Button } from "@/components/ui/button";
 
 export const DesktopNav = () => {
@@ -17,8 +16,7 @@ export const DesktopNav = () => {
     localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
   
-  const isBusiness = location.pathname === "/business";
-  const dashboardLink = isSalesRep ? "/rep" : !isBusiness ? "/personal/dashboard" : "/dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : "/select-dashboard";
 
   return (
     <nav className="hidden md:block sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">
@@ -31,7 +29,7 @@ export const DesktopNav = () => {
             >
               TapAway
             </a>
-            <ProductNavToggle />
+            
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -42,14 +40,6 @@ export const DesktopNav = () => {
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
-            {isBusiness && (
-              <Link
-                to="/"
-                className="px-4 py-2 rounded-lg font-medium text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Personal Cards
-              </Link>
-            )}
             {user ? (
               <Link
                 to={dashboardLink}
@@ -66,10 +56,10 @@ export const DesktopNav = () => {
                   Log in
                 </Link>
                 <Link
-                  to={isBusiness ? "/start" : "/personal/signup"}
+                  to="/start"
                   className="px-5 py-2.5 rounded-lg font-bold text-sm bg-foreground text-background hover:bg-foreground/90 transition-colors"
                 >
-                  {isBusiness ? "Start Free Trial" : "Get Your Card"}
+                  Start Free Trial
                 </Link>
               </>
             )}

@@ -22,8 +22,7 @@ export const MobileNav = () => {
     localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
   
-  const isBusiness = location.pathname === "/business";
-  const dashboardLink = isSalesRep ? "/rep" : isBusiness ? "/dashboard" : "/personal/dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : "/select-dashboard";
 
   const handleSignOut = async () => {
     await signOut();
@@ -87,12 +86,12 @@ export const MobileNav = () => {
                       Log in
                     </Link>
                     <Link
-                      to={isBusiness ? "/start" : "/personal/signup"}
+                      to="/start"
                       onClick={() => setOpen(false)}
                       className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border-2 border-foreground text-foreground font-semibold hover:bg-muted/50 active:bg-muted transition-colors"
                     >
                       <UserPlus className="w-5 h-5" />
-                      Create account
+                      Start Free Trial
                     </Link>
                   </>
                 )}
@@ -120,31 +119,6 @@ export const MobileNav = () => {
         </Sheet>
       </div>
       
-      {/* Row 2: Segmented Control */}
-      <div className="px-4 pb-3">
-        <div className="flex p-1 rounded-xl bg-muted/60">
-          <Link
-            to="/"
-            className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
-              !isBusiness
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Personal
-          </Link>
-          <Link
-            to="/business"
-            className={`flex-1 flex items-center justify-center h-11 rounded-lg font-semibold text-sm transition-all ${
-              isBusiness
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Business
-          </Link>
-        </div>
-      </div>
     </nav>
   );
 };
