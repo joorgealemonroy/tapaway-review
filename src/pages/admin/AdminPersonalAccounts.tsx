@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -1638,10 +1639,11 @@ Login at: ${window.location.origin}/auth`;
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="design">Design</TabsTrigger>
                 <TabsTrigger value="content">Content</TabsTrigger>
+                <TabsTrigger value="leads">Leads</TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
@@ -2166,6 +2168,13 @@ Login at: ${window.location.origin}/auth`;
                   onLinksChange={setEditLinks}
                   onBlocksChange={setEditBlocks}
                 />
+              </TabsContent>
+
+              {/* Leads Tab */}
+              <TabsContent value="leads" className="mt-4">
+                {editingAccount && (
+                  <EmailLeadsTab profileId={editingAccount.id} />
+                )}
               </TabsContent>
 
               <Button 
