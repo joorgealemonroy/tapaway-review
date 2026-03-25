@@ -1,72 +1,25 @@
 
 
-# Phase 1: B2B Landing Page Pivot (Personal Routes Stay Hidden)
+# Reset Password for tap@tapaway.co
 
-## Summary
+## Problem
+The `set-user-password` edge function requires a Stripe checkout session, so it can't be used for admin password resets. The auth guard blocks `resetPasswordForEmail`. We need a direct admin password reset.
 
-Make `/` the B2B landing page, remove all public-facing Personal links/toggles, but keep personal signup routes alive as hidden/invite-only paths.
+## Solution
+Create a small edge function `admin-reset-password` that uses the service role key to call `supabase.auth.admin.updateUserById()` with the new password. It will be restricted to only work for the super admin email (`tap@tapaway.co`) as a safety measure.
 
----
+### New file: `supabase/functions/admin-reset-password/index.ts`
 
-## 1. Routing (`src/App.tsx`)
+- Accepts `{ email, password }` in the request body
+- Only allows `tap@tapaway.co` as the target email (hardcoded safety check)
+- Uses service role to look up user by email via `get_auth_user_by_email` RPC, then calls `admin.updateUserById` to set the new password
+- Returns success/error
 
-- Change `"/"` from `<Personal />` to `<Index />` (Business landing)
-- Add `/business` → redirect to `/`
-- **Keep all personal routes intact**: `/personal/vibe`, `/personal/signup`, `/personal/signup/complete`, `/personal/dashboard`, `/personal/pricing`, `/import`, `/u/:username`
-- Remove eager import of `Personal` page (no longer needed at root)
+### Execution
+After deploying, invoke the function once to set the password to `Ilovelovie123!`, then confirm login works.
 
-## 2. Landing Page (`src/pages/Index.tsx`)
-
-- Remove "For Businesses" label banner (it's now the only product)
-- Update Helmet title → "TapAway | Smart NFC Cards & Review Tools for Businesses"
-- Update meta description for B2B focus
-- Footer: remove "Personal Cards" link, keep socials + legal
-
-## 3. Desktop Nav (`src/components/landing/DesktopNav.tsx`)
-
-- Remove `ProductNavToggle` import and rendering
-- Remove "Personal Cards" conditional link
-- Simplify CTA: always show "Start Free Trial" → `/start`
-- Dashboard link: remove `isBusiness` conditional, default to `/select-dashboard`
-
-## 4. Mobile Nav (`src/components/landing/MobileNav.tsx`)
-
-- Remove Personal/Business segmented control
-- Simplify signup CTA to always `/start` with "Start Free Trial"
-- Remove `isBusiness` logic from dashboard link
-
-## 5. Dashboard Selector (`src/pages/DashboardSelector.tsx`)
-
-- Rebrand "Personal Dashboard" display text → "Small Business Dashboard"
-- Keep routing to `/personal/dashboard` unchanged
-
-## 6. Dashboard Switcher (`src/components/dashboard/DashboardSwitcher.tsx`)
-
-- Rebrand "Personal" label → "Small Business"
-
-## 7. Personal Dashboard Redirect Safety (`src/pages/personal/PersonalDashboard.tsx`)
-
-- Change the no-profile redirect from `/personal/signup` → `/start` (prevents accidental personal signups from dashboard)
-
-## 8. Cleanup
-
-- `ProductNavToggle.tsx` — delete (no longer referenced)
-- `Personal.tsx` — keep file but remove from root route import
-
----
-
-## Files
-
+### Files
 | File | Action |
 |------|--------|
-| `src/App.tsx` | Reroute `/` to Index, add `/business` redirect, remove Personal eager import |
-| `src/pages/Index.tsx` | Remove business banner, update meta/footer |
-| `src/components/landing/DesktopNav.tsx` | Remove toggle + personal links, simplify CTAs |
-| `src/components/landing/MobileNav.tsx` | Remove segmented control, simplify CTAs |
-| `src/components/landing/ProductNavToggle.tsx` | Delete |
-| `src/pages/DashboardSelector.tsx` | Rebrand label |
-| `src/components/dashboard/DashboardSwitcher.tsx` | Rebrand label |
-| `src/pages/personal/PersonalDashboard.tsx` | Change no-profile redirect |
-
-**Not touched:** All `/personal/*` routes, `PersonalSignup`, `VibeSelection`, `ImportProfile`, `MagicLinkStep`, `PersonalProfile`, auth flow — all remain functional via direct URL.
+| **New**: `supabase/functions/admin-reset-password/index.ts` | One-time admin password reset function |
 
