@@ -25,6 +25,7 @@ import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
+import LeadFormSheet from "@/components/personal/LeadFormSheet";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -1276,6 +1277,11 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             className={hasBanner ? "rounded-3xl pt-4 pb-6 -mx-4 px-4" : ""}
             style={hasBanner ? { backgroundColor: isLightBanner ? '#1a1a1a' : (extractedBannerColor || undefined) } : undefined}
           >
+            {/* Lead Form CTA */}
+            <div className="mb-4">
+              <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} />
+            </div>
+
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
