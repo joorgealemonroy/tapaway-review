@@ -1,54 +1,72 @@
 
 
-# Fix Backend Edge Function: Add Social Media Support (Spotify Domains Fixed)
+# Phase 1: B2B Landing Page Pivot (Personal Routes Stay Hidden)
 
-## Changes — `supabase/functions/scrape-link-bio/index.ts`
+## Summary
 
-### 1. Expand `ALLOWED_DOMAINS` (lines 6-15)
-Add social media domains with correct Spotify URLs:
-```ts
-const ALLOWED_DOMAINS = [
-  'linktr.ee', 'stan.store', 'beacons.ai', 'lnk.bio',
-  'bio.link', 'campsite.bio', 'linkpop.com', 'hoo.be',
-  'instagram.com', 'tiktok.com', 'youtube.com',
-  'x.com', 'twitter.com', 'twitch.tv',
-  'spotify.com', 'open.spotify.com',
-];
-```
+Make `/` the B2B landing page, remove all public-facing Personal links/toggles, but keep personal signup routes alive as hidden/invite-only paths.
 
-### 2. Fix `twitch.tv` in `LINK_TYPE_MAP` (line 40)
-`'twitch.tv': 'website'` → `'twitch.tv': 'twitch'`
+---
 
-### 3. Social URL detection + OG-only fallback (after HTML fetch, ~line 258)
-Insert a social domain check before the platform-specific routing block:
+## 1. Routing (`src/App.tsx`)
 
-```ts
-const SOCIAL_DOMAINS = [
-  'instagram.com', 'tiktok.com', 'youtube.com',
-  'x.com', 'twitter.com', 'twitch.tv',
-  'spotify.com', 'open.spotify.com',
-];
-const isSocialUrl = SOCIAL_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
-```
+- Change `"/"` from `<Personal />` to `<Index />` (Business landing)
+- Add `/business` → redirect to `/`
+- **Keep all personal routes intact**: `/personal/vibe`, `/personal/signup`, `/personal/signup/complete`, `/personal/dashboard`, `/personal/pricing`, `/import`, `/u/:username`
+- Remove eager import of `Personal` page (no longer needed at root)
 
-Then wrap the existing platform routing (Stan Store / generic extraction) in an `if (!isSocialUrl)` block, and add a new `else` branch for social URLs that:
-- Uses only OG meta tags for `name`, `bio`, `photoUrl`
-- Returns the input URL as the single link with auto-detected type
-- Skips all link-block extraction
+## 2. Landing Page (`src/pages/Index.tsx`)
 
-### 4. Social URL response shape
-```json
-{
-  "name": "og:title cleaned",
-  "bio": "og:description or null",
-  "photoUrl": "og:image or null",
-  "links": [{ "label": "Instagram", "url": "https://instagram.com/user", "type": "instagram", "imageUrl": null }],
-  "socialLinks": [{ "label": "instagram", "url": "https://instagram.com/user", "type": "instagram" }]
-}
-```
+- Remove "For Businesses" label banner (it's now the only product)
+- Update Helmet title → "TapAway | Smart NFC Cards & Review Tools for Businesses"
+- Update meta description for B2B focus
+- Footer: remove "Personal Cards" link, keep socials + legal
 
-## File
-| File | Change |
+## 3. Desktop Nav (`src/components/landing/DesktopNav.tsx`)
+
+- Remove `ProductNavToggle` import and rendering
+- Remove "Personal Cards" conditional link
+- Simplify CTA: always show "Start Free Trial" → `/start`
+- Dashboard link: remove `isBusiness` conditional, default to `/select-dashboard`
+
+## 4. Mobile Nav (`src/components/landing/MobileNav.tsx`)
+
+- Remove Personal/Business segmented control
+- Simplify signup CTA to always `/start` with "Start Free Trial"
+- Remove `isBusiness` logic from dashboard link
+
+## 5. Dashboard Selector (`src/pages/DashboardSelector.tsx`)
+
+- Rebrand "Personal Dashboard" display text → "Small Business Dashboard"
+- Keep routing to `/personal/dashboard` unchanged
+
+## 6. Dashboard Switcher (`src/components/dashboard/DashboardSwitcher.tsx`)
+
+- Rebrand "Personal" label → "Small Business"
+
+## 7. Personal Dashboard Redirect Safety (`src/pages/personal/PersonalDashboard.tsx`)
+
+- Change the no-profile redirect from `/personal/signup` → `/start` (prevents accidental personal signups from dashboard)
+
+## 8. Cleanup
+
+- `ProductNavToggle.tsx` — delete (no longer referenced)
+- `Personal.tsx` — keep file but remove from root route import
+
+---
+
+## Files
+
+| File | Action |
 |------|--------|
-| `supabase/functions/scrape-link-bio/index.ts` | Expand allowlist, fix twitch type, add OG-only social fallback |
+| `src/App.tsx` | Reroute `/` to Index, add `/business` redirect, remove Personal eager import |
+| `src/pages/Index.tsx` | Remove business banner, update meta/footer |
+| `src/components/landing/DesktopNav.tsx` | Remove toggle + personal links, simplify CTAs |
+| `src/components/landing/MobileNav.tsx` | Remove segmented control, simplify CTAs |
+| `src/components/landing/ProductNavToggle.tsx` | Delete |
+| `src/pages/DashboardSelector.tsx` | Rebrand label |
+| `src/components/dashboard/DashboardSwitcher.tsx` | Rebrand label |
+| `src/pages/personal/PersonalDashboard.tsx` | Change no-profile redirect |
+
+**Not touched:** All `/personal/*` routes, `PersonalSignup`, `VibeSelection`, `ImportProfile`, `MagicLinkStep`, `PersonalProfile`, auth flow — all remain functional via direct URL.
 
