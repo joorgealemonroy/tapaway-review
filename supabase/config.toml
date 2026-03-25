@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.download-product]
 verify_jwt = false
+
+[functions.admin-reset-password]
+verify_jwt = false
