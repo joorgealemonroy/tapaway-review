@@ -1,20 +1,22 @@
 
 
-# Remove "Create your digital card — free" Signup Bar from Profile Pages
+# Reduce Bottom Spacing on Profile Pages
 
-## Overview
+## Problem
 
-Remove the `ProfileSignupBar` component that appears at the bottom of personal profile pages, since TapAway no longer offers the free personal signup flow publicly.
+The footer area has excessive bottom padding (`mt-12 pb-6`) plus `space-y-3` and the `min-h-screen` on the inner container, creating a lot of dead space at the bottom — especially noticeable on mobile.
 
 ## Changes
 
 ### `src/pages/personal/PersonalProfilePage.tsx`
-- Remove the `<ProfileSignupBar profileId={profile.id} />` render (~line 1479)
-- Remove the import of `ProfileSignupBar` (~line 22)
 
-### `src/components/personal/ProfileSignupBar.tsx`
-- Delete the file entirely (no longer used anywhere)
+1. **Footer spacing** (line 1424): Change `mt-12 pb-6` to `mt-6 pb-4` — cuts the top margin in half and tightens bottom padding
+2. **Inner container** (line 1166): Change `min-h-screen` to `min-h-[100dvh]` on mobile to use dynamic viewport height (avoids extra space from browser chrome), keep the same for desktop
 
-### `src/components/landing/FreeTrialPopup.tsx`
-- Delete the file entirely (already unused — not imported anywhere)
+| Line | Before | After |
+|------|--------|-------|
+| 1424 | `mt-12 pb-6` | `mt-6 pb-4` |
+| 1166 | `min-h-screen` | `min-h-[100dvh]` (both outer + inner wrappers) |
+
+One file changed: `src/pages/personal/PersonalProfilePage.tsx`
 
