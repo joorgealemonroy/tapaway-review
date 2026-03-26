@@ -226,7 +226,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `instagram://user?username=${v.replace(/^@/, "")}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").replace(/^@/, "").split("/")[0];
+      return `instagram://user?username=${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-[#E4405F]",
@@ -239,7 +242,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://tiktok.com/@${v.replace(/^@/, "")}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").replace(/^@/, "").split("/")[0];
+      return `https://tiktok.com/@${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-black",
@@ -265,7 +271,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://x.com/${v.replace(/^@/, "")}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").replace(/^@/, "").split("/")[0];
+      return `https://x.com/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-black",
@@ -277,7 +286,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://threads.net/@${v.replace(/^@/, "")}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").replace(/^@/, "").split("/")[0];
+      return `https://threads.net/@${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-black",
@@ -321,7 +333,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: TwitchIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://twitch.tv/${v}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0];
+      return `https://twitch.tv/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-[#9146FF]",
@@ -332,7 +347,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: SnapchatIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://snapchat.com/add/${v}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0];
+      return `https://snapchat.com/add/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0] || "",
     color: "text-black",
     bgColor: "bg-[#FFFC00]",
@@ -343,7 +361,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: PinterestIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://pinterest.com/${v}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0];
+      return `https://pinterest.com/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-[#E60023]",
@@ -366,7 +387,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://t.me/${v.replace(/^@/, "")}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").replace(/^@/, "").split("/")[0];
+      return `https://t.me/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-[#0088CC]",
@@ -377,7 +401,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: OnlyFansIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => `https://onlyfans.com/${v}`,
+    generateUrl: (v) => {
+      const clean = v.replace(/^https?:\/\/(www\.)?onlyfans\.com\//, "").split("/")[0];
+      return `https://onlyfans.com/${clean}`;
+    },
     extractValue: (url) => url.replace(/^https?:\/\/(www\.)?onlyfans\.com\//, "").split("/")[0] || "",
     color: "text-white",
     bgColor: "bg-[#00AFF0]",
