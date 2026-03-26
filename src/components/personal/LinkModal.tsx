@@ -264,7 +264,8 @@ export const LinkModal = ({
   const handleSave = () => {
     if (!selectedPlatform || !inputValue.trim()) return;
 
-    const value = inputValue.trim();
+    const rawValue = inputValue.trim();
+    const value = selectedPlatform.extractValue(rawValue) || rawValue;
     const url = selectedPlatform.generateUrl(value);
     const label = customLabel.trim() || selectedPlatform.label;
     // Only include gridSize if there's a cover image
