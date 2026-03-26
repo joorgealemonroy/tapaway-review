@@ -1163,7 +1163,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
       {/* Add top padding on desktop for spacing, using outer bg color instead of margin */}
       <div className="hidden md:block md:h-4" />
       <div 
-        className="min-h-screen md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
+        className="min-h-[100dvh] md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
         style={{
           ...bgStyle,
           // Larger, softer glow that blends the frame edge into the outer background
@@ -1421,7 +1421,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
           )}
 
           {/* Footer */}
-          <footer className="mt-12 pb-6 text-center space-y-3">
+          <footer className="mt-6 pb-4 text-center space-y-3">
             {/* Glass Pill CTA */}
             <motion.div 
               className="flex justify-center"
