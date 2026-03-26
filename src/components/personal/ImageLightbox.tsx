@@ -126,6 +126,7 @@ function ImageLightboxComponent({
               controls
               autoPlay
               playsInline
+              preload="metadata"
               className="max-w-[90vw] max-h-[85vh] rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
