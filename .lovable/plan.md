@@ -1,58 +1,69 @@
 
 
-# Add Video Support to Photo Collage (up to 1 minute)
+# Optimize Video Loading in Photo Collage for Mobile
 
-## Overview
+## Problem
 
-Extend the existing `photo_collage` block to support mixed media (images + videos up to 60 seconds). The collage data model changes from `images: string[]` to `media: Array<{url, type}>` with backward compatibility for existing image-only collages.
+The collage `<video>` elements load the **full video file** just to show a thumbnail preview. On mobile networks this is extremely slow and wastes bandwidth — users don't need to watch these previews, they just need to see a frame.
 
----
+## Solution
 
-## 1. BlockModal.tsx — Upload & Builder Changes
+Replace the `<video>` tag in the collage carousel with a **poster-frame approach**: generate a thumbnail using a short-lived `<video>` element to grab the first frame onto a `<canvas>`, then display a static `<img>` instead. For the lightbox (where the user actually watches), keep full video loading but add `preload="none"` until playback starts.
 
-- Rename internal state from `collageImages` to `collageMedia: Array<{url: string, type: "image" | "video"}>`
-- Change the file input `accept` from `image/*` to `image/*,video/*`
-- On file select:
-  - If image → existing crop + compress + upload flow
-  - If video → validate duration ≤ 60s using `HTMLVideoElement.duration`, enforce 20MB limit, upload directly to `personal-photos` storage bucket (no cropping)
-- Show video thumbnails in the 4-column grid with a play icon overlay
-- Save content as `{ media: JSON.stringify([{url, type}]), columns }` (keep `images` key as fallback for old data)
-- Update the edit-loading logic to parse both old `images` format and new `media` format
+### Changes
 
-## 2. PersonalProfilePage.tsx — Collage Rendering
+**`src/pages/personal/PersonalProfilePage.tsx`** — `CollageWithLightbox`
 
-- Update `CollageWithLightbox` to accept `media: Array<{url, type}>` instead of `images: string[]`
-- In the carousel, render `<video>` elements for video items (muted, loop, playsInline, autoPlay for short preview) with a play button overlay
-- In the lightbox, render a `<video controls>` for video items instead of `<img>`
+- Replace the inline `<video>` preview with a new `VideoThumbnail` component that:
+  1. Creates an off-screen `<video>` with `preload="metadata"` to fetch only the first few KB
+  2. On `loadeddata`, draws the first frame to a canvas and converts to a data URL
+  3. Renders a static `<img>` with the captured frame (or a gray placeholder while loading)
+  4. Keeps the play icon overlay
+- This avoids downloading the full video file for each carousel item
 
-## 3. ImageLightbox.tsx — Video Support
+**`src/components/personal/ImageLightbox.tsx`**
 
-- Change `images: string[]` prop to `media: Array<{url: string, type: "image" | "video"}>`
-- When `type === "video"`, render `<video controls autoPlay>` instead of `<img>`
-- Keep all navigation and keyboard controls the same
+- Add `preload="metadata"` to the lightbox `<video>` (currently loads full file on mount)
+- This defers full download until the user actually hits play
 
-## 4. Backward Compatibility
+### VideoThumbnail component (inline in PersonalProfilePage.tsx)
 
-- The `photo_collage` case in the profile renderer currently reads `content.images`. Update to:
-  1. Check for `content.media` (new format) → parse as `{url, type}[]`
-  2. Fall back to `content.images` (old format) → map to `{url, type: "image"}[]`
-- Same fallback logic in `BlockModal` edit loading, `AdminBlocksManager`, and `AdminUnifiedContent` display labels
+```tsx
+const VideoThumbnail = memo(function VideoThumbnail({ url }: { url: string }) {
+  const [poster, setPoster] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = url;
+    video.onloadeddata = () => {
+      video.currentTime = 0.1;
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        setPoster(canvas.toDataURL("image/jpeg", 0.7));
+      } catch {}
+    };
+    return () => { video.src = ""; };
+  }, [url]);
 
-## 5. Admin Components
+  return poster 
+    ? <img src={poster} alt="" className="w-full h-full object-cover" /> 
+    : <div className="w-full h-full bg-muted animate-pulse" />;
+});
+```
 
-- Update `AdminBlocksManager.tsx` and `AdminUnifiedContent.tsx` block description to count both images and videos (e.g., "3 images, 1 video")
-
----
-
-## Files
+### Files
 
 | File | Change |
 |------|--------|
-| `src/components/personal/BlockModal.tsx` | Video upload, duration validation, mixed media state |
-| `src/pages/personal/PersonalProfilePage.tsx` | CollageWithLightbox renders videos, backward-compat parsing |
-| `src/components/personal/ImageLightbox.tsx` | Support video items in lightbox |
-| `src/components/admin/AdminBlocksManager.tsx` | Update collage description label |
-| `src/components/admin/AdminUnifiedContent.tsx` | Update collage description label |
-
-No database or storage changes needed — videos upload to the existing `personal-photos` bucket.
+| `src/pages/personal/PersonalProfilePage.tsx` | Add `VideoThumbnail`, replace `<video>` in carousel with it |
+| `src/components/personal/ImageLightbox.tsx` | Add `preload="metadata"` to lightbox video |
 
