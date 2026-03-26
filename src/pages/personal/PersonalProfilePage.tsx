@@ -282,6 +282,39 @@ const ProfileLink = memo(function ProfileLink({
   );
 });
 
+// Generates a poster frame from video metadata without downloading the full file
+const VideoThumbnail = memo(function VideoThumbnail({ url }: { url: string }) {
+  const [poster, setPoster] = useState<string | null>(null);
+
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = url;
+    video.onloadeddata = () => {
+      video.currentTime = 0.1;
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        setPoster(canvas.toDataURL("image/jpeg", 0.7));
+      } catch {
+        // cross-origin or other error — leave as placeholder
+      }
+    };
+    return () => { video.src = ""; };
+  }, [url]);
+
+  return poster
+    ? <img src={poster} alt="" className="w-full h-full object-cover" />
+    : <div className="w-full h-full bg-muted animate-pulse" />;
+});
+
 // Collage with lightbox component - horizontal swipeable carousel (supports mixed media)
 const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media: Array<{ url: string; type: "image" | "video" }> }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -315,13 +348,7 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media
             >
               {item.type === "video" ? (
                 <>
-                  <video 
-                    src={item.url} 
-                    muted 
-                    playsInline 
-                    loop
-                    className="w-full h-full object-cover"
-                  />
+                  <VideoThumbnail url={item.url} />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="h-8 w-8 rounded-full bg-black/50 flex items-center justify-center">
                       <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-0.5" />
