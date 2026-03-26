@@ -19,7 +19,7 @@ import { ImageLightbox } from "@/components/personal/ImageLightbox";
 import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
-import { ProfileSignupBar } from "@/components/personal/ProfileSignupBar";
+
 import { ProductPreviewModal } from "@/components/personal/ProductPreviewModal";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
@@ -1476,7 +1476,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
         shareUrl={`https://tapaway.co/${profile.username}`}
       />
 
-      <ProfileSignupBar profileId={profile.id} />
+      
 
       {/* Product Preview Modal */}
       <ProductPreviewModal
