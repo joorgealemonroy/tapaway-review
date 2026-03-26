@@ -130,10 +130,19 @@ export const AdminBlocksManager = ({ blocks, onBlocksChange, tempUserId }: Props
         return (content.headline as string) || "Email capture";
       case "photo_collage": {
         try {
-          const images = typeof content.images === 'string' 
-            ? JSON.parse(content.images as string) 
-            : content.images;
-          return `${Array.isArray(images) ? images.length : 0} images`;
+          let items: Array<{ type?: string }> = [];
+          if (content.media) {
+            items = typeof content.media === 'string' ? JSON.parse(content.media as string) : content.media as any[];
+          } else if (content.images) {
+            const imgs = typeof content.images === 'string' ? JSON.parse(content.images as string) : content.images;
+            items = (Array.isArray(imgs) ? imgs : []).map(() => ({ type: "image" }));
+          }
+          const imageCount = items.filter(i => !i.type || i.type === "image").length;
+          const videoCount = items.filter(i => i.type === "video").length;
+          const parts = [];
+          if (imageCount > 0) parts.push(`${imageCount} image${imageCount !== 1 ? 's' : ''}`);
+          if (videoCount > 0) parts.push(`${videoCount} video${videoCount !== 1 ? 's' : ''}`);
+          return parts.join(', ') || "Photo collage";
         } catch {
           return "Photo collage";
         }

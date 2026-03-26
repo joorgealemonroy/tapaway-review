@@ -114,8 +114,8 @@ export const BlockModal = ({
   const [nameRequired, setNameRequired] = useState(false);
   const [messageRequired, setMessageRequired] = useState(false);
   
-  // Photo collage options
-  const [collageImages, setCollageImages] = useState<string[]>([]);
+  // Photo collage options (mixed media: images + videos)
+  const [collageMedia, setCollageMedia] = useState<Array<{ url: string; type: "image" | "video" }>>([]);
   const [collageColumns, setCollageColumns] = useState<2 | 3>(3);
   const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
   
@@ -188,18 +188,32 @@ export const BlockModal = ({
           setNameRequired(content.nameRequired === "true");
           setMessageRequired(content.messageRequired === "true");
         } else if (editingBlock.block_type === "photo_collage") {
-          let images: string[] = [];
+          let media: Array<{ url: string; type: "image" | "video" }> = [];
           try {
-            const rawImages = content.images;
-            if (Array.isArray(rawImages)) {
-              images = rawImages;
-            } else if (typeof rawImages === 'string' && rawImages) {
-              images = JSON.parse(rawImages);
+            // New format: content.media
+            const rawMedia = content.media;
+            if (rawMedia) {
+              const parsed = typeof rawMedia === 'string' ? JSON.parse(rawMedia) : rawMedia;
+              if (Array.isArray(parsed)) {
+                media = parsed.map((item: any) => 
+                  typeof item === 'string' ? { url: item, type: "image" as const } : item
+                );
+              }
+            } else {
+              // Legacy format: content.images
+              const rawImages = content.images;
+              let images: string[] = [];
+              if (Array.isArray(rawImages)) {
+                images = rawImages;
+              } else if (typeof rawImages === 'string' && rawImages) {
+                images = JSON.parse(rawImages);
+              }
+              media = images.map(url => ({ url, type: "image" as const }));
             }
           } catch {
-            images = [];
+            media = [];
           }
-          setCollageImages(images);
+          setCollageMedia(media);
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         } else if (editingBlock.block_type === "product") {
           setSelectedProductId(content.product_id || "");
@@ -241,7 +255,7 @@ export const BlockModal = ({
     setNameRequired(false);
     setMessageRequired(false);
     // Photo collage
-    setCollageImages([]);
+    setCollageMedia([]);
     setCollageColumns(3);
     setCollageRawImage(null);
     setSelectedProductId("");
@@ -347,14 +361,71 @@ export const BlockModal = ({
     }
   };
 
-  // Collage image handlers
-  const handleCollageImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Collage media handlers (images + videos)
+  const handleCollageMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setCollageRawImage(objectUrl);
-    setShowCollageCropper(true);
+    // Reset input so same file can be re-selected
+    if (collageFileInputRef.current) collageFileInputRef.current.value = "";
+
+    if (file.type.startsWith("video/")) {
+      // Video validation: max 20MB, max 60 seconds
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error("Video must be under 20MB");
+        return;
+      }
+
+      // Validate duration
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      const objectUrl = URL.createObjectURL(file);
+      video.src = objectUrl;
+
+      video.onloadedmetadata = async () => {
+        URL.revokeObjectURL(objectUrl);
+        if (video.duration > 60) {
+          toast.error("Video must be under 1 minute");
+          return;
+        }
+
+        // Upload directly (no cropping for video)
+        setUploadingCollageImage(true);
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Not authenticated");
+
+          const ext = file.name.split('.').pop() || 'mp4';
+          const filePath = `${user.id}/collage/${Date.now()}.${ext}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("personal-photos")
+            .upload(filePath, file, { contentType: file.type });
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(filePath);
+
+          setCollageMedia(prev => [...prev, { url: publicUrl, type: "video" }]);
+        } catch (err) {
+          console.error("Upload error:", err);
+          toast.error("Failed to upload video");
+        } finally {
+          setUploadingCollageImage(false);
+        }
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        toast.error("Could not read video file");
+      };
+    } else {
+      // Image — use cropper flow
+      const objectUrl = URL.createObjectURL(file);
+      setCollageRawImage(objectUrl);
+      setShowCollageCropper(true);
+    }
   };
 
   const handleCollageCropComplete = async (croppedBlob: Blob) => {
@@ -377,7 +448,7 @@ export const BlockModal = ({
         .from("personal-photos")
         .getPublicUrl(filePath);
 
-      setCollageImages(prev => [...prev, publicUrl]);
+      setCollageMedia(prev => [...prev, { url: publicUrl, type: "image" }]);
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload image");
@@ -390,8 +461,8 @@ export const BlockModal = ({
     }
   };
 
-  const handleRemoveCollageImage = (index: number) => {
-    setCollageImages(prev => prev.filter((_, i) => i !== index));
+  const handleRemoveCollageMedia = (index: number) => {
+    setCollageMedia(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -467,12 +538,12 @@ export const BlockModal = ({
         break;
       }
       case "photo_collage": {
-        if (collageImages.length === 0) {
-          toast.error("Please add at least one image");
+        if (collageMedia.length === 0) {
+          toast.error("Please add at least one image or video");
           return;
         }
         content = {
-          images: JSON.stringify(collageImages),
+          media: JSON.stringify(collageMedia),
           columns: collageColumns.toString(),
         };
         break;
@@ -897,28 +968,39 @@ export const BlockModal = ({
           {selectedType === "photo_collage" && (
             <>
               <div className="space-y-2">
-                <Label>Images (max 9)</Label>
-                <p className="text-xs text-muted-foreground">Displays as a 3-column grid on your profile</p>
+              <Label>Photos & Videos (max 9)</Label>
+                <p className="text-xs text-muted-foreground">Images and videos up to 1 minute</p>
                 <input
                   ref={collageFileInputRef}
                   type="file"
-                  accept="image/*"
-                  onChange={handleCollageImageSelect}
+                  accept="image/*,video/*"
+                  onChange={handleCollageMediaSelect}
                   className="hidden"
                 />
                 <div className="grid grid-cols-4 gap-2">
-                  {collageImages.map((imgUrl, idx) => (
+                  {collageMedia.map((item, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                      <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                      {item.type === "video" ? (
+                        <div className="w-full h-full relative">
+                          <video src={item.url} muted playsInline className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="h-6 w-6 rounded-full bg-white/80 flex items-center justify-center">
+                              <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-black border-b-[5px] border-b-transparent ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      )}
                       <button
-                        onClick={() => handleRemoveCollageImage(idx)}
+                        onClick={() => handleRemoveCollageMedia(idx)}
                         className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
                       >
                         <X className="h-3 w-3 text-white" />
                       </button>
                     </div>
                   ))}
-                  {collageImages.length < 9 && (
+                  {collageMedia.length < 9 && (
                     <button
                       onClick={() => collageFileInputRef.current?.click()}
                       disabled={uploadingCollageImage}

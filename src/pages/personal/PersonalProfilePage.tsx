@@ -282,8 +282,8 @@ const ProfileLink = memo(function ProfileLink({
   );
 });
 
-// Collage with lightbox component - horizontal swipeable carousel
-const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { images: string[] }) {
+// Collage with lightbox component - horizontal swipeable carousel (supports mixed media)
+const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media: Array<{ url: string; type: "image" | "video" }> }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [emblaRef] = useEmblaCarousel({ 
@@ -293,40 +293,56 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ images }: { imag
     dragFree: true
   });
 
-  const handleImageClick = (index: number) => {
+  const handleItemClick = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
 
   return (
     <>
-      {/* Horizontal swipeable carousel - shows ~3 images at a time */}
       <div 
         className="w-full overflow-hidden" 
         ref={emblaRef}
         style={{ touchAction: "pan-x pan-y" }}
       >
         <div className="flex gap-1.5">
-          {images.map((imgUrl, idx) => (
+          {media.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => handleImageClick(idx)}
-              className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary"
+              onClick={() => handleItemClick(idx)}
+              className="flex-shrink-0 w-[31%] aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary relative"
               style={{ touchAction: "pan-x" }}
             >
-              <img 
-                src={getOptimizedImageUrl(imgUrl, 200, 85)} 
-                alt="" 
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
+              {item.type === "video" ? (
+                <>
+                  <video 
+                    src={item.url} 
+                    muted 
+                    playsInline 
+                    loop
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-black/50 flex items-center justify-center">
+                      <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-0.5" />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <img 
+                  src={getOptimizedImageUrl(item.url, 200, 85)} 
+                  alt="" 
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </button>
           ))}
         </div>
       </div>
       <ImageLightbox
-        images={images}
+        media={media}
         currentIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
@@ -650,20 +666,28 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     case "photo_collage": {
-      // Handle both string (from DB) and array (from state) formats
-      let images: string[] = [];
+      // Parse mixed media (new format) or legacy images
+      let media: Array<{ url: string; type: "image" | "video" }> = [];
       try {
-        images = content.images 
-          ? (typeof content.images === 'string' ? JSON.parse(content.images) : content.images as unknown as string[])
-          : [];
+        if (content.media) {
+          const parsed = typeof content.media === 'string' ? JSON.parse(content.media) : content.media;
+          if (Array.isArray(parsed)) {
+            media = parsed.map((item: any) => 
+              typeof item === 'string' ? { url: item, type: "image" as const } : item
+            );
+          }
+        } else if (content.images) {
+          const images = typeof content.images === 'string' ? JSON.parse(content.images) : content.images as unknown as string[];
+          media = (Array.isArray(images) ? images : []).map(url => ({ url, type: "image" as const }));
+        }
       } catch {
-        images = [];
+        media = [];
       }
       
-      if (images.length === 0) return null;
+      if (media.length === 0) return null;
       
       return (
-        <CollageWithLightbox images={images} />
+        <CollageWithLightbox media={media} />
       );
     }
     default:
