@@ -698,6 +698,99 @@ if (event.type === 'checkout.session.completed') {
       }
     }
 
+    // ============================================================
+    // PERSONAL SUBSCRIPTION CANCELLATION
+    // When a personal subscription is deleted/cancelled, downgrade the account
+    // ============================================================
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as any;
+      const customerId = subscription.customer as string;
+      console.log(`[stripe-webhook] Subscription deleted for customer ${customerId}`);
+
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+        mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        })
+      );
+
+      // Find personal profile by stripe_customer_id
+      const { data: profile } = await supabaseAdmin
+        .from('personal_profiles')
+        .select('id, header_type, header_image_url')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+
+      if (profile) {
+        console.log(`[stripe-webhook] Downgrading personal profile ${profile.id}`);
+
+        // Archive premium blocks
+        await supabaseAdmin
+          .from('personal_blocks')
+          .update({ is_archived: true })
+          .eq('profile_id', profile.id)
+          .in('block_type', ['photo_collage', 'email_capture']);
+
+        // Archive links beyond first 5
+        const { data: links } = await supabaseAdmin
+          .from('personal_links')
+          .select('id')
+          .eq('profile_id', profile.id)
+          .eq('is_archived', false)
+          .order('sort_order', { ascending: true });
+
+        if (links && links.length > 5) {
+          const linksToArchive = links.slice(5).map((l: any) => l.id);
+          await supabaseAdmin
+            .from('personal_links')
+            .update({ is_archived: true })
+            .in('id', linksToArchive);
+          console.log(`[stripe-webhook] Archived ${linksToArchive.length} links`);
+        }
+
+        // Build profile update
+        const updateData: Record<string, unknown> = {
+          plan_type: 'free',
+          subscription_status: 'canceled',
+          stripe_subscription_id: null,
+          archived_at: new Date().toISOString(),
+        };
+
+        // Archive custom header if exists
+        if (profile.header_type === 'image' && profile.header_image_url) {
+          updateData.archived_header_type = profile.header_type;
+          updateData.archived_header_image_url = profile.header_image_url;
+          updateData.header_type = 'color';
+          updateData.header_image_url = null;
+        }
+
+        await supabaseAdmin
+          .from('personal_profiles')
+          .update(updateData)
+          .eq('id', profile.id);
+
+        console.log(`[stripe-webhook] Personal profile ${profile.id} downgraded to free`);
+      } else {
+        // Also check restaurants table for business subscriptions
+        const { data: restaurant } = await supabaseAdmin
+          .from('restaurants')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle();
+
+        if (restaurant) {
+          await supabaseAdmin
+            .from('restaurants')
+            .update({ subscription_status: 'canceled' })
+            .eq('id', restaurant.id);
+          console.log(`[stripe-webhook] Restaurant ${restaurant.id} subscription marked canceled`);
+        } else {
+          console.log(`[stripe-webhook] No profile or restaurant found for customer ${customerId}`);
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
