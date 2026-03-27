@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface FormField {
@@ -158,111 +159,118 @@ const LeadFormBuilder = ({ profileId }: Props) => {
   }
 
   return (
-    <div className="space-y-6 rounded-xl border border-border bg-card p-5">
+    <Collapsible defaultOpen={false} className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-foreground">Lead Capture Form</h3>
-          <p className="text-sm text-muted-foreground">
-            Collect quotes & inquiries from your profile visitors
-          </p>
+        <CollapsibleTrigger className="flex items-center gap-2 text-left group flex-1">
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          <div>
+            <h3 className="font-semibold text-foreground">Lead Capture Form</h3>
+            <p className="text-sm text-muted-foreground">
+              Collect quotes & inquiries from your profile visitors
+            </p>
+          </div>
+        </CollapsibleTrigger>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Switch checked={isActive} onCheckedChange={setIsActive} />
         </div>
-        <Switch checked={isActive} onCheckedChange={setIsActive} />
       </div>
 
-      {isActive && (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Button Title</Label>
-              <Input
-                value={buttonTitle}
-                onChange={(e) => setButtonTitle(e.target.value)}
-                placeholder="Get a Quote"
-                maxLength={50}
-              />
+      <CollapsibleContent className="mt-4">
+        {isActive && (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Button Title</Label>
+                <Input
+                  value={buttonTitle}
+                  onChange={(e) => setButtonTitle(e.target.value)}
+                  placeholder="Get a Quote"
+                  maxLength={50}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Form Title</Label>
+                <Input
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="Request a Quote"
+                  maxLength={80}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Form Title</Label>
-              <Input
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                placeholder="Request a Quote"
-                maxLength={80}
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Form Fields</Label>
             <div className="space-y-2">
-              {fields.map((field, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5"
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                  <Badge variant="secondary" className="text-xs flex-shrink-0">
-                    {fieldTypeBadge(field.type)}
-                  </Badge>
-                  <Input
-                    value={field.label}
-                    onChange={(e) => updateField(idx, { label: e.target.value })}
-                    className="h-8 text-sm"
-                    maxLength={60}
-                  />
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Label className="text-xs text-muted-foreground">Req</Label>
-                    <Switch
-                      checked={field.required}
-                      onCheckedChange={(val) => updateField(idx, { required: val })}
-                      className="scale-75"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeField(idx)}
+              <Label className="text-xs text-muted-foreground">Form Fields</Label>
+              <div className="space-y-2">
+                {fields.map((field, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                    <Badge variant="secondary" className="text-xs flex-shrink-0">
+                      {fieldTypeBadge(field.type)}
+                    </Badge>
+                    <Input
+                      value={field.label}
+                      onChange={(e) => updateField(idx, { label: e.target.value })}
+                      className="h-8 text-sm"
+                      maxLength={60}
+                    />
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Label className="text-xs text-muted-foreground">Req</Label>
+                      <Switch
+                        checked={field.required}
+                        onCheckedChange={(val) => updateField(idx, { required: val })}
+                        className="scale-75"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeField(idx)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {fields.length < 20 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Field
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {FIELD_TYPES.map((ft) => (
+                      <DropdownMenuItem key={ft.type} onClick={() => addField(ft.type)}>
+                        <ft.icon className="h-4 w-4 mr-2" />
+                        {ft.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
-            {fields.length < 8 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Field
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
-                  {FIELD_TYPES.map((ft) => (
-                    <DropdownMenuItem key={ft.type} onClick={() => addField(ft.type)}>
-                      <ft.icon className="h-4 w-4 mr-2" />
-                      {ft.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <Button onClick={handleSave} disabled={saving} className="w-full">
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Save Form
+            </Button>
           </div>
+        )}
 
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-            Save Form
-          </Button>
-        </div>
-      )}
-
-      {!isActive && form && (
-        <p className="text-sm text-muted-foreground">
-          Your form is currently hidden from your profile. Toggle it on to start collecting leads.
-        </p>
-      )}
-    </div>
+        {!isActive && form && (
+          <p className="text-sm text-muted-foreground">
+            Your form is currently hidden from your profile. Toggle it on to start collecting leads.
+          </p>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
