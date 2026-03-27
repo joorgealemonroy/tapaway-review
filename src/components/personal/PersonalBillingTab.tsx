@@ -135,68 +135,30 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
         </CardContent>
       </Card>
 
-      {/* Feature Comparison */}
+      {/* Plan Features */}
       <Card>
         <CardHeader>
-          <CardTitle>Plan Features</CardTitle>
+          <CardTitle>Your Plan Includes</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Free Features */}
-            <div className="space-y-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <Badge variant="secondary">Free</Badge>
-              </h4>
-              <ul className="text-sm space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Up to 10 links
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Social icon bar
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> YouTube embeds
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Image & text blocks
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Button blocks
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Email capture block
-                </li>
-              </ul>
-            </div>
-
-            {/* Pro Features */}
-            <div className="space-y-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <Badge className="bg-amber-500">Pro</Badge>
-                <span className="text-muted-foreground text-sm">$15/month</span>
-              </h4>
-              <ul className="text-sm space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-green-500">✓</span> Everything in Free
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Unlimited links
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Custom header image
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Photo collage block
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Advanced analytics
-                </li>
-                <li className="flex items-center gap-2">
-                  <Crown className="h-3 w-3 text-amber-500" /> Creator Shop
-                </li>
-              </ul>
-            </div>
-          </div>
+          <ul className="text-sm space-y-2">
+            {[
+              "Unlimited links",
+              "Social icon bar",
+              "YouTube embeds",
+              "Image & text blocks",
+              "Button blocks",
+              "Email capture block",
+              "Custom header image",
+              "Photo collage block",
+              "Advanced analytics",
+              "Creator Shop",
+            ].map((feature) => (
+              <li key={feature} className="flex items-center gap-2">
+                <span className="text-green-500">✓</span> {feature}
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
     </div>
