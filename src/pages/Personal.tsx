@@ -10,8 +10,6 @@ import { PersonalFAQ } from "@/components/landing/personal/PersonalFAQ";
 import { PersonalFooterCTA } from "@/components/landing/personal/PersonalFooterCTA";
 
 import { AffiliateOnboarding } from "@/components/affiliate/AffiliateOnboarding";
-import { FoundingBanner } from "@/components/landing/personal/FoundingBanner";
-import { FoundingCounter } from "@/components/landing/personal/FoundingCounter";
 
 const organizationSchema = {
   "@context": "https://schema.org",
@@ -71,15 +69,11 @@ const Personal = () => {
         <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
       </Helmet>
 
-      {/* Founding Creator Banner */}
-      <FoundingBanner />
-
       {/* Navigation */}
       <LandingNav />
 
       {/* Main Content */}
       <PersonalHero />
-      <FoundingCounter />
       <PersonalHowItWorks />
       <PersonalFeatures />
       <PersonalShopShowcase />
