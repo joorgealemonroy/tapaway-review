@@ -19,7 +19,6 @@ import {
   Star,
   Users,
   ShoppingBag,
-  CreditCard
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -35,7 +34,7 @@ import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
-import { DashboardCardsTab } from "@/components/personal/DashboardCardsTab";
+
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
@@ -676,10 +675,6 @@ const PersonalDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="cards" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Cards</span>
-            </TabsTrigger>
             <TabsTrigger value="shop" className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Shop</span>
@@ -795,10 +790,6 @@ const PersonalDashboard = () => {
           </TabsContent>
 
 
-          {/* Cards Tab */}
-          <TabsContent value="cards" className="space-y-4">
-            <DashboardCardsTab userId={profile.user_id || ""} username={profile.username} />
-          </TabsContent>
 
           {/* Shop Tab */}
           <TabsContent value="shop" className="space-y-4">
