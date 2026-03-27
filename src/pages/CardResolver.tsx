@@ -134,7 +134,7 @@ const CardResolver = () => {
             } else {
               toast.info("Complete your profile setup to activate this card");
               sessionStorage.setItem("tapaway_card_email", user.email || "");
-              navigate(`/personal/signup?card=${publicCode}`);
+              navigate(`/start?card=${publicCode}`);
             }
           });
       });
@@ -151,7 +151,7 @@ const CardResolver = () => {
       if (error) throw error;
       if (data?.success) {
         toast.success("Card activated! 🎉");
-        navigate("/personal/dashboard?tab=cards&welcome=true");
+        navigate("/dashboard?tab=cards&welcome=true");
       } else {
         throw new Error(data?.error || "Failed to activate card");
       }
@@ -220,7 +220,7 @@ const CardResolver = () => {
             await claimCard(publicCode!);
           } else {
             sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
-            navigate(`/personal/signup?card=${publicCode}`);
+            navigate(`/start?card=${publicCode}`);
           }
         }
       }
@@ -253,7 +253,7 @@ const CardResolver = () => {
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
         sessionStorage.setItem("tapaway_card_password", password);
         sessionStorage.setItem("tapaway_card_preauthed", "true");
-        navigate(`/personal/signup?card=${publicCode}`);
+        navigate(`/start?card=${publicCode}`);
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");

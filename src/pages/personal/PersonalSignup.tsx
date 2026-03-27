@@ -361,7 +361,7 @@ const PersonalSignup = () => {
           .single();
         
         if (profile && profile.subscription_status === "active") {
-          navigate("/personal/dashboard");
+          navigate("/dashboard");
         }
       }
     };
@@ -397,7 +397,7 @@ const PersonalSignup = () => {
 
   const confirmCancel = () => {
     clearDraft();
-    navigate("/personal");
+    navigate("/");
   };
 
   const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Auto-build your profile" : "Build your profile", 3: "Finish your order" };
@@ -412,7 +412,7 @@ const PersonalSignup = () => {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <a href="/personal" className="font-black text-xl tracking-tight text-foreground">
+            <a href="/" className="font-black text-xl tracking-tight text-foreground">
               TapAway
             </a>
             <div className="flex items-center gap-4">

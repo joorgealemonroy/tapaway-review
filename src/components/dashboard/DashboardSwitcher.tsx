@@ -50,7 +50,7 @@ export const DashboardSwitcher = ({ currentType, variant = "default" }: Dashboar
 
   if (loading || !hasOtherAccount) return null;
 
-  const switchTo = currentType === "business" ? "/personal/dashboard" : "/dashboard";
+  const switchTo = "/dashboard";
   const switchLabel = currentType === "business" ? "Small Business" : "Business";
   const SwitchIcon = currentType === "business" ? User : Building2;
 

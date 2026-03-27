@@ -245,7 +245,7 @@ const Auth = () => {
    }
    // Personal profile only
    if (hasPersonal) {
-     return "/personal/dashboard";
+     return "/dashboard";
    }
    // Has restaurant but blocked subscription
    if (restaurant && !hasValidBusiness) {

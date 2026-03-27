@@ -259,9 +259,9 @@ export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentC
             onClick={async () => {
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
-                navigate("/personal/dashboard?welcome=true");
+                navigate("/dashboard?welcome=true");
               } else {
-                navigate("/auth?redirect=/personal/dashboard?welcome=true");
+                navigate("/auth?redirect=/dashboard?welcome=true");
               }
             }}
             className="w-full h-12 text-sm text-muted-foreground"

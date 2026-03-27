@@ -366,9 +366,9 @@ const Dashboard = () => {
        .eq("user_id", user?.id ?? '')
        .maybeSingle();
 
-     if (personalProfile) {
-       console.log('[Dashboard] User has personal profile, redirecting to personal dashboard');
-       navigate("/personal/dashboard");
+      if (personalProfile) {
+        console.log('[Dashboard] User has personal profile, loading Business Lite dashboard');
+        navigate("/dashboard?type=lite");
      } else {
        // Regular user without restaurant or personal profile - redirect to paywall
        console.log('[Dashboard] User has no restaurant or personal profile, redirecting to paywall');

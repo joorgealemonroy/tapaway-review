@@ -153,7 +153,7 @@ const AffiliateDashboard = () => {
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
           <p className="text-muted-foreground">You are not an affiliate.</p>
-          <Button variant="outline" onClick={() => navigate("/personal/dashboard")}>
+          <Button variant="outline" onClick={() => navigate("/dashboard")}>
             Go to Dashboard
           </Button>
         </div>
@@ -207,7 +207,7 @@ const AffiliateDashboard = () => {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/personal/dashboard")}>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="font-bold text-lg text-foreground">Affiliate Hub</h1>

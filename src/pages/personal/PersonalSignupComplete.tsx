@@ -401,9 +401,9 @@ const PersonalSignupComplete = () => {
         // Step 9: If not signed in, send magic link
         if (!signedIn && data.needsPasswordSetup && data.email) {
           const { error: otpError } = await supabase.auth.signInWithOtp({
-            email: data.email,
+             email: data.email,
             options: {
-              emailRedirectTo: `${window.location.origin}/personal/dashboard?welcome=true`,
+              emailRedirectTo: `${window.location.origin}/dashboard?welcome=true`,
             },
           });
 
@@ -414,7 +414,7 @@ const PersonalSignupComplete = () => {
 
         // Redirect to dashboard instead of showing success screen
         if (signedIn) {
-          navigate("/personal/dashboard?welcome=true");
+          navigate("/dashboard?welcome=true");
           return;
         }
 
@@ -435,7 +435,7 @@ const PersonalSignupComplete = () => {
     const email = searchParams.get("email") || sessionStorage.getItem("signup_email");
     if (!email) {
       toast.error("No email found. Please try signing in.");
-      navigate("/auth?redirect=/personal/dashboard");
+      navigate("/auth?redirect=/dashboard");
       return;
     }
 
@@ -444,7 +444,7 @@ const PersonalSignupComplete = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/personal/dashboard`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -484,14 +484,14 @@ const PersonalSignupComplete = () => {
   // No saved data — auto-redirect to auth (no dead-end screen)
   if (step === "no_data") {
     toast.info("Your account is ready! Please sign in.");
-    navigate("/auth?redirect=/personal/dashboard");
+    navigate("/auth?redirect=/dashboard");
     return null;
   }
 
   // Success but not signed in — auto-redirect to auth
   if (username && step === "success") {
     toast.info("Your profile is set up! Please sign in to continue.");
-    navigate("/auth?redirect=/personal/dashboard");
+    navigate("/auth?redirect=/dashboard");
     return null;
   }
 

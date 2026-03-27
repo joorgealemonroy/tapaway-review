@@ -35,7 +35,6 @@ export const PUBLIC_ROUTES = [
   '/demo',
   '/personal/signup',
   '/personal/signup/complete',
-  '/personal/dashboard',
   '/personal/pricing',
   '/affiliate',
 ];

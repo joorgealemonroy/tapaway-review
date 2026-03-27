@@ -20,13 +20,9 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 
-// Personal TapAway - code split for fast public profile loads
-const PersonalSignup = lazy(() => import("./pages/personal/PersonalSignup"));
-const VibeSelection = lazy(() => import("./pages/personal/VibeSelection"));
+// Personal TapAway - code split (Business Lite dashboard still used internally)
 const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));
-const PersonalSignupComplete = lazy(() => import("./pages/personal/PersonalSignupComplete"));
 const PersonalDashboard = lazy(() => import("./pages/personal/PersonalDashboard"));
-const PersonalPricing = lazy(() => import("./pages/personal/PersonalPricing"));
 const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileRedirect"));
 
 // Business routes - lazy loaded
@@ -106,12 +102,14 @@ const App = () => (
               <Routes>
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
-                <Route path="/personal/vibe" element={<VibeSelection />} />
-                <Route path="/personal/signup" element={<PersonalSignup />} />
-                <Route path="/personal/signup/complete" element={<PersonalSignupComplete />} />
-                <Route path="/personal/dashboard" element={<PersonalDashboard />} />
-                <Route path="/personal/pricing" element={<PersonalPricing />} />
-                <Route path="/personal/order" element={<Navigate to="/personal/signup" replace />} />
+                {/* /personal/* routes redirect — namespace deprecated */}
+                <Route path="/personal" element={<Navigate to="/" replace />} />
+                <Route path="/personal/vibe" element={<Navigate to="/" replace />} />
+                <Route path="/personal/signup" element={<Navigate to="/" replace />} />
+                <Route path="/personal/signup/complete" element={<Navigate to="/" replace />} />
+                <Route path="/personal/pricing" element={<Navigate to="/" replace />} />
+                <Route path="/personal/order" element={<Navigate to="/" replace />} />
+                <Route path="/personal/dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/import" element={<ImportProfile />} />
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/auth" element={<Auth />} />

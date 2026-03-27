@@ -144,7 +144,7 @@ const PersonalDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Not authenticated - redirect to auth page, NOT signup
-        navigate("/auth?redirect=/personal/dashboard");
+        navigate("/auth?redirect=/dashboard");
         return;
       }
 
