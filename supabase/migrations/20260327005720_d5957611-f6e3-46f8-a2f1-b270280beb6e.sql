@@ -1,0 +1,1 @@
+UPDATE personal_profiles SET is_founding_user = false, show_founding_badge = false WHERE id = '26439acb-a9b2-46a1-bd26-d5e667bdf91a'
