@@ -90,11 +90,6 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             </div>
           )}
 
-          {isVIP && (
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-              ✨ You have complimentary access to all premium features - enjoy!
-            </p>
-          )}
 
           {isPro && !isVIP && !isTrialing && profile.subscription_status === "active" && (
             <p className="text-sm text-muted-foreground">
