@@ -1,26 +1,15 @@
 
 
-# Make Contact Card & Background Sections Collapsible
-
-## Overview
-Wrap the "Background" section in `DashboardDesignTab.tsx` and the "Contact Card" section in `PersonalDashboard.tsx` with `Collapsible` components so they start collapsed on mobile, reducing visual overwhelm.
+# Remove Cards Tab from Personal Dashboard
 
 ## Changes
 
-### `src/components/personal/DashboardDesignTab.tsx`
-- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from lucide-react
-- Wrap the Background section (lines 513-590) in a `Collapsible` that defaults to closed
-- The trigger will be the existing "Background" heading with a chevron icon that rotates when open
+### `src/pages/personal/PersonalDashboard.tsx`
+1. Remove the `DashboardCardsTab` import (line 38)
+2. Remove the `CreditCard` icon from the lucide-react import if only used for the cards tab trigger
+3. Remove the Cards `TabsTrigger` (lines 679-682)
+4. Remove the Cards `TabsContent` block (lines 798-801)
 
-### `src/components/personal/DashboardContactCard.tsx`
-- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible`
-- Import `ChevronDown` from lucide-react
-- Wrap the fields area and save button inside `CollapsibleContent`, keeping the header with toggle as the `CollapsibleTrigger`
-- Default to closed so the section is compact on load
-
-### Files
-| File | Change |
-|------|--------|
-| `src/components/personal/DashboardDesignTab.tsx` | Wrap Background section in Collapsible |
-| `src/components/personal/DashboardContactCard.tsx` | Wrap form fields in Collapsible |
+### `src/components/personal/DashboardCardsTab.tsx`
+- Delete this file entirely (it's a "Coming Soon" placeholder with no other consumers)
 
