@@ -127,33 +127,6 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
           </div>
         </CardContent>
       </Card>
-
-      {/* Plan Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Plan Includes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-sm space-y-2">
-            {[
-              "Unlimited links",
-              "Social icon bar",
-              "YouTube embeds",
-              "Image & text blocks",
-              "Button blocks",
-              "Email capture block",
-              "Custom header image",
-              "Photo collage block",
-              "Advanced analytics",
-              "Creator Shop",
-            ].map((feature) => (
-              <li key={feature} className="flex items-center gap-2">
-                <span className="text-green-500">✓</span> {feature}
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
     </div>
   );
 }
