@@ -13,8 +13,10 @@ import {
   Upload,
   Loader2,
   Sparkles,
-  Lock
+  Lock,
+  ChevronDown
 } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ProUpgradeDialog } from "./ProUpgradeDialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -511,11 +513,17 @@ export const DashboardDesignTab = ({
       <div className="h-px bg-border" />
 
       {/* Background Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Background</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">Set your page's background color</p>
-        </div>
+      <Collapsible defaultOpen={false}>
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <h3 className="text-base font-semibold text-foreground">Background</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Set your page's background color</p>
+            </div>
+            <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
         
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
@@ -584,10 +592,11 @@ export const DashboardDesignTab = ({
                 handleBgColorChange(bgColorInput);
               }
             }}
-            className="h-10 flex-1 font-mono text-sm"
+          className="h-10 flex-1 font-mono text-sm"
           />
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Founding Creator Badge Toggle */}
       {isFoundingUser && (

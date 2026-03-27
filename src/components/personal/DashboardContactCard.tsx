@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera, Mail } from "lucide-react";
+import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera, Mail, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 
 interface ContactSettings {
@@ -156,18 +157,21 @@ export function DashboardContactCard({
   const displayPhotoUrl = contactPhotoUrl || profilePhotoUrl;
 
   return (
-    <div className="space-y-6">
+    <Collapsible defaultOpen={false} className="space-y-4">
       {/* Header with toggle */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            Contact Card
-          </h3>
+        <CollapsibleTrigger className="flex-1 text-left">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Contact Card
+            </h3>
+            <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Let visitors save your contact info to their phone with one tap
           </p>
-        </div>
+        </CollapsibleTrigger>
         <Switch
           checked={enabled}
           onCheckedChange={setEnabled}
@@ -175,6 +179,7 @@ export function DashboardContactCard({
         />
       </div>
 
+      <CollapsibleContent>
       {/* Fields */}
       <div className={`space-y-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Contact Photo */}
@@ -347,6 +352,7 @@ export function DashboardContactCard({
         {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Save Contact Settings
       </Button>
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
