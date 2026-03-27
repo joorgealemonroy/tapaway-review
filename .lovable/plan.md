@@ -1,27 +1,26 @@
 
 
-# Remove Free Tier from Billing Tab — Show Single "Business" Plan
+# Make Contact Card & Background Sections Collapsible
+
+## Overview
+Wrap the "Background" section in `DashboardDesignTab.tsx` and the "Contact Card" section in `PersonalDashboard.tsx` with `Collapsible` components so they start collapsed on mobile, reducing visual overwhelm.
 
 ## Changes
 
-### `src/components/personal/PersonalBillingTab.tsx`
-Replace the two-column Free vs Pro feature comparison (lines 138-201) with a single-column "Your Business Plan" features list showing everything the user gets. Remove the "Free" badge, "Pro" badge, "$15/month" label from features section, and "Everything in Free" line. Combine all features into one unified list with checkmarks:
+### `src/components/personal/DashboardDesignTab.tsx`
+- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from lucide-react
+- Wrap the Background section (lines 513-590) in a `Collapsible` that defaults to closed
+- The trigger will be the existing "Background" heading with a chevron icon that rotates when open
 
-- Unlimited links
-- Social icon bar
-- YouTube embeds
-- Image & text blocks
-- Button blocks
-- Email capture block
-- Custom header image
-- Photo collage block
-- Advanced analytics
-- Creator Shop
+### `src/components/personal/DashboardContactCard.tsx`
+- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible`
+- Import `ChevronDown` from lucide-react
+- Wrap the fields area and save button inside `CollapsibleContent`, keeping the header with toggle as the `CollapsibleTrigger`
+- Default to closed so the section is compact on load
 
-Title the card "Your Plan Includes" or "Business Features" instead of "Plan Features".
-
-### `src/lib/personalPlanLimits.ts`
-Remove the `free` plan object entirely and the `FEATURE_LIST` comparison array since there's no longer a free vs pro distinction.
-
-No other files need changes — this is scoped to the billing tab UI and the plan limits config.
+### Files
+| File | Change |
+|------|--------|
+| `src/components/personal/DashboardDesignTab.tsx` | Wrap Background section in Collapsible |
+| `src/components/personal/DashboardContactCard.tsx` | Wrap form fields in Collapsible |
 
