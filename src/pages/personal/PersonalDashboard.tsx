@@ -133,6 +133,11 @@ const PersonalDashboard = () => {
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Admin impersonation mode
+  const adminViewId = searchParams.get("admin_view");
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [adminViewName, setAdminViewName] = useState("");
+
   // Load profile data - always fresh from DB, never cached
   const loadData = useCallback(async () => {
     try {
@@ -141,6 +146,56 @@ const PersonalDashboard = () => {
         // Not authenticated - redirect to auth page, NOT signup
         navigate("/auth?redirect=/personal/dashboard");
         return;
+      }
+
+      // Admin impersonation: load a specific profile by ID
+      if (adminViewId) {
+        const { data: isAdminData } = await supabase.rpc("is_admin");
+        if (isAdminData) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("personal_profiles")
+            .select("*")
+            .eq("id", adminViewId)
+            .single();
+
+          if (profileError || !profileData) {
+            toast.error("Profile not found");
+            navigate("/admin/personal-accounts");
+            return;
+          }
+
+          const normalizedProfile = {
+            ...profileData,
+            header_type: profileData.header_type || "color",
+            header_color: profileData.header_color || "#6BCB77",
+            background_color: profileData.background_color || "#ffffff",
+            pfp_position: profileData.pfp_position || "center",
+          };
+
+          setProfile(normalizedProfile);
+          setIsAdminView(true);
+          setAdminViewName(`@${profileData.username}`);
+
+          const [linksResult, blocksResult] = await Promise.all([
+            supabase
+              .from("personal_links")
+              .select("*")
+              .eq("profile_id", profileData.id)
+              .or("is_archived.is.null,is_archived.eq.false")
+              .order("sort_order", { ascending: true }),
+            supabase
+              .from("personal_blocks")
+              .select("*")
+              .eq("profile_id", profileData.id)
+              .or("is_archived.is.null,is_archived.eq.false")
+              .order("sort_order", { ascending: true }),
+          ]);
+
+          setLinks(linksResult.data || []);
+          setBlocks(blocksResult.data || []);
+          setLoading(false);
+          return;
+        }
       }
 
       // Single profile query
@@ -203,7 +258,7 @@ const PersonalDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, adminViewId]);
 
   useEffect(() => {
     loadData();
