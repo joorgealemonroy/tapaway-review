@@ -54,7 +54,8 @@ import {
   Pencil,
   Mail,
   Send,
-  Sparkles
+  Sparkles,
+  Eye
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -1226,6 +1227,14 @@ Login at: ${window.location.origin}/auth`;
                   onClick={() => window.open(`/${account.username}`, "_blank")}
                 >
                   <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/personal/dashboard?admin_view=${account.id}`)}
+                  title="View Dashboard"
+                >
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"

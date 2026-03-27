@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,11 @@ const Dashboard = () => {
   
   // Demo mode detection - check URL param synchronously
   const demoRestaurantId = searchParams.get('demo_restaurant_id');
+  const adminViewId = searchParams.get('admin_view');
   const [isDemoView, setIsDemoView] = useState(!!demoRestaurantId);
   const [demoLoading, setDemoLoading] = useState(!!demoRestaurantId);
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [adminViewName, setAdminViewName] = useState("");
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
@@ -77,6 +81,52 @@ const Dashboard = () => {
     localStorage.setItem('tapaway_dashboard_theme', next);
     document.documentElement.classList.toggle('dark', next === 'dark');
   };
+
+  // Handle admin impersonation mode - load restaurant by ID
+  useEffect(() => {
+    const loadAdminView = async () => {
+      if (!adminViewId || !user) return;
+
+      const { data: isAdminData } = await supabase.rpc("is_admin");
+      if (!isAdminData) return;
+
+      const { data: r, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("id", adminViewId)
+        .maybeSingle();
+
+      if (error || !r) {
+        toast.error("Restaurant not found");
+        navigate("/admin");
+        return;
+      }
+
+      setIsAdminView(true);
+      setAdminViewName(r.restaurant_name || "Unknown");
+      setRestaurant({
+        id: r.id,
+        restaurant_name: r.restaurant_name,
+        custom_slug: r.custom_slug,
+        stripe_portal_url: r.stripe_portal_url,
+        subscription_status: r.subscription_status,
+        plan_type: r.plan_type,
+        next_billing_date: r.next_billing_date,
+        type: r.type,
+        greeting_name: r.greeting_name,
+        is_demo_account: r.is_demo_account ?? false,
+        created_at: r.created_at,
+        menu_image_url: r.menu_image_url,
+        google_review_url: r.google_review_url,
+        yelp_review_url: r.yelp_review_url,
+      });
+      fetchLocations(r.id);
+    };
+
+    if (adminViewId && user) {
+      loadAdminView();
+    }
+  }, [adminViewId, user, navigate]);
 
   // Handle demo mode for sales reps - load demo restaurant first
   useEffect(() => {
@@ -117,25 +167,25 @@ const Dashboard = () => {
   }, [demoRestaurantId, user, navigate]);
   
   useEffect(() => {
-    // Skip normal auth redirect if in demo mode (sales rep viewing demo)
-    if (demoRestaurantId) return;
+    // Skip normal auth redirect if in demo mode or admin view
+    if (demoRestaurantId || adminViewId) return;
     
     if (!loading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate, demoRestaurantId]);
+  }, [user, loading, navigate, demoRestaurantId, adminViewId]);
   
-  // Only fetch normal restaurant data if NOT in demo mode
+  // Only fetch normal restaurant data if NOT in demo or admin view mode
   useEffect(() => {
     // Wait for demo loading to complete first
     if (demoLoading) return;
-    // Skip if in demo mode (already loaded demo restaurant)
-    if (isDemoView || demoRestaurantId) return;
+    // Skip if in demo mode or admin view (already loaded)
+    if (isDemoView || demoRestaurantId || adminViewId) return;
     if (user && !restaurant) {
       checkAdminStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isDemoView, demoLoading, demoRestaurantId]);
+  }, [user, isDemoView, demoLoading, demoRestaurantId, adminViewId]);
   const checkAdminStatus = async () => {
     const { data: isAdminData } = await supabase.rpc('is_admin');
     const { data: isTestData } = await supabase.rpc('is_test_account');
@@ -353,7 +403,7 @@ const Dashboard = () => {
   // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
   const planType = restaurant?.plan_type || 'standard';
   const superAdmin = isSuperAdmin(user?.email);
-  const shouldBypassPaywall = isDemoView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+  const shouldBypassPaywall = isDemoView || isAdminView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
   // But NEVER redirect in demo mode
@@ -362,6 +412,9 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
   return <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {isAdminView && (
+        <AdminViewBanner name={adminViewName} backTo="/admin" />
+      )}
       <nav className="border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <button 
