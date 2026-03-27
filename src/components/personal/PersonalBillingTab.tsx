@@ -42,9 +42,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   
   const planInfo = isVIPPlan(profile.plan_type) || isFounding
     ? PERSONAL_PLANS.vip 
-    : isPaidPlan(profile.plan_type) 
-      ? PERSONAL_PLANS.paid 
-      : PERSONAL_PLANS.free;
+    : PERSONAL_PLANS.paid;
   
   const isVIP = isVIPPlan(profile.plan_type) || isFounding || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
