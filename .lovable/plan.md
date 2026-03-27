@@ -1,16 +1,10 @@
 
 
-# Fix 3D Card Corners + Update Back Face Logos
+# Use Back SVG (2.svg) as Card Back
 
-## Changes to `src/components/TapAwayCard3D.tsx`
+## Change to `src/components/TapAwayCard3D.tsx`
 
-### 1. Fix clipped corners
-The SVG image is cutting off the rounded corners. Add `border-radius: 1rem` directly on the card container div (not just `overflow-hidden` on children), and ensure the front/back face images respect the rounding by adding `rounded-2xl` to the `<img>` tags themselves.
-
-### 2. Update restaurant names to real clients
-Replace the generic names with actual client names:
-- "Las Islas Marias", "Las Nuevas Islas", "Sakura Sushi", "The Golden Fork", "Bella Italia", "Blue Lagoon Café", "Smoky BBQ", "Fresh Greens"
-
-### 3. Update tagline
-Change "Trusted by 500+ businesses" → "Trusted by local restaurants"
+1. Remove the `restaurants` array, `useState`, `useEffect`, and all cycling logo logic
+2. Replace the back face content with a single full-bleed `<img>` using `/tapaway-card-back.svg` (already exists from earlier extraction)
+3. Keep the front face, dimensions (`2.125 / 3.375`), rounded corners, and `spin-3d` animation unchanged
 
