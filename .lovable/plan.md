@@ -1,65 +1,94 @@
 
 
-# Admin "View as User" — Impersonation Mode
+# Link Reborn Wraps + Remove $10 Pricing & Free/Founding Tier
 
-## Overview
+## Part 1: Database Update
 
-Add an "impersonate" capability so admins can view any user's dashboard exactly as the user sees it — without logging in as them. This works by passing a query param that tells the dashboard to load a specific profile/restaurant instead of the logged-in user's data.
+Rename the restaurant (id: `ccea844b-...`) from "My Restaurant" to "Reborn Wraps". The Stripe customer `cus_UD6fiXdZsHQfGB` is already linked — no change needed there.
 
-## Approach
-
-Use a `?admin_view=PROFILE_ID` query parameter on `/personal/dashboard` (and `?admin_view=RESTAURANT_ID` on `/dashboard`). When the admin navigates there, the dashboard detects the param, verifies the user is an admin, and loads that account's data instead.
-
-A prominent banner at the top warns "You are viewing as [username]" with a button to exit back to admin.
-
-## Changes
-
-### 1. `src/pages/personal/PersonalDashboard.tsx` — Personal impersonation
-
-- Read `admin_view` search param (profile ID)
-- If present, call `supabase.rpc('is_admin')` to verify admin status
-- If admin, load profile + links + blocks by profile ID instead of `auth.getUser().id`
-- Store an `isAdminView` flag in state
-- Show a sticky banner: "Viewing as @username — [Back to Admin]"
-- Disable destructive actions (delete account, billing) in admin view mode
-- Skip auth redirect when in admin view
-
-### 2. `src/pages/Dashboard.tsx` — Business impersonation
-
-- Read `admin_view` search param (restaurant ID)
-- If present and user is admin, load that restaurant directly by ID
-- Show same admin view banner
-- Skip auth/paywall redirects in admin view
-
-### 3. `src/pages/admin/AdminPersonalAccounts.tsx` — Add "View Dashboard" button
-
-- Next to the existing edit/view buttons for each account, add an Eye icon button
-- On click: `navigate(`/personal/dashboard?admin_view=${account.id}`)`
-
-### 4. `src/pages/Admin.tsx` — Add "View Dashboard" button for restaurants
-
-- In the restaurant list/edit area, add a button to navigate to `/dashboard?admin_view=${restaurant.id}`
-
-### 5. Admin View Banner Component (new) — `src/components/admin/AdminViewBanner.tsx`
-
-Simple reusable banner:
-```tsx
-// Sticky top bar with yellow/amber background
-// "👁 Viewing as [name] — Exit"
-// Exit navigates back to the admin page
+**Tool**: Use the insert tool to run:
+```sql
+UPDATE restaurants SET restaurant_name = 'Reborn Wraps' WHERE id = 'ccea844b-b2a9-485d-9197-f93a08a0a80f';
 ```
 
-### RLS Consideration
+## Part 2: Update Pricing from $10 → $15 Everywhere
 
-The admin already has super-admin RLS policies (`auth.email() = 'tap@tapaway.co'`) on all public tables, so reading another user's `personal_profiles`, `personal_links`, `personal_blocks`, and `restaurants` data will work without any DB changes.
+### `src/lib/personalConfig.ts`
+- `monthly: 10` → `monthly: 15`
 
-### Files
+### `src/lib/personalPlanLimits.ts`
+- `paid.price: '$10'` → `'$15'`
+- Remove the entire `founding_pro` plan object
+- Update `isFoundingPlan` to return `false` always (or remove)
+- Update `isPaidPlan` to remove `founding_pro` exclusion
+
+### `src/components/personal/PersonalBillingTab.tsx`
+- Line 87: `$10/month` → `$15/month`
+- Line 184: `$10/month` → `$15/month`
+- Remove all `isFounding` logic and "Founding Creator" badge/text
+- Remove "Free" plan feature column (or relabel)
+
+### `src/components/personal/ProUpgradeDialog.tsx`
+- Remove "Try Pro free for 7 days" text, replace with "$15/month" messaging
+
+## Part 3: Remove Founding Creator Program UI
+
+### `src/components/landing/personal/FoundingBanner.tsx`
+- Delete file (or empty it to return `null`)
+
+### `src/components/landing/personal/FoundingCounter.tsx`
+- Delete file (or empty it to return `null`)
+
+### `src/pages/Personal.tsx`
+- Remove `FoundingBanner` and `FoundingCounter` imports and renders
+
+### `src/pages/personal/PersonalPricing.tsx`
+- Remove founding spots badge and `get_founding_count` RPC call
+- Remove "No credit card" / "Free to start" text
+- Update to show $15/month pricing
+
+### `src/components/personal/signup/CheckoutStep.tsx`
+- Remove `founding_pro` plan type handling
+- Remove `isFoundingPromo` state and founding spots logic
+- Remove "free" plan option throughout
+
+### `src/components/personal/signup/LinksStep.tsx`
+- Remove "Try Pro Free for 7 Days" text
+
+### `src/components/personal/signup/IdentityStep.tsx`
+- Remove founding_pro from plan type union
+- Remove "free trial" toast text
+
+### `src/hooks/usePersonalOnboarding.ts`
+- Remove `founding_pro` from plan type union
+
+### `src/components/personal/AdvancedAnalyticsTab.tsx`
+- Remove `founding_pro` from pro access check
+
+### `src/pages/personal/PersonalSignup.tsx`
+- Remove `founding_pro` from plan type unions
+
+### `supabase/functions/create-personal-upgrade/index.ts`
+- Update price IDs if needed (currently $9/month and $99/year — may need new $15/month Stripe price)
+
+## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/admin/AdminViewBanner.tsx` | New — reusable impersonation banner |
-| `src/pages/personal/PersonalDashboard.tsx` | Add admin_view param handling, load by profile ID |
-| `src/pages/Dashboard.tsx` | Add admin_view param handling, load by restaurant ID |
-| `src/pages/admin/AdminPersonalAccounts.tsx` | Add "View Dashboard" button per account |
-| `src/pages/Admin.tsx` | Add "View Dashboard" button per restaurant |
+| DB: restaurants table | Rename to "Reborn Wraps" |
+| `src/lib/personalConfig.ts` | monthly: 10 → 15 |
+| `src/lib/personalPlanLimits.ts` | $10 → $15, remove founding_pro |
+| `src/components/personal/PersonalBillingTab.tsx` | $10 → $15, remove founding references |
+| `src/components/personal/ProUpgradeDialog.tsx` | Remove free trial language |
+| `src/components/landing/personal/FoundingBanner.tsx` | Delete |
+| `src/components/landing/personal/FoundingCounter.tsx` | Delete |
+| `src/pages/Personal.tsx` | Remove founding imports/renders |
+| `src/pages/personal/PersonalPricing.tsx` | Remove founding, update pricing |
+| `src/components/personal/signup/CheckoutStep.tsx` | Remove founding_pro + free plan |
+| `src/components/personal/signup/LinksStep.tsx` | Remove free trial text |
+| `src/components/personal/signup/IdentityStep.tsx` | Remove founding_pro |
+| `src/hooks/usePersonalOnboarding.ts` | Remove founding_pro type |
+| `src/components/personal/AdvancedAnalyticsTab.tsx` | Remove founding_pro check |
+| `src/pages/personal/PersonalSignup.tsx` | Remove founding_pro type |
+| `supabase/functions/create-personal-upgrade/index.ts` | May need new $15 Stripe price ID |
 
