@@ -41,6 +41,7 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
+import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 
 
 interface PersonalProfile {
