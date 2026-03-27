@@ -1,22 +1,4 @@
-import { useState, useEffect } from 'react';
-
-const logos = [
-  "/card-logos/las-islas.png",
-  "/card-logos/las-nuevas-islas.jpg",
-  "/card-logos/las-islas-marias.avif",
-  "/card-logos/avmealprep.jpg",
-];
-
 const TapAwayCard3D = () => {
-  const [currentLogo, setCurrentLogo] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentLogo((prev) => (prev + 1) % logos.length);
-    }, 1500); // 1.5s per logo = all 4 logos shown in 6s back-facing time
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
       <div style={{ transform: "rotateZ(12deg)" }}>
@@ -37,30 +19,19 @@ const TapAwayCard3D = () => {
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
               }}
             >
-              <img src="/tapaway-card-front.png" alt="TapAway card front" loading="eager" decoding="async" fetchPriority="high" className="w-full h-full object-cover" />
+              <img src="/tapaway-card-front.svg" alt="TapAway card front" loading="eager" decoding="async" fetchPriority="high" className="w-full h-full object-cover" />
             </div>
 
             {/* BACK */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden bg-white flex items-center justify-center"
+              className="absolute inset-0 rounded-2xl overflow-hidden"
               style={{
                 backfaceVisibility: "hidden",
                 transform: "rotateY(180deg)",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
               }}
             >
-              {logos.map((logo, index) => (
-                <img
-                  key={logo}
-                  src={logo}
-                  alt="Client logo"
-                  loading="eager"
-                  decoding="async"
-                  className={`absolute w-[90%] h-auto object-contain transition-opacity duration-500 ${
-                    index === currentLogo ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-              ))}
+              <img src="/tapaway-card-back.svg" alt="TapAway card back" loading="eager" decoding="async" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
