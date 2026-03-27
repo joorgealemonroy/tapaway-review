@@ -2,8 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Play, Star, Truck, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import heroPhone from "@/assets/hero-phone-mockup.png";
-import heroCard from "@/assets/hero-nfc-card.png";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
 const cities = [
   "San Diego",
@@ -127,28 +126,7 @@ export const HeroSection = () => {
             className="relative"
           >
             <div className="flex flex-col items-center gap-6">
-              {/* Phone + Card composition */}
-              <div className="relative mx-auto max-w-[340px]">
-                {/* Phone mockup image */}
-                <motion.img
-                  src={heroPhone}
-                  alt="TapAway review hub on a phone showing Google review interface"
-                  className="w-full h-auto drop-shadow-2xl"
-                  initial={{ y: 10 }}
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                />
-
-                {/* NFC Card floating beside/below */}
-                <motion.img
-                  src={heroCard}
-                  alt="TapAway NFC review card with QR code"
-                  className="absolute -bottom-8 -right-8 w-36 md:w-44 drop-shadow-xl rounded-xl"
-                  initial={{ opacity: 0, y: 20, rotate: 6 }}
-                  animate={{ opacity: 1, y: 0, rotate: 6 }}
-                  transition={{ duration: 0.6, delay: 0.6 }}
-                />
-              </div>
+              <TapAwayCard3D />
 
               {/* Rotating City Social Proof */}
               <motion.div
