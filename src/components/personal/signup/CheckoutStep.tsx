@@ -84,25 +84,6 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     checkPreAuth();
   }, [isOAuthUser]);
 
-  // Detect founding creator promotion
-  useEffect(() => {
-    const checkFounding = async () => {
-      try {
-        const { data } = await supabase.rpc("get_founding_count");
-        if (typeof data === "number" && data < 1000) {
-          setIsFoundingPromo(true);
-          setFoundingSpotsLeft(1000 - data);
-          updateFormData({ planType: "founding_pro" as any });
-        } else {
-          setIsFoundingPromo(false);
-        }
-      } catch {
-        setIsFoundingPromo(false);
-      }
-    };
-    checkFounding();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const freeFeatures = [
     "Up to 10 links",
