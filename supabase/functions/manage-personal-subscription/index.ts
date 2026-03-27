@@ -47,6 +47,19 @@ serve(async (req) => {
         apiVersion: "2023-10-16",
       });
 
+      // Backfill subscription ID if missing
+      if (!profile.stripe_subscription_id && profile.stripe_customer_id) {
+        try {
+          const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id, status: 'active', limit: 1 });
+          if (subs.data.length > 0) {
+            await supabase.from('personal_profiles').update({ stripe_subscription_id: subs.data[0].id }).eq('id', profileId);
+            console.log("[manage-personal-subscription] Backfilled subscription ID:", subs.data[0].id);
+          }
+        } catch (backfillErr) {
+          console.error("[manage-personal-subscription] Backfill error (non-fatal):", backfillErr);
+        }
+      }
+
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: profile.stripe_customer_id,
         return_url: `${req.headers.get("origin")}/personal/dashboard`,
