@@ -43,15 +43,15 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
     <!-- Main Content Card -->
     <tr>
       <td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
-        <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#ffffff;">Set Up Your TapAway Account</h1>
+        <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#ffffff;">Set Up Your Business Dashboard</h1>
         <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">
-          Hey ${firstName}, click the button below to set your password and access your TapAway profile.
+          Hey ${firstName}, click the button below to set your password and access your TapAway business dashboard.
         </p>
         
         <!-- CTA Button -->
         <a href="${magicLink}" 
            style="display:inline-block;background:#6BCB77;color:#000000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;margin-bottom:32px;">
-          Set Up My Account
+          Access My Dashboard
         </a>
         
         <p style="margin:24px 0 0 0;font-size:13px;color:#666666;line-height:1.6;">
@@ -79,11 +79,11 @@ function generateMagicLinkEmailHtml(fullName: string, magicLink: string): string
 function generateMagicLinkEmailText(fullName: string, magicLink: string): string {
   const firstName = fullName?.split(" ")[0] || "there";
   
-  return `TapAway — Set Up Your Account
+  return `TapAway — Set Up Your Business Account
 
 Hey ${firstName},
 
-Click the link below to set your password and access your TapAway profile:
+Click the link below to set your password and access your TapAway business dashboard:
 
 ${magicLink}
 
@@ -238,7 +238,7 @@ serve(async (req) => {
     // Send email
     const html = generateMagicLinkEmailHtml(fullName || "there", magicLink);
     const text = generateMagicLinkEmailText(fullName || "there", magicLink);
-    const sent = await sendEmail(email, "Set Up Your TapAway Account", html, text);
+    const sent = await sendEmail(email, "Set Up Your TapAway Business Account", html, text);
 
     if (!sent) {
       throw new Error("Failed to send magic link email");

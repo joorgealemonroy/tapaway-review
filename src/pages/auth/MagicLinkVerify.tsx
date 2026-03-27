@@ -81,7 +81,7 @@ const MagicLinkVerify = () => {
 
         // Redirect to personal dashboard after a brief delay
         setTimeout(() => {
-          navigate("/personal/dashboard?welcome=true", { replace: true });
+          navigate("/dashboard?welcome=true", { replace: true });
         }, 1500);
       } else {
         throw new Error("No session returned");
@@ -112,7 +112,7 @@ const MagicLinkVerify = () => {
               <div className="w-16 h-16 rounded-full bg-[#6BCB77]/10 flex items-center justify-center mx-auto mb-4">
                 <Shield className="h-8 w-8 text-[#6BCB77]" />
               </div>
-              <h1 className="text-xl font-semibold text-white mb-2">Welcome to TapAway!</h1>
+              <h1 className="text-xl font-semibold text-white mb-2">Welcome to TapAway Business!</h1>
               <p className="text-zinc-400">
                 Create a password for <span className="text-white font-medium">{email}</span>
               </p>
