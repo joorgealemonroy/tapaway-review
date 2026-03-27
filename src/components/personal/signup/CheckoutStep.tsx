@@ -119,7 +119,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     if (formData.planType === "free" || formData.planType === "vip") return 0;
     return formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
   };
-  const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
+  const maxFreeLinks = PERSONAL_PLANS.paid.maxLinks;
 
   const getProFeaturesInUse = (): string[] => {
     const issues: string[] = [];

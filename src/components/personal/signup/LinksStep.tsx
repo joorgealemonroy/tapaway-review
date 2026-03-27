@@ -172,7 +172,7 @@ export const LinksStep = ({
   }, [carouselItems.length, activeLinkIndex]);
 
   const isFreePlan = formData.planType === "free";
-  const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
+  const maxFreeLinks = PERSONAL_PLANS.paid.maxLinks;
 
   const checkProFeature = (featureName: string): boolean => {
     if (!isFreePlan) return true;
