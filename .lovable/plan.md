@@ -1,22 +1,16 @@
 
 
-# Update 3D Card with New SVG Assets
+# Revert 3D Card: Portrait Credit Card + Rotating Restaurant Logos
 
-## Summary
-Replace the current card front image with `1.svg` from the uploaded zip, and add `2.svg` to the back of the card (alongside the existing rotating client logos, or as a static element).
+## Changes
 
-## Steps
+### `src/components/TapAwayCard3D.tsx`
 
-### 1. Extract and copy SVGs from zip
-- Extract `1.svg` and `2.svg` from the uploaded zip
-- Copy `1.svg` to `public/tapaway-card-front.svg` (new front design)
-- Copy `2.svg` to `public/tapaway-card-back.svg` (new back design)
-
-### 2. Update `src/components/TapAwayCard3D.tsx`
-- **Front face**: Change the `img src` from `/tapaway-card-front.png` to `/tapaway-card-front.svg`
-- **Back face**: Replace the rotating client logos with `2.svg` as the card back image — a single full-bleed image covering the back face
-
-### Technical detail
-- SVGs will render crisply at any size, improving the 3D card visual quality
-- The back will show the new design (`2.svg`) instead of cycling through restaurant logos
+1. **Keep portrait credit card ratio** — aspect ratio `2.125 / 3.375` (standard credit card standing up), width `min(240px, 70vw)`, with rounded corners
+2. **Front face** — keep the current `/tapaway-card-front.svg`
+3. **Back face** — remove the static SVG back image. Replace with a dark gradient background showing:
+   - A grid/marquee of ~8 sample restaurant logos (styled text logos since we don't have actual images): "Joe's Pizza", "Sakura Sushi", "The Golden Fork", "Bella Italia", "Blue Lagoon Café", "Smoky BBQ", "Fresh Greens", "Casa del Sol"
+   - Each displayed as a styled text badge in a grid, fading/cycling with a subtle animation
+   - Small "Trusted by 500+ businesses" tagline at bottom
+4. **Animation** — keep the existing continuous `spin-3d` rotation
 
