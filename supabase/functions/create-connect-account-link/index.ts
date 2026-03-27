@@ -88,8 +88,8 @@ serve(async (req) => {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${frontendUrl}/personal/dashboard?tab=shop&stripe_connect=refresh`,
-      return_url: `${frontendUrl}/personal/dashboard?tab=shop&stripe_connect=success`,
+      refresh_url: `${frontendUrl}/dashboard?tab=shop&stripe_connect=refresh`,
+      return_url: `${frontendUrl}/dashboard?tab=shop&stripe_connect=success`,
       type: 'account_onboarding',
     });
 
