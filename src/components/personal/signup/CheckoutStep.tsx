@@ -116,7 +116,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   }, [resendCooldown]);
 
   const calculateTotal = () => {
-    if (formData.planType === "free" || formData.planType === "vip" || formData.planType === "founding_pro") return 0;
+    if (formData.planType === "free" || formData.planType === "vip") return 0;
     return formData.planType === "yearly" ? PERSONAL_PRICING.yearly : PERSONAL_PRICING.monthly;
   };
   const maxFreeLinks = PERSONAL_PLANS.free.maxLinks;
@@ -164,7 +164,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
     setShowPlanSelector(false);
     toast.info("Switched to Free plan. Some Pro features were removed.");
   };
-  const isFreePlan = formData.planType === "free" || formData.planType === "vip" || formData.planType === "founding_pro";
+  const isFreePlan = formData.planType === "free" || formData.planType === "vip";
 
 
   const logAffiliateReferral = async (userId: string, profileId: string, planType: string) => {
@@ -1395,29 +1395,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* Founding Creator Promotion - replaces plan selector */}
-      {isFoundingPromo ? (
-        <div className="p-4 rounded-xl border-2 border-primary bg-primary/5 shadow-lg shadow-primary/10">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-bold text-lg text-foreground">Founding Creator Access</span>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            You're one of the first 1,000 creators — Pro is yours <span className="font-semibold text-foreground">free forever</span>.
-          </p>
-          <ul className="space-y-2 mb-3">
-            {proFeatures.map((feature, index) => (
-              <li key={index} className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 flex-shrink-0 text-primary" />
-                <span className="text-foreground">{feature}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-primary font-medium">
-            🚀 {foundingSpotsLeft} spots remaining
-          </p>
-        </div>
-      ) : (planLocked && !showPlanSelector) ? (
+      {(planLocked && !showPlanSelector) ? (
         // Compact plan summary (plan was chosen from pricing page)
         <div className={`p-4 rounded-xl border-2 ${formData.planType === "free" ? "border-muted bg-muted/30" : "border-primary bg-primary/5"}`}>
          <div className="flex items-center justify-between">
@@ -1530,8 +1508,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         </div>
       )}
 
-      {/* What's Included - only show if NOT planLocked and NOT founding promo */}
-      {!planLocked && !isFoundingPromo && (
+      {!planLocked && (
         <div className="p-4 bg-muted/50 rounded-xl">
           <h3 className="font-semibold text-foreground mb-3">
             {isFreePlan ? "Free plan includes" : "Pro plan includes"}
@@ -1556,9 +1533,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       <div className="space-y-2 py-4 border-t border-border">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {formData.planType === "founding_pro"
-              ? "Founding Creator Pro"
-              : formData.planType === "vip"
+            {formData.planType === "vip"
               ? "VIP Access"
               : formData.planType === "free" 
               ? "Free plan" 
@@ -1568,11 +1543,12 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
           </span>
           <div className="text-right">
             <span className="font-medium">
-              {formData.planType === "free" || formData.planType === "vip" || formData.planType === "founding_pro"
+              {formData.planType === "free" || formData.planType === "vip"
                 ? "$0"
                 : formData.planType === "yearly"
                 ? "$6.25/mo"
                 : `$${PERSONAL_PRICING.monthly}/mo`}
+            </span>
             </span>
             {formData.planType === "yearly" && (
               <p className="text-xs text-muted-foreground">Billed annually $75</p>
@@ -1601,7 +1577,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             Processing...
           </>
         ) : isFreePlan ? (
-          (formData.planType === "vip" || formData.planType === "founding_pro") ? "Create My TapAway" : "Create Free Account"
+          (formData.planType === "vip") ? "Create My TapAway" : "Create Free Account"
         ) : (
           <>
             <CreditCard className="h-5 w-5 mr-2" />
