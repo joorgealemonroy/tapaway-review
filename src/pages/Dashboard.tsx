@@ -167,25 +167,25 @@ const Dashboard = () => {
   }, [demoRestaurantId, user, navigate]);
   
   useEffect(() => {
-    // Skip normal auth redirect if in demo mode (sales rep viewing demo)
-    if (demoRestaurantId) return;
+    // Skip normal auth redirect if in demo mode or admin view
+    if (demoRestaurantId || adminViewId) return;
     
     if (!loading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate, demoRestaurantId]);
+  }, [user, loading, navigate, demoRestaurantId, adminViewId]);
   
-  // Only fetch normal restaurant data if NOT in demo mode
+  // Only fetch normal restaurant data if NOT in demo or admin view mode
   useEffect(() => {
     // Wait for demo loading to complete first
     if (demoLoading) return;
-    // Skip if in demo mode (already loaded demo restaurant)
-    if (isDemoView || demoRestaurantId) return;
+    // Skip if in demo mode or admin view (already loaded)
+    if (isDemoView || demoRestaurantId || adminViewId) return;
     if (user && !restaurant) {
       checkAdminStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isDemoView, demoLoading, demoRestaurantId]);
+  }, [user, isDemoView, demoLoading, demoRestaurantId, adminViewId]);
   const checkAdminStatus = async () => {
     const { data: isAdminData } = await supabase.rpc('is_admin');
     const { data: isTestData } = await supabase.rpc('is_test_account');
