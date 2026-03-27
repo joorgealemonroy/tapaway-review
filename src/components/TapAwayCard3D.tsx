@@ -1,4 +1,30 @@
+import { useState, useEffect } from "react";
+
+const restaurants = [
+  "Joe's Pizza",
+  "Sakura Sushi",
+  "The Golden Fork",
+  "Bella Italia",
+  "Blue Lagoon Café",
+  "Smoky BBQ",
+  "Fresh Greens",
+  "Casa del Sol",
+];
+
 const TapAwayCard3D = () => {
+  const [activeSet, setActiveSet] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSet((prev) => (prev + 1) % 2);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const firstHalf = restaurants.slice(0, 4);
+  const secondHalf = restaurants.slice(4, 8);
+  const currentSet = activeSet === 0 ? firstHalf : secondHalf;
+
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
       <div style={{ transform: "rotateZ(12deg)" }}>
@@ -6,8 +32,8 @@ const TapAwayCard3D = () => {
           <div
             className="relative"
             style={{
-              width: "min(260px, 80vw)",
-              aspectRatio: "1 / 1.586",
+              width: "min(240px, 70vw)",
+              aspectRatio: "2.125 / 3.375",
               transformStyle: "preserve-3d",
             }}
           >
@@ -19,19 +45,51 @@ const TapAwayCard3D = () => {
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
               }}
             >
-              <img src="/tapaway-card-front.svg" alt="TapAway card front" loading="eager" decoding="async" fetchPriority="high" className="w-full h-full object-cover" />
+              <img
+                src="/tapaway-card-front.svg"
+                alt="TapAway card front"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                className="w-full h-full object-cover"
+              />
             </div>
 
             {/* BACK */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden"
+              className="absolute inset-0 rounded-2xl overflow-hidden flex flex-col items-center justify-center p-4"
               style={{
                 backfaceVisibility: "hidden",
                 transform: "rotateY(180deg)",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                background: "linear-gradient(145deg, hsl(var(--foreground)), hsl(var(--foreground) / 0.85))",
               }}
             >
-              <img src="/tapaway-card-back.svg" alt="TapAway card back" loading="eager" decoding="async" className="w-full h-full object-cover" />
+              <div className="grid grid-cols-2 gap-2 w-full flex-1 content-center">
+                {currentSet.map((name) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-center rounded-lg px-1.5 py-2 text-center animate-fade-in"
+                    style={{
+                      background: "hsl(var(--background) / 0.1)",
+                      border: "1px solid hsl(var(--background) / 0.15)",
+                    }}
+                  >
+                    <span
+                      className="text-[9px] font-bold leading-tight tracking-wide"
+                      style={{ color: "hsl(var(--background) / 0.9)" }}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p
+                className="text-[8px] mt-2 font-medium tracking-wider uppercase"
+                style={{ color: "hsl(var(--background) / 0.5)" }}
+              >
+                Trusted by 500+ businesses
+              </p>
             </div>
           </div>
         </div>
