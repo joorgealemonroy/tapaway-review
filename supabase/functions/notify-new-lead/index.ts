@@ -98,7 +98,7 @@ serve(async (req) => {
             ${dataRows}
           </table>
           <div style="margin-top:24px;text-align:center;">
-            <a href="${FRONTEND_URL}/personal/dashboard?tab=leads" style="display:inline-block;background-color:#0FB5BA;color:#ffffff;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View in Dashboard</a>
+            <a href="${FRONTEND_URL}/dashboard?tab=leads" style="display:inline-block;background-color:#0FB5BA;color:#ffffff;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">View in Dashboard</a>
           </div>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #f0f0f0;">

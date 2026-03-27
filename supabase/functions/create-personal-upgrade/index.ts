@@ -62,8 +62,8 @@ serve(async (req) => {
       mode: "subscription",
       line_items: [{ price: selectedPriceId, quantity: 1 }],
       customer_email: email,
-      success_url: `${origin}/personal/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/personal/dashboard`,
+      success_url: `${origin}/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/dashboard`,
       metadata: {
         type: "personal_upgrade",
         profile_id: profileId,

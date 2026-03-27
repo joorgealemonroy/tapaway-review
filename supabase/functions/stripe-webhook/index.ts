@@ -569,7 +569,7 @@ if (event.type === 'checkout.session.completed') {
                         <p style="margin: 0 0 4px; font-weight: 600; color: #111;">${product.title}</p>
                         <p style="margin: 0; color: #22c55e; font-weight: 700; font-size: 18px;">${priceFormatted}</p>
                       </div>
-                      <a href="${frontendUrl}/personal/dashboard" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                      <a href="${frontendUrl}/dashboard" style="display: inline-block; background: #111; color: #fff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
                         View Dashboard
                       </a>
                     </div>
