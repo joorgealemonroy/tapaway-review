@@ -356,7 +356,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => navigate("/auth?redirect=/personal/dashboard")}
+              onClick={() => navigate("/auth?redirect=/dashboard")}
               className="text-xs"
             >
               <LogIn className="h-3 w-3 mr-1" />
