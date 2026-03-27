@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
-import { User, Link2, QrCode, ArrowLeft, Rocket, Users } from "lucide-react";
+import { User, Link2, QrCode, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { PERSONAL_PRICING } from "@/lib/personalConfig";
 
 const STEPS = [
   { icon: User, title: "Pick a username", desc: "Choose your unique tapaway.co/username" },
@@ -14,15 +12,6 @@ const STEPS = [
 
 const PersonalPricing = () => {
   const navigate = useNavigate();
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    supabase.rpc("get_founding_count").then(({ data }) => {
-      if (typeof data === "number") setCount(data);
-    });
-  }, []);
-
-  const spotsLeft = count !== null ? Math.max(1000 - count, 0) : null;
 
   const goToSignup = () => navigate("/personal/signup");
 
@@ -64,24 +53,16 @@ const PersonalPricing = () => {
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               All Your Links,<br />One TapAway
             </h1>
+            <p className="text-muted-foreground mt-2">Starting at ${PERSONAL_PRICING.monthly}/month</p>
           </div>
-
-          {/* Founding urgency badge */}
-          {spotsLeft !== null && spotsLeft > 0 && (
-            <Badge className="bg-amber-500 hover:bg-amber-500 text-black text-sm px-4 py-2 font-semibold">
-              <Rocket className="h-4 w-4 mr-1.5" />
-              {spotsLeft} spots left — Pro free for life
-            </Badge>
-          )}
 
           <Button
             onClick={goToSignup}
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Save My Spot
+            Get Started
           </Button>
-          <p className="text-xs text-muted-foreground">No credit card · takes 2 min</p>
         </motion.div>
 
         {/* 2. How It Works */}
@@ -107,20 +88,7 @@ const PersonalPricing = () => {
           </div>
         </motion.section>
 
-        {/* 3. Social proof strip */}
-        {count !== null && count > 0 && (
-          <motion.div
-            className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Users className="h-4 w-4" />
-            <span>Join {count}+ creators already on TapAway</span>
-          </motion.div>
-        )}
-
-        {/* 4. Bottom CTA */}
+        {/* 3. Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -132,11 +100,8 @@ const PersonalPricing = () => {
             size="lg"
             className="w-full h-16 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
           >
-            Save My Spot
+            Get Started
           </Button>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Free to start · No credit card required
-          </p>
         </motion.div>
       </div>
     </div>

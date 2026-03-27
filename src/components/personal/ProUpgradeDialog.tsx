@@ -36,14 +36,14 @@ export const ProUpgradeDialog = ({
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
-            Try Pro free for 7 days — no charge today. Get unlimited links, custom headers, photo collages, and more.
+            Upgrade to Pro for $15/month to get unlimited links, custom headers, photo collages, and more.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2">
           <AlertDialogCancel className="mt-0">Maybe later</AlertDialogCancel>
           <AlertDialogAction onClick={onUpgrade} className="gap-1.5">
             <Sparkles className="h-3.5 w-3.5" />
-            Start Free Trial
+            Upgrade to Pro
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

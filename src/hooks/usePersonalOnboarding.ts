@@ -46,7 +46,7 @@ export interface PersonalOnboardingData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  planType: "free" | "monthly" | "yearly" | "vip";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
   isOAuthUser: boolean;

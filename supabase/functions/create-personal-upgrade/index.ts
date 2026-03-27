@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Hardcoded Stripe Price IDs
 const PERSONAL_PRICES = {
-  monthly: 'price_1SnMxKDg8DaTuVNZsc6KH8pw',  // $9/month
+  monthly: 'price_1SnMxKDg8DaTuVNZsc6KH8pw',  // $15/month
   yearly: 'price_1SnMz2Dg8DaTuVNZM7QjRAET',   // $99/year
 };
 

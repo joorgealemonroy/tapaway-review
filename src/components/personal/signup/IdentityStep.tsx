@@ -28,7 +28,7 @@ interface Props {
   onNext: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  selectedPlan?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  selectedPlan?: "free" | "monthly" | "yearly" | "vip";
   isOAuthUser: boolean;
   setIsOAuthUser: (v: boolean) => void;
 }
@@ -377,12 +377,12 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
                 type="button"
                 onClick={() => {
                   updateFormData({ planType: "yearly" });
-                  toast("Free trial selected — you can try Pro free for 7 days to remove the 'tap' prefix.");
+                  toast("Upgraded to Pro — you'll get unlimited links and the 'tap' prefix removed.");
                 }}
                 className="text-xs text-muted-foreground underline cursor-pointer flex items-center gap-1"
               >
                 <Info className="h-3 w-3" />
-                Start a free trial to remove the "tap" prefix
+                Upgrade to Pro to remove the "tap" prefix
               </button>
             )}
           </>

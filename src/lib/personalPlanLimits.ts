@@ -19,7 +19,7 @@ export const PERSONAL_PLANS = {
   paid: {
     name: 'Pro',
     maxLinks: -1, // unlimited
-    price: '$10',
+    price: '$15',
     priceSubtext: '/month',
     features: {
       customHeader: true,
@@ -50,24 +50,6 @@ export const PERSONAL_PLANS = {
       button: true,
     },
   },
-  founding_pro: {
-    name: 'Founding Pro',
-    maxLinks: -1, // unlimited
-    price: '$0',
-    priceSubtext: 'forever',
-    features: {
-      customHeader: true,
-      photoCollage: true,
-      emailCapture: true,
-      advancedAnalytics: true,
-      socialIconBar: true,
-      youtube: true,
-      image: true,
-      text: true,
-      button: true,
-    },
-    isLifetime: true,
-  },
 } as const;
 
 export type PlanType = keyof typeof PERSONAL_PLANS;
@@ -76,7 +58,7 @@ export type FeatureKey = keyof typeof PERSONAL_PLANS.free.features;
 export function getPlanLimits(planType: string | null) {
   if (planType === 'free') return PERSONAL_PLANS.free;
   if (planType === 'vip') return PERSONAL_PLANS.vip;
-  if (planType === 'founding_pro') return PERSONAL_PLANS.founding_pro;
+  if (planType === 'founding_pro') return PERSONAL_PLANS.paid; // legacy founding users get pro access
   return PERSONAL_PLANS.paid;
 }
 
