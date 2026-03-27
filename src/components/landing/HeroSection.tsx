@@ -47,7 +47,7 @@ export const HeroSection = () => {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-5"
             >
               <Star className="w-4 h-4 fill-primary" />
-              <span>Trusted by 100+ restaurants</span>
+              <span>Trusted by 150+ business nation wide</span>
             </motion.div>
 
             {/* Main Headline */}
