@@ -62,7 +62,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
               </CardTitle>
               <CardDescription>
                 {isVIP 
-                  ? "You have complimentary full access to all features!" 
+                  ? "" 
                   : isPro 
                     ? "You have access to all premium features" 
                     : "Upgrade to unlock premium features"}
