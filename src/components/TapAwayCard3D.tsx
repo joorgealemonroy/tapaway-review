@@ -43,6 +43,7 @@ const TapAwayCard3D = () => {
                 src="/tapaway-card-back.svg"
                 alt="TapAway card back"
                 className="w-full h-full object-cover rounded-2xl"
+                style={{ transform: "rotate(180deg)" }}
               />
             </div>
           </div>
