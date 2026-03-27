@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface FormField {
