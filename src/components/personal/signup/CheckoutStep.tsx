@@ -51,7 +51,7 @@ interface Props {
 }
 
 type FlowStep = "plan" | "otp_sent" | "verifying" | "creating" | "existing_account";
-type PlanType = "free" | "monthly" | "yearly" | "founding_pro";
+type PlanType = "free" | "monthly" | "yearly";
 
 export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isLoading, setIsLoading, planLocked = false, cardCode, isOAuthUser = false }: Props) => {
   const navigate = useNavigate();
@@ -68,8 +68,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
   const [pendingDowngradePlan, setPendingDowngradePlan] = useState<PlanType | null>(null);
   const [downgradeIssues, setDowngradeIssues] = useState<string[]>([]);
   const [preAuthed, setPreAuthed] = useState(false);
-  const [isFoundingPromo, setIsFoundingPromo] = useState<boolean | null>(null);
-  const [foundingSpotsLeft, setFoundingSpotsLeft] = useState<number>(0);
+  
 
   // Detect if user is already authenticated (card activation flow or OAuth)
   useEffect(() => {
