@@ -518,6 +518,9 @@ const PersonalDashboard = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
+      {isAdminView && (
+        <AdminViewBanner name={adminViewName} backTo="/admin/personal-accounts" />
+      )}
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3">
