@@ -1549,7 +1549,6 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
                 ? "$6.25/mo"
                 : `$${PERSONAL_PRICING.monthly}/mo`}
             </span>
-            </span>
             {formData.planType === "yearly" && (
               <p className="text-xs text-muted-foreground">Billed annually $75</p>
             )}
