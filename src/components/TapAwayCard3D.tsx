@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 
 const restaurants = [
-  "Joe's Pizza",
+  "Las Islas Marias",
+  "Las Nuevas Islas",
   "Sakura Sushi",
   "The Golden Fork",
   "Bella Italia",
   "Blue Lagoon Café",
   "Smoky BBQ",
   "Fresh Greens",
-  "Casa del Sol",
 ];
 
 const TapAwayCard3D = () => {
@@ -30,11 +30,12 @@ const TapAwayCard3D = () => {
       <div style={{ transform: "rotateZ(12deg)" }}>
         <div className="animate-[spin-3d_12s_ease-in-out_infinite]" style={{ transformStyle: "preserve-3d" }}>
           <div
-            className="relative"
+            className="relative rounded-2xl"
             style={{
               width: "min(240px, 70vw)",
               aspectRatio: "2.125 / 3.375",
               transformStyle: "preserve-3d",
+              borderRadius: "1rem",
             }}
           >
             {/* FRONT */}
@@ -51,7 +52,7 @@ const TapAwayCard3D = () => {
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-2xl"
               />
             </div>
 
@@ -88,7 +89,7 @@ const TapAwayCard3D = () => {
                 className="text-[8px] mt-2 font-medium tracking-wider uppercase"
                 style={{ color: "hsl(var(--background) / 0.5)" }}
               >
-                Trusted by 500+ businesses
+                Trusted by local restaurants
               </p>
             </div>
           </div>
