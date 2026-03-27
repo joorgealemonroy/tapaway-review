@@ -631,6 +631,13 @@ const Admin = () => {
                         Hub
                       </Button>
                       <Button
+                        onClick={() => navigate(`/dashboard?admin_view=${r.id}`)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        View Dashboard
+                      </Button>
+                      <Button
                         onClick={() => toggleSub(r)}
                         variant="outline"
                         size="sm"
