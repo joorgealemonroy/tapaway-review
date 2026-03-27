@@ -955,7 +955,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         logCheckpoint("User already has personal profile", { profileId: existingProfile.id });
         toast.success("Welcome back! You already have a TapAway profile.");
         localStorage.removeItem("tapaway_personal_draft");
-        navigate(`/personal/dashboard`);
+        navigate(`/dashboard`);
         return;
       }
 

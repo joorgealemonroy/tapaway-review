@@ -1231,7 +1231,7 @@ Login at: ${window.location.origin}/auth`;
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => navigate(`/personal/dashboard?admin_view=${account.id}`)}
+                  onClick={() => navigate(`/dashboard?admin_view=${account.id}`)}
                   title="View Dashboard"
                 >
                   <Eye className="h-4 w-4" />
