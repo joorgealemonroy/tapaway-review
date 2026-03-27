@@ -59,8 +59,11 @@ const Dashboard = () => {
   
   // Demo mode detection - check URL param synchronously
   const demoRestaurantId = searchParams.get('demo_restaurant_id');
+  const adminViewId = searchParams.get('admin_view');
   const [isDemoView, setIsDemoView] = useState(!!demoRestaurantId);
   const [demoLoading, setDemoLoading] = useState(!!demoRestaurantId);
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [adminViewName, setAdminViewName] = useState("");
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
