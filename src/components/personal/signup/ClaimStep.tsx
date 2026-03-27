@@ -23,7 +23,7 @@ interface Props {
   onNext: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  selectedPlan?: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  selectedPlan?: "free" | "monthly" | "yearly" | "vip";
   isOAuthUser: boolean;
   setIsOAuthUser: (v: boolean) => void;
   vibeMetadata?: VibeMetadata | null;

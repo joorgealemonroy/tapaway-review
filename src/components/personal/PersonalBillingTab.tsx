@@ -40,13 +40,11 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const trialDaysLeft = trialEndDate ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
   
-  const planInfo = isFounding
-    ? PERSONAL_PLANS.founding_pro
-    : isVIPPlan(profile.plan_type) 
-      ? PERSONAL_PLANS.vip 
-      : isPaidPlan(profile.plan_type) 
-        ? PERSONAL_PLANS.paid 
-        : PERSONAL_PLANS.free;
+  const planInfo = isVIPPlan(profile.plan_type) || isFounding
+    ? PERSONAL_PLANS.vip 
+    : isPaidPlan(profile.plan_type) 
+      ? PERSONAL_PLANS.paid 
+      : PERSONAL_PLANS.free;
   
   const isVIP = isVIPPlan(profile.plan_type) || isFounding || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
@@ -72,8 +70,8 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                     : "Upgrade to unlock premium features"}
               </CardDescription>
             </div>
-            <Badge variant="default" className={isFounding ? "bg-amber-500" : isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
-              {isFounding ? "Founding Creator" : isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
+            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
+              {isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
             </Badge>
           </div>
         </CardHeader>
@@ -84,7 +82,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 <span className="text-3xl font-bold">Free Trial</span>
               </div>
               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
-                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $10/month.
+                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $15/month.
               </p>
             </div>
           ) : (
@@ -94,13 +92,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             </div>
           )}
 
-          {isFounding && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-              ⭐ Founding Creator — You have Pro for life. Thank you for being early!
-            </p>
-          )}
-
-          {isVIP && !isFounding && (
+          {isVIP && (
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
               ✨ You have complimentary access to all premium features - enjoy!
             </p>
@@ -181,7 +173,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             <div className="space-y-3">
               <h4 className="font-medium flex items-center gap-2">
                 <Badge className="bg-amber-500">Pro</Badge>
-                <span className="text-muted-foreground text-sm">$10/month</span>
+                <span className="text-muted-foreground text-sm">$15/month</span>
               </h4>
               <ul className="text-sm space-y-2">
                 <li className="flex items-center gap-2">

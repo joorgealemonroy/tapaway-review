@@ -43,7 +43,7 @@ type AnalyticsRow = {
 };
 
 const hasProAccess = (plan: string | null, status: string | null | undefined) => {
-  if (!!plan && ["pro", "premium", "vip", "founding_pro"].includes(plan)) return true;
+  if (!!plan && ["pro", "premium", "vip", "founding_pro", "paid"].includes(plan)) return true;
   if (status === "trialing") return true;
   return false;
 };
@@ -335,7 +335,7 @@ export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, 
               <Lock className="h-4 w-4" />
               Unlock Advanced Analytics
             </button>
-            <p className="text-xs text-muted-foreground mt-2">7-day free trial • No charge today</p>
+            <p className="text-xs text-muted-foreground mt-2">Upgrade to Pro — $15/month</p>
           </div>
         </div>
       )}

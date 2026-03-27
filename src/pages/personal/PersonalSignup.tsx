@@ -50,7 +50,7 @@ export interface SignupData {
   blocks: PersonalBlock[];
   addExtraCard: boolean;
   extraCardCount: number;
-  planType: "free" | "monthly" | "yearly" | "vip" | "founding_pro";
+  planType: "free" | "monthly" | "yearly" | "vip";
   cardChoice: "custom" | "basic" | "none";
   basicCardColor: string | null;
   vibeId?: string | null;
@@ -70,7 +70,7 @@ const PersonalSignup = () => {
   const [signupComplete, setSignupComplete] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
-  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip" | "founding_pro">("yearly");
+  const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [hasImportedProfile, setHasImportedProfile] = useState(false);
   const [fromVibeFlow, setFromVibeFlow] = useState(false);
@@ -304,7 +304,7 @@ const PersonalSignup = () => {
 
     // Apply style — force free users to "color" header (banner/image are Pro-only)
     const isVipCard = onboardingData.cardChoice === "custom" || onboardingData.cardChoice === "basic";
-    const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip" || onboardingData.planType === "founding_pro";
+    const isPaid = onboardingData.planType === "monthly" || onboardingData.planType === "yearly" || onboardingData.planType === "vip";
     const effectiveHeaderType = (!isPaid && !isVipCard && (template.headerType === "banner" || template.headerType === "image"))
       ? "color" as const
       : template.headerType;

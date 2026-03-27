@@ -184,7 +184,7 @@ export const LinksStep = ({
   const handleUpgradeToPro = () => {
     updateFormData({ planType: "yearly" });
     setUpgradeDialogOpen(false);
-    toast.success("Upgraded to Pro! You now have a 7-day free trial.");
+    toast.success("Upgraded to Pro!");
   };
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
