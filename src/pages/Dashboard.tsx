@@ -403,7 +403,7 @@ const Dashboard = () => {
   // Check if user should bypass paywall - DEMO MODE ALWAYS BYPASSES
   const planType = restaurant?.plan_type || 'standard';
   const superAdmin = isSuperAdmin(user?.email);
-  const shouldBypassPaywall = isDemoView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
+  const shouldBypassPaywall = isDemoView || isAdminView || superAdmin || isAdmin || isGrandfathered || planType === 'bundle' || planType === 'private_access' || user?.email === 'test@me.com';
   
   // If no restaurant and not a special user, redirect to paywall (handled in fetchRestaurant)
   // But NEVER redirect in demo mode
@@ -412,6 +412,9 @@ const Dashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
   return <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {isAdminView && (
+        <AdminViewBanner name={adminViewName} backTo="/admin" />
+      )}
       <nav className="border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <button 
