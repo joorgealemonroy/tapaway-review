@@ -82,6 +82,52 @@ const Dashboard = () => {
     document.documentElement.classList.toggle('dark', next === 'dark');
   };
 
+  // Handle admin impersonation mode - load restaurant by ID
+  useEffect(() => {
+    const loadAdminView = async () => {
+      if (!adminViewId || !user) return;
+
+      const { data: isAdminData } = await supabase.rpc("is_admin");
+      if (!isAdminData) return;
+
+      const { data: r, error } = await supabase
+        .from("restaurants")
+        .select("*")
+        .eq("id", adminViewId)
+        .maybeSingle();
+
+      if (error || !r) {
+        toast.error("Restaurant not found");
+        navigate("/admin");
+        return;
+      }
+
+      setIsAdminView(true);
+      setAdminViewName(r.restaurant_name || "Unknown");
+      setRestaurant({
+        id: r.id,
+        restaurant_name: r.restaurant_name,
+        custom_slug: r.custom_slug,
+        stripe_portal_url: r.stripe_portal_url,
+        subscription_status: r.subscription_status,
+        plan_type: r.plan_type,
+        next_billing_date: r.next_billing_date,
+        type: r.type,
+        greeting_name: r.greeting_name,
+        is_demo_account: r.is_demo_account ?? false,
+        created_at: r.created_at,
+        menu_image_url: r.menu_image_url,
+        google_review_url: r.google_review_url,
+        yelp_review_url: r.yelp_review_url,
+      });
+      fetchLocations(r.id);
+    };
+
+    if (adminViewId && user) {
+      loadAdminView();
+    }
+  }, [adminViewId, user, navigate]);
+
   // Handle demo mode for sales reps - load demo restaurant first
   useEffect(() => {
     const loadDemoRestaurant = async () => {
