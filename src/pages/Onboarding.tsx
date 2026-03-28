@@ -23,8 +23,8 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Creators", price: 15, cards: 3, icon: User, refill: "3-card refills" },
-  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail", price: 39, cards: 15, icon: Building2, refill: "10-card refills" },
+  solo: { label: "Solo Pro", subtitle: "Ideal for individual pros and personal branding.", price: 15, cards: 3, icon: User, refill: "3-card refills", cardText: "3 Smart NFC Cards included for your wallet and station.", badge: null },
+  venue: { label: "Venue Pack", subtitle: "Designed for team-based venues and high-traffic locations.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", cardText: "15 Smart NFC Cards included for your tables or counters.", badge: "Best Value" },
 };
 
 const PROTECTION_PRICE = 5;
@@ -300,12 +300,17 @@ const Onboarding = () => {
                     <button
                       key={plan}
                       onClick={() => setSelectedPlan(plan)}
-                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative ${
+                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative overflow-hidden ${
                         selected
                           ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
                           : "border-white/10 bg-[#111827] hover:border-white/20"
                       }`}
                     >
+                      {d.badge && (
+                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                          {d.badge}
+                        </div>
+                      )}
                       {selected && (
                         <div className="absolute top-4 right-4 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                           <Check className="w-4 h-4 text-white" />
@@ -321,7 +326,7 @@ const Onboarding = () => {
                             <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
                           </div>
                           <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
-                          <p className="text-sm text-gray-500">{d.cards} Branded NFC Cards included</p>
+                          <p className="text-xs text-gray-500">{d.cardText}</p>
                         </div>
                       </div>
                     </button>
