@@ -184,6 +184,7 @@ const Onboarding = () => {
 
       const savedData = getOnboardingData();
       const bName = businessName || savedData.businessName;
+      const savedLogoUrl = logoUrl || savedData.logoUrl || null;
       if (!bName) return;
 
       // Already completed?
@@ -212,6 +213,7 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: hasProtection,
           trial_ends_at: trialEndsAt,
+          ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).eq("id", rId);
       } else {
         const { data: created } = await supabase.from("restaurants").insert({
@@ -224,6 +226,7 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: hasProtection,
           trial_ends_at: trialEndsAt,
+          ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).select("id").single();
         rId = created?.id;
       }
