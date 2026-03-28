@@ -154,10 +154,13 @@ const Onboarding = () => {
     setIsLoading(true);
 
     try {
-      // Save data before redirect
+      // Save ALL step 3 data before redirect
       saveOnboardingData({
         businessName: businessName.trim(),
         shippingAddress: shippingAddress.trim(),
+        logoUrl: logoUrl || '',
+        planType: selectedPlan || 'venue',
+        hasProtection,
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
