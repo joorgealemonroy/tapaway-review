@@ -17,7 +17,7 @@ import {
   generateSlug,
   setPendingSetup,
 } from "@/lib/onboardingData";
-import TapAwayCard3D from "@/components/TapAwayCard3D";
+import CardCustomizer from "@/components/onboarding/CardCustomizer";
 
 type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
