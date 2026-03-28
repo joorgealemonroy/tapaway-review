@@ -19,7 +19,7 @@ const CardFront = ({
   subHeadline: string;
 }) => (
   <div
-    className="w-[300px] sm:w-[320px] aspect-[54/86] bg-white rounded-[24px] shadow-2xl p-6 flex flex-col items-center text-center font-sans overflow-hidden border border-gray-100"
+    className="w-full max-w-[280px] aspect-[54/86] bg-white rounded-2xl shadow-xl flex flex-col relative overflow-hidden p-6 items-center text-center font-['Inter',sans-serif] tracking-tight"
     style={{
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(-4deg)",
@@ -45,11 +45,11 @@ const CardFront = ({
     </div>
 
     {/* 3. The Massive Logo Anchor */}
-    <div className="w-[200px] h-[200px] bg-[#707070] rounded-full flex items-center justify-center shrink-0 mb-auto relative overflow-hidden shadow-inner">
+    <div className="w-[160px] h-[160px] bg-[#707070] rounded-full flex items-center justify-center shrink-0 mb-auto relative overflow-hidden shadow-inner">
       {logoUrl ? (
         <img src={logoUrl} alt="Your Logo" className="w-full h-full object-cover" />
       ) : (
-        <span className="text-white font-black text-[34px] leading-[0.85] tracking-tighter text-center">
+        <span className="text-white font-black text-[28px] leading-[0.85] tracking-tighter text-center">
           YOUR<br />LOGO<br />HERE
         </span>
       )}
@@ -89,7 +89,7 @@ const CardFront = ({
 
 const CardBack = ({ logoUrl }: { logoUrl?: string | null }) => (
   <div
-    className="w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+    className="w-full max-w-[280px] aspect-[54/86] bg-white rounded-2xl shadow-xl flex flex-col relative overflow-hidden font-['Inter',sans-serif] tracking-tight"
     style={{
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(4deg)",
@@ -97,7 +97,7 @@ const CardBack = ({ logoUrl }: { logoUrl?: string | null }) => (
   >
     <div className="flex flex-col items-center justify-center h-full text-center p-6">
       {/* Logo circle */}
-      <div className="w-36 h-36 rounded-full bg-[#707070] flex items-center justify-center overflow-hidden mb-6">
+      <div className="w-[130px] h-[130px] rounded-full bg-[#707070] flex items-center justify-center overflow-hidden mb-6">
         {logoUrl ? (
           <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
         ) : (
@@ -150,7 +150,7 @@ const CardCustomizer = ({
       </div>
 
       {/* Card previews */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl mx-auto justify-items-center items-center">
         <div className="flex flex-col items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">Front</span>
           <CardFront logoUrl={logoUrl} headline={headline} subHeadline={subHeadline} />
