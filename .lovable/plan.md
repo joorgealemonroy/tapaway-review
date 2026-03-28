@@ -1,36 +1,30 @@
 
 
-# Redesign Hero Section — Premium, 14-Day Trial Aligned
+# Fix Mobile Hero Responsiveness & Visual Polish
 
 ## Changes to `src/components/landing/HeroSection.tsx`
 
-### 1. Trust Badge (pill) — move above headline
-- Keep "Trusted by 150+ businesses nationwide" in a pill badge
-- Move it to sit directly above the headline (already positioned there, just clean up text: "nationwide" not "nation wide")
+### 1. Typography — mobile headline sizing
+- Change `text-4xl` to `text-3xl` for < 640px screens
+- Wrap "5-Star" in `whitespace-nowrap` to prevent hyphen break
 
-### 2. Headline
-- Change to: **"Turn Taps into 5-Star Reviews."**
-- Use `font-black` weight, apply Electric Blue (`text-primary`) accent to "5-Star"
+### 2. Trust Badge — pulsing green dot
+- Add a pulsing green dot (`w-2 h-2 bg-emerald-500 rounded-full animate-pulse`) next to the Star icon
 
-### 3. Sub-headline
-- Replace with: "Grow your Google presence with high-performance Branded NFC Cards. We ship your custom kit today. Zero setup. **$0 Today.**"
-- Bold "$0 Today" for emphasis
+### 3. Button glow effect
+- Add `shadow-[0_0_20px_rgba(59,130,246,0.5)]` to primary CTA link
 
-### 4. Remove old content
-- Remove "Value Expansion" paragraph (lines 66-68)
-- Remove "Trust Points" row with Truck/Shield icons (lines 71-80)
-- Remove "NFC Card Customization" line mentioning "unbranded" (lines 83-86)
-- Remove bottom micro-copy mentioning "30 days" (lines 115-118)
+### 4. Spacing improvements (mobile)
+- Increase `mb-8` on subheadline to `mb-10`
+- Add `mt-10 lg:mt-0` on the right visual column for mobile breathing room
 
-### 5. Buttons
-- **Primary**: "Start My 14-Day Sprint" — Electric Blue background (`bg-primary text-primary-foreground`), keep ArrowRight icon
-- **Secondary**: "Watch a 30-Sec Demo" — outline style (`border border-primary text-primary`), Play icon
+### 5. 3D Card positioning
+- On mobile (`lg:` breakpoint): card already renders below text, add a CSS tilt wrapper: `style={{ transform: "perspective(800px) rotateY(-15deg)" }}` around `TapAwayCard3D`
+- On desktop: the grid already places it right; no overlap changes needed (would require negative margins and could break layout)
 
-### 6. 3D Card Visual (right side)
-- Keep existing `TapAwayCard3D` component
-- Keep rotating city social proof below it
-- No changes needed to the 3D component itself (already renders branded card SVGs)
+### No changes to `MobileNav`
+- Logo and hamburger are already vertically centered in a `flex items-center justify-between h-14` container — alignment is correct.
 
-### File modified
+## File modified
 - `src/components/landing/HeroSection.tsx`
 
