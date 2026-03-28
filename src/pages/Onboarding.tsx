@@ -163,6 +163,8 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
+        cardHeadline,
+        cardSubHeadline,
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
