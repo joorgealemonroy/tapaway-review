@@ -1,72 +1,36 @@
 
 
-# Finalize 3-Step Onboarding with Trial Badges, $0 Checkout & Dynamic Shipping Buffer
+# Redesign Hero Section — Premium, 14-Day Trial Aligned
 
-## Summary
-Overhaul onboarding UI to lead with free trial messaging, show $0 due today, and implement dynamic Stripe trial periods (Solo: 14 days, Venue: 21 days). Add `trial_ends_at` column to `restaurants` table.
+## Changes to `src/components/landing/HeroSection.tsx`
 
----
+### 1. Trust Badge (pill) — move above headline
+- Keep "Trusted by 150+ businesses nationwide" in a pill badge
+- Move it to sit directly above the headline (already positioned there, just clean up text: "nationwide" not "nation wide")
 
-## Database Migration
+### 2. Headline
+- Change to: **"Turn Taps into 5-Star Reviews."**
+- Use `font-black` weight, apply Electric Blue (`text-primary`) accent to "5-Star"
 
-Add `trial_ends_at` to the `restaurants` table:
+### 3. Sub-headline
+- Replace with: "Grow your Google presence with high-performance Branded NFC Cards. We ship your custom kit today. Zero setup. **$0 Today.**"
+- Bold "$0 Today" for emphasis
 
-```sql
-ALTER TABLE public.restaurants ADD COLUMN IF NOT EXISTS trial_ends_at timestamptz;
-```
+### 4. Remove old content
+- Remove "Value Expansion" paragraph (lines 66-68)
+- Remove "Trust Points" row with Truck/Shield icons (lines 71-80)
+- Remove "NFC Card Customization" line mentioning "unbranded" (lines 83-86)
+- Remove bottom micro-copy mentioning "30 days" (lines 115-118)
 
----
+### 5. Buttons
+- **Primary**: "Start My 14-Day Sprint" — Electric Blue background (`bg-primary text-primary-foreground`), keep ArrowRight icon
+- **Secondary**: "Watch a 30-Sec Demo" — outline style (`border border-primary text-primary`), Play icon
 
-## Changes to `src/pages/Onboarding.tsx`
+### 6. 3D Card Visual (right side)
+- Keep existing `TapAwayCard3D` component
+- Keep rotating city social proof below it
+- No changes needed to the 3D component itself (already renders branded card SVGs)
 
-### PLAN_DETAILS update
-Add `trialDays` and `totalTrialDays` (includes 7-day shipping buffer):
-- Solo: `trialDays: 7`, `totalTrialDays: 14`
-- Venue: `trialDays: 14`, `totalTrialDays: 21`
-
-### Step 1: Trial-Led Plan Selection
-- Add emerald green badge (`bg-emerald-500`) top-left of each card: "7-Day Free Trial" / "14-Day Free Trial"
-- Keep "Most Popular" badge top-right on Venue card
-- Subtitle: Solo = "For Barbers & Personal Brands. Includes **3 Smart Cards**." / Venue = "For Restaurants & Retail. Includes **15 Smart Cards**."
-- Fixed bottom CTA stays "Continue"
-
-### Step 2: Loss Protection Upsell
-- Price line: "Loss Protection — $5/mo ($0 Today)"
-- CTA: "Add Protection — $0 Today"
-- Skip text stays the same
-- Footer note below skip: "Standard billing starts after your trial ends. Cancel anytime."
-
-### Step 3: Business Info + $0 Checkout
-- Replace price summary with a $0 "Due Today" breakdown table:
-  - Plan: $0.00
-  - Loss Protection (if added): $0.00
-  - Shipping: $0.00
-  - Total Due Today: **$0.00**
-- Below table: "After trial: $[price]/mo" (includes protection if selected)
-- Disclaimer: "Your trial starts after a 7-day shipping buffer so you get the full experience."
-- Auth button label: "Start My Free Trial" (replacing "Continue with Google/Apple")
-
-### completeSetup logic
-- Calculate and store `trial_ends_at`: `new Date(Date.now() + totalTrialDays * 86400000).toISOString()`
-- Pass `trial_ends_at` when inserting/updating the restaurant record
-
-### Transitions
-Already using framer-motion `slideVariants` — no change needed.
-
----
-
-## Changes to `supabase/functions/create-checkout-session/index.ts`
-
-- Accept `planType` from request body (validated: must be "solo" or "venue")
-- Accept `hasProtection` boolean
-- Calculate `trial_period_days` dynamically: solo = 14, venue = 21
-- Add `subscription_data: { trial_period_days }` to Stripe session creation
-- Pass `plan_type` and `has_protection` in session metadata
-
----
-
-## Files Modified
-1. `src/pages/Onboarding.tsx` — UI overhaul + trial_ends_at calculation
-2. `supabase/functions/create-checkout-session/index.ts` — Dynamic trial days + metadata
-3. New migration — `trial_ends_at` column on restaurants
+### File modified
+- `src/components/landing/HeroSection.tsx`
 
