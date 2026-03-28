@@ -1,57 +1,56 @@
 
 
-# Pro-Branding: Logo Upload, Live 3D Preview & Data Persistence for Step 3
+# Card Customizer: HTML-Rendered Double-Sided Preview with Editable Text
 
 ## Summary
-Transform Step 3 ("info") into a premium branding experience with a logo upload drop zone, live logo rendering on the 3D card, proper data persistence before OAuth, and visual polish.
+Replace the static `TapAwayCard3D` in Step 3 with a fully HTML/CSS-reconstructed card customizer. Users edit headline, sub-headline, and upload a logo — all rendered live on front & back card previews.
 
-## Changes to `src/pages/Onboarding.tsx`
+## New Component: `src/components/onboarding/CardCustomizer.tsx`
 
-### 1. New state & logo upload logic
-- Add `logoUrl` state (string | null)
-- Add `logoUploading` state (boolean)
-- Upload handler: upload to `restaurant-logos` bucket, get public URL, set `logoUrl`
-- Save `logoUrl` to `onboardingData` alongside other fields before OAuth
+A self-contained component rendering:
 
-### 2. Logo drop zone UI
-- Add a dashed-border drop zone above the 3D card preview (always visible, not gated on businessName)
-- Cloud upload icon + "Upload your logo" text + file input
-- When logo uploaded: show small preview thumbnail with remove button
-- Below the drop zone: italic text — *"Pro Tip: High-resolution PNGs work best. Our design team will manually optimize your logo for print quality."*
+### Card Face (HTML/CSS reconstruction matching the uploaded reference)
+- **Front card**: White background, portrait aspect ratio (2.125 / 3.375)
+  - 5 yellow star icons (top, centered)
+  - Editable headline text (centered, sans-serif, ~14px)
+  - Editable sub-headline text (centered, lighter weight)
+  - Large grey circle (centered) — shows uploaded logo or "YOUR LOGO HERE" placeholder
+  - Bottom section: NFC tap icon (left) | divider | QR code icon (right)
+  - "tapaway.co" footer text
+- **Back card**: Same layout but simplified (logo circle + QR + URL)
 
-### 3. Live 3D card with logo overlay
-- Remove the floating `<span>` business name overlay below the card
-- Instead, render business name **inside** the card container as a positioned text element at the bottom edge
-- Render the uploaded logo centered on the card face (overlaid on the grey circle area)
-- Apply `perspective(1000px) rotateX(10deg) rotateY(-5deg)` to the card wrapper (no spinning animation in onboarding — static tilt for elegance)
-- Show card always (not gated on `businessName.trim()`) — it acts as the hero visual
+### Input Fields (above the previews)
+- "Card Headline" — text input, placeholder: `Loved your visit? Leave us a review!`
+- "Card Sub-headline" — text input, placeholder: `Tap or Scan below to share your experience.`
 
-### 4. Data persistence before OAuth
-- In `handleOAuth`, save ALL step 3 data to localStorage:
-  - `businessName`, `shippingAddress`, `logoUrl`, `planType` (selectedPlan), `hasProtection`
-- On post-auth `completeSetup`, read `logoUrl` from savedData and write it to `restaurants.logo_url`
-- Pass `plan_type`, `has_protection`, `logo_url` into fulfillment_orders metadata
+### Layout
+- On mobile: cards stacked vertically with "Front" / "Back" labels
+- On desktop: side-by-side
 
-### 5. "Due Today" receipt styling
-- Change background from `bg-[#111827]` to `bg-slate-900/50`
-- Keep `border border-white/10` (already present)
-- Add subtle inner padding increase
+### 3D Effect
+- Each card wrapper gets `perspective(1000px) rotateX(8deg) rotateY(-4deg)` for floating feel
+- Subtle shadow: `0 20px 40px rgba(0,0,0,0.3)`
 
-### 6. Spacing improvements
-- Change the Step 3 container from `space-y-6` to `space-y-8` for breathing room
-- Add extra margin between business name input, logo zone, 3D card, Google search, and pricing
+## Changes to `src/pages/Onboarding.tsx` (Step 3)
+
+### Replace the existing card preview block (lines 509-516)
+- Import and render `<CardCustomizer>` instead of `TapAwayCard3D`
+- Pass props: `logoUrl`, `businessName`, `onHeadlineChange`, `onSubHeadlineChange`
+
+### New state
+- `cardHeadline` (string, default: `"Loved your visit? Leave us a review!"`)
+- `cardSubHeadline` (string, default: `"Tap or Scan below to share your experience."`)
+
+### Persistence update
+- Add `cardHeadline` and `cardSubHeadline` to the `saveOnboardingData()` call in `handleOAuth`
+- Include them in the `fulfillment_orders` upsert metadata
 
 ## Changes to `src/lib/onboardingData.ts`
-- Add `logoUrl?: string` and `planType?: string` and `hasProtection?: boolean` to `OnboardingData` interface
 
-## Changes to `src/components/TapAwayCard3D.tsx`
-- Add optional props: `logoUrl?: string`, `businessName?: string`, `staticTilt?: boolean`
-- When `staticTilt` is true, skip the spin animation and use a static rotateY(0) 
-- Render `logoUrl` as an `<img>` centered on the card front face (absolute positioned, circular, ~60px)
-- Render `businessName` as text at the bottom of the card front face
+- Add `cardHeadline?: string` and `cardSubHeadline?: string` to `OnboardingData` interface
 
 ## Files modified
-1. `src/pages/Onboarding.tsx` — Logo upload, persistence, UI polish
-2. `src/components/TapAwayCard3D.tsx` — Accept logo/name props, static mode
-3. `src/lib/onboardingData.ts` — Extended interface
+1. `src/components/onboarding/CardCustomizer.tsx` — new component
+2. `src/pages/Onboarding.tsx` — wire up customizer + new state + persistence
+3. `src/lib/onboardingData.ts` — extend interface
 
