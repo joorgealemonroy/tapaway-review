@@ -1,56 +1,42 @@
 
 
-# Card Customizer: HTML-Rendered Double-Sided Preview with Editable Text
+# Pixel-Perfect Card Front Redesign
 
 ## Summary
-Replace the static `TapAwayCard3D` in Step 3 with a fully HTML/CSS-reconstructed card customizer. Users edit headline, sub-headline, and upload a logo — all rendered live on front & back card previews.
+Refactor the `CardFront` component in `CardCustomizer.tsx` to match the target design with precise proportions, a dominant logo circle, properly weighted typography, and bold bottom icons.
 
-## New Component: `src/components/onboarding/CardCustomizer.tsx`
+## Changes to `src/components/onboarding/CardCustomizer.tsx`
 
-A self-contained component rendering:
+### CardFront rewrite
 
-### Card Face (HTML/CSS reconstruction matching the uploaded reference)
-- **Front card**: White background, portrait aspect ratio (2.125 / 3.375)
-  - 5 yellow star icons (top, centered)
-  - Editable headline text (centered, sans-serif, ~14px)
-  - Editable sub-headline text (centered, lighter weight)
-  - Large grey circle (centered) — shows uploaded logo or "YOUR LOGO HERE" placeholder
-  - Bottom section: NFC tap icon (left) | divider | QR code icon (right)
-  - "tapaway.co" footer text
-- **Back card**: Same layout but simplified (logo circle + QR + URL)
+**Container:**
+- Replace inline `width`/`aspectRatio` style with `w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200`
+- Inner content: `flex flex-col items-center justify-between h-full text-center p-6`
+- Keep the 3D perspective transform
 
-### Input Fields (above the previews)
-- "Card Headline" — text input, placeholder: `Loved your visit? Leave us a review!`
-- "Card Sub-headline" — text input, placeholder: `Tap or Scan below to share your experience.`
+**Top Section (Stars & Text):**
+- Stars: `w-6 h-6` each, `fill-yellow-400 text-yellow-400`, container `flex space-x-1`
+- Headline: `text-lg font-normal text-gray-800 leading-snug mt-3` — remove `font-semibold`
+- Sub-headline: `text-sm font-normal text-gray-800 mt-1` — change from `text-slate-500 text-[9px]`
 
-### Layout
-- On mobile: cards stacked vertically with "Front" / "Back" labels
-- On desktop: side-by-side
+**Center Logo Circle:**
+- Increase from `w-[55%]` to a dominant `w-48 h-48` with `bg-[#707070]` (darker grey)
+- Add `my-auto flex-shrink-0`
+- Placeholder text: `text-white font-black text-3xl leading-none tracking-tight` showing YOUR / LOGO / HERE
 
-### 3D Effect
-- Each card wrapper gets `perspective(1000px) rotateX(8deg) rotateY(-4deg)` for floating feel
-- Subtle shadow: `0 20px 40px rgba(0,0,0,0.3)`
+**Bottom Icons Section:**
+- Container: `flex items-center justify-center w-full h-16 mb-4`
+- NFC icon: Replace the small Smartphone+circle combo with larger `Smartphone` + `Wifi` icons at `w-16 h-16`, colored `text-black`
+- Divider: `h-full w-px bg-black mx-4` (darker, taller)
+- QR icon: `QrCode` at `w-16 h-16 text-black`
 
-## Changes to `src/pages/Onboarding.tsx` (Step 3)
+**Footer:**
+- `font-black text-xs text-black pb-2 tracking-wide` — bolder and darker
 
-### Replace the existing card preview block (lines 509-516)
-- Import and render `<CardCustomizer>` instead of `TapAwayCard3D`
-- Pass props: `logoUrl`, `businessName`, `onHeadlineChange`, `onSubHeadlineChange`
+### CardBack — minor alignment
+- Match the larger logo circle style (`w-36 h-36 bg-[#707070]`) for consistency
+- Same darker footer styling
 
-### New state
-- `cardHeadline` (string, default: `"Loved your visit? Leave us a review!"`)
-- `cardSubHeadline` (string, default: `"Tap or Scan below to share your experience."`)
-
-### Persistence update
-- Add `cardHeadline` and `cardSubHeadline` to the `saveOnboardingData()` call in `handleOAuth`
-- Include them in the `fulfillment_orders` upsert metadata
-
-## Changes to `src/lib/onboardingData.ts`
-
-- Add `cardHeadline?: string` and `cardSubHeadline?: string` to `OnboardingData` interface
-
-## Files modified
-1. `src/components/onboarding/CardCustomizer.tsx` — new component
-2. `src/pages/Onboarding.tsx` — wire up customizer + new state + persistence
-3. `src/lib/onboardingData.ts` — extend interface
+## File modified
+1. `src/components/onboarding/CardCustomizer.tsx`
 
