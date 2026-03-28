@@ -23,8 +23,8 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "Ideal for individual pros and personal branding.", price: 15, cards: 3, icon: User, refill: "3-card refills", cardText: "3 Smart NFC Cards included for your wallet and station.", badge: null },
-  venue: { label: "Venue Pack", subtitle: "Designed for team-based venues and high-traffic locations.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", cardText: "15 Smart NFC Cards included for your tables or counters.", badge: "Best Value" },
+  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card refills", badge: null },
+  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", badge: "Most Popular" },
 };
 
 const PROTECTION_PRICE = 5;
