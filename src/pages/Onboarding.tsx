@@ -23,8 +23,8 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card refills", badge: null },
-  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", badge: "Most Popular" },
+  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null },
+  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular" },
 };
 
 const PROTECTION_PRICE = 5;
@@ -345,7 +345,7 @@ const Onboarding = () => {
               <div className="text-center">
                 <h1 className="text-2xl font-black mb-2">Customers love these cards.<br />Sometimes too much.</h1>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing.
+                  Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard.
                 </p>
               </div>
 
@@ -363,7 +363,7 @@ const Onboarding = () => {
                     </div>
                   </div>
                   <ul className="space-y-2 text-sm text-gray-300">
-                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> {PLAN_DETAILS[selectedPlan].refill} + Priority Shipping</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> <span><span className="font-bold text-white">Monthly</span> {PLAN_DETAILS[selectedPlan].refill} refills available when you need them.</span></li>
                     <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> No questions asked replacements</li>
                     <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> Cancel anytime</li>
                   </ul>
