@@ -1,33 +1,41 @@
 
 
-# Fix Card Preview Sizing, Alignment & Typography
+# Pixel-Perfect Card Front Redesign
 
-## Problem
-The Front card uses hardcoded `w-[300px] sm:w-[320px]` while the Back card uses `w-full max-w-[320px]`, causing size mismatch. The preview container uses a basic flex layout instead of a proper grid. Typography lacks `tracking-tight` for a modern feel.
+## Summary
+Refactor the `CardFront` component in `CardCustomizer.tsx` to match the target design with precise proportions, a dominant logo circle, properly weighted typography, and bold bottom icons.
 
 ## Changes to `src/components/onboarding/CardCustomizer.tsx`
 
-### 1. Unified card sizing (both Front & Back)
-Both cards get identical container classes:
-```
-w-full max-w-[280px] aspect-[54/86] bg-white rounded-2xl shadow-xl flex flex-col relative overflow-hidden
-```
-- **CardFront** (line 22): Remove `w-[300px] sm:w-[320px] rounded-[24px] shadow-2xl border border-gray-100`, replace with unified classes. Keep `p-6 items-center text-center` and the 3D transform style.
-- **CardBack** (line 92): Remove `max-w-[320px] shadow-lg border border-gray-200`, replace with unified classes. Keep the 3D transform style.
+### CardFront rewrite
 
-### 2. Grid container for previews (lines 153–162)
-Replace the `flex flex-col sm:flex-row items-center justify-center gap-6` wrapper with:
-```
-grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl mx-auto justify-items-center items-center
-```
+**Container:**
+- Replace inline `width`/`aspectRatio` style with `w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200`
+- Inner content: `flex flex-col items-center justify-between h-full text-center p-6`
+- Keep the 3D perspective transform
 
-### 3. Typography — add `tracking-tight` and Inter font
-- Add `font-['Inter',sans-serif] tracking-tight` to both card containers
-- The headline (`text-[17px]`) and sub-headline (`text-[15px]`) already use `font-normal` — just ensure `tracking-tight` cascades
-- Logo circle proportions scale down slightly from `w-[200px] h-[200px]` to `w-[160px] h-[160px]` to fit the smaller 280px card, with text adjusted to `text-[28px]`
+**Top Section (Stars & Text):**
+- Stars: `w-6 h-6` each, `fill-yellow-400 text-yellow-400`, container `flex space-x-1`
+- Headline: `text-lg font-normal text-gray-800 leading-snug mt-3` — remove `font-semibold`
+- Sub-headline: `text-sm font-normal text-gray-800 mt-1` — change from `text-slate-500 text-[9px]`
 
-### 4. Logo circle on Back card
-Scale up from `w-36 h-36` to `w-[130px] h-[130px]` to better match front proportions
+**Center Logo Circle:**
+- Increase from `w-[55%]` to a dominant `w-48 h-48` with `bg-[#707070]` (darker grey)
+- Add `my-auto flex-shrink-0`
+- Placeholder text: `text-white font-black text-3xl leading-none tracking-tight` showing YOUR / LOGO / HERE
+
+**Bottom Icons Section:**
+- Container: `flex items-center justify-center w-full h-16 mb-4`
+- NFC icon: Replace the small Smartphone+circle combo with larger `Smartphone` + `Wifi` icons at `w-16 h-16`, colored `text-black`
+- Divider: `h-full w-px bg-black mx-4` (darker, taller)
+- QR icon: `QrCode` at `w-16 h-16 text-black`
+
+**Footer:**
+- `font-black text-xs text-black pb-2 tracking-wide` — bolder and darker
+
+### CardBack — minor alignment
+- Match the larger logo circle style (`w-36 h-36 bg-[#707070]`) for consistency
+- Same darker footer styling
 
 ## File modified
 1. `src/components/onboarding/CardCustomizer.tsx`
