@@ -23,8 +23,8 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "Ideal for individual pros and personal branding.", price: 15, cards: 3, icon: User, refill: "3-card refills", cardText: "3 Smart NFC Cards included for your wallet and station.", badge: null },
-  venue: { label: "Venue Pack", subtitle: "Designed for team-based venues and high-traffic locations.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", cardText: "15 Smart NFC Cards included for your tables or counters.", badge: "Best Value" },
+  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card refills", badge: null },
+  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card refills", badge: "Most Popular" },
 };
 
 const PROTECTION_PRICE = 5;
@@ -307,7 +307,7 @@ const Onboarding = () => {
                       }`}
                     >
                       {d.badge && (
-                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-lg">
                           {d.badge}
                         </div>
                       )}
@@ -326,7 +326,7 @@ const Onboarding = () => {
                             <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
                           </div>
                           <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
-                          <p className="text-xs text-gray-500">{d.cardText}</p>
+                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards</span> for your {plan === "solo" ? "wallet and station" : "business"}.</p>
                         </div>
                       </div>
                     </button>
