@@ -1,1253 +1,502 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
-import { z } from "zod";
-import { motion } from "framer-motion";
+import { Check, Loader2, Shield, ArrowRight, User, Building2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
-import { 
-  getOnboardingData, 
-  saveOnboardingData, 
-  clearOnboardingData, 
+import {
+  getOnboardingData,
+  saveOnboardingData,
+  clearOnboardingData,
   generateSlug,
-  setEmailVerified,
-  isEmailVerified,
   setPendingSetup,
 } from "@/lib/onboardingData";
-import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
+import TapAwayCard3D from "@/components/TapAwayCard3D";
 
-// Validation schemas
-const step1Schema = z.object({
-  email: z.string().trim().email("Please enter a valid email").max(255),
-  businessName: z.string().trim().min(1, "Business name is required").max(100),
-  city: z.string().trim().min(1, "City is required").max(100),
-  state: z.string().trim().min(2, "State is required").max(50),
-  businessType: z.string().min(1, "Please select a business type"),
-  shippingAddress: z.string().trim().min(1, "Shipping address is required").max(200),
-});
+type Plan = "solo" | "venue";
+type Step = "plan" | "protection" | "info";
 
-const passwordSchema = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(72, "Password is too long")
-  .regex(/[A-Za-z]/, "Password must include a letter")
-  .regex(/[0-9]/, "Password must include a number");
+const PLAN_DETAILS = {
+  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Creators", price: 15, cards: 3, icon: User, refill: "3-card refills" },
+  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail", price: 39, cards: 15, icon: Building2, refill: "10-card refills" },
+};
 
-const BUSINESS_TYPES = [
-  "Restaurant",
-  "Cafe / Coffee Shop",
-  "Bar / Brewery",
-  "Barber / Salon",
-  "Food Truck",
-  "Bakery",
-  "Fast Casual",
-  "Fine Dining",
-  "Spa / Wellness",
-  "Auto / Detailing",
-  "Other",
-];
+const PROTECTION_PRICE = 5;
 
-const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-];
-
-const ONBOARDING_STEPS = ["Your info", "Verify email", "Connect Google", "Finish"];
-
-type ViewState = "form" | "otp" | "google" | "finishing" | "success";
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? -300 : 300, opacity: 0 }),
+};
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const source = searchParams.get("source");
-  
-  const [viewState, setViewState] = useState<ViewState>("form");
+
+  const [step, setStep] = useState<Step>("plan");
+  const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    email: "",
-    businessName: "",
-    city: "",
-    state: "",
-    businessType: "",
-    shippingAddress: "",
-    ownerName: "",
-    customSlug: "",
-    instagram: "",
-    phone: "",
-  });
-  
-  // Password state (collected at OTP step)
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  
-  // OTP state
-  const [otpCode, setOtpCode] = useState("");
-  const [otpError, setOtpError] = useState<string | null>(null);
-  
-  // Logo state
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [useUnbranded, setUseUnbranded] = useState(false);
-  
-  // Google state
+
+  // Plan state
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [hasProtection, setHasProtection] = useState(false);
+
+  // Business info state
+  const [businessName, setBusinessName] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
-    placeId: string;
-    name: string;
-    address: string;
+    placeId: string; name: string; address: string;
   } | null>(null);
-  const [googleError, setGoogleError] = useState<string | null>(null);
-  const [googleWidgetFailed, setGoogleWidgetFailed] = useState(false);
-  const [isManualSearching, setIsManualSearching] = useState(false);
-  const [addYelp, setAddYelp] = useState(true);
-  
-  // User/restaurant IDs (set after auth)
+
+  // Auth / restaurant IDs
   const [userId, setUserId] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-  // Initial setup - check for existing session and pre-fill data
+  // Success
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
+  const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
+
+  // ── Init: check session, prefill ──
   useEffect(() => {
     const init = async () => {
-      // Set pending setup flag
       setPendingSetup(true);
-      
-      // Pre-fill from saved onboarding data
       const savedData = getOnboardingData();
-
-      // Also allow prefill from query param (used by post-checkout recovery flows)
       const emailFromQuery = searchParams.get("email");
-      if (emailFromQuery && !savedData.email) {
-        setFormData((prev) => ({ ...prev, email: emailFromQuery.toLowerCase().trim() }));
-      }
 
-      if (savedData.email || savedData.businessName) {
-        setFormData(prev => ({
-          ...prev,
-          email: savedData.email || prev.email,
-          businessName: savedData.businessName || prev.businessName,
-          city: savedData.city || prev.city,
-          state: savedData.state || prev.state,
-          businessType: savedData.businessType || prev.businessType,
-          shippingAddress: savedData.shippingAddress || prev.shippingAddress,
-          ownerName: savedData.ownerName || prev.ownerName,
-          customSlug: savedData.customSlug || generateSlug(savedData.businessName || ""),
-          instagram: savedData.instagram || prev.instagram,
-          phone: savedData.phone || prev.phone,
-        }));
-        setUseUnbranded(savedData.unbrandedCards || false);
-      }
+      if (savedData.businessName) setBusinessName(savedData.businessName);
+      if (savedData.shippingAddress) setShippingAddress(savedData.shippingAddress);
 
-      // Check for existing session
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session?.user) {
-        // Super admin bypass
-        if (isSuperAdmin(session.user.email)) {
-          navigate("/admin");
-          return;
-        }
-        
+        if (isSuperAdmin(session.user.email)) { navigate("/admin"); return; }
         setUserId(session.user.id);
-        
-        // Check for existing restaurant
         const { data: restaurant } = await supabase
           .from("restaurants")
-          .select("id, onboarding_completed, google_place_id, restaurant_name, owner_name, custom_slug")
+          .select("id, onboarding_completed")
           .eq("owner_id", session.user.id)
           .maybeSingle();
-        
-        if (restaurant?.onboarding_completed) {
-          navigate("/dashboard");
-          return;
-        }
-        
-        if (restaurant) {
-          setRestaurantId(restaurant.id);
-          
-          // Pre-fill from restaurant data
-          if (restaurant.restaurant_name) {
-            setFormData(prev => ({
-              ...prev,
-              businessName: restaurant.restaurant_name || prev.businessName,
-              ownerName: restaurant.owner_name || prev.ownerName,
-              customSlug: restaurant.custom_slug || prev.customSlug,
-            }));
-          }
-          
-          // If Google is already connected, skip to finishing step
-          if (restaurant.google_place_id) {
-            setViewState("finishing");
-          } else if (isEmailVerified()) {
-            // Email already verified, go to Google step
-            setViewState("google");
-          }
-        } else if (isEmailVerified()) {
-          // Has session but no restaurant, email verified - go to Google step
-          setViewState("google");
-        }
-        
-        // Pre-fill email from session
-        if (!formData.email && session.user.email) {
-          setFormData(prev => ({ ...prev, email: session.user.email! }));
-        }
+        if (restaurant?.onboarding_completed) { navigate("/dashboard"); return; }
+        if (restaurant) setRestaurantId(restaurant.id);
       }
-      
       setInitialCheckDone(true);
     };
-    
     init();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
-  // Fail-fast guard: onboarding must never trigger default auth email flows
+  // ── Auth guard ──
   useEffect(() => {
-    const blockedMethods = ["signInWithOtp", "signUp", "resetPasswordForEmail", "verifyOtp"] as const;
-    const originals: Partial<Record<(typeof blockedMethods)[number], unknown>> = {};
-
-    blockedMethods.forEach((method) => {
-      const authAny = supabase.auth as any;
-      if (typeof authAny[method] !== "function") return;
-
-      originals[method] = authAny[method];
-      authAny[method] = () => {
-        console.error(`[Onboarding][AUTH_GUARD] Blocked supabase.auth.${method}`, {
-          ts: new Date().toISOString(),
-        });
-        throw new Error("Default OTP/verification email flow is disabled in onboarding.");
-      };
+    const blocked = ["signInWithOtp", "signUp", "resetPasswordForEmail", "verifyOtp"] as const;
+    const originals: Record<string, unknown> = {};
+    blocked.forEach((m) => {
+      const a = supabase.auth as any;
+      if (typeof a[m] !== "function") return;
+      originals[m] = a[m];
+      a[m] = () => { throw new Error("Blocked in onboarding"); };
     });
-
-    return () => {
-      const authAny = supabase.auth as any;
-      blockedMethods.forEach((method) => {
-        if (originals[method]) authAny[method] = originals[method];
-      });
-    };
+    return () => { blocked.forEach((m) => { const a = supabase.auth as any; if (originals[m]) a[m] = originals[m]; }); };
   }, []);
 
-  // Form handlers
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Auto-generate slug from business name
-    if (field === "businessName") {
-      setFormData(prev => ({ ...prev, customSlug: generateSlug(value) }));
-    }
-  };
+  // ── Navigation helpers ──
+  const goTo = (s: Step, dir: number) => { setDirection(dir); setStep(s); };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── Google place handler ──
+  const handleGooglePlaceSelected = useCallback(({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
+    const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
+    setSelectedGooglePlace({ placeId: normalized, name, address });
+  }, []);
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Logo must be less than 2MB");
-      return;
-    }
-
-    setLogoFile(file);
-    setUseUnbranded(false);
-
-    const reader = new FileReader();
-    reader.onloadend = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handlePhoneChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 10);
-    let formatted = digits;
-    if (digits.length > 6) {
-      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-    } else if (digits.length > 3) {
-      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    } else if (digits.length > 0) {
-      formatted = `(${digits}`;
-    }
-    setFormData(prev => ({ ...prev, phone: formatted }));
-  };
-
-  // Step 1: Submit form and send OTP
-  const handleStep1Submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      step1Schema.parse(formData);
-    } catch (err: any) {
-      if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
-        return;
-      }
-    }
-
+  // ── Auth + complete ──
+  const handleOAuth = async (provider: "google" | "apple") => {
+    if (!businessName.trim()) { toast.error("Please enter your business name"); return; }
     setIsLoading(true);
-    const email = formData.email.toLowerCase().trim();
 
     try {
-      // Check if already logged in with this email
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user && session.user.email?.toLowerCase() === email) {
-        // Already authenticated - save data and skip to Google step
-        setUserId(session.user.id);
-        await saveFormDataAndCreateRestaurant(session.user.id);
-        setEmailVerified();
-        setViewState("google");
-        return;
-      }
-
-      // Save form data to localStorage
+      // Save data before redirect
       saveOnboardingData({
-        email,
-        businessName: formData.businessName.trim(),
-        city: formData.city.trim(),
-        state: formData.state,
-        businessType: formData.businessType,
-        shippingAddress: formData.shippingAddress.trim(),
-        ownerName: formData.ownerName.trim(),
-        customSlug: formData.customSlug || generateSlug(formData.businessName),
-        instagram: formData.instagram,
-        phone: formData.phone,
-        unbrandedCards: useUnbranded,
-        logoUploaded: !!logoFile,
+        businessName: businessName.trim(),
+        shippingAddress: shippingAddress.trim(),
       });
 
-       // Send custom OTP via TapAway branded email
-       console.info("[Onboarding][OTP] send-custom-otp", {
-         email,
-         ts: new Date().toISOString(),
-         provider: "resend",
-         from: "TapAway <no-reply@tapaway.co>",
-       });
-
-       const { data: otpResponse, error: otpError } = await supabase.functions.invoke('send-custom-otp', {
-         body: { email, businessName: formData.businessName?.trim() || undefined },
-       });
-
-      if (otpError || otpResponse?.error) {
-        throw new Error(otpResponse?.error || otpError?.message || "Failed to send verification code");
-      }
-
-      setViewState("otp");
-      toast.success("Check your email for a verification code");
-    } catch (err: any) {
-      console.error('[Onboarding] Step 1 error:', err);
-      toast.error(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Step 2: Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!otpCode.trim() || otpCode.length < 6) {
-      setOtpError("Please enter the 6-digit code from your email");
-      return;
-    }
-    
-    // Validate password
-    const pwResult = passwordSchema.safeParse(password);
-    if (!pwResult.success) {
-      setPasswordError(pwResult.error.errors[0].message);
-      return;
-    }
-    setPasswordError(null);
-
-    setIsLoading(true);
-    setOtpError(null);
-
-    try {
-      const email = formData.email.toLowerCase().trim();
-      
-       // Verify OTP via our custom function (pass password for account creation)
-       console.info("[Onboarding][OTP] verify-custom-otp", {
-         email,
-         ts: new Date().toISOString(),
-       });
-
-       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-custom-otp', {
-         body: { email, code: otpCode.trim(), password },
-       });
-
-      if (verifyError || verifyData?.error) {
-        setOtpError(verifyData?.error || verifyError?.message || "Invalid code. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Sign in with the password the user provided locally
-      const signInPassword = password;
-      
-      if (!signInPassword) {
-        setOtpError("We verified your code, but couldn't start your session. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-      
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: signInPassword,
+      const { error } = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin + "/onboarding",
       });
-
-      if (signInError) {
-        console.error("[Onboarding] Sign in error:", signInError);
-        setOtpError("We verified your code, but couldn't log you in. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Wait for session
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Get session and create/update restaurant
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id || verifyData.userId;
-      
-      if (!currentUserId) {
-        setOtpError("Could not verify your account. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-       setUserId(currentUserId);
-       setEmailVerified();
-
-       console.info("[Onboarding][OTP] verified", {
-         email,
-         ts: new Date().toISOString(),
-         success: true,
-       });
-       
-       // Create or update restaurant
-       await saveFormDataAndCreateRestaurant(currentUserId);
-       
-       // Move to Google step
-       setViewState("google");
-       toast.success("Email verified! Let's connect your Google Business.");
-    } catch (err: any) {
-      console.error('[Onboarding] OTP verification error:', err);
-      setOtpError(err.message || "Verification failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Helper: Save form data and create/update restaurant
-  const saveFormDataAndCreateRestaurant = async (uid: string) => {
-    const slug = formData.customSlug || generateSlug(formData.businessName);
-    
-    // Check for existing restaurant
-    const { data: existing } = await supabase
-      .from("restaurants")
-      .select("id")
-      .eq("owner_id", uid)
-      .maybeSingle();
-
-    if (existing?.id) {
-      // Update existing
-      await supabase
-        .from("restaurants")
-        .update({
-          restaurant_name: formData.businessName.trim(),
-          owner_name: formData.ownerName.trim() || null,
-          address: `${formData.city.trim()}, ${formData.state}`,
-          type: formData.businessType.toLowerCase().replace(/\s+/g, "_"),
-          custom_slug: slug,
-          email: formData.email.toLowerCase().trim(),
-          instagram_url: formData.instagram || null,
-          phone: formData.phone || null,
-          onboarding_step: 2,
-        })
-        .eq("id", existing.id);
-      
-      setRestaurantId(existing.id);
-    } else {
-      // Create new
-      const { data: created, error } = await supabase
-        .from("restaurants")
-        .insert({
-          owner_id: uid,
-          restaurant_name: formData.businessName.trim(),
-          owner_name: formData.ownerName.trim() || null,
-          address: `${formData.city.trim()}, ${formData.state}`,
-          type: formData.businessType.toLowerCase().replace(/\s+/g, "_"),
-          custom_slug: slug,
-          email: formData.email.toLowerCase().trim(),
-          instagram_url: formData.instagram || null,
-          phone: formData.phone || null,
-          subscription_status: 'trialing',
-          onboarding_step: 2,
-        })
-        .select("id")
-        .single();
-
-      if (!error && created) {
-        setRestaurantId(created.id);
-      }
-    }
-  };
-
-  // Step 3: Google place selection
-  const handleGooglePlaceSelected = useCallback(async ({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
-    if (!placeId) {
-      setGoogleError("Invalid place selected. Please try again.");
-      return;
-    }
-    
-    const normalizedPlaceId = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, '');
-    
-    setSelectedGooglePlace({ placeId: normalizedPlaceId, name, address });
-    setGoogleError(null);
-    
-    // Update business name if not set
-    if (!formData.businessName && name) {
-      setFormData(prev => ({ ...prev, businessName: name }));
-    }
-  }, [formData.businessName]);
-
-  // Manual Google search fallback via edge function
-  const handleManualGoogleSearch = async () => {
-    const searchQuery = `${formData.businessName} ${formData.city} ${formData.state}`.trim();
-    if (!searchQuery) {
-      setGoogleError("Please fill in your business name and city first.");
-      return;
-    }
-    setIsManualSearching(true);
-    setGoogleError(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("lookup-place-id", {
-        body: { address: searchQuery },
-      });
-      if (error || !data?.placeId) {
-        setGoogleError(data?.error || "Could not find your business. Please try a different search or contact support.");
-        return;
-      }
-      handleGooglePlaceSelected({
-        placeId: data.placeId,
-        name: data.name || formData.businessName,
-        address: data.formattedAddress || `${formData.city}, ${formData.state}`,
-      });
-    } catch (err) {
-      setGoogleError("Search failed. Please try again.");
-    } finally {
-      setIsManualSearching(false);
-    }
-  };
-
-  // Step 3: Save Google and proceed
-  const handleGoogleSubmit = async () => {
-    if (!selectedGooglePlace) {
-      setGoogleError("Please search and select your business from Google.");
-      return;
-    }
-
-    if (!restaurantId) {
-      setGoogleError("No restaurant found. Please refresh and try again.");
-      return;
-    }
-
-    setIsLoading(true);
-    setGoogleError(null);
-
-    try {
-      const normalizedPlaceId = normalizeGooglePlaceId(selectedGooglePlace.placeId);
-      const googleReviewUrl = buildGoogleReviewUrl(normalizedPlaceId);
-      
-      if (!googleReviewUrl) {
-        setGoogleError("Invalid Google place. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Build directions URL
-      const encodedAddress = encodeURIComponent(selectedGooglePlace.address || formData.city);
-      const encodedName = encodeURIComponent(selectedGooglePlace.name || formData.businessName);
-      const directionsUrl = `https://maps.apple.com/?q=${encodedName}&address=${encodedAddress}`;
-
-      // Save to database
-      const { error } = await supabase
-        .from("restaurants")
-        .update({
-          google_place_id: normalizedPlaceId,
-          google_review_url: googleReviewUrl,
-          address: selectedGooglePlace.address || `${formData.city}, ${formData.state}`,
-          directions_url: directionsUrl,
-          onboarding_step: 3,
-        })
-        .eq("id", restaurantId);
-
-      if (error) {
-        console.error('[Onboarding] Google save error:', error);
-        setGoogleError("Failed to save. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      toast.success("Google Business connected!");
-      setViewState("finishing");
-    } catch (err: any) {
-      console.error('[Onboarding] Google submit error:', err);
-      setGoogleError(err.message || "Failed to connect Google. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Final step: Complete onboarding
-  const handleComplete = async () => {
-    if (!restaurantId || !userId) {
-      toast.error("Setup error. Please refresh and try again.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Upload logo if provided
-      if (logoFile && !useUnbranded) {
-        try {
-          const fileExt = logoFile.name.split(".").pop();
-          const fileName = `${restaurantId}/logo.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from("restaurant-logos")
-            .upload(fileName, logoFile, { upsert: true });
-
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage
-              .from("restaurant-logos")
-              .getPublicUrl(fileName);
-            
-            await supabase
-              .from("restaurants")
-              .update({ logo_url: urlData.publicUrl })
-              .eq("id", restaurantId);
-          }
-        } catch (logoErr) {
-          console.error('[Onboarding] Logo upload failed:', logoErr);
-        }
-      }
-
-      // Auto-detect Yelp if checkbox is checked
-      if (addYelp) {
-        try {
-          await supabase.functions.invoke('auto-yelp-from-place', {
-            body: { restaurantId }
-          });
-        } catch (yelpErr) {
-          console.log('[Onboarding] Yelp auto-detect skipped:', yelpErr);
-        }
-      }
-
-      // Mark onboarding as complete
-      await supabase
-        .from("restaurants")
-        .update({
-          onboarding_completed: true,
-          onboarding_step: 4,
-        })
-        .eq("id", restaurantId);
-
-      // Create fulfillment order
-      await supabase
-        .from("fulfillment_orders")
-        .upsert({
-          user_id: userId,
-          restaurant_id: restaurantId,
-          plan: 'trial',
-          shipping_name: formData.ownerName || formData.businessName,
-          shipping_address_line1: formData.shippingAddress,
-          shipping_city: formData.city,
-          shipping_state: formData.state,
-          shipping_country: 'US',
-          status: 'ready_to_ship',
-        }, { onConflict: 'user_id,restaurant_id' });
-
-      // Call finalize-onboarding
-      try {
-        await supabase.functions.invoke('finalize-onboarding', {
-          body: { restaurantId }
-        });
-      } catch (finalizeErr) {
-        console.error('[Onboarding] finalize-onboarding error:', finalizeErr);
-      }
-
-      // Clear localStorage
-      clearOnboardingData();
-
-      // Show success
-      setViewState("success");
-    } catch (err: any) {
-      console.error('[Onboarding] Complete error:', err);
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Resend OTP
-  const handleResendOtp = async () => {
-    setIsLoading(true);
-    try {
-      const email = formData.email.toLowerCase().trim();
-      console.info("[Onboarding][OTP] resend send-custom-otp", {
-        email,
-        ts: new Date().toISOString(),
-        provider: "resend",
-        from: "TapAway <no-reply@tapaway.co>",
-      });
-
-      const { error } = await supabase.functions.invoke('send-custom-otp', {
-        body: { email },
-      });
-      
       if (error) throw error;
-      toast.success("New code sent!");
     } catch (err: any) {
-      toast.error(err.message || "Could not resend code");
-    } finally {
+      toast.error(err.message || "Auth failed");
       setIsLoading(false);
     }
   };
 
-  // Loading state
+  // Post-auth: create restaurant + complete
+  useEffect(() => {
+    if (!initialCheckDone) return;
+    const completeSetup = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const uid = session.user.id;
+      setUserId(uid);
+
+      const savedData = getOnboardingData();
+      const bName = businessName || savedData.businessName;
+      if (!bName) return;
+
+      // Already completed?
+      const { data: existing } = await supabase
+        .from("restaurants")
+        .select("id, onboarding_completed, google_place_id")
+        .eq("owner_id", uid)
+        .maybeSingle();
+      if (existing?.onboarding_completed) { navigate("/dashboard"); return; }
+
+      setIsLoading(true);
+      const slug = generateSlug(bName);
+
+      let rId = existing?.id || restaurantId;
+      if (rId) {
+        await supabase.from("restaurants").update({
+          restaurant_name: bName,
+          custom_slug: slug,
+          email: session.user.email,
+          subscription_status: "trialing",
+          onboarding_step: 3,
+        }).eq("id", rId);
+      } else {
+        const { data: created } = await supabase.from("restaurants").insert({
+          owner_id: uid,
+          restaurant_name: bName,
+          custom_slug: slug,
+          email: session.user.email,
+          subscription_status: "trialing",
+          onboarding_step: 3,
+        }).select("id").single();
+        rId = created?.id;
+      }
+      if (!rId) { toast.error("Failed to create account"); setIsLoading(false); return; }
+      setRestaurantId(rId);
+
+      // Save Google place if selected
+      if (selectedGooglePlace) {
+        const reviewUrl = buildGoogleReviewUrl(selectedGooglePlace.placeId);
+        const encodedAddr = encodeURIComponent(selectedGooglePlace.address || "");
+        const encodedName = encodeURIComponent(selectedGooglePlace.name || bName);
+        await supabase.from("restaurants").update({
+          google_place_id: selectedGooglePlace.placeId,
+          google_review_url: reviewUrl,
+          address: selectedGooglePlace.address,
+          directions_url: `https://maps.apple.com/?q=${encodedName}&address=${encodedAddr}`,
+        }).eq("id", rId);
+      }
+
+      // Yelp auto
+      try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
+
+      // Mark complete
+      await supabase.from("restaurants").update({ onboarding_completed: true, onboarding_step: 4 }).eq("id", rId);
+
+      // Fulfillment
+      await supabase.from("fulfillment_orders").upsert({
+        user_id: uid,
+        restaurant_id: rId,
+        plan: selectedPlan || "venue",
+        shipping_name: bName,
+        shipping_address_line1: shippingAddress || savedData.shippingAddress || "",
+        shipping_country: "US",
+        status: "ready_to_ship",
+      }, { onConflict: "user_id,restaurant_id" });
+
+      // Finalize
+      try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+
+      clearOnboardingData();
+      setShowSuccess(true);
+      setIsLoading(false);
+    };
+
+    // Only run post-auth completion if we came back from OAuth (session exists, step is info)
+    if (step === "info" || step === "plan") {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") {
+          completeSetup();
+          subscription.unsubscribe();
+        }
+      });
+      // Also check immediately
+      completeSetup();
+      return () => subscription.unsubscribe();
+    }
+  }, [initialCheckDone, step]);
+
+  // ── Loading ──
   if (!initialCheckDone) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
-  // Success state
-  if (viewState === "success") {
+  // ── Success ──
+  if (showSuccess) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-primary" />
+      <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center p-6">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md">
+          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-blue-400" />
           </div>
-          <h1 className="text-3xl font-black mb-2">You're all set 🎉</h1>
-          <div className="space-y-2 text-muted-foreground mb-8">
-            <p className="text-lg">Your 30-day trial is now active.</p>
-            <p>Cards are being prepared and will ship in 1–2 business days.</p>
-            <p>We'll email you tracking info when they're on the way.</p>
-          </div>
-          <Button 
-            size="lg" 
-            className="w-full max-w-xs"
-            onClick={() => navigate("/dashboard")}
-          >
-            Go to Dashboard
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          <h1 className="text-3xl font-black text-white mb-3">You're all set 🎉</h1>
+          <p className="text-gray-400 mb-2">Your cards are being prepared and will ship in 1–2 business days.</p>
+          <p className="text-gray-500 text-sm mb-8">We'll email you tracking info when they're on the way.</p>
+          <button onClick={() => navigate("/dashboard")} className="w-full max-w-xs mx-auto h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2">
+            Go to Dashboard <ArrowRight className="w-5 h-5" />
+          </button>
         </motion.div>
       </div>
     );
   }
 
-  // Get current step number for progress indicator
-  const getStepNumber = () => {
-    switch (viewState) {
-      case "form": return 1;
-      case "otp": return 2;
-      case "google": return 3;
-      case "finishing": return 4;
-      default: return 1;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <nav className="sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">
-        <div className="max-w-lg mx-auto px-4">
-          <div className="flex justify-between items-center py-3">
-            <a href="/" className="font-black text-xl tracking-tight text-foreground">
-              TapAway
-            </a>
+    <div className="min-h-screen bg-[#0a0e1a] text-white">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 bg-[#0a0e1a]/90 backdrop-blur-lg border-b border-white/5">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+          <a href="/" className="font-black text-xl tracking-tight">TapAway</a>
+          <div className="flex gap-1.5">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s <= stepNumber ? "w-8 bg-blue-500" : "w-4 bg-white/10"}`} />
+            ))}
           </div>
         </div>
       </nav>
 
-      <main className="max-w-lg mx-auto px-4 py-8">
-        {/* Progress */}
-        <div className="mb-8">
-          <OnboardingProgress 
-            currentStep={getStepNumber()} 
-            totalSteps={4}
-            steps={ONBOARDING_STEPS}
-          />
-        </div>
-
-        {/* Header copy */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-3xl font-black mb-2">You're almost there</h1>
-          <p className="text-muted-foreground text-lg">
-            Just a couple quick steps and we'll ship your TapAway cards.
-          </p>
-        </motion.div>
-
-        {/* Step 1: Form */}
-        {viewState === "form" && (
-          <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            onSubmit={handleStep1Submit}
-            className="space-y-5"
-          >
-            <Card className="p-6 space-y-5">
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="you@business.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="businessName">Business Name *</Label>
-                <Input
-                  id="businessName"
-                  value={formData.businessName}
-                  onChange={(e) => handleInputChange("businessName", e.target.value)}
-                  placeholder="e.g. Joe's Pizza"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="ownerName">Your Name</Label>
-                <Input
-                  id="ownerName"
-                  value={formData.ownerName}
-                  onChange={(e) => handleInputChange("ownerName", e.target.value)}
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    placeholder="City"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>State *</Label>
-                  <Select 
-                    value={formData.state} 
-                    onValueChange={(v) => handleInputChange("state", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {US_STATES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label>Business Type *</Label>
-                <Select
-                  value={formData.businessType}
-                  onValueChange={(v) => handleInputChange("businessType", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your business type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BUSINESS_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="shippingAddress">Shipping Address *</Label>
-                <Input
-                  id="shippingAddress"
-                  value={formData.shippingAddress}
-                  onChange={(e) => handleInputChange("shippingAddress", e.target.value)}
-                  placeholder="Street address for card delivery"
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  We'll ship your NFC cards to this address.
-                </p>
-              </div>
-
-              {/* Logo upload */}
-              <div className="space-y-3 pt-2 border-t border-border">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="unbranded"
-                    checked={useUnbranded}
-                    onCheckedChange={(v) => {
-                      setUseUnbranded(v === true);
-                      if (v === true) {
-                        setLogoFile(null);
-                        setLogoPreview(null);
-                      }
-                    }}
-                  />
-                  <div>
-                    <Label htmlFor="unbranded">Send unbranded cards</Label>
-                    <p className="text-xs text-muted-foreground">You can upload a logo later.</p>
-                  </div>
-                </div>
-
-                {!useUnbranded && (
-                  <div>
-                    <Label>Logo (optional)</Label>
-                    {logoPreview ? (
-                      <div className="relative w-20 h-20 mt-2 border border-border rounded-lg overflow-hidden">
-                        <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => { setLogoFile(null); setLogoPreview(null); }}
-                          className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center w-20 h-20 mt-2 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary transition-colors">
-                        <Upload className="w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleLogoChange}
-                        />
-                      </label>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
-              {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Sending code...</>
-              ) : (
-                <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
-              )}
-            </Button>
-          </motion.form>
-        )}
-
-        {/* Step 2: OTP Verification */}
-        {viewState === "otp" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6">
-              <div className="text-center mb-6">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold">Confirm your email to finish setup</h2>
-                <p className="text-sm text-muted-foreground mt-2">
-                  We sent a code to <span className="font-medium text-foreground">{formData.email}</span>
-                </p>
+      <main className="max-w-md mx-auto px-4 py-8">
+        <AnimatePresence mode="wait" custom={direction}>
+          {/* ════════ STEP 1: Plan Selection ════════ */}
+          {step === "plan" && (
+            <motion.div key="plan" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-3xl font-black mb-2">What's your setup?</h1>
+                <p className="text-gray-400">Pick the plan that fits your business.</p>
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="otp">6-digit code</Label>
-                  <Input
-                    id="otp"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    className="text-center text-2xl tracking-widest"
-                    autoFocus
-                  />
+                {(["solo", "venue"] as Plan[]).map((plan) => {
+                  const d = PLAN_DETAILS[plan];
+                  const selected = selectedPlan === plan;
+                  const Icon = d.icon;
+                  return (
+                    <button
+                      key={plan}
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative ${
+                        selected
+                          ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
+                          : "border-white/10 bg-[#111827] hover:border-white/20"
+                      }`}
+                    >
+                      {selected && (
+                        <div className="absolute top-4 right-4 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <div className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected ? "bg-blue-500/20" : "bg-white/5"}`}>
+                          <Icon className={`w-6 h-6 ${selected ? "text-blue-400" : "text-gray-400"}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-lg font-bold">{d.label}</span>
+                            <span className="text-2xl font-black text-blue-400">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
+                          </div>
+                          <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
+                          <p className="text-sm text-gray-500">{d.cards} Branded NFC Cards included</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <AnimatePresence>
+                {selectedPlan && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                    <button
+                      onClick={() => goTo("protection", 1)}
+                      className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      Continue <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
+          {/* ════════ STEP 2: Loss Protection ════════ */}
+          {step === "protection" && selectedPlan && (
+            <motion.div key="protection" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-2xl font-black mb-2">Customers love these cards.<br />Sometimes too much.</h1>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing.
+                </p>
+              </div>
+
+              {/* Protection card */}
+              <div className="relative rounded-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-purple-600/10 pointer-events-none" />
+                <div className="border border-white/10 rounded-2xl p-6 bg-[#111827] space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Loss Protection</h3>
+                      <p className="text-blue-400 font-black text-xl">$5<span className="text-sm font-normal text-gray-500">/mo</span></p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 text-sm text-gray-300">
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> {PLAN_DETAILS[selectedPlan].refill} + Priority Shipping</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> No questions asked replacements</li>
+                    <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400 shrink-0" /> Cancel anytime</li>
+                  </ul>
                 </div>
-                
+              </div>
+
+              <button
+                onClick={() => { setHasProtection(true); goTo("info", 1); }}
+                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Add Protection — ${PLAN_DETAILS[selectedPlan].price + PROTECTION_PRICE}/mo
+              </button>
+
+              <button
+                onClick={() => { setHasProtection(false); goTo("info", 1); }}
+                className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors py-2"
+              >
+                No thanks, I'll pay $10 + shipping per replacement
+              </button>
+
+              <button
+                onClick={() => goTo("plan", -1)}
+                className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                ← Back
+              </button>
+            </motion.div>
+          )}
+
+          {/* ════════ STEP 3: Business Info + Auth ════════ */}
+          {step === "info" && (
+            <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-2xl font-black mb-2">Let's brand your cards</h1>
+                <p className="text-gray-400 text-sm">Tell us about your business and we'll handle the rest.</p>
+              </div>
+
+              {/* Business name + 3D preview */}
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="password">Create a password</Label>
+                  <Label className="text-gray-300 text-sm">Business Name</Label>
                   <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }}
-                    placeholder="At least 8 characters"
-                    className="mt-1"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g., Joe's Pizza"
+                    className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Must be 8+ characters with a letter and number
-                  </p>
-                  {passwordError && (
-                    <p className="text-sm text-destructive mt-1">{passwordError}</p>
-                  )}
                 </div>
 
-                {otpError && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-                    <p className="text-sm text-destructive flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      {otpError}
-                    </p>
-                  </div>
+                {/* 3D card preview */}
+                {businessName.trim() && (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center relative">
+                    <div className="scale-75">
+                      <TapAwayCard3D />
+                    </div>
+                    {/* Overlay business name on card */}
+                    <div className="absolute inset-0 flex items-end justify-center pointer-events-none pb-8">
+                      <span className="text-[10px] font-bold text-white/80 bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm truncate max-w-[140px]">
+                        {businessName}
+                      </span>
+                    </div>
+                  </motion.div>
                 )}
 
-                <Button 
-                  onClick={handleVerifyOtp} 
-                  disabled={isLoading || otpCode.length < 6 || password.length < 8} 
-                  className="w-full"
+                {/* Shipping / Address */}
+                <div>
+                  <Label className="text-gray-300 text-sm">Shipping Address</Label>
+                  <div className="mt-1 [&_input]:!bg-[#111827] [&_input]:!border-white/10 [&_input]:!text-white [&_input]:!h-12 [&_input]:!rounded-xl [&_gmp-internal-content-container]:!bg-[#111827] [&_label]:!text-gray-300">
+                    <GooglePlacesAutocomplete
+                      onPlaceSelected={handleGooglePlaceSelected}
+                      defaultValue={shippingAddress}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Price summary */}
+              {selectedPlan && (
+                <div className="bg-[#111827] border border-white/10 rounded-xl p-4">
+                  <div className="flex justify-between text-sm text-gray-400 mb-1">
+                    <span>{PLAN_DETAILS[selectedPlan].label}</span>
+                    <span>${PLAN_DETAILS[selectedPlan].price}/mo</span>
+                  </div>
+                  {hasProtection && (
+                    <div className="flex justify-between text-sm text-gray-400 mb-1">
+                      <span>Loss Protection</span>
+                      <span>$5/mo</span>
+                    </div>
+                  )}
+                  <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-bold">
+                    <span>Total</span>
+                    <span className="text-blue-400">${totalPrice}/mo</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Auth buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleOAuth("google")}
+                  disabled={isLoading}
+                  className="w-full h-14 bg-white text-gray-900 font-bold rounded-xl text-base transition-all hover:bg-gray-100 flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Verifying...</>
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "Verify & Continue"
+                    <>
+                      <svg viewBox="0 0 24 24" className="w-5 h-5"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                      Continue with Google
+                    </>
                   )}
-                </Button>
+                </button>
 
-                <div className="flex flex-col gap-2 pt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={isLoading}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Didn't get it? Resend code
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setViewState("form"); setOtpCode(""); setOtpError(null); }}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Use a different email
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Step 3: Google Business */}
-        {viewState === "google" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <Card className="p-6 space-y-5">
-              <div>
-                <h2 className="text-xl font-bold mb-1">Connect your Google Business</h2>
-                <p className="text-sm text-muted-foreground">
-                  This powers your review link and helps customers find you.
-                </p>
-              </div>
-
-              <div>
-                <GooglePlacesAutocomplete
-                  onPlaceSelected={handleGooglePlaceSelected}
-                  defaultValue={`${formData.businessName} ${formData.city} ${formData.state}`.trim()}
+                <button
+                  onClick={() => handleOAuth("apple")}
                   disabled={isLoading}
-                  onError={() => setGoogleWidgetFailed(true)}
-                />
-                {!selectedGooglePlace && (
-                  <div className="mt-2">
-                    {googleWidgetFailed ? (
-                      <button
-                        type="button"
-                        disabled={isManualSearching}
-                        onClick={handleManualGoogleSearch}
-                        className="text-sm text-primary hover:underline flex items-center gap-1"
-                      >
-                        {isManualSearching ? (
-                          <><Loader2 className="w-3 h-3 animate-spin" /> Searching...</>
-                        ) : (
-                          "Search failed — click here to search manually"
-                        )}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={isManualSearching}
-                        onClick={handleManualGoogleSearch}
-                        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-                      >
-                        {isManualSearching ? (
-                          <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Searching...</span>
-                        ) : (
-                          "Can't find your business? Search manually"
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  className="w-full h-14 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-base transition-all hover:bg-white/10 flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                  Continue with Apple
+                </button>
               </div>
 
-              {selectedGooglePlace && (
-                <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-                    <Check className="w-4 h-4" /> 
-                    <span><strong>Connected:</strong> {selectedGooglePlace.name}</span>
-                  </p>
-                  {selectedGooglePlace.address && (
-                    <p className="text-xs text-green-600 dark:text-green-500 mt-1 ml-6">
-                      {selectedGooglePlace.address}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {googleError && (
-                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-                  <p className="text-sm text-destructive flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    {googleError}
-                  </p>
-                </div>
-              )}
-
-              {/* Yelp option */}
-              <div className="flex items-start gap-3 pt-2 border-t border-border">
-                <Checkbox
-                  id="addYelp"
-                  checked={addYelp}
-                  onCheckedChange={(v) => setAddYelp(v === true)}
-                />
-                <div>
-                  <Label htmlFor="addYelp">Also add Yelp (recommended)</Label>
-                  <p className="text-xs text-muted-foreground">
-                    We'll auto-find your Yelp page.
-                  </p>
-                </div>
-              </div>
-
-              {/* Phone (optional) */}
-              <div>
-                <Label htmlFor="phone">Phone Number (optional)</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="(555) 123-4567"
-                  maxLength={14}
-                />
-              </div>
-            </Card>
-
-            <Button 
-              onClick={handleGoogleSubmit} 
-              disabled={isLoading || !selectedGooglePlace} 
-              className="w-full h-12 text-lg"
-            >
-              {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
-              ) : (
-                <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
-              )}
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Step 4: Finishing */}
-        {viewState === "finishing" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <Card className="p-6 space-y-4">
-              <div>
-                <h2 className="text-xl font-bold mb-1">Almost done!</h2>
-                <p className="text-sm text-muted-foreground">
-                  Review your details and we'll get your cards shipped.
-                </p>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Business</span>
-                  <span className="font-medium">{formData.businessName}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Location</span>
-                  <span className="font-medium">{formData.city}, {formData.state}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Ship to</span>
-                  <span className="font-medium text-right max-w-[200px]">{formData.shippingAddress}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border">
-                  <span className="text-muted-foreground">Google Business</span>
-                  <span className="font-medium text-green-600 flex items-center gap-1">
-                    <Check className="w-4 h-4" /> Connected
-                  </span>
-                </div>
-                {logoPreview && !useUnbranded && (
-                  <div className="flex justify-between py-2 border-b border-border items-center">
-                    <span className="text-muted-foreground">Logo</span>
-                    <img src={logoPreview} alt="Logo" className="w-10 h-10 rounded object-cover" />
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            <Button 
-              onClick={handleComplete} 
-              disabled={isLoading} 
-              className="w-full h-12 text-lg"
-            >
-              {isLoading ? (
-                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Finishing setup...</>
-              ) : (
-                <>Complete Setup <Check className="w-5 h-5 ml-2" /></>
-              )}
-            </Button>
-          </motion.div>
-        )}
+              <button
+                onClick={() => goTo("protection", -1)}
+                className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                ← Back
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
