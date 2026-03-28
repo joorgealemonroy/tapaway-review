@@ -345,7 +345,9 @@ const Onboarding = () => {
               <div className="text-center">
                 <h1 className="text-2xl font-black mb-2">Customers love these cards.<br />Sometimes too much.</h1>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing.
+                  {selectedPlan === "solo"
+                    ? "Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."
+                    : "In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."}
                 </p>
               </div>
 
