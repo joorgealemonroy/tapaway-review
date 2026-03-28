@@ -29,7 +29,7 @@ export const HeroSection = () => {
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
       
-      <div className="relative max-w-6xl mx-auto px-4 py-12 md:py-20">
+      <div className="relative max-w-6xl mx-auto px-6 sm:px-8 py-16 md:py-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {/* Left: Copy */}
           <motion.div
@@ -43,7 +43,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-5"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/40 border border-slate-800 backdrop-blur-sm text-slate-300 text-sm font-medium mb-8"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -54,27 +54,28 @@ export const HeroSection = () => {
             </motion.div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.1] mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-8">
               Turn Taps into{" "}
               <span className="text-primary whitespace-nowrap">5-Star</span> Reviews.
             </h1>
 
             {/* Subheadline */}
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl mx-auto lg:mx-0">
               Grow your Google presence with high-performance Branded NFC Cards.
               We ship your custom kit today. Zero setup.{" "}
               <span className="font-bold text-foreground">$0 Today.</span>
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                className="w-full sm:w-auto"
               >
                 <Link
                   to="/start"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
+                  className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
                 >
                   Start My 14-Day Sprint
                   <ArrowRight className="w-5 h-5" />
@@ -84,7 +85,7 @@ export const HeroSection = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/10 transition-all text-sm"
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-4 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/10 transition-all text-sm"
                 onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <Play className="w-4 h-4 fill-primary" />
@@ -98,10 +99,10 @@ export const HeroSection = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative mt-10 lg:mt-0"
+            className="relative mt-16 lg:mt-0"
           >
             <div className="flex flex-col items-center gap-6">
-              <div style={{ transform: "perspective(800px) rotateY(-15deg)" }}>
+              <div style={{ transform: "perspective(1000px) rotateX(10deg) rotateY(-5deg)" }}>
                 <TapAwayCard3D />
               </div>
 
