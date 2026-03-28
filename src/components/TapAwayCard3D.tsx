@@ -1,8 +1,20 @@
-const TapAwayCard3D = () => {
+interface TapAwayCard3DProps {
+  logoUrl?: string;
+  businessName?: string;
+  staticTilt?: boolean;
+}
+
+const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps) => {
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
-      <div style={{ transform: "rotateZ(12deg)" }}>
-        <div className="animate-[spin-3d_12s_ease-in-out_infinite]" style={{ transformStyle: "preserve-3d" }}>
+      <div style={{ transform: staticTilt ? "none" : "rotateZ(12deg)" }}>
+        <div
+          className={staticTilt ? "" : "animate-[spin-3d_12s_ease-in-out_infinite]"}
+          style={{
+            transformStyle: "preserve-3d",
+            ...(staticTilt ? { transform: "rotateY(0deg)" } : {}),
+          }}
+        >
           <div
             className="relative rounded-2xl"
             style={{
@@ -28,6 +40,26 @@ const TapAwayCard3D = () => {
                 fetchPriority="high"
                 className="w-full h-full object-cover rounded-2xl"
               />
+
+              {/* Logo overlay — centered on the card face */}
+              {logoUrl && (
+                <div className="absolute inset-0 flex items-center justify-center" style={{ top: "-8%" }}>
+                  <img
+                    src={logoUrl}
+                    alt="Your logo"
+                    className="w-[60px] h-[60px] rounded-full object-cover border-2 border-white/20 shadow-lg"
+                  />
+                </div>
+              )}
+
+              {/* Business name — bottom of card face */}
+              {businessName && (
+                <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-3 pointer-events-none">
+                  <span className="text-[9px] font-bold text-white/90 tracking-wide truncate max-w-[80%] text-center drop-shadow-md">
+                    {businessName}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* BACK */}
@@ -50,15 +82,17 @@ const TapAwayCard3D = () => {
         </div>
       </div>
 
-      <style>
-        {`
-          @keyframes spin-3d {
-            0% { transform: rotateY(0deg); }
-            50% { transform: rotateY(180deg); }
-            100% { transform: rotateY(360deg); }
-          }
-        `}
-      </style>
+      {!staticTilt && (
+        <style>
+          {`
+            @keyframes spin-3d {
+              0% { transform: rotateY(0deg); }
+              50% { transform: rotateY(180deg); }
+              100% { transform: rotateY(360deg); }
+            }
+          `}
+        </style>
+      )}
     </div>
   );
 };

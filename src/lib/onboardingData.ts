@@ -18,7 +18,10 @@ export interface OnboardingData {
   shippingState?: string;
   shippingZip?: string;
   logoUploaded: boolean;
+  logoUrl?: string;
   unbrandedCards: boolean;
+  planType?: string;
+  hasProtection?: boolean;
   ownerName?: string;
   customSlug?: string;
   instagram?: string;
