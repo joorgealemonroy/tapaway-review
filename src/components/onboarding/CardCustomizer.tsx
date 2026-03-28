@@ -1,4 +1,4 @@
-import { Star, Smartphone, QrCode } from "lucide-react";
+import { Star, Smartphone, Wifi, QrCode } from "lucide-react";
 
 interface CardCustomizerProps {
   logoUrl?: string | null;
@@ -19,98 +19,91 @@ const CardFront = ({
   subHeadline: string;
 }) => (
   <div
-    className="bg-white rounded-2xl overflow-hidden flex flex-col items-center text-center relative"
+    className="w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
     style={{
-      width: "min(220px, 55vw)",
-      aspectRatio: "2.125 / 3.375",
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(-4deg)",
     }}
   >
-    {/* Stars */}
-    <div className="flex gap-0.5 pt-5 pb-2">
-      {[...Array(5)].map((_, i) => (
-        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-      ))}
-    </div>
+    <div className="flex flex-col items-center justify-between h-full text-center p-6">
+      {/* Stars */}
+      <div className="flex space-x-1">
+        {[...Array(5)].map((_, i) => (
+          <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+        ))}
+      </div>
 
-    {/* Headline */}
-    <p className="text-slate-800 font-semibold text-[11px] leading-tight px-4 max-w-[90%]">
-      {headline || "Loved your visit? Leave us a review!"}
-    </p>
+      {/* Headline */}
+      <p className="text-lg font-normal text-gray-800 leading-snug mt-3">
+        {headline || "Loved your visit? Leave us a review!"}
+      </p>
 
-    {/* Sub-headline */}
-    <p className="text-slate-500 text-[9px] leading-tight px-4 mt-1 max-w-[85%]">
-      {subHeadline || "Tap or Scan below to share your experience."}
-    </p>
+      {/* Sub-headline */}
+      <p className="text-sm font-normal text-gray-800 mt-1">
+        {subHeadline || "Tap or Scan below to share your experience."}
+      </p>
 
-    {/* Logo circle */}
-    <div className="flex-1 flex items-center justify-center w-full px-6 py-3">
-      <div className="w-[55%] aspect-square rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+      {/* Logo circle */}
+      <div className="w-48 h-48 rounded-full bg-[#707070] flex items-center justify-center my-auto flex-shrink-0 overflow-hidden">
         {logoUrl ? (
           <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-white font-black text-[11px] leading-tight text-center px-2 drop-shadow-sm"
-                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>
+          <span className="text-white font-black text-3xl leading-none tracking-tight text-center">
             YOUR<br />LOGO<br />HERE
           </span>
         )}
       </div>
-    </div>
 
-    {/* Bottom icons row */}
-    <div className="w-full px-5 pb-2 flex items-center justify-between">
-      {/* NFC tap icon */}
-      <div className="flex items-center gap-1">
-        <Smartphone className="w-5 h-5 text-gray-600" />
-        <div className="flex flex-col">
-          <div className="w-2 h-2 border border-gray-400 rounded-full" />
+      {/* Bottom icons row */}
+      <div className="flex items-center justify-center w-full h-16 mb-4">
+        {/* NFC tap icon */}
+        <div className="flex items-center gap-1">
+          <Smartphone className="w-10 h-10 text-black" />
+          <Wifi className="w-8 h-8 text-black -ml-2 rotate-90" />
         </div>
+
+        <div className="h-full w-px bg-black mx-4" />
+
+        {/* QR code icon */}
+        <QrCode className="w-16 h-16 text-black" />
       </div>
 
-      <div className="h-8 w-px bg-gray-300" />
-
-      {/* QR code icon */}
-      <QrCode className="w-7 h-7 text-gray-700" />
+      {/* Footer URL */}
+      <p className="font-black text-xs text-black pb-2 tracking-wide">tapaway.co</p>
     </div>
-
-    {/* Footer URL */}
-    <p className="text-[8px] font-bold text-gray-800 pb-3 tracking-wide">tapaway.co</p>
   </div>
 );
 
 const CardBack = ({ logoUrl }: { logoUrl?: string | null }) => (
   <div
-    className="bg-white rounded-2xl overflow-hidden flex flex-col items-center justify-center text-center relative"
+    className="w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
     style={{
-      width: "min(220px, 55vw)",
-      aspectRatio: "2.125 / 3.375",
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(4deg)",
     }}
   >
-    {/* Logo circle */}
-    <div className="w-[45%] aspect-square rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-5">
-      {logoUrl ? (
-        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-      ) : (
-        <span className="text-white font-black text-[10px] leading-tight text-center px-2 drop-shadow-sm"
-              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>
-          YOUR<br />LOGO<br />HERE
-        </span>
-      )}
-    </div>
+    <div className="flex flex-col items-center justify-center h-full text-center p-6">
+      {/* Logo circle */}
+      <div className="w-36 h-36 rounded-full bg-[#707070] flex items-center justify-center overflow-hidden mb-6">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-white font-black text-2xl leading-none tracking-tight text-center">
+            YOUR<br />LOGO<br />HERE
+          </span>
+        )}
+      </div>
 
-    {/* QR code placeholder */}
-    <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-3">
-      <QrCode className="w-10 h-10 text-gray-500" />
-    </div>
+      {/* QR code placeholder */}
+      <div className="w-20 h-20 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-4">
+        <QrCode className="w-14 h-14 text-black" />
+      </div>
 
-    {/* Footer URL */}
-    <p className="text-[8px] font-bold text-gray-800 tracking-wide">tapaway.co</p>
+      {/* Footer URL */}
+      <p className="font-black text-xs text-black pb-2 tracking-wide">tapaway.co</p>
+    </div>
   </div>
 );
-
 const CardCustomizer = ({
   logoUrl,
   headline,
