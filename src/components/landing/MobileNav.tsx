@@ -30,7 +30,7 @@ export const MobileNav = () => {
   };
 
   return (
-    <nav className="md:hidden sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
+    <nav className="md:hidden sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border/50">
       {/* Row 1: Logo + Menu */}
       <div className="flex items-center justify-between px-4 h-14">
         <a 
