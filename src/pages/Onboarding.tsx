@@ -17,7 +17,7 @@ import {
   generateSlug,
   setPendingSetup,
 } from "@/lib/onboardingData";
-import TapAwayCard3D from "@/components/TapAwayCard3D";
+import CardCustomizer from "@/components/onboarding/CardCustomizer";
 
 type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
@@ -54,6 +54,8 @@ const Onboarding = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [cardHeadline, setCardHeadline] = useState("Loved your visit? Leave us a review!");
+  const [cardSubHeadline, setCardSubHeadline] = useState("Tap or Scan below to share your experience.");
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
   } | null>(null);
@@ -161,6 +163,8 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
+        cardHeadline,
+        cardSubHeadline,
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
@@ -506,14 +510,14 @@ const Onboarding = () => {
                 </p>
               </div>
 
-              {/* 3D card preview — always visible, static tilt */}
-              <div className="flex justify-center mt-4" style={{ perspective: "1000px" }}>
-                <div style={{ transform: "rotateX(10deg) rotateY(-5deg)", transformStyle: "preserve-3d" }}>
-                  <div className="scale-75">
-                    <TapAwayCard3D logoUrl={logoUrl || undefined} businessName={businessName || undefined} staticTilt />
-                  </div>
-                </div>
-              </div>
+              {/* Card customizer — double-sided HTML preview */}
+              <CardCustomizer
+                logoUrl={logoUrl}
+                headline={cardHeadline}
+                subHeadline={cardSubHeadline}
+                onHeadlineChange={setCardHeadline}
+                onSubHeadlineChange={setCardSubHeadline}
+              />
 
               {/* Shipping / Address */}
               <div>
