@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurants ADD COLUMN IF NOT EXISTS has_loss_protection boolean NOT NULL DEFAULT false;

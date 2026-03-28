@@ -168,6 +168,8 @@ const Onboarding = () => {
           email: session.user.email,
           subscription_status: "trialing",
           onboarding_step: 3,
+          plan_type: selectedPlan || "venue",
+          has_loss_protection: hasProtection,
         }).eq("id", rId);
       } else {
         const { data: created } = await supabase.from("restaurants").insert({
@@ -177,6 +179,8 @@ const Onboarding = () => {
           email: session.user.email,
           subscription_status: "trialing",
           onboarding_step: 3,
+          plan_type: selectedPlan || "venue",
+          has_loss_protection: hasProtection,
         }).select("id").single();
         rId = created?.id;
       }
@@ -314,7 +318,7 @@ const Onboarding = () => {
                         <div className="flex-1">
                           <div className="flex items-baseline gap-2 mb-1">
                             <span className="text-lg font-bold">{d.label}</span>
-                            <span className="text-2xl font-black text-blue-400">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
+                            <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
                           </div>
                           <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
                           <p className="text-sm text-gray-500">{d.cards} Branded NFC Cards included</p>
@@ -325,18 +329,8 @@ const Onboarding = () => {
                 })}
               </div>
 
-              <AnimatePresence>
-                {selectedPlan && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                    <button
-                      onClick={() => goTo("protection", 1)}
-                      className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      Continue <ArrowRight className="w-5 h-5" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Spacer for fixed bottom button */}
+              {selectedPlan && <div className="h-20" />}
             </motion.div>
           )}
 
@@ -498,6 +492,28 @@ const Onboarding = () => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Fixed bottom CTA for plan step */}
+      <AnimatePresence>
+        {step === "plan" && selectedPlan && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0a0e1a] via-[#0a0e1a]/95 to-transparent pt-10"
+          >
+            <div className="max-w-md mx-auto">
+              <button
+                onClick={() => goTo("protection", 1)}
+                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+              >
+                Continue <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

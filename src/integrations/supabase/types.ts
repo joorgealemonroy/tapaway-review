@@ -2118,6 +2118,7 @@ export type Database = {
           google_review_url: string | null
           google_user_ratings_total: number | null
           greeting_name: string | null
+          has_loss_protection: boolean
           header_subtitle: string | null
           header_title: string | null
           hub_background_style: string | null
@@ -2169,6 +2170,7 @@ export type Database = {
           google_review_url?: string | null
           google_user_ratings_total?: number | null
           greeting_name?: string | null
+          has_loss_protection?: boolean
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
@@ -2220,6 +2222,7 @@ export type Database = {
           google_review_url?: string | null
           google_user_ratings_total?: number | null
           greeting_name?: string | null
+          has_loss_protection?: boolean
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
