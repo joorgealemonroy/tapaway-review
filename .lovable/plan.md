@@ -1,22 +1,24 @@
 
 
-# Polish Plan Selection Cards
+# Update Loss Protection Step Copy
 
 ## Changes to `src/pages/Onboarding.tsx`
 
-### 1. Update PLAN_DETAILS subtitles
-- **Solo Pro**: `"Ideal for individual pros and personal branding."`
-- **Venue Pack**: `"Designed for team-based venues and high-traffic locations."`
+### 1. Update refill text in PLAN_DETAILS (lines 26-27)
+Change `refill` values:
+- Solo: `"3-card"` 
+- Venue: `"10-card"`
 
-### 2. Update card text for included cards
-- Solo: `"3 Smart NFC Cards included for your wallet and station."`
-- Venue: `"15 Smart NFC Cards included for your tables or counters."`
-- Decrease font size of this line to `text-xs` (from `text-sm`) so it reads as a bonus
+### 2. Update sub-headline (line 348)
+Change from: `"In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."`
+To: `"Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."`
 
-### 3. Add "Best Value" badge to Venue Pack card
-- A small pill/badge at the top-right (or top-left) of the Venue card: `"Best Value"` in electric blue bg with white text
-- Only shown on the venue card, positioned absolute
+### 3. Update first bullet point (line 366)
+Change from: `{PLAN_DETAILS[selectedPlan].refill} + Priority Shipping`
+To: `<strong>Monthly</strong> {refill} refills available when you need them.`
 
-### Files modified
-- `src/pages/Onboarding.tsx` — Update `PLAN_DETAILS` object and card rendering
+Render as: `<span><span className="font-bold">Monthly</span> X-card refills available when you need them.</span>`
+
+### File modified
+- `src/pages/Onboarding.tsx`
 
