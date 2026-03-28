@@ -1,24 +1,16 @@
 
 
-# Update Loss Protection Step Copy
+# Conditional Loss Protection Sub-headline by Plan
 
-## Changes to `src/pages/Onboarding.tsx`
+## Change in `src/pages/Onboarding.tsx` (line 348)
 
-### 1. Update refill text in PLAN_DETAILS (lines 26-27)
-Change `refill` values:
-- Solo: `"3-card"` 
-- Venue: `"10-card"`
+Make the sub-headline dynamic based on `selectedPlan`:
 
-### 2. Update sub-headline (line 348)
-Change from: `"In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."`
-To: `"Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."`
+- **Solo**: "Don't let missing cards stall your growth. Includes priority replacements, easy to claim anytime in your dashboard."
+- **Venue**: "In busy venues, cards tend to walk home with guests. Don't stop growing because a card went missing."
 
-### 3. Update first bullet point (line 366)
-Change from: `{PLAN_DETAILS[selectedPlan].refill} + Priority Shipping`
-To: `<strong>Monthly</strong> {refill} refills available when you need them.`
+Replace the static `<p>` with a ternary on `selectedPlan`.
 
-Render as: `<span><span className="font-bold">Monthly</span> X-card refills available when you need them.</span>`
-
-### File modified
+### Files modified
 - `src/pages/Onboarding.tsx`
 
