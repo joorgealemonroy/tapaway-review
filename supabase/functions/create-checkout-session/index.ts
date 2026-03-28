@@ -49,7 +49,11 @@ serve(async (req) => {
     });
 
     const body = await req.json();
-    const { email, userId, restaurantId, priceId } = body;
+    const { email, userId, restaurantId, priceId, planType, hasProtection: hasProtectionFlag } = body;
+
+    // Validate planType
+    const validPlanType = planType === 'solo' || planType === 'venue' ? planType : 'venue';
+    const trial_period_days = validPlanType === 'solo' ? 14 : 21;
     
     // SAFETY CHECK: Only allow the trial price ID
     if (priceId && priceId !== TRIAL_PRICE_ID) {
@@ -108,8 +112,12 @@ serve(async (req) => {
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'MX'],
       },
+      subscription_data: {
+        trial_period_days,
+      },
       metadata: {
-        plan_type: 'trial',
+        plan_type: validPlanType,
+        has_protection: String(!!hasProtectionFlag),
         price_id: TRIAL_PRICE_ID,
         user_id: userId || '',
         restaurant_id: restaurantId || '',

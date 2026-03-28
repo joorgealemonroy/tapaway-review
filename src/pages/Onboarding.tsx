@@ -23,8 +23,8 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Barbers, Realtors, and Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null },
-  venue: { label: "Venue Pack", subtitle: "For Restaurants, Salons, and Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular" },
+  solo: { label: "Solo Pro", subtitle: "For Barbers & Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 7, totalTrialDays: 14 },
+  venue: { label: "Venue Pack", subtitle: "For Restaurants & Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 21 },
 };
 
 const PROTECTION_PRICE = 5;
@@ -160,6 +160,10 @@ const Onboarding = () => {
       setIsLoading(true);
       const slug = generateSlug(bName);
 
+      const plan = selectedPlan || "venue";
+      const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
+      const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
+
       let rId = existing?.id || restaurantId;
       if (rId) {
         await supabase.from("restaurants").update({
@@ -168,8 +172,9 @@ const Onboarding = () => {
           email: session.user.email,
           subscription_status: "trialing",
           onboarding_step: 3,
-          plan_type: selectedPlan || "venue",
+          plan_type: plan,
           has_loss_protection: hasProtection,
+          trial_ends_at: trialEndsAt,
         }).eq("id", rId);
       } else {
         const { data: created } = await supabase.from("restaurants").insert({
@@ -179,8 +184,9 @@ const Onboarding = () => {
           email: session.user.email,
           subscription_status: "trialing",
           onboarding_step: 3,
-          plan_type: selectedPlan || "venue",
+          plan_type: plan,
           has_loss_protection: hasProtection,
+          trial_ends_at: trialEndsAt,
         }).select("id").single();
         rId = created?.id;
       }
@@ -306,6 +312,10 @@ const Onboarding = () => {
                           : "border-white/10 bg-[#111827] hover:border-white/20"
                       }`}
                     >
+                      {/* Trial badge — top left */}
+                      <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-br-lg">
+                        {d.trialDays}-Day Free Trial
+                      </div>
                       {d.badge && (
                         <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-lg">
                           {d.badge}
@@ -316,7 +326,7 @@ const Onboarding = () => {
                           <Check className="w-4 h-4 text-white" />
                         </div>
                       )}
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-4 mt-3">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected ? "bg-blue-500/20" : "bg-white/5"}`}>
                           <Icon className={`w-6 h-6 ${selected ? "text-blue-400" : "text-gray-400"}`} />
                         </div>
@@ -325,8 +335,8 @@ const Onboarding = () => {
                             <span className="text-lg font-bold">{d.label}</span>
                             <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
                           </div>
-                          <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
-                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards</span> for your {plan === "solo" ? "wallet and station" : "business"}.</p>
+                          <p className="text-sm text-gray-400 mb-1">{d.subtitle}</p>
+                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards</span>.</p>
                         </div>
                       </div>
                     </button>
@@ -361,7 +371,7 @@ const Onboarding = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">Loss Protection</h3>
-                      <p className="text-blue-400 font-black text-xl">$5<span className="text-sm font-normal text-gray-500">/mo</span></p>
+                      <p className="text-blue-400 font-black text-xl">$5<span className="text-sm font-normal text-gray-500">/mo</span> <span className="text-emerald-400 text-sm font-semibold">($0 Today)</span></p>
                     </div>
                   </div>
                   <ul className="space-y-2 text-sm text-gray-300">
@@ -376,7 +386,7 @@ const Onboarding = () => {
                 onClick={() => { setHasProtection(true); goTo("info", 1); }}
                 className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
               >
-                Add Protection — ${PLAN_DETAILS[selectedPlan].price + PROTECTION_PRICE}/mo
+                Add Protection — $0 Today
               </button>
 
               <button
@@ -385,6 +395,10 @@ const Onboarding = () => {
               >
                 No thanks, I'll pay $10 + shipping per replacement
               </button>
+
+              <p className="text-center text-xs text-gray-600">
+                Standard billing starts after your trial ends. Cancel anytime.
+              </p>
 
               <button
                 onClick={() => goTo("plan", -1)}
@@ -442,23 +456,33 @@ const Onboarding = () => {
                 </div>
               </div>
 
-              {/* Price summary */}
+              {/* Due Today breakdown */}
               {selectedPlan && (
-                <div className="bg-[#111827] border border-white/10 rounded-xl p-4">
-                  <div className="flex justify-between text-sm text-gray-400 mb-1">
+                <div className="bg-[#111827] border border-white/10 rounded-xl p-4 space-y-1">
+                  <div className="flex justify-between text-sm text-gray-400">
                     <span>{PLAN_DETAILS[selectedPlan].label}</span>
-                    <span>${PLAN_DETAILS[selectedPlan].price}/mo</span>
+                    <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
                   {hasProtection && (
-                    <div className="flex justify-between text-sm text-gray-400 mb-1">
+                    <div className="flex justify-between text-sm text-gray-400">
                       <span>Loss Protection</span>
-                      <span>$5/mo</span>
+                      <span className="text-emerald-400 font-semibold">$0.00</span>
                     </div>
                   )}
-                  <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-bold">
-                    <span>Total</span>
-                    <span className="text-blue-400">${totalPrice}/mo</span>
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Shipping</span>
+                    <span className="text-emerald-400 font-semibold">$0.00</span>
                   </div>
+                  <div className="border-t border-white/10 mt-2 pt-2 flex justify-between font-bold">
+                    <span>Total Due Today</span>
+                    <span className="text-emerald-400 text-lg">$0.00</span>
+                  </div>
+                  <p className="text-xs text-gray-500 pt-2">
+                    After trial: ${PLAN_DETAILS[selectedPlan].price}{hasProtection ? ` + $${PROTECTION_PRICE}` : ""}/mo
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Your trial starts after a 7-day shipping buffer so you get the full experience.
+                  </p>
                 </div>
               )}
 
@@ -474,7 +498,7 @@ const Onboarding = () => {
                   ) : (
                     <>
                       <svg viewBox="0 0 24 24" className="w-5 h-5"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                      Continue with Google
+                      Start My Free Trial
                     </>
                   )}
                 </button>
@@ -485,7 +509,7 @@ const Onboarding = () => {
                   className="w-full h-14 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-base transition-all hover:bg-white/10 flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                  Continue with Apple
+                  Start My Free Trial
                 </button>
               </div>
 

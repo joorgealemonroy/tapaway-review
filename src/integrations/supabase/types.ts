@@ -2147,6 +2147,7 @@ export type Database = {
           stripe_portal_url: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
+          trial_ends_at: string | null
           type: string | null
           updated_at: string
           yelp_business_id: string | null
@@ -2199,6 +2200,7 @@ export type Database = {
           stripe_portal_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
           type?: string | null
           updated_at?: string
           yelp_business_id?: string | null
@@ -2251,6 +2253,7 @@ export type Database = {
           stripe_portal_url?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
           type?: string | null
           updated_at?: string
           yelp_business_id?: string | null
