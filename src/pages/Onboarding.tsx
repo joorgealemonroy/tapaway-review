@@ -307,7 +307,7 @@ const Onboarding = () => {
                       }`}
                     >
                       {d.badge && (
-                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                        <div className="absolute top-0 right-0 bg-[#3B82F6] text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl-lg">
                           {d.badge}
                         </div>
                       )}
@@ -326,7 +326,7 @@ const Onboarding = () => {
                             <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
                           </div>
                           <p className="text-sm text-gray-400 mb-2">{d.subtitle}</p>
-                          <p className="text-xs text-gray-500">{d.cardText}</p>
+                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards</span> for your {plan === "solo" ? "wallet and station" : "business"}.</p>
                         </div>
                       </div>
                     </button>
