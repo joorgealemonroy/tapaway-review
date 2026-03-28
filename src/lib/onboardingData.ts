@@ -22,6 +22,8 @@ export interface OnboardingData {
   unbrandedCards: boolean;
   planType?: string;
   hasProtection?: boolean;
+  cardHeadline?: string;
+  cardSubHeadline?: string;
   ownerName?: string;
   customSlug?: string;
   instagram?: string;
