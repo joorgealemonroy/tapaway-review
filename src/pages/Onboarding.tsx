@@ -117,6 +117,37 @@ const Onboarding = () => {
     setSelectedGooglePlace({ placeId: normalized, name, address });
   }, []);
 
+  // ── Logo upload handler ──
+  const handleLogoUpload = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) { toast.error("File must be under 20MB"); return; }
+    setLogoUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const fileName = `onboarding-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('restaurant-logos').upload(fileName, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
+      setLogoUrl(publicUrl);
+      saveOnboardingData({ logoUrl: publicUrl, logoUploaded: true });
+      toast.success("Logo uploaded!");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) handleLogoUpload(file);
+  };
+
+  const removeLogo = () => {
+    setLogoUrl(null);
+    saveOnboardingData({ logoUrl: '', logoUploaded: false });
+  };
+
   // ── Auth + complete ──
   const handleOAuth = async (provider: "google" | "apple") => {
     if (!businessName.trim()) { toast.error("Please enter your business name"); return; }
