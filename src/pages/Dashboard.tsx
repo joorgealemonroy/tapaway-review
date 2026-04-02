@@ -145,7 +145,7 @@ const DashboardBusiness = () => {
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<DashboardLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);
