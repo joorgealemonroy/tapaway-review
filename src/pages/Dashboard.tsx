@@ -443,10 +443,8 @@ const DashboardBusiness = () => {
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
       // No restaurant found — redirect to paywall (top-level decide() handles personal routing)
-      {
-       console.log('[Dashboard] User has no restaurant or personal profile, redirecting to paywall');
-       navigate("/paywall");
-     }
+      console.log('[Dashboard] User has no restaurant, redirecting to paywall');
+      navigate("/paywall");
     }
   };
   const fetchLocations = async (restaurantId: string) => {
