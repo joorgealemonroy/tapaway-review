@@ -1373,314 +1373,38 @@ Login at: ${window.location.origin}/auth`;
                 Create Another
               </Button>
             </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="design">Design</TabsTrigger>
-                <TabsTrigger value="content">Content</TabsTrigger>
-              </TabsList>
-
-              {/* Basic Info Tab */}
-              <TabsContent value="basic" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
-                    <Label>Full Name *</Label>
-                    <Input
-                      placeholder="John Doe"
-                      value={createForm.fullName}
-                      onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Email *</Label>
-                    <Input
-                      type="email"
-                      placeholder="john@example.com"
-                      value={createForm.email}
-                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Username *</Label>
-                    <Input
-                      placeholder="johndoe"
-                      value={createForm.username}
-                      onChange={(e) => setCreateForm({ ...createForm, username: e.target.value.toLowerCase() })}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {createForm.planType === "free" ? "tap" : ""}{createForm.username || "username"}
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Plan Type</Label>
-                    <Select
-                      value={createForm.planType}
-                      onValueChange={(v) => setCreateForm({ ...createForm, planType: v as any })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="free">Free (tap prefix)</SelectItem>
-                        <SelectItem value="vip">
-                          <span className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-emerald-500" />
-                            TapAway VIP (Free forever)
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="monthly">Pro Monthly (${PERSONAL_PRICING.monthly}/mo)</SelectItem>
-                        <SelectItem value="yearly">Pro Yearly (${PERSONAL_PRICING.yearly}/yr)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Headline</Label>
-                  <Input
-                    placeholder="Fitness Coach | Content Creator"
-                    value={createForm.headline}
-                    onChange={(e) => setCreateForm({ ...createForm, headline: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Bio</Label>
-                  <Textarea
-                    placeholder="A short bio..."
-                    value={createForm.bio}
-                    onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-              </TabsContent>
-
-              {/* Design Tab */}
-              <TabsContent value="design" className="space-y-6 mt-4">
-                {/* Profile Photo */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Profile Photo</Label>
-                  <div className="flex items-center gap-4">
-                    {profilePhotoPreview ? (
-                      <div className="relative">
-                        <img
-                          src={profilePhotoPreview}
-                          alt="Profile preview"
-                          className="h-20 w-20 rounded-full object-cover"
-                        />
-                        <button
-                          onClick={() => {
-                            setProfilePhotoFile(null);
-                            setProfilePhotoPreview(null);
-                          }}
-                          className="absolute -top-1 -right-1 p-1 bg-destructive text-destructive-foreground rounded-full"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => profileInputRef.current?.click()}
-                        className="h-20 w-20 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center hover:border-primary transition-colors"
-                      >
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                      </button>
-                    )}
-                    <div className="text-sm text-muted-foreground">
-                      <p>Click to upload profile photo</p>
-                      <p className="text-xs">Recommended: Square image</p>
-                    </div>
-                  </div>
-                  <input
-                    ref={profileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePhotoSelect}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Header Style */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Header Style</Label>
-                  <RadioGroup
-                    value={createForm.headerType}
-                    onValueChange={(v) => setCreateForm({ ...createForm, headerType: v as "color" | "image" })}
-                    className="flex gap-3"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="color" id="header-color" />
-                      <Label htmlFor="header-color" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                        <Paintbrush className="h-4 w-4" />
-                        Solid Color
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="image" id="header-image" />
-                      <Label htmlFor="header-image" className="text-sm flex items-center gap-1.5 cursor-pointer">
-                        <ImageIcon className="h-4 w-4" />
-                        Custom Image
-                      </Label>
-                    </div>
-                  </RadioGroup>
-
-                  {createForm.headerType === "color" ? (
-                    <div className="space-y-3">
-                      {/* Color presets */}
-                      <div className="flex flex-wrap gap-2">
-                        {COLOR_PRESETS.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setCreateForm({ ...createForm, headerColor: color })}
-                            className={`h-8 w-8 rounded-full border-2 transition-all ${
-                              createForm.headerColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                      {/* Gradient presets */}
-                      <div className="flex flex-wrap gap-2">
-                        {GRADIENT_PRESETS.map((gradient, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setCreateForm({ ...createForm, headerColor: gradient })}
-                            className={`h-8 w-8 rounded-full border-2 transition-all ${
-                              createForm.headerColor === gradient ? "border-primary scale-110" : "border-border hover:scale-105"
-                            }`}
-                            style={{ background: gradient }}
-                          />
-                        ))}
-                      </div>
-                      {/* Custom hex */}
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="text"
-                          placeholder="#6BCB77"
-                          value={createForm.headerColor}
-                          onChange={(e) => setCreateForm({ ...createForm, headerColor: e.target.value })}
-                          className="h-10 flex-1"
-                        />
-                        <input
-                          type="color"
-                          value={createForm.headerColor.startsWith("#") ? createForm.headerColor : "#6BCB77"}
-                          onChange={(e) => setCreateForm({ ...createForm, headerColor: e.target.value })}
-                          className="h-10 w-10 rounded border border-border cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {headerImagePreview ? (
-                        <div className="relative">
-                          <img
-                            src={headerImagePreview}
-                            alt="Header preview"
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => {
-                              setHeaderImageFile(null);
-                              setHeaderImagePreview(null);
-                            }}
-                            className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70"
-                          >
-                            <X className="h-4 w-4 text-white" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => headerInputRef.current?.click()}
-                          className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-                        >
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Upload header image</span>
-                        </button>
-                      )}
-                      <input
-                        ref={headerInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleHeaderImageSelect}
-                        className="hidden"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* PFP Position */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Profile Photo Position</Label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCreateForm({ ...createForm, pfpPosition: "left" })}
-                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
-                        createForm.pfpPosition === "left" ? "border-primary bg-primary/10" : "border-border"
-                      }`}
-                    >
-                      <AlignLeft className="h-4 w-4" />
-                      <span className="text-sm">Left</span>
-                    </button>
-                    <button
-                      onClick={() => setCreateForm({ ...createForm, pfpPosition: "center" })}
-                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 ${
-                        createForm.pfpPosition === "center" ? "border-primary bg-primary/10" : "border-border"
-                      }`}
-                    >
-                      <AlignCenter className="h-4 w-4" />
-                      <span className="text-sm">Center</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Background Color */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Page Background</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {BG_PRESETS.map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setCreateForm({ ...createForm, backgroundColor: color })}
-                        className={`h-8 w-8 rounded-full border-2 transition-all ${
-                          createForm.backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                  {/* Ambient gradients auto-applied when banner is uploaded */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="#ffffff"
-                      value={createForm.backgroundColor}
-                      onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
-                      className="h-10 flex-1"
-                    />
-                    {!createForm.backgroundColor.startsWith("linear-gradient") && !createForm.backgroundColor.startsWith("radial-gradient") && (
-                      <input
-                        type="color"
-                        value={createForm.backgroundColor.startsWith("#") ? createForm.backgroundColor : "#ffffff"}
-                        onChange={(e) => setCreateForm({ ...createForm, backgroundColor: e.target.value })}
-                        className="h-10 w-10 rounded border border-border cursor-pointer"
-                      />
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Content Tab - Unified links and blocks */}
-              <TabsContent value="content" className="mt-4">
-                <AdminUnifiedContent 
-                  links={adminLinks}
-                  blocks={adminBlocks}
-                  onLinksChange={setAdminLinks}
-                  onBlocksChange={setAdminBlocks}
+          ) : accountType === "bigger" ? (
+            /* Bigger Business Form */
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Business Name *</Label>
+                <Input
+                  placeholder="Reborn Wraps"
+                  value={biggerForm.businessName}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, businessName: e.target.value })}
                 />
-              </TabsContent>
-
-              <Button 
-                onClick={handleCreateAccount} 
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  placeholder="owner@business.com"
+                  value={biggerForm.email}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input
+                  type="text"
+                  placeholder="Temporary password"
+                  value={biggerForm.password}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, password: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Min 6 characters. Client should change after first login.</p>
+              </div>
+              <Button
+                onClick={handleCreateBiggerBusiness}
                 disabled={creating}
                 className="w-full mt-4"
               >
@@ -1690,6 +1414,11 @@ Login at: ${window.location.origin}/auth`;
                     Creating...
                   </>
                 ) : (
+                  "Create Bigger Business Account"
+                )}
+              </Button>
+            </div>
+          ) : (
                   "Create Account"
                 )}
               </Button>
