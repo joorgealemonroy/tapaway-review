@@ -51,7 +51,7 @@ const DashboardSelector = () => {
         return;
       }
       if (hasPersonal && !hasBusiness) {
-        navigate("/dashboard");
+        navigate("/dashboard?type=lite");
         return;
       }
       if (!hasBusiness && !hasPersonal) {
