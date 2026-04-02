@@ -70,13 +70,18 @@ const Dashboard = () => {
       const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed);
       const hasPersonal = !!personalResult.data;
       
+      const hasAnyRestaurant = (restaurantResult.data?.length ?? 0) > 0;
+      
       if (hasCompletedRestaurant) {
         setRouteDecision("business");
       } else if (hasPersonal) {
         setRouteDecision("lite");
-      } else {
-        // No personal profile — let DashboardBusiness handle onboarding/paywall redirects
+      } else if (hasAnyRestaurant) {
+        // Has restaurant but not completed — let DashboardBusiness handle onboarding
         setRouteDecision("business");
+      } else {
+        // No restaurant at all — default to lite (prevents wrong dashboard flash)
+        setRouteDecision("lite");
       }
     };
     
