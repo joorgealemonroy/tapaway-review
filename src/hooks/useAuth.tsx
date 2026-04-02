@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (hasValidBusiness) {
         navigate("/dashboard");
       } else if (hasPersonal) {
-        navigate("/dashboard");
+        navigate("/dashboard?type=lite");
       } else if (isAffiliate) {
         navigate("/affiliate");
       } else if (restaurant && !isSubscriptionAllowed(restaurant.subscription_status)) {

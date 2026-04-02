@@ -83,7 +83,7 @@ export const usePaywallGuard = () => {
 
       // If user has a personal profile (no valid business), go to dashboard
       if (personal) {
-        navigate("/dashboard");
+        navigate("/dashboard?type=lite");
         setChecking(false);
         return;
       }
