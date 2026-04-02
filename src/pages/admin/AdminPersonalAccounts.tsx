@@ -55,7 +55,8 @@ import {
   Mail,
   Send,
   Sparkles,
-  Eye
+  Eye,
+  Building2
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
