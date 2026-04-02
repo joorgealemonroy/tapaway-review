@@ -502,6 +502,7 @@ Login at: ${window.location.origin}/auth`;
 
   const resetCreateModal = () => {
     setShowCreateModal(false);
+    setAccountType("small");
     setActiveTab("basic");
     setCreateForm({
       email: "",
@@ -515,6 +516,7 @@ Login at: ${window.location.origin}/auth`;
       backgroundColor: "#000000",
       pfpPosition: "center",
     });
+    setBiggerForm({ businessName: "", email: "", password: "" });
     setAdminLinks([]);
     setAdminBlocks([]);
     setCreatedCredentials(null);
@@ -523,6 +525,42 @@ Login at: ${window.location.origin}/auth`;
     setProfilePhotoPreview(null);
     setHeaderImageFile(null);
     setHeaderImagePreview(null);
+  };
+
+  const handleCreateBiggerBusiness = async () => {
+    if (!biggerForm.email || !biggerForm.businessName || !biggerForm.password) {
+      toast.error("Business name, email, and password are required");
+      return;
+    }
+    if (biggerForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-legacy-client-account", {
+        body: {
+          email: biggerForm.email,
+          password: biggerForm.password,
+          businessName: biggerForm.businessName,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setCreatedCredentials({
+        email: biggerForm.email,
+        tempPassword: biggerForm.password,
+        profileUrl: "/dashboard",
+        username: biggerForm.businessName,
+      });
+      toast.success(`Bigger Business account created for ${biggerForm.businessName}`);
+    } catch (err: any) {
+      console.error("Create bigger business error:", err);
+      toast.error(err.message || "Failed to create account");
+    } finally {
+      setCreating(false);
+    }
   };
 
   // Edit functions
