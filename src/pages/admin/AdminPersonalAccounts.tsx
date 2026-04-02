@@ -1373,6 +1373,51 @@ Login at: ${window.location.origin}/auth`;
                 Create Another
               </Button>
             </div>
+          ) : accountType === "bigger" ? (
+            /* Bigger Business Form */
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Business Name *</Label>
+                <Input
+                  placeholder="Reborn Wraps"
+                  value={biggerForm.businessName}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, businessName: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  placeholder="owner@business.com"
+                  value={biggerForm.email}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input
+                  type="text"
+                  placeholder="Temporary password"
+                  value={biggerForm.password}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, password: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Min 6 characters. Client should change after first login.</p>
+              </div>
+              <Button
+                onClick={handleCreateBiggerBusiness}
+                disabled={creating}
+                className="w-full mt-4"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Bigger Business Account"
+                )}
+              </Button>
+            </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
               <TabsList className="grid w-full grid-cols-3">
