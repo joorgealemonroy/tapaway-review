@@ -1419,9 +1419,12 @@ Login at: ${window.location.origin}/auth`;
               </Button>
             </div>
           ) : (
-                  "Create Account"
-                )}
-              </Button>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="design">Design</TabsTrigger>
+                <TabsTrigger value="content">Content</TabsTrigger>
+              </TabsList>
             </Tabs>
           )}
         </DialogContent>
