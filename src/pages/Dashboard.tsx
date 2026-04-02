@@ -50,6 +50,24 @@ interface Location {
 const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
 
 const Dashboard = () => {
+  const [searchParams] = useSearchParams();
+  
+  // Route to Business Lite (Personal) dashboard when appropriate
+  const isLiteView = searchParams.get('type') === 'lite';
+  const adminViewPersonalId = searchParams.get('admin_view_personal');
+  
+  if (isLiteView || adminViewPersonalId) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <PersonalDashboard />
+      </Suspense>
+    );
+  }
+
+  return <DashboardBusiness />;
+};
+
+const DashboardBusiness = () => {
   const {
     user,
     loading,
