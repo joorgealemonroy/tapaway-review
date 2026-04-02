@@ -1373,51 +1373,6 @@ Login at: ${window.location.origin}/auth`;
                 Create Another
               </Button>
             </div>
-          ) : accountType === "bigger" ? (
-            /* Bigger Business Form */
-            <div className="space-y-4 py-4">
-              <div>
-                <Label>Business Name *</Label>
-                <Input
-                  placeholder="Reborn Wraps"
-                  value={biggerForm.businessName}
-                  onChange={(e) => setBiggerForm({ ...biggerForm, businessName: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Email *</Label>
-                <Input
-                  type="email"
-                  placeholder="owner@business.com"
-                  value={biggerForm.email}
-                  onChange={(e) => setBiggerForm({ ...biggerForm, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Password *</Label>
-                <Input
-                  type="text"
-                  placeholder="Temporary password"
-                  value={biggerForm.password}
-                  onChange={(e) => setBiggerForm({ ...biggerForm, password: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Min 6 characters. Client should change after first login.</p>
-              </div>
-              <Button
-                onClick={handleCreateBiggerBusiness}
-                disabled={creating}
-                className="w-full mt-4"
-              >
-                {creating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Bigger Business Account"
-                )}
-              </Button>
-            </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
               <TabsList className="grid w-full grid-cols-3">
@@ -1739,29 +1694,6 @@ Login at: ${window.location.origin}/auth`;
                 )}
               </Button>
             </Tabs>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Account Modal */}
-      <Dialog open={showEditModal} onOpenChange={(open) => !open && resetEditModal()}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit @{editingAccount?.username}</DialogTitle>
-            <DialogDescription>
-              Modify profile details, links, and content blocks
-            </DialogDescription>
-          </DialogHeader>
-
-          {editLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="py-4">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="design">Design</TabsTrigger>
           )}
         </DialogContent>
       </Dialog>
