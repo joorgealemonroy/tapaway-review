@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 import { useAuth } from "@/hooks/useAuth";
