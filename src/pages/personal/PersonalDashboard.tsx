@@ -134,7 +134,7 @@ const PersonalDashboard = () => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Admin impersonation mode
-  const adminViewId = searchParams.get("admin_view");
+  const adminViewId = searchParams.get("admin_view_personal") || searchParams.get("admin_view");
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
 

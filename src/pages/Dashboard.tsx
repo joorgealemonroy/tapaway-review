@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, MapPin, Eye, Sun, Moon } from "lucide-react";
+import { ExternalLink, MapPin, Eye, Sun, Moon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
 import { MenuTab } from "@/components/dashboard/MenuTab";
@@ -47,7 +47,27 @@ interface Location {
   name: string;
   custom_slug: string | null;
 }
+const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
+
 const Dashboard = () => {
+  const [searchParams] = useSearchParams();
+  
+  // Route to Business Lite (Personal) dashboard when appropriate
+  const isLiteView = searchParams.get('type') === 'lite';
+  const adminViewPersonalId = searchParams.get('admin_view_personal');
+  
+  if (isLiteView || adminViewPersonalId) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <PersonalDashboard />
+      </Suspense>
+    );
+  }
+
+  return <DashboardBusiness />;
+};
+
+const DashboardBusiness = () => {
   const {
     user,
     loading,
