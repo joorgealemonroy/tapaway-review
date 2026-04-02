@@ -51,7 +51,7 @@ const DashboardSelector = () => {
         return;
       }
       if (hasPersonal && !hasBusiness) {
-        navigate("/dashboard");
+        navigate("/dashboard?type=lite");
         return;
       }
       if (!hasBusiness && !hasPersonal) {
@@ -104,7 +104,7 @@ const DashboardSelector = () => {
             <Button
               variant="outline"
               className="w-full h-auto py-4 px-5 justify-start gap-4 border-2 hover:border-primary hover:bg-primary/5 transition-all"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/dashboard?type=lite")}
             >
               <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary">
                 <User className="w-6 h-6" />

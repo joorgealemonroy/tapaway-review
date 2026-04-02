@@ -25,6 +25,83 @@ import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
 
+const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
+
+const Dashboard = () => {
+  const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+  const [routeDecision, setRouteDecision] = useState<"lite" | "business" | "checking">("checking");
+  
+  // Explicit lite params
+  const isLiteParam = searchParams.get('type') === 'lite';
+  const adminViewPersonalId = searchParams.get('admin_view_personal');
+  // Explicit business params
+  const adminViewId = searchParams.get('admin_view');
+  const demoRestaurantId = searchParams.get('demo_restaurant_id');
+
+  useEffect(() => {
+    // If explicit params, decide immediately
+    if (isLiteParam || adminViewPersonalId) {
+      setRouteDecision("lite");
+      return;
+    }
+    if (adminViewId || demoRestaurantId) {
+      setRouteDecision("business");
+      return;
+    }
+    
+    // Otherwise, check what accounts the user has
+    if (authLoading || !user) return;
+    
+    const decide = async () => {
+      const [restaurantResult, personalResult] = await Promise.all([
+        supabase
+          .from("restaurants")
+          .select("id, onboarding_completed")
+          .eq("owner_id", user.id)
+          .limit(1),
+        supabase
+          .from("personal_profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      
+      const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed);
+      const hasPersonal = !!personalResult.data;
+      
+      if (hasCompletedRestaurant) {
+        setRouteDecision("business");
+      } else if (hasPersonal) {
+        setRouteDecision("lite");
+      } else {
+        // No personal profile — let DashboardBusiness handle onboarding/paywall redirects
+        setRouteDecision("business");
+      }
+    };
+    
+    decide();
+  }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId]);
+
+  if (routeDecision === "checking") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (routeDecision === "lite") {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <PersonalDashboard />
+      </Suspense>
+    );
+  }
+
+  return <DashboardBusiness />;
+};
+
 interface Restaurant {
   id: string;
   restaurant_name: string;
@@ -42,30 +119,11 @@ interface Restaurant {
   google_review_url?: string | null;
   yelp_review_url?: string | null;
 }
-interface Location {
+interface DashboardLocation {
   id: string;
   name: string;
   custom_slug: string | null;
 }
-const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
-
-const Dashboard = () => {
-  const [searchParams] = useSearchParams();
-  
-  // Route to Business Lite (Personal) dashboard when appropriate
-  const isLiteView = searchParams.get('type') === 'lite';
-  const adminViewPersonalId = searchParams.get('admin_view_personal');
-  
-  if (isLiteView || adminViewPersonalId) {
-    return (
-      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-        <PersonalDashboard />
-      </Suspense>
-    );
-  }
-
-  return <DashboardBusiness />;
-};
 
 const DashboardBusiness = () => {
   const {
@@ -87,7 +145,7 @@ const DashboardBusiness = () => {
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<DashboardLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTestAccountFlag, setIsTestAccountFlag] = useState(false);

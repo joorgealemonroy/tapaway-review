@@ -55,7 +55,8 @@ import {
   Mail,
   Send,
   Sparkles,
-  Eye
+  Eye,
+  Building2
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -126,9 +127,12 @@ const AdminPersonalAccounts = () => {
   const [deleting, setDeleting] = useState(false);
 
   // Create account state
+  const [accountType, setAccountType] = useState<"small" | "bigger">("small");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  // Bigger business form
+  const [biggerForm, setBiggerForm] = useState({ businessName: "", email: "", password: "" });
   const [createForm, setCreateForm] = useState({
     email: "",
     fullName: "",
@@ -499,6 +503,7 @@ Login at: ${window.location.origin}/auth`;
 
   const resetCreateModal = () => {
     setShowCreateModal(false);
+    setAccountType("small");
     setActiveTab("basic");
     setCreateForm({
       email: "",
@@ -512,6 +517,7 @@ Login at: ${window.location.origin}/auth`;
       backgroundColor: "#000000",
       pfpPosition: "center",
     });
+    setBiggerForm({ businessName: "", email: "", password: "" });
     setAdminLinks([]);
     setAdminBlocks([]);
     setCreatedCredentials(null);
@@ -520,6 +526,42 @@ Login at: ${window.location.origin}/auth`;
     setProfilePhotoPreview(null);
     setHeaderImageFile(null);
     setHeaderImagePreview(null);
+  };
+
+  const handleCreateBiggerBusiness = async () => {
+    if (!biggerForm.email || !biggerForm.businessName || !biggerForm.password) {
+      toast.error("Business name, email, and password are required");
+      return;
+    }
+    if (biggerForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-legacy-client-account", {
+        body: {
+          email: biggerForm.email,
+          password: biggerForm.password,
+          businessName: biggerForm.businessName,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setCreatedCredentials({
+        email: biggerForm.email,
+        tempPassword: biggerForm.password,
+        profileUrl: "/dashboard",
+        username: biggerForm.businessName,
+      });
+      toast.success(`Bigger Business account created for ${biggerForm.businessName}`);
+    } catch (err: any) {
+      console.error("Create bigger business error:", err);
+      toast.error(err.message || "Failed to create account");
+    } finally {
+      setCreating(false);
+    }
   };
 
   // Edit functions
@@ -1262,15 +1304,39 @@ Login at: ${window.location.origin}/auth`;
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {createdCredentials ? "Account Created!" : "Create Personal Account"}
+              {createdCredentials ? "Account Created!" : "Create Account"}
             </DialogTitle>
             <DialogDescription>
               {createdCredentials 
-                ? "Share these credentials with the influencer" 
-                : "Set up a new TapAway Personal account for an influencer"
+                ? "Share these credentials with the client" 
+                : "Set up a new TapAway account"
               }
             </DialogDescription>
           </DialogHeader>
+
+          {/* Account Type Selector - only show before creation */}
+          {!createdCredentials && (
+            <div className="flex gap-2 pb-2">
+              <Button
+                variant={accountType === "small" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAccountType("small")}
+                className="flex-1 gap-2"
+              >
+                <User className="h-4 w-4" />
+                Small Business
+              </Button>
+              <Button
+                variant={accountType === "bigger" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAccountType("bigger")}
+                className="flex-1 gap-2"
+              >
+                <Building2 className="h-4 w-4" />
+                Bigger Business
+              </Button>
+            </div>
+          )}
 
           {createdCredentials ? (
             <div className="space-y-4 py-4">
@@ -1305,6 +1371,51 @@ Login at: ${window.location.origin}/auth`;
 
               <Button variant="outline" onClick={resetCreateModal} className="w-full">
                 Create Another
+              </Button>
+            </div>
+          ) : accountType === "bigger" ? (
+            /* Bigger Business Form */
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Business Name *</Label>
+                <Input
+                  placeholder="Reborn Wraps"
+                  value={biggerForm.businessName}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, businessName: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  placeholder="owner@business.com"
+                  value={biggerForm.email}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input
+                  type="text"
+                  placeholder="Temporary password"
+                  value={biggerForm.password}
+                  onChange={(e) => setBiggerForm({ ...biggerForm, password: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Min 6 characters. Client should change after first login.</p>
+              </div>
+              <Button
+                onClick={handleCreateBiggerBusiness}
+                disabled={creating}
+                className="w-full mt-4"
+              >
+                {creating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Bigger Business Account"
+                )}
               </Button>
             </div>
           ) : (
