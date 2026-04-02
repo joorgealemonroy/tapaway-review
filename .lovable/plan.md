@@ -1,42 +1,36 @@
 
 
-# Fix Dashboard Routing & Add Account Type Selection in Admin
+# Fix: Reborn Wraps Dashboard Routing
 
 ## Problem
 
-There are two interrelated issues:
+The `decide()` function in `Dashboard.tsx` (lines 56-83) runs two parallel queries and routes based on results. However, there are two failure modes:
 
-1. **Dashboard routing**: When a personal-only user (like Reborn Wraps) hits `/dashboard`, the `DashboardBusiness` component runs, queries the `restaurants` table, finds nothing, and then does a late redirect to `/dashboard?type=lite`. This causes a flash of the wrong dashboard. The same issue affects admin impersonation — `admin_view` always queries restaurants.
+1. **Race condition / fallback to business**: If the personal_profiles query returns no data (RLS issue, timing), the default fallback at line 77-79 sends the user to `DashboardBusiness`, which then queries restaurants, finds nothing, and either redirects to paywall or onboarding.
 
-2. **Admin account creation**: The admin create modal only creates Small Business (personal_profiles) accounts. There's no option to create a Bigger Business (restaurant) account from the same flow.
+2. **DashboardBusiness still has its own personal-profile fallback**: At line 440-449, `DashboardBusiness.fetchRestaurant()` does a late `navigate("/dashboard?type=lite")` redirect — causing a full re-render cycle and potential loops.
+
+3. **PersonalDashboard redirects to `/start` on missing profile** (line 208-211), which goes to `/onboarding` — wrong for a user who already has an account.
 
 ## Solution
 
-### Part 1: Fix Dashboard routing for personal-only users
+### 1. `src/pages/Dashboard.tsx` — Strengthen the `decide()` fallback
 
-**`src/pages/Dashboard.tsx`** — Change the `DashboardBusiness` component's `fetchRestaurant` logic. Instead of querying restaurants first and only falling back to personal profiles at line 383, **check for personal profile in parallel with restaurants** at the start. If user has only a personal profile (no completed restaurant), immediately redirect to `?type=lite` before any Business Plus UI renders.
+Change the fallback at line 77-79: instead of defaulting to `"business"` when neither account is found, **default to `"lite"`** for users who have no restaurant. Only route to `"business"` if a restaurant actually exists (completed or not). This prevents personal-only users from ever hitting `DashboardBusiness`.
 
-Better yet: move the personal-profile check **into the top-level `Dashboard` wrapper** (lines 52-68). Before rendering `DashboardBusiness`, check if the user has a restaurant at all. If not, render `PersonalDashboard` directly — no redirect needed.
+Also add error handling: if the personal_profiles query errors, retry once before giving up.
 
-**`src/hooks/useAuth.tsx`** — When a personal-only user signs in (line 124), navigate to `/dashboard?type=lite` instead of `/dashboard` so the lite view loads immediately.
+### 2. `src/pages/Dashboard.tsx` — Remove the redundant personal-profile check in `DashboardBusiness`
 
-**`src/pages/DashboardSelector.tsx`** — When user clicks "Small Business Dashboard" (line 107), navigate to `/dashboard?type=lite` instead of `/dashboard`.
+Remove lines 440-449 (the `navigate("/dashboard?type=lite")` fallback inside `fetchRestaurant`). The top-level `decide()` already handles this — having it in both places causes redirect loops and flash of wrong UI.
 
-**`src/components/dashboard/DashboardSwitcher.tsx`** — When switching from Business to Small Business, navigate to `/dashboard?type=lite`. When switching from Small Business to Business, navigate to `/dashboard` (no param).
+Replace with a simple redirect to `/paywall` since if a user reaches `DashboardBusiness` without a restaurant, they genuinely need to onboard.
 
-**`src/pages/PaywallGuard.tsx`** — When redirecting personal users away from paywall (line 78), use `/dashboard?type=lite`.
+### 3. `src/pages/personal/PersonalDashboard.tsx` — Fix the no-profile redirect
 
-### Part 2: Add "Bigger Business" option to admin create modal
-
-**`src/pages/admin/AdminPersonalAccounts.tsx`** — Add an "Account Type" selector at the top of the create form with two options: "Small Business" (personal_profiles) and "Bigger Business" (restaurants). When "Bigger Business" is selected, show a simplified form (business name, email, password) and call `create-legacy-client-account` instead of `create-personal-account`. Update the page title/description to be account-type-aware.
-
-**`src/pages/Admin.tsx`** — The existing legacy client creation form on the main admin page can remain as-is for backward compatibility.
+Change line 210 from `navigate("/start")` to `navigate("/paywall")` — a user who has no personal profile shouldn't be sent to business onboarding. They should see the paywall to choose an account type.
 
 ## Files modified
-1. `src/pages/Dashboard.tsx` — Early personal-profile detection in wrapper
-2. `src/hooks/useAuth.tsx` — Route personal-only users to `?type=lite`
-3. `src/pages/DashboardSelector.tsx` — Small Business button uses `?type=lite`
-4. `src/components/dashboard/DashboardSwitcher.tsx` — Correct switch targets
-5. `src/pages/PaywallGuard.tsx` — Personal redirect uses `?type=lite`
-6. `src/pages/admin/AdminPersonalAccounts.tsx` — Add account type toggle in create modal
+1. `src/pages/Dashboard.tsx` — Fix decide() fallback logic, remove redundant personal check in DashboardBusiness
+2. `src/pages/personal/PersonalDashboard.tsx` — Fix no-profile redirect destination
 
