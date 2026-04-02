@@ -47,6 +47,8 @@ interface Location {
   name: string;
   custom_slug: string | null;
 }
+const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
+
 const Dashboard = () => {
   const {
     user,
