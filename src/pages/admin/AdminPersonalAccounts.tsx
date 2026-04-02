@@ -1304,15 +1304,39 @@ Login at: ${window.location.origin}/auth`;
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {createdCredentials ? "Account Created!" : "Create Personal Account"}
+              {createdCredentials ? "Account Created!" : "Create Account"}
             </DialogTitle>
             <DialogDescription>
               {createdCredentials 
-                ? "Share these credentials with the influencer" 
-                : "Set up a new TapAway Personal account for an influencer"
+                ? "Share these credentials with the client" 
+                : "Set up a new TapAway account"
               }
             </DialogDescription>
           </DialogHeader>
+
+          {/* Account Type Selector - only show before creation */}
+          {!createdCredentials && (
+            <div className="flex gap-2 pb-2">
+              <Button
+                variant={accountType === "small" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAccountType("small")}
+                className="flex-1 gap-2"
+              >
+                <User className="h-4 w-4" />
+                Small Business
+              </Button>
+              <Button
+                variant={accountType === "bigger" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAccountType("bigger")}
+                className="flex-1 gap-2"
+              >
+                <Building2 className="h-4 w-4" />
+                Bigger Business
+              </Button>
+            </div>
+          )}
 
           {createdCredentials ? (
             <div className="space-y-4 py-4">
