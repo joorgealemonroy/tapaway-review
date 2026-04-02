@@ -126,9 +126,12 @@ const AdminPersonalAccounts = () => {
   const [deleting, setDeleting] = useState(false);
 
   // Create account state
+  const [accountType, setAccountType] = useState<"small" | "bigger">("small");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  // Bigger business form
+  const [biggerForm, setBiggerForm] = useState({ businessName: "", email: "", password: "" });
   const [createForm, setCreateForm] = useState({
     email: "",
     fullName: "",
