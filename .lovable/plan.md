@@ -1,42 +1,41 @@
 
 
-# Pixel-Perfect Card Front Redesign
+# Fix: Reborn Wraps Shows Wrong Dashboard (Business Plus Instead of Business Lite)
 
-## Summary
-Refactor the `CardFront` component in `CardCustomizer.tsx` to match the target design with precise proportions, a dominant logo circle, properly weighted typography, and bold bottom icons.
+## Problem
+The admin view link for personal accounts (`/dashboard?admin_view=ID`) loads the Business Plus (restaurant) dashboard because `Dashboard.tsx` always queries the `restaurants` table for `admin_view`. Personal accounts like Reborn Wraps exist in `personal_profiles`, not `restaurants`, so they get a "Restaurant not found" error or the wrong UI.
 
-## Changes to `src/components/onboarding/CardCustomizer.tsx`
+Additionally, the `?type=lite` redirect for regular personal-only users is broken — `Dashboard.tsx` never consumes this param to render `PersonalDashboard`.
 
-### CardFront rewrite
+## Solution
 
-**Container:**
-- Replace inline `width`/`aspectRatio` style with `w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200`
-- Inner content: `flex flex-col items-center justify-between h-full text-center p-6`
-- Keep the 3D perspective transform
+### 1. `src/pages/Dashboard.tsx` — Conditionally render PersonalDashboard
 
-**Top Section (Stars & Text):**
-- Stars: `w-6 h-6` each, `fill-yellow-400 text-yellow-400`, container `flex space-x-1`
-- Headline: `text-lg font-normal text-gray-800 leading-snug mt-3` — remove `font-semibold`
-- Sub-headline: `text-sm font-normal text-gray-800 mt-1` — change from `text-slate-500 text-[9px]`
+At the top of the component, check for two conditions that should render the Business Lite (personal) dashboard:
+- `?type=lite` search param (regular personal-only users)
+- `?admin_view_personal=<profile_id>` search param (admin impersonation of personal accounts)
 
-**Center Logo Circle:**
-- Increase from `w-[55%]` to a dominant `w-48 h-48` with `bg-[#707070]` (darker grey)
-- Add `my-auto flex-shrink-0`
-- Placeholder text: `text-white font-black text-3xl leading-none tracking-tight` showing YOUR / LOGO / HERE
+If either is present, import and render `PersonalDashboard` directly, passing through the search params. This avoids the restaurant query entirely.
 
-**Bottom Icons Section:**
-- Container: `flex items-center justify-center w-full h-16 mb-4`
-- NFC icon: Replace the small Smartphone+circle combo with larger `Smartphone` + `Wifi` icons at `w-16 h-16`, colored `text-black`
-- Divider: `h-full w-px bg-black mx-4` (darker, taller)
-- QR icon: `QrCode` at `w-16 h-16 text-black`
+### 2. `src/pages/admin/AdminPersonalAccounts.tsx` — Fix admin view link
 
-**Footer:**
-- `font-black text-xs text-black pb-2 tracking-wide` — bolder and darker
+Change the navigation from:
+```
+/dashboard?admin_view=${account.id}
+```
+to:
+```
+/dashboard?admin_view_personal=${account.id}
+```
 
-### CardBack — minor alignment
-- Match the larger logo circle style (`w-36 h-36 bg-[#707070]`) for consistency
-- Same darker footer styling
+This ensures `Dashboard.tsx` knows to render the personal dashboard with admin impersonation.
 
-## File modified
-1. `src/components/onboarding/CardCustomizer.tsx`
+### 3. `src/pages/personal/PersonalDashboard.tsx` — Support `admin_view_personal` param
+
+Update the admin view detection to also check for `admin_view_personal` search param (in addition to existing `admin_view`), so both param names work.
+
+## Files modified
+1. `src/pages/Dashboard.tsx` — detect `type=lite` and `admin_view_personal`, render PersonalDashboard
+2. `src/pages/admin/AdminPersonalAccounts.tsx` — change admin view link param name
+3. `src/pages/personal/PersonalDashboard.tsx` — support `admin_view_personal` param
 
