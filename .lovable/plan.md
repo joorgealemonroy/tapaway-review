@@ -1,36 +1,80 @@
 
 
-# Fix: Reborn Wraps Dashboard Routing
+# Simplify Post-Login Routing to Use `decide()` Only
 
 ## Problem
 
-The `decide()` function in `Dashboard.tsx` (lines 56-83) runs two parallel queries and routes based on results. However, there are two failure modes:
+The `signIn` function in `useAuth.tsx` duplicates the dashboard routing logic: it queries `restaurants`, `personal_profiles`, and `affiliates`, then navigates to specific routes (`/dashboard?type=lite`, `/select-dashboard`, `/paywall`, `/onboarding`). This bypasses the `decide()` function in `Dashboard.tsx` which already handles this correctly.
 
-1. **Race condition / fallback to business**: If the personal_profiles query returns no data (RLS issue, timing), the default fallback at line 77-79 sends the user to `DashboardBusiness`, which then queries restaurants, finds nothing, and either redirects to paywall or onboarding.
-
-2. **DashboardBusiness still has its own personal-profile fallback**: At line 440-449, `DashboardBusiness.fetchRestaurant()` does a late `navigate("/dashboard?type=lite")` redirect — causing a full re-render cycle and potential loops.
-
-3. **PersonalDashboard redirects to `/start` on missing profile** (line 208-211), which goes to `/onboarding` — wrong for a user who already has an account.
+This means any fix to `decide()` has no effect on the login flow — there are two competing routers.
 
 ## Solution
 
-### 1. `src/pages/Dashboard.tsx` — Strengthen the `decide()` fallback
+### `src/hooks/useAuth.tsx` — Simplify `signIn` routing
 
-Change the fallback at line 77-79: instead of defaulting to `"business"` when neither account is found, **default to `"lite"`** for users who have no restaurant. Only route to `"business"` if a restaurant actually exists (completed or not). This prevents personal-only users from ever hitting `DashboardBusiness`.
+Replace the entire "Normal users" block (lines 89-137) with a single `navigate("/dashboard")`. The `decide()` function in `Dashboard.tsx` will handle all routing from there.
 
-Also add error handling: if the personal_profiles query errors, retry once before giving up.
+Keep only the special-case routes that `Dashboard.tsx` cannot handle:
+- Super admin → `/admin`
+- Test accounts → `/admin`
+- Affiliate-only users (no business or personal account) → `/affiliate`
 
-### 2. `src/pages/Dashboard.tsx` — Remove the redundant personal-profile check in `DashboardBusiness`
+For affiliates, we still need a quick check since `/dashboard` doesn't know about affiliate-only users. But all business vs personal routing should be delegated to `decide()`.
 
-Remove lines 440-449 (the `navigate("/dashboard?type=lite")` fallback inside `fetchRestaurant`). The top-level `decide()` already handles this — having it in both places causes redirect loops and flash of wrong UI.
+**Before:**
+```tsx
+// 50+ lines of duplicated routing logic
+const [restaurantResult, personalResult, affiliateResult] = await Promise.all([...]);
+if (hasValidBusiness && hasPersonal) navigate("/select-dashboard");
+else if (hasValidBusiness) navigate("/dashboard");
+else if (hasPersonal) navigate("/dashboard?type=lite");
+else if (isAffiliate) navigate("/affiliate");
+else if (restaurant && !isSubscriptionAllowed(...)) navigate("/paywall");
+else if (restaurant && !restaurant.onboarding_completed) navigate("/onboarding");
+else navigate("/paywall");
+```
 
-Replace with a simple redirect to `/paywall` since if a user reaches `DashboardBusiness` without a restaurant, they genuinely need to onboard.
+**After:**
+```tsx
+// Only check for affiliate (Dashboard.tsx can't handle this)
+const { data: affiliate } = await supabase
+  .from("affiliates")
+  .select("id")
+  .eq("user_id", data.user?.id)
+  .eq("is_active", true)
+  .maybeSingle();
 
-### 3. `src/pages/personal/PersonalDashboard.tsx` — Fix the no-profile redirect
+if (affiliate) {
+  // Check if they also have a dashboard account
+  const { data: personal } = await supabase
+    .from("personal_profiles")
+    .select("id")
+    .eq("user_id", data.user?.id)
+    .maybeSingle();
+  const { data: restaurants } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("owner_id", data.user?.id)
+    .limit(1);
+  
+  if (!personal && (!restaurants || restaurants.length === 0)) {
+    navigate("/affiliate");
+    return { error: null };
+  }
+}
 
-Change line 210 from `navigate("/start")` to `navigate("/paywall")` — a user who has no personal profile shouldn't be sent to business onboarding. They should see the paywall to choose an account type.
+// Let Dashboard.tsx decide() handle all routing
+navigate("/dashboard");
+```
+
+### `src/pages/Dashboard.tsx` — No changes needed
+
+The `decide()` function already handles: completed restaurant → business, personal profile → lite, incomplete restaurant → business (onboarding), nothing → lite fallback. It also handles paywall-blocked users via `DashboardBusiness` internals.
+
+### `src/pages/Auth.tsx` — Verify `redirectTo`
+
+Line 50 already defaults to `/dashboard`: `const redirectTo = searchParams.get("redirect") || "/dashboard"`. This is correct — no changes needed.
 
 ## Files modified
-1. `src/pages/Dashboard.tsx` — Fix decide() fallback logic, remove redundant personal check in DashboardBusiness
-2. `src/pages/personal/PersonalDashboard.tsx` — Fix no-profile redirect destination
+1. `src/hooks/useAuth.tsx` — Replace duplicated routing with single `navigate("/dashboard")`
 
