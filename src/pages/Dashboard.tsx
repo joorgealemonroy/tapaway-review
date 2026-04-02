@@ -102,6 +102,29 @@ const Dashboard = () => {
   return <DashboardBusiness />;
 };
 
+interface Restaurant {
+  id: string;
+  restaurant_name: string;
+  custom_slug: string | null;
+  stripe_portal_url: string | null;
+  subscription_status: string | null;
+  plan_type: string | null;
+  next_billing_date: string | null;
+  type?: string | null;
+  greeting_name?: string | null;
+  total_taps?: number;
+  is_demo_account?: boolean;
+  created_at?: string;
+  menu_image_url?: string | null;
+  google_review_url?: string | null;
+  yelp_review_url?: string | null;
+}
+interface DashboardLocation {
+  id: string;
+  name: string;
+  custom_slug: string | null;
+}
+
 const DashboardBusiness = () => {
   const {
     user,
