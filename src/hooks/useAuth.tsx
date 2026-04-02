@@ -87,54 +87,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       navigate("/admin");
     } else {
-      // Normal users: check for both business and personal accounts
-      const [restaurantResult, personalResult, affiliateResult] = await Promise.all([
-        supabase
-          .from("restaurants")
-          .select("onboarding_completed, subscription_status")
-          .eq("owner_id", data.user?.id)
-          .maybeSingle(),
-        supabase
-          .from("personal_profiles")
-          .select("id")
-          .eq("user_id", data.user?.id)
-          .maybeSingle(),
-        supabase
-          .from("affiliates")
-          .select("id")
-          .eq("user_id", data.user?.id)
-          .eq("is_active", true)
-          .maybeSingle(),
-      ]);
+      // Check if affiliate-only (no dashboard account)
+      const { data: affiliate } = await supabase
+        .from("affiliates")
+        .select("id")
+        .eq("user_id", data.user?.id)
+        .eq("is_active", true)
+        .maybeSingle();
 
-      const restaurant = restaurantResult.data;
-      const personal = personalResult.data;
-      const isAffiliate = !!affiliateResult.data;
-      
-      const hasValidBusiness = restaurant && 
-        isSubscriptionAllowed(restaurant.subscription_status) && 
-        restaurant.onboarding_completed;
-      const hasPersonal = !!personal;
+      if (affiliate) {
+        const [personalResult, restaurantResult] = await Promise.all([
+          supabase
+            .from("personal_profiles")
+            .select("id")
+            .eq("user_id", data.user?.id)
+            .maybeSingle(),
+          supabase
+            .from("restaurants")
+            .select("id")
+            .eq("owner_id", data.user?.id)
+            .limit(1),
+        ]);
 
-      // If user has both, let them choose
-      if (hasValidBusiness && hasPersonal) {
-        navigate("/select-dashboard");
-      } else if (hasValidBusiness) {
-        navigate("/dashboard");
-      } else if (hasPersonal) {
-        navigate("/dashboard?type=lite");
-      } else if (isAffiliate) {
-        navigate("/affiliate");
-      } else if (restaurant && !isSubscriptionAllowed(restaurant.subscription_status)) {
-        // Has restaurant but blocked subscription
-        navigate("/paywall");
-      } else if (restaurant && !restaurant.onboarding_completed) {
-        // Has restaurant but incomplete onboarding
-        navigate("/onboarding");
-      } else {
-        // No accounts at all
-        navigate("/paywall");
+        if (!personalResult.data && (!restaurantResult.data || restaurantResult.data.length === 0)) {
+          navigate("/affiliate");
+          return { error: null };
+        }
       }
+
+      // Let Dashboard.tsx decide() handle all business vs personal routing
+      navigate("/dashboard");
     }
 
     return { error: null };
