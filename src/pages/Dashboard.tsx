@@ -442,18 +442,8 @@ const DashboardBusiness = () => {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
-     // Check if user has a personal profile before redirecting to paywall
-     const { data: personalProfile } = await supabase
-       .from("personal_profiles")
-       .select("id")
-       .eq("user_id", user?.id ?? '')
-       .maybeSingle();
-
-      if (personalProfile) {
-        console.log('[Dashboard] User has personal profile, loading Business Lite dashboard');
-        navigate("/dashboard?type=lite");
-     } else {
-       // Regular user without restaurant or personal profile - redirect to paywall
+      // No restaurant found — redirect to paywall (top-level decide() handles personal routing)
+      {
        console.log('[Dashboard] User has no restaurant or personal profile, redirecting to paywall');
        navigate("/paywall");
      }
