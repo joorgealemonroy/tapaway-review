@@ -70,13 +70,18 @@ const Dashboard = () => {
       const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed);
       const hasPersonal = !!personalResult.data;
       
+      const hasAnyRestaurant = (restaurantResult.data?.length ?? 0) > 0;
+      
       if (hasCompletedRestaurant) {
         setRouteDecision("business");
       } else if (hasPersonal) {
         setRouteDecision("lite");
-      } else {
-        // No personal profile — let DashboardBusiness handle onboarding/paywall redirects
+      } else if (hasAnyRestaurant) {
+        // Has restaurant but not completed — let DashboardBusiness handle onboarding
         setRouteDecision("business");
+      } else {
+        // No restaurant at all — default to lite (prevents wrong dashboard flash)
+        setRouteDecision("lite");
       }
     };
     
@@ -437,21 +442,9 @@ const DashboardBusiness = () => {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
-     // Check if user has a personal profile before redirecting to paywall
-     const { data: personalProfile } = await supabase
-       .from("personal_profiles")
-       .select("id")
-       .eq("user_id", user?.id ?? '')
-       .maybeSingle();
-
-      if (personalProfile) {
-        console.log('[Dashboard] User has personal profile, loading Business Lite dashboard');
-        navigate("/dashboard?type=lite");
-     } else {
-       // Regular user without restaurant or personal profile - redirect to paywall
-       console.log('[Dashboard] User has no restaurant or personal profile, redirecting to paywall');
-       navigate("/paywall");
-     }
+      // No restaurant found — redirect to paywall (top-level decide() handles personal routing)
+      console.log('[Dashboard] User has no restaurant, redirecting to paywall');
+      navigate("/paywall");
     }
   };
   const fetchLocations = async (restaurantId: string) => {

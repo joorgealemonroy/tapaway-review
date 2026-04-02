@@ -206,8 +206,8 @@ const PersonalDashboard = () => {
         .single();
 
       if (profileError || !profileData) {
-        // User is authenticated but has no profile - redirect to business onboarding
-        navigate("/start");
+        // User is authenticated but has no profile - redirect to paywall to choose account type
+        navigate("/paywall");
         return;
       }
 
