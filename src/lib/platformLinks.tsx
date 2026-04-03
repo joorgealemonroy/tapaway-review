@@ -5,8 +5,10 @@ import {
   Mail, 
   DollarSign, 
   Music,
+  Star,
   LucideIcon
 } from "lucide-react";
+import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 
 // X icon
 export const XIcon = ({ className }: { className?: string }) => (
