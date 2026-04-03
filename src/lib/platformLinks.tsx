@@ -203,7 +203,7 @@ export const PLATFORM_COLORS = {
   applemusic: "#FC3C44",
   website: "#475569",
   email: "#64748b",
-  onlyfans: "#00AFF0",
+  google_review: "#4285F4",
   telegram: "#0088CC",
   linkedin: "#0A66C2",
   facebook: "#1877F2",
