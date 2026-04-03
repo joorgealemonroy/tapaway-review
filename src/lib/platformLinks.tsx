@@ -592,7 +592,7 @@ export const detectPlatformFromUrl = (url: string): string | null => {
   if (urlLower.includes("pinterest.com")) return "pinterest";
   if (urlLower.includes("wa.me") || urlLower.includes("whatsapp.com")) return "whatsapp";
   if (urlLower.includes("t.me") || urlLower.includes("telegram.me")) return "telegram";
-  if (urlLower.includes("onlyfans.com")) return "onlyfans";
+  if (urlLower.includes("search.google.com/local/writereview")) return "google_review";
   if (urlLower.includes("venmo.com")) return "venmo";
   if (urlLower.includes("cash.app")) return "cashapp";
   if (urlLower.includes("paypal.me") || urlLower.includes("paypal.com")) return "paypal";
