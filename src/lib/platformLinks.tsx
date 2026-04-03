@@ -401,18 +401,21 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     bgColor: "bg-[#0088CC]",
   },
   {
-    type: "onlyfans",
-    label: "OnlyFans",
-    icon: OnlyFansIcon,
-    inputType: "handle",
-    placeholder: "yourname",
+    type: "google_review",
+    label: "Google Review",
+    icon: GoogleIcon,
+    inputType: "url",
+    placeholder: "Place ID (ChIJ...) or Google Review URL",
     generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?onlyfans\.com\//, "").split("/")[0];
-      return `https://onlyfans.com/${clean}`;
+      const url = buildGoogleReviewUrl(v);
+      return url || v;
     },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?onlyfans\.com\//, "").split("/")[0] || "",
+    extractValue: (url) => {
+      const placeId = normalizeGooglePlaceId(url);
+      return placeId || url;
+    },
     color: "text-white",
-    bgColor: "bg-[#00AFF0]",
+    bgColor: "bg-[#4285F4]",
   },
   {
     type: "website",
