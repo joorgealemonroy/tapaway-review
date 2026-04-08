@@ -57,8 +57,8 @@ serve(async (req) => {
       });
     }
 
-    // Verify payment was successful
-    if (session.payment_status !== 'paid') {
+    // Verify payment was successful (trials with $0 due return 'no_payment_required')
+    if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
       console.error('[verify-checkout] Payment not completed:', session.payment_status);
       return new Response(JSON.stringify({ error: 'Payment not completed' }), {
         status: 400,
