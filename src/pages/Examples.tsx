@@ -172,7 +172,7 @@ const Examples = () => {
                 <Callout title="Digital Menu" desc="Customers browse the full menu right from their phone, no PDF or app needed." />
                 <Callout title="Directions" desc="Opens Google Maps with the exact location — great for new customers." />
                 <Callout title="Social Media" desc="Grow your Instagram following effortlessly." />
-                <Callout title="NFC or QR" desc="Works with our NFC cards or a simple QR code at the register." />
+                <Callout title="NFC & Link" desc="Works with our NFC cards or custom link in bio." />
               </div>
             </div>
           </TabsContent>
