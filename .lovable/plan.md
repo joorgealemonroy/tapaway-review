@@ -1,38 +1,41 @@
 
 
-# Add Stripe Checkout After OAuth in Onboarding
+# Dynamic Stripe Pricing for Solo Pro vs Venue Pack
 
 ## Summary
-After the user signs in via OAuth ("Start My Free Trial"), redirect them to Stripe Checkout to put a card on file. Once Stripe confirms payment/trial setup, redirect back to complete onboarding and land on the dashboard.
+Update the `create-checkout-session` edge function to dynamically create Stripe products and prices based on the user's plan selection, rather than using a single hardcoded price ID. This ensures each customer is charged the correct amount with the correct trial period.
 
-## Current Flow
-OAuth → Create restaurant in DB → Show success screen → Dashboard
+## Pricing Matrix
 
-## New Flow
-OAuth → Create restaurant in DB → Redirect to Stripe Checkout (card on file, $0 trial) → Stripe redirects back to `/onboarding?session_id=...` → Verify checkout & update restaurant with Stripe IDs → Navigate to dashboard
+```text
+Plan             Base    + Protection   Trial (total)
+─────────────────────────────────────────────────────
+Solo Pro         $15/mo   $20/mo        14 days (7 + 7 shipping)
+Venue Pack       $39/mo   $44/mo        21 days (14 + 7 shipping)
+```
 
 ## Changes
 
-### 1. `src/pages/Onboarding.tsx`
-- In the post-OAuth `completeSetup` function (around line 177–286), after creating the restaurant record and before showing success:
-  - Call `create-checkout-session` edge function with user email, userId, restaurantId, planType, and hasProtection
-  - Redirect the browser to the returned Stripe checkout URL (`window.location.href = url`)
-- Add handling for returning from Stripe: detect `session_id` in URL search params
-  - When `session_id` is present, call `verify-checkout` to confirm payment and update restaurant with Stripe customer/subscription IDs
-  - Then mark onboarding complete, show success, and navigate to dashboard
-- Remove the current "immediate success" flow that skips Stripe entirely
+### 1. `supabase/functions/create-checkout-session/index.ts`
+- Remove the hardcoded `TRIAL_PRICE_ID` constant and the safety check that blocks other price IDs.
+- Use the Stripe API to find-or-create products and prices dynamically:
+  - Search for an existing product by metadata (`plan_type=solo` or `plan_type=venue`). If not found, create it.
+  - Search for a matching recurring monthly price on that product. If not found, create it.
+- Build `line_items` array:
+  - Always include the base plan price (Solo $15 or Venue $39).
+  - If `hasProtection` is true, add a second line item for the $5/mo Loss Protection add-on (also found-or-created dynamically).
+- Set `trial_period_days` correctly: 14 for solo, 21 for venue.
+- Pass `plan_type`, `has_protection`, and all IDs in session metadata for downstream fulfillment.
 
-### 2. `supabase/functions/create-checkout-session/index.ts`
-- Update `success_url` to include the restaurant ID so verify-checkout can link them
-- Ensure trial days match the plan selection (already does: solo=14, venue=21)
-- Keep the existing `TRIAL_PRICE_ID` — this already creates a $0 trial with card required
+### 2. `src/pages/Onboarding.tsx`
+- Ensure the `completeSetup` function passes `planType` and `hasProtection` from state to the edge function (already does this — just verify).
+- Update the success URL handling to work without a fixed `price_id` param (use plan_type from metadata instead).
 
-### 3. No new edge functions needed
-- `create-checkout-session` already handles trial creation with card on file
-- `verify-checkout` already handles verifying the session and updating the restaurant record
+### 3. No new tables or migrations needed
+The `restaurants` table already has `plan_type` and `has_loss_protection` columns.
 
 ## Technical Notes
-- The Stripe checkout page collects the card and shipping address, so the shipping address field in step 3 could become optional (Stripe collects it)
-- `verify-checkout` already creates fulfillment orders from Stripe shipping details
-- The `payment_status` check in verify-checkout may need to also accept `'no_payment_required'` since trials with $0 due may return that status
+- Dynamic price creation uses `stripe.products.search` and `stripe.prices.list` to avoid creating duplicate products/prices on every checkout.
+- All prices are created as `recurring: { interval: 'month' }` with `currency: 'usd'`.
+- The protection add-on is a separate line item so it appears clearly on the Stripe invoice.
 
