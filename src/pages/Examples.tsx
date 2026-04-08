@@ -170,7 +170,7 @@ const Examples = () => {
                 <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what customers experience.</p>
                 <Callout title="Google & Yelp Reviews" desc="One tap sends customers straight to the review page — no searching required." />
                 <Callout title="Digital Menu" desc="Customers browse the full menu right from their phone, no PDF or app needed." />
-                <Callout title="Directions" desc="Opens Google Maps with the exact location — great for new customers." />
+                <Callout title="Directions" desc="Opens Apple Maps with the exact location — great for new customers." />
                 <Callout title="Social Media" desc="Grow your Instagram following effortlessly." />
                 <Callout title="NFC & Link" desc="Works with our NFC cards or custom link in bio." />
               </div>
