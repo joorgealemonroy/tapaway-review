@@ -1,34 +1,21 @@
 
 
-# Replace Mockups with Live Iframes on /examples
+# Zoom Out the Phone Frame Iframes
 
-## What changes
+## Problem
+The phone frames are too narrow (280–300px wide, 520px tall), making the embedded pages look cramped/compacted.
 
-Replace the fake phone mockups on the Examples page with live iframes of real TapAway pages, with static fallbacks if they fail to load.
+## Solution
+Increase the phone frame dimensions and use CSS `transform: scale()` on the iframe to render the page at a larger internal resolution, then scale it down to fit the frame — giving a "zoomed out" effect that shows more content.
 
-- **Restaurant tab**: Iframe loads `/lasislassalem` (Las Islas – Salem, a restaurant hub)
-- **Small Business tab**: Iframe loads `/rebornwraps` (Reborn Wraps, a personal profile)
+## Technical details
 
-### Implementation
+**`src/pages/Examples.tsx`** — Update the `LivePhoneFrame` component:
 
-**`src/pages/Examples.tsx`** — Major rewrite:
+1. **Widen the phone frame**: Change from `w-[280px] sm:w-[300px]` to `w-[320px] sm:w-[340px]`
+2. **Increase frame height**: Change from `height: 520` to `height: 600`
+3. **Scale the iframe down**: Render the iframe at a larger internal size (e.g. 430px wide × 860px tall) and apply `transform: scale(0.78)` with `transform-origin: top left` so the content appears zoomed out but fits within the frame
+4. **Update fallback height** to match the new frame height
 
-1. **Remove** the `MockButton` component, `sampleMenu` data, and the menu `Dialog` modal — the real pages handle all of that
-2. **Add** a `LivePhoneFrame` component that:
-   - Renders an `<iframe src="/{slug}">` inside the phone bezel
-   - Shows a loading spinner while the iframe loads
-   - Uses `onLoad`/`onError` + a 5-second timeout to detect failures
-   - If the iframe fails, swaps to a static fallback (the existing mockup buttons as they are now)
-3. **Update** the feature callouts to reference the real business names:
-   - Restaurant callouts reference "Las Islas" instead of "Maria's Taqueria"
-   - Small Business callouts reference "Reborn Wraps" (already correct)
-4. **Keep** the accordion, CTA section, sticky call bar, and page structure unchanged
-
-### Iframe sizing
-- Phone frame stays at 280–300px wide
-- Iframe fills the frame with `width: 100%; height: 100%; border: none`
-- `pointer-events: auto` so visitors can interact with the real page inside the frame
-
-## Files modified
-1. `src/pages/Examples.tsx` — Replace mockup content with live iframes + fallback logic, update business names
+This approach makes the embedded pages render as if on a wider screen, then scales the result down to fit the phone bezel — showing more content without scrolling.
 
