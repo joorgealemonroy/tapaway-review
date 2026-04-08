@@ -1,54 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, Star, MapPin, Instagram, Globe, Calendar, ChevronRight, Utensils, MessageSquare } from "lucide-react";
+import { Phone, Star, MapPin, Instagram, Globe, Calendar, ChevronRight, Utensils, Loader2 } from "lucide-react";
 
 const PHONE_NUMBER = "(858) 207-8106";
 const PHONE_TEL = "tel:+18582078106";
-
-/* ── Sample menu for restaurant mockup ── */
-const sampleMenu = [
-  { section: "Tacos", items: ["Carne Asada — $4.50", "Al Pastor — $4.00", "Carnitas — $4.00", "Fish Taco — $5.00"] },
-  { section: "Burritos", items: ["California Burrito — $12.00", "Bean & Cheese — $8.00", "Surf & Turf — $14.00"] },
-  { section: "Drinks", items: ["Horchata — $3.50", "Jamaica — $3.50", "Mexican Coke — $3.00"] },
-];
-
-/* ── Phone mockup wrapper ── */
-const PhoneMockup = ({ children }: { children: React.ReactNode }) => (
-  <div className="mx-auto w-[280px] sm:w-[300px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
-    {/* Notch */}
-    <div className="mx-auto mt-2 h-5 w-28 rounded-full bg-foreground/80" />
-    <div className="px-4 py-4 space-y-3 min-h-[520px]">{children}</div>
-    {/* Home indicator */}
-    <div className="mx-auto mb-2 h-1 w-28 rounded-full bg-foreground/30" />
-  </div>
-);
-
-/* ── Mock link button inside phone ── */
-const MockButton = ({
-  icon: Icon,
-  label,
-  color = "bg-primary",
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color?: string;
-  onClick?: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white transition-transform active:scale-95 ${color}`}
-  >
-    <Icon className="h-5 w-5 shrink-0" />
-    <span className="flex-1 text-left">{label}</span>
-    <ChevronRight className="h-4 w-4 opacity-60" />
-  </button>
-);
 
 /* ── Feature callout bullet ── */
 const Callout = ({ title, desc }: { title: string; desc: string }) => (
@@ -61,11 +20,113 @@ const Callout = ({ title, desc }: { title: string; desc: string }) => (
   </div>
 );
 
+/* ── Live phone frame with iframe + fallback ── */
+const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackContent: React.ReactNode }) => {
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setStatus("loading");
+    timeoutRef.current = setTimeout(() => {
+      setStatus((prev) => (prev === "loading" ? "error" : prev));
+    }, 6000);
+    return () => clearTimeout(timeoutRef.current);
+  }, [slug]);
+
+  return (
+    <div className="mx-auto w-[280px] sm:w-[300px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
+      {/* Notch */}
+      <div className="mx-auto mt-2 h-5 w-28 rounded-full bg-foreground/80" />
+      <div className="relative" style={{ height: 520 }}>
+        {status === "loading" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        {status !== "error" ? (
+          <iframe
+            src={`/${slug}`}
+            className="w-full h-full border-0"
+            style={{ pointerEvents: "auto" }}
+            onLoad={() => {
+              clearTimeout(timeoutRef.current);
+              setStatus("success");
+            }}
+            onError={() => {
+              clearTimeout(timeoutRef.current);
+              setStatus("error");
+            }}
+            title={`Live preview of ${slug}`}
+          />
+        ) : (
+          <div className="px-4 py-4 space-y-3 min-h-[520px] overflow-y-auto">
+            {fallbackContent}
+          </div>
+        )}
+      </div>
+      {/* Home indicator */}
+      <div className="mx-auto mb-2 h-1 w-28 rounded-full bg-foreground/30" />
+    </div>
+  );
+};
+
+/* ── Static fallback mock button ── */
+const MockButton = ({
+  icon: Icon,
+  label,
+  color = "bg-primary",
+}: {
+  icon: React.ElementType;
+  label: string;
+  color?: string;
+}) => (
+  <div className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-white ${color}`}>
+    <Icon className="h-5 w-5 shrink-0" />
+    <span className="flex-1 text-left">{label}</span>
+    <ChevronRight className="h-4 w-4 opacity-60" />
+  </div>
+);
+
+/* ── Restaurant fallback ── */
+const RestaurantFallback = () => (
+  <>
+    <div className="text-center space-y-1">
+      <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl">🌮</div>
+      <h2 className="font-bold text-foreground text-lg">Las Islas – Salem</h2>
+      <p className="text-xs text-muted-foreground">Authentic Mexican Food</p>
+    </div>
+    <div className="space-y-2 mt-2">
+      <MockButton icon={Star} label="Leave a Google Review" color="bg-[#4285F4]" />
+      <MockButton icon={Star} label="Leave a Yelp Review" color="bg-[#D32323]" />
+      <MockButton icon={Utensils} label="View Menu" color="bg-primary" />
+      <MockButton icon={MapPin} label="Directions" color="bg-emerald-600" />
+      <MockButton icon={Instagram} label="Instagram" color="bg-gradient-to-tr from-purple-600 to-pink-500" />
+    </div>
+  </>
+);
+
+/* ── Small business fallback ── */
+const SmallBizFallback = () => (
+  <>
+    <div className="text-center space-y-1">
+      <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl">🚗</div>
+      <h2 className="font-bold text-foreground text-lg">Reborn Wraps</h2>
+      <p className="text-xs text-muted-foreground">Vehicle Wraps & Detailing</p>
+    </div>
+    <div className="space-y-2 mt-2">
+      <MockButton icon={Star} label="Leave a Google Review" color="bg-[#4285F4]" />
+      <MockButton icon={Globe} label="Visit Website" color="bg-primary" />
+      <MockButton icon={Phone} label="Call Now" color="bg-emerald-600" />
+      <MockButton icon={Calendar} label="Book Appointment" color="bg-amber-600" />
+      <MockButton icon={Instagram} label="Instagram" color="bg-gradient-to-tr from-purple-600 to-pink-500" />
+      <MockButton icon={MapPin} label="Directions" color="bg-slate-700" />
+    </div>
+  </>
+);
+
 /* ════════════════════════════════════════════ */
 
 const Examples = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <>
       <Helmet>
@@ -81,11 +142,11 @@ const Examples = () => {
           See TapAway in Action
         </h1>
         <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-          One tap. Instant reviews, menus, directions & more — for restaurants and small businesses alike.
+          These are real businesses using TapAway right now. Tap around inside the phone to see exactly what their customers experience.
         </p>
       </section>
 
-      {/* ── Mockup section ── */}
+      {/* ── Live examples section ── */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
         <Tabs defaultValue="restaurant" className="w-full">
           <TabsList className="mx-auto mb-8 grid w-full max-w-sm grid-cols-2">
@@ -96,26 +157,14 @@ const Examples = () => {
           {/* ── Restaurant tab ── */}
           <TabsContent value="restaurant">
             <div className="grid md:grid-cols-2 gap-10 items-start">
-              <PhoneMockup>
-                <div className="text-center space-y-1">
-                  <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl">🌮</div>
-                  <h2 className="font-bold text-foreground text-lg">Maria's Taqueria</h2>
-                  <p className="text-xs text-muted-foreground">Authentic Mexican Food</p>
-                </div>
-                <div className="space-y-2 mt-2">
-                  <MockButton icon={Star} label="Leave a Google Review" color="bg-[#4285F4]" />
-                  <MockButton icon={Star} label="Leave a Yelp Review" color="bg-[#D32323]" />
-                  <MockButton icon={Utensils} label="View Menu" color="bg-primary" onClick={() => setMenuOpen(true)} />
-                  <MockButton icon={MapPin} label="Directions" color="bg-emerald-600" />
-                  <MockButton icon={Instagram} label="Instagram" color="bg-gradient-to-tr from-purple-600 to-pink-500" />
-                </div>
-              </PhoneMockup>
+              <LivePhoneFrame slug="lasislassalem" fallbackContent={<RestaurantFallback />} />
 
               <div className="space-y-5 pt-4">
-                <h3 className="text-xl font-bold text-foreground">What your customers see</h3>
-                <Callout title="Google & Yelp Reviews" desc="One tap sends them straight to your review page — no searching required." />
-                <Callout title="Digital Menu" desc="Customers browse your full menu right from their phone, no PDF or app needed." />
-                <Callout title="Directions" desc="Opens Google Maps with your exact location — great for new customers." />
+                <h3 className="text-xl font-bold text-foreground">Las Islas – Salem</h3>
+                <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what customers experience.</p>
+                <Callout title="Google & Yelp Reviews" desc="One tap sends customers straight to the review page — no searching required." />
+                <Callout title="Digital Menu" desc="Customers browse the full menu right from their phone, no PDF or app needed." />
+                <Callout title="Directions" desc="Opens Google Maps with the exact location — great for new customers." />
                 <Callout title="Social Media" desc="Grow your Instagram following effortlessly." />
                 <Callout title="NFC or QR" desc="Works with our NFC cards or a simple QR code at the register." />
               </div>
@@ -125,24 +174,11 @@ const Examples = () => {
           {/* ── Small Business tab ── */}
           <TabsContent value="small-biz">
             <div className="grid md:grid-cols-2 gap-10 items-start">
-              <PhoneMockup>
-                <div className="text-center space-y-1">
-                  <div className="mx-auto h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl">🚗</div>
-                  <h2 className="font-bold text-foreground text-lg">Reborn Wraps</h2>
-                  <p className="text-xs text-muted-foreground">Vehicle Wraps & Detailing</p>
-                </div>
-                <div className="space-y-2 mt-2">
-                  <MockButton icon={Star} label="Leave a Google Review" color="bg-[#4285F4]" />
-                  <MockButton icon={Globe} label="Visit Website" color="bg-primary" />
-                  <MockButton icon={Phone} label="Call Now" color="bg-emerald-600" />
-                  <MockButton icon={Calendar} label="Book Appointment" color="bg-amber-600" />
-                  <MockButton icon={Instagram} label="Instagram" color="bg-gradient-to-tr from-purple-600 to-pink-500" />
-                  <MockButton icon={MapPin} label="Directions" color="bg-slate-700" />
-                </div>
-              </PhoneMockup>
+              <LivePhoneFrame slug="rebornwraps" fallbackContent={<SmallBizFallback />} />
 
               <div className="space-y-5 pt-4">
-                <h3 className="text-xl font-bold text-foreground">Perfect for any service business</h3>
+                <h3 className="text-xl font-bold text-foreground">Reborn Wraps</h3>
+                <p className="text-sm text-muted-foreground">This is a live TapAway page. Scroll, tap buttons, and see exactly what Reborn Wraps' customers see.</p>
                 <Callout title="Collect Reviews Automatically" desc="Hand a customer your card, they tap, and your Google rating grows." />
                 <Callout title="Direct Calls & Booking" desc="Let customers call or book with one tap — no hunting for your number." />
                 <Callout title="Your Website Front & Center" desc="Drive traffic straight to your site or portfolio." />
@@ -213,27 +249,6 @@ const Examples = () => {
           <Phone className="h-4 w-4" /> Call Us
         </a>
       </div>
-
-      {/* ── Menu modal ── */}
-      <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Maria's Taqueria — Menu</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {sampleMenu.map((s) => (
-              <div key={s.section}>
-                <h4 className="font-bold text-foreground text-sm mb-1">{s.section}</h4>
-                <ul className="space-y-0.5">
-                  {s.items.map((item) => (
-                    <li key={item} className="text-sm text-muted-foreground">{item}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
