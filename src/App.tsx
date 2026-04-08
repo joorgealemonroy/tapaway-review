@@ -161,6 +161,7 @@ const App = () => (
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
+                <Route path="/examples" element={<Examples />} />
                 
                 {/* NFC Card Activation */}
                 <Route path="/c/:publicCode" element={<CardResolver />} />
