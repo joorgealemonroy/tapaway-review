@@ -68,15 +68,19 @@ const Onboarding = () => {
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
 
-  // ── Init: check session, prefill ──
+  // ── Handle Stripe return ──
+  const [verifyingCheckout, setVerifyingCheckout] = useState(false);
+
+  // ── Init: check session, prefill, handle Stripe return ──
   useEffect(() => {
     const init = async () => {
       setPendingSetup(true);
       const savedData = getOnboardingData();
-      const emailFromQuery = searchParams.get("email");
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       if (savedData.shippingAddress) setShippingAddress(savedData.shippingAddress);
+      if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
+      if (savedData.hasProtection) setHasProtection(true);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -89,6 +93,35 @@ const Onboarding = () => {
           .maybeSingle();
         if (restaurant?.onboarding_completed) { navigate("/dashboard"); return; }
         if (restaurant) setRestaurantId(restaurant.id);
+
+        // Handle return from Stripe checkout
+        const sessionId = searchParams.get("session_id");
+        if (sessionId && restaurant?.id) {
+          setVerifyingCheckout(true);
+          try {
+            const { data, error } = await supabase.functions.invoke("verify-checkout", {
+              body: { sessionId, userId: session.user.id },
+            });
+            if (error) throw error;
+            console.log("[onboarding] Stripe checkout verified:", data);
+
+            // Mark onboarding complete
+            await supabase.from("restaurants").update({ onboarding_completed: true, onboarding_step: 4 }).eq("id", restaurant.id);
+
+            // Finalize
+            try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: restaurant.id } }); } catch {}
+
+            clearOnboardingData();
+            setShowSuccess(true);
+          } catch (err: any) {
+            console.error("[onboarding] Checkout verification failed:", err);
+            toast.error("Payment verification failed. Please contact support.");
+          } finally {
+            setVerifyingCheckout(false);
+          }
+          setInitialCheckDone(true);
+          return;
+        }
       }
       setInitialCheckDone(true);
     };
@@ -173,12 +206,16 @@ const Onboarding = () => {
     }
   };
 
-  // Post-auth: create restaurant + complete
+  // Post-auth: create restaurant then redirect to Stripe
   useEffect(() => {
     if (!initialCheckDone) return;
     const completeSetup = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
+
+      // If we already have a session_id, skip — handled in init
+      if (searchParams.get("session_id")) return;
+
       const uid = session.user.id;
       setUserId(uid);
 
@@ -198,7 +235,8 @@ const Onboarding = () => {
       setIsLoading(true);
       const slug = generateSlug(bName);
 
-      const plan = selectedPlan || "venue";
+      const plan = (savedData.planType as Plan) || selectedPlan || "venue";
+      const protection = savedData.hasProtection || hasProtection;
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
@@ -211,7 +249,7 @@ const Onboarding = () => {
           subscription_status: "trialing",
           onboarding_step: 3,
           plan_type: plan,
-          has_loss_protection: hasProtection,
+          has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).eq("id", rId);
@@ -224,7 +262,7 @@ const Onboarding = () => {
           subscription_status: "trialing",
           onboarding_step: 3,
           plan_type: plan,
-          has_loss_protection: hasProtection,
+          has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).select("id").single();
@@ -249,29 +287,31 @@ const Onboarding = () => {
       // Yelp auto
       try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
 
-      // Mark complete
-      await supabase.from("restaurants").update({ onboarding_completed: true, onboarding_step: 4 }).eq("id", rId);
-
-      // Fulfillment
-      await supabase.from("fulfillment_orders").upsert({
-        user_id: uid,
-        restaurant_id: rId,
-        plan: selectedPlan || "venue",
-        shipping_name: bName,
-        shipping_address_line1: shippingAddress || savedData.shippingAddress || "",
-        shipping_country: "US",
-        status: "ready_to_ship",
-      }, { onConflict: "user_id,restaurant_id" });
-
-      // Finalize
-      try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
-
-      clearOnboardingData();
-      setShowSuccess(true);
-      setIsLoading(false);
+      // Redirect to Stripe Checkout for card on file
+      try {
+        const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+          body: {
+            email: session.user.email,
+            userId: uid,
+            restaurantId: rId,
+            planType: plan,
+            hasProtection: protection,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error("No checkout URL returned");
+      } catch (err: any) {
+        console.error("[onboarding] Stripe redirect failed:", err);
+        toast.error("Failed to start checkout. Please try again.");
+        setIsLoading(false);
+      }
     };
 
-    // Only run post-auth completion if we came back from OAuth (session exists, step is info)
+    // Only run post-auth completion if we came back from OAuth
     if (step === "info" || step === "plan") {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_IN") {
@@ -279,17 +319,17 @@ const Onboarding = () => {
           subscription.unsubscribe();
         }
       });
-      // Also check immediately
       completeSetup();
       return () => subscription.unsubscribe();
     }
   }, [initialCheckDone, step]);
 
   // ── Loading ──
-  if (!initialCheckDone) {
+  if (!initialCheckDone || verifyingCheckout) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
       </div>
     );
   }

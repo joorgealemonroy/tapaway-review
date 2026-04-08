@@ -106,7 +106,7 @@ serve(async (req) => {
         },
       ],
       customer_email: email,
-      success_url: `${req.headers.get('origin') || 'https://tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}&source=stripe&price_id=${TRIAL_PRICE_ID}`,
+      success_url: `${req.headers.get('origin') || 'https://tapaway.co'}/onboarding?session_id={CHECKOUT_SESSION_ID}&source=stripe&price_id=${TRIAL_PRICE_ID}&restaurant_id=${restaurantId || ''}`,
       cancel_url: `${req.headers.get('origin') || 'https://tapaway.co'}/start`,
       billing_address_collection: 'required',
       shipping_address_collection: {
