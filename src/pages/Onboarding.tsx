@@ -17,7 +17,7 @@ import {
   generateSlug,
   setPendingSetup,
 } from "@/lib/onboardingData";
-import CardCustomizer from "@/components/onboarding/CardCustomizer";
+
 
 type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
@@ -54,8 +54,6 @@ const Onboarding = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [cardHeadline, setCardHeadline] = useState("Loved your visit? Leave us a review!");
-  const [cardSubHeadline, setCardSubHeadline] = useState("Tap or Scan below to share your experience.");
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
   } | null>(null);
@@ -163,8 +161,6 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
-        cardHeadline,
-        cardSubHeadline,
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
@@ -510,14 +506,6 @@ const Onboarding = () => {
                 </p>
               </div>
 
-              {/* Card customizer — double-sided HTML preview */}
-              <CardCustomizer
-                logoUrl={logoUrl}
-                headline={cardHeadline}
-                subHeadline={cardSubHeadline}
-                onHeadlineChange={setCardHeadline}
-                onSubHeadlineChange={setCardSubHeadline}
-              />
 
               {/* Shipping / Address */}
               <div>
