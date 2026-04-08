@@ -34,10 +34,10 @@ const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackConte
   }, [slug]);
 
   return (
-    <div className="mx-auto w-[280px] sm:w-[300px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
+    <div className="mx-auto w-[320px] sm:w-[340px] rounded-[2.5rem] border-[6px] border-foreground/80 bg-background shadow-2xl overflow-hidden">
       {/* Notch */}
       <div className="mx-auto mt-2 h-5 w-28 rounded-full bg-foreground/80" />
-      <div className="relative" style={{ height: 520 }}>
+      <div className="relative overflow-hidden" style={{ height: 600 }}>
         {status === "loading" && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -46,8 +46,14 @@ const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackConte
         {status !== "error" ? (
           <iframe
             src={`/${slug}`}
-            className="w-full h-full border-0"
-            style={{ pointerEvents: "auto" }}
+            className="absolute top-0 left-0 border-0"
+            style={{
+              width: 430,
+              height: 860,
+              transform: "scale(0.76)",
+              transformOrigin: "top left",
+              pointerEvents: "auto",
+            }}
             onLoad={() => {
               clearTimeout(timeoutRef.current);
               setStatus("success");
@@ -59,7 +65,7 @@ const LivePhoneFrame = ({ slug, fallbackContent }: { slug: string; fallbackConte
             title={`Live preview of ${slug}`}
           />
         ) : (
-          <div className="px-4 py-4 space-y-3 min-h-[520px] overflow-y-auto">
+          <div className="px-4 py-4 space-y-3 min-h-[600px] overflow-y-auto">
             {fallbackContent}
           </div>
         )}
