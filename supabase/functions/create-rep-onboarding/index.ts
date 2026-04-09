@@ -200,10 +200,10 @@ async function createSoloProfile(
         link_type: "directions",
         label: "Directions",
         url: `https://maps.apple.com/?daddr=${encodeURIComponent(opts.googlePlaceAddress)}`,
-        sort_order: 1,
+        sort_order: 2,
         is_active: true,
-        is_featured: true,
-        pill_color: "#ffffff",
+        is_featured: false,
+        pill_color: "#2563eb",
       });
     }
   }
