@@ -116,6 +116,7 @@ const PersonalDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
+  const [allProfiles, setAllProfiles] = useState<PersonalProfile[]>([]);
   const [links, setLinks] = useState<DbPersonalLink[]>([]);
   const [blocks, setBlocks] = useState<PersonalBlock[]>([]);
   const [copied, setCopied] = useState(false);
