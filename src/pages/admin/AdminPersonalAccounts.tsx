@@ -56,7 +56,8 @@ import {
   Send,
   Sparkles,
   Eye,
-  Building2
+  Building2,
+  Link as LinkIcon
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
