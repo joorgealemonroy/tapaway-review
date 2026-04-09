@@ -384,6 +384,36 @@ const Onboarding = () => {
       // Yelp auto
       try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
 
+      // ── FREE PROMO: skip Stripe entirely ──
+      if (promoDiscountType === 'free' && promoTokenParam) {
+        try {
+          // Mark subscription as active
+          await supabase.from("restaurants").update({
+            subscription_status: "active",
+            onboarding_completed: true,
+            onboarding_step: 4,
+          }).eq("id", rId);
+
+          // Mark token as used
+          await supabase.functions.invoke("validate-promo-token", {
+            body: { token: promoTokenParam, markUsed: true, usedByUserId: uid },
+          });
+
+          // Finalize
+          try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+
+          clearOnboardingData();
+          setShowSuccess(true);
+          return;
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Failed to activate free promo";
+          console.error("[onboarding] Free promo activation failed:", err);
+          toast.error(message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Redirect to Stripe Checkout for card on file
       try {
         const { data, error } = await supabase.functions.invoke("create-checkout-session", {
@@ -393,6 +423,7 @@ const Onboarding = () => {
             restaurantId: rId,
             planType: plan,
             hasProtection: protection,
+            promoToken: promoTokenParam || undefined,
           },
         });
         if (error) throw error;
@@ -401,7 +432,8 @@ const Onboarding = () => {
           return;
         }
         throw new Error("No checkout URL returned");
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Stripe redirect failed";
         console.error("[onboarding] Stripe redirect failed:", err);
         toast.error("Failed to start checkout. Please try again.");
         setIsLoading(false);
