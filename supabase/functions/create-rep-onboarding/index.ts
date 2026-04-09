@@ -52,7 +52,6 @@ async function findOrCreatePrice(stripe: Stripe, productId: string, unitAmount: 
 
 /** Find or create a 50% off coupon */
 async function findOrCreate50OffCoupon(stripe: Stripe): Promise<string> {
-  // Search for existing coupon by metadata
   const coupons = await stripe.coupons.list({ limit: 100 });
   const existing = coupons.data.find(
     (c) => c.percent_off === 50 && c.valid && c.metadata?.tapaway_promo === "50_off"
@@ -72,7 +71,7 @@ async function findOrCreate50OffCoupon(stripe: Stripe): Promise<string> {
 async function validatePromoToken(
   adminClient: ReturnType<typeof createClient>,
   token: string
-): Promise<{ valid: boolean; discount_type?: string; tokenId?: string } > {
+): Promise<{ valid: boolean; discount_type?: string; tokenId?: string }> {
   if (!token || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
     return { valid: false };
   }
@@ -90,6 +89,175 @@ async function validatePromoToken(
   return { valid: true, discount_type: tokenRow.discount_type, tokenId: tokenRow.id };
 }
 
+/** Build a Google Review URL from a place ID */
+function buildGoogleReviewUrl(placeId: string | null | undefined): string | null {
+  if (!placeId || typeof placeId !== "string" || placeId.trim().length === 0) return null;
+  return `https://search.google.com/local/writereview?placeid=${placeId.trim()}`;
+}
+
+/** Create a slug from business name */
+function makeSlug(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 50);
+}
+
+// ── Solo plan: create personal_profiles + optional google review link ──
+async function createSoloProfile(
+  adminClient: ReturnType<typeof createClient>,
+  opts: {
+    clientUserId: string;
+    businessName: string;
+    clientEmail: string;
+    logoUrl?: string;
+    googlePlaceId?: string;
+    subscriptionStatus: string;
+    trialEndsAt: string | null;
+  }
+): Promise<{ profileId: string }> {
+  const slug = makeSlug(opts.businessName);
+  const googleReviewUrl = buildGoogleReviewUrl(opts.googlePlaceId);
+
+  // Check for existing profile
+  const { data: existing } = await adminClient
+    .from("personal_profiles")
+    .select("id")
+    .eq("user_id", opts.clientUserId)
+    .limit(1)
+    .maybeSingle();
+
+  let profileId: string;
+
+  const profileData: Record<string, unknown> = {
+    full_name: opts.businessName.trim(),
+    email: opts.clientEmail,
+    plan_type: "monthly",
+    subscription_status: opts.subscriptionStatus,
+    ...(opts.trialEndsAt ? { trial_ends_at: opts.trialEndsAt } : {}),
+    ...(opts.logoUrl ? { profile_photo_url: opts.logoUrl } : {}),
+  };
+
+  if (existing) {
+    await adminClient.from("personal_profiles").update(profileData).eq("id", existing.id);
+    profileId = existing.id;
+  } else {
+    const { data: created, error } = await adminClient
+      .from("personal_profiles")
+      .insert({
+        user_id: opts.clientUserId,
+        username: slug,
+        ...profileData,
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      console.error("[create-rep-onboarding] Profile creation error:", error);
+      throw new Error("Failed to create profile");
+    }
+    profileId = created.id;
+
+    // Fix founding trigger override — solo plan should always be 'monthly'
+    await adminClient
+      .from("personal_profiles")
+      .update({ plan_type: "monthly", is_founding_user: false, founding_number: null })
+      .eq("id", profileId);
+  }
+
+  // Auto-create Google Review link if placeId provided
+  if (googleReviewUrl) {
+    const { data: existingLink } = await adminClient
+      .from("personal_links")
+      .select("id")
+      .eq("profile_id", profileId)
+      .eq("link_type", "google_review")
+      .maybeSingle();
+
+    if (!existingLink) {
+      await adminClient.from("personal_links").insert({
+        profile_id: profileId,
+        link_type: "google_review",
+        label: "Review Us on Google",
+        url: googleReviewUrl,
+        sort_order: 0,
+        is_active: true,
+      });
+    }
+  }
+
+  console.log("[create-rep-onboarding] Solo profile created/updated:", profileId);
+  return { profileId };
+}
+
+// ── Venue plan: create restaurants record (existing logic) ──
+async function createVenueRestaurant(
+  adminClient: ReturnType<typeof createClient>,
+  opts: {
+    clientUserId: string;
+    businessName: string;
+    clientEmail: string;
+    logoUrl?: string;
+    googlePlaceId?: string;
+    googlePlaceName?: string;
+    googlePlaceAddress?: string;
+    cardHeadline?: string;
+    cardSubHeadline?: string;
+    subscriptionStatus: string;
+    trialEndsAt: string | null;
+    isPromoFree: boolean;
+    hasProtection: boolean;
+    validPlan: string;
+  }
+): Promise<{ restaurantId: string }> {
+  const slug = makeSlug(opts.businessName);
+  const googleReviewUrl = buildGoogleReviewUrl(opts.googlePlaceId);
+
+  const restaurantData: Record<string, unknown> = {
+    restaurant_name: opts.businessName.trim(),
+    custom_slug: slug,
+    email: opts.clientEmail,
+    subscription_status: opts.subscriptionStatus,
+    onboarding_step: opts.isPromoFree ? 4 : 3,
+    plan_type: opts.validPlan,
+    has_loss_protection: opts.hasProtection,
+    ...(opts.trialEndsAt ? { trial_ends_at: opts.trialEndsAt } : {}),
+    ...(opts.isPromoFree ? { onboarding_completed: true } : {}),
+    ...(opts.logoUrl ? { logo_url: opts.logoUrl } : {}),
+    ...(opts.googlePlaceId ? { google_place_id: opts.googlePlaceId } : {}),
+    ...(googleReviewUrl ? { google_review_url: googleReviewUrl } : {}),
+    ...(opts.googlePlaceAddress ? { address: opts.googlePlaceAddress } : {}),
+    ...(opts.googlePlaceName && opts.googlePlaceAddress
+      ? { directions_url: `https://maps.apple.com/?q=${encodeURIComponent(opts.googlePlaceName)}&address=${encodeURIComponent(opts.googlePlaceAddress)}` }
+      : {}),
+    ...(opts.cardHeadline ? { card_headline: opts.cardHeadline } : {}),
+    ...(opts.cardSubHeadline ? { card_sub_headline: opts.cardSubHeadline } : {}),
+  };
+
+  const { data: existingRestaurant } = await adminClient
+    .from("restaurants")
+    .select("id")
+    .eq("owner_id", opts.clientUserId)
+    .maybeSingle();
+
+  let restaurantId: string;
+
+  if (existingRestaurant) {
+    await adminClient.from("restaurants").update(restaurantData).eq("id", existingRestaurant.id);
+    restaurantId = existingRestaurant.id;
+  } else {
+    const { data: created, error } = await adminClient
+      .from("restaurants")
+      .insert({ owner_id: opts.clientUserId, ...restaurantData })
+      .select("id")
+      .single();
+    if (error || !created) {
+      console.error("[create-rep-onboarding] Restaurant creation error:", error);
+      throw new Error("Failed to create restaurant");
+    }
+    restaurantId = created.id;
+  }
+
+  console.log("[create-rep-onboarding] Venue restaurant created/updated:", restaurantId);
+  return { restaurantId };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -103,12 +271,11 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // ── 1. Parse body first to check for promoToken ──
+    // ── 1. Parse body ──
     const body = await req.json();
     const {
       clientEmail,
       businessName,
-      shippingAddress,
       planType,
       hasProtection,
       googlePlaceId,
@@ -126,14 +293,12 @@ serve(async (req) => {
     let promoResult: { valid: boolean; discount_type?: string; tokenId?: string } | null = null;
 
     if (promoToken) {
-      // Promo token mode: validate the token as authorization
       promoResult = await validatePromoToken(adminClient, promoToken);
       if (!promoResult.valid) {
         return json({ error: "Invalid or expired promo token" }, 403);
       }
       console.log("[create-rep-onboarding] Promo token validated:", promoResult.discount_type);
     } else {
-      // Standard rep mode: require auth
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) return json({ error: "Missing authorization" }, 401);
 
@@ -165,6 +330,7 @@ serve(async (req) => {
     const protection = !!hasProtection;
     const isPromoFree = promoResult?.discount_type === "free";
     const isPromo50 = promoResult?.discount_type === "50_off";
+    const isSolo = validPlan === "solo";
 
     console.log("[create-rep-onboarding] Client:", clientEmail.substring(0, 3) + "***", "Plan:", validPlan, "Promo:", promoResult?.discount_type || "none");
 
@@ -191,63 +357,48 @@ serve(async (req) => {
       console.log("[create-rep-onboarding] New user invited:", clientUserId);
     }
 
-    // ── 5. Create or update restaurant ──
+    // ── 5. Create record based on plan type ──
     const subscriptionStatus = isPromoFree ? "active" : "trialing";
     const totalTrialDays = isPromoFree ? 0 : config.trialDays;
     const trialEndsAt = isPromoFree ? null : new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
-    const slug = businessName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 50);
+    let restaurantId: string | null = null;
+    let profileId: string | null = null;
 
-    let googleReviewUrl: string | null = null;
-    if (googlePlaceId && typeof googlePlaceId === "string" && googlePlaceId.length > 0) {
-      googleReviewUrl = `https://search.google.com/local/writereview?placeid=${googlePlaceId.trim()}`;
-    }
-
-    const { data: existingRestaurant } = await adminClient
-      .from("restaurants")
-      .select("id")
-      .eq("owner_id", clientUserId)
-      .maybeSingle();
-
-    let restaurantId: string;
-    const restaurantData: Record<string, unknown> = {
-      restaurant_name: businessName.trim(),
-      custom_slug: slug,
-      email: clientEmail,
-      subscription_status: subscriptionStatus,
-      onboarding_step: isPromoFree ? 4 : 3,
-      plan_type: validPlan,
-      has_loss_protection: protection,
-      ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
-      ...(isPromoFree ? { onboarding_completed: true } : {}),
-      ...(logoUrl ? { logo_url: logoUrl } : {}),
-      ...(googlePlaceId ? { google_place_id: googlePlaceId } : {}),
-      ...(googleReviewUrl ? { google_review_url: googleReviewUrl } : {}),
-      ...(googlePlaceAddress ? { address: googlePlaceAddress } : {}),
-      ...(googlePlaceName && googlePlaceAddress
-        ? { directions_url: `https://maps.apple.com/?q=${encodeURIComponent(googlePlaceName)}&address=${encodeURIComponent(googlePlaceAddress)}` }
-        : {}),
-      ...(cardHeadline ? { card_headline: cardHeadline } : {}),
-      ...(cardSubHeadline ? { card_sub_headline: cardSubHeadline } : {}),
-    };
-
-    if (existingRestaurant) {
-      await adminClient.from("restaurants").update(restaurantData).eq("id", existingRestaurant.id);
-      restaurantId = existingRestaurant.id;
+    if (isSolo) {
+      // Solo plan → Business Lite (personal_profiles)
+      const result = await createSoloProfile(adminClient, {
+        clientUserId,
+        businessName,
+        clientEmail,
+        logoUrl,
+        googlePlaceId,
+        subscriptionStatus,
+        trialEndsAt,
+      });
+      profileId = result.profileId;
     } else {
-      const { data: created, error: createErr } = await adminClient
-        .from("restaurants")
-        .insert({ owner_id: clientUserId, ...restaurantData })
-        .select("id")
-        .single();
-      if (createErr || !created) {
-        console.error("[create-rep-onboarding] Restaurant creation error:", createErr);
-        return json({ error: "Failed to create restaurant" }, 500);
-      }
-      restaurantId = created.id;
+      // Venue plan → Business Plus (restaurants)
+      const result = await createVenueRestaurant(adminClient, {
+        clientUserId,
+        businessName,
+        clientEmail,
+        logoUrl,
+        googlePlaceId,
+        googlePlaceName,
+        googlePlaceAddress,
+        cardHeadline,
+        cardSubHeadline,
+        subscriptionStatus,
+        trialEndsAt,
+        isPromoFree,
+        hasProtection: protection,
+        validPlan,
+      });
+      restaurantId = result.restaurantId;
     }
 
-    // ── 6. Rep attribution (only for rep mode) ──
+    // ── 6. Rep attribution (only for rep mode with venue) ──
     if (repUserId && repRestaurantId) {
       await adminClient
         .from("rep_restaurants")
@@ -264,24 +415,27 @@ serve(async (req) => {
         .update({ is_used: true, used_by_user_id: clientUserId })
         .eq("id", promoResult.tokenId);
 
-      // Finalize onboarding
-      try {
-        const fnUrl = `${supabaseUrl}/functions/v1/finalize-onboarding`;
-        await fetch(fnUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${serviceRoleKey}`,
-            "apikey": serviceRoleKey,
-          },
-          body: JSON.stringify({ restaurantId }),
-        });
-      } catch (e) {
-        console.error("[create-rep-onboarding] Finalize call failed (non-fatal):", e);
+      // Finalize onboarding (only for venue — solo profiles are already active)
+      if (!isSolo && restaurantId) {
+        try {
+          const fnUrl = `${supabaseUrl}/functions/v1/finalize-onboarding`;
+          await fetch(fnUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "apikey": serviceRoleKey,
+            },
+            body: JSON.stringify({ restaurantId }),
+          });
+        } catch (e) {
+          console.error("[create-rep-onboarding] Finalize call failed (non-fatal):", e);
+        }
       }
 
-      console.log("[create-rep-onboarding] FREE promo activated for restaurant:", restaurantId);
-      return json({ success: true, restaurantId, clientUserId });
+      const entityId = isSolo ? profileId : restaurantId;
+      console.log("[create-rep-onboarding] FREE promo activated for", isSolo ? "profile" : "restaurant", ":", entityId);
+      return json({ success: true, restaurantId, profileId, clientUserId });
     }
 
     // ── 8. Stripe checkout ──
@@ -302,7 +456,6 @@ serve(async (req) => {
 
     const frontendUrl = Deno.env.get("FRONTEND_URL") || req.headers.get("origin") || "https://tapaway.co";
 
-    // Build checkout session params
     const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       line_items: lineItems,
@@ -316,7 +469,8 @@ serve(async (req) => {
         plan_type: validPlan,
         has_protection: String(protection),
         user_id: clientUserId,
-        restaurant_id: restaurantId,
+        restaurant_id: restaurantId || "",
+        profile_id: profileId || "",
         sales_rep_id: repUserId || "",
         rep_restaurant_id: repRestaurantId || "",
         logo_url: logoUrl || "",
@@ -330,16 +484,14 @@ serve(async (req) => {
     if (isPromo50) {
       const couponId = await findOrCreate50OffCoupon(stripe);
       checkoutParams.discounts = [{ coupon: couponId }];
-      // Remove trial for 50% off — they pay (at discount) immediately
       delete checkoutParams.subscription_data;
       console.log("[create-rep-onboarding] Applied 50% off coupon:", couponId);
     }
 
     const session = await stripe.checkout.sessions.create(checkoutParams);
-
     console.log("[create-rep-onboarding] Checkout session created:", session.id);
 
-    return json({ url: session.url, restaurantId, clientUserId });
+    return json({ url: session.url, restaurantId, profileId, clientUserId });
   } catch (error) {
     console.error("[create-rep-onboarding] Error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
