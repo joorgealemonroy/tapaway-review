@@ -1,11 +1,13 @@
-## Admin Portal UI Overhaul + Promo Link System
+## Admin Portal UI Overhaul + Promo Link System — APPROVED
+
+### Status: IMPLEMENTING
 
 ### 1. Database: Create `promo_tokens` table
 - Columns: id (uuid PK), token (uuid, unique), discount_type (text: 'free'|'50_off'), expires_at (timestamptz), is_used (boolean default false), used_by_user_id (uuid nullable), created_by_user_id (uuid), created_at (timestamptz default now())
 - RLS: admin-only full access via `public.is_admin()`
 
 ### 2. Edge Function: `generate-promo-token`
-- Validates caller is admin (JWT + `is_admin` check via service role)
+- Validates caller is admin (JWT + email/role check via service role)
 - Accepts `discount_type` ('free' | '50_off')
 - Creates token with `expires_at = now() + 30 minutes`
 - Returns full onboarding URL with `?promo_token=<token>`
@@ -24,7 +26,7 @@
 ### 5. Update `create-checkout-session`
 - Accept optional `promoToken` param
 - If provided with `50_off`: find/create a 50% off Stripe coupon, apply via `discounts` param
-- Pass `promo_token` into Stripe session metadata (do NOT mark as used here)
+- Pass `promo_token` into Stripe session metadata (do NOT mark as used here — deferred to webhook)
 
 ### 6. Update `stripe-webhook`
 - In `checkout.session.completed` handler: check metadata for `promo_token`
