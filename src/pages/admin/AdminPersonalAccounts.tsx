@@ -2414,6 +2414,69 @@ Login at: ${window.location.origin}/auth`;
         />
       )}
 
+
+      {/* Link Profile Modal */}
+      <Dialog open={!!linkingAccount} onOpenChange={(open) => {
+        if (!open) {
+          setLinkingAccount(null);
+          setLinkTargetEmail("");
+          setLinkLookedUpUser(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Profile to Another User</DialogTitle>
+            <DialogDescription>
+              Link <strong>@{linkingAccount?.username}</strong> to a different user account so they can manage it from their dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Current Owner</Label>
+              <p className="text-sm text-muted-foreground">{linkingAccount?.email} ({linkingAccount?.user_id?.slice(0, 8)}...)</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Target User Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="user@example.com"
+                  value={linkTargetEmail}
+                  onChange={(e) => {
+                    setLinkTargetEmail(e.target.value);
+                    setLinkLookedUpUser(null);
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={handleLookupLinkUser}
+                  disabled={linkLooking || !linkTargetEmail.trim()}
+                >
+                  {linkLooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            {linkLookedUpUser && (
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <p className="text-sm font-medium">Found user:</p>
+                <p className="text-sm text-muted-foreground">{linkLookedUpUser.email}</p>
+                <p className="text-xs text-muted-foreground font-mono">{linkLookedUpUser.id}</p>
+                <Button
+                  onClick={handleLinkProfile}
+                  disabled={linkSaving}
+                  className="w-full mt-2"
+                >
+                  {linkSaving ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" />Linking...</>
+                  ) : (
+                    <><LinkIcon className="h-4 w-4 mr-2" />Link @{linkingAccount?.username} to this user</>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <AlertDialog open={!!deletingAccount} onOpenChange={() => {
         setDeletingAccount(null);
