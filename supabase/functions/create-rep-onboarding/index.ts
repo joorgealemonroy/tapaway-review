@@ -109,6 +109,7 @@ async function createSoloProfile(
     clientEmail: string;
     logoUrl?: string;
     googlePlaceId?: string;
+    googlePlaceAddress?: string;
     subscriptionStatus: string;
     trialEndsAt: string | null;
   }
@@ -177,6 +178,29 @@ async function createSoloProfile(
         label: "Review Us on Google",
         url: googleReviewUrl,
         sort_order: 0,
+        is_active: true,
+        is_featured: true,
+        pill_color: "#ffffff",
+      });
+    }
+  }
+
+  // Auto-create Directions link if address provided
+  if (opts.googlePlaceAddress) {
+    const { data: existingDirections } = await adminClient
+      .from("personal_links")
+      .select("id")
+      .eq("profile_id", profileId)
+      .eq("link_type", "directions")
+      .maybeSingle();
+
+    if (!existingDirections) {
+      await adminClient.from("personal_links").insert({
+        profile_id: profileId,
+        link_type: "directions",
+        label: "Directions",
+        url: `https://maps.apple.com/?daddr=${encodeURIComponent(opts.googlePlaceAddress)}`,
+        sort_order: 1,
         is_active: true,
         is_featured: true,
         pill_color: "#ffffff",
@@ -375,6 +399,7 @@ serve(async (req) => {
         clientEmail,
         logoUrl,
         googlePlaceId,
+        googlePlaceAddress,
         subscriptionStatus,
         trialEndsAt,
       });

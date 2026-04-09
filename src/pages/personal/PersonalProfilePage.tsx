@@ -118,7 +118,9 @@ const ProfileLink = memo(function ProfileLink({
   const isValidHex = (c: string | null | undefined): c is string => c ? /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(c) : false;
   const validAccent = isValidHex(accentColor) ? accentColor : null;
   // Use pill_color, fall back to validated accentColor (vibe theme), then platform default
-  const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (validAccent || null);
+  // Directions and google_review default to white pill when no pill_color set
+  const defaultWhitePill = (link.link_type === 'google_review' || link.link_type === 'directions') && !link.pill_color;
+  const customColor = defaultWhitePill ? '#ffffff' : (link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (validAccent || null));
   const coverImage = link.cover_image_url;
   // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
   const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';

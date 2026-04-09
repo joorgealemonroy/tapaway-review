@@ -45,7 +45,7 @@ export const urlValidationSchemas = {
   directions: z.string()
     .optional()
     .refine(
-      (val) => !val || val === "" || /^https:\/\/maps\.(apple|google)\.com\//.test(val),
+      (val) => !val || val === "" || /^https:\/\/maps\.(apple|google)\.com\/?\?/.test(val),
       "Directions URL must be from maps.apple.com or maps.google.com"
     ),
 };
