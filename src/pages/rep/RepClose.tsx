@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Copy, Check, QrCode, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Copy, Check, QrCode, ExternalLink, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
 
@@ -286,6 +286,7 @@ const RepClose = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <RadioGroup value={planType} onValueChange={setPlanType} className="space-y-3">
+                {/* plan options unchanged */}
                 <div className={`flex items-center space-x-3 border rounded-lg p-4 cursor-pointer ${planType === 'monthly' ? 'border-primary bg-primary/5' : ''}`}>
                   <RadioGroupItem value="monthly" id="monthly" />
                   <Label htmlFor="monthly" className="flex-1 cursor-pointer">
@@ -310,6 +311,22 @@ const RepClose = () => {
                   </Label>
                 </div>
               </RadioGroup>
+
+              {/* In-person close option */}
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Or close in person:</p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/onboarding?rep=true&rep_id=${salesRep?.id}`)}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  In-Person Signup (No OAuth)
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Walk the client through onboarding — just enter their email, skip OAuth.
+                </p>
+              </div>
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
