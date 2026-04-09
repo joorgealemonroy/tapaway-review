@@ -148,6 +148,8 @@ const Onboarding = () => {
   const handleGooglePlaceSelected = useCallback(({ placeId, name, address }: { placeId: string; name: string; address: string }) => {
     const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
     setSelectedGooglePlace({ placeId: normalized, name, address });
+    setBusinessName(name);
+    setShippingAddress(address);
   }, []);
 
   // ── Logo upload handler ──
@@ -183,7 +185,7 @@ const Onboarding = () => {
 
   // ── Auth + complete ──
   const handleOAuth = async (provider: "google" | "apple") => {
-    if (!businessName.trim()) { toast.error("Please enter your business name"); return; }
+    if (!selectedGooglePlace && !businessName.trim()) { toast.error("Please search and select your business"); return; }
     setIsLoading(true);
 
     try {
@@ -194,6 +196,9 @@ const Onboarding = () => {
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
+        googlePlaceId: selectedGooglePlace?.placeId || '',
+        googlePlaceName: selectedGooglePlace?.name || '',
+        googlePlaceAddress: selectedGooglePlace?.address || '',
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
@@ -271,15 +276,18 @@ const Onboarding = () => {
       if (!rId) { toast.error("Failed to create account"); setIsLoading(false); return; }
       setRestaurantId(rId);
 
-      // Save Google place if selected
-      if (selectedGooglePlace) {
-        const reviewUrl = buildGoogleReviewUrl(selectedGooglePlace.placeId);
-        const encodedAddr = encodeURIComponent(selectedGooglePlace.address || "");
-        const encodedName = encodeURIComponent(selectedGooglePlace.name || bName);
+      // Save Google place if selected (from state or restored from localStorage)
+      const placeId = selectedGooglePlace?.placeId || savedData.googlePlaceId;
+      const placeName = selectedGooglePlace?.name || savedData.googlePlaceName;
+      const placeAddress = selectedGooglePlace?.address || savedData.googlePlaceAddress;
+      if (placeId) {
+        const reviewUrl = buildGoogleReviewUrl(placeId);
+        const encodedAddr = encodeURIComponent(placeAddress || "");
+        const encodedName = encodeURIComponent(placeName || bName);
         await supabase.from("restaurants").update({
-          google_place_id: selectedGooglePlace.placeId,
+          google_place_id: placeId,
           google_review_url: reviewUrl,
-          address: selectedGooglePlace.address,
+          address: placeAddress || undefined,
           directions_url: `https://maps.apple.com/?q=${encodedName}&address=${encodedAddr}`,
         }).eq("id", rId);
       }
@@ -497,15 +505,19 @@ const Onboarding = () => {
                 <p className="text-gray-400 text-sm">Tell us about your business and we'll handle the rest.</p>
               </div>
 
-              {/* Business name */}
+              {/* Google Places Business Search */}
               <div>
-                <Label className="text-gray-300 text-sm">Business Name</Label>
-                <Input
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
+                <GooglePlacesAutocomplete
+                  onPlaceSelected={handleGooglePlaceSelected}
+                  defaultValue={businessName}
                   placeholder="e.g., Joe's Pizza"
-                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                  label="Search Your Business on Google"
                 />
+                {selectedGooglePlace && (
+                  <p className="text-xs text-emerald-400 mt-1.5 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> {selectedGooglePlace.name}
+                  </p>
+                )}
               </div>
 
               {/* Logo upload drop zone */}
@@ -546,16 +558,16 @@ const Onboarding = () => {
                 </p>
               </div>
 
-
-              {/* Shipping / Address */}
+              {/* Shipping Address */}
               <div>
                 <Label className="text-gray-300 text-sm">Shipping Address</Label>
-                <div className="mt-1 [&_input]:!bg-[#111827] [&_input]:!border-white/10 [&_input]:!text-white [&_input]:!h-12 [&_input]:!rounded-xl [&_gmp-internal-content-container]:!bg-[#111827] [&_label]:!text-gray-300">
-                  <GooglePlacesAutocomplete
-                    onPlaceSelected={handleGooglePlaceSelected}
-                    defaultValue={shippingAddress}
-                  />
-                </div>
+                <Input
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  placeholder="123 Main St, City, State ZIP"
+                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                />
+                <p className="text-xs text-gray-500 mt-1">Where should we ship your cards?</p>
               </div>
 
               {/* Due Today receipt */}
