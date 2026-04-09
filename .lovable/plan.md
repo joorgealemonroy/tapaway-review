@@ -1,51 +1,43 @@
 
 
-# Add Directions (Apple Maps) to Business Lite
+# Fix Directions Pill Styling to Match Restaurant Hub
 
-## Summary
-Add a `directions` link type using Apple Maps with `?daddr=` routing parameter. It appears as a white pill on profiles, matching the Google Review styling.
+## Problem
+The directions pill on Business Lite profiles renders as a white featured card (large, with "Tap to open" subtitle), which looks ugly. The user wants it to match the restaurant hub style: a solid colored, full-width button with centered icon and text.
 
-## Changes
+## Solution
+Change the directions link from `is_featured: true` with `pill_color: '#ffffff'` to a regular (non-featured) link with a blue background (`#2563eb`) matching the restaurant hub. This means:
 
-### 1. `src/lib/platformLinks.tsx`
-- Import `MapPin` from lucide-react
-- Add `"directions": "#34A853"` to `PLATFORM_COLORS`
-- Add new `directions` entry to `PLATFORM_CONFIGS` after `google_review`:
-  - `type: "directions"`, `label: "Directions"`, `icon: MapPin`, `inputType: "url"`
-  - `placeholder: "Full address or Apple Maps URL"`
-  - `generateUrl`: if starts with `http`, use as-is; otherwise encode into `https://maps.apple.com/?daddr=ENCODED`
-  - `extractValue`: pull value from `daddr` param via `new URL(url).searchParams.get("daddr")`, fallback to raw URL
-  - `bgColor: "bg-[#34A853]"`
-- Add `maps.apple.com` detection to `detectPlatformFromUrl`
+### 1. Database — Fix Sugar Bloom's directions link
+Update the existing directions link for Sugar Bloom to:
+- `pill_color: '#2563eb'` (blue, matching restaurant hub)
+- `is_featured: false` (render as regular pill, not the oversized featured card)
 
-### 2. `src/lib/urlValidation.ts`
-- Update `directions` regex to: `^https:\/\/maps\.(apple|google)\.com\/?\?` — this allows both `?daddr=` and other query patterns
+### 2. `supabase/functions/create-rep-onboarding/index.ts`
+Change the auto-created directions link defaults:
+- `pill_color: '#2563eb'` instead of `'#ffffff'`
+- `is_featured: false` instead of `true`
+- `sort_order: 2` (below the Google Review featured link)
 
 ### 3. `src/components/personal/ProfilePreviewRenderer.tsx`
-- Extend the existing `google_review` white-pill default to also apply to `directions` links (change condition from `link.link_type === 'google_review'` to `(link.link_type === 'google_review' || link.link_type === 'directions')`)
+Remove `directions` from the white-pill special case (revert to just `google_review` check). Directions links will now use their `pill_color` like any other regular link.
 
 ### 4. `src/pages/personal/PersonalProfilePage.tsx`
-- In the `ProfileLink` component, add a special case: when `link.link_type === 'directions'` and no `pill_color`, default `customColor` to `'#ffffff'` (white pill with dark text), same treatment as `google_review`
+Same — remove `directions` from the `defaultWhitePill` condition. The blue `pill_color` will flow through the normal styling path.
 
-### 5. `supabase/functions/create-rep-onboarding/index.ts`
-- Add `googlePlaceAddress` to the `createSoloProfile` opts interface
-- Pass it through from the request body (already available at line 285)
-- After creating the Google Review link, if `googlePlaceAddress` is provided, insert a `directions` link:
-  - `link_type: "directions"`, `label: "Directions"`
-  - `url: "https://maps.apple.com/?daddr=" + encodeURIComponent(googlePlaceAddress)`
-  - `pill_color: "#ffffff"`, `is_featured: true`, `sort_order: 1`
+### 5. `src/lib/platformLinks.tsx`
+Update the `directions` config `bgColor` from `"bg-[#34A853]"` (green) to `"bg-[#2563eb]"` (blue) and `PLATFORM_COLORS.directions` to `"#2563eb"` so the fallback platform color matches the restaurant hub.
 
-### 6. Database — Sugar Bloom data fix
-- Insert a `directions` link for profile `cc06cb55-87ab-4dc7-88f7-073d3bb38d27` with Apple Maps URL using `?daddr=` format and Sugar Bloom's address
+## Result
+Directions renders as a solid blue pill with white MapPin icon and white text — matching the restaurant hub's "Get Directions" button style.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/lib/platformLinks.tsx` | Add `directions` platform config, color, detection |
-| `src/lib/urlValidation.ts` | Allow `maps.apple.com/?daddr=` |
-| `src/components/personal/ProfilePreviewRenderer.tsx` | White-pill default for `directions` |
-| `src/pages/personal/PersonalProfilePage.tsx` | White-pill default for `directions` |
-| `supabase/functions/create-rep-onboarding/index.ts` | Auto-create directions link for solo plans |
-| Database | Insert Sugar Bloom directions link |
+| `src/lib/platformLinks.tsx` | Change directions color to `#2563eb` |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | Remove `directions` from white-pill special case |
+| `src/pages/personal/PersonalProfilePage.tsx` | Remove `directions` from white-pill special case |
+| `supabase/functions/create-rep-onboarding/index.ts` | `pill_color: '#2563eb'`, `is_featured: false` |
+| Database | Update Sugar Bloom directions link |
 
