@@ -1352,6 +1352,18 @@ Login at: ${window.location.origin}/auth`;
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => {
+                    setLinkingAccount(account);
+                    setLinkTargetEmail("");
+                    setLinkLookedUpUser(null);
+                  }}
+                  title="Link to another user"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleToggleAffiliate(account)}
                   title="Toggle Affiliate"
                 >
