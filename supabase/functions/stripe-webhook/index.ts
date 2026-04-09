@@ -377,25 +377,42 @@ if (event.type === 'checkout.session.completed') {
       }
 
       // ============================================================
-      // SALES REP COMMISSION HANDLING
-      // If this checkout was initiated by a sales rep, create commission
+      // SALES REP COMMISSION HANDLING — TRIAL-SAFE
+      // Create commission as trial_pending with 0 points.
+      // Real activation happens in invoice.paid handler.
       // ============================================================
       if (salesRepId && restaurantId && source === 'rep_portal') {
-        console.log(`[stripe-webhook] Processing sales rep commission for rep ${salesRepId}`);
+        console.log(`[stripe-webhook] Processing sales rep commission (trial_pending) for rep ${salesRepId}`);
         
         try {
-          // Get compensation settings
+          // Get compensation settings for tiered rates
           const { data: compSettings } = await supabaseAdmin
             .from('rep_compensation_settings')
-            .select('base_commission_per_close')
+            .select('*')
             .limit(1)
             .single();
 
-          const commissionAmount = compSettings?.base_commission_per_close || 50;
+          const metaPlanTier = session.metadata?.plan_tier || 'restaurant';
+          const metaBillingCycle = session.metadata?.billing_cycle || 'monthly';
+
+          // Determine upfront amount based on tier
+          let upfrontAmount = 50; // fallback
+          if (compSettings) {
+            if (metaPlanTier === 'business_lite') {
+              upfrontAmount = metaBillingCycle === 'annual'
+                ? Number(compSettings.lite_annual_upfront)
+                : Number(compSettings.lite_monthly_upfront);
+            } else {
+              upfrontAmount = metaBillingCycle === 'annual'
+                ? Number(compSettings.restaurant_annual_upfront)
+                : Number(compSettings.restaurant_monthly_upfront);
+            }
+          }
+
           const now = new Date();
           const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-          // Create commission record
+          // Create commission as trial_pending with 0 points
           const { error: commissionError } = await supabaseAdmin
             .from('commissions')
             .insert({
@@ -403,16 +420,21 @@ if (event.type === 'checkout.session.completed') {
               rep_restaurant_id: repRestaurantId || null,
               restaurant_id: restaurantId,
               type: 'close',
-              amount: commissionAmount,
-              status: 'pending',
+              commission_type: 'upfront',
+              plan_tier: metaPlanTier,
+              billing_cycle: metaBillingCycle,
+              amount: upfrontAmount,
+              status: 'trial_pending',
+              points_value: 0,
               period_label: periodLabel,
-              note: `Close commission for ${session.metadata?.restaurant_name || 'restaurant'}`,
+              stripe_subscription_id: subscriptionId || null,
+              note: `Upfront commission for ${session.metadata?.restaurant_name || 'restaurant'} (${metaPlanTier} ${metaBillingCycle}) — awaiting first payment`,
             });
 
           if (commissionError) {
-            console.error('[stripe-webhook] Failed to create commission:', commissionError);
+            console.error('[stripe-webhook] Failed to create trial_pending commission:', commissionError);
           } else {
-            console.log(`[stripe-webhook] Created $${commissionAmount} commission for rep ${salesRepId}`);
+            console.log(`[stripe-webhook] Created $${upfrontAmount} trial_pending commission for rep ${salesRepId}`);
           }
 
           // Update rep_restaurants record to mark as closed
@@ -435,7 +457,6 @@ if (event.type === 'checkout.session.completed') {
           }
         } catch (commissionErr) {
           console.error('[stripe-webhook] Error processing sales rep commission:', commissionErr);
-          // Don't fail the webhook - commission can be manually added if needed
         }
       }
 
@@ -721,12 +742,135 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
-    // PERSONAL SUBSCRIPTION CANCELLATION
-    // When a personal subscription is deleted/cancelled, downgrade the account
+    // INVOICE.PAID — State-machine for rep commission lifecycle
+    // ============================================================
+    if (event.type === 'invoice.paid') {
+      const invoice = event.data.object as any;
+      const amountPaid = invoice.amount_paid || 0;
+      const invoiceSubId = invoice.subscription as string | null;
+
+      if (amountPaid > 0 && invoiceSubId) {
+        console.log(`[stripe-webhook] invoice.paid: sub=${invoiceSubId}, amount=${amountPaid}`);
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+          mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          })
+        );
+
+        // Find the upfront commission linked to this subscription
+        const { data: existingComm } = await supabaseAdmin
+          .from('commissions')
+          .select('*')
+          .eq('stripe_subscription_id', invoiceSubId)
+          .eq('commission_type', 'upfront')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingComm) {
+          if (existingComm.status === 'trial_pending') {
+            // FIRST REAL PAYMENT — upgrade trial_pending
+            const isAnnual = existingComm.billing_cycle === 'annual';
+            const isRestaurant = existingComm.plan_tier === 'restaurant';
+
+            // Get comp settings for point values and clawback days
+            const { data: compSettings } = await supabaseAdmin
+              .from('rep_compensation_settings')
+              .select('*')
+              .limit(1)
+              .single();
+
+            const pointsValue = isRestaurant
+              ? Number(compSettings?.restaurant_point_value ?? 1)
+              : Number(compSettings?.lite_point_value ?? 0.5);
+            const clawbackDays = Number(compSettings?.clawback_days ?? 60);
+
+            const updateData: Record<string, unknown> = {
+              status: isAnnual ? 'available' : 'pending',
+              points_value: pointsValue,
+            };
+
+            if (!isAnnual) {
+              updateData.clawback_until = new Date(Date.now() + clawbackDays * 24 * 60 * 60 * 1000).toISOString();
+            }
+
+            const { error: updateErr } = await supabaseAdmin
+              .from('commissions')
+              .update(updateData)
+              .eq('id', existingComm.id);
+
+            if (updateErr) {
+              console.error('[stripe-webhook] Failed to upgrade trial_pending commission:', updateErr);
+            } else {
+              console.log(`[stripe-webhook] Upgraded commission ${existingComm.id} to ${updateData.status} with ${pointsValue} pts`);
+            }
+          } else if (existingComm.status === 'available' || existingComm.status === 'pending') {
+            // SUBSEQUENT PAYMENT — create recurring commission
+            const { data: compSettings } = await supabaseAdmin
+              .from('rep_compensation_settings')
+              .select('*')
+              .limit(1)
+              .single();
+
+            const isRestaurant = existingComm.plan_tier === 'restaurant';
+            const isAnnual = existingComm.billing_cycle === 'annual';
+
+            let recurringAmount = 4; // fallback
+            if (compSettings) {
+              if (isRestaurant) {
+                recurringAmount = isAnnual
+                  ? Number(compSettings.restaurant_annual_recurring)
+                  : Number(compSettings.restaurant_monthly_recurring);
+              } else {
+                recurringAmount = isAnnual
+                  ? Number(compSettings.lite_annual_recurring)
+                  : Number(compSettings.lite_monthly_recurring);
+              }
+            }
+
+            const now = new Date();
+            const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+            const { error: recurErr } = await supabaseAdmin
+              .from('commissions')
+              .insert({
+                rep_id: existingComm.rep_id,
+                rep_restaurant_id: existingComm.rep_restaurant_id,
+                restaurant_id: existingComm.restaurant_id,
+                type: 'recurring',
+                commission_type: 'recurring',
+                plan_tier: existingComm.plan_tier,
+                billing_cycle: existingComm.billing_cycle,
+                amount: recurringAmount,
+                status: 'available',
+                points_value: 0,
+                period_label: periodLabel,
+                stripe_subscription_id: invoiceSubId,
+                note: `Recurring commission (${existingComm.plan_tier} ${existingComm.billing_cycle})`,
+              });
+
+            if (recurErr) {
+              console.error('[stripe-webhook] Failed to create recurring commission:', recurErr);
+            } else {
+              console.log(`[stripe-webhook] Created $${recurringAmount} recurring commission for rep ${existingComm.rep_id}`);
+            }
+          }
+        } else {
+          console.log('[stripe-webhook] invoice.paid: no rep commission found for this subscription, skipping');
+        }
+      }
+    }
+
+    // ============================================================
+    // PERSONAL SUBSCRIPTION CANCELLATION + REP COMMISSION CLAWBACK
     // ============================================================
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as any;
       const customerId = subscription.customer as string;
+      const deletedSubId = subscription.id as string;
       console.log(`[stripe-webhook] Subscription deleted for customer ${customerId}`);
 
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -737,6 +881,43 @@ if (event.type === 'checkout.session.completed') {
         })
       );
 
+      // === REP COMMISSION CLAWBACK/VOIDING ===
+      if (deletedSubId) {
+        // Void trial_pending commissions
+        const { data: trialComms } = await supabaseAdmin
+          .from('commissions')
+          .select('id')
+          .eq('stripe_subscription_id', deletedSubId)
+          .eq('status', 'trial_pending');
+
+        if (trialComms && trialComms.length > 0) {
+          const ids = trialComms.map((c: any) => c.id);
+          await supabaseAdmin
+            .from('commissions')
+            .update({ status: 'voided', note: 'Voided: customer cancelled during free trial' })
+            .in('id', ids);
+          console.log(`[stripe-webhook] Voided ${ids.length} trial_pending commissions for sub ${deletedSubId}`);
+        }
+
+        // Clawback pending (within clawback window) commissions
+        const { data: pendingComms } = await supabaseAdmin
+          .from('commissions')
+          .select('id')
+          .eq('stripe_subscription_id', deletedSubId)
+          .eq('status', 'pending')
+          .gt('clawback_until', new Date().toISOString());
+
+        if (pendingComms && pendingComms.length > 0) {
+          const ids = pendingComms.map((c: any) => c.id);
+          await supabaseAdmin
+            .from('commissions')
+            .update({ status: 'clawed_back', note: 'Clawed back: customer cancelled within 60-day window' })
+            .in('id', ids);
+          console.log(`[stripe-webhook] Clawed back ${ids.length} pending commissions for sub ${deletedSubId}`);
+        }
+      }
+
+      // === EXISTING PERSONAL PROFILE DOWNGRADE ===
       // Find personal profile by stripe_customer_id
       const { data: profile } = await supabaseAdmin
         .from('personal_profiles')

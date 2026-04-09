@@ -1,29 +1,42 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, DollarSign, TrendingUp, Gift, Clock } from 'lucide-react';
+import { ArrowLeft, DollarSign, Clock, Zap, Target } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Commission {
   id: string;
   type: string;
+  commission_type: string | null;
+  plan_tier: string | null;
+  billing_cycle: string | null;
   amount: number;
   status: string;
+  points_value: number;
   period_label: string;
   note: string | null;
   created_at: string;
-  paid_at: string | null;
+  clawback_until: string | null;
   rep_restaurant_id: string | null;
   restaurant_name?: string;
 }
+
+const STATUS_BADGES: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
+  trial_pending: { label: 'In Trial', variant: 'secondary', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  available: { label: 'Available', variant: 'default', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  pending: { label: 'Pending', variant: 'outline', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  paid: { label: 'Paid', variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' },
+  voided: { label: 'Voided', variant: 'destructive', className: 'bg-slate-100 text-slate-500 border-slate-200' },
+  clawed_back: { label: 'Clawed Back', variant: 'destructive', className: 'bg-red-100 text-red-700 border-red-200' },
+};
 
 const RepCommissions = () => {
   const navigate = useNavigate();
@@ -33,77 +46,63 @@ const RepCommissions = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  
+
   const [stats, setStats] = useState({
+    availableTotal: 0,
     pendingTotal: 0,
-    paidTotal: 0,
-    closesThisMonth: 0,
-    bonusProgress: 0,
-    bonusThreshold: 30,
+    inTrial: 0,
+    pointsThisMonth: 0,
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-      return;
-    }
-
-    if (!repLoading && !isSalesRep) {
-      navigate('/');
-      return;
-    }
+    if (!authLoading && !user) { navigate('/auth'); return; }
+    if (!repLoading && !isSalesRep) { navigate('/'); return; }
   }, [authLoading, repLoading, user, isSalesRep, navigate]);
 
   useEffect(() => {
     const fetchCommissions = async () => {
       if (!salesRep) return;
-
       try {
-        // Fetch commissions
         let query = supabase
           .from('commissions')
-          .select(`
-            *,
-            rep_restaurants:rep_restaurant_id (name)
-          `)
+          .select('*, rep_restaurants:rep_restaurant_id (name)')
           .eq('rep_id', salesRep.id)
           .order('created_at', { ascending: false });
 
-        if (statusFilter !== 'all') {
-          query = query.eq('status', statusFilter);
-        }
+        if (statusFilter !== 'all') query = query.eq('status', statusFilter);
         if (typeFilter !== 'all') {
-          query = query.eq('type', typeFilter);
+          if (typeFilter === 'upfront' || typeFilter === 'recurring' || typeFilter === 'bonus') {
+            query = query.eq('commission_type', typeFilter);
+          } else {
+            query = query.eq('type', typeFilter);
+          }
         }
 
         const { data, error } = await query;
         if (error) throw error;
 
-        const commissionsWithNames = (data || []).map(c => ({
+        const mapped = (data || []).map((c: any) => ({
           ...c,
           restaurant_name: c.rep_restaurants?.name || null,
         }));
-        setCommissions(commissionsWithNames);
+        setCommissions(mapped);
 
-        // Calculate stats
-        const allCommissions = await supabase
+        // Stats from all commissions
+        const { data: allComm } = await supabase
           .from('commissions')
-          .select('amount, status, type, period_label')
+          .select('amount, status, commission_type, points_value, period_label')
           .eq('rep_id', salesRep.id);
 
         const now = new Date();
         const currentPeriod = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-        const pendingTotal = allCommissions.data?.filter(c => c.status === 'pending').reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-        const paidTotal = allCommissions.data?.filter(c => c.status === 'paid').reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-        const closesThisMonth = allCommissions.data?.filter(c => c.type === 'close' && c.period_label === currentPeriod).length || 0;
-
         setStats({
-          pendingTotal,
-          paidTotal,
-          closesThisMonth,
-          bonusProgress: closesThisMonth,
-          bonusThreshold: 30,
+          availableTotal: allComm?.filter(c => c.status === 'available').reduce((s, c) => s + Number(c.amount), 0) || 0,
+          pendingTotal: allComm?.filter(c => c.status === 'pending').reduce((s, c) => s + Number(c.amount), 0) || 0,
+          inTrial: allComm?.filter(c => c.status === 'trial_pending').reduce((s, c) => s + Number(c.amount), 0) || 0,
+          pointsThisMonth: allComm
+            ?.filter(c => c.period_label === currentPeriod && (c.commission_type === 'upfront' || c.commission_type === null))
+            .reduce((s, c) => s + Number(c.points_value || 0), 0) || 0,
         });
       } catch (error) {
         console.error('Error fetching commissions:', error);
@@ -111,10 +110,7 @@ const RepCommissions = () => {
         setLoading(false);
       }
     };
-
-    if (salesRep) {
-      fetchCommissions();
-    }
+    if (salesRep) fetchCommissions();
   }, [salesRep, statusFilter, typeFilter]);
 
   if (authLoading || repLoading || loading) {
@@ -125,11 +121,23 @@ const RepCommissions = () => {
     );
   }
 
-  const bonusPercentage = Math.min((stats.bonusProgress / stats.bonusThreshold) * 100, 100);
+  const getTypeBadge = (c: Commission) => {
+    const ct = c.commission_type || c.type;
+    switch (ct) {
+      case 'upfront': return <Badge variant="secondary">Upfront</Badge>;
+      case 'recurring': return <Badge variant="outline">Recurring</Badge>;
+      case 'bonus': return <Badge className="bg-purple-100 text-purple-700 border-purple-200">🎁 Bonus</Badge>;
+      default: return <Badge variant="secondary">{ct}</Badge>;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const config = STATUS_BADGES[status] || { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -145,60 +153,48 @@ const RepCommissions = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/10 rounded-lg">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                </div>
+                <div className="p-2 bg-emerald-500/10 rounded-lg"><DollarSign className="h-5 w-5 text-emerald-600" /></div>
                 <div>
-                  <p className="text-2xl font-bold text-yellow-600">${stats.pendingTotal}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-2xl font-bold text-emerald-600">${stats.availableTotal.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">Available</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
+                <div className="p-2 bg-amber-500/10 rounded-lg"><Clock className="h-5 w-5 text-amber-600" /></div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">${stats.paidTotal}</p>
-                  <p className="text-xs text-muted-foreground">Paid</p>
+                  <p className="text-2xl font-bold text-amber-600">${stats.pendingTotal.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">Pending Hold</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
+                <div className="p-2 bg-blue-500/10 rounded-lg"><Zap className="h-5 w-5 text-blue-600" /></div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.closesThisMonth}</p>
-                  <p className="text-xs text-muted-foreground">Closes This Month</p>
+                  <p className="text-2xl font-bold text-blue-600">${stats.inTrial.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">In Trial</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <Gift className="h-5 w-5 text-purple-600" />
-                </div>
+                <div className="p-2 bg-primary/10 rounded-lg"><Target className="h-5 w-5 text-primary" /></div>
                 <div>
-                  <p className="text-sm font-medium">{stats.bonusProgress}/{stats.bonusThreshold}</p>
-                  <p className="text-xs text-muted-foreground">Bonus Progress</p>
-                  <Progress value={bonusPercentage} className="h-2 mt-1" />
+                  <p className="text-2xl font-bold">{stats.pointsThisMonth}</p>
+                  <p className="text-xs text-muted-foreground">Points This Month</p>
                 </div>
               </div>
             </CardContent>
@@ -206,79 +202,67 @@ const RepCommissions = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="trial_pending">In Trial</SelectItem>
+              <SelectItem value="available">Available</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="voided">Voided</SelectItem>
+              <SelectItem value="clawed_back">Clawed Back</SelectItem>
             </SelectContent>
           </Select>
-
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="close">Close</SelectItem>
+              <SelectItem value="upfront">Upfront</SelectItem>
+              <SelectItem value="recurring">Recurring</SelectItem>
               <SelectItem value="bonus">Bonus</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Commissions Table */}
+        {/* Table */}
         <Card>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Restaurant</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-center">Pts</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Period</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {commissions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No commissions yet. Start closing restaurants to earn!
                     </TableCell>
                   </TableRow>
-                ) : (
-                  commissions.map((commission) => (
-                    <TableRow key={commission.id}>
-                      <TableCell className="text-sm">
-                        {format(new Date(commission.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={commission.type === 'bonus' ? 'default' : 'secondary'}>
-                          {commission.type === 'bonus' ? '🎁 Bonus' : 'Close'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {commission.restaurant_name || '—'}
-                      </TableCell>
-                      <TableCell className="font-medium text-green-600">
-                        ${commission.amount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={commission.status === 'paid' ? 'default' : 'outline'}>
-                          {commission.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {commission.period_label}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ) : commissions.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-sm">{format(new Date(c.created_at), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="text-sm">{c.restaurant_name || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {c.plan_tier ? `${c.plan_tier === 'restaurant' ? 'Venue' : 'Solo'} ${c.billing_cycle || ''}` : '—'}
+                    </TableCell>
+                    <TableCell>{getTypeBadge(c)}</TableCell>
+                    <TableCell className="text-center text-sm font-medium">
+                      {Number(c.points_value) > 0 ? c.points_value : '—'}
+                    </TableCell>
+                    <TableCell className="font-medium text-green-600">${Number(c.amount).toFixed(2)}</TableCell>
+                    <TableCell>{getStatusBadge(c.status)}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
