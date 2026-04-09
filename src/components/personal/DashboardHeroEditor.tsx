@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallb
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Check, X, AlertTriangle } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
@@ -21,12 +22,14 @@ interface Props {
   headline: string | null;
   bio: string | null;
   planType: string | null;
+  showUsername: boolean;
   onUpdate: (updates: Partial<{
     full_name: string;
     headline: string | null;
     bio: string | null;
     pfp_position: string;
     username: string;
+    show_username: boolean;
   }>) => void;
   onPendingChangesChange?: (hasPending: boolean) => void;
 }
@@ -38,12 +41,14 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   headline,
   bio,
   planType,
+  showUsername,
   onUpdate,
   onPendingChangesChange,
 }, ref) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
+  const [showUsernameValue, setShowUsernameValue] = useState(showUsername);
 
   // Username editing state
   const isFree = !planType || planType === "free";
