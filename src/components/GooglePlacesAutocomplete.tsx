@@ -72,6 +72,14 @@ export const GooglePlacesAutocomplete = ({
       setResults(items);
       setShowDropdown(items.length > 0);
 
+      if (data?.error) {
+        const msg = data.error;
+        setError(msg);
+        onError?.(msg);
+        setShowDropdown(false);
+        return;
+      }
+
       if (items.length === 0) {
         setShowDropdown(true); // show "no results" message
       }
