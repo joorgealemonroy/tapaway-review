@@ -222,7 +222,7 @@ const Onboarding = () => {
     saveOnboardingData({ logoUrl: '', logoUploaded: false });
   };
 
-  // ── Rep mode checkout ──
+  // ── Rep mode / promo checkout ──
   const handleRepCheckout = async () => {
     if (!clientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
       toast.error("Please enter a valid email address");
@@ -235,29 +235,54 @@ const Onboarding = () => {
 
     setRepSubmitting(true);
     try {
+      const requestBody: Record<string, unknown> = {
+        clientEmail: clientEmail.trim(),
+        businessName: businessName.trim(),
+        shippingAddress: shippingAddress.trim(),
+        planType: selectedPlan || "venue",
+        hasProtection,
+        googlePlaceId: selectedGooglePlace?.placeId || "",
+        googlePlaceName: selectedGooglePlace?.name || "",
+        googlePlaceAddress: selectedGooglePlace?.address || "",
+        logoUrl: logoUrl || "",
+        repRestaurantId: repId || "",
+      };
+
+      // If promo token present, attach it (allows unauthenticated invocation)
+      if (promoTokenParam) {
+        requestBody.promoToken = promoTokenParam;
+      }
+
+      // Build headers — only include auth if we have a session
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error("You must be logged in as a sales rep");
-        setRepSubmitting(false);
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/create-rep-onboarding`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseAnonKey,
+          ...headers,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Request failed");
+
+      // Free promo: no Stripe URL, just redirect to success
+      if (data?.success) {
+        clearOnboardingData();
+        navigate("/rep-checkout-success?status=success");
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("create-rep-onboarding", {
-        body: {
-          clientEmail: clientEmail.trim(),
-          businessName: businessName.trim(),
-          shippingAddress: shippingAddress.trim(),
-          planType: selectedPlan || "venue",
-          hasProtection,
-          googlePlaceId: selectedGooglePlace?.placeId || "",
-          googlePlaceName: selectedGooglePlace?.name || "",
-          googlePlaceAddress: selectedGooglePlace?.address || "",
-          logoUrl: logoUrl || "",
-          repRestaurantId: repId || "",
-        },
-      });
-
-      if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
         return;
@@ -265,7 +290,7 @@ const Onboarding = () => {
       throw new Error("No checkout URL returned");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to start checkout";
-      console.error("[onboarding] Rep checkout failed:", err);
+      console.error("[onboarding] Rep/promo checkout failed:", err);
       toast.error(message);
     } finally {
       setRepSubmitting(false);
@@ -729,7 +754,7 @@ const Onboarding = () => {
               )}
 
               {/* Auth buttons OR Rep email input */}
-              {isRepMode && authUser ? (
+              {(isRepMode && authUser) || !!promoTokenParam ? (
                 <div className="space-y-4">
                   <div>
                     <Label className="text-gray-300 text-sm flex items-center gap-2">
