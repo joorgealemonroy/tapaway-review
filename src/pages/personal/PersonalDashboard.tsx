@@ -384,7 +384,7 @@ const PersonalDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const filePath = `${user.id}/profile.jpg`;
+      const filePath = `${user.id}/${profile.id}/profile.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
