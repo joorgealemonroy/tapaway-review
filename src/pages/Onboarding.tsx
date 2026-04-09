@@ -45,6 +45,11 @@ const Onboarding = () => {
   const isRepMode = searchParams.get("rep") === "true";
   const repId = searchParams.get("rep_id") || undefined;
 
+  // Promo token detection
+  const promoTokenParam = searchParams.get("promo_token") || undefined;
+  const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
+  const [promoValidated, setPromoValidated] = useState(false);
+
   const [step, setStep] = useState<Step>("plan");
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +85,30 @@ const Onboarding = () => {
 
   // ── Handle Stripe return ──
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
+
+  // ── Validate promo token on mount ──
+  useEffect(() => {
+    if (!promoTokenParam) { setPromoValidated(true); return; }
+    const validatePromo = async () => {
+      try {
+        const { data, error: promoError } = await supabase.functions.invoke("validate-promo-token", {
+          body: { token: promoTokenParam },
+        });
+        if (!promoError && data?.valid) {
+          setPromoDiscountType(data.discount_type as string);
+          console.log("[onboarding] Valid promo token:", data.discount_type);
+        } else {
+          console.warn("[onboarding] Invalid promo token:", data?.error);
+          toast.error("This promo link is invalid or expired.");
+        }
+      } catch {
+        console.error("[onboarding] Promo validation failed");
+      } finally {
+        setPromoValidated(true);
+      }
+    };
+    validatePromo();
+  }, [promoTokenParam]);
 
   // ── Init: check session, prefill, handle Stripe return ──
   useEffect(() => {
@@ -355,6 +384,36 @@ const Onboarding = () => {
       // Yelp auto
       try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
 
+      // ── FREE PROMO: skip Stripe entirely ──
+      if (promoDiscountType === 'free' && promoTokenParam) {
+        try {
+          // Mark subscription as active
+          await supabase.from("restaurants").update({
+            subscription_status: "active",
+            onboarding_completed: true,
+            onboarding_step: 4,
+          }).eq("id", rId);
+
+          // Mark token as used
+          await supabase.functions.invoke("validate-promo-token", {
+            body: { token: promoTokenParam, markUsed: true, usedByUserId: uid },
+          });
+
+          // Finalize
+          try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+
+          clearOnboardingData();
+          setShowSuccess(true);
+          return;
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Failed to activate free promo";
+          console.error("[onboarding] Free promo activation failed:", err);
+          toast.error(message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Redirect to Stripe Checkout for card on file
       try {
         const { data, error } = await supabase.functions.invoke("create-checkout-session", {
@@ -364,6 +423,7 @@ const Onboarding = () => {
             restaurantId: rId,
             planType: plan,
             hasProtection: protection,
+            promoToken: promoTokenParam || undefined,
           },
         });
         if (error) throw error;
@@ -372,7 +432,8 @@ const Onboarding = () => {
           return;
         }
         throw new Error("No checkout URL returned");
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Stripe redirect failed";
         console.error("[onboarding] Stripe redirect failed:", err);
         toast.error("Failed to start checkout. Please try again.");
         setIsLoading(false);
@@ -393,7 +454,7 @@ const Onboarding = () => {
   }, [initialCheckDone, step]);
 
   // ── Loading ──
-  if (!initialCheckDone || verifyingCheckout) {
+  if (!initialCheckDone || verifyingCheckout || !promoValidated) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -433,6 +494,13 @@ const Onboarding = () => {
             ))}
           </div>
         </div>
+        {promoDiscountType && (
+          <div className="max-w-md mx-auto px-4 pt-1">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+              🎉 {promoDiscountType === 'free' ? '100% Free' : '50% Off'} Promo Applied
+            </span>
+          </div>
+        )}
       </nav>
 
       <main className="max-w-md mx-auto px-4 py-8">

@@ -6,8 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -23,8 +23,20 @@ import {
 } from "@/components/ui/dialog";
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import AdminBusinessLiteTable from "@/components/admin/AdminBusinessLiteTable";
-import { getAppSettings, setPaywallEnabled } from "@/lib/appSettings";
 import { toast } from "sonner";
+import {
+  Users,
+  DollarSign,
+  Wallet,
+  FileText,
+  Settings,
+  ClipboardList,
+  Crown,
+  Copy,
+  Loader2,
+  Link as LinkIcon,
+  Timer,
+} from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
@@ -52,6 +64,16 @@ type Location = {
   restaurant_id: string;
 };
 
+const NAV_CARDS = [
+  { label: "Manage Reps", desc: "Applications & active reps", icon: Users, path: "/admin/reps" },
+  { label: "Commissions", desc: "View & manage commissions", icon: DollarSign, path: "/admin/commissions" },
+  { label: "ACH Payouts", desc: "Process payout batches", icon: Wallet, path: "/admin/payouts" },
+  { label: "W-9 Tax Review", desc: "Review tax documents", icon: FileText, path: "/admin/tax-review" },
+  { label: "Comp Settings", desc: "Rates & bonus thresholds", icon: Settings, path: "/admin/settings/comp" },
+  { label: "Demo Requests", desc: "Demo kit requests", icon: ClipboardList, path: "/admin/demo-requests" },
+  { label: "Founding Creators", desc: "Founding user list", icon: Crown, path: "/admin/founders" },
+];
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -75,10 +97,11 @@ const Admin = () => {
 
   const [yelpDebugTarget, setYelpDebugTarget] = useState<YelpDebugRestaurant | null>(null);
 
-  // Paywall control state
-  const [paywallEnabled, setPaywallEnabledState] = useState(true);
-  const [loadingPaywallSetting, setLoadingPaywallSetting] = useState(true);
-  const [updatingPaywall, setUpdatingPaywall] = useState(false);
+  // Promo Link Generator state
+  const [promoDiscountType, setPromoDiscountType] = useState<string>("50_off");
+  const [generatingPromo, setGeneratingPromo] = useState(false);
+  const [promoUrl, setPromoUrl] = useState<string | null>(null);
+  const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,8 +153,9 @@ const Admin = () => {
 
         setRestaurants(restaurantsWithTaps);
         setLocations(locationsData ?? []);
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        setError(message);
       } finally {
         setLoadingData(false);
       }
@@ -165,7 +189,7 @@ const Admin = () => {
 
   const openEdit = (r: Restaurant) => setEditingRestaurant(r);
 
-  const changeEdit = (field: keyof Restaurant, value: any) => {
+  const changeEdit = (field: keyof Restaurant, value: string) => {
     if (!editingRestaurant) return;
     setEditingRestaurant({ ...editingRestaurant, [field]: value });
   };
@@ -175,24 +199,25 @@ const Admin = () => {
     setSavingEdit(true);
     try {
       const { id, ...updates } = editingRestaurant;
-      const validUpdates: any = {};
+      const validUpdates: Record<string, unknown> = {};
       const fields = ["google_review_url", "yelp_review_url", "directions_url", "instagram_url", "logo_url", "custom_slug", "greeting_name"];
       fields.forEach((f) => {
-        if (f in updates) validUpdates[f] = (updates as any)[f];
+        if (f in updates) validUpdates[f] = (updates as Record<string, unknown>)[f];
       });
 
-      const { data, error } = await supabase
+      const { data, error: updateError } = await supabase
         .from("restaurants")
         .update(validUpdates)
         .eq("id", id)
         .select("*")
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       setRestaurants((prev) => prev.map((r) => (r.id === id ? data : r)));
       setEditingRestaurant(null);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setError(message);
     } finally {
       setSavingEdit(false);
     }
@@ -200,13 +225,13 @@ const Admin = () => {
 
   const toggleSub = async (r: Restaurant) => {
     const next = r.subscription_status === "active" ? "paused" : "active";
-    const { data, error } = await supabase
+    const { data, error: updateError } = await supabase
       .from("restaurants")
       .update({ subscription_status: next })
       .eq("id", r.id)
       .select("*")
       .single();
-    if (!error) setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
+    if (!updateError && data) setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
   };
 
   const repairGoogleReviewLink = async (r: Restaurant) => {
@@ -215,17 +240,18 @@ const Admin = () => {
       return;
     }
     try {
-      const { data, error } = await supabase
+      const { data, error: repairError } = await supabase
         .from("restaurants")
         .update({ google_place_id: r.google_place_id })
         .eq("id", r.id)
         .select("id, google_place_id, google_review_url")
         .single();
-      if (error) throw error;
+      if (repairError) throw repairError;
       setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...data } : x)));
       setError(null);
-    } catch (e: any) {
-      setError("Failed to repair link: " + (e.message ?? "Unknown error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setError("Failed to repair link: " + message);
     }
   };
 
@@ -238,18 +264,19 @@ const Admin = () => {
     if (!deletingRestaurant || deleteConfirmText !== "DELETE ACCOUNT") return;
     setDeleting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("delete-user-complete", {
+      const { data, error: deleteError } = await supabase.functions.invoke("delete-user-complete", {
         body: { restaurantId: deletingRestaurant.id }
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.warning) toast.warning(data.warning);
+      if (deleteError) throw deleteError;
+      if (data?.error) throw new Error(data.error as string);
+      if (data?.warning) toast.warning(data.warning as string);
       else toast.success("Account completely deleted");
       setRestaurants((prev) => prev.filter((x) => x.id !== deletingRestaurant.id));
       setDeletingRestaurant(null);
       setDeleteConfirmText("");
-    } catch (e: any) {
-      setError("Delete failed: " + e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unknown error";
+      setError("Delete failed: " + message);
     } finally {
       setDeleting(false);
     }
@@ -260,30 +287,31 @@ const Admin = () => {
     window.open(`/${r.custom_slug}`, "_blank");
   };
 
-  // Load paywall settings
-  useEffect(() => {
-    if (!isAdmin || adminLoading) return;
-    const loadPaywallSetting = async () => {
-      setLoadingPaywallSetting(true);
-      const settings = await getAppSettings(supabase);
-      setPaywallEnabledState(settings.paywallEnabled);
-      setLoadingPaywallSetting(false);
-    };
-    loadPaywallSetting();
-  }, [isAdmin, adminLoading]);
-
-  const handlePaywallToggle = async (enabled: boolean) => {
-    const previousValue = paywallEnabled;
-    setPaywallEnabledState(enabled);
-    setUpdatingPaywall(true);
-    const result = await setPaywallEnabled(supabase, enabled);
-    if (result.success) {
-      toast.success(enabled ? "Paywall enabled for new users." : "Paywall disabled for new/test users.");
-    } else {
-      setPaywallEnabledState(previousValue);
-      toast.error("Failed to update paywall setting: " + result.error);
+  // Promo link generator
+  const handleGeneratePromo = async () => {
+    setGeneratingPromo(true);
+    setPromoUrl(null);
+    try {
+      const { data, error: promoError } = await supabase.functions.invoke("generate-promo-token", {
+        body: { discount_type: promoDiscountType },
+      });
+      if (promoError) throw promoError;
+      if (data?.error) throw new Error(data.error as string);
+      setPromoUrl(data.url as string);
+      setPromoExpiresAt(data.expires_at as string);
+      toast.success("Promo link generated!");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to generate promo link";
+      toast.error(message);
+    } finally {
+      setGeneratingPromo(false);
     }
-    setUpdatingPaywall(false);
+  };
+
+  const copyPromoUrl = () => {
+    if (!promoUrl) return;
+    navigator.clipboard.writeText(promoUrl);
+    toast.success("Link copied to clipboard");
   };
 
   if (authLoading || adminLoading) {
@@ -302,46 +330,80 @@ const Admin = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">TapAway Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground">Logged in as {user?.email}</p>
       </div>
 
-      {/* Sales Rep Portal Admin Links */}
-      <section className="bg-card border rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold">Sales Rep Portal</h2>
+      {/* Sales Rep Portal — Card Grid */}
+      <section className="space-y-3">
+        <h2 className="font-semibold text-lg">Sales Rep Portal</h2>
         <p className="text-sm text-muted-foreground">
           Manage 1099 sales reps, applications, commissions, and tax documents.
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => navigate('/admin/reps')} variant="outline">Manage Reps & Applications</Button>
-          <Button onClick={() => navigate('/admin/commissions')} variant="outline">Commission Management</Button>
-          <Button onClick={() => navigate('/admin/payouts')} variant="outline">ACH Payouts</Button>
-          <Button onClick={() => navigate('/admin/tax-review')} variant="outline">W-9 Tax Review</Button>
-          <Button onClick={() => navigate('/admin/settings/comp')} variant="outline">Compensation Settings</Button>
-          <Button onClick={() => navigate('/admin/demo-requests')} variant="outline">Demo Kit Requests</Button>
-          <Button onClick={() => navigate('/admin/founders')} variant="outline">Founding Creators</Button>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {NAV_CARDS.map((card) => (
+            <Card
+              key={card.path}
+              className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+              onClick={() => navigate(card.path)}
+            >
+              <CardContent className="p-4 flex flex-col gap-2">
+                <card.icon className="h-5 w-5 text-primary" />
+                <span className="font-medium text-sm">{card.label}</span>
+                <span className="text-xs text-muted-foreground leading-tight">{card.desc}</span>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 
-      {/* Paywall Control */}
+      {/* Promo Link Generator */}
       <section className="bg-card border rounded-xl p-4 space-y-3">
-        <h2 className="font-semibold">Paywall Control</h2>
-        <p className="text-sm text-muted-foreground">
-          Toggle the global paywall for new/test users. When OFF, new signups can use TapAway without paying.
-        </p>
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={paywallEnabled}
-            onCheckedChange={handlePaywallToggle}
-            disabled={loadingPaywallSetting || updatingPaywall}
-          />
-          <span className="text-sm font-medium">
-            {loadingPaywallSetting ? "Loading..." : paywallEnabled ? "Paywall ON" : "Paywall OFF"}
-          </span>
-          {updatingPaywall && <span className="text-xs text-muted-foreground">Updating...</span>}
+        <div className="flex items-center gap-2">
+          <LinkIcon className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">Promo Link Generator</h2>
         </div>
+        <p className="text-sm text-muted-foreground">
+          Generate a one-time onboarding link with a discount. Links expire after 30 minutes.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+          <div className="space-y-1.5 w-full sm:w-auto">
+            <Label className="text-xs">Discount Type</Label>
+            <Select value={promoDiscountType} onValueChange={setPromoDiscountType}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="50_off">50% Off</SelectItem>
+                <SelectItem value="free">100% Free</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleGeneratePromo} disabled={generatingPromo}>
+            {generatingPromo ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+            ) : (
+              <><Timer className="h-4 w-4 mr-2" />Generate 30-Min Link</>
+            )}
+          </Button>
+        </div>
+        {promoUrl && (
+          <div className="bg-muted/50 border rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Input value={promoUrl} readOnly className="text-xs font-mono flex-1" />
+              <Button variant="outline" size="sm" onClick={copyPromoUrl}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            {promoExpiresAt && (
+              <p className="text-xs text-muted-foreground">
+                Expires: {new Date(promoExpiresAt).toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Client Management Tabs */}
@@ -356,7 +418,6 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="restaurants">
-          {/* Filters */}
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-3">
               <Input
@@ -391,8 +452,8 @@ const Admin = () => {
 
             {error && <div className="text-destructive text-sm">{error}</div>}
 
-            <div className="border rounded-lg overflow-auto">
-              <table className="min-w-full text-sm">
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="min-w-[800px] w-full text-sm">
                 <thead>
                   <tr className="border-b">
                     <th className="p-2 text-left">Name</th>
@@ -432,7 +493,7 @@ const Admin = () => {
                                 restaurant_name: r.restaurant_name,
                                 google_place_id: r.google_place_id ?? null,
                                 google_review_url: r.google_review_url ?? null,
-                                yelp_business_id: (r as any).yelp_business_id ?? null,
+                                yelp_business_id: (r as Record<string, unknown>).yelp_business_id as string ?? null,
                                 yelp_review_url: r.yelp_review_url ?? null,
                               })
                             }

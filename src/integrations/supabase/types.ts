@@ -1741,6 +1741,39 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_tokens: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          discount_type: string
+          expires_at: string
+          id: string
+          is_used: boolean
+          token: string
+          used_by_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          discount_type: string
+          expires_at: string
+          id?: string
+          is_used?: boolean
+          token?: string
+          used_by_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          discount_type?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean
+          token?: string
+          used_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       rep_applications: {
         Row: {
           created_at: string

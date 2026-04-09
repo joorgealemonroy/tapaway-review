@@ -439,6 +439,28 @@ if (event.type === 'checkout.session.completed') {
         }
       }
 
+      // ============================================================
+      // PROMO TOKEN BURN — Mark token as used on successful checkout
+      // ============================================================
+      const promoToken = session.metadata?.promo_token;
+      if (promoToken && promoToken.length > 0) {
+        try {
+          const { error: promoUpdateError } = await supabaseAdmin
+            .from('promo_tokens')
+            .update({ is_used: true, used_by_user_id: userId })
+            .eq('token', promoToken)
+            .eq('is_used', false);
+
+          if (promoUpdateError) {
+            console.error('[stripe-webhook] Failed to burn promo token:', promoUpdateError);
+          } else {
+            console.log('[stripe-webhook] Promo token burned:', promoToken);
+          }
+        } catch (promoErr) {
+          console.error('[stripe-webhook] Promo token burn error (non-fatal):', promoErr);
+        }
+      }
+
       console.log('[stripe-webhook] Successfully processed checkout session');
     }
 
