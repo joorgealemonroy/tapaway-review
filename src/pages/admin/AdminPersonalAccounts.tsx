@@ -56,7 +56,8 @@ import {
   Send,
   Sparkles,
   Eye,
-  Building2
+  Building2,
+  Link as LinkIcon
 } from "lucide-react";
 import { PERSONAL_PRICING } from "@/lib/personalConfig";
 import { ImageCropper } from "@/components/personal/ImageCropper";
@@ -218,6 +219,13 @@ const AdminPersonalAccounts = () => {
   const editHeaderInputRef = useRef<HTMLInputElement>(null);
   const editContactPhotoInputRef = useRef<HTMLInputElement>(null);
   const editBannerInputRef = useRef<HTMLInputElement>(null);
+
+  // Link profile state
+  const [linkingAccount, setLinkingAccount] = useState<PersonalAccount | null>(null);
+  const [linkTargetEmail, setLinkTargetEmail] = useState("");
+  const [linkLookedUpUser, setLinkLookedUpUser] = useState<{ id: string; email: string } | null>(null);
+  const [linkLooking, setLinkLooking] = useState(false);
+  const [linkSaving, setLinkSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -1111,6 +1119,69 @@ Login at: ${window.location.origin}/auth`;
     setUsernameChecking(false);
   };
 
+  // Link Profile handlers
+  const handleLookupLinkUser = async () => {
+    if (!linkTargetEmail.trim()) return;
+    setLinkLooking(true);
+    setLinkLookedUpUser(null);
+    try {
+      const { data, error } = await supabase.rpc("get_auth_user_by_email", {
+        lookup_email: linkTargetEmail.trim(),
+      });
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setLinkLookedUpUser({ id: data[0].id, email: data[0].email });
+      } else {
+        toast.error("No user found with that email");
+      }
+    } catch (err) {
+      console.error("Lookup error:", err);
+      toast.error("Failed to look up user");
+    } finally {
+      setLinkLooking(false);
+    }
+  };
+
+  const handleLinkProfile = async () => {
+    if (!linkingAccount || !linkLookedUpUser) return;
+    setLinkSaving(true);
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ user_id: linkLookedUpUser.id })
+        .eq("id", linkingAccount.id);
+      if (error) throw error;
+
+      // Audit log
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        await supabase.from("admin_audit_log").insert({
+          admin_user_id: adminUser.id,
+          action: "link_profile_to_user",
+          target_type: "personal_profile",
+          target_id: linkingAccount.id,
+          details: {
+            username: linkingAccount.username,
+            old_user_id: linkingAccount.user_id,
+            new_user_id: linkLookedUpUser.id,
+            new_user_email: linkLookedUpUser.email,
+          },
+        });
+      }
+
+      toast.success(`@${linkingAccount.username} linked to ${linkLookedUpUser.email}`);
+      setLinkingAccount(null);
+      setLinkTargetEmail("");
+      setLinkLookedUpUser(null);
+      loadAccounts();
+    } catch (err) {
+      console.error("Link error:", err);
+      toast.error("Failed to link profile");
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
   const handleToggleAffiliate = async (account: PersonalAccount) => {
     try {
       // Check if already an affiliate
@@ -1277,6 +1348,18 @@ Login at: ${window.location.origin}/auth`;
                   title="View Dashboard"
                 >
                   <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setLinkingAccount(account);
+                    setLinkTargetEmail("");
+                    setLinkLookedUpUser(null);
+                  }}
+                  title="Link to another user"
+                >
+                  <LinkIcon className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
@@ -2330,6 +2413,69 @@ Login at: ${window.location.origin}/auth`;
           cropShape={cropperType === "profile" ? "round" : "rect"}
         />
       )}
+
+
+      {/* Link Profile Modal */}
+      <Dialog open={!!linkingAccount} onOpenChange={(open) => {
+        if (!open) {
+          setLinkingAccount(null);
+          setLinkTargetEmail("");
+          setLinkLookedUpUser(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Profile to Another User</DialogTitle>
+            <DialogDescription>
+              Link <strong>@{linkingAccount?.username}</strong> to a different user account so they can manage it from their dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Current Owner</Label>
+              <p className="text-sm text-muted-foreground">{linkingAccount?.email} ({linkingAccount?.user_id?.slice(0, 8)}...)</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Target User Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="user@example.com"
+                  value={linkTargetEmail}
+                  onChange={(e) => {
+                    setLinkTargetEmail(e.target.value);
+                    setLinkLookedUpUser(null);
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={handleLookupLinkUser}
+                  disabled={linkLooking || !linkTargetEmail.trim()}
+                >
+                  {linkLooking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            {linkLookedUpUser && (
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <p className="text-sm font-medium">Found user:</p>
+                <p className="text-sm text-muted-foreground">{linkLookedUpUser.email}</p>
+                <p className="text-xs text-muted-foreground font-mono">{linkLookedUpUser.id}</p>
+                <Button
+                  onClick={handleLinkProfile}
+                  disabled={linkSaving}
+                  className="w-full mt-2"
+                >
+                  {linkSaving ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" />Linking...</>
+                  ) : (
+                    <><LinkIcon className="h-4 w-4 mr-2" />Link @{linkingAccount?.username} to this user</>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deletingAccount} onOpenChange={() => {
