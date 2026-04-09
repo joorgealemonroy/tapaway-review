@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, MapPin } from "lucide-react";
+
+interface PlaceResult {
+  placeId: string;
+  name: string;
+  formattedAddress: string;
+}
 
 interface GooglePlacesAutocompleteProps {
   onPlaceSelected: (place: {
@@ -16,13 +23,6 @@ interface GooglePlacesAutocompleteProps {
   onError?: (error: string) => void;
 }
 
-declare global {
-  interface Window {
-    google: any;
-    initGoogleMaps: () => void;
-  }
-}
-
 export const GooglePlacesAutocomplete = ({
   onPlaceSelected,
   defaultValue = "",
@@ -32,132 +32,120 @@ export const GooglePlacesAutocomplete = ({
   label = "Search Your Business on Google",
   onError,
 }: GooglePlacesAutocompleteProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [query, setQuery] = useState(defaultValue);
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load the Google Maps script
+  // Close dropdown on outside click
   useEffect(() => {
-    if (window.google?.maps?.places) {
-      setIsLoaded(true);
-      return;
-    }
-
-    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-      const checkInterval = setInterval(() => {
-        if (window.google?.maps?.places) {
-          setIsLoaded(true);
-          clearInterval(checkInterval);
-        }
-      }, 100);
-      return () => clearInterval(checkInterval);
-    }
-
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
-      setError("Google Maps API key not configured");
-      onError?.("Google Maps API key not configured");
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
-    script.async = true;
-    script.defer = true;
-
-    window.initGoogleMaps = () => {
-      setIsLoaded(true);
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
     };
-
-    script.onerror = () => {
-      setError("Failed to load Google Maps");
-      onError?.("Failed to load Google Maps");
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      delete window.initGoogleMaps;
-    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Initialize the classic Autocomplete widget
-  useEffect(() => {
-    if (!isLoaded || !inputRef.current || disabled) return;
-
-    if (!window.google?.maps?.places?.Autocomplete) {
-      setError("Google Places library not fully loaded");
-      onError?.("Google Places library not fully loaded");
+  const search = useCallback(async (q: string) => {
+    if (q.trim().length < 3) {
+      setResults([]);
+      setShowDropdown(false);
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        inputRef.current,
-        {
-          types: ["establishment"],
-          componentRestrictions: { country: "us" },
-          fields: ["place_id", "name", "formatted_address"],
-        }
-      );
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        console.log("[GooglePlacesAutocomplete] place_changed:", place);
-
-        if (!place?.place_id) {
-          console.warn("[GooglePlacesAutocomplete] No place_id in selected place");
-          return;
-        }
-
-        onPlaceSelected({
-          placeId: place.place_id,
-          name: place.name || "",
-          address: place.formatted_address || "",
-        });
-
-        setError(null);
+      const { data, error: fnError } = await supabase.functions.invoke("lookup-place-id", {
+        body: { address: q },
       });
 
-      autocompleteRef.current = autocomplete;
+      if (fnError) throw fnError;
 
-      console.log("[GooglePlacesAutocomplete] Classic Autocomplete initialized");
+      const items: PlaceResult[] = data?.results ?? [];
+      setResults(items);
+      setShowDropdown(items.length > 0);
 
-      return () => {
-        if (autocompleteRef.current) {
-          window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
-        }
-      };
-    } catch (err) {
-      console.error("[GooglePlacesAutocomplete] Error initializing:", err);
-      setError("Error initializing autocomplete");
+      if (items.length === 0) {
+        setShowDropdown(true); // show "no results" message
+      }
+    } catch (err: any) {
+      console.error("[GooglePlacesAutocomplete] search error:", err);
+      const msg = err?.message || "Search failed";
+      setError(msg);
+      onError?.(msg);
+    } finally {
+      setIsLoading(false);
     }
-  }, [isLoaded, disabled, onPlaceSelected]);
+  }, [onError]);
 
-  if (error) {
-    return (
-      <div>
-        {label && <Label>{label}</Label>}
-        <div className="text-sm text-destructive mt-2">{error}</div>
-      </div>
-    );
-  }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => search(val), 350);
+  };
+
+  const handleSelect = (result: PlaceResult) => {
+    setQuery(result.name);
+    setShowDropdown(false);
+    setResults([]);
+    onPlaceSelected({
+      placeId: result.placeId,
+      name: result.name,
+      address: result.formattedAddress,
+    });
+  };
 
   return (
-    <div>
+    <div ref={containerRef} className="relative">
       {label && <Label className="text-gray-300 text-sm">{label}</Label>}
-      <input
-        ref={inputRef}
-        type="text"
-        defaultValue={defaultValue}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={`mt-1 flex h-12 w-full rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      />
-      {!isLoaded && (
-        <div className="text-xs text-gray-500 mt-1">
-          Loading Google Places...
+      <div className="relative mt-1">
+        <input
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={`flex h-12 w-full rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+          onFocus={() => {
+            if (results.length > 0) setShowDropdown(true);
+          }}
+        />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+        )}
+      </div>
+
+      {error && <div className="text-sm text-red-400 mt-1">{error}</div>}
+
+      {showDropdown && (
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-white/10 bg-[#1a2236] shadow-xl overflow-hidden">
+          {results.length === 0 && !isLoading ? (
+            <div className="px-4 py-3 text-sm text-gray-400">No businesses found</div>
+          ) : (
+            results.map((r, i) => (
+              <button
+                key={r.placeId + i}
+                type="button"
+                className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
+                onClick={() => handleSelect(r)}
+              >
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-blue-400" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{r.name}</div>
+                  <div className="text-xs text-gray-400 truncate">{r.formattedAddress}</div>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
