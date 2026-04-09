@@ -1182,7 +1182,7 @@ Login at: ${window.location.origin}/auth`;
     }
   };
 
-
+  const handleToggleAffiliate = async (account: PersonalAccount) => {
     try {
       // Check if already an affiliate
       const { data: existing } = await supabase
