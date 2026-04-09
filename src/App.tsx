@@ -32,6 +32,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Paywall = lazy(() => import("./pages/Paywall"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ReviewHub = lazy(() => import("./pages/ReviewHub"));
+const RepCheckoutSuccess = lazy(() => import("./pages/RepCheckoutSuccess"));
 const Admin = lazy(() => import("./pages/Admin"));
 
 // Legal pages - rarely visited
@@ -161,6 +162,7 @@ const App = () => (
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
+                <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
                 <Route path="/examples" element={<Examples />} />
                 
                 {/* NFC Card Activation */}
