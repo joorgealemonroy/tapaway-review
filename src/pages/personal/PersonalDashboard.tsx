@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Link2, 
   BarChart3,
@@ -20,6 +20,7 @@ import {
   Star,
   Users,
   ShoppingBag,
+  ArrowLeftRight,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -543,27 +544,11 @@ const PersonalDashboard = () => {
               TapAway
             </a>
             <div className="flex items-center gap-2">
-              {allProfiles.length > 1 && (
-                <Select
-                  value={profile.id}
-                  onValueChange={(profileId) => {
-                    setSearchParams({ profile_id: profileId });
-                    setLoading(true);
-                    loadData();
-                  }}
-                >
-                  <SelectTrigger className="w-[160px] h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allProfiles.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        @{p.username}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+               {allProfiles.length > 1 && (
+                 <span className="text-xs text-muted-foreground hidden md:inline">
+                   @{profile.username}
+                 </span>
+               )}
               {isAffiliate && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/affiliate")}>
                   <Users className="h-4 w-4 mr-1" />
@@ -719,6 +704,30 @@ const PersonalDashboard = () => {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Plan</span>
             </TabsTrigger>
+            {allProfiles.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Switch Profile
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {allProfiles.filter(p => p.id !== profile.id).map((p) => (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => {
+                        setSearchParams({ profile_id: p.id });
+                        setLoading(true);
+                        loadData();
+                      }}
+                    >
+                      @{p.username}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </TabsList>
 
           {/* Links Tab */}
@@ -905,6 +914,13 @@ const PersonalDashboard = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isAffiliate={isAffiliate}
+        allProfiles={allProfiles.map(p => ({ id: p.id, username: p.username }))}
+        activeProfileId={profile.id}
+        onSwitchProfile={(profileId) => {
+          setSearchParams({ profile_id: profileId });
+          setLoading(true);
+          loadData();
+        }}
       />
 
     </div>

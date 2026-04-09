@@ -1,14 +1,22 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun, ArrowLeftRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
+interface ProfileInfo {
+  id: string;
+  username: string;
+}
+
 interface MobileBottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isAffiliate?: boolean;
+  allProfiles?: ProfileInfo[];
+  activeProfileId?: string;
+  onSwitchProfile?: (profileId: string) => void;
 }
  
  const PRIMARY_TABS = [
@@ -24,7 +32,7 @@ const BASE_MORE_TABS = [
   { value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
 ];
  
-export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   const navigate = useNavigate();
@@ -132,19 +140,75 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate }: MobileB
              })}
             </div>
 
-            {/* Dark Mode Toggle */}
-            <div className="border-t border-border mt-2 pt-2">
-              <div className="flex items-center gap-4 p-4 rounded-xl">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
-                  {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">Switch appearance</p>
-                </div>
-                <Switch checked={isDark} onCheckedChange={setIsDark} />
-              </div>
-            </div>
+             {/* Switch Profile */}
+             {allProfiles.length > 1 && onSwitchProfile && (
+               <div className="border-t border-border mt-2 pt-2">
+                 {allProfiles.length === 2 ? (
+                   (() => {
+                     const otherProfile = allProfiles.find(p => p.id !== activeProfileId);
+                     return (
+                       <button
+                         onClick={() => {
+                           if (otherProfile) {
+                             onSwitchProfile(otherProfile.id);
+                             setMoreOpen(false);
+                           }
+                         }}
+                         className="w-full flex items-center gap-4 p-4 rounded-xl transition-colors hover:bg-muted"
+                       >
+                         <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-primary/10">
+                           <ArrowLeftRight className="h-5 w-5 text-primary" />
+                         </div>
+                         <div className="flex-1 text-left">
+                           <p className="font-medium">Switch Profile</p>
+                           <p className="text-xs text-muted-foreground">Switch to @{otherProfile?.username}</p>
+                         </div>
+                       </button>
+                     );
+                   })()
+                 ) : (
+                   <div>
+                     <div className="flex items-center gap-4 p-4">
+                       <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-primary/10">
+                         <ArrowLeftRight className="h-5 w-5 text-primary" />
+                       </div>
+                       <div className="flex-1 text-left">
+                         <p className="font-medium">Switch Profile</p>
+                         <p className="text-xs text-muted-foreground">Select an account</p>
+                       </div>
+                     </div>
+                     <div className="pl-14 pr-4 pb-2 space-y-1">
+                       {allProfiles.filter(p => p.id !== activeProfileId).map((p) => (
+                         <button
+                           key={p.id}
+                           onClick={() => {
+                             onSwitchProfile(p.id);
+                             setMoreOpen(false);
+                           }}
+                           className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-muted transition-colors"
+                         >
+                           @{p.username}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
+             )}
+
+             {/* Dark Mode Toggle */}
+             <div className="border-t border-border mt-2 pt-2">
+               <div className="flex items-center gap-4 p-4 rounded-xl">
+                 <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
+                   {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                 </div>
+                 <div className="flex-1 text-left">
+                   <p className="font-medium">Dark Mode</p>
+                   <p className="text-xs text-muted-foreground">Switch appearance</p>
+                 </div>
+                 <Switch checked={isDark} onCheckedChange={setIsDark} />
+               </div>
+             </div>
           </SheetContent>
        </Sheet>
      </>
