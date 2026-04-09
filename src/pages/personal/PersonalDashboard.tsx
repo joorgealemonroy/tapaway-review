@@ -179,7 +179,8 @@ const PersonalDashboard = () => {
           setIsAdminView(true);
           setAdminViewName(`@${profileData.username}`);
 
-          const [linksResult, blocksResult] = await Promise.all([
+          // Fetch all sibling profiles for the same user (multi-profile switcher in admin view)
+          const [linksResult, blocksResult, siblingsResult] = await Promise.all([
             supabase
               .from("personal_links")
               .select("*")
@@ -192,10 +193,24 @@ const PersonalDashboard = () => {
               .eq("profile_id", profileData.id)
               .or("is_archived.is.null,is_archived.eq.false")
               .order("sort_order", { ascending: true }),
+            supabase
+              .from("personal_profiles")
+              .select("*")
+              .eq("user_id", profileData.user_id)
+              .order("created_at", { ascending: true }),
           ]);
 
           setLinks(linksResult.data || []);
           setBlocks(blocksResult.data || []);
+          if (siblingsResult.data && siblingsResult.data.length > 1) {
+            setAllProfiles(siblingsResult.data.map(p => ({
+              ...p,
+              header_type: p.header_type || "color",
+              header_color: p.header_color || "#6BCB77",
+              background_color: p.background_color || "#ffffff",
+              pfp_position: p.pfp_position || "center",
+            })));
+          }
           setLoading(false);
           return;
         }
@@ -717,7 +732,11 @@ const PersonalDashboard = () => {
                     <DropdownMenuItem
                       key={p.id}
                       onClick={() => {
-                        setSearchParams({ profile_id: p.id });
+                        if (isAdminView) {
+                          setSearchParams({ admin_view_personal: p.id });
+                        } else {
+                          setSearchParams({ profile_id: p.id });
+                        }
                         setLoading(true);
                         loadData();
                       }}
@@ -917,7 +936,11 @@ const PersonalDashboard = () => {
         allProfiles={allProfiles.map(p => ({ id: p.id, username: p.username }))}
         activeProfileId={profile.id}
         onSwitchProfile={(profileId) => {
-          setSearchParams({ profile_id: profileId });
+          if (isAdminView) {
+            setSearchParams({ admin_view_personal: profileId });
+          } else {
+            setSearchParams({ profile_id: profileId });
+          }
           setLoading(true);
           loadData();
         }}
