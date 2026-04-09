@@ -182,8 +182,8 @@ const AdminBusinessLiteTable = () => {
         </Button>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
+      <div className="overflow-x-auto border rounded-lg">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
