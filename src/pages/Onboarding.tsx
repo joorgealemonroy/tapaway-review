@@ -494,6 +494,13 @@ const Onboarding = () => {
             ))}
           </div>
         </div>
+        {promoDiscountType && (
+          <div className="max-w-md mx-auto px-4 pt-1">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+              🎉 {promoDiscountType === 'free' ? '100% Free' : '50% Off'} Promo Applied
+            </span>
+          </div>
+        )}
       </nav>
 
       <main className="max-w-md mx-auto px-4 py-8">
