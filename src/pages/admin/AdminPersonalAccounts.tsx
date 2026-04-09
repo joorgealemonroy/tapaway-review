@@ -1119,7 +1119,70 @@ Login at: ${window.location.origin}/auth`;
     setUsernameChecking(false);
   };
 
-  const handleToggleAffiliate = async (account: PersonalAccount) => {
+  // Link Profile handlers
+  const handleLookupLinkUser = async () => {
+    if (!linkTargetEmail.trim()) return;
+    setLinkLooking(true);
+    setLinkLookedUpUser(null);
+    try {
+      const { data, error } = await supabase.rpc("get_auth_user_by_email", {
+        lookup_email: linkTargetEmail.trim(),
+      });
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setLinkLookedUpUser({ id: data[0].id, email: data[0].email });
+      } else {
+        toast.error("No user found with that email");
+      }
+    } catch (err) {
+      console.error("Lookup error:", err);
+      toast.error("Failed to look up user");
+    } finally {
+      setLinkLooking(false);
+    }
+  };
+
+  const handleLinkProfile = async () => {
+    if (!linkingAccount || !linkLookedUpUser) return;
+    setLinkSaving(true);
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ user_id: linkLookedUpUser.id })
+        .eq("id", linkingAccount.id);
+      if (error) throw error;
+
+      // Audit log
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      if (adminUser) {
+        await supabase.from("admin_audit_log").insert({
+          admin_user_id: adminUser.id,
+          action: "link_profile_to_user",
+          target_type: "personal_profile",
+          target_id: linkingAccount.id,
+          details: {
+            username: linkingAccount.username,
+            old_user_id: linkingAccount.user_id,
+            new_user_id: linkLookedUpUser.id,
+            new_user_email: linkLookedUpUser.email,
+          },
+        });
+      }
+
+      toast.success(`@${linkingAccount.username} linked to ${linkLookedUpUser.email}`);
+      setLinkingAccount(null);
+      setLinkTargetEmail("");
+      setLinkLookedUpUser(null);
+      loadAccounts();
+    } catch (err) {
+      console.error("Link error:", err);
+      toast.error("Failed to link profile");
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+
     try {
       // Check if already an affiliate
       const { data: existing } = await supabase
