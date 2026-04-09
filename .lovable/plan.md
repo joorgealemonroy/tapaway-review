@@ -1,41 +1,38 @@
 
 
-# Dynamic Stripe Pricing for Solo Pro vs Venue Pack
+# Replace Business Name Field with Google Places Search
 
-## Summary
-Update the `create-checkout-session` edge function to dynamically create Stripe products and prices based on the user's plan selection, rather than using a single hardcoded price ID. This ensures each customer is charged the correct amount with the correct trial period.
+## What changes
+Remove the manual "Business Name" text input on Step 3 and replace it with the Google Places search as the primary input. When a user selects a business from Google, the business name, address, and place ID are all captured automatically. The shipping address field becomes a simple editable text input pre-filled from the selected place.
 
-## Pricing Matrix
-
-```text
-Plan             Base    + Protection   Trial (total)
-─────────────────────────────────────────────────────
-Solo Pro         $15/mo   $20/mo        14 days (7 + 7 shipping)
-Venue Pack       $39/mo   $44/mo        21 days (14 + 7 shipping)
-```
+## Why the current search doesn't work
+The component uses `PlaceAutocompleteElement` (the new Google Maps web component), which has known issues with rendering inside dark-themed containers and receiving focus/input. The fix is to switch to the classic `google.maps.places.Autocomplete` widget attached to a standard `<input>` element, which is more reliable and styleable.
 
 ## Changes
 
-### 1. `supabase/functions/create-checkout-session/index.ts`
-- Remove the hardcoded `TRIAL_PRICE_ID` constant and the safety check that blocks other price IDs.
-- Use the Stripe API to find-or-create products and prices dynamically:
-  - Search for an existing product by metadata (`plan_type=solo` or `plan_type=venue`). If not found, create it.
-  - Search for a matching recurring monthly price on that product. If not found, create it.
-- Build `line_items` array:
-  - Always include the base plan price (Solo $15 or Venue $39).
-  - If `hasProtection` is true, add a second line item for the $5/mo Loss Protection add-on (also found-or-created dynamically).
-- Set `trial_period_days` correctly: 14 for solo, 21 for venue.
-- Pass `plan_type`, `has_protection`, and all IDs in session metadata for downstream fulfillment.
+### 1. `src/components/GooglePlacesAutocomplete.tsx` — Rewrite to use classic Autocomplete
+- Replace `PlaceAutocompleteElement` web component with `new google.maps.places.Autocomplete(inputElement, options)` attached to a standard `<input>`.
+- Use `types: ["establishment"]`, `componentRestrictions: { country: "us" }`.
+- On `place_changed` event, extract `place.place_id`, `place.name`, and `place.formatted_address`.
+- Style the input with Tailwind to match the dark onboarding theme (passed via className prop).
+- Add a `placeholder` prop for customization.
 
-### 2. `src/pages/Onboarding.tsx`
-- Ensure the `completeSetup` function passes `planType` and `hasProtection` from state to the edge function (already does this — just verify).
-- Update the success URL handling to work without a fixed `price_id` param (use plan_type from metadata instead).
+### 2. `src/pages/Onboarding.tsx` — Remove business name input, use Google Places as primary
+- **Remove** the "Business Name" `<Input>` field (lines 500–509).
+- **Move** GooglePlacesAutocomplete up to where the business name field was, with label "Search Your Business on Google".
+- When a place is selected, auto-set `businessName` from the place name and `shippingAddress` from the place address.
+- **Add** a simple editable "Shipping Address" text input below, pre-filled from the selected place address (user can override).
+- **Update** `handleOAuth` validation: check that a Google place has been selected (instead of checking `businessName.trim()`).
+- **Save** Google Place data (`googlePlaceId`, `googlePlaceName`, `googlePlaceAddress`) to localStorage before OAuth redirect.
+- **Restore** Google Place data in `completeSetup` from `savedData` if React state is null after redirect.
 
-### 3. No new tables or migrations needed
-The `restaurants` table already has `plan_type` and `has_loss_protection` columns.
+### 3. `src/lib/onboardingData.ts` — Add Google Place fields
+- Add `googlePlaceId`, `googlePlaceName`, `googlePlaceAddress` to the `OnboardingData` interface and defaults.
 
-## Technical Notes
-- Dynamic price creation uses `stripe.products.search` and `stripe.prices.list` to avoid creating duplicate products/prices on every checkout.
-- All prices are created as `recurring: { interval: 'month' }` with `currency: 'usd'`.
-- The protection add-on is a separate line item so it appears clearly on the Stripe invoice.
+## Flow after fix
+1. User types business name in Google Places search → dropdown appears with matching businesses
+2. User selects their business → name, address, and place ID are captured
+3. Shipping address auto-fills from the selected place (editable)
+4. All data saved to localStorage before OAuth redirect
+5. After OAuth, `completeSetup` restores place data, saves `google_place_id` and `google_review_url` to the restaurant record
 
