@@ -1,69 +1,52 @@
 
 
-# Multi-Profile Support — With Critical Bug Fixes
+# Move Profile Switcher to "More Options" Menu
 
 ## Overview
 
-Link `spacestudios` to the same user as `steezstylez`, build a profile switcher in the dashboard, and add a reusable admin "Link Profile" tool. Three critical safety fixes are incorporated.
+Remove the `Select` dropdown from the dashboard header and place the "Switch Profile" action inside the existing `MobileBottomNav` "More Options" sheet. The header stays clean.
 
-## Data Fix
+## Changes
 
-Reassign `spacestudios` (profile `485286bc...`) `user_id` to `afb12dce-aea9-43dc-80ff-edb984064de8` (the steezstylez owner).
+### 1. `src/components/personal/MobileBottomNav.tsx`
 
-## 1. Fix `.maybeSingle()` Crash in `Dashboard.tsx`
+**New props**: Accept `allProfiles` (array of `{id, username}`) and an `onSwitchProfile(profileId: string)` callback.
 
-**Line 65-67** — the `personal_profiles` query uses `.maybeSingle()` without `.limit(1)`. When a user has 2+ profiles, Supabase throws an error.
+**Add "Switch Profile" row** above the Dark Mode toggle (inside the border-t section, or as the last item before it):
+- Icon: `ArrowLeftRight`
+- **2 profiles**: Title "Switch Profile", subtitle "Switch to @otherUsername". On click, call `onSwitchProfile(otherProfile.id)` and close the sheet.
+- **3+ profiles**: Title "Switch Profile", subtitle "Select an account". On click, expand an inline list of `@username` buttons (or use a nested sheet/select). Picking one calls `onSwitchProfile(id)` and closes.
+- Only render this row when `allProfiles.length > 1`.
 
-**Fix**: Change to `.limit(1).maybeSingle()`. This safely checks "has at least one personal profile" without crashing.
+### 2. `src/pages/personal/PersonalDashboard.tsx`
 
-## 2. Multi-Profile Loading in `PersonalDashboard.tsx`
+**Remove** the header `Select` dropdown (lines 546-566) — the `{allProfiles.length > 1 && (<Select ...>)}` block.
 
-### Profile Loading (lines 201-206)
+**Pass new props to `MobileBottomNav`**:
+```tsx
+<MobileBottomNav
+  activeTab={activeTab}
+  onTabChange={setActiveTab}
+  isAffiliate={isAffiliate}
+  allProfiles={allProfiles.map(p => ({ id: p.id, username: p.username }))}
+  onSwitchProfile={(profileId) => {
+    setSearchParams({ profile_id: profileId });
+    setLoading(true);
+    loadData();
+  }}
+/>
+```
 
-Currently uses `.eq("user_id", user.id).single()` which will crash with 2 profiles.
+**Desktop fallback**: For `md:` and above (where MobileBottomNav is hidden), add the same switcher logic into the desktop tab list area — a small "Switch Profile" tab or dropdown at the end of the `TabsList`. This ensures desktop users can also switch.
 
-**Fix**:
-- Fetch **all** profiles: `.eq("user_id", user.id).order("created_at")`
-- Store a `profiles` array in state
-- Check `searchParams.get("profile_id")` to select a specific profile; default to first
-- If only 1 profile, behavior is identical to today
+### No other changes
 
-### Profile Switcher UI
-
-When `profiles.length > 1`, render a `Select` dropdown in the header showing `@username` for each profile. Switching sets `?profile_id=<id>` in the URL and reloads that profile's data.
-
-### Links & Blocks — Strict Profile Filtering (Bug Fix #3)
-
-The current code already filters by `.eq("profile_id", profileData.id)` (lines 242, 248). This is correct and will be preserved. After the multi-profile change, `profileData.id` will be the **active** profile's ID, so links/blocks remain strictly scoped. No change needed here — just verification that it stays correct.
-
-## 3. Photo Upload Path — With Legacy Fallback (Bug Fix #2)
-
-### Upload path change (line 372)
-
-Current: `${user.id}/profile.jpg`
-New: `${user.id}/${profile.id}/profile.jpg`
-
-This prevents profile photos from overwriting each other across profiles.
-
-### Backward compatibility fallback
-
-In the photo display/rendering logic: the `profile_photo_url` is stored as a full URL in the database, not constructed at render time. So existing photos won't break — their full URL is already saved in `profile_photo_url`. The path change only affects **new uploads**. No fallback logic needed because the DB stores the complete URL, not a relative path.
-
-However, the upload function must also update the DB with the new full URL (it already does at line 387-391), so this is safe.
-
-## 4. Admin "Link Profile" Tool in `AdminPersonalAccounts.tsx`
-
-Add a "Link to User" button/action in the admin accounts page:
-- Modal with: target profile selector (username), target user (by email lookup using `get_auth_user_by_email` RPC)
-- Confirm button that updates `personal_profiles.user_id` to the target user's ID
-- Audit log entry for traceability
+All multi-profile data fetching, `.limit(1).maybeSingle()` fix, photo upload scoping, and admin "Link to User" tool remain exactly as previously implemented.
 
 ## Files Summary
 
 | File | Change |
 |------|--------|
-| Migration SQL | Reassign `spacestudios` user_id |
-| `src/pages/Dashboard.tsx` | `.limit(1).maybeSingle()` fix |
-| `src/pages/personal/PersonalDashboard.tsx` | Multi-profile fetch, profile switcher, scoped photo upload path |
-| `src/pages/admin/AdminPersonalAccounts.tsx` | "Link to User" admin action |
+| `src/components/personal/MobileBottomNav.tsx` | Add `allProfiles` + `onSwitchProfile` props, render "Switch Profile" row |
+| `src/pages/personal/PersonalDashboard.tsx` | Remove header Select, pass profile data to MobileBottomNav, add desktop switcher |
 
