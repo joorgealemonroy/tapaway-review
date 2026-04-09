@@ -42,8 +42,12 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
   const hasSubscription = !!profile.stripe_subscription_id;
   const billingEmail = profile.stripe_billing_email || profile.email;
 
-  const displayPrice = isAnnual ? "$150" : "$15";
-  const displayInterval = isAnnual ? "/year" : "/month";
+  const getPriceDisplay = () => {
+    if (isAnnual) return { price: "$150", interval: "/year" };
+    if (profile.plan_type === 'plus_monthly') return { price: "$30", interval: "/month" };
+    return { price: "$15", interval: "/month" };
+  };
+  const { price: displayPrice, interval: displayInterval } = getPriceDisplay();
 
   return (
     <div className="space-y-6">
