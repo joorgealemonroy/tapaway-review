@@ -32,30 +32,33 @@ serve(async (req) => {
 
     console.log('[lookup-place-id] Searching for:', address);
 
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': googleApiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress'
-      },
-      body: JSON.stringify({ textQuery: address, maxResultCount: 5 })
-    });
-
+    // Use legacy Text Search API (doesn't require billing on all projects)
+    const encoded = encodeURIComponent(address.trim());
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encoded}&key=${googleApiKey}`;
+    
+    const response = await fetch(url);
     const data = await response.json();
-    console.log('[lookup-place-id] API response status:', response.status, 'body:', JSON.stringify(data).slice(0, 500));
+    
+    console.log('[lookup-place-id] API status:', data.status, 'count:', data.results?.length ?? 0);
 
-    if (!data.places || data.places.length === 0) {
+    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+      if (data.status === 'REQUEST_DENIED') {
+        console.error('[lookup-place-id] API denied:', data.error_message);
+        return new Response(
+          JSON.stringify({ error: 'Google API request denied', results: [] }), 
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ results: [] }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const results = data.places.map((p: any) => ({
-      placeId: p.id,
-      name: p.displayName?.text || '',
-      formattedAddress: p.formattedAddress || ''
+    const results = data.results.slice(0, 5).map((p: any) => ({
+      placeId: p.place_id,
+      name: p.name || '',
+      formattedAddress: p.formatted_address || ''
     }));
 
     console.log('[lookup-place-id] Found', results.length, 'results');
