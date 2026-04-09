@@ -732,7 +732,11 @@ const PersonalDashboard = () => {
                     <DropdownMenuItem
                       key={p.id}
                       onClick={() => {
-                        setSearchParams({ profile_id: p.id });
+                        if (isAdminView) {
+                          setSearchParams({ admin_view_personal: p.id });
+                        } else {
+                          setSearchParams({ profile_id: p.id });
+                        }
                         setLoading(true);
                         loadData();
                       }}
