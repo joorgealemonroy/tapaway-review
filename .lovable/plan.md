@@ -1,49 +1,37 @@
+## Admin Portal UI Overhaul + Promo Link System
 
+### 1. Database: Create `promo_tokens` table
+- Columns: id (uuid PK), token (uuid, unique), discount_type (text: 'free'|'50_off'), expires_at (timestamptz), is_used (boolean default false), used_by_user_id (uuid nullable), created_by_user_id (uuid), created_at (timestamptz default now())
+- RLS: admin-only full access via `public.is_admin()`
 
-# Admin Portal Cleanup & Restructure
+### 2. Edge Function: `generate-promo-token`
+- Validates caller is admin (JWT + `is_admin` check via service role)
+- Accepts `discount_type` ('free' | '50_off')
+- Creates token with `expires_at = now() + 30 minutes`
+- Returns full onboarding URL with `?promo_token=<token>`
 
-## Overview
+### 3. Edge Function: `validate-promo-token`
+- Accepts `token` UUID and optional `markUsed` + `usedByUserId` params
+- Checks existence, expiry, used status
+- Returns `{ valid, discount_type }` or marks as used when requested
 
-Restructure `/admin` into a clean, tabbed layout with two client sections, removing deprecated features.
+### 4. Admin.tsx UI Redesign
+- Replace pill buttons with responsive card grid (3-4 cols desktop, 2 cols mobile) with Lucide icons
+- Remove paywall toggle section entirely
+- Add "Promo Link Generator" card with discount type dropdown + generate button + copy URL
+- Wrap both tables in `overflow-x-auto` with `min-w-[800px]`
 
-## Changes
+### 5. Update `create-checkout-session`
+- Accept optional `promoToken` param
+- If provided with `50_off`: find/create a 50% off Stripe coupon, apply via `discounts` param
+- Pass `promo_token` into Stripe session metadata (do NOT mark as used here)
 
-### 1. Remove from `Admin.tsx`
-- **SignupDropoffCard** component and import
-- **Legacy Client Account** section (form, state variables, handler)
-- The `create-legacy-client-account` edge function can remain (no harm), but all references removed from the UI
+### 6. Update `stripe-webhook`
+- In `checkout.session.completed` handler: check metadata for `promo_token`
+- If present, mark it as `is_used = true` + set `used_by_user_id`
 
-### 2. Restructure `Admin.tsx` with Tabs
-
-Replace the current single "Restaurants" table with a tabbed interface:
-
-```text
-┌─────────────────────────────────────────────┐
-│  TapAway Admin Dashboard                    │
-│  [Sales Rep Portal links]  [Paywall Control]│
-├─────────────────────────────────────────────┤
-│  [ Business Lite ]  [ Restaurants ]         │
-│─────────────────────────────────────────────│
-│  (selected tab's table + filters)           │
-└─────────────────────────────────────────────┘
-```
-
-**Tab A — "Business Lite"**: Embeds the existing `AdminPersonalAccounts` content (personal_profiles table) directly inline instead of navigating to a separate page. Shows username, name, email, plan, status, created date, and actions (edit, view profile, delete).
-
-**Tab B — "Restaurants"**: The existing restaurants table (already in Admin.tsx), with its filters and edit/delete/hub actions preserved as-is.
-
-### 3. Inline Personal Accounts
-
-Move the `AdminPersonalAccounts` list/table logic into the Admin page's "Business Lite" tab. The full edit modal and create modal from `AdminPersonalAccounts` will still be accessible. The separate `/admin/personal-accounts` route can remain as a redirect or be kept for deep-linking.
-
-### 4. Clean up nav links
-
-Remove the "Personal Accounts" button from the Sales Rep Portal section since it's now inline. Keep "Founding Creators" as a separate page link since it's a different concern.
-
-### Files Changed
-
-| File | Change |
-|------|--------|
-| `src/pages/Admin.tsx` | Remove SignupDropoffCard, remove legacy client section, add Tabs with "Business Lite" and "Restaurants" tabs, inline personal accounts list |
-| `src/components/admin/SignupDropoffCard.tsx` | No change (can be deleted later) |
-
+### 7. Update `Onboarding.tsx`
+- On mount: detect `?promo_token=<uuid>`, validate via edge function
+- Store discount type in state, show badge indicating promo
+- If `free`: after OAuth + restaurant creation, skip Stripe, create active subscription directly, mark token used
+- If `50_off`: pass promoToken to `create-checkout-session`, token burned by webhook on completion
