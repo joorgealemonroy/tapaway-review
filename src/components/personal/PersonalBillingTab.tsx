@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Crown, Sparkles, ExternalLink } from "lucide-react";
-import { PERSONAL_PLANS, isPaidPlan, isVIPPlan, isFoundingPlan } from "@/lib/personalPlanLimits";
 
 const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/bJe9AT3dJe5Z31vbaOgYU00";
 
@@ -34,42 +33,38 @@ interface PersonalBillingTabProps {
 }
 
 export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabProps) {
-  const isFounding = isFoundingPlan(profile.plan_type);
-  const isPro = isPaidPlan(profile.plan_type) || isVIPPlan(profile.plan_type) || isFounding;
+  const isGrandfathered = profile.plan_type === 'vip' || profile.plan_type === 'founding_pro';
+  const isAnnual = profile.plan_type === 'yearly';
   const isTrialing = profile.subscription_status === 'trialing' && !!profile.trial_ends_at;
   const trialEndDate = profile.trial_ends_at ? new Date(profile.trial_ends_at) : null;
   const trialDaysLeft = trialEndDate ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
-  
-  const planInfo = isVIPPlan(profile.plan_type) || isFounding
-    ? PERSONAL_PLANS.vip 
-    : PERSONAL_PLANS.paid;
-  
-  const isVIP = isVIPPlan(profile.plan_type) || isFounding || (isPaidPlan(profile.plan_type) && !profile.stripe_subscription_id);
 
+  const hasSubscription = !!profile.stripe_subscription_id;
   const billingEmail = profile.stripe_billing_email || profile.email;
-  const hasBillingEmail = !isVIP && isPro && !!billingEmail;
+
+  const displayPrice = isAnnual ? "$150" : "$15";
+  const displayInterval = isAnnual ? "/year" : "/month";
 
   return (
     <div className="space-y-6">
-      {/* Current Plan Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                {isPro ? <Crown className="h-5 w-5 text-amber-500" /> : <Sparkles className="h-5 w-5" />}
+                {isGrandfathered ? <Crown className="h-5 w-5 text-amber-500" /> : <Sparkles className="h-5 w-5" />}
                 Current Plan
               </CardTitle>
               <CardDescription>
-                {isVIP 
-                  ? "" 
-                  : isPro 
-                    ? "You have access to all premium features" 
-                    : "Upgrade to unlock premium features"}
+                {isGrandfathered
+                  ? "You have lifetime access to all premium features"
+                  : isTrialing
+                    ? "Your trial is active"
+                    : "You have access to all premium features"}
               </CardDescription>
             </div>
-            <Badge variant="default" className={isVIP ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : isPro ? "bg-amber-500" : ""}>
-              {isVIP ? "VIP Access" : isTrialing ? "Pro Trial" : planInfo.name}
+            <Badge variant="default" className={isGrandfathered ? "bg-emerald-500" : isTrialing ? "bg-blue-500" : "bg-amber-500"}>
+              {isGrandfathered ? "VIP Access" : isTrialing ? "Pro Trial" : "Business"}
             </Badge>
           </div>
         </CardHeader>
@@ -85,44 +80,41 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
             </div>
           ) : (
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold">{planInfo.price}</span>
-              <span className="text-muted-foreground">{planInfo.priceSubtext}</span>
+              <span className="text-3xl font-bold">{isGrandfathered ? "$0" : displayPrice}</span>
+              <span className="text-muted-foreground">{isGrandfathered ? "forever" : displayInterval}</span>
             </div>
           )}
 
-
-          {isPro && !isVIP && !isTrialing && profile.subscription_status === "active" && (
+          {!isGrandfathered && !isTrialing && profile.subscription_status === "active" && (
             <p className="text-sm text-muted-foreground">
               Your subscription is active. Manage billing details through the Stripe portal.
             </p>
           )}
 
           <div className="flex flex-wrap gap-3">
-            {isPro ? (
-              <>
-                {!isVIP && (
-                  <div className="w-full space-y-3">
-                    {hasBillingEmail && (
-                      <p className="text-sm text-muted-foreground">
-                        Billing email on file: {maskEmail(billingEmail!)}
-                      </p>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Manage Subscription
-                      <ExternalLink className="h-3 w-3 ml-2" />
-                    </Button>
-                  </div>
+            {isGrandfathered ? null : (
+              <div className="w-full space-y-3">
+                {!isTrialing && hasSubscription && billingEmail && (
+                  <p className="text-sm text-muted-foreground">
+                    Billing email on file: {maskEmail(billingEmail)}
+                  </p>
                 )}
-              </>
-            ) : (
-              <Button onClick={onUpgrade}>
-                <Crown className="h-4 w-4 mr-2" />
-                Upgrade to Pro
-              </Button>
+                {hasSubscription ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Subscription
+                    <ExternalLink className="h-3 w-3 ml-2" />
+                  </Button>
+                ) : (
+                  <Button onClick={onUpgrade}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Set up Billing
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
