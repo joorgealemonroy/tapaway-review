@@ -1,53 +1,50 @@
 
 
-# Concierge Onboarding: Combine Promo Token + Rep Mode
+# Migrate Sugar Bloom + Fix Solo Plan Routing
 
-## Problem
-When an admin uses a `?promo_token=XYZ` link, Step 3 still shows Google/Apple OAuth buttons. Admins need to enter a client's email instead, just like Rep Mode already does.
+## Step 1: Data Migration (Sugar Bloom Cakery & Coffee)
 
-## Changes
+**Insert personal_profiles record** using data from the existing restaurant:
+- `user_id`: `26dbc6b9-00d0-42a3-b975-18dd32b34ced`
+- `username`: `sugarbloomcakery`
+- `full_name`: Sugar Bloom Cakery & Coffee
+- `email`: tempmail@tapaway.co
+- `plan_type`: `monthly`
+- `subscription_status`: `active`
+- `profile_photo_url`: null (restaurant has no logo)
+- `stripe_customer_id` / `stripe_subscription_id`: null (none on restaurant record — free promo)
 
-### 1. `src/pages/Onboarding.tsx` — UI: Show email input when promo token is present
+**Create a Google Review link** in `personal_links`:
+- `profile_id`: (the new profile's ID)
+- `link_type`: `google_review`
+- `label`: Review Us on Google
+- `url`: `https://search.google.com/local/writereview?placeid=ChIJIxLRRSKr3IARE2zkjhRtSqQ`
+- `sort_order`: 0, `is_active`: true
 
-**Line 732 condition change**: Currently `isRepMode && authUser` gates the email input. Change to:
+**Delete restaurant record** (`072da351-4dcd-4a59-9e80-510ca3cdad0d`) and any related rows in `analytics_events`, `locations`, `fulfillment_orders`, etc.
 
-```
-(isRepMode && authUser) || !!promoTokenParam
-```
+## Step 2: Edge Function Fix (`create-rep-onboarding/index.ts`)
 
-This makes the promo token flow reuse the same "Owner's Email" input UI that Rep Mode uses, hiding OAuth buttons.
+Refactor section 5 ("Create or update restaurant") to branch on `validPlan`:
 
-**`handleRepCheckout` update**: When `promoTokenParam` is present but no auth session exists (admin isn't logged in as a rep), the function needs to call `create-rep-onboarding` **without** requiring auth. Add the `promoToken` param to the request body. If no auth session, invoke without the Authorization header (the edge function will validate the promo token as the authorization mechanism instead).
+**If `solo`**: Create a `personal_profiles` record instead of a `restaurants` record, with:
+- `username` from slug
+- `full_name` from `businessName`
+- `plan_type`: `monthly`
+- `subscription_status` / `trial_ends_at` as before
+- `profile_photo_url` from `logoUrl`
+- Copy Stripe metadata fields
 
-**Handle success redirect for free promos**: If the response has `{ success: true }` (no Stripe URL), redirect to `/rep-checkout-success` instead of expecting a checkout URL.
+Then auto-create a `personal_links` row for the Google review URL (if `googlePlaceId` is provided), with `link_type: 'google_review'`.
 
-### 2. `supabase/functions/create-rep-onboarding/index.ts` — Accept promo tokens
+**If `venue`**: Keep existing restaurant creation logic unchanged.
 
-**Auth bypass**: If `promoToken` is provided in the body, skip the rep authentication check. Instead, validate the promo token via the same logic as `validate-promo-token` (query `promo_tokens` table, check `is_used`, `expires_at`).
-
-**Free token flow** (`discount_type === 'free'`):
-- Create client via `admin.auth.admin.inviteUserByEmail`
-- Create restaurant record with `subscription_status: 'active'` (no trial)
-- Mark `onboarding_completed: true`
-- Mark promo token as `is_used = true`, set `used_by_user_id`
-- Call `finalize-onboarding`
-- Return `{ success: true, restaurantId, clientUserId }` (no Stripe URL)
-
-**50% off token flow** (`discount_type === '50_off'`):
-- Create client and restaurant as normal (trialing)
-- Create Stripe checkout session with a 50% coupon applied
-- Do NOT mark token as used yet (deferred burn via webhook)
-- Store `promoToken` in Stripe session metadata
-- Return `{ url: session.url }` as usual
-
-### 3. Stripe coupon for 50% off
-
-In the edge function, find or create a Stripe coupon (`percent_off: 50`, metadata `tapaway_promo: 50_off`) and pass it as `discounts` on the checkout session.
+Update the free promo section (step 7) and Stripe checkout metadata (step 8) to use `profileId` instead of `restaurantId` when plan is solo.
 
 ## Files
 
-| File | Change |
-|------|--------|
-| `src/pages/Onboarding.tsx` | Show email input when `promoTokenParam` is present; handle no-URL success response; allow unauthenticated invocation with promo token |
-| `supabase/functions/create-rep-onboarding/index.ts` | Accept optional `promoToken`; bypass rep auth when valid token provided; handle free (instant activate) and 50_off (coupon checkout) flows |
+| Target | Change |
+|--------|--------|
+| Database (insert tool) | Insert personal_profile + personal_link for Sugar Bloom; delete restaurant + related rows |
+| `supabase/functions/create-rep-onboarding/index.ts` | Branch on solo vs venue: solo creates personal_profiles + google review link; venue creates restaurants |
 
