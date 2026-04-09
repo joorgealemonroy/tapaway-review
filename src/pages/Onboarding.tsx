@@ -454,7 +454,7 @@ const Onboarding = () => {
   }, [initialCheckDone, step]);
 
   // ── Loading ──
-  if (!initialCheckDone || verifyingCheckout) {
+  if (!initialCheckDone || verifyingCheckout || !promoValidated) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
