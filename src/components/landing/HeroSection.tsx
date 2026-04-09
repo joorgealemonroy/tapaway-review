@@ -36,7 +36,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center lg:text-left"
+            className="text-left"
           >
             {/* Trust Badge */}
             <motion.div
@@ -54,20 +54,20 @@ export const HeroSection = () => {
             </motion.div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-8">
               Turn Taps into{" "}
               <span className="text-primary whitespace-nowrap">5-Star</span> Reviews.
             </h1>
 
             {/* Subheadline */}
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl mx-auto lg:mx-0">
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl">
               Grow your Google presence with high-performance Branded NFC Cards.
               We ship your custom kit today. Zero setup.{" "}
               <span className="font-bold text-foreground">$0 Today.</span>
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-start">
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -99,7 +99,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative mt-16 lg:mt-0"
+            className="relative mt-16 lg:mt-0 hidden lg:block"
           >
             <div className="flex flex-col items-center gap-6">
               <div style={{ transform: "perspective(1000px) rotateX(10deg) rotateY(-5deg)" }}>
