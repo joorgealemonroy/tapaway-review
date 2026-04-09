@@ -153,6 +153,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       headline: headlineValue.trim() || null,
       bio: bioValue.trim() || null,
       pfp_position: "center",
+      show_username: showUsernameValue,
     };
 
     if (usernameChanged) {
@@ -185,16 +186,17 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
     onUpdate(updates);
     setUsernameStatus("idle");
-  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate]);
+  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue]);
 
   const discardChanges = useCallback(() => {
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
+    setShowUsernameValue(showUsername);
     setUsernameStatus("idle");
     setUsernameError(null);
-  }, [fullName, headline, bio, username, isFree]);
+  }, [fullName, headline, bio, username, isFree, showUsername]);
 
   useImperativeHandle(ref, () => ({
     saveAllChanges: handleSave,
