@@ -68,7 +68,8 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
-  }, [fullName, headline, bio, username, isFree]);
+    setShowUsernameValue(showUsername);
+  }, [fullName, headline, bio, username, isFree, showUsername]);
 
   const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
@@ -76,9 +77,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       name !== fullName ||
       headlineValue !== (headline || "") ||
       bioValue !== (bio || "") ||
-      newPublicUsername !== username
+      newPublicUsername !== username ||
+      showUsernameValue !== showUsername
     );
-  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType]);
+  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType, showUsernameValue, showUsername]);
 
   // Report pending changes to parent
   useEffect(() => {
