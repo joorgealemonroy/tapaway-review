@@ -5,8 +5,9 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X } from "lucide-react";
+import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
@@ -38,6 +39,11 @@ const slideVariants = {
 const Onboarding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user: authUser } = useAuth();
+
+  // Rep mode detection
+  const isRepMode = searchParams.get("rep") === "true";
+  const repId = searchParams.get("rep_id") || undefined;
 
   const [step, setStep] = useState<Step>("plan");
   const [direction, setDirection] = useState(1);
@@ -57,6 +63,10 @@ const Onboarding = () => {
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
   } | null>(null);
+
+  // Rep mode: client email
+  const [clientEmail, setClientEmail] = useState("");
+  const [repSubmitting, setRepSubmitting] = useState(false);
 
   // Auth / restaurant IDs
   const [userId, setUserId] = useState<string | null>(null);
