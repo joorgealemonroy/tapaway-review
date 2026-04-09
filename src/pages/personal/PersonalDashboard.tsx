@@ -87,6 +87,7 @@ interface PersonalProfile {
   is_founding_user?: boolean;
   founding_number?: number | null;
   show_founding_badge?: boolean;
+  show_username?: boolean;
 }
 
 interface DbPersonalLink {
@@ -771,6 +772,7 @@ const PersonalDashboard = () => {
               headline={profile.headline}
               bio={profile.bio}
               planType={profile.plan_type}
+              showUsername={profile.show_username ?? true}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
             />

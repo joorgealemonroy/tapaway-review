@@ -1282,7 +1282,7 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
             // Banner mode: adaptive text based on banner brightness
             <>
               <h1 className={`text-3xl font-bold drop-shadow-lg ${isLightBanner ? 'text-gray-900' : 'text-white'}`}>
-                @{profile.username}
+                {profile.show_username !== false ? `@${profile.username}` : profile.full_name}
               </h1>
               {profile.headline && (
                 <p className={`text-base mt-2 drop-shadow-md ${isLightBanner ? 'text-gray-800' : 'text-white/90'}`}>
@@ -1305,7 +1305,9 @@ const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
               {profile.headline && (
                 <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}
-              <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
+              {profile.show_username !== false && (
+                <p className={`${mutedClass} text-sm mt-1`}>@{profile.username}</p>
+              )}
               {profile.is_founding_user && profile.show_founding_badge && (
                 <span className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                   <svg className="h-3 w-3 fill-amber-500" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

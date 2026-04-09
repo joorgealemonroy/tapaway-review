@@ -1643,6 +1643,7 @@ export type Database = {
           referred_by: string | null
           show_founding_badge: boolean
           show_shop_section: boolean | null
+          show_username: boolean
           stripe_billing_email: string | null
           stripe_connect_account_id: string | null
           stripe_customer_id: string | null
@@ -1694,6 +1695,7 @@ export type Database = {
           referred_by?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
+          show_username?: boolean
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -1745,6 +1747,7 @@ export type Database = {
           referred_by?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
+          show_username?: boolean
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS show_username boolean NOT NULL DEFAULT true;

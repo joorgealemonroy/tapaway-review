@@ -41,6 +41,7 @@ export interface CachedProfile {
   vibe_id?: string | null;
   button_theme?: string | null;
   text_color?: string | null;
+  show_username?: boolean;
 }
 
 export interface CachedLink {

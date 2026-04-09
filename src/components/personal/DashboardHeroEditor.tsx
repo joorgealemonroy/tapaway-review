@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallb
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Check, X, AlertTriangle } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
@@ -21,12 +22,14 @@ interface Props {
   headline: string | null;
   bio: string | null;
   planType: string | null;
+  showUsername: boolean;
   onUpdate: (updates: Partial<{
     full_name: string;
     headline: string | null;
     bio: string | null;
     pfp_position: string;
     username: string;
+    show_username: boolean;
   }>) => void;
   onPendingChangesChange?: (hasPending: boolean) => void;
 }
@@ -38,12 +41,14 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   headline,
   bio,
   planType,
+  showUsername,
   onUpdate,
   onPendingChangesChange,
 }, ref) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
+  const [showUsernameValue, setShowUsernameValue] = useState(showUsername);
 
   // Username editing state
   const isFree = !planType || planType === "free";
@@ -63,7 +68,8 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
-  }, [fullName, headline, bio, username, isFree]);
+    setShowUsernameValue(showUsername);
+  }, [fullName, headline, bio, username, isFree, showUsername]);
 
   const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
@@ -71,9 +77,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       name !== fullName ||
       headlineValue !== (headline || "") ||
       bioValue !== (bio || "") ||
-      newPublicUsername !== username
+      newPublicUsername !== username ||
+      showUsernameValue !== showUsername
     );
-  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType]);
+  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType, showUsernameValue, showUsername]);
 
   // Report pending changes to parent
   useEffect(() => {
@@ -146,6 +153,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       headline: headlineValue.trim() || null,
       bio: bioValue.trim() || null,
       pfp_position: "center",
+      show_username: showUsernameValue,
     };
 
     if (usernameChanged) {
@@ -178,16 +186,17 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
     onUpdate(updates);
     setUsernameStatus("idle");
-  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate]);
+  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue]);
 
   const discardChanges = useCallback(() => {
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
+    setShowUsernameValue(showUsername);
     setUsernameStatus("idle");
     setUsernameError(null);
-  }, [fullName, headline, bio, username, isFree]);
+  }, [fullName, headline, bio, username, isFree, showUsername]);
 
   useImperativeHandle(ref, () => ({
     saveAllChanges: handleSave,
@@ -241,6 +250,15 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
             <span>Changing your username will update your profile URL and all linked cards</span>
           </div>
         )}
+      </div>
+
+      {/* Show username toggle */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">Show username on profile</Label>
+        <Switch
+          checked={showUsernameValue}
+          onCheckedChange={setShowUsernameValue}
+        />
       </div>
 
       {/* Headline */}
