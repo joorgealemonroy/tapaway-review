@@ -193,6 +193,56 @@ const Onboarding = () => {
     saveOnboardingData({ logoUrl: '', logoUploaded: false });
   };
 
+  // ── Rep mode checkout ──
+  const handleRepCheckout = async () => {
+    if (!clientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!selectedGooglePlace && !businessName.trim()) {
+      toast.error("Please search and select the business");
+      return;
+    }
+
+    setRepSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("You must be logged in as a sales rep");
+        setRepSubmitting(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-rep-onboarding", {
+        body: {
+          clientEmail: clientEmail.trim(),
+          businessName: businessName.trim(),
+          shippingAddress: shippingAddress.trim(),
+          planType: selectedPlan || "venue",
+          hasProtection,
+          googlePlaceId: selectedGooglePlace?.placeId || "",
+          googlePlaceName: selectedGooglePlace?.name || "",
+          googlePlaceAddress: selectedGooglePlace?.address || "",
+          logoUrl: logoUrl || "",
+          repRestaurantId: repId || "",
+        },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error("No checkout URL returned");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to start checkout";
+      console.error("[onboarding] Rep checkout failed:", err);
+      toast.error(message);
+    } finally {
+      setRepSubmitting(false);
+    }
+  };
+
   // ── Auth + complete ──
   const handleOAuth = async (provider: "google" | "apple") => {
     if (!selectedGooglePlace && !businessName.trim()) { toast.error("Please search and select your business"); return; }
