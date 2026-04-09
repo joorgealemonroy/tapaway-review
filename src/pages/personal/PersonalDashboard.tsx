@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Link2, 
   BarChart3,
@@ -199,25 +200,31 @@ const PersonalDashboard = () => {
         }
       }
 
-      // Single profile query
-      const { data: profileData, error: profileError } = await supabase
+      // Fetch all profiles for this user (multi-profile support)
+      const { data: allProfilesData, error: profileError } = await supabase
         .from("personal_profiles")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .order("created_at", { ascending: true });
 
-      if (profileError || !profileData) {
+      if (profileError || !allProfilesData || allProfilesData.length === 0) {
         // User is authenticated but has no profile - redirect to paywall to choose account type
         navigate("/paywall");
         return;
       }
 
+      // Select active profile: from URL param, or default to first
+      const requestedProfileId = searchParams.get("profile_id");
+      const selectedProfile = requestedProfileId
+        ? allProfilesData.find(p => p.id === requestedProfileId) || allProfilesData[0]
+        : allProfilesData[0];
+
       const normalizedProfile = {
-        ...profileData,
-        header_type: profileData.header_type || "color",
-        header_color: profileData.header_color || "#6BCB77",
-        background_color: profileData.background_color || "#ffffff",
-        pfp_position: profileData.pfp_position || "center",
+        ...selectedProfile,
+        header_type: selectedProfile.header_type || "color",
+        header_color: selectedProfile.header_color || "#6BCB77",
+        background_color: selectedProfile.background_color || "#ffffff",
+        pfp_position: selectedProfile.pfp_position || "center",
       };
 
       // Check for expired trial and auto-downgrade
@@ -234,19 +241,26 @@ const PersonalDashboard = () => {
       }
 
       setProfile(normalizedProfile);
+      setAllProfiles(allProfilesData.map(p => ({
+        ...p,
+        header_type: p.header_type || "color",
+        header_color: p.header_color || "#6BCB77",
+        background_color: p.background_color || "#ffffff",
+        pfp_position: p.pfp_position || "center",
+      })));
 
-      // Parallel fetch links and blocks - filter out archived content
+      // Parallel fetch links and blocks - filter out archived content, strictly scoped by profile_id
       const [linksResult, blocksResult] = await Promise.all([
         supabase
           .from("personal_links")
           .select("*")
-          .eq("profile_id", profileData.id)
+          .eq("profile_id", selectedProfile.id)
           .or("is_archived.is.null,is_archived.eq.false")
           .order("sort_order", { ascending: true }),
         supabase
           .from("personal_blocks")
           .select("*")
-          .eq("profile_id", profileData.id)
+          .eq("profile_id", selectedProfile.id)
           .or("is_archived.is.null,is_archived.eq.false")
           .order("sort_order", { ascending: true }),
       ]);
@@ -259,7 +273,7 @@ const PersonalDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, adminViewId]);
+  }, [navigate, adminViewId, searchParams]);
 
   useEffect(() => {
     loadData();
