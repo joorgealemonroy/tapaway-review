@@ -220,6 +220,13 @@ const AdminPersonalAccounts = () => {
   const editContactPhotoInputRef = useRef<HTMLInputElement>(null);
   const editBannerInputRef = useRef<HTMLInputElement>(null);
 
+  // Link profile state
+  const [linkingAccount, setLinkingAccount] = useState<PersonalAccount | null>(null);
+  const [linkTargetEmail, setLinkTargetEmail] = useState("");
+  const [linkLookedUpUser, setLinkLookedUpUser] = useState<{ id: string; email: string } | null>(null);
+  const [linkLooking, setLinkLooking] = useState(false);
+  const [linkSaving, setLinkSaving] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
