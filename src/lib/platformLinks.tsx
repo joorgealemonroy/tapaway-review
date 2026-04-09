@@ -205,7 +205,7 @@ export const PLATFORM_COLORS = {
   website: "#475569",
   email: "#64748b",
   google_review: "#4285F4",
-  directions: "#34A853",
+  directions: "#2563eb",
   telegram: "#0088CC",
   linkedin: "#0A66C2",
   facebook: "#1877F2",
@@ -438,7 +438,7 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
       return url;
     },
     color: "text-white",
-    bgColor: "bg-[#34A853]",
+    bgColor: "bg-[#2563eb]",
   },
   {
     type: "website",
