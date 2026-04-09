@@ -28,6 +28,9 @@ export interface OnboardingData {
   customSlug?: string;
   instagram?: string;
   phone?: string;
+  googlePlaceId?: string;
+  googlePlaceName?: string;
+  googlePlaceAddress?: string;
 }
 
 const defaultData: OnboardingData = {

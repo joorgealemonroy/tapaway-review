@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface GooglePlacesAutocompleteProps {
@@ -9,13 +10,16 @@ interface GooglePlacesAutocompleteProps {
   }) => void;
   defaultValue?: string;
   disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  label?: string;
   onError?: (error: string) => void;
 }
 
 declare global {
   interface Window {
     google: any;
-    initMap: () => void;
+    initGoogleMaps: () => void;
   }
 }
 
@@ -23,20 +27,23 @@ export const GooglePlacesAutocomplete = ({
   onPlaceSelected,
   defaultValue = "",
   disabled = false,
+  placeholder = "Search your business…",
+  className = "",
+  label = "Search Your Business on Google",
   onError,
 }: GooglePlacesAutocompleteProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load the Google Maps script
   useEffect(() => {
-    // Check if already loaded
     if (window.google?.maps?.places) {
       setIsLoaded(true);
       return;
     }
 
-    // Check if script is loading
     if (document.querySelector('script[src*="maps.googleapis.com"]')) {
       const checkInterval = setInterval(() => {
         if (window.google?.maps?.places) {
@@ -47,19 +54,19 @@ export const GooglePlacesAutocomplete = ({
       return () => clearInterval(checkInterval);
     }
 
-    // Load script
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
       setError("Google Maps API key not configured");
       onError?.("Google Maps API key not configured");
+      return;
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
     script.async = true;
     script.defer = true;
 
-    window.initMap = () => {
+    window.initGoogleMaps = () => {
       setIsLoaded(true);
     };
 
@@ -71,137 +78,67 @@ export const GooglePlacesAutocomplete = ({
     document.head.appendChild(script);
 
     return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-      delete window.initMap;
+      delete window.initGoogleMaps;
     };
   }, []);
 
+  // Initialize the classic Autocomplete widget
   useEffect(() => {
-    if (!isLoaded || !containerRef.current || disabled) {
-      return;
-    }
+    if (!isLoaded || !inputRef.current || disabled) return;
 
-    // Strict readiness check
-    if (!window.google?.maps?.places?.PlaceAutocompleteElement) {
+    if (!window.google?.maps?.places?.Autocomplete) {
       setError("Google Places library not fully loaded");
       onError?.("Google Places library not fully loaded");
       return;
     }
 
     try {
-      // Create the PlaceAutocompleteElement
-      const placeAutocomplete = new window.google.maps.places.PlaceAutocompleteElement({
-        componentRestrictions: { country: ["us"] },
-        types: ["establishment"],
-      });
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          types: ["establishment"],
+          componentRestrictions: { country: "us" },
+          fields: ["place_id", "name", "formatted_address"],
+        }
+      );
 
-      // Set default value if provided
-      if (defaultValue) {
-        placeAutocomplete.value = defaultValue;
-      }
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        console.log("[GooglePlacesAutocomplete] place_changed:", place);
 
-      // Clear container and append the element directly
-      containerRef.current.innerHTML = "";
-      containerRef.current.appendChild(placeAutocomplete);
-
-      // Handler for gmp-select event (official Google API event)
-      // Per Google docs: event.placePrediction contains PlacePrediction
-      // Call placePrediction.toPlace() then place.fetchFields()
-      const handlePlaceSelection = async (event: any) => {
-        console.log('[GooglePlacesAutocomplete] gmp-select event fired:', event);
-        
-        const placePrediction = event.placePrediction;
-        
-        if (!placePrediction) {
-          console.error('[GooglePlacesAutocomplete] No placePrediction in event');
-          setError("Please select a valid place from the dropdown");
+        if (!place?.place_id) {
+          console.warn("[GooglePlacesAutocomplete] No place_id in selected place");
           return;
         }
 
-        try {
-          console.log('[GooglePlacesAutocomplete] Converting placePrediction to Place...');
-          
-          // Convert PlacePrediction to Place object
-          const place = await placePrediction.toPlace();
-          
-          console.log('[GooglePlacesAutocomplete] Got Place object:', place);
+        onPlaceSelected({
+          placeId: place.place_id,
+          name: place.name || "",
+          address: place.formatted_address || "",
+        });
 
-          // Fetch the fields we need
-          await place.fetchFields({
-            fields: ["id", "displayName", "formattedAddress"],
-          });
+        setError(null);
+      });
 
-          console.log('[GooglePlacesAutocomplete] After fetchFields:', {
-            id: place.id,
-            displayName: place.displayName,
-            formattedAddress: place.formattedAddress,
-          });
+      autocompleteRef.current = autocomplete;
 
-          // Extract the place ID
-          const placeId = place.id;
-          
-          if (!placeId) {
-            console.error('[GooglePlacesAutocomplete] No place.id after fetchFields');
-            setError("Could not get place ID. Please try again.");
-            return;
-          }
-
-          // In the new Places API, displayName is a LocalizedText object with 'text' property
-          let placeName = "";
-          if (place.displayName) {
-            if (typeof place.displayName === 'object' && place.displayName.text) {
-              placeName = place.displayName.text;
-            } else if (typeof place.displayName === 'string') {
-              placeName = place.displayName;
-            } else {
-              placeName = String(place.displayName);
-            }
-          }
-          
-          const placeAddress = place.formattedAddress || "";
-
-          console.log('[GooglePlacesAutocomplete] Calling onPlaceSelected with:', {
-            placeId,
-            name: placeName,
-            address: placeAddress,
-          });
-
-          onPlaceSelected({
-            placeId,
-            name: placeName,
-            address: placeAddress,
-          });
-
-          setError(null);
-        } catch (err) {
-          console.error("[GooglePlacesAutocomplete] Error processing place:", err);
-          setError("Error loading place details. Please try again.");
-        }
-      };
-
-      // Listen for gmp-select event (this is the correct event per Google docs)
-      placeAutocomplete.addEventListener("gmp-select", handlePlaceSelection);
-
-      console.log("[GooglePlacesAutocomplete] Initialization complete - listening for gmp-select event");
+      console.log("[GooglePlacesAutocomplete] Classic Autocomplete initialized");
 
       return () => {
-        placeAutocomplete.removeEventListener("gmp-select", handlePlaceSelection);
-        if (containerRef.current) {
-          containerRef.current.innerHTML = "";
+        if (autocompleteRef.current) {
+          window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
         }
       };
     } catch (err) {
       console.error("[GooglePlacesAutocomplete] Error initializing:", err);
       setError("Error initializing autocomplete");
     }
-  }, [isLoaded, onPlaceSelected, defaultValue, disabled]);
+  }, [isLoaded, disabled, onPlaceSelected]);
 
   if (error) {
     return (
       <div>
-        <Label>Search Your Business on Google</Label>
+        {label && <Label>{label}</Label>}
         <div className="text-sm text-destructive mt-2">{error}</div>
       </div>
     );
@@ -209,14 +146,17 @@ export const GooglePlacesAutocomplete = ({
 
   return (
     <div>
-      <Label htmlFor="google-places-autocomplete">Search Your Business on Google</Label>
-      <div
-        ref={containerRef}
-        id="google-places-autocomplete"
-        className="mt-2 relative z-30 min-h-[44px]"
+      {label && <Label className="text-gray-300 text-sm">{label}</Label>}
+      <input
+        ref={inputRef}
+        type="text"
+        defaultValue={defaultValue}
+        disabled={disabled}
+        placeholder={placeholder}
+        className={`mt-1 flex h-12 w-full rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-base text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       />
       {!isLoaded && (
-        <div className="text-xs text-muted-foreground mt-1">
+        <div className="text-xs text-gray-500 mt-1">
           Loading Google Places...
         </div>
       )}
