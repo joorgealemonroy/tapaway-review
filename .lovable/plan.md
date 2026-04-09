@@ -1,93 +1,76 @@
 
-Summary
 
-No — you probably do not need to enter the secret again.
+# Rep-Assisted In-Person Close — Implementation Plan
 
-What I found:
-- The backend secret is already configured.
-- The search request is reaching the backend correctly.
-- The failure is coming from Google rejecting the specific API endpoint being used.
+## Overview
 
-Diagnosis
+Add a streamlined "Rep Mode" to the onboarding flow so a sales rep can sign up a client in person by simply entering the client's email, selecting the business via Google, and handing the device over for Stripe payment. No OAuth required for the client.
 
-The current `lookup-place-id` function is calling the legacy Google Places Text Search endpoint:
+## Flow
+
 ```text
-https://maps.googleapis.com/maps/api/place/textsearch/json
+Rep Mode (in-person):
+  Plan → Protection → Business Info + Client Email → Stripe → Success Page (no auth)
+                                                              ↓
+                                                   Client gets invite email to set password later
 ```
 
-The backend logs show:
-```text
-API denied: You’re calling a legacy API, which is not enabled for your project.
-```
+## Changes
 
-So the problem is not “missing key”.
-It is:
-1. the key exists
-2. the function runs
-3. Google rejects the legacy Places API for this project
+### 1. New Edge Function: `create-rep-onboarding`
 
-Why the UI says “No businesses found”
+Server-side function that handles the entire rep-assisted signup:
 
-Right now the function converts `REQUEST_DENIED` into:
-```json
-{ "error": "Google API request denied", "results": [] }
-```
-and the frontend mainly treats that like an empty result set, so users see “No businesses found” instead of the real setup/config error.
+- **Auth**: Extracts the rep's JWT from the `Authorization` header, verifies it, and confirms the caller exists in `sales_reps` with `is_active = true`. Rejects otherwise.
+- **Existing email handling**: Uses service role client to call `get_auth_user_by_email(email)` (existing RPC). If user exists, grabs their `user_id`. If not, calls `admin.auth.admin.inviteUserByEmail(email)` to create the user and send them a password-setup invite automatically.
+- **Restaurant creation**: Creates the restaurant record with all business data (name, address, Google Place ID, review URL, logo, plan, protection, trial dates). If user already has a restaurant, updates it.
+- **Rep attribution**: Links to `rep_restaurants` table for commission tracking, stores `sales_rep_id` in Stripe metadata.
+- **Stripe checkout**: Calls Stripe to create a checkout session with `success_url` pointing to `/rep-checkout-success` (a new unauthenticated page) and `cancel_url` back to `/onboarding?rep=true`.
+- **Returns**: The Stripe checkout URL to the frontend.
 
-Plan to fix
+Rate limited (10/hour/IP). Input validated with Zod.
 
-1. Update `supabase/functions/lookup-place-id/index.ts`
-- Stop using the legacy Text Search endpoint.
-- Switch to the Places API (New) `places:searchText` endpoint.
-- Return the same frontend shape:
-  - `placeId`
-  - `name`
-  - `formattedAddress`
+### 2. New Page: `RepCheckoutSuccess` (`/rep-checkout-success`)
 
-2. Improve error handling in `lookup-place-id`
-- If Google returns config errors, return a clear message instead of pretending there are zero results.
-- Examples:
-  - Places API (New) not enabled
-  - billing not enabled
-  - invalid API key
+A clean, standalone success page that requires **no authentication**. Displays:
+- "Payment successful!"
+- "Please check your email for a link to set up your dashboard."
+- TapAway branding, no navigation to authenticated areas.
 
-3. Update `src/components/GooglePlacesAutocomplete.tsx`
-- If the backend returns a real error, show that error below the field.
-- Only show “No businesses found” when the API actually succeeded with zero matches.
+Route added to `App.tsx` before the catch-all.
 
-4. Keep the existing onboarding persistence flow
-- The selected business should still save:
-  - `google_place_id`
-  - business name
-  - address
-- `Onboarding.tsx` already has the logic to convert the place ID into:
-```text
-https://search.google.com/local/writereview?placeid=...
-```
-and save it to the restaurant record after selection/auth flow.
+### 3. Modified: `Onboarding.tsx`
 
-5. Verify end to end
-- Search returns actual businesses
-- selecting one fills business name/address
-- place ID persists through auth redirect
-- restaurant record gets `google_place_id`
-- profile gets the generated Google review link
+- Detect `?rep=true&rep_id=<uuid>` in URL params.
+- In rep mode, Step 3 replaces the OAuth buttons with:
+  - "Owner's Email" input field
+  - "Continue to Checkout" button
+- On submit: calls `create-rep-onboarding` edge function with the rep's auth token in the header, passing all collected data (plan, protection, business info, Google place, logo, email).
+- On success: redirects to the Stripe checkout URL returned by the function.
+- The rep must be logged in for this to work (their session token is sent). If not logged in, the OAuth buttons show as normal.
 
-Technical details
+### 4. Modified: `RepClose.tsx`
 
-Relevant evidence:
-- Secret names present:
-  - `GOOGLE_PLACES_API_KEY_SERVER`
-  - `VITE_GOOGLE_MAPS_API_KEY`
-- Current failing function:
-  - `supabase/functions/lookup-place-id/index.ts`
-- Current frontend component:
-  - `src/components/GooglePlacesAutocomplete.tsx`
-- Save logic already exists in:
-  - `src/pages/Onboarding.tsx`
-  - `src/lib/google.ts`
+Update the "Generate Link" flow to offer an option to use the new in-person onboarding flow instead of (or in addition to) the current standalone checkout link generation. Add a button/option that navigates to `/onboarding?rep=true&rep_id={salesRep.id}`.
 
-Important note:
-- Re-entering the key only helps if the key itself is wrong or restricted.
-- Based on the logs, the more likely fix is enabling Places API (New) and/or updating the function to use the new endpoint.
-- Since this project already has the secret, the safest implementation is to fix the backend function first rather than re-adding the key blindly.
+## Security
+
+| Concern | Mitigation |
+|---------|-----------|
+| Anyone typing `?rep=true` | Edge function verifies JWT + checks `sales_reps` table |
+| Existing emails | Checks auth.users first, reuses existing user_id |
+| Client session pollution | Stripe redirects to unauthenticated success page |
+| Invite email | Uses Supabase `inviteUserByEmail` — battle-tested, sends secure magic link |
+| Rate limiting | 10 requests/hour/IP on the edge function |
+| Input validation | Zod schema for all fields |
+
+## Files Summary
+
+| File | Action |
+|------|--------|
+| `supabase/functions/create-rep-onboarding/index.ts` | **New** — core edge function |
+| `src/pages/RepCheckoutSuccess.tsx` | **New** — unauthenticated success page |
+| `src/pages/Onboarding.tsx` | **Modify** — add rep mode with email input |
+| `src/pages/rep/RepClose.tsx` | **Modify** — add in-person close option |
+| `src/App.tsx` | **Modify** — add `/rep-checkout-success` route |
+
