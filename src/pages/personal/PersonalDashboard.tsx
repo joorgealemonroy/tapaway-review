@@ -87,6 +87,7 @@ interface PersonalProfile {
   is_founding_user?: boolean;
   founding_number?: number | null;
   show_founding_badge?: boolean;
+  show_username?: boolean;
 }
 
 interface DbPersonalLink {
