@@ -1,14 +1,18 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Loader2, Check, X, AlertTriangle } from "lucide-react";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
+
+export interface DashboardHeroEditorHandle {
+  saveAllChanges: () => Promise<void>;
+  discardChanges: () => void;
+  hasPendingChanges: boolean;
+}
 
 interface Props {
   profileId: string;
@@ -24,9 +28,10 @@ interface Props {
     pfp_position: string;
     username: string;
   }>) => void;
+  onPendingChangesChange?: (hasPending: boolean) => void;
 }
 
-export const DashboardHeroEditor = ({
+export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(({
   profileId,
   username,
   fullName,
@@ -34,15 +39,14 @@ export const DashboardHeroEditor = ({
   bio,
   planType,
   onUpdate,
-}: Props) => {
+  onPendingChangesChange,
+}, ref) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
-  const [saving, setSaving] = useState(false);
 
   // Username editing state
   const isFree = !planType || planType === "free";
-  // For free users, stored username has "tap" prefix — extract the editable part
   const extractEditableUsername = (storedUsername: string) => {
     if (isFree && storedUsername.startsWith("tap")) {
       return storedUsername.slice(3);
@@ -71,18 +75,21 @@ export const DashboardHeroEditor = ({
     );
   }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType]);
 
+  // Report pending changes to parent
+  useEffect(() => {
+    onPendingChangesChange?.(hasChanges);
+  }, [hasChanges, onPendingChangesChange]);
+
   // Debounced username availability check
   useEffect(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
 
-    // If username hasn't changed, skip check
     if (newPublicUsername === username) {
       setUsernameStatus("idle");
       setUsernameError(null);
       return;
     }
 
-    // Validate format
     if (usernameInput.length < 3) {
       setUsernameStatus("invalid");
       setUsernameError("Username must be at least 3 characters");
@@ -99,7 +106,6 @@ export const DashboardHeroEditor = ({
       return;
     }
 
-    // Check reserved
     if (isUsernameReserved(newPublicUsername)) {
       setUsernameStatus("taken");
       setUsernameError("This username is reserved");
@@ -125,85 +131,75 @@ export const DashboardHeroEditor = ({
     return () => clearTimeout(timer);
   }, [usernameInput, username, isFree, planType]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!hasChanges) return;
 
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
     const usernameChanged = newPublicUsername !== username;
 
-    // Block save if username is invalid/taken
     if (usernameChanged && usernameStatus !== "available") {
-      toast.error("Please fix username issues before saving");
-      return;
+      throw new Error("Please fix username issues before saving");
     }
 
-    setSaving(true);
-    try {
-      const updates: Record<string, any> = {
-        full_name: name.trim(),
-        headline: headlineValue.trim() || null,
-        bio: bioValue.trim() || null,
-        pfp_position: "center",
-      };
+    const updates: Record<string, any> = {
+      full_name: name.trim(),
+      headline: headlineValue.trim() || null,
+      bio: bioValue.trim() || null,
+      pfp_position: "center",
+    };
 
-      if (usernameChanged) {
-        updates.username = newPublicUsername;
-      }
-
-      const { error } = await supabase
-        .from("personal_profiles")
-        .update(updates)
-        .eq("id", profileId);
-
-      if (error) throw error;
-
-      // If username changed, sync NFC cards
-      if (usernameChanged) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from("nfc_cards")
-            .update({ destination_value: newPublicUsername })
-            .eq("owner_user_id", user.id)
-            .eq("destination_type", "profile");
-        }
-
-        // Invalidate both old and new cache
-        invalidateProfileCache(username);
-        invalidateProfileCache(newPublicUsername);
-
-        toast.success(`Username updated! Your new URL is tapaway.co/${newPublicUsername}`);
-      } else {
-        invalidateProfileCache(username);
-        toast.success("Profile updated!");
-      }
-
-      onUpdate(updates);
-      setUsernameStatus("idle");
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      toast.error("Failed to update profile");
-    } finally {
-      setSaving(false);
+    if (usernameChanged) {
+      updates.username = newPublicUsername;
     }
-  };
+
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update(updates)
+      .eq("id", profileId);
+
+    if (error) throw error;
+
+    // If username changed, sync NFC cards
+    if (usernameChanged) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("nfc_cards")
+          .update({ destination_value: newPublicUsername })
+          .eq("owner_user_id", user.id)
+          .eq("destination_type", "profile");
+      }
+
+      invalidateProfileCache(username);
+      invalidateProfileCache(newPublicUsername);
+    } else {
+      invalidateProfileCache(username);
+    }
+
+    onUpdate(updates);
+    setUsernameStatus("idle");
+  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate]);
+
+  const discardChanges = useCallback(() => {
+    setName(fullName);
+    setHeadlineValue(headline || "");
+    setBioValue(bio || "");
+    setUsernameInput(extractEditableUsername(username));
+    setUsernameStatus("idle");
+    setUsernameError(null);
+  }, [fullName, headline, bio, username, isFree]);
+
+  useImperativeHandle(ref, () => ({
+    saveAllChanges: handleSave,
+    discardChanges,
+    hasPendingChanges: hasChanges,
+  }), [handleSave, discardChanges, hasChanges]);
 
   const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-foreground">Hero Identity</Label>
-        {hasChanges && (
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || (usernameChanged && usernameStatus !== "available")}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        )}
-      </div>
+      <Label className="text-sm font-medium text-foreground">Hero Identity</Label>
 
       {/* Name */}
       <div className="space-y-2">
@@ -278,4 +274,6 @@ export const DashboardHeroEditor = ({
       </div>
     </div>
   );
-};
+});
+
+DashboardHeroEditor.displayName = "DashboardHeroEditor";

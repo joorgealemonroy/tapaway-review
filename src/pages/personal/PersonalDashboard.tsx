@@ -25,7 +25,7 @@ import {
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
-import { DashboardHeroEditor } from "@/components/personal/DashboardHeroEditor";
+import { DashboardHeroEditor, DashboardHeroEditorHandle } from "@/components/personal/DashboardHeroEditor";
 import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
@@ -129,6 +129,8 @@ const PersonalDashboard = () => {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
+  const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
+  const [heroHasPending, setHeroHasPending] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
@@ -509,20 +511,29 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
-  // Save bar handlers
+  // Save bar handlers — unified across hero editor + content
   const handleSaveChanges = useCallback(async () => {
-    if (!unifiedContentRef.current) return;
     setSaving(true);
     try {
-      await unifiedContentRef.current.saveAllChanges();
+      const saves: Promise<void>[] = [];
+      if (heroEditorRef.current?.hasPendingChanges) saves.push(heroEditorRef.current.saveAllChanges());
+      if (unifiedContentRef.current?.hasPendingChanges) saves.push(unifiedContentRef.current.saveAllChanges());
+      const results = await Promise.allSettled(saves);
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        const reason = (failures[0] as PromiseRejectedResult).reason;
+        toast.error(reason?.message || "Some changes failed to save");
+      } else {
+        toast.success("Changes saved!");
+      }
     } finally {
       setSaving(false);
     }
   }, []);
 
   const handleDiscardChanges = useCallback(() => {
-    if (!unifiedContentRef.current) return;
-    unifiedContentRef.current.discardChanges();
+    heroEditorRef.current?.discardChanges();
+    unifiedContentRef.current?.discardChanges();
   }, []);
 
 
@@ -753,6 +764,7 @@ const PersonalDashboard = () => {
           <TabsContent value="links" className="space-y-6">
             {/* Hero Editor */}
             <DashboardHeroEditor
+              ref={heroEditorRef}
               profileId={profile.id}
               username={profile.username}
               fullName={profile.full_name}
@@ -760,6 +772,7 @@ const PersonalDashboard = () => {
               bio={profile.bio}
               planType={profile.plan_type}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
+              onPendingChangesChange={setHeroHasPending}
             />
             
             <div className="border-t pt-6">
@@ -899,7 +912,7 @@ const PersonalDashboard = () => {
 
       {/* Unsaved Changes Bar */}
       <UnsavedChangesBar
-        hasPendingChanges={hasPendingChanges}
+        hasPendingChanges={hasPendingChanges || heroHasPending}
         onSave={handleSaveChanges}
         onDiscard={handleDiscardChanges}
         saving={saving}

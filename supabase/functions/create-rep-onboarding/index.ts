@@ -178,6 +178,8 @@ async function createSoloProfile(
         url: googleReviewUrl,
         sort_order: 0,
         is_active: true,
+        is_featured: true,
+        pill_color: "#ffffff",
       });
     }
   }

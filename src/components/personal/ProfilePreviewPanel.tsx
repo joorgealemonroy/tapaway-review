@@ -65,7 +65,7 @@ function ProfilePreviewPanelComponent({
         {/* Phone bezel - slimmer, more modern */}
         <div className="w-[280px] h-[560px] bg-gray-900 rounded-[2.5rem] p-[6px] shadow-2xl ring-1 ring-gray-700/50">
           {/* Screen */}
-          <div className="w-full h-full bg-white rounded-[2.2rem] overflow-hidden relative">
+          <div className="w-full h-full rounded-[2.2rem] overflow-hidden relative" style={{ backgroundColor: profile.background_color || '#000000' }}>
             {/* Dynamic Island style notch - smaller, modern */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-gray-900 rounded-full z-10" />
             
