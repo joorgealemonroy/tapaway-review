@@ -534,41 +534,59 @@ export type Database = {
       commissions: {
         Row: {
           amount: number
+          billing_cycle: string | null
+          clawback_until: string | null
+          commission_type: string | null
           created_at: string
           id: string
           note: string | null
           paid_at: string | null
           period_label: string
+          plan_tier: string | null
+          points_value: number
           rep_id: string
           rep_restaurant_id: string | null
           restaurant_id: string | null
           status: string
+          stripe_subscription_id: string | null
           type: string
         }
         Insert: {
           amount: number
+          billing_cycle?: string | null
+          clawback_until?: string | null
+          commission_type?: string | null
           created_at?: string
           id?: string
           note?: string | null
           paid_at?: string | null
           period_label: string
+          plan_tier?: string | null
+          points_value?: number
           rep_id: string
           rep_restaurant_id?: string | null
           restaurant_id?: string | null
           status?: string
+          stripe_subscription_id?: string | null
           type: string
         }
         Update: {
           amount?: number
+          billing_cycle?: string | null
+          clawback_until?: string | null
+          commission_type?: string | null
           created_at?: string
           id?: string
           note?: string | null
           paid_at?: string | null
           period_label?: string
+          plan_tier?: string | null
+          points_value?: number
           rep_id?: string
           rep_restaurant_id?: string | null
           restaurant_id?: string | null
           status?: string
+          stripe_subscription_id?: string | null
           type?: string
         }
         Relationships: [
@@ -1815,27 +1833,63 @@ export type Database = {
           base_commission_per_close: number
           bonus_amount: number
           bonus_period: string
+          bonus_point_threshold: number
           bonus_threshold_closes: number
+          clawback_days: number
           created_at: string
           id: string
+          lite_annual_recurring: number
+          lite_annual_upfront: number
+          lite_monthly_recurring: number
+          lite_monthly_upfront: number
+          lite_point_value: number
+          restaurant_annual_recurring: number
+          restaurant_annual_upfront: number
+          restaurant_monthly_recurring: number
+          restaurant_monthly_upfront: number
+          restaurant_point_value: number
           updated_at: string
         }
         Insert: {
           base_commission_per_close?: number
           bonus_amount?: number
           bonus_period?: string
+          bonus_point_threshold?: number
           bonus_threshold_closes?: number
+          clawback_days?: number
           created_at?: string
           id?: string
+          lite_annual_recurring?: number
+          lite_annual_upfront?: number
+          lite_monthly_recurring?: number
+          lite_monthly_upfront?: number
+          lite_point_value?: number
+          restaurant_annual_recurring?: number
+          restaurant_annual_upfront?: number
+          restaurant_monthly_recurring?: number
+          restaurant_monthly_upfront?: number
+          restaurant_point_value?: number
           updated_at?: string
         }
         Update: {
           base_commission_per_close?: number
           bonus_amount?: number
           bonus_period?: string
+          bonus_point_threshold?: number
           bonus_threshold_closes?: number
+          clawback_days?: number
           created_at?: string
           id?: string
+          lite_annual_recurring?: number
+          lite_annual_upfront?: number
+          lite_monthly_recurring?: number
+          lite_monthly_upfront?: number
+          lite_point_value?: number
+          restaurant_annual_recurring?: number
+          restaurant_annual_upfront?: number
+          restaurant_monthly_recurring?: number
+          restaurant_monthly_upfront?: number
+          restaurant_point_value?: number
           updated_at?: string
         }
         Relationships: []

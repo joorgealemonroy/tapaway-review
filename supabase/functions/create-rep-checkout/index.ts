@@ -7,12 +7,59 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Plan tier definitions
+const PLAN_TIERS: Record<string, {
+  label: string;
+  planTier: 'restaurant' | 'business_lite';
+  billingCycle: 'monthly' | 'annual';
+  priceAmount: number; // in cents
+  interval: 'month' | 'year';
+  productName: string;
+  trialDays: number;
+}> = {
+  solo_monthly: {
+    label: 'Solo Pro Monthly',
+    planTier: 'business_lite',
+    billingCycle: 'monthly',
+    priceAmount: 1500, // $15/mo
+    interval: 'month',
+    productName: 'TapAway Solo Pro (Monthly)',
+    trialDays: 14,
+  },
+  solo_annual: {
+    label: 'Solo Pro Annual',
+    planTier: 'business_lite',
+    billingCycle: 'annual',
+    priceAmount: 15000, // $150/yr
+    interval: 'year',
+    productName: 'TapAway Solo Pro (Annual)',
+    trialDays: 14,
+  },
+  venue_monthly: {
+    label: 'Venue Pack Monthly',
+    planTier: 'restaurant',
+    billingCycle: 'monthly',
+    priceAmount: 3900, // $39/mo
+    interval: 'month',
+    productName: 'TapAway Venue Pack (Monthly)',
+    trialDays: 21,
+  },
+  venue_annual: {
+    label: 'Venue Pack Annual',
+    planTier: 'restaurant',
+    billingCycle: 'annual',
+    priceAmount: 39000, // $390/yr
+    interval: 'year',
+    productName: 'TapAway Venue Pack (Annual)',
+    trialDays: 21,
+  },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limit: 10 requests per hour per IP
   const rlKey = getRateLimitKey(req, "create-rep-checkout");
   if (!checkRateLimit(rlKey, 10, 60 * 60 * 1000)) {
     return rateLimitResponse(corsHeaders);
@@ -34,70 +81,82 @@ serve(async (req) => {
       throw new Error("Plan and salesRepId are required");
     }
 
-    // Determine price ID based on plan
-    let priceId: string;
-    let planLabel: string;
-
-    switch (plan) {
-      case "monthly":
-        priceId = "price_1SJP7CDg8DaTuVNZlcOE5Rn8"; // $30/month
-        planLabel = "monthly";
-        break;
-      case "yearly_150":
-        priceId = "price_1SJPryDg8DaTuVNZBB4at0Gc"; // $300/year (will apply promo)
-        planLabel = "yearly_150";
-        break;
-      case "yearly_300":
-        priceId = "price_1SJPryDg8DaTuVNZBB4at0Gc"; // $300/year
-        planLabel = "yearly_300";
-        break;
-      default:
-        throw new Error("Invalid plan type");
+    const tierConfig = PLAN_TIERS[plan];
+    if (!tierConfig) {
+      throw new Error(`Invalid plan type: ${plan}. Valid: ${Object.keys(PLAN_TIERS).join(', ')}`);
     }
 
-    // Base URL for redirects
+    // Dynamic product/price creation (same pattern as create-checkout-session)
+    const products = await stripe.products.list({
+      limit: 100,
+      active: true,
+    });
+
+    let product = products.data.find(
+      (p) => p.metadata?.plan_key === plan && p.metadata?.source === 'rep_portal'
+    );
+
+    if (!product) {
+      product = await stripe.products.create({
+        name: tierConfig.productName,
+        metadata: { plan_key: plan, source: 'rep_portal' },
+      });
+      console.log(`Created Stripe product: ${product.id} for ${plan}`);
+    }
+
+    // Find or create price
+    const prices = await stripe.prices.list({
+      product: product.id,
+      active: true,
+      limit: 10,
+    });
+
+    let price = prices.data.find(
+      (p) =>
+        p.unit_amount === tierConfig.priceAmount &&
+        p.recurring?.interval === tierConfig.interval
+    );
+
+    if (!price) {
+      price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: tierConfig.priceAmount,
+        currency: 'usd',
+        recurring: { interval: tierConfig.interval },
+      });
+      console.log(`Created Stripe price: ${price.id} for ${plan}`);
+    }
+
     const baseUrl = "https://tapaway.co";
 
-    // Create Stripe checkout session with rep metadata
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: price.id, quantity: 1 }],
       success_url: `${baseUrl}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/paywall`,
       billing_address_collection: "required",
-      shipping_address_collection: {
-        allowed_countries: ["US"],
+      shipping_address_collection: { allowed_countries: ["US"] },
+      subscription_data: {
+        trial_period_days: tierConfig.trialDays,
       },
       metadata: {
         sales_rep_id: salesRepId,
         rep_restaurant_id: repRestaurantId || "",
         restaurant_name: restaurantName || "",
-        plan_type: planLabel,
+        plan_type: tierConfig.billingCycle === 'annual' ? 'yearly' : 'monthly',
+        plan_tier: tierConfig.planTier,
+        billing_cycle: tierConfig.billingCycle,
         source: "rep_portal",
       },
     };
 
-    // Add customer email if provided
     if (contactEmail) {
       sessionConfig.customer_email = contactEmail;
     }
 
-    // Apply Christmas promo for yearly_150
-    if (plan === "yearly_150") {
-      const promoCode = Deno.env.get("STRIPE_PROMO_CHRISTMAS150");
-      if (promoCode) {
-        sessionConfig.discounts = [{ promotion_code: promoCode }];
-      }
-    }
-
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
-    console.log(`Created rep checkout session: ${session.id} for rep ${salesRepId}, plan: ${planLabel}`);
+    console.log(`Created rep checkout session: ${session.id} for rep ${salesRepId}, plan: ${plan} (${tierConfig.planTier} ${tierConfig.billingCycle})`);
 
     return new Response(
       JSON.stringify({ url: session.url, sessionId: session.id }),
