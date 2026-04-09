@@ -1,24 +1,42 @@
 
 
-# Fix: Profile Switcher Not Showing in Admin View
+# Fix Billing Display: Grandfathered vs Paid Users
 
 ## Problem
 
-When viewing a profile via admin impersonation (`?admin_view_personal=...`), the admin view code path (lines 155-201) loads the single target profile and returns early. It never populates `allProfiles`, which stays as an empty array. Since the switcher only renders when `allProfiles.length > 1`, it never appears.
+The current `isVIP` logic is too broad — it flags `founding_pro` users and paid users missing a `stripe_subscription_id` as VIP, showing "$0 forever". This is wrong for standard paid clients. Additionally, there's no distinction between monthly ($15/mo) and annual ($150/yr) display.
 
-## Fix — `src/pages/personal/PersonalDashboard.tsx`
+## Changes — `src/components/personal/PersonalBillingTab.tsx`
 
-In the admin view branch (around line 178, after fetching the target profile), add a query to fetch **all profiles owned by the same user** as the target profile:
+### 1. Grandfathered Users (`founding_pro` or `vip`)
+- Badge: "VIP Access" (green)
+- Price: "$0 / forever"
+- Description: "You have lifetime access to all premium features"
+- **Hide** the "Manage Subscription" button entirely (no Stripe ID = Stripe portal crash)
 
-1. After getting `profileData`, query `personal_profiles` where `user_id = profileData.user_id` and order by `created_at`
-2. Set `setAllProfiles(...)` with the results (normalized)
-3. This populates the switcher so the admin can see and use "Switch Profile" in the More menu
+### 2. Standard Paid Users (all other plan_types: `monthly`, `yearly`, `pro`, `business_lite`, etc.)
+- Badge: "Business" (amber)
+- Price logic based on `plan_type`:
+  - If `plan_type === 'yearly'` → display **"$150 /year"**
+  - Otherwise → display **"$15 /month"**
+- If `stripe_subscription_id` exists → show "Manage Subscription" button (opens Stripe portal)
+- If `stripe_subscription_id` is missing → show "Set up Billing" button that calls `onUpgrade()` to route them to checkout
 
-The `onSwitchProfile` callback also needs a small tweak for admin view: instead of setting `?profile_id=`, it should update `?admin_view_personal=` to the new profile ID so the admin impersonation context is preserved.
+### 3. Trial users
+- Keep existing trial display (shows days left, then "$15/month")
+
+### Simplified logic
+```
+isGrandfathered = plan_type === 'vip' || plan_type === 'founding_pro'
+isAnnual = plan_type === 'yearly'
+isPro = plan_type is not null (any plan = paid)
+```
+
+Remove the old `isVIP` variable that checked `!stripe_subscription_id`.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `src/pages/personal/PersonalDashboard.tsx` | Fetch sibling profiles in admin view branch; update switcher callback to use `admin_view_personal` param when in admin mode |
+| `src/components/personal/PersonalBillingTab.tsx` | Rewrite billing display logic per above |
 
