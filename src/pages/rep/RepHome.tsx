@@ -87,7 +87,7 @@ const RepHome = () => {
       try {
         const { data: commissions } = await supabase
           .from('commissions')
-          .select('amount, status, commission_type, points_value, period_label')
+          .select('amount, status, type, commission_type, points_value, period_label')
           .eq('rep_id', salesRep.id);
 
         const now = new Date();
