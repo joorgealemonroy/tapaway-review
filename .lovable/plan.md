@@ -1,37 +1,93 @@
 
+Summary
 
-# Fix Google Places Search — Use Server-Side Search
+No — you probably do not need to enter the secret again.
 
-## Problem
-The Google Maps JavaScript API key has **referrer restrictions** that block the Lovable preview domain (`RefererNotAllowedMapError`). The client-side `Autocomplete` widget cannot make requests because the domain isn't whitelisted in the Google Cloud Console. This is why the "This page can't load Google Maps correctly" error appears.
+What I found:
+- The backend secret is already configured.
+- The search request is reaching the backend correctly.
+- The failure is coming from Google rejecting the specific API endpoint being used.
 
-## Solution
-Replace the client-side Google Maps Autocomplete widget with a **server-side search** using the existing `lookup-place-id` edge function. This edge function already calls the Google Places Text Search API from the server (no referrer restrictions). We just need to:
+Diagnosis
 
-1. Turn the component into a debounced text input that calls the edge function as the user types.
-2. Show a dropdown of results for the user to pick from.
+The current `lookup-place-id` function is calling the legacy Google Places Text Search endpoint:
+```text
+https://maps.googleapis.com/maps/api/place/textsearch/json
+```
 
-## Changes
+The backend logs show:
+```text
+API denied: You’re calling a legacy API, which is not enabled for your project.
+```
 
-### 1. `supabase/functions/lookup-place-id/index.ts` — Return multiple results
-- Currently returns only the first result. Update to return up to 5 results so the user can pick the correct business.
-- Return an array: `{ results: [{ placeId, name, formattedAddress }, ...] }`.
+So the problem is not “missing key”.
+It is:
+1. the key exists
+2. the function runs
+3. Google rejects the legacy Places API for this project
 
-### 2. `src/components/GooglePlacesAutocomplete.tsx` — Full rewrite
-- **Remove** all Google Maps JavaScript SDK loading (no script tag, no `window.google`).
-- Replace with a standard `<input>` that debounces user typing (300ms).
-- On each debounced keystroke (min 3 chars), call the `lookup-place-id` edge function via `supabase.functions.invoke`.
-- Display results in a styled dropdown list below the input.
-- When user clicks a result, call `onPlaceSelected` with `{ placeId, name, address }` and close the dropdown.
-- Handle loading state (spinner) and empty results ("No businesses found").
-- Style dropdown to match the dark onboarding theme.
+Why the UI says “No businesses found”
 
-### 3. No changes needed to `Onboarding.tsx`
-- The `onPlaceSelected` callback interface remains the same `{ placeId, name, address }`, so no upstream changes are required.
+Right now the function converts `REQUEST_DENIED` into:
+```json
+{ "error": "Google API request denied", "results": [] }
+```
+and the frontend mainly treats that like an empty result set, so users see “No businesses found” instead of the real setup/config error.
 
-## Benefits
-- No Google Maps JavaScript API loaded on the client at all — no referrer issues.
-- The edge function's server-side API call has no domain restrictions.
-- Smaller page bundle (no Maps JS SDK).
-- Works on any domain (preview, published, custom).
+Plan to fix
 
+1. Update `supabase/functions/lookup-place-id/index.ts`
+- Stop using the legacy Text Search endpoint.
+- Switch to the Places API (New) `places:searchText` endpoint.
+- Return the same frontend shape:
+  - `placeId`
+  - `name`
+  - `formattedAddress`
+
+2. Improve error handling in `lookup-place-id`
+- If Google returns config errors, return a clear message instead of pretending there are zero results.
+- Examples:
+  - Places API (New) not enabled
+  - billing not enabled
+  - invalid API key
+
+3. Update `src/components/GooglePlacesAutocomplete.tsx`
+- If the backend returns a real error, show that error below the field.
+- Only show “No businesses found” when the API actually succeeded with zero matches.
+
+4. Keep the existing onboarding persistence flow
+- The selected business should still save:
+  - `google_place_id`
+  - business name
+  - address
+- `Onboarding.tsx` already has the logic to convert the place ID into:
+```text
+https://search.google.com/local/writereview?placeid=...
+```
+and save it to the restaurant record after selection/auth flow.
+
+5. Verify end to end
+- Search returns actual businesses
+- selecting one fills business name/address
+- place ID persists through auth redirect
+- restaurant record gets `google_place_id`
+- profile gets the generated Google review link
+
+Technical details
+
+Relevant evidence:
+- Secret names present:
+  - `GOOGLE_PLACES_API_KEY_SERVER`
+  - `VITE_GOOGLE_MAPS_API_KEY`
+- Current failing function:
+  - `supabase/functions/lookup-place-id/index.ts`
+- Current frontend component:
+  - `src/components/GooglePlacesAutocomplete.tsx`
+- Save logic already exists in:
+  - `src/pages/Onboarding.tsx`
+  - `src/lib/google.ts`
+
+Important note:
+- Re-entering the key only helps if the key itself is wrong or restricted.
+- Based on the logs, the more likely fix is enabling Places API (New) and/or updating the function to use the new endpoint.
+- Since this project already has the secret, the safest implementation is to fix the backend function first rather than re-adding the key blindly.
