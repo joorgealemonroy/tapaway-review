@@ -86,6 +86,30 @@ const Onboarding = () => {
   // ── Handle Stripe return ──
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
 
+  // ── Validate promo token on mount ──
+  useEffect(() => {
+    if (!promoTokenParam) { setPromoValidated(true); return; }
+    const validatePromo = async () => {
+      try {
+        const { data, error: promoError } = await supabase.functions.invoke("validate-promo-token", {
+          body: { token: promoTokenParam },
+        });
+        if (!promoError && data?.valid) {
+          setPromoDiscountType(data.discount_type as string);
+          console.log("[onboarding] Valid promo token:", data.discount_type);
+        } else {
+          console.warn("[onboarding] Invalid promo token:", data?.error);
+          toast.error("This promo link is invalid or expired.");
+        }
+      } catch {
+        console.error("[onboarding] Promo validation failed");
+      } finally {
+        setPromoValidated(true);
+      }
+    };
+    validatePromo();
+  }, [promoTokenParam]);
+
   // ── Init: check session, prefill, handle Stripe return ──
   useEffect(() => {
     const init = async () => {
