@@ -252,6 +252,15 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
         )}
       </div>
 
+      {/* Show username toggle */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">Show username on profile</Label>
+        <Switch
+          checked={showUsernameValue}
+          onCheckedChange={setShowUsernameValue}
+        />
+      </div>
+
       {/* Headline */}
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">

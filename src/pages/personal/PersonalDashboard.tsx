@@ -771,6 +771,7 @@ const PersonalDashboard = () => {
               headline={profile.headline}
               bio={profile.bio}
               planType={profile.plan_type}
+              showUsername={profile.show_username ?? true}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
             />

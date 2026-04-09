@@ -54,6 +54,7 @@ interface ProfileData {
   pfp_position?: string | null;
   banner_image_url?: string | null;
   plan_type?: string | null;
+  show_username?: boolean;
 }
 
 interface LinkData {
@@ -793,7 +794,9 @@ function ProfilePreviewRendererComponent({
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
           <h1 className={`${hasBanner ? 'text-3xl' : 'text-xl'} font-bold ${headingClass}`}>
-            {hasBanner ? `@${profile.username}` : profile.full_name}
+            {hasBanner
+              ? (profile.show_username !== false ? `@${profile.username}` : profile.full_name)
+              : profile.full_name}
           </h1>
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
