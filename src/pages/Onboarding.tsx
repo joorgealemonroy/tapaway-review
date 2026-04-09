@@ -45,6 +45,11 @@ const Onboarding = () => {
   const isRepMode = searchParams.get("rep") === "true";
   const repId = searchParams.get("rep_id") || undefined;
 
+  // Promo token detection
+  const promoTokenParam = searchParams.get("promo_token") || undefined;
+  const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
+  const [promoValidated, setPromoValidated] = useState(false);
+
   const [step, setStep] = useState<Step>("plan");
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
