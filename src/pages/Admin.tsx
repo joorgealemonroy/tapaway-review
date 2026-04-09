@@ -31,12 +31,13 @@ import {
   FileText,
   Settings,
   ClipboardList,
-  Crown,
   Copy,
   Loader2,
   Link as LinkIcon,
   Timer,
+  ChevronDown,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
 
@@ -71,7 +72,6 @@ const NAV_CARDS = [
   { label: "W-9 Tax Review", desc: "Review tax documents", icon: FileText, path: "/admin/tax-review" },
   { label: "Comp Settings", desc: "Rates & bonus thresholds", icon: Settings, path: "/admin/settings/comp" },
   { label: "Demo Requests", desc: "Demo kit requests", icon: ClipboardList, path: "/admin/demo-requests" },
-  { label: "Founding Creators", desc: "Founding user list", icon: Crown, path: "/admin/founders" },
 ];
 
 const Admin = () => {
@@ -336,28 +336,35 @@ const Admin = () => {
         <p className="text-sm text-muted-foreground">Logged in as {user?.email}</p>
       </div>
 
-      {/* Sales Rep Portal — Card Grid */}
-      <section className="space-y-3">
-        <h2 className="font-semibold text-lg">Sales Rep Portal</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage 1099 sales reps, applications, commissions, and tax documents.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {NAV_CARDS.map((card) => (
-            <Card
-              key={card.path}
-              className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
-              onClick={() => navigate(card.path)}
-            >
-              <CardContent className="p-4 flex flex-col gap-2">
-                <card.icon className="h-5 w-5 text-primary" />
-                <span className="font-medium text-sm">{card.label}</span>
-                <span className="text-xs text-muted-foreground leading-tight">{card.desc}</span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+      {/* Sales Rep Portal — Collapsible on mobile */}
+      <Collapsible defaultOpen={false} className="space-y-3">
+        <CollapsibleTrigger className="flex items-center justify-between w-full group">
+          <div>
+            <h2 className="font-semibold text-lg text-left">Sales Rep Portal</h2>
+            <p className="text-sm text-muted-foreground text-left">
+              Manage 1099 sales reps, applications, commissions, and tax documents.
+            </p>
+          </div>
+          <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-1">
+            {NAV_CARDS.map((card) => (
+              <Card
+                key={card.path}
+                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+                onClick={() => navigate(card.path)}
+              >
+                <CardContent className="p-4 flex flex-col gap-2">
+                  <card.icon className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-sm">{card.label}</span>
+                  <span className="text-xs text-muted-foreground leading-tight">{card.desc}</span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Promo Link Generator */}
       <section className="bg-card border rounded-xl p-4 space-y-3">
