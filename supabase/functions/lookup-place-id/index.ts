@@ -43,6 +43,7 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log('[lookup-place-id] API response status:', response.status, 'body:', JSON.stringify(data).slice(0, 500));
 
     if (!data.places || data.places.length === 0) {
       return new Response(
