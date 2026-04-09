@@ -131,8 +131,46 @@ serve(async (req) => {
       lineItems.push({ price: protectionPriceId, quantity: 1 });
     }
 
+    // --- Handle promo token for 50% off ---
+    let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
+    if (promoToken) {
+      // Validate promoToken via DB (service role)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.7');
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+
+      const { data: tokenRow } = await adminClient
+        .from('promo_tokens')
+        .select('id, discount_type, expires_at, is_used')
+        .eq('token', promoToken)
+        .maybeSingle();
+
+      if (tokenRow && !tokenRow.is_used && new Date(tokenRow.expires_at) > new Date() && tokenRow.discount_type === '50_off') {
+        // Find or create a 50% off coupon
+        const existingCoupons = await stripe.coupons.list({ limit: 100 });
+        let couponId = existingCoupons.data.find(
+          (c) => c.percent_off === 50 && c.duration === 'once' && c.valid
+        )?.id;
+
+        if (!couponId) {
+          const coupon = await stripe.coupons.create({
+            percent_off: 50,
+            duration: 'once',
+            name: 'TapAway 50% Off Promo',
+          });
+          couponId = coupon.id;
+        }
+
+        discounts = [{ coupon: couponId }];
+        console.log('[create-checkout-session] Applied 50% off promo coupon');
+      }
+    }
+
     // --- Create checkout session ---
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       line_items: lineItems,
       customer_email: email,
@@ -148,8 +186,15 @@ serve(async (req) => {
         has_protection: String(!!hasProtectionFlag),
         user_id: userId || '',
         restaurant_id: restaurantId || '',
+        promo_token: promoToken || '',
       },
-    });
+    };
+
+    if (discounts) {
+      sessionParams.discounts = discounts;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log('[create-checkout-session] Session created:', { sessionId: session.id, plan: validPlanType });
 
