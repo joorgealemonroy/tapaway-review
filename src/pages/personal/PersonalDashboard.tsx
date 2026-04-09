@@ -543,6 +543,27 @@ const PersonalDashboard = () => {
               TapAway
             </a>
             <div className="flex items-center gap-2">
+              {allProfiles.length > 1 && (
+                <Select
+                  value={profile.id}
+                  onValueChange={(profileId) => {
+                    setSearchParams({ profile_id: profileId });
+                    setLoading(true);
+                    loadData();
+                  }}
+                >
+                  <SelectTrigger className="w-[160px] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allProfiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        @{p.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {isAffiliate && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/affiliate")}>
                   <Users className="h-4 w-4 mr-1" />
