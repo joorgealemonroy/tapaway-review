@@ -6,6 +6,7 @@ import {
   DollarSign, 
   Music,
   Star,
+  MapPin,
   LucideIcon
 } from "lucide-react";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
@@ -204,6 +205,7 @@ export const PLATFORM_COLORS = {
   website: "#475569",
   email: "#64748b",
   google_review: "#4285F4",
+  directions: "#34A853",
   telegram: "#0088CC",
   linkedin: "#0A66C2",
   facebook: "#1877F2",
@@ -418,6 +420,27 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     bgColor: "bg-[#4285F4]",
   },
   {
+    type: "directions",
+    label: "Directions",
+    icon: MapPin,
+    inputType: "url",
+    placeholder: "Full address or Apple Maps URL",
+    generateUrl: (v) => {
+      if (v.startsWith("http")) return v;
+      return `https://maps.apple.com/?daddr=${encodeURIComponent(v)}`;
+    },
+    extractValue: (url) => {
+      try {
+        const u = new URL(url);
+        const daddr = u.searchParams.get("daddr");
+        if (daddr) return daddr;
+      } catch {}
+      return url;
+    },
+    color: "text-white",
+    bgColor: "bg-[#34A853]",
+  },
+  {
     type: "website",
     label: "Website",
     icon: Globe,
@@ -593,6 +616,7 @@ export const detectPlatformFromUrl = (url: string): string | null => {
   if (urlLower.includes("wa.me") || urlLower.includes("whatsapp.com")) return "whatsapp";
   if (urlLower.includes("t.me") || urlLower.includes("telegram.me")) return "telegram";
   if (urlLower.includes("search.google.com/local/writereview")) return "google_review";
+  if (urlLower.includes("maps.apple.com")) return "directions";
   if (urlLower.includes("venmo.com")) return "venmo";
   if (urlLower.includes("cash.app")) return "cashapp";
   if (urlLower.includes("paypal.me") || urlLower.includes("paypal.com")) return "paypal";

@@ -465,12 +465,12 @@ function ProfilePreviewRendererComponent({
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
         className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${
-          link.link_type === 'google_review' && !link.pill_color
+          (link.link_type === 'google_review' || link.link_type === 'directions') && !link.pill_color
             ? 'bg-white border-white/30'
             : isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'
         }`}
         style={
-          link.link_type === 'google_review' && !link.pill_color
+          (link.link_type === 'google_review' || link.link_type === 'directions') && !link.pill_color
             ? undefined
             : !isDarkBg ? { borderColor: `${headerColor}30` } : undefined
         }
@@ -488,12 +488,12 @@ function ProfilePreviewRendererComponent({
           </div>
         )}
         <span className={`flex-1 font-medium ${
-          link.link_type === 'google_review' && !link.pill_color
+          (link.link_type === 'google_review' || link.link_type === 'directions') && !link.pill_color
             ? 'text-gray-800'
             : isDarkBg ? 'text-white' : 'text-gray-800'
         }`}>{link.label}</span>
         <ExternalLink className={`h-4 w-4 ${
-          link.link_type === 'google_review' && !link.pill_color
+          (link.link_type === 'google_review' || link.link_type === 'directions') && !link.pill_color
             ? 'text-gray-400'
             : isDarkBg ? 'text-white/50' : 'text-gray-400'
         }`} />
