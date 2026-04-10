@@ -1,48 +1,44 @@
 
 
-# Speed Up Profile Loading — Full Profile Passthrough
+# Fix: Lightbox Escapes Stacking Context via Portal
 
 ## Problem
-`UsernameResolver` queries `personal_profiles` for `id, subscription_status`, then `PersonalProfilePage` re-queries the full profile. Two sequential round-trips before any content renders.
+The `ImageLightbox` renders inside `CollageWithLightbox`, which lives inside a container with `willChange: 'transform'`. This creates a new stacking context that traps the `fixed` positioned lightbox, causing the share buttons to overlap the lightbox close button.
 
-## Solution
-Fetch the full profile in the resolver, pass it forward, and skip the redundant query in `useProfileData`.
+## Solution — React Portal (zero re-renders, zero state lifting)
+Wrap the lightbox overlay in `createPortal(…, document.body)` so it renders outside the stacking context entirely. No changes to `PersonalProfilePage` or any parent component needed.
 
 ## Changes
 
-### 1. `src/pages/UsernameResolver.tsx`
-- Change the resolver's `.select("id, subscription_status")` to `.select('*')` to fetch the full profile record
-- When rendering `<PersonalProfilePage />` for a resolved personal profile, pass the fetched profile object as a prop: `<PersonalProfilePage initialProfile={profile} />`
-- Also update the CardResolver shortcut path (line 27) — it currently passes no data, so leave it as-is (it will still work via the normal fetch path)
+### `src/components/personal/ImageLightbox.tsx`
+- Import `createPortal` from `react-dom`
+- Wrap the entire `AnimatePresence` return in `createPortal(..., document.body)`
+- Everything else stays identical — same z-index, same classes, same behavior
 
-### 2. `src/hooks/useProfileData.ts`
-- Add an optional `initialProfile` parameter to the `useProfileData` hook signature: `useProfileData(username, initialProfile?)`
-- Update `fetchProfileData` to accept an optional pre-fetched profile object. When provided:
-  - Skip the first `personal_profiles` query entirely
-  - Jump straight to the parallel fetch of links, blocks, and nfc_cards using `initialProfile.id` and `initialProfile.user_id`
-- When `initialProfile` is provided, immediately populate the profile state and cache so the UI can start rendering instantly while parallel queries load
+**Before:**
+```tsx
+return (
+  <AnimatePresence>
+    {isOpen && (<motion.div className="fixed inset-0 z-50 ...">...
+```
 
-### 3. `src/pages/personal/PersonalProfilePage.tsx`
-- Update the `Props` interface to include `initialProfile?: CachedProfile`
-- Pass `initialProfile` through to `useProfileData(username, initialProfile)`
-- No other changes needed — the rest of the component works off the same `data` object
-
-## Performance Impact
-
-| Step | Before | After |
-|------|--------|-------|
-| Resolve type | ~200ms (select id, status) | ~200ms (select *) |
-| Fetch full profile | ~200ms | **Skipped** |
-| Fetch links/blocks/nfc | ~150ms (parallel) | ~150ms (parallel) |
-| **Total** | **~550ms** | **~350ms** |
-
-~35% faster. The resolver query gets slightly larger but eliminates an entire round-trip.
+**After:**
+```tsx
+import { createPortal } from "react-dom";
+// ...
+return createPortal(
+  <AnimatePresence>
+    {isOpen && (<motion.div className="fixed inset-0 z-50 ...">...
+  </AnimatePresence>,
+  document.body
+);
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/UsernameResolver.tsx` | Select full profile, pass as prop |
-| `src/hooks/useProfileData.ts` | Accept `initialProfile`, skip redundant query |
-| `src/pages/personal/PersonalProfilePage.tsx` | Accept and forward `initialProfile` prop |
+| `src/components/personal/ImageLightbox.tsx` | Wrap return in `createPortal` — 3 lines changed |
+
+No other files touched. No state lifting. No re-renders. No CSS hacks.
 
