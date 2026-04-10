@@ -115,7 +115,7 @@ export const BlockModal = ({
   const [messageRequired, setMessageRequired] = useState(false);
   
   // Photo collage options (mixed media: images + videos)
-  const [collageMedia, setCollageMedia] = useState<Array<{ url: string; type: "image" | "video" }>>([]);
+  const [collageMedia, setCollageMedia] = useState<Array<{ url: string; type: "image" | "video"; poster?: string }>>([]);
   const [collageColumns, setCollageColumns] = useState<2 | 3>(3);
   const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
   
@@ -361,21 +361,68 @@ export const BlockModal = ({
     }
   };
 
+  // Extract a poster frame from a video file as a JPEG blob
+  const extractVideoPoster = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      video.src = objectUrl;
+
+      const cleanup = () => {
+        try { URL.revokeObjectURL(objectUrl); } catch {}
+        video.src = "";
+      };
+
+      video.onloadeddata = () => {
+        video.currentTime = 0.1;
+      };
+
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 320;
+          canvas.height = video.videoHeight || 240;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { cleanup(); reject(new Error("Canvas context failed")); return; }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(
+            (blob) => {
+              cleanup();
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas toBlob returned null"));
+            },
+            "image/jpeg",
+            0.8
+          );
+        } catch (err) {
+          cleanup();
+          reject(err);
+        }
+      };
+
+      video.onerror = () => {
+        cleanup();
+        reject(new Error("Video load error"));
+      };
+
+      // Timeout safety net
+      setTimeout(() => { cleanup(); reject(new Error("Poster extraction timed out")); }, 15000);
+    });
+  };
+
   // Collage media handlers (images + videos)
   const handleCollageMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset input so same file can be re-selected
-    if (collageFileInputRef.current) collageFileInputRef.current.value = "";
-
     if (file.type.startsWith("video/")) {
-      // Video validation: max 20MB, max 60 seconds
       if (file.size > 20 * 1024 * 1024) {
-        toast.error("Video must be under 20MB");
+        toast.error("Video must be under 20 MB");
         return;
       }
-
       // Validate duration
       const video = document.createElement("video");
       video.preload = "metadata";
@@ -395,8 +442,9 @@ export const BlockModal = ({
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error("Not authenticated");
 
+          const timestamp = Date.now();
           const ext = file.name.split('.').pop() || 'mp4';
-          const filePath = `${user.id}/collage/${Date.now()}.${ext}`;
+          const filePath = `${user.id}/collage/${timestamp}.${ext}`;
 
           const { error: uploadError } = await supabase.storage
             .from("personal-photos")
@@ -407,7 +455,25 @@ export const BlockModal = ({
             .from("personal-photos")
             .getPublicUrl(filePath);
 
-          setCollageMedia(prev => [...prev, { url: publicUrl, type: "video" }]);
+          // Generate and upload poster thumbnail
+          let posterUrl: string | undefined;
+          try {
+            const posterBlob = await extractVideoPoster(file);
+            const thumbPath = `${user.id}/collage/${timestamp}_thumb.jpg`;
+            const { error: thumbErr } = await supabase.storage
+              .from("personal-photos")
+              .upload(thumbPath, posterBlob, { contentType: "image/jpeg" });
+            if (!thumbErr) {
+              const { data: { publicUrl: thumbPublicUrl } } = supabase.storage
+                .from("personal-photos")
+                .getPublicUrl(thumbPath);
+              posterUrl = thumbPublicUrl;
+            }
+          } catch (posterErr) {
+            console.warn("Poster generation failed, video will use legacy fallback:", posterErr);
+          }
+
+          setCollageMedia(prev => [...prev, { url: publicUrl, type: "video", poster: posterUrl }]);
         } catch (err) {
           console.error("Upload error:", err);
           toast.error("Failed to upload video");

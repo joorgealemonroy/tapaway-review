@@ -318,7 +318,7 @@ const VideoThumbnail = memo(function VideoThumbnail({ url }: { url: string }) {
 });
 
 // Collage with lightbox component - horizontal swipeable carousel (supports mixed media)
-const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media: Array<{ url: string; type: "image" | "video" }> }) {
+const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media: Array<{ url: string; type: "image" | "video"; poster?: string }> }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [emblaRef] = useEmblaCarousel({ 
@@ -350,7 +350,11 @@ const CollageWithLightbox = memo(function CollageWithLightbox({ media }: { media
             >
               {item.type === "video" ? (
                 <>
-                  <VideoThumbnail url={item.url} />
+                  {item.poster ? (
+                    <img src={getOptimizedImageUrl(item.poster, 200, 85)} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  ) : (
+                    <VideoThumbnail url={item.url} />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="h-8 w-8 rounded-full bg-black/50 flex items-center justify-center">
                       <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-0.5" />
@@ -696,7 +700,7 @@ const ProfileBlock = memo(function ProfileBlock({
     }
     case "photo_collage": {
       // Parse mixed media (new format) or legacy images
-      let media: Array<{ url: string; type: "image" | "video" }> = [];
+      let media: Array<{ url: string; type: "image" | "video"; poster?: string }> = [];
       try {
         if (content.media) {
           const parsed = typeof content.media === 'string' ? JSON.parse(content.media) : content.media;
