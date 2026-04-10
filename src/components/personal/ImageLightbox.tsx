@@ -63,7 +63,7 @@ function ImageLightboxComponent({
 
   const currentItem = media[currentIndex];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -146,7 +146,8 @@ function ImageLightboxComponent({
           )}
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
