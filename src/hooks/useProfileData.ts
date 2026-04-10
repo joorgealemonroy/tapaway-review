@@ -86,17 +86,36 @@ async function fetchParallelData(profileData: { id: string; user_id?: string }):
   ]);
 
   return {
-    profile: profileData,
     links: linksResult.data || [],
     blocks: blocksResult.data || [],
     hasActiveCard: (nfcResult.data?.length ?? 0) > 0,
   };
 }
 
-export function useProfileData(username: string | undefined): UseProfileDataResult {
+/**
+ * Fetch all profile data from scratch (username lookup + parallel)
+ */
+async function fetchProfileData(username: string): Promise<ProfileData | null> {
+  const { data: profileData, error: profileError } = await supabase
+    .from('personal_profiles')
+    .select('id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username')
+    .eq('username', username.toLowerCase())
+    .single();
+
+  if (profileError || !profileData || profileData.subscription_status !== 'active') {
+    return null;
+  }
+
+  const parallel = await fetchParallelData(profileData);
+  return { profile: profileData, ...parallel };
+}
+
+export function useProfileData(username: string | undefined, initialProfile?: CachedProfile): UseProfileDataResult {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<'not_found' | 'error' | null>(null);
+  const initialProfileRef = useRef(initialProfile);
+
   const loadProfile = useCallback(async () => {
     if (!username) {
       setError('not_found');
@@ -108,6 +127,26 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
     if (isUsernameReserved(username)) {
       setError('not_found');
       setLoading(false);
+      return;
+    }
+
+    // If we have a pre-resolved profile from the resolver, skip the profile query
+    const preResolved = initialProfileRef.current;
+    if (preResolved) {
+      initialProfileRef.current = undefined; // Only use once
+      try {
+        const parallel = await fetchParallelData(preResolved);
+        const result: ProfileData = { profile: preResolved, ...parallel };
+        setCachedProfile(username, result);
+        setData(result);
+        setError(null);
+        preloadCriticalImages(result);
+      } catch (err) {
+        console.error('Error fetching profile parallel data:', err);
+        setError('error');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -147,7 +186,6 @@ export function useProfileData(username: string | undefined): UseProfileDataResu
         setCachedProfile(username, result);
         setData(result);
         setError(null);
-        // Start preloading images immediately
         preloadCriticalImages(result);
       }
     } catch (err) {
