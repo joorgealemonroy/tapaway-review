@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import PersonalProfilePage from "./personal/PersonalProfilePage";
 import { lazy, Suspense } from "react";
+import type { CachedProfile } from "@/hooks/useProfileCache";
 
 // Lazy load ReviewHub since it's less common and heavier
 const ReviewHub = lazy(() => import("./ReviewHub"));
@@ -27,12 +28,13 @@ const UsernameResolver = () => {
     return <PersonalProfilePage />;
   }
 
-  return <UsernameResolverInner slug={slug} />;
+  return <UsernameResolverInner slug={slug} routeState={routeState} />;
 };
 
-const UsernameResolverInner = memo(({ slug }: { slug?: string }) => {
+const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; routeState?: { type?: string } | null }) => {
   const [loading, setLoading] = useState(true);
   const [resolvedType, setResolvedType] = useState<"personal" | "restaurant" | "notfound" | null>(null);
+  const [resolvedProfile, setResolvedProfile] = useState<CachedProfile | null>(null);
 
   useEffect(() => {
     const resolve = async () => {
@@ -58,14 +60,15 @@ const UsernameResolverInner = memo(({ slug }: { slug?: string }) => {
         return;
       }
 
-      // Check personal profile first (most common, optimized with index)
+      // Fetch full profile (eliminates redundant query in PersonalProfilePage)
       const { data: profile } = await supabase
         .from("personal_profiles")
-        .select("id, subscription_status")
+        .select("*")
         .eq("username", lowerSlug)
         .maybeSingle();
 
       if (profile?.subscription_status === "active") {
+        setResolvedProfile(profile as unknown as CachedProfile);
         setResolvedType("personal");
         setLoading(false);
         return;
@@ -90,7 +93,7 @@ const UsernameResolverInner = memo(({ slug }: { slug?: string }) => {
   }
 
   if (resolvedType === "personal") {
-    return <PersonalProfilePage />;
+    return <PersonalProfilePage initialProfile={resolvedProfile ?? undefined} />;
   }
 
   if (resolvedType === "restaurant") {
