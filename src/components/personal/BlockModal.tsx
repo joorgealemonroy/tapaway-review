@@ -371,6 +371,7 @@ export const BlockModal = ({
       video.playsInline = true;
       video.src = objectUrl;
 
+      let settled = false;
       const cleanup = () => {
         try { URL.revokeObjectURL(objectUrl); } catch {}
         video.src = "";
@@ -381,15 +382,18 @@ export const BlockModal = ({
       };
 
       video.onseeked = () => {
+        if (settled) return;
         try {
           const canvas = document.createElement("canvas");
           canvas.width = video.videoWidth || 320;
           canvas.height = video.videoHeight || 240;
           const ctx = canvas.getContext("2d");
-          if (!ctx) { cleanup(); reject(new Error("Canvas context failed")); return; }
+          if (!ctx) { cleanup(); settled = true; reject(new Error("Canvas context failed")); return; }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(
             (blob) => {
+              if (settled) return;
+              settled = true;
               cleanup();
               if (blob) resolve(blob);
               else reject(new Error("Canvas toBlob returned null"));
@@ -398,18 +402,22 @@ export const BlockModal = ({
             0.8
           );
         } catch (err) {
+          if (settled) return;
+          settled = true;
           cleanup();
           reject(err);
         }
       };
 
       video.onerror = () => {
+        if (settled) return;
+        settled = true;
         cleanup();
         reject(new Error("Video load error"));
       };
 
       // Timeout safety net
-      setTimeout(() => { cleanup(); reject(new Error("Poster extraction timed out")); }, 15000);
+      setTimeout(() => { if (settled) return; settled = true; cleanup(); reject(new Error("Poster extraction timed out")); }, 15000);
     });
   };
 
@@ -417,6 +425,7 @@ export const BlockModal = ({
   const handleCollageMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = ""; // Clear input so the same file can be re-selected
 
     if (file.type.startsWith("video/")) {
       if (file.size > 20 * 1024 * 1024) {
