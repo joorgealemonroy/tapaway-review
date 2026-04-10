@@ -72,8 +72,11 @@ function isColorDark(hexColor: string | null | undefined): boolean {
   }
 }
 
+import type { CachedProfile } from "@/hooks/useProfileCache";
+
 interface Props {
   usernameOverride?: string;
+  initialProfile?: CachedProfile;
 }
 
 // Fire-and-forget link click tracker
@@ -826,14 +829,14 @@ const ProductBlockCard = memo(function ProductBlockCard({
   );
 });
 
-const PersonalProfilePage = ({ usernameOverride }: Props = {}) => {
+const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) => {
   const { username: paramUsername, slug } = useParams<{ username?: string; slug?: string }>();
   const [searchParams] = useSearchParams();
   const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   
-  // Use optimized data fetching with caching
-  const { data, loading, error } = useProfileData(username);
+  // Use optimized data fetching with caching — pass initialProfile to skip redundant query
+  const { data, loading, error } = useProfileData(username, initialProfile);
 
   // Creator products state
   const [creatorProducts, setCreatorProducts] = useState<any[]>([]);
