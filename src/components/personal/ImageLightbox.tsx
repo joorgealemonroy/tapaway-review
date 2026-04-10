@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { getOptimizedImageUrl } from "./OptimizedImage";
@@ -62,7 +63,7 @@ function ImageLightboxComponent({
 
   const currentItem = media[currentIndex];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -145,7 +146,8 @@ function ImageLightboxComponent({
           )}
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
