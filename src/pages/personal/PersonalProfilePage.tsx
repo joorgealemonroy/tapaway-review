@@ -956,6 +956,20 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
+  const [showContactTooltip, setShowContactTooltip] = useState(false);
+
+  // Show "Save my contact!" tooltip once per session
+  useEffect(() => {
+    if (!data?.profile?.contact_enabled) return;
+    const key = `contact_tooltip_seen_${username}`;
+    if (sessionStorage.getItem(key)) return;
+    setShowContactTooltip(true);
+    const timer = setTimeout(() => {
+      setShowContactTooltip(false);
+      sessionStorage.setItem(key, 'true');
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [data?.profile?.contact_enabled, username]);
 
   // Extract color from profile photo (used as banner) for natural fade effect
   // When header_type is "banner", we use the profile_photo_url as the banner
@@ -994,6 +1008,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   }, [data?.profile]);
 
   const handleSaveContact = useCallback(async () => {
+    setShowContactTooltip(false);
+    sessionStorage.setItem(`contact_tooltip_seen_${username}`, 'true');
     if (!data?.profile) return;
     
     const profile = data.profile;
@@ -1210,13 +1226,24 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
               {profile.contact_enabled && (
-                <button
-                  onClick={handleSaveContact}
-                  className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
-                  aria-label="Save contact"
-                >
-                  <UserPlus className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
-                </button>
+                <span className="relative">
+                  <button
+                    onClick={handleSaveContact}
+                    className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
+                    aria-label="Save contact"
+                  >
+                    <UserPlus className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
+                  </button>
+                  {showContactTooltip && (
+                    <div
+                      className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                      style={{ animationDuration: '0.3s' }}
+                    >
+                      Save my contact!
+                      <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-white" />
+                    </div>
+                  )}
+                </span>
               )}
               <button
                 onClick={handleShare}
@@ -1251,13 +1278,24 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           {!hasBanner && (
             <div className="absolute top-0 right-4 flex gap-2">
               {profile.contact_enabled && (
-                <button
-                  onClick={handleSaveContact}
-                  className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
-                  aria-label="Save contact"
-                >
-                  <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
-                </button>
+                <span className="relative">
+                  <button
+                    onClick={handleSaveContact}
+                    className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
+                    aria-label="Save contact"
+                  >
+                    <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
+                  </button>
+                  {showContactTooltip && (
+                    <div
+                      className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                      style={{ animationDuration: '0.3s' }}
+                    >
+                      Save my contact!
+                      <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-white" />
+                    </div>
+                  )}
+                </span>
               )}
               <button
                 onClick={handleShare}
