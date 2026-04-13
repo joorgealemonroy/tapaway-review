@@ -348,8 +348,12 @@ const Onboarding = () => {
 
       const savedData = getOnboardingData();
       const bName = businessName || savedData.businessName;
-      const savedLogoUrl = logoUrl || savedData.logoUrl || null;
+      let savedLogoUrl = logoUrl || savedData.logoUrl || null;
       if (!bName) return;
+
+      // Show loading screen immediately so user doesn't see Step 1
+      setIsCompletingSetup(true);
+      setIsLoading(true);
 
       // Already completed?
       const { data: existing } = await supabase
@@ -359,11 +363,32 @@ const Onboarding = () => {
         .maybeSingle();
       if (existing?.onboarding_completed) { navigate("/dashboard"); return; }
 
-      setIsLoading(true);
+      // Upload Base64 logo now that user is authenticated
+      if (savedLogoUrl && savedLogoUrl.startsWith('data:')) {
+        try {
+          const response = await fetch(savedLogoUrl);
+          const blob = await response.blob();
+          const ext = blob.type.split('/')[1] || 'png';
+          const fileName = `onboarding-${uid}-${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from('restaurant-logos').upload(fileName, blob, { upsert: true });
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
+            savedLogoUrl = publicUrl;
+          } else {
+            console.error("[onboarding] Logo upload failed:", uploadError);
+            savedLogoUrl = null;
+          }
+        } catch (err) {
+          console.error("[onboarding] Logo upload error:", err);
+          savedLogoUrl = null;
+        }
+      }
+
       const slug = generateSlug(bName);
 
       const plan = (savedData.planType as Plan) || selectedPlan || "venue";
       const protection = savedData.hasProtection || hasProtection;
+      const resolvedDashboardType = savedData.dashboardType || dashboardType || (plan === 'solo' ? 'personal' : 'restaurant');
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
@@ -395,7 +420,7 @@ const Onboarding = () => {
         }).select("id").single();
         rId = created?.id;
       }
-      if (!rId) { toast.error("Failed to create account"); setIsLoading(false); return; }
+      if (!rId) { toast.error("Failed to create account"); setIsLoading(false); setIsCompletingSetup(false); return; }
       setRestaurantId(rId);
 
       // Save Google place if selected (from state or restored from localStorage)
@@ -420,19 +445,16 @@ const Onboarding = () => {
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
         try {
-          // Mark subscription as active
           await supabase.from("restaurants").update({
             subscription_status: "active",
             onboarding_completed: true,
             onboarding_step: 4,
           }).eq("id", rId);
 
-          // Mark token as used
           await supabase.functions.invoke("validate-promo-token", {
             body: { token: promoTokenParam, markUsed: true, usedByUserId: uid },
           });
 
-          // Finalize
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
           clearOnboardingData();
@@ -443,6 +465,7 @@ const Onboarding = () => {
           console.error("[onboarding] Free promo activation failed:", err);
           toast.error(message);
           setIsLoading(false);
+          setIsCompletingSetup(false);
           return;
         }
       }
@@ -457,6 +480,7 @@ const Onboarding = () => {
             planType: plan,
             hasProtection: protection,
             promoToken: promoTokenParam || undefined,
+            dashboardType: resolvedDashboardType,
           },
         });
         if (error) throw error;
@@ -470,6 +494,7 @@ const Onboarding = () => {
         console.error("[onboarding] Stripe redirect failed:", err);
         toast.error("Failed to start checkout. Please try again.");
         setIsLoading(false);
+        setIsCompletingSetup(false);
       }
     };
 
