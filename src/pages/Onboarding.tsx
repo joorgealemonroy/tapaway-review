@@ -320,6 +320,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
