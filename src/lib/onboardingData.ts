@@ -31,6 +31,7 @@ export interface OnboardingData {
   googlePlaceId?: string;
   googlePlaceName?: string;
   googlePlaceAddress?: string;
+  dashboardType?: string;
 }
 
 const defaultData: OnboardingData = {

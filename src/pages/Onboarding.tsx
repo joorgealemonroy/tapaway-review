@@ -54,10 +54,12 @@ const Onboarding = () => {
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [isCompletingSetup, setIsCompletingSetup] = useState(false);
 
   // Plan state
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [hasProtection, setHasProtection] = useState(false);
+  const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
   // Business info state
   const [businessName, setBusinessName] = useState("");
@@ -196,17 +198,22 @@ const Onboarding = () => {
     if (file.size > 20 * 1024 * 1024) { toast.error("File must be under 20MB"); return; }
     setLogoUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const fileName = `onboarding-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('restaurant-logos').upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
-      setLogoUrl(publicUrl);
-      saveOnboardingData({ logoUrl: publicUrl, logoUploaded: true });
-      toast.success("Logo uploaded!");
+      // Convert to Base64 data URL and store locally (upload happens post-auth)
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setLogoUrl(base64);
+        saveOnboardingData({ logoUrl: base64, logoUploaded: true });
+        toast.success("Logo ready!");
+        setLogoUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+        setLogoUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
-    } finally {
       setLogoUploading(false);
     }
   };
@@ -313,6 +320,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
       const { error } = await lovable.auth.signInWithOAuth(provider, {
@@ -340,8 +348,12 @@ const Onboarding = () => {
 
       const savedData = getOnboardingData();
       const bName = businessName || savedData.businessName;
-      const savedLogoUrl = logoUrl || savedData.logoUrl || null;
+      let savedLogoUrl = logoUrl || savedData.logoUrl || null;
       if (!bName) return;
+
+      // Show loading screen immediately so user doesn't see Step 1
+      setIsCompletingSetup(true);
+      setIsLoading(true);
 
       // Already completed?
       const { data: existing } = await supabase
@@ -351,11 +363,32 @@ const Onboarding = () => {
         .maybeSingle();
       if (existing?.onboarding_completed) { navigate("/dashboard"); return; }
 
-      setIsLoading(true);
+      // Upload Base64 logo now that user is authenticated
+      if (savedLogoUrl && savedLogoUrl.startsWith('data:')) {
+        try {
+          const response = await fetch(savedLogoUrl);
+          const blob = await response.blob();
+          const ext = blob.type.split('/')[1] || 'png';
+          const fileName = `onboarding-${uid}-${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from('restaurant-logos').upload(fileName, blob, { upsert: true });
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
+            savedLogoUrl = publicUrl;
+          } else {
+            console.error("[onboarding] Logo upload failed:", uploadError);
+            savedLogoUrl = null;
+          }
+        } catch (err) {
+          console.error("[onboarding] Logo upload error:", err);
+          savedLogoUrl = null;
+        }
+      }
+
       const slug = generateSlug(bName);
 
       const plan = (savedData.planType as Plan) || selectedPlan || "venue";
       const protection = savedData.hasProtection || hasProtection;
+      const resolvedDashboardType = savedData.dashboardType || dashboardType || (plan === 'solo' ? 'personal' : 'restaurant');
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
@@ -387,7 +420,7 @@ const Onboarding = () => {
         }).select("id").single();
         rId = created?.id;
       }
-      if (!rId) { toast.error("Failed to create account"); setIsLoading(false); return; }
+      if (!rId) { toast.error("Failed to create account"); setIsLoading(false); setIsCompletingSetup(false); return; }
       setRestaurantId(rId);
 
       // Save Google place if selected (from state or restored from localStorage)
@@ -412,19 +445,16 @@ const Onboarding = () => {
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
         try {
-          // Mark subscription as active
           await supabase.from("restaurants").update({
             subscription_status: "active",
             onboarding_completed: true,
             onboarding_step: 4,
           }).eq("id", rId);
 
-          // Mark token as used
           await supabase.functions.invoke("validate-promo-token", {
             body: { token: promoTokenParam, markUsed: true, usedByUserId: uid },
           });
 
-          // Finalize
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
           clearOnboardingData();
@@ -435,6 +465,7 @@ const Onboarding = () => {
           console.error("[onboarding] Free promo activation failed:", err);
           toast.error(message);
           setIsLoading(false);
+          setIsCompletingSetup(false);
           return;
         }
       }
@@ -449,6 +480,7 @@ const Onboarding = () => {
             planType: plan,
             hasProtection: protection,
             promoToken: promoTokenParam || undefined,
+            dashboardType: resolvedDashboardType,
           },
         });
         if (error) throw error;
@@ -462,6 +494,7 @@ const Onboarding = () => {
         console.error("[onboarding] Stripe redirect failed:", err);
         toast.error("Failed to start checkout. Please try again.");
         setIsLoading(false);
+        setIsCompletingSetup(false);
       }
     };
 
@@ -479,11 +512,12 @@ const Onboarding = () => {
   }, [initialCheckDone, step]);
 
   // ── Loading ──
-  if (!initialCheckDone || verifyingCheckout || !promoValidated) {
+  if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
+        {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
       </div>
     );
   }
@@ -546,7 +580,7 @@ const Onboarding = () => {
                   return (
                     <button
                       key={plan}
-                      onClick={() => setSelectedPlan(plan)}
+                      onClick={() => { setSelectedPlan(plan); if (plan === 'solo') setDashboardType('personal'); else setDashboardType(null); }}
                       className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative overflow-hidden ${
                         selected
                           ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
@@ -585,8 +619,34 @@ const Onboarding = () => {
                 })}
               </div>
 
+              {/* Business type follow-up for Venue Pack */}
+              {selectedPlan === "venue" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400 font-medium">What best describes your business?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { value: "restaurant" as const, label: "Restaurant / Bar / Cafe", icon: "🍽️" },
+                      { value: "personal" as const, label: "Barbershop / Salon / Service", icon: "✂️" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setDashboardType(opt.value)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          dashboardType === opt.value
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-white/10 bg-[#111827] hover:border-white/20"
+                        }`}
+                      >
+                        <span className="text-xl block mb-1">{opt.icon}</span>
+                        <span className="text-sm font-medium">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Spacer for fixed bottom button */}
-              {selectedPlan && <div className="h-20" />}
+              {selectedPlan && (selectedPlan === "solo" || dashboardType) && <div className="h-20" />}
             </motion.div>
           )}
 
@@ -824,7 +884,7 @@ const Onboarding = () => {
 
       {/* Fixed bottom CTA for plan step */}
       <AnimatePresence>
-        {step === "plan" && selectedPlan && (
+        {step === "plan" && selectedPlan && (selectedPlan === "solo" || dashboardType) && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
