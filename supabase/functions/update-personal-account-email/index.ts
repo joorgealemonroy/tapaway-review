@@ -92,8 +92,8 @@ Deno.serve(async (req) => {
     if (emailInUse) {
       console.log(`[update-personal-account-email] Email ${newEmail} already in use by user ${emailInUse.id}`);
       return new Response(
-        JSON.stringify({ error: `Email "${newEmail}" is already in use by another account` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ ok: false, error: `Email "${newEmail}" is already in use by another account` }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
