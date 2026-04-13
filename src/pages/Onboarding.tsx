@@ -512,11 +512,12 @@ const Onboarding = () => {
   }, [initialCheckDone, step]);
 
   // ── Loading ──
-  if (!initialCheckDone || verifyingCheckout || !promoValidated) {
+  if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
+        {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
       </div>
     );
   }
