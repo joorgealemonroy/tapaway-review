@@ -967,7 +967,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     const timer = setTimeout(() => {
       setShowContactTooltip(false);
       sessionStorage.setItem(key, 'true');
-    }, 4000);
+    }, 6000);
     return () => clearTimeout(timer);
   }, [data?.profile?.contact_enabled, username]);
 
@@ -1236,11 +1236,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                   </button>
                   {showContactTooltip && (
                     <div
-                      className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
                       style={{ animationDuration: '0.3s' }}
                     >
                       Save my contact!
-                      <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-white" />
+                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
                     </div>
                   )}
                 </span>
@@ -1288,11 +1288,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                   </button>
                   {showContactTooltip && (
                     <div
-                      className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
                       style={{ animationDuration: '0.3s' }}
                     >
                       Save my contact!
-                      <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[6px] border-l-white" />
+                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
                     </div>
                   )}
                 </span>
