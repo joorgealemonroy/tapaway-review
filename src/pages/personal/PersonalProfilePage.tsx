@@ -902,11 +902,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     }
   }, [searchParams]);
 
-  const handleBuyProduct = async (productId: string) => {
+  const handleBuyProduct = async (productId: string, bookingId?: string) => {
     setBuyingProductId(productId);
     try {
+      const body: any = { productId };
+      if (bookingId) body.bookingId = bookingId;
+      
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke("create-product-checkout", {
-        body: { productId },
+        body,
       });
       if (checkoutError) throw checkoutError;
       if (checkoutData?.url) {
