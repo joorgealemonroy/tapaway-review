@@ -835,6 +835,73 @@ export function PersonalShopTab({
         </CollapsibleContent>
       </Collapsible>
 
+      {/* Booking Availability Settings */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between p-3 bg-card border rounded-lg text-sm font-medium text-foreground hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              My Availability (Bookings)
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <Card className="mt-2">
+            <CardContent className="p-4 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Set your available hours for booking products. Times are in your local timezone ({detectedTz.replace(/_/g, " ")}).
+              </p>
+              <div className="space-y-2">
+                {availabilityRows.map((row, idx) => (
+                  <div key={row.day_of_week} className="flex items-center gap-3">
+                    <Switch
+                      checked={row.enabled}
+                      onCheckedChange={(checked) => {
+                        setAvailabilityRows(prev => prev.map((r, i) => i === idx ? { ...r, enabled: checked } : r));
+                      }}
+                    />
+                    <span className="text-sm font-medium text-foreground w-20">{DAY_NAMES[row.day_of_week]}</span>
+                    {row.enabled ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <Input
+                          type="time"
+                          value={row.start_time}
+                          onChange={(e) => {
+                            setAvailabilityRows(prev => prev.map((r, i) => i === idx ? { ...r, start_time: e.target.value } : r));
+                          }}
+                          className="w-28 h-8 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">to</span>
+                        <Input
+                          type="time"
+                          value={row.end_time}
+                          onChange={(e) => {
+                            setAvailabilityRows(prev => prev.map((r, i) => i === idx ? { ...r, end_time: e.target.value } : r));
+                          }}
+                          className="w-28 h-8 text-xs"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Unavailable</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={handleSaveAvailability}
+                disabled={savingAvailability}
+                size="sm"
+                className="w-full"
+              >
+                {savingAvailability && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Save Availability
+              </Button>
+            </CardContent>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
       {/* Sales Summary */}
       {(salesCount > 0 || loadingSales) && (
         <div className="space-y-4">
