@@ -12,13 +12,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown, ListChecks, Hash } from "lucide-react";
 import { toast } from "sonner";
 
 interface FormField {
-  type: "text" | "email" | "phone" | "textarea";
+  type: "text" | "email" | "phone" | "textarea" | "select" | "number";
   label: string;
   required: boolean;
+  options?: string[];
 }
 
 interface LeadForm {
@@ -39,6 +40,8 @@ const FIELD_TYPES = [
   { type: "email" as const, label: "Email", icon: Mail },
   { type: "phone" as const, label: "Phone", icon: Phone },
   { type: "textarea" as const, label: "Long Text", icon: AlignLeft },
+  { type: "select" as const, label: "Multiple Choice", icon: ListChecks },
+  { type: "number" as const, label: "Number", icon: Hash },
 ];
 
 const fieldTypeBadge = (type: string) => {
@@ -47,6 +50,8 @@ const fieldTypeBadge = (type: string) => {
     email: "Email",
     phone: "Phone",
     textarea: "Long Text",
+    select: "Choice",
+    number: "Number",
   };
   return map[type] || type;
 };
@@ -99,6 +104,22 @@ const LeadFormBuilder = ({ profileId }: Props) => {
       return;
     }
 
+    // Clean up select fields and validate
+    const cleanedFields = fields.map((f) => {
+      if (f.type === "select") {
+        const cleaned = (f.options || []).map((o) => o.trim()).filter(Boolean);
+        return { ...f, options: cleaned };
+      }
+      return f;
+    });
+
+    for (const f of cleanedFields) {
+      if (f.type === "select" && (!f.options || f.options.length === 0)) {
+        toast.error(`"${f.label}" needs at least one option`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -106,7 +127,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
         is_active: isActive,
         button_title: buttonTitle.trim() || "Get a Quote",
         form_title: formTitle.trim() || "Request a Quote",
-        fields: JSON.parse(JSON.stringify(fields)),
+        fields: JSON.parse(JSON.stringify(cleanedFields)),
       };
 
       if (form) {
@@ -138,8 +159,14 @@ const LeadFormBuilder = ({ profileId }: Props) => {
       email: "Email Address",
       phone: "Phone Number",
       textarea: "Message",
+      select: "Choose One",
+      number: "Quantity",
     };
-    setFields([...fields, { type, label: defaultLabels[type], required: false }]);
+    const newField: FormField = { type, label: defaultLabels[type], required: false };
+    if (type === "select") {
+      newField.options = ["Option 1", "Option 2"];
+    }
+    setFields([...fields, newField]);
   };
 
   const removeField = (index: number) => {
@@ -148,6 +175,27 @@ const LeadFormBuilder = ({ profileId }: Props) => {
 
   const updateField = (index: number, updates: Partial<FormField>) => {
     setFields(fields.map((f, i) => (i === index ? { ...f, ...updates } : f)));
+  };
+
+  const updateOption = (fieldIdx: number, optIdx: number, value: string) => {
+    const field = fields[fieldIdx];
+    const opts = [...(field.options || [])];
+    opts[optIdx] = value;
+    updateField(fieldIdx, { options: opts });
+  };
+
+  const removeOption = (fieldIdx: number, optIdx: number) => {
+    const field = fields[fieldIdx];
+    const opts = (field.options || []).filter((_, i) => i !== optIdx);
+    updateField(fieldIdx, { options: opts });
+  };
+
+  const addOption = (fieldIdx: number) => {
+    const field = fields[fieldIdx];
+    const opts = [...(field.options || [])];
+    if (opts.length >= 10) return;
+    opts.push(`Option ${opts.length + 1}`);
+    updateField(fieldIdx, { options: opts });
   };
 
   if (loading) {
@@ -203,36 +251,74 @@ const LeadFormBuilder = ({ profileId }: Props) => {
               <Label className="text-xs text-muted-foreground">Form Fields</Label>
               <div className="space-y-2">
                 {fields.map((field, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5"
-                  >
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                    <Badge variant="secondary" className="text-xs flex-shrink-0">
-                      {fieldTypeBadge(field.type)}
-                    </Badge>
-                    <Input
-                      value={field.label}
-                      onChange={(e) => updateField(idx, { label: e.target.value })}
-                      className="h-8 text-sm"
-                      maxLength={60}
-                    />
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Label className="text-xs text-muted-foreground">Req</Label>
-                      <Switch
-                        checked={field.required}
-                        onCheckedChange={(val) => updateField(idx, { required: val })}
-                        className="scale-75"
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5">
+                      <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        {fieldTypeBadge(field.type)}
+                      </Badge>
+                      <Input
+                        value={field.label}
+                        onChange={(e) => updateField(idx, { label: e.target.value })}
+                        className="h-8 text-sm"
+                        maxLength={60}
                       />
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Label className="text-xs text-muted-foreground">Req</Label>
+                        <Switch
+                          checked={field.required}
+                          onCheckedChange={(val) => updateField(idx, { required: val })}
+                          className="scale-75"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeField(idx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeField(idx)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+
+                    {/* Options editor for select fields */}
+                    {field.type === "select" && (
+                      <div className="ml-8 space-y-1.5 rounded-md border border-dashed border-border bg-muted/30 p-2.5">
+                        {(field.options || []).map((opt, optIdx) => (
+                          <div key={optIdx} className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground w-4 text-right flex-shrink-0">
+                              {optIdx + 1}.
+                            </span>
+                            <Input
+                              value={opt}
+                              onChange={(e) => updateOption(idx, optIdx, e.target.value)}
+                              className="h-7 text-xs"
+                              maxLength={100}
+                              placeholder="Option text"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeOption(idx, optIdx)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        {(field.options || []).length < 10 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs w-full"
+                            onClick={() => addOption(idx)}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Option
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResponsiveModal } from "@/components/personal/ResponsiveModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2, MessageSquareText } from "lucide-react";
 
 interface FormField {
-  type: "text" | "email" | "phone" | "textarea";
+  type: "text" | "email" | "phone" | "textarea" | "select" | "number";
   label: string;
   required: boolean;
+  options?: string[];
 }
 
 interface LeadForm {
@@ -101,6 +103,61 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const buttonBg = accentColor || "hsl(var(--primary))";
   const isHex = accentColor && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(accentColor);
 
+  const renderField = (field: FormField, idx: number) => {
+    switch (field.type) {
+      case "select":
+        return (
+          <RadioGroup
+            value={formData[field.label] || ""}
+            onValueChange={(val) => setFormData({ ...formData, [field.label]: val })}
+            className="space-y-2"
+          >
+            {(field.options || []).map((opt, optIdx) => (
+              <div key={optIdx} className="flex items-center space-x-2">
+                <RadioGroupItem value={opt} id={`field-${idx}-opt-${optIdx}`} />
+                <Label htmlFor={`field-${idx}-opt-${optIdx}`} className="text-sm font-normal cursor-pointer">
+                  {opt}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        );
+      case "number":
+        return (
+          <Input
+            type="number"
+            inputMode="numeric"
+            placeholder={field.label}
+            value={formData[field.label] || ""}
+            onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+            maxLength={20}
+            required={field.required}
+          />
+        );
+      case "textarea":
+        return (
+          <Textarea
+            placeholder={field.label}
+            value={formData[field.label] || ""}
+            onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+            maxLength={1000}
+            required={field.required}
+          />
+        );
+      default:
+        return (
+          <Input
+            type={field.type === "phone" ? "tel" : field.type}
+            placeholder={field.label}
+            value={formData[field.label] || ""}
+            onChange={(e) => setFormData({ ...formData, [field.label]: e.target.value })}
+            maxLength={255}
+            required={field.required}
+          />
+        );
+    }
+  };
+
   return (
     <>
       {/* CTA Pill */}
@@ -156,28 +213,7 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
                     {field.label}
                     {field.required && <span className="text-destructive ml-0.5">*</span>}
                   </Label>
-                  {field.type === "textarea" ? (
-                    <Textarea
-                      placeholder={field.label}
-                      value={formData[field.label] || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, [field.label]: e.target.value })
-                      }
-                      maxLength={1000}
-                      required={field.required}
-                    />
-                  ) : (
-                    <Input
-                      type={field.type === "phone" ? "tel" : field.type}
-                      placeholder={field.label}
-                      value={formData[field.label] || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, [field.label]: e.target.value })
-                      }
-                      maxLength={255}
-                      required={field.required}
-                    />
-                  )}
+                  {renderField(field, idx)}
                 </div>
               ))}
 
