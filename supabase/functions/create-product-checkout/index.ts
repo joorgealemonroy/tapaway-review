@@ -35,7 +35,7 @@ serve(async (req) => {
       })
     );
 
-    const { productId, buyerEmail, testMode } = await req.json();
+    const { productId, buyerEmail, testMode, bookingId } = await req.json();
 
     if (!productId) {
       return new Response(JSON.stringify({ error: 'productId required' }), {
@@ -88,12 +88,13 @@ serve(async (req) => {
         },
         quantity: 1,
       }],
-      success_url: `${frontendUrl}/${creator.username}?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${frontendUrl}/${creator.username}?purchase=success&session_id={CHECKOUT_SESSION_ID}${bookingId ? '&booking=success' : ''}`,
       cancel_url: `${frontendUrl}/${creator.username}`,
       metadata: {
         product_id: productId,
         creator_profile_id: creator.id,
         type: 'creator_marketplace',
+        ...(bookingId ? { booking_id: bookingId } : {}),
         ...(isTestMode ? { test_mode: 'true' } : {}),
       },
     };

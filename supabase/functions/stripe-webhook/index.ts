@@ -521,6 +521,96 @@ if (event.type === 'checkout.session.completed') {
         } else {
           console.log('[stripe-webhook] Created marketplace purchase with access token');
 
+          // ---- Handle booking confirmation ----
+          const bookingId = session.metadata?.booking_id;
+          if (bookingId) {
+            const { error: bookingUpdateError } = await supabaseAdmin
+              .from('bookings')
+              .update({ status: 'paid', stripe_session_id: session.id, updated_at: new Date().toISOString() })
+              .eq('id', bookingId);
+
+            if (bookingUpdateError) {
+              console.error('[stripe-webhook] Failed to update booking status:', bookingUpdateError);
+            } else {
+              console.log('[stripe-webhook] Booking marked as paid:', bookingId);
+
+              // Send booking confirmation emails
+              (async () => {
+                try {
+                  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+                  if (!resendApiKey) return;
+
+                  const emailFromRaw = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
+                  const emailFrom = emailFromRaw.includes('<') ? emailFromRaw : `TapAway <${emailFromRaw}>`;
+
+                  // Get booking details
+                  const { data: bookingData } = await supabaseAdmin
+                    .from('bookings')
+                    .select('booking_date, start_time, timezone, buyer_email')
+                    .eq('id', bookingId)
+                    .single();
+
+                  if (!bookingData) return;
+
+                  const { data: productData } = await supabaseAdmin
+                    .from('creator_products')
+                    .select('title, duration_minutes, creator_id')
+                    .eq('id', session.metadata!.product_id)
+                    .single();
+
+                  if (!productData) return;
+
+                  const { data: creatorProfile } = await supabaseAdmin
+                    .from('personal_profiles')
+                    .select('user_id, username, full_name')
+                    .eq('id', productData.creator_id)
+                    .single();
+
+                  if (!creatorProfile) return;
+
+                  const { data: creatorUser } = await supabaseAdmin.auth.admin.getUserById(creatorProfile.user_id);
+                  const creatorEmail = creatorUser?.user?.email;
+
+                  const dateFormatted = new Date(bookingData.booking_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                  const timeFormatted = bookingData.start_time.slice(0, 5);
+                  const tzLabel = (bookingData as any).timezone || 'UTC';
+
+                  // Email to creator
+                  if (creatorEmail) {
+                    await fetch('https://api.resend.com/emails', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        from: emailFrom,
+                        to: [creatorEmail],
+                        subject: `New Booking! 📅 — ${productData.title}`,
+                        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">New Booking! 📅</h1><p style="color:#555;font-size:15px;line-height:1.6;"><strong>${(bookingData as any).buyer_email}</strong> has paid and booked:</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${productData.title}</p><p style="margin:0;color:#555;">${dateFormatted} at ${timeFormatted} (${tzLabel})</p><p style="margin:4px 0 0;color:#555;">${productData.duration_minutes || 30} minutes</p></div></div>`,
+                      }),
+                    });
+                    console.log('[stripe-webhook] Booking email sent to creator');
+                  }
+
+                  // Email to buyer
+                  if ((bookingData as any).buyer_email) {
+                    await fetch('https://api.resend.com/emails', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        from: emailFrom,
+                        to: [(bookingData as any).buyer_email],
+                        subject: `Booking Confirmed! 📅 — ${productData.title}`,
+                        html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;"><h1 style="font-size:22px;color:#111;">Your Booking is Confirmed! ✅</h1><p style="color:#555;font-size:15px;line-height:1.6;">You've booked <strong>${productData.title}</strong> with ${creatorProfile.full_name}.</p><div style="background:#f8f8f8;border-radius:8px;padding:16px;margin:16px 0;"><p style="margin:0 0 4px;font-weight:600;">${dateFormatted}</p><p style="margin:0;color:#555;">${timeFormatted} (${tzLabel}) · ${productData.duration_minutes || 30} min</p></div><p style="color:#999;font-size:13px;">The creator will reach out with meeting details.</p></div>`,
+                      }),
+                    });
+                    console.log('[stripe-webhook] Booking email sent to buyer');
+                  }
+                } catch (emailErr) {
+                  console.error('[stripe-webhook] Booking email error (non-blocking):', emailErr);
+                }
+              })();
+            }
+          }
+
           // ---- Fire-and-forget: send buyer + creator emails via Resend ----
           (async () => {
             try {

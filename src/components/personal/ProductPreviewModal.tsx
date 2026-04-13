@@ -5,6 +5,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } f
 import { Badge } from "@/components/ui/badge";
 import useEmblaCarousel from "embla-carousel-react";
 import { cn } from "@/lib/utils";
+import { BookingCalendar } from "@/components/personal/BookingCalendar";
 
 interface Product {
   id: string;
@@ -15,13 +16,15 @@ interface Product {
   product_type: string;
   cover_image_url: string | null;
   image_urls?: string[] | null;
+  duration_minutes?: number;
+  creator_id?: string;
 }
 
 interface ProductPreviewModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  onBuy: (productId: string) => void;
+  onBuy: (productId: string, bookingId?: string) => void;
 }
 
 function ImageCarousel({ images }: { images: string[] }) {
@@ -78,14 +81,19 @@ function ImageCarousel({ images }: { images: string[] }) {
   );
 }
 
-function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string) => void }) {
+function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string, bookingId?: string) => void }) {
   const allImages = [
     ...(product.cover_image_url ? [product.cover_image_url] : []),
     ...(product.image_urls || []),
   ];
 
   const displayDescription = product.long_description || product.description;
-  const typeLabel = product.product_type === "pdf" ? "PDF" : product.product_type === "video" ? "Video" : product.product_type === "course" ? "Course" : product.product_type;
+  const isBooking = product.product_type === "booking";
+  const typeLabel = isBooking ? "Booking" : product.product_type === "pdf" ? "PDF" : product.product_type === "video" ? "Video" : product.product_type === "course" ? "Course" : product.product_type;
+
+  const handleBookingComplete = (bookingId: string) => {
+    onBuy(product.id, bookingId);
+  };
 
   return (
     <div className="space-y-4">
@@ -96,6 +104,9 @@ function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string
         <Badge variant="default" className="text-sm font-bold">
           ${(product.price_cents / 100).toFixed(2)}
         </Badge>
+        {isBooking && product.duration_minutes && (
+          <Badge variant="outline" className="text-xs">{product.duration_minutes} min</Badge>
+        )}
       </div>
 
       {displayDescription && (
@@ -104,14 +115,24 @@ function ModalContent({ product, onBuy }: { product: Product; onBuy: (id: string
         </p>
       )}
 
-      <div className="sticky bottom-0 pt-3 pb-1 bg-background">
-        <button
-          onClick={() => onBuy(product.id)}
-          className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity text-base"
-        >
-          Buy Now — ${(product.price_cents / 100).toFixed(2)}
-        </button>
-      </div>
+      {isBooking && product.creator_id ? (
+        <BookingCalendar
+          creatorId={product.creator_id}
+          productId={product.id}
+          durationMinutes={product.duration_minutes || 30}
+          priceCents={product.price_cents}
+          onBook={handleBookingComplete}
+        />
+      ) : (
+        <div className="sticky bottom-0 pt-3 pb-1 bg-background">
+          <button
+            onClick={() => onBuy(product.id)}
+            className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity text-base"
+          >
+            Buy Now — ${(product.price_cents / 100).toFixed(2)}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
