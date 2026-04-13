@@ -580,7 +580,7 @@ const Onboarding = () => {
                   return (
                     <button
                       key={plan}
-                      onClick={() => setSelectedPlan(plan)}
+                      onClick={() => { setSelectedPlan(plan); if (plan === 'solo') setDashboardType('personal'); else setDashboardType(null); }}
                       className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-200 relative overflow-hidden ${
                         selected
                           ? "border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
