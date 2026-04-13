@@ -1,42 +1,41 @@
 
 
-# Fix Tooltip Position, Duration & Z-Index
+# Add Multiple Choice & Number Field Types to Lead Forms
 
-## Changes — `src/pages/personal/PersonalProfilePage.tsx`
+## Changes
 
-### 1. Increase timeout from 4s → 6s (line 970)
-Change `4000` to `6000`.
+### 1. `src/components/personal/LeadFormBuilder.tsx`
 
-### 2. Reposition both tooltips below the button with z-50
-Replace the tooltip div at **line 1239** and **line 1291** (identical change both times):
+**Update types:**
+- Extend `FormField.type` union with `"select" | "number"`
+- Add optional `options?: string[]` to `FormField`
 
-**From:**
-```
-absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap ... animate-fade-in pointer-events-none
-```
-with right-pointing arrow
+**Add to `FIELD_TYPES` array:**
+- `{ type: "select", label: "Multiple Choice", icon: ListChecks }`
+- `{ type: "number", label: "Number", icon: Hash }`
 
-**To:**
-```
-absolute z-50 right-0 top-full mt-2 whitespace-nowrap ... animate-fade-in pointer-events-none
-```
-with up-pointing arrow (`border-b-white` at `top-[-6px] right-3`)
+**Update `fieldTypeBadge`** with `select: "Choice"`, `number: "Number"`
 
-### 3. Replace the arrow CSS triangles
-At both locations, change the arrow from right-pointing to up-pointing:
-```tsx
-<div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
-```
+**Update `addField`:** When type is `"select"`, initialize with `options: ["Option 1", "Option 2"]`. When `"number"`, default label `"Quantity"`.
 
-## Summary of all edits
+**Add options editor in field row:** When `field.type === "select"`, render a collapsible sub-list below the field row with inline inputs for each option, a trash button per option, and an "Add Option" button (capped at 10).
 
-| Line | Change |
+**Save-time validation in `handleSave`:** Before saving, iterate fields. For any `select` field, filter out empty/whitespace-only options. If 0 options remain, show `toast.error("Multiple choice field needs at least one option")` and abort save.
+
+### 2. `src/components/personal/LeadFormSheet.tsx`
+
+**Update types** to match (add `"select" | "number"`, `options?: string[]`).
+
+**Render new field types:**
+- `select` → `RadioGroup` + `RadioGroupItem` from `@/components/ui/radio-group`, one item per option
+- `number` → `<Input type="number" inputMode="numeric" />`
+
+**Required validation for select:** In `handleSubmit`, the existing check `!formData[field.label]?.trim()` already covers select fields since an unselected RadioGroup means no value is set. No extra logic needed.
+
+### Files Modified
+
+| File | Change |
 |------|--------|
-| 970 | `4000` → `6000` |
-| 1239 | Reposition tooltip below button + add `z-50` |
-| 1243 | Replace right-pointing arrow with up-pointing arrow |
-| 1291 | Reposition tooltip below button + add `z-50` |
-| 1295 | Replace right-pointing arrow with up-pointing arrow |
-
-Single file: `src/pages/personal/PersonalProfilePage.tsx`
+| `src/components/personal/LeadFormBuilder.tsx` | Add select/number types, options editor, save-time validation |
+| `src/components/personal/LeadFormSheet.tsx` | Render RadioGroup for select, number input for number fields |
 
