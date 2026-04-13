@@ -187,6 +187,7 @@ serve(async (req) => {
         user_id: userId || '',
         restaurant_id: restaurantId || '',
         promo_token: promoToken || '',
+        dashboard_type: dashboardType || 'restaurant',
       },
     };
 
