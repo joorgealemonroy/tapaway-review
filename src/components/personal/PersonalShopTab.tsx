@@ -43,7 +43,9 @@ import {
   ChevronDown,
   Terminal,
   Info,
-  TrendingUp
+  TrendingUp,
+  CalendarDays,
+  Clock
 } from "lucide-react";
 
 interface CreatorProduct {
@@ -58,6 +60,16 @@ interface CreatorProduct {
   image_urls: string[] | null;
   is_active: boolean;
   created_at: string;
+  duration_minutes: number;
+  booking_url: string | null;
+}
+
+interface AvailabilityRow {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  timezone: string;
+  enabled: boolean;
 }
 
 interface CreatorPurchase {
@@ -150,6 +162,22 @@ export function PersonalShopTab({
   const [saving, setSaving] = useState(false);
   const [showShopSection, setShowShopSection] = useState(true);
   const [loadingShopToggle, setLoadingShopToggle] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState("30");
+
+  // Availability state
+  const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const [availabilityRows, setAvailabilityRows] = useState<AvailabilityRow[]>(
+    DAY_NAMES.map((_, i) => ({
+      day_of_week: i,
+      start_time: "09:00",
+      end_time: "17:00",
+      timezone: detectedTz,
+      enabled: i >= 1 && i <= 5, // Mon-Fri default
+    }))
+  );
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
 
   // Sales dashboard state
   const [salesTotal, setSalesTotal] = useState(0);
@@ -218,12 +246,73 @@ export function PersonalShopTab({
     setLoadingSales(false);
   }, [profileId]);
 
-  // Load shop toggle state + sales
+  // Load availability
+  const loadAvailability = useCallback(async () => {
+    setLoadingAvailability(true);
+    const { data } = await supabase
+      .from("creator_availability")
+      .select("*")
+      .eq("creator_id", profileId);
+    
+    if (data && data.length > 0) {
+      setAvailabilityRows(prev => prev.map(row => {
+        const dbRow = (data as any[]).find(d => d.day_of_week === row.day_of_week);
+        if (dbRow) {
+          return {
+            ...row,
+            start_time: dbRow.start_time.slice(0, 5),
+            end_time: dbRow.end_time.slice(0, 5),
+            timezone: dbRow.timezone,
+            enabled: true,
+          };
+        }
+        return { ...row, enabled: false };
+      }));
+    }
+    setLoadingAvailability(false);
+  }, [profileId]);
+
+  const handleSaveAvailability = async () => {
+    setSavingAvailability(true);
+    try {
+      // Delete existing rows for this creator
+      await supabase
+        .from("creator_availability")
+        .delete()
+        .eq("creator_id", profileId);
+
+      // Insert enabled days
+      const enabledRows = availabilityRows
+        .filter(r => r.enabled)
+        .map(r => ({
+          creator_id: profileId,
+          day_of_week: r.day_of_week,
+          start_time: r.start_time + ":00",
+          end_time: r.end_time + ":00",
+          timezone: detectedTz,
+        }));
+
+      if (enabledRows.length > 0) {
+        const { error } = await supabase
+          .from("creator_availability")
+          .insert(enabledRows as any);
+        if (error) throw error;
+      }
+
+      toast.success("Availability saved!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save availability");
+    } finally {
+      setSavingAvailability(false);
+    }
+  };
+
+  // Load shop toggle state + sales + availability
   useEffect(() => {
     if (isStripeOnboarded) {
       loadProducts();
       loadSalesData();
-      // Load show_shop_section from profile
+      loadAvailability();
       supabase
         .from("personal_profiles")
         .select("show_shop_section")
@@ -233,7 +322,7 @@ export function PersonalShopTab({
           if (data) setShowShopSection((data as any).show_shop_section ?? true);
         });
     }
-  }, [isStripeOnboarded, loadProducts, loadSalesData, profileId]);
+  }, [isStripeOnboarded, loadProducts, loadSalesData, loadAvailability, profileId]);
 
   const handleToggleShopSection = async (checked: boolean) => {
     setLoadingShopToggle(true);
@@ -409,25 +498,29 @@ export function PersonalShopTab({
   const handleSaveProduct = async () => {
     if (!title.trim()) { toast.error("Title is required"); return; }
     if (!priceDollars || parseFloat(priceDollars) < 5) { toast.error("Minimum price is $5.00"); return; }
-    if (!selectedFile) { toast.error("Upload a file for your product"); return; }
+    const isBookingType = productType === "booking";
+    if (!isBookingType && !selectedFile) { toast.error("Upload a file for your product"); return; }
 
     setSaving(true);
     try {
       const priceCents = Math.round(parseFloat(priceDollars) * 100);
-      const productId = crypto.randomUUID();
+      const newProductId = crypto.randomUUID();
 
-      const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${userId}/${productId}/product.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("creator-files")
-        .upload(filePath, selectedFile, { upsert: true });
+      let filePath: string | null = null;
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        filePath = `${userId}/${newProductId}/product.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("creator-files")
+          .upload(filePath, selectedFile, { upsert: true });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
+      }
 
       let coverImageUrl: string | null = null;
       if (coverFile) {
-        const coverPath = `${userId}/${productId}/cover.jpg`;
+        const coverPath = `${userId}/${newProductId}/cover.jpg`;
         const { error: coverError } = await supabase.storage
           .from("personal-photos")
           .upload(coverPath, coverFile, { upsert: true, contentType: coverFile.type });
@@ -445,7 +538,7 @@ export function PersonalShopTab({
       for (let i = 0; i < galleryFiles.length; i++) {
         const gFile = galleryFiles[i];
         const gExt = gFile.name.split('.').pop();
-        const gPath = `${userId}/${productId}/gallery/${i}.${gExt}`;
+        const gPath = `${userId}/${newProductId}/gallery/${i}.${gExt}`;
         const { error: gError } = await supabase.storage
           .from("personal-photos")
           .upload(gPath, gFile, { upsert: true, contentType: gFile.type });
@@ -460,7 +553,7 @@ export function PersonalShopTab({
       const { error: insertError } = await supabase
         .from("creator_products")
         .insert({
-          id: productId,
+          id: newProductId,
           creator_id: profileId,
           title: title.trim(),
           description: description.trim() || null,
@@ -470,6 +563,7 @@ export function PersonalShopTab({
           file_url: filePath,
           cover_image_url: coverImageUrl,
           image_urls: imageUrls.length > 0 ? imageUrls : null,
+          duration_minutes: isBookingType ? parseInt(durationMinutes) : 30,
         } as any);
 
       if (insertError) throw insertError;
@@ -533,6 +627,7 @@ export function PersonalShopTab({
       case "pdf": return <FileText className="h-4 w-4" />;
       case "video": return <Video className="h-4 w-4" />;
       case "course": return <BookOpen className="h-4 w-4" />;
+      case "booking": return <CalendarDays className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
@@ -899,17 +994,42 @@ export function PersonalShopTab({
                     <SelectItem value="pdf">PDF</SelectItem>
                     <SelectItem value="video">Video</SelectItem>
                     <SelectItem value="course">Course</SelectItem>
+                    <SelectItem value="booking">Booking / Call</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Product File</Label>
-              <Input type="file" onChange={handleFileSelect} />
-              {selectedFile && (
-                <p className="text-xs text-muted-foreground">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(1)}MB)</p>
-              )}
-            </div>
+            {/* Duration selector for booking type */}
+            {productType === "booking" && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Session Duration
+                </Label>
+                <Select value={durationMinutes} onValueChange={setDurationMinutes}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="45">45 minutes</SelectItem>
+                    <SelectItem value="60">60 minutes</SelectItem>
+                    <SelectItem value="90">90 minutes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {productType !== "booking" && (
+              <div className="space-y-2">
+                <Label>Product File</Label>
+                <Input type="file" onChange={handleFileSelect} />
+                {selectedFile && (
+                  <p className="text-xs text-muted-foreground">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(1)}MB)</p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Cover Image (optional)</Label>
               <Input type="file" accept="image/*" onChange={handleCoverSelect} />
