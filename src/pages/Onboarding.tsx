@@ -619,8 +619,34 @@ const Onboarding = () => {
                 })}
               </div>
 
+              {/* Business type follow-up for Venue Pack */}
+              {selectedPlan === "venue" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400 font-medium">What best describes your business?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { value: "restaurant" as const, label: "Restaurant / Bar / Cafe", icon: "🍽️" },
+                      { value: "personal" as const, label: "Barbershop / Salon / Service", icon: "✂️" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setDashboardType(opt.value)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          dashboardType === opt.value
+                            ? "border-blue-500 bg-blue-500/10"
+                            : "border-white/10 bg-[#111827] hover:border-white/20"
+                        }`}
+                      >
+                        <span className="text-xl block mb-1">{opt.icon}</span>
+                        <span className="text-sm font-medium">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Spacer for fixed bottom button */}
-              {selectedPlan && <div className="h-20" />}
+              {selectedPlan && (selectedPlan === "solo" || dashboardType) && <div className="h-20" />}
             </motion.div>
           )}
 
