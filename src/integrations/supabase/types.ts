@@ -489,6 +489,70 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          booking_date: string
+          buyer_email: string | null
+          created_at: string | null
+          creator_id: string
+          id: string
+          product_id: string
+          start_time: string
+          status: string
+          stripe_session_id: string | null
+          timezone: string
+          updated_at: string | null
+        }
+        Insert: {
+          booking_date: string
+          buyer_email?: string | null
+          created_at?: string | null
+          creator_id: string
+          id?: string
+          product_id: string
+          start_time: string
+          status?: string
+          stripe_session_id?: string | null
+          timezone?: string
+          updated_at?: string | null
+        }
+        Update: {
+          booking_date?: string
+          buyer_email?: string | null
+          created_at?: string | null
+          creator_id?: string
+          id?: string
+          product_id?: string
+          start_time?: string
+          status?: string
+          stripe_session_id?: string | null
+          timezone?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "creator_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_ignored: {
         Row: {
           category: string
@@ -668,12 +732,59 @@ export type Database = {
           },
         ]
       }
+      creator_availability: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+          timezone: string
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+          timezone?: string
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          timezone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_availability_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_availability_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_products: {
         Row: {
+          booking_url: string | null
           cover_image_url: string | null
           created_at: string | null
           creator_id: string
           description: string | null
+          duration_minutes: number
           file_url: string | null
           id: string
           image_urls: string[] | null
@@ -685,10 +796,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          booking_url?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           creator_id: string
           description?: string | null
+          duration_minutes?: number
           file_url?: string | null
           id?: string
           image_urls?: string[] | null
@@ -700,10 +813,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          booking_url?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           creator_id?: string
           description?: string | null
+          duration_minutes?: number
           file_url?: string | null
           id?: string
           image_urls?: string[] | null
