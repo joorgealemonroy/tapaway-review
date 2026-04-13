@@ -57,8 +57,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { restaurantId, userId, isPersonalAccount } = await req.json();
-    
+    const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly } = await req.json();
+
+    // Handle orphan auth user deletion (no profile, no restaurant)
+    if (deleteAuthUserOnly && userId) {
+      if (userId === caller.id) {
+        return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      if (deleteUserError) {
+        console.error("Error deleting orphan auth user:", deleteUserError);
+        return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteUserError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Successfully deleted orphan auth user ${userId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Handle personal account deletion
     if (isPersonalAccount && userId) {
       // SAFETY CHECK: Prevent admin from deleting their own account
