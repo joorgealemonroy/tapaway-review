@@ -739,11 +739,12 @@ const ProductCard = memo(function ProductCard({
   onBuy,
   onPreview
 }: { 
-  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null; image_urls?: string[] | null };
+  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null; image_urls?: string[] | null; duration_minutes?: number; creator_id?: string };
   isDarkBg?: boolean;
-  onBuy: (productId: string) => void;
+  onBuy: (productId: string, bookingId?: string) => void;
   onPreview: (product: any) => void;
 }) {
+  const isBooking = product.product_type === "booking";
   return (
     <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
       {product.cover_image_url && (
@@ -763,14 +764,16 @@ const ProductCard = memo(function ProductCard({
               onClick={() => onPreview(product)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
             >
-              View Details
+              {isBooking ? "View & Book" : "View Details"}
             </button>
-            <button
-              onClick={() => onBuy(product.id)}
-              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              Buy Now
-            </button>
+            {!isBooking && (
+              <button
+                onClick={() => onBuy(product.id)}
+                className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Buy Now
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -785,11 +788,12 @@ const ProductBlockCard = memo(function ProductBlockCard({
   onBuy,
   onPreview,
 }: {
-  product: { id: string; title: string; description: string | null; price_cents: number; cover_image_url: string | null };
+  product: { id: string; title: string; description: string | null; price_cents: number; cover_image_url: string | null; product_type?: string; duration_minutes?: number; creator_id?: string };
   isDarkBg?: boolean;
-  onBuy: (productId: string) => void;
+  onBuy: (productId: string, bookingId?: string) => void;
   onPreview: (product: any) => void;
 }) {
+  const isBooking = product.product_type === "booking";
   return (
     <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'} shadow-sm`}>
       {product.cover_image_url && (
@@ -811,18 +815,29 @@ const ProductBlockCard = memo(function ProductBlockCard({
           </span>
         )}
         <div className="flex gap-2">
-          <button
-            onClick={() => onBuy(product.id)}
-            className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-          >
-            Get it Now
-          </button>
-          <button
-            onClick={() => onPreview(product)}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
-          >
-            Preview
-          </button>
+          {isBooking ? (
+            <button
+              onClick={() => onPreview(product)}
+              className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            >
+              Book Now
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => onBuy(product.id)}
+                className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Get it Now
+              </button>
+              <button
+                onClick={() => onPreview(product)}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
+              >
+                Preview
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
