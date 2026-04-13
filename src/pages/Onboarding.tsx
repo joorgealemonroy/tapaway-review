@@ -54,10 +54,12 @@ const Onboarding = () => {
   const [direction, setDirection] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [isCompletingSetup, setIsCompletingSetup] = useState(false);
 
   // Plan state
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [hasProtection, setHasProtection] = useState(false);
+  const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
   // Business info state
   const [businessName, setBusinessName] = useState("");
