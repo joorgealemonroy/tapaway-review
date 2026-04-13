@@ -198,17 +198,22 @@ const Onboarding = () => {
     if (file.size > 20 * 1024 * 1024) { toast.error("File must be under 20MB"); return; }
     setLogoUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const fileName = `onboarding-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('restaurant-logos').upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('restaurant-logos').getPublicUrl(fileName);
-      setLogoUrl(publicUrl);
-      saveOnboardingData({ logoUrl: publicUrl, logoUploaded: true });
-      toast.success("Logo uploaded!");
+      // Convert to Base64 data URL and store locally (upload happens post-auth)
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setLogoUrl(base64);
+        saveOnboardingData({ logoUrl: base64, logoUploaded: true });
+        toast.success("Logo ready!");
+        setLogoUploading(false);
+      };
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+        setLogoUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
-    } finally {
       setLogoUploading(false);
     }
   };
