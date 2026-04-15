@@ -1,4 +1,5 @@
 import { memo, useMemo, useState, useEffect } from "react";
+import MarketingFooterCards from "./MarketingFooterCards";
 import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
@@ -906,6 +907,7 @@ function ProfilePreviewRendererComponent({
         });
         })()}
       </div>
+      {profile.username === 'socials' && <MarketingFooterCards isDarkBg={isDarkBg} />}
     </div>
   );
 }
