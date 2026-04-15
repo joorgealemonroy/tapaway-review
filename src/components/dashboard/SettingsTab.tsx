@@ -12,6 +12,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { SettingsGreeting } from "./SettingsGreeting";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 import { RequestMoreCards } from "./RequestMoreCards";
+import { DeveloperResetButton } from "../admin/DeveloperResetButton";
 
 interface Restaurant {
   id: string;
@@ -492,6 +493,13 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
           </div>
         </div>
       </Card>
+
+      {/* Developer Reset — admin only */}
+      {isAdmin && (
+        <div className="flex justify-center pt-4 pb-2">
+          <DeveloperResetButton />
+        </div>
+      )}
     </div>
   );
 };

@@ -584,6 +584,26 @@ const Onboarding = () => {
         }
       }
 
+      // ── ADMIN/TEST BYPASS: skip Stripe for dev testing ──
+      const userEmail = session.user.email || '';
+      if (userEmail === 'tap@tapaway.co' || userEmail.includes('+test')) {
+        console.log("[onboarding] Admin/test bypass — skipping Stripe");
+        await supabase.from("restaurants").update({
+          subscription_status: "active",
+          onboarding_completed: true,
+          onboarding_step: 4,
+        }).eq("id", rId);
+        try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+        clearOnboardingData();
+
+        if (resolvedDashboardType === 'personal' || plan === 'solo') {
+          navigate("/dashboard?type=lite&welcome=true");
+        } else {
+          setShowSuccess(true);
+        }
+        return;
+      }
+
       // Redirect to Stripe Checkout for card on file
       try {
         const { data, error } = await supabase.functions.invoke("create-checkout-session", {
