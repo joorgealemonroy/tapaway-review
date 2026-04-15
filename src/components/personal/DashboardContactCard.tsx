@@ -211,6 +211,23 @@ export function DashboardContactCard({
         </RadioGroup>
       </div>
 
+      {/* Button Label (only when button style selected) */}
+      {displayStyle === 'button' && (
+        <div className={`space-y-2 mb-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
+          <Label htmlFor="contact-button-label" className="text-sm font-medium">Button Label</Label>
+          <Input
+            id="contact-button-label"
+            placeholder="Save Contact"
+            value={buttonLabel}
+            onChange={(e) => setButtonLabel(e.target.value)}
+            maxLength={30}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave empty for default "Save Contact"
+          </p>
+        </div>
+      )}
+
       {/* Fields */}
       <div className={`space-y-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Contact Photo */}
