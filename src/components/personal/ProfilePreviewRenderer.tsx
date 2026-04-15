@@ -483,8 +483,6 @@ function ProfilePreviewRendererComponent({
       );
     }
 
-    const isGoogleReview = link.link_type === 'google_review' && !link.pill_color;
-
     return (
       <a
         key={link.id}
@@ -492,11 +490,7 @@ function ProfilePreviewRendererComponent({
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
-        className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${
-          isGoogleReview
-            ? 'bg-white border-white/30'
-            : 'bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/15'
-        }`}
+        className="flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/15"
       >
         {link.thumbnail_url ? (
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
@@ -504,19 +498,13 @@ function ProfilePreviewRendererComponent({
           </div>
         ) : Icon && (
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-              isGoogleReview ? 'bg-gray-100' : (platform?.gradient || platform?.bgColor || 'bg-white/20')
-            }`}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform?.gradient || platform?.bgColor || 'bg-white/20'}`}
           >
-            <Icon className={`h-5 w-5 ${isGoogleReview ? 'text-gray-700' : (platform?.color || 'text-white')}`} />
+            <Icon className={`h-5 w-5 ${platform?.color || 'text-white'}`} />
           </div>
         )}
-        <span className={`flex-1 font-medium ${
-          isGoogleReview ? 'text-gray-800' : 'text-white'
-        }`}>{link.label}</span>
-        <ExternalLink className={`h-4 w-4 ${
-          isGoogleReview ? 'text-gray-400' : 'text-white/50'
-        }`} />
+        <span className="flex-1 font-medium text-white">{link.label}</span>
+        <ExternalLink className="h-4 w-4 text-white/50" />
       </a>
     );
   };
