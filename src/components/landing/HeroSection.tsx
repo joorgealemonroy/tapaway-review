@@ -76,7 +76,7 @@ export const HeroSection = () => {
                   to="/start"
                   className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
                 >
-                  Start My 14-Day Sprint
+                  Send Me My Cards
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
