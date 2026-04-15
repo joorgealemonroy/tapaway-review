@@ -958,6 +958,44 @@ const Onboarding = () => {
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
                     Start My Free Trial
                   </button>
+
+                  {/* Email signup option */}
+                  {!showEmailInput ? (
+                    <button
+                      onClick={() => setShowEmailInput(true)}
+                      className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors py-2 flex items-center justify-center gap-2"
+                    >
+                      <Mail className="w-3.5 h-3.5" /> or continue with email
+                    </button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      <Input
+                        type="email"
+                        value={emailSignupAddress}
+                        onChange={(e) => setEmailSignupAddress(e.target.value)}
+                        placeholder="you@email.com"
+                        className="h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleEmailSignup}
+                        disabled={emailSubmitting || !emailSignupAddress.trim()}
+                        className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {emailSubmitting ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>Start My Free Trial <ArrowRight className="w-5 h-5" /></>
+                        )}
+                      </button>
+                    </motion.div>
+                  )}
                 </div>
               )}
 
