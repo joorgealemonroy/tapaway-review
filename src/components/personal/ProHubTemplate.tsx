@@ -181,7 +181,9 @@ export const ProHubTemplate = memo(({
             >
               <div className="flex items-center gap-3">
                 {config?.icon && (
-                  <config.icon className={`w-5 h-5 shrink-0 ${isGoogleReview ? 'text-gray-700' : 'text-white/80'}`} />
+                  isGoogleReview
+                    ? <config.icon className="w-7 h-7 shrink-0" />
+                    : <config.icon className={`w-5 h-5 shrink-0 text-white/80`} />
                 )}
                 <span className="font-semibold text-sm">{link.label}</span>
               </div>

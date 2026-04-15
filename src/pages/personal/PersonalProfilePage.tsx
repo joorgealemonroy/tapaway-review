@@ -265,6 +265,8 @@ const ProfileLink = memo(function ProfileLink({
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
           <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
         </div>
+      ) : isGoogleReview && Icon ? (
+        <Icon className="h-8 w-8 flex-shrink-0" />
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-white/20"}`}>
           {Icon && <Icon className={`h-6 w-6 ${config?.color || "text-white"}`} />}
