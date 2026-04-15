@@ -676,6 +676,12 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return <MousePointerClick className="h-5 w-5 text-primary" />;
       case "product":
         return <ShoppingBag className="h-5 w-5 text-emerald-500" />;
+      case "marketing_cta":
+        return <MousePointerClick className="h-5 w-5 text-primary" />;
+      case "marketing_examples":
+        return <ExternalLink className="h-5 w-5 text-blue-500" />;
+      case "marketing_features":
+        return <Type className="h-5 w-5 text-emerald-500" />;
       default:
         return null;
     }
@@ -694,6 +700,12 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return content.label || "Button";
       case "product":
         return "Product block";
+      case "marketing_cta":
+        return "Marketing CTA";
+      case "marketing_examples":
+        return "Business Examples";
+      case "marketing_features":
+        return "Features Grid";
       default:
         return "Block";
     }

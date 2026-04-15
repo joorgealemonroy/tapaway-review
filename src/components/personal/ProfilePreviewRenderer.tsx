@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useEffect } from "react";
-import MarketingFooterCards from "./MarketingFooterCards";
+
 import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
@@ -696,6 +696,60 @@ function ProfilePreviewRendererComponent({
           </div>
         );
       }
+      case "marketing_cta":
+        return (
+          <div key={block.id}>
+            <a
+              href="/onboarding"
+              className="block w-full rounded-full bg-primary py-3 text-center"
+            >
+              <span className="block text-base font-bold text-primary-foreground">Try It Free</span>
+              <span className="block text-[10px] text-primary-foreground/70 mt-0.5">We'll send you cards that tap</span>
+            </a>
+          </div>
+        );
+      case "marketing_examples": {
+        const exOpts = [
+          { label: "Bakery", slug: "/sugarbloom" },
+          { label: "Barbershop", slug: "/spacestudios" },
+          { label: "Car Wraps", slug: "/rebornwraps" },
+          { label: "Restaurant", slug: "/islasmarias" },
+        ];
+        return (
+          <div key={block.id} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4">
+            <h4 className="text-white font-semibold text-xs mb-2">See real businesses using TapAway</h4>
+            <select className="w-full rounded-xl bg-white/10 border border-white/10 text-white text-xs px-3 py-2 mb-2 focus:outline-none appearance-none">
+              {exOpts.map(o => <option key={o.label} className="bg-gray-900 text-white">{o.label}</option>)}
+            </select>
+            <a href="https://tapaway.co/sugarbloom" target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full rounded-full border border-white/20 py-2 text-xs font-medium text-white/80 hover:text-white transition-colors"
+            >View Live Profile</a>
+          </div>
+        );
+      }
+      case "marketing_features": {
+        const feats = [
+          { title: "Reviews", desc: "Collect Google reviews with one tap" },
+          { title: "Links & Socials", desc: "All your platforms in one place" },
+          { title: "Contact / Save Phone", desc: "Visitors save your contact instantly" },
+          { title: "Menu & Services", desc: "Showcase what you offer" },
+          { title: "Analytics", desc: "See who visits and what they click" },
+          { title: "Shop", desc: "Sell courses, guides & products. TapAway takes 0%" },
+        ];
+        return (
+          <div key={block.id} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4">
+            <h4 className="text-white font-semibold text-xs mb-2">Everything in one place</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {feats.map(f => (
+                <div key={f.title} className="flex flex-col gap-0.5">
+                  <span className="text-white text-[10px] font-medium">{f.title}</span>
+                  <p className="text-white/50 text-[8px] leading-tight">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
       default:
         return null;
     }
@@ -907,7 +961,7 @@ function ProfilePreviewRendererComponent({
         });
         })()}
       </div>
-      {profile.username === 'socials' && <MarketingFooterCards isDarkBg={isDarkBg} />}
+      
     </div>
   );
 }
