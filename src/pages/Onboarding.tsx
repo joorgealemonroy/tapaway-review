@@ -340,6 +340,58 @@ const Onboarding = () => {
     }
   };
 
+  // ── Email signup handler ──
+  const handleEmailSignup = async () => {
+    const email = emailSignupAddress.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!selectedGooglePlace && !businessName.trim()) {
+      toast.error("Please search and select your business");
+      return;
+    }
+
+    setEmailSubmitting(true);
+    try {
+      // Save onboarding data (same as OAuth flow)
+      saveOnboardingData({
+        businessName: businessName.trim(),
+        shippingAddress: shippingAddress.trim(),
+        logoUrl: logoUrl || '',
+        planType: selectedPlan || 'venue',
+        hasProtection,
+        googlePlaceId: selectedGooglePlace?.placeId || '',
+        googlePlaceName: selectedGooglePlace?.name || '',
+        googlePlaceAddress: selectedGooglePlace?.address || '',
+        dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
+      });
+
+      // Create user via edge function (auto-confirmed, bypasses email verification)
+      const { data, error } = await supabase.functions.invoke("create-email-signup", {
+        body: { email, businessName: businessName.trim() },
+      });
+
+      if (error) throw new Error(error.message || "Signup failed");
+      if (data?.error) throw new Error(data.error);
+
+      // Sign in with the temp credentials to get a session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: data.tempPassword,
+      });
+
+      if (signInError) throw signInError;
+
+      // Session is now set — the completeSetup useEffect will fire automatically
+      console.log("[onboarding] Email signup successful, session set");
+    } catch (err: any) {
+      console.error("[onboarding] Email signup failed:", err);
+      toast.error(err.message || "Failed to create account");
+      setEmailSubmitting(false);
+    }
+  };
+
   // Post-auth: create restaurant then redirect to Stripe
   useEffect(() => {
     if (!initialCheckDone) return;
