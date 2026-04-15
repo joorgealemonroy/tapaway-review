@@ -175,6 +175,7 @@ interface OptimizedAvatarProps {
   className?: string;
   priority?: boolean;
   fallbackInitial?: string;
+  objectFit?: 'cover' | 'contain';
 }
 
 export const OptimizedAvatar = memo(function OptimizedAvatar({
@@ -184,6 +185,7 @@ export const OptimizedAvatar = memo(function OptimizedAvatar({
   className,
   priority = false,
   fallbackInitial,
+  objectFit = 'cover',
 }: OptimizedAvatarProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -244,7 +246,8 @@ export const OptimizedAvatar = memo(function OptimizedAvatar({
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className={cn(
-          'w-full h-full object-cover rounded-full',
+          'w-full h-full rounded-full',
+          objectFit === 'contain' ? 'object-contain' : 'object-cover',
           'transition-opacity duration-200',
           isLoaded ? 'opacity-100' : 'opacity-0'
         )}
