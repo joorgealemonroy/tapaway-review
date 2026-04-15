@@ -188,6 +188,18 @@ Deno.serve(async (req) => {
     const ownerId = restaurant.owner_id;
     const isOwnAccount = ownerId === caller.id;
 
+    // Safeguard: check if the restaurant owner is the protected super admin
+    if (ownerId) {
+      const ownerEmail = await resolveTargetEmail(ownerId);
+      if (ownerEmail?.toLowerCase() === PROTECTED_EMAIL) {
+        console.error(`BLOCKED: Attempt to delete restaurant owned by protected super admin`);
+        return new Response(JSON.stringify({ error: "Cannot delete super admin's restaurant or account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Delete related data first
     await supabaseAdmin.from("locations").delete().eq("restaurant_id", restaurantId);
     await supabaseAdmin.from("analytics_events").delete().eq("restaurant_id", restaurantId);
