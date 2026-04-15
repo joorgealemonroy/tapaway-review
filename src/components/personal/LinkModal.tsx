@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
-import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImageCropper } from "./ImageCropper";
@@ -141,6 +141,51 @@ export const LinkModal = ({
       setDetectedPlatform(null);
     }
   }, [inputValue, selectedPlatform, existingTypes]);
+
+  // Smart OG metadata auto-fetch for website links
+  const [fetchingMetadata, setFetchingMetadata] = useState(false);
+  const [fetchedFavicon, setFetchedFavicon] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedPlatform?.type !== "website" || !inputValue.includes(".")) {
+      setFetchedFavicon(null);
+      return;
+    }
+
+    // Ensure it looks like a real URL
+    const urlCandidate = inputValue.startsWith("http") ? inputValue : `https://${inputValue}`;
+    try {
+      new URL(urlCandidate);
+    } catch {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setFetchingMetadata(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("fetch-link-metadata", {
+          body: { url: urlCandidate },
+        });
+        if (error) throw error;
+        if (data?.title && !customLabel && !editingLink) {
+          setCustomLabel(data.title);
+        }
+        if (data?.favicon) {
+          setFetchedFavicon(data.favicon);
+          // Auto-set thumbnail if none set
+          if (!thumbnailUrl && !editingLink) {
+            setThumbnailUrl(data.favicon);
+          }
+        }
+      } catch (err) {
+        console.warn("[LinkModal] OG fetch failed:", err);
+      } finally {
+        setFetchingMetadata(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [inputValue, selectedPlatform]);
 
   const availablePlatforms = PLATFORM_CONFIGS.filter(
     p => !existingTypes.includes(p.type) || editingLink?.type === p.type
@@ -344,10 +389,32 @@ export const LinkModal = ({
               }
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className={`h-12 ${config.prefix && config.inputType !== "url" ? "pl-8" : ""}`}
+              className={`h-12 ${config.prefix && config.inputType !== "url" ? "pl-8" : ""} ${fetchedFavicon && config.type === "website" ? "pl-10" : ""}`}
               autoFocus
             />
+            {/* Favicon preview for website links */}
+            {config.type === "website" && fetchedFavicon && (
+              <img 
+                src={fetchedFavicon} 
+                alt="" 
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
+            {/* Loading spinner for OG fetch */}
+            {config.type === "website" && fetchingMetadata && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
+          {/* Auto-populated hint */}
+          {config.type === "website" && fetchingMetadata && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Globe className="h-3 w-3" />
+              Fetching site info...
+            </p>
+          )}
         </div>
 
         {/* Custom label (optional) */}

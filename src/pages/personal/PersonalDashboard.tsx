@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { 
   Link2, 
   BarChart3,
@@ -21,6 +22,7 @@ import {
   Users,
   ShoppingBag,
   ArrowLeftRight,
+  Smartphone,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -142,6 +144,7 @@ const PersonalDashboard = () => {
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
   // Admin impersonation mode
   const adminViewId = searchParams.get("admin_view_personal") || searchParams.get("admin_view");
@@ -797,24 +800,7 @@ const PersonalDashboard = () => {
               />
             </div>
 
-            {/* Mobile Live Preview */}
-            <div className="xl:hidden border-t pt-6">
-              <div className="text-center mb-6">
-                <p className="text-sm font-semibold text-foreground">
-                  Your Profile Preview
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This is exactly how your profile looks to visitors
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <ProfilePreviewPanel
-                  profile={profile}
-                  links={links}
-                  blocks={previewBlocks}
-                />
-              </div>
-            </div>
+            {/* Mobile preview is now a floating FAB + drawer */}
           </TabsContent>
 
           {/* Design Tab */}
@@ -930,6 +916,31 @@ const PersonalDashboard = () => {
           />
         </aside>
       </div>
+
+      {/* Mobile Preview FAB */}
+      <button
+        onClick={() => setMobilePreviewOpen(true)}
+        className="xl:hidden fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        aria-label="Preview profile"
+      >
+        <Smartphone className="h-6 w-6" />
+      </button>
+
+      {/* Mobile Preview Drawer */}
+      <Drawer open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
+        <DrawerContent className="max-h-[92vh]" showHandle={true}>
+          <DrawerHeader className="text-center pb-2">
+            <DrawerTitle className="text-sm font-semibold">Live Preview</DrawerTitle>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 pb-8 flex justify-center">
+            <ProfilePreviewPanel
+              profile={profile}
+              links={links}
+              blocks={previewBlocks}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Unsaved Changes Bar */}
       <UnsavedChangesBar
