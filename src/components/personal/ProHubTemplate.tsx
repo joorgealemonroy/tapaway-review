@@ -59,8 +59,8 @@ export const ProHubTemplate = memo(({
   links,
   onLinkClick,
 }: ProHubTemplateProps) => {
-  const bgColor = backgroundColor || '#0F172A';
-  const secColor = secondaryColor || '#1E293B';
+  // Brand color used only as a subtle glow, not as the full background
+  const brandColor = backgroundColor || '#6366f1';
   
   const activeLinks = links.filter(l => l.is_active !== false);
   
@@ -78,13 +78,21 @@ export const ProHubTemplate = memo(({
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center px-4 py-8"
-      style={{ backgroundColor: bgColor }}
+      className="min-h-screen w-full flex flex-col items-center px-4 py-8 relative"
+      style={{ backgroundColor: '#020617' }}
     >
+      {/* Brand color radial glow — top section only */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at top center, ${brandColor}30 0%, transparent 60%)`,
+        }}
+      />
+
       {/* ── A. Logo Framing ── */}
       {profilePhotoUrl && (
-        <div className="mb-8 mt-4">
-          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-5 max-w-[200px]">
+        <div className="mb-8 mt-4 relative z-10">
+          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-5 max-w-[200px] border border-white/10">
             <img
               src={profilePhotoUrl}
               alt={displayName}
@@ -95,18 +103,17 @@ export const ProHubTemplate = memo(({
       )}
 
       {/* Display name */}
-      <h1 className="text-2xl font-bold text-white text-center mb-6">{displayName}</h1>
+      <h1 className="text-2xl font-bold text-white text-center mb-6 relative z-10">{displayName}</h1>
 
       {/* ── B. Social Media Image Tiles ── */}
       {socialTiles.length >= 2 && (
-        <div className="grid grid-cols-2 gap-3 w-full max-w-sm mb-4">
+        <div className="grid grid-cols-2 gap-3 w-full max-w-sm mb-4 relative z-10">
           {socialTiles.slice(0, 2).map((link) => (
             <button
               key={link.id}
               onClick={() => handleClick(link.url)}
               className="aspect-square rounded-2xl relative overflow-hidden group"
             >
-              {/* Background image */}
               {link.thumbnail_bg_url && (
                 <img
                   src={link.thumbnail_bg_url}
@@ -114,35 +121,27 @@ export const ProHubTemplate = memo(({
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               )}
-
-              {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-              {/* Social icon — top left */}
               <div className="absolute top-3 left-3 z-10">
                 <SocialIcon type={link.link_type} />
               </div>
-
-              {/* Label — bottom center */}
               <div className="absolute bottom-3 left-0 right-0 z-10 text-center">
                 <span className="text-white text-xs font-bold uppercase tracking-wider">
                   {link.label}
                 </span>
               </div>
-
-              {/* Hover effect */}
               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           ))}
         </div>
       )}
 
-      {/* Any remaining social tiles as single row */}
+      {/* Single social tile — full width landscape */}
       {socialTiles.length === 1 && (
-        <div className="w-full max-w-sm mb-4">
+        <div className="w-full max-w-sm mb-4 relative z-10">
           <button
             onClick={() => handleClick(socialTiles[0].url)}
-            className="w-full aspect-video rounded-2xl relative overflow-hidden group"
+            className="w-full aspect-video rounded-2xl relative overflow-hidden group col-span-2"
           >
             {socialTiles[0].thumbnail_bg_url && (
               <img
@@ -164,8 +163,8 @@ export const ProHubTemplate = memo(({
         </div>
       )}
 
-      {/* ── C. Standard Links ── */}
-      <div className="w-full max-w-sm space-y-3">
+      {/* ── C. Standard Links — Glassmorphism ── */}
+      <div className="w-full max-w-sm space-y-3 relative z-10">
         {standardLinks.map((link) => {
           const isGoogleReview = link.link_type === 'google_review';
           const config = getPlatformConfig(link.link_type);
@@ -177,16 +176,8 @@ export const ProHubTemplate = memo(({
               className={`w-full rounded-xl px-5 py-4 flex items-center justify-between transition-all group ${
                 isGoogleReview
                   ? 'bg-white text-gray-900 hover:bg-gray-100'
-                  : 'hover:opacity-90'
+                  : 'bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 text-white'
               }`}
-              style={
-                isGoogleReview
-                  ? undefined
-                  : {
-                      backgroundColor: link.pill_color || secColor,
-                      color: '#FFFFFF',
-                    }
-              }
             >
               <div className="flex items-center gap-3">
                 {config?.icon && (
@@ -203,7 +194,7 @@ export const ProHubTemplate = memo(({
       </div>
 
       {/* TapAway branding */}
-      <p className="mt-auto pt-8 text-white/20 text-xs font-medium">
+      <p className="mt-auto pt-8 text-white/50 text-xs font-medium relative z-10">
         Powered by TapAway
       </p>
     </div>

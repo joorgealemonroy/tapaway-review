@@ -219,7 +219,7 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-  // Featured links are larger and more prominent
+   // Featured links — glassmorphism style
   if (isFeatured) {
     return (
       <a
@@ -227,34 +227,29 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg border border-black/10 ${
-          customColor 
-            ? "" 
-            : config?.gradient || config?.bgColor || "bg-primary"
-        }`}
-        style={customColor ? { backgroundColor: customColor } : undefined}
+        className="block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg bg-white/10 backdrop-blur-md border border-white/10"
       >
         <div className="flex items-center gap-4">
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
-            customColor ? "bg-white/20" : "bg-white/20"
+            config?.gradient || config?.bgColor || "bg-white/20"
           }`}>
-            {Icon && <Icon className={`h-7 w-7 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
+            {Icon && <Icon className={`h-7 w-7 ${config?.color || "text-white"}`} />}
           </div>
           <div className="flex-1">
-            <span className={`text-lg font-semibold truncate ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+            <span className="text-lg font-semibold truncate text-white">
               {link.label}
             </span>
-            <p className={`text-sm opacity-80 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+            <p className="text-sm text-white/60">
               Tap to open
             </p>
           </div>
-          <ExternalLink className={`h-5 w-5 opacity-70 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />
+          <ExternalLink className="h-5 w-5 text-white/50" />
         </div>
       </a>
     );
   }
    
-  // Regular links
+   // Regular links — glassmorphism style
   return (
       <a
         href={sanitizeUrl(link.url)}
@@ -262,11 +257,10 @@ const ProfileLink = memo(function ProfileLink({
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        customColor 
-          ? "border border-black/10 shadow-sm" 
-          : config?.gradient || config?.bgColor || "bg-card border border-border"
+        defaultWhitePill
+          ? "bg-white border border-white/30 shadow-sm" 
+          : "bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15"
       }`}
-      style={customColor ? { backgroundColor: customColor } : undefined}
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -274,15 +268,15 @@ const ProfileLink = memo(function ProfileLink({
         </div>
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-          customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
+          defaultWhitePill ? "bg-gray-100" : (config?.gradient || config?.bgColor || "bg-white/20")
         }`}>
-          {Icon && <Icon className={`h-6 w-6 ${customColor ? "" : config?.color || "text-primary"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
+          {Icon && <Icon className={`h-6 w-6 ${defaultWhitePill ? "text-gray-700" : (config?.color || "text-white")}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${customColor ? "" : config?.color || "text-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+      <span className={`flex-1 font-medium truncate ${defaultWhitePill ? "text-gray-800" : "text-white"}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 opacity-60 ${customColor ? "" : config?.color || "text-muted-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined} />
+      <ExternalLink className={`h-4 w-4 ${defaultWhitePill ? "text-gray-400" : "text-white/50"}`} />
     </a>
   );
 });
@@ -1158,16 +1152,25 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
-  // Default to black background (#000000) for users without a set background
+   // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
   const profileBgStyle = (profile as any).bg_style as string | null;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
-  // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
+  
+  // Premium dark base: use slate-950 as base with brand color as radial glow
+  // Only override for default flat hex backgrounds (not user-set gradients)
+  const isDefaultDarkBg = !profileBgStyle && !isGradientBg && isColorDark(bgColor);
   const bgStyle = profileBgStyle
     ? { background: profileBgStyle }
     : isGradientBg 
       ? { background: bgColor } 
-      : { backgroundColor: bgColor };
+      : isDefaultDarkBg
+        ? { backgroundColor: '#020617' }
+        : { backgroundColor: bgColor };
+  // Brand glow gradient for dark backgrounds
+  const brandGlowStyle = isDefaultDarkBg && bgColor !== '#020617'
+    ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
+    : undefined;
   const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
@@ -1216,7 +1219,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}
       >
-        {/* Full-width Banner (Premium) or standard Header */}
+        {/* Brand color radial glow overlay */}
+        {brandGlowStyle && (
+          <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
+        )}
         {hasBanner ? (
           <div className="relative">
             {/* Banner image - fully visible */}
@@ -1445,7 +1451,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                   return (
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
-                        <ProfileLink key={`grid-${link.id}`} link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
+                        <div key={`grid-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
+                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
+                        </div>
                       ))}
                     </div>
                   );
@@ -1524,12 +1532,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             >
               <a
                 href="/personal"
-                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-opacity duration-300 text-sm opacity-40 hover:opacity-70 ${isDarkBg ? 'border-white/10' : 'border-black/5'}`}
+                className="group inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-opacity duration-300 text-sm opacity-60 hover:opacity-80 border-white/20"
               >
-                <svg className={`h-3.5 w-3.5 ${isDarkBg ? 'text-white/50' : 'text-gray-500'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="h-3.5 w-3.5 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <span className={`font-medium ${isDarkBg ? 'text-white/60' : 'text-gray-500'}`}>
+                <span className="font-medium text-white/60">
                   Start using TapAway
                 </span>
               </a>

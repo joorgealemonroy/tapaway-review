@@ -109,6 +109,13 @@ function ProfilePreviewRendererComponent({
   const backgroundColor = profile.background_color || "#000000";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
   
+  // Premium dark base with brand glow for flat dark backgrounds
+  const isDefaultDarkBg = !isGradientBg && isColorDark(backgroundColor);
+  const effectiveBgColor = isDefaultDarkBg ? '#020617' : backgroundColor;
+  const brandGlowStyle = isDefaultDarkBg && backgroundColor !== '#020617'
+    ? { background: `radial-gradient(ellipse at top center, ${backgroundColor}30 0%, transparent 60%)` }
+    : undefined;
+  
   // Banner for premium users (header_type === "banner")
   // Uses profile_photo_url as the banner (no separate upload)
   const hasBanner = headerType === "banner";
@@ -465,8 +472,7 @@ function ProfilePreviewRendererComponent({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => handleLinkClick(e, link.url)}
-          className="block w-full rounded-xl px-5 py-4 text-center font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          style={{ backgroundColor: link.pill_color || headerColor }}
+          className="block w-full rounded-xl px-5 py-4 text-center font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] bg-white/10 backdrop-blur-md border border-white/10"
         >
           <span className="flex items-center justify-center gap-2">
             {Icon && <Icon className="h-5 w-5" />}
@@ -477,6 +483,8 @@ function ProfilePreviewRendererComponent({
       );
     }
 
+    const isGoogleReview = link.link_type === 'google_review' && !link.pill_color;
+
     return (
       <a
         key={link.id}
@@ -485,15 +493,10 @@ function ProfilePreviewRendererComponent({
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
         className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur transition-all hover:shadow-md hover:scale-[1.01] ${
-          link.link_type === 'google_review' && !link.pill_color
+          isGoogleReview
             ? 'bg-white border-white/30'
-            : isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'
+            : 'bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/15'
         }`}
-        style={
-          link.link_type === 'google_review' && !link.pill_color
-            ? undefined
-            : !isDarkBg ? { borderColor: `${headerColor}30` } : undefined
-        }
       >
         {link.thumbnail_url ? (
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
@@ -501,21 +504,18 @@ function ProfilePreviewRendererComponent({
           </div>
         ) : Icon && (
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-lg"
-            style={{ backgroundColor: isDarkBg ? 'rgba(255,255,255,0.1)' : `${headerColor}15` }}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+              isGoogleReview ? 'bg-gray-100' : (platform?.gradient || platform?.bgColor || 'bg-white/20')
+            }`}
           >
-            <Icon className="h-5 w-5" style={{ color: isDarkBg ? 'white' : headerColor }} />
+            <Icon className={`h-5 w-5 ${isGoogleReview ? 'text-gray-700' : (platform?.color || 'text-white')}`} />
           </div>
         )}
         <span className={`flex-1 font-medium ${
-          link.link_type === 'google_review' && !link.pill_color
-            ? 'text-gray-800'
-            : isDarkBg ? 'text-white' : 'text-gray-800'
+          isGoogleReview ? 'text-gray-800' : 'text-white'
         }`}>{link.label}</span>
         <ExternalLink className={`h-4 w-4 ${
-          link.link_type === 'google_review' && !link.pill_color
-            ? 'text-gray-400'
-            : isDarkBg ? 'text-white/50' : 'text-gray-400'
+          isGoogleReview ? 'text-gray-400' : 'text-white/50'
         }`} />
       </a>
     );
@@ -706,9 +706,13 @@ function ProfilePreviewRendererComponent({
 
   return (
     <div
-      className="min-h-full w-full"
-      style={isGradientBg ? { background: backgroundColor } : { backgroundColor }}
+      className="min-h-full w-full relative"
+      style={isGradientBg ? { background: backgroundColor } : { backgroundColor: effectiveBgColor }}
     >
+      {/* Brand color radial glow overlay */}
+      {brandGlowStyle && (
+        <div className="absolute inset-0 pointer-events-none" style={brandGlowStyle} />
+      )}
       {/* Header or Banner */}
       <div className="relative w-full">
         {hasBanner ? (
@@ -764,11 +768,11 @@ function ProfilePreviewRendererComponent({
               className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
               style={{
                 background: `linear-gradient(to bottom, transparent 0%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 }40 40%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 }90 70%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 } 100%)`
               }}
             />
@@ -890,7 +894,11 @@ function ProfilePreviewRendererComponent({
             linkIndex += item.links.length;
             return (
               <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-2">
-                {item.links.map((link, i) => renderLink(link, false, true, startIndex + i))}
+                {item.links.map((link, i) => (
+                  <div key={`grid-wrap-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
+                    {renderLink(link, false, true, startIndex + i)}
+                  </div>
+                ))}
               </div>
             );
           } else if (item.kind === "link") {
