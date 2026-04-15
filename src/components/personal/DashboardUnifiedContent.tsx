@@ -160,10 +160,12 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     pendingChanges.orderChanged;
 
   // Notify parent when pending changes state changes
-  const markPendingChange = useCallback((changes: Partial<PendingChanges>) => {
+  const markPendingChange = useCallback((
+    changesOrFn: Partial<PendingChanges> | ((prev: PendingChanges) => Partial<PendingChanges>)
+  ) => {
     setPendingChanges(prev => {
+      const changes = typeof changesOrFn === 'function' ? changesOrFn(prev) : changesOrFn;
       const updated = { ...prev, ...changes };
-      // Check if has pending after update
       const hasChanges = updated.addedLinks.length > 0 ||
         updated.updatedLinks.size > 0 ||
         updated.deletedLinkIds.size > 0 ||
@@ -172,7 +174,6 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         updated.deletedBlockIds.size > 0 ||
         updated.orderChanged;
       
-      // Use setTimeout to avoid state update during render
       setTimeout(() => onPendingChangesChange(hasChanges), 0);
       
       return updated;
