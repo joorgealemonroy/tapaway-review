@@ -734,6 +734,91 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
+    // CARD ADDON / ONE-TIME CARD ORDER HANDLING
+    // ============================================================
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const cardType = session.metadata?.type;
+
+      if (cardType === 'card_addon' || cardType === 'card_onetime') {
+        console.log(`[stripe-webhook] Processing ${cardType} checkout`);
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+          mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          })
+        );
+
+        const profileId = session.metadata?.profile_id;
+        const userId = session.metadata?.user_id;
+
+        if (profileId && userId) {
+          // Set has_card_addon flag for subscription
+          if (cardType === 'card_addon') {
+            const subId = session.subscription as string;
+            await supabaseAdmin
+              .from('personal_profiles')
+              .update({
+                has_card_addon: true,
+                ...(subId ? {} : {}),
+              })
+              .eq('id', profileId);
+            console.log(`[stripe-webhook] Set has_card_addon=true for profile ${profileId}`);
+          }
+
+          // Create card request record with shipping from metadata
+          const { error: insertErr } = await supabaseAdmin
+            .from('personal_card_requests')
+            .insert({
+              profile_id: profileId,
+              user_id: userId,
+              quantity: 3,
+              is_addon: cardType === 'card_addon',
+              status: 'pending',
+              stripe_session_id: session.id,
+              shipping_name: session.metadata?.shipping_name || null,
+              shipping_address_line1: session.metadata?.shipping_line1 || null,
+              shipping_address_line2: session.metadata?.shipping_line2 || null,
+              shipping_city: session.metadata?.shipping_city || null,
+              shipping_state: session.metadata?.shipping_state || null,
+              shipping_postal_code: session.metadata?.shipping_postal_code || null,
+              shipping_country: session.metadata?.shipping_country || 'US',
+            });
+
+          if (insertErr) {
+            console.error('[stripe-webhook] Failed to create card request:', insertErr);
+          } else {
+            console.log(`[stripe-webhook] Created card request for profile ${profileId}`);
+          }
+
+          // Internal notification
+          try {
+            const resendApiKey = Deno.env.get('RESEND_API_KEY');
+            const emailInternal = Deno.env.get('EMAIL_INTERNAL');
+            if (resendApiKey && emailInternal) {
+              const emailFrom = Deno.env.get('EMAIL_FROM') || 'no-reply@tapaway.co';
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: emailFrom.includes('<') ? emailFrom : `TapAway <${emailFrom}>`,
+                  to: [emailInternal],
+                  subject: `📦 ${cardType === 'card_addon' ? 'Card Club Signup' : 'One-Time Card Order'} — 3 cards`,
+                  html: `<p><strong>${session.metadata?.shipping_name || 'Customer'}</strong> ordered 3 cards (${cardType}).</p>
+                         <p>${session.metadata?.shipping_line1 || ''}${session.metadata?.shipping_line2 ? ', ' + session.metadata.shipping_line2 : ''}<br/>
+                         ${session.metadata?.shipping_city || ''}, ${session.metadata?.shipping_state || ''} ${session.metadata?.shipping_postal_code || ''}</p>
+                         <p>Profile: ${profileId}</p>`,
+                }),
+              });
+            }
+          } catch (_) { /* non-blocking */ }
+        }
+      }
+    }
+
+    // ============================================================
     // AFFILIATE PAID CONVERSION COMMISSION
     // When a subscription transitions from trialing → active, grant paid-tier commission
     // ============================================================
