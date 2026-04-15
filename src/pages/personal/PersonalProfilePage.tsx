@@ -728,8 +728,8 @@ const ProfileBlock = memo(function ProfileBlock({
             href="/onboarding"
             className="block w-full rounded-full bg-primary py-4 text-center transition-opacity hover:opacity-90"
           >
-            <span className="block text-lg font-bold text-primary-foreground">Try It Free</span>
-            <span className="block text-xs text-primary-foreground/70 mt-0.5">We'll send you cards that tap</span>
+            <span className="block text-lg font-bold text-primary-foreground">Try It Free with your logo</span>
+            <span className="block text-xs text-primary-foreground/70 mt-0.5">We'll cover shipping</span>
           </a>
         </div>
       );

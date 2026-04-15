@@ -42,7 +42,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 3900, // $39/mo
     interval: 'month',
     productName: 'TapAway Venue Pack (Monthly)',
-    trialDays: 21,
+    trialDays: 14,
   },
   venue_annual: {
     label: 'Venue Pack Annual',
@@ -51,7 +51,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 39000, // $390/yr
     interval: 'year',
     productName: 'TapAway Venue Pack (Annual)',
-    trialDays: 21,
+    trialDays: 14,
   },
 };
 

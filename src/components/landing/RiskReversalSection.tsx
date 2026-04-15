@@ -28,7 +28,7 @@ export const RiskReversalSection = () => {
 
           <div className="space-y-4 mb-8 max-w-xl mx-auto">
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Use TapAway for <span className="font-semibold text-foreground">30 full days</span> — completely free.
+              Use TapAway for <span className="font-semibold text-foreground">14 full days</span> — completely free.
             </p>
             <ul className="text-base text-muted-foreground space-y-3">
               <li className="flex items-center justify-center gap-2">
@@ -37,7 +37,7 @@ export const RiskReversalSection = () => {
               </li>
               <li className="flex items-center justify-center gap-2">
                 <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                Cancel anytime before day 30 to avoid billing
+                Cancel anytime before day 14 to avoid billing
               </li>
               <li className="flex items-center justify-center gap-2">
                 <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
@@ -55,7 +55,7 @@ export const RiskReversalSection = () => {
               to="/start"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-foreground text-background font-bold text-lg shadow-lg shadow-foreground/20 hover:shadow-xl transition-all"
             >
-              Start Free 30-Day Trial
+              Start Free 14-Day Trial
               <ArrowRight className="w-5 h-5" />
             </Link>
           </motion.div>

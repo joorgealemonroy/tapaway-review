@@ -60,7 +60,7 @@ export const FinalCTA = () => {
           transition={{ duration: 0.4, delay: 0.35 }}
           className="text-xs text-white/40 mt-5"
         >
-          No charge today • Cancel anytime before day 30
+          No charge today • Cancel anytime before day 14
         </motion.p>
       </div>
     </section>

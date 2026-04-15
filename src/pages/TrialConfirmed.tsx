@@ -8,7 +8,7 @@ const TrialConfirmed = () => {
   const navigate = useNavigate();
 
   const confirmationPoints = [
-    { icon: Check, text: "Your free 30-day trial is active" },
+    { icon: Check, text: "Your free 14-day trial is active" },
     { icon: Settings, text: "We're setting up your review + social hub" },
     { icon: Package, text: "Your NFC cards will ship in 1–2 business days" },
   ];
@@ -134,7 +134,7 @@ const TrialConfirmed = () => {
           {/* Trial reminder */}
           <div className="text-center pt-4 border-t border-border/30">
             <p className="text-xs text-muted-foreground">
-              Free 30-day trial • No charge today • Cancel anytime before day 30
+              Free 14-day trial • No charge today • Cancel anytime before day 14
             </p>
           </div>
         </motion.div>

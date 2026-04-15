@@ -81,7 +81,7 @@ const Paywall = () => {
           {/* Headline */}
           <div className="text-center space-y-3">
             <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-              Start Your Free 30-Day TapAway Trial
+              Start Your Free 14-Day TapAway Trial
             </h1>
             <p className="text-muted-foreground text-lg">
               We'll install everything for you. You won't be charged today.
@@ -96,7 +96,7 @@ const Paywall = () => {
                 <p className="text-xs text-muted-foreground">Due today</p>
               </div>
               <div className="text-center p-4 bg-background rounded-lg border border-border/50">
-                <p className="text-2xl font-black">30 days</p>
+                <p className="text-2xl font-black">14 days</p>
                 <p className="text-xs text-muted-foreground">Free trial</p>
               </div>
             </div>
@@ -129,7 +129,7 @@ const Paywall = () => {
               <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
                 <Info className="w-4 h-4 text-primary flex-shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  You'll see <span className="font-semibold text-foreground">$0 due today</span> and a 30-day free trial at checkout.
+                  You'll see <span className="font-semibold text-foreground">$0 due today</span> and a 14-day free trial at checkout.
                 </p>
               </div>
 

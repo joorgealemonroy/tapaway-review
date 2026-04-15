@@ -12,7 +12,7 @@ export function OnboardingSuccess({ businessName }: OnboardingSuccessProps) {
   const navigate = useNavigate();
 
   const checklist = [
-    { icon: Clock, label: "Trial active (30 days)", done: true },
+    { icon: Clock, label: "Trial active (14 days)", done: true },
     { icon: Package, label: "Cards queued for shipping", done: true },
     { icon: Star, label: "Review hub being finalized", done: true },
   ];
