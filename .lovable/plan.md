@@ -1,31 +1,21 @@
 
 
-# Fix: Analytics showing 0 for sugarbloomcakery (RLS issue)
+# Reset sugarbloomcakery Analytics to Start from April 11
 
-## Root Cause
-The `personal_analytics` table has a SELECT RLS policy that only allows profile owners to view their analytics:
-```sql
-profile_id IN (SELECT id FROM personal_profiles WHERE user_id = auth.uid())
-```
-
-When you (admin) view sugarbloomcakery's dashboard via `admin_view_personal`, you're not the profile owner, so RLS blocks all reads → everything shows 0.
-
-**The tracking itself works fine** — there are 72 profile visits and 41 link clicks in the database for sugarbloomcakery.
+## Problem
+There are 68 analytics events for sugarbloomcakery recorded before April 11 (from April 9-10, likely during setup/testing). These inflate the stats and should be removed.
 
 ## Fix
-Update the SELECT RLS policy on `personal_analytics` to also allow admin access:
+Run a single DELETE query on `personal_analytics` to remove all events for profile `cc06cb55-87ab-4dc7-88f7-073d3bb38d27` where `created_at < '2026-04-11T00:00:00Z'`.
 
 ```sql
-DROP POLICY "Users can view their own analytics" ON personal_analytics;
-CREATE POLICY "Users and admins can view analytics"
-  ON personal_analytics FOR SELECT TO authenticated
-  USING (
-    profile_id IN (SELECT id FROM personal_profiles WHERE user_id = auth.uid())
-    OR public.is_admin()
-  );
+DELETE FROM personal_analytics
+WHERE profile_id = 'cc06cb55-87ab-4dc7-88f7-073d3bb38d27'
+  AND created_at < '2026-04-11T00:00:00Z';
 ```
 
-## Files Changed
-- One database migration (RLS policy update on `personal_analytics`)
+No code or schema changes needed — just a one-time data cleanup.
 
-No code changes needed — the UI and tracking logic are already correct.
+## Files Changed
+None — data-only operation.
+
