@@ -1,66 +1,42 @@
 
 
-# "Not on Google?" Website Fallback + Remove Shipping + Logo as Profile Photo
+# Add Flashing Red Indicator to Placeholder Social Tiles
 
-## Summary
+## Problem
+Placeholder "Add TikTok" / "Add Instagram" tiles in the dashboard are just dimmed (opacity-50). Users don't notice they need to add their social handles.
 
-Three changes to the onboarding info step:
-1. Add a "Not on Google?" toggle that shows a manual website URL + business name input
-2. Remove the shipping address section (Stripe collects it)
-3. Pass the user-uploaded logo to magic-onboarding so it becomes the profile photo
+## Solution
+Add a pulsing red dot/badge and a subtle red border glow to any link card whose URL starts with `#placeholder-`. This makes them impossible to miss.
 
 ## Changes
 
-### 1. "Not on Google?" fallback (`src/pages/Onboarding.tsx`)
+### `src/components/personal/DashboardUnifiedContent.tsx`
 
-Below the Google Places search, add a clickable text: **"Not on Google yet?"**. When tapped:
-- Hide the Google Places autocomplete
-- Show two fields: **Business Name** (text) and **Website URL** (optional)
-- The website URL gets passed to `magic-onboarding` so Brandfetch can still pull branding/logo
-- A "Search Google instead" link to toggle back
+In the grid tile rendering (around line 762), detect placeholder links and add visual indicators:
 
-State changes:
-- New `notOnGoogle` boolean state
-- New `websiteUrl` string state
-- When `notOnGoogle` is true, user types business name manually and optionally provides a website
+- Check `link.url?.startsWith('#placeholder-')` 
+- If true: replace `opacity-50` with a pulsing red ring (`ring-2 ring-red-500 animate-pulse`) and add a small red dot badge in the top-right corner
+- The label ("ADD TIKTOK") stays as-is but gets a red tint
+- Remove the dim opacity so the photo background stays vibrant — the red ring is the attention-grabber
 
-### 2. Remove shipping address section (`src/pages/Onboarding.tsx`)
+Also add the same logic to the pill-style link cards (around line 840+) in case a placeholder is rendered as a pill.
 
-- Delete the shipping address `<div>` block (lines ~962-972)
-- Remove `shippingAddress` state variable and all references to it
-- Remove `shippingAddress` from `saveOnboardingData()` calls
-- Remove `step3Schema` shipping validation (only used in `OnboardingNew.tsx`)
-- Clean up `onboardingData.ts` shipping fields from the interface (keep for backward compat but stop collecting)
+### CSS Addition (`src/index.css`)
 
-### 3. Pass uploaded logo URL to magic-onboarding (`src/pages/Onboarding.tsx`)
+Add a custom `@keyframes` for a subtle red glow pulse if the Tailwind `animate-pulse` isn't punchy enough:
 
-When calling `magic-onboarding`, pass the uploaded `savedLogoUrl` so the edge function can use it as the profile photo instead of relying solely on Brandfetch:
-
-```typescript
-await supabase.functions.invoke("magic-onboarding", {
-  body: {
-    businessName: bName,
-    address: placeAddress || '',
-    placeId: placeId || undefined,
-    userId: uid,
-    email: session.user.email || '',
-    username: magicUsername,
-    logoUrl: savedLogoUrl || undefined,
-    websiteUrl: websiteUrl || undefined,
-  },
-});
+```css
+@keyframes red-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 12px rgba(239,68,68,0.8); }
+}
 ```
 
-### 4. Accept logo + website in magic-onboarding (`supabase/functions/magic-onboarding/index.ts`)
-
-- Add `logoUrl?: string` and `websiteUrl?: string` to `MagicOnboardingRequest`
-- If `logoUrl` is provided, use it as `profile_photo_url` (skip Brandfetch logo)
-- If `websiteUrl` is provided and Google didn't return a website, use it for Brandfetch and social scraping
-
-## Files Changed
+### Expected Result
+Placeholder tiles show with a pulsing red border/glow and a red dot, clearly signaling "action needed" while keeping the photo background visible and aesthetic.
 
 | File | Change |
 |------|--------|
-| `src/pages/Onboarding.tsx` | Add "Not on Google?" toggle, remove shipping section, pass logoUrl + websiteUrl to magic-onboarding |
-| `supabase/functions/magic-onboarding/index.ts` | Accept `logoUrl` and `websiteUrl` params, use them as overrides |
+| `src/components/personal/DashboardUnifiedContent.tsx` | Add placeholder detection + red pulse styling to grid and pill cards |
+| `src/index.css` | Add `red-glow` keyframe animation |
 
