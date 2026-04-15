@@ -1,20 +1,23 @@
 
 
-# Revert Google Review Button to Glassmorphism Style
+# Restore White Pill for Google Review Button
 
 ## Problem
-
-The Google Review "Leave us a Review" button currently gets a special white background treatment (`bg-white`, dark text), making it look different from all other buttons. The user wants it to match the uniform dark glassmorphism style shown in their screenshot.
+The Google Review button currently uses the same glassmorphism style as all other links. The user wants it to stand out with a **white solid background**, dark text, and the colorful Google "G" icon — as shown in their screenshot.
 
 ## Changes
 
-Remove the `isGoogleReview` / `defaultWhitePill` special-casing across all three rendering files so Google Review buttons use the same `bg-white/10 backdrop-blur-md border border-white/10` glass style as every other link.
+Add `google_review` detection in all three rendering files. When a link is a Google Review, use `bg-white text-gray-900` instead of the glass style.
 
 | File | Change |
 |------|--------|
-| `src/pages/personal/PersonalProfilePage.tsx` | Remove `defaultWhitePill` variable and its conditional branches (lines 125-126, 260-263, 271, 273, 276, 279). Always use glass style. |
-| `src/components/personal/ProfilePreviewRenderer.tsx` | Remove `isGoogleReview` check (line 486) and its conditional branches (lines 496-499, 508, 511, 514-516, 517-519). Always use glass style. |
-| `src/components/personal/ProHubTemplate.tsx` | Remove `isGoogleReview` check (line 169) and its conditional branches (lines 177-179, 184, 188-190). Always use glass style. |
+| `src/pages/personal/PersonalProfilePage.tsx` | In ProfileLink (~line 250), detect `link.link_type === 'google_review'`. If true: white bg, dark text, colorful Google icon circle. |
+| `src/components/personal/ProfilePreviewRenderer.tsx` | In renderLink (~line 486), same detection — white bg, dark text for Google Review. |
+| `src/components/personal/ProHubTemplate.tsx` | In standard links loop (~line 168), same detection — white bg, dark text for Google Review. |
 
-The Google icon will keep its platform brand color (blue circle) for recognition — only the button container changes to match.
+### Google Review style
+```
+bg-white hover:bg-gray-100 text-gray-900 border border-white/20 shadow-sm
+```
+Icon stays as the colorful Google "G" on its platform background. All other links remain glassmorphism unchanged.
 
