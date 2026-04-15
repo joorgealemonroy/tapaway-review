@@ -121,9 +121,7 @@ const ProfileLink = memo(function ProfileLink({
   const isValidHex = (c: string | null | undefined): c is string => c ? /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(c) : false;
   const validAccent = isValidHex(accentColor) ? accentColor : null;
   // Use pill_color, fall back to validated accentColor (vibe theme), then platform default
-  // google_review defaults to white pill when no pill_color set
-  const defaultWhitePill = link.link_type === 'google_review' && !link.pill_color;
-  const customColor = defaultWhitePill ? '#ffffff' : (link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (validAccent || null));
+  const customColor = link.pill_color && link.pill_color !== "#000000" ? link.pill_color : (validAccent || null);
   const coverImage = link.cover_image_url;
   // Dynamic button text contrast: dark text on light buttons, white text on dark buttons
   const buttonTextColor = customColor && !isColorDark(customColor) ? '#1A1A1A' : '#FFFFFF';
@@ -256,27 +254,21 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-      className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        defaultWhitePill
-          ? "bg-white border border-white/30 shadow-sm" 
-          : "bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15"
-      }`}
+      className="flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15"
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
           <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
         </div>
       ) : (
-        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-          defaultWhitePill ? "bg-gray-100" : (config?.gradient || config?.bgColor || "bg-white/20")
-        }`}>
-          {Icon && <Icon className={`h-6 w-6 ${defaultWhitePill ? "text-gray-700" : (config?.color || "text-white")}`} />}
+        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-white/20"}`}>
+          {Icon && <Icon className={`h-6 w-6 ${config?.color || "text-white"}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${defaultWhitePill ? "text-gray-800" : "text-white"}`}>
+      <span className="flex-1 font-medium truncate text-white">
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${defaultWhitePill ? "text-gray-400" : "text-white/50"}`} />
+      <ExternalLink className="h-4 w-4 text-white/50" />
     </a>
   );
 });
