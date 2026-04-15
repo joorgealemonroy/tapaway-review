@@ -1733,6 +1733,7 @@ export type Database = {
           card_confirmed_at: string | null
           card_front_headline: string | null
           contact_address: string | null
+          contact_button_label: string | null
           contact_company: string | null
           contact_display_style: string
           contact_email: string | null
@@ -1786,6 +1787,7 @@ export type Database = {
           card_confirmed_at?: string | null
           card_front_headline?: string | null
           contact_address?: string | null
+          contact_button_label?: string | null
           contact_company?: string | null
           contact_display_style?: string
           contact_email?: string | null
@@ -1839,6 +1841,7 @@ export type Database = {
           card_confirmed_at?: string | null
           card_front_headline?: string | null
           contact_address?: string | null
+          contact_button_label?: string | null
           contact_company?: string | null
           contact_display_style?: string
           contact_email?: string | null

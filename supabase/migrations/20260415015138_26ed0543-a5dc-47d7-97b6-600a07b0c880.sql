@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS contact_button_label text;
