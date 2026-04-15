@@ -428,11 +428,11 @@ serve(async (req) => {
     const usedUrls = new Set<string>();
 
     const addLink = (link: any) => {
-      // Skip links with no real URL
+      // Skip links with no real URL (but allow #placeholder- URLs)
       if (!link.url || link.url === '#') return;
-      // Deduplicate by URL
-      if (usedUrls.has(link.url)) return;
-      usedUrls.add(link.url);
+      // Deduplicate by URL (skip dedup for placeholder URLs)
+      if (!link.url.startsWith('#') && usedUrls.has(link.url)) return;
+      if (!link.url.startsWith('#')) usedUrls.add(link.url);
       linksToInsert.push(link);
     };
 
