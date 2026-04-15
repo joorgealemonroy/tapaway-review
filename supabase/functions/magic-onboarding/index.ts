@@ -13,6 +13,8 @@ interface MagicOnboardingRequest {
   userId: string;
   email: string;
   username: string;
+  logoUrl?: string;
+  websiteUrl?: string;
 }
 
 interface BrandResult {
@@ -319,7 +321,7 @@ serve(async (req) => {
     }
 
     const body: MagicOnboardingRequest = await req.json();
-    const { businessName, address, placeId, userId, email, username } = body;
+    const { businessName, address, placeId, userId, email, username, logoUrl: clientLogoUrl, websiteUrl: clientWebsiteUrl } = body;
 
     if (!businessName || !username) {
       return new Response(JSON.stringify({ error: 'businessName and username are required' }), {
@@ -344,9 +346,13 @@ serve(async (req) => {
       photos: googleData.photoRefs.length,
     });
 
-    // ── Step 2: Brandfetch ──
-    const brandData = await fetchBrandData(googleData.websiteUrl);
+    // ── Step 2: Brandfetch — use client websiteUrl as fallback ──
+    const effectiveWebsiteUrl = googleData.websiteUrl || clientWebsiteUrl || null;
+    const brandData = await fetchBrandData(effectiveWebsiteUrl);
     console.log('[magic-onboarding] Brand:', { hasLogo: !!brandData.logoUrl, primaryColor: brandData.primaryColor });
+
+    // If client uploaded a logo, it takes priority over Brandfetch
+    const resolvedLogoUrl = clientLogoUrl || brandData.logoUrl || null;
 
     // ── Step 3: Social Discovery via Outscraper ──
     let socialData = await discoverSocials(googleData.placeId);
@@ -354,7 +360,7 @@ serve(async (req) => {
     // ── Step 3b: Fallback — scrape website HTML for social links ──
     if (!socialData.instagramUrl && !socialData.tiktokUrl && !socialData.facebookUrl) {
       console.log('[magic-onboarding] Outscraper returned no socials, trying website scrape fallback');
-      socialData = await scrapeWebsiteForSocials(googleData.websiteUrl);
+      socialData = await scrapeWebsiteForSocials(effectiveWebsiteUrl);
     }
 
     // ── Step 4: Create / update profile ──
@@ -373,7 +379,7 @@ serve(async (req) => {
         full_name: businessName,
         background_color: brandData.primaryColor,
         header_color: brandData.secondaryColor,
-        ...(brandData.logoUrl ? { profile_photo_url: brandData.logoUrl } : {}),
+        ...(resolvedLogoUrl ? { profile_photo_url: resolvedLogoUrl } : {}),
       }).eq('id', profileId);
     } else {
       const { data: newProfile, error: profileError } = await supabase
@@ -386,7 +392,7 @@ serve(async (req) => {
           background_color: brandData.primaryColor,
           header_color: brandData.secondaryColor,
           text_color: '#FFFFFF',
-          profile_photo_url: brandData.logoUrl || null,
+          profile_photo_url: resolvedLogoUrl,
           subscription_status: 'active',
           button_theme: 'filled',
         })
@@ -414,8 +420,8 @@ serve(async (req) => {
     }
     console.log('[magic-onboarding] Uploaded photos:', uploadedPhotoUrls.length);
 
-    // ── Step 5b: Fallback profile photo from Google if no Brandfetch logo ──
-    if (!brandData.logoUrl && uploadedPhotoUrls.length > 0) {
+    // ── Step 5b: Fallback profile photo from Google if no logo at all ──
+    if (!resolvedLogoUrl && uploadedPhotoUrls.length > 0) {
       console.log('[magic-onboarding] Using Google photo as profile photo fallback');
       await supabase.from('personal_profiles').update({
         profile_photo_url: uploadedPhotoUrls[0],

@@ -64,7 +64,8 @@ const Onboarding = () => {
 
   // Business info state
   const [businessName, setBusinessName] = useState("");
-  const [shippingAddress, setShippingAddress] = useState("");
+  const [notOnGoogle, setNotOnGoogle] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -126,7 +127,6 @@ const Onboarding = () => {
       const savedData = getOnboardingData();
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
-      if (savedData.shippingAddress) setShippingAddress(savedData.shippingAddress);
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
       if (savedData.hasProtection) setHasProtection(true);
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
@@ -229,7 +229,6 @@ const Onboarding = () => {
     const normalized = normalizeGooglePlaceId(placeId) || placeId.replace(/^places\//, "");
     setSelectedGooglePlace({ placeId: normalized, name, address });
     setBusinessName(name);
-    setShippingAddress(address);
   }, []);
 
   // ── Logo upload handler ──
@@ -284,7 +283,6 @@ const Onboarding = () => {
       const requestBody: Record<string, unknown> = {
         clientEmail: clientEmail.trim(),
         businessName: businessName.trim(),
-        shippingAddress: shippingAddress.trim(),
         planType: selectedPlan || "venue",
         hasProtection,
         googlePlaceId: selectedGooglePlace?.placeId || "",
@@ -352,7 +350,6 @@ const Onboarding = () => {
       // Save ALL step 3 data before redirect
       saveOnboardingData({
         businessName: businessName.trim(),
-        shippingAddress: shippingAddress.trim(),
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
@@ -389,7 +386,6 @@ const Onboarding = () => {
       // Save onboarding data (same as OAuth flow)
       saveOnboardingData({
         businessName: businessName.trim(),
-        shippingAddress: shippingAddress.trim(),
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
         hasProtection,
@@ -587,11 +583,13 @@ const Onboarding = () => {
           const { error: magicError } = await supabase.functions.invoke("magic-onboarding", {
             body: {
               businessName: bName,
-              address: placeAddress || shippingAddress || '',
+              address: placeAddress || '',
               placeId: placeId || undefined,
               userId: uid,
               email: session.user.email || '',
               username: magicUsername,
+              logoUrl: savedLogoUrl || undefined,
+              websiteUrl: websiteUrl || undefined,
             },
           });
           if (magicError) {
@@ -906,18 +904,58 @@ const Onboarding = () => {
                 <p className="text-gray-400 text-sm">Tell us about your business and we'll handle the rest.</p>
               </div>
 
-              {/* Google Places Business Search */}
+              {/* Google Places Business Search OR Manual Entry */}
               <div>
-                <GooglePlacesAutocomplete
-                  onPlaceSelected={handleGooglePlaceSelected}
-                  defaultValue={businessName}
-                  placeholder="e.g., Joe's Pizza"
-                  label="Search Your Business on Google"
-                />
-                {selectedGooglePlace && (
-                  <p className="text-xs text-emerald-400 mt-1.5 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> {selectedGooglePlace.name}
-                  </p>
+                {!notOnGoogle ? (
+                  <>
+                    <GooglePlacesAutocomplete
+                      onPlaceSelected={handleGooglePlaceSelected}
+                      defaultValue={businessName}
+                      placeholder="e.g., Joe's Pizza"
+                      label="Search Your Business on Google"
+                    />
+                    {selectedGooglePlace && (
+                      <p className="text-xs text-emerald-400 mt-1.5 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> {selectedGooglePlace.name}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setNotOnGoogle(true); setSelectedGooglePlace(null); }}
+                      className="text-xs text-blue-400 hover:text-blue-300 mt-2 transition-colors"
+                    >
+                      Not on Google yet?
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-gray-300 text-sm">Business Name</Label>
+                      <Input
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="Your Business Name"
+                        className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300 text-sm">Website URL <span className="text-gray-500">(optional)</span></Label>
+                      <Input
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://yourbusiness.com"
+                        className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">We'll use this to pull your branding and social links.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotOnGoogle(false)}
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      ← Search Google instead
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -957,18 +995,6 @@ const Onboarding = () => {
                 <p className="text-xs text-gray-500 italic">
                   Pro Tip: High-resolution PNGs work best. Our design team will manually optimize your logo for the best print quality.
                 </p>
-              </div>
-
-              {/* Shipping Address */}
-              <div>
-                <Label className="text-gray-300 text-sm">Shipping Address</Label>
-                <Input
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="123 Main St, City, State ZIP"
-                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
-                />
-                <p className="text-xs text-gray-500 mt-1">Where should we ship your cards?</p>
               </div>
 
               {/* Due Today receipt */}
