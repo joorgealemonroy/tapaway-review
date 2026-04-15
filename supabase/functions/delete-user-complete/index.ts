@@ -59,6 +59,31 @@ Deno.serve(async (req) => {
 
     const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly } = await req.json();
 
+    // ──── PERMANENT SAFEGUARD ────────────────────────────────────────────
+    // Resolve the target user's email and block deletion of the super admin
+    const PROTECTED_EMAIL = "tap@tapaway.co";
+
+    const resolveTargetEmail = async (targetUserId: string | undefined): Promise<string | null> => {
+      if (!targetUserId) return null;
+      const { data } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+      return data?.user?.email ?? null;
+    };
+
+    // Check all possible target user IDs
+    const targetUserId = userId || (restaurantId ? null : undefined);
+    
+    if (targetUserId) {
+      const targetEmail = await resolveTargetEmail(targetUserId);
+      if (targetEmail?.toLowerCase() === PROTECTED_EMAIL) {
+        console.error(`BLOCKED: Attempt to delete protected super admin account ${PROTECTED_EMAIL}`);
+        return new Response(JSON.stringify({ error: "Cannot delete super admin account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // ──── END SAFEGUARD ──────────────────────────────────────────────────
+
     // Handle orphan auth user deletion (no profile, no restaurant)
     if (deleteAuthUserOnly && userId) {
       if (userId === caller.id) {
