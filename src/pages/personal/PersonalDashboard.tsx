@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   ArrowLeftRight,
   Smartphone,
+  CreditCard,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -699,7 +700,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-7">
+          <TabsList className="hidden md:grid w-full grid-cols-8">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -737,6 +738,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="plan" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Plan</span>
+            </TabsTrigger>
+            <TabsTrigger value="cards" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Cards</span>
             </TabsTrigger>
             {allProfiles.length > 1 && (
               <DropdownMenu>
