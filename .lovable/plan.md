@@ -1,50 +1,54 @@
 
 
-# Fix Magic Onboarding: Logo, Socials, and Photo Tiles
+# Fix Solo Pro Users Landing on Wrong Dashboard
 
-## Problems Found
+## Root Cause
 
-1. **No profile photo**: Brandfetch is skipped because Tacos El Guero has no website in Google Places. The function never falls back to using a Google Places photo as the profile picture.
+Solo Pro onboarding creates **both** a `restaurants` row (with `onboarding_completed: true`) **and** a `personal_profiles` row (via magic-onboarding). When the user hits `/dashboard`, the routing logic in `Dashboard.tsx` checks `hasCompletedRestaurant` first (line 76), which is `true`, so it always shows the Restaurant (Business Plus) dashboard — even for Solo Pro users.
 
-2. **No Instagram/TikTok**: `discoverSocials()` is a stub — it returns empty despite `OUTSCRAPER_API_KEY` being configured. The Google Places API (v1) also supports returning social media links via the `websiteUri` field mask, but we're not requesting them.
+## Fix
 
-3. **Blank tile images**: The thumbnail URLs use the Google Places media endpoint with the API key inline. These URLs likely fail to load in the browser because the Places API media endpoint returns a redirect that requires proper headers, or the key has HTTP referrer restrictions. The images need to be downloaded server-side and re-uploaded to Supabase Storage.
+Two changes needed:
 
-## Implementation
+### 1. Dashboard routing: check `plan_type` on restaurant row (`src/pages/Dashboard.tsx`)
 
-### 1. Fetch social links from Google Places API
-The Google Places API (New) supports field masks like `googleMapsLinks` and also embeds social profiles. Update the `X-Goog-FieldMask` to include `googleMapsUri` for directions. For Instagram/TikTok, we can attempt Outscraper's Google Maps API which returns social media profiles.
+Update the `decide()` function to fetch `plan_type` alongside `id, onboarding_completed`. If the restaurant's `plan_type` is `'solo'`, treat it the same as a personal-only account and route to the Lite dashboard.
 
-### 2. Implement Outscraper social discovery
-The `OUTSCRAPER_API_KEY` is already configured. Use Outscraper's Google Maps enrichment API to fetch social profiles for the business by place ID. This returns Instagram, TikTok, Facebook, etc. URLs.
+```typescript
+// Line ~57: add plan_type to select
+.select("id, onboarding_completed, plan_type")
 
-### 3. Download and re-upload Google photos to Supabase Storage
-Instead of storing raw Google Places media URLs (which expire or get blocked), download the photos server-side and upload them to the `personal-photos` bucket. Use the resulting public URLs for `thumbnail_bg_url`.
+// Line ~71-82: update logic
+const hasCompletedRestaurant = restaurantResult.data?.some(
+  r => r.onboarding_completed && r.plan_type !== 'solo'
+);
+```
 
-### 4. Use first Google photo as profile photo fallback
-When Brandfetch returns no logo (no website), use the first Google Places photo as the `profile_photo_url`.
+This ensures Solo Pro users with a completed restaurant record still get routed to the Lite (personal) dashboard.
 
-### 5. Hard-code known social links as fallback matching
-For cases where Outscraper doesn't return socials, attempt a simple Instagram/TikTok URL probe using the business slug (e.g., `tacos.el.guero.fontana`). This is a best-effort enhancement.
+### 2. Success screen: route based on plan (`src/pages/Onboarding.tsx`)
+
+The success screen "Go to Dashboard" button (line 720) always navigates to `/dashboard`. Update it to check `resolvedDashboardType` / plan and navigate to `/dashboard?type=lite&welcome=true` for Solo Pro users.
+
+Store the resolved dashboard type in component state when `completeSetup` runs, then use it in the success screen:
+
+```typescript
+// In success screen button:
+onClick={() => navigate(
+  dashboardType === 'personal' || selectedPlan === 'solo'
+    ? "/dashboard?type=lite&welcome=true"
+    : "/dashboard"
+)}
+```
+
+### 3. Init redirect: same fix (`src/pages/Onboarding.tsx`)
+
+Line 143 (`if (restaurant?.onboarding_completed) { navigate("/dashboard"); }`) should also check plan_type. Fetch `plan_type` in the init query and route Solo Pro to `/dashboard?type=lite`.
 
 ## Files Changed
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/functions/magic-onboarding/index.ts` | Implement Outscraper social fetch, photo re-upload to storage, profile photo fallback from Google |
-
-## Technical Details
-
-**Outscraper API call** (using place ID):
-```
-GET https://api.app.outscraper.com/maps/search-v3?query=place_id:ChIJk9NuMWJNw4ARzKokimctM54&fields=instagram,tiktok,facebook
-```
-
-**Photo re-upload flow**:
-1. Fetch photo binary from Google Places media URL (server-side, no referrer issues)
-2. Upload to `personal-photos` bucket as `{profileId}-tile-{index}.jpg`
-3. Use the Supabase public URL as `thumbnail_bg_url`
-
-**Profile photo fallback**:
-- If Brandfetch returns no logo AND Google has photos, use the first re-uploaded photo as `profile_photo_url`
+| `src/pages/Dashboard.tsx` | Fetch `plan_type`, exclude `solo` from business routing |
+| `src/pages/Onboarding.tsx` | Success screen + init redirect: route Solo Pro to Lite dashboard |
 
