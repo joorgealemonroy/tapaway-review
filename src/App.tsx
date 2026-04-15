@@ -29,7 +29,7 @@ const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileR
 const Demo = lazy(() => import("./pages/Demo"));
 const DashboardSelector = lazy(() => import("./pages/DashboardSelector"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
-const Paywall = lazy(() => import("./pages/Paywall"));
+
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ReviewHub = lazy(() => import("./pages/ReviewHub"));
 const RepCheckoutSuccess = lazy(() => import("./pages/RepCheckoutSuccess"));
