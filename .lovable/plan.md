@@ -1,137 +1,78 @@
 
 
-# Magic Onboarding: Auto-Page Generator
+# Add Email Sign-Up Option to B2B Onboarding
 
 ## Summary
-Build a "Magic Onboarding" system with a premium loading overlay and a backend edge function that auto-generates a professional profile/dashboard by fetching brand assets from Google Places + Brandfetch, with graceful fallbacks when API keys are missing.
-
----
+Add a "Continue with Email" option below the Google/Apple OAuth buttons. The email flow creates the user server-side using the Service Role key (bypassing email confirmation), then proceeds through the same setup pipeline (restaurant creation, magic onboarding, Stripe checkout). After checkout, a magic link email is sent so the user can set a real password later.
 
 ## Architecture
 
 ```text
-User submits business name + address
-        │
-        ▼
-  ┌─────────────────────┐
-  │  Magic Loading UI   │  (full-screen overlay with cycling status text)
-  │  4 animated phases  │
-  └────────┬────────────┘
-           │ POST /magic-onboarding
-           ▼
-  ┌─────────────────────────────────────────┐
-  │  magic-onboarding Edge Function         │
-  │  1. Google Places → placeId + website   │
-  │  2. Brandfetch → logo + brand colors    │
-  │  3. Social discovery (if key available) │
-  │  4. Insert personal_profiles + links    │
-  └────────┬────────────────────────────────┘
-           │ returns { profileId, username }
-           ▼
-  Redirect → /dashboard?welcome=true
+User clicks "or continue with email"
+  → enters email → clicks "Start My Free Trial"
+  → POST /create-email-signup (new edge function)
+     ├── Creates user via admin.createUser (auto-confirmed)
+     ├── Generates a session via admin.generateLink
+     └── Returns { access_token, refresh_token }
+  → Client sets session via supabase.auth.setSession()
+  → Existing completeSetup useEffect fires
+     ├── Creates restaurant record
+     ├── Runs magic-onboarding (if Solo Pro)
+     ├── Redirects to Stripe checkout
+  → After Stripe return, send magic link email for password setup
 ```
 
----
+## Changes
 
-## Phase 1: Database Changes
+### 1. New Edge Function: `create-email-signup`
 
-**Add column** to `personal_links`:
-- `thumbnail_bg_url TEXT` — scraped social post image used as tile background
+**File:** `supabase/functions/create-email-signup/index.ts`
 
-No other schema changes needed — `personal_profiles` already has `background_color`, `profile_photo_url` (for logo), `header_color`, `text_color`, `button_theme`.
+- Accepts `{ email, businessName }` (no JWT required — public endpoint)
+- Rate-limited (5 requests per IP per hour)
+- Uses Service Role `supabase.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() })` — this auto-confirms the email so the user is never blocked
+- If user already exists, falls back to `signInWithPassword` error message prompting login
+- Generates a session using `admin.generateLink({ type: 'magiclink', email })` — extracts the token, then uses it to get a valid session
+- Actually: simpler approach — after `createUser`, call `supabase.auth.admin.generateLink({ type: 'signup', email })` to get a confirmation link token, then return it for the client to exchange. **Or even simpler**: since `email_confirm: true` is set, the function returns the user ID and a sign-in link
+- **Simplest reliable approach**: Create user with `admin.createUser({ email, email_confirm: true, password })` where password is a random UUID. Return `{ userId, tempPassword }` so the client can immediately `signInWithPassword({ email, password: tempPassword })` to get a session. The temp password is single-use effectively since the magic link email will prompt them to set a real one.
 
----
+### 2. Frontend: `Onboarding.tsx`
 
-## Phase 2: Edge Function — `magic-onboarding`
+**New state:**
+- `showEmailInput` (boolean)
+- `emailSignupAddress` (string)
+- `emailSubmitting` (boolean)
 
-**File**: `supabase/functions/magic-onboarding/index.ts`
+**UI addition** (after the Apple button, before the Back button):
+- A smaller "or continue with email" text link with Mail icon
+- When clicked, reveals an email input + "Start My Free Trial" button with fade-in animation
 
-Accepts: `{ businessName, address, placeId?, userId, email, planType, dashboardType }`
+**`handleEmailSignup` function:**
+1. Validate email format
+2. Save onboarding data (same as `handleOAuth`)
+3. Call `create-email-signup` edge function
+4. Use returned credentials to `supabase.auth.signInWithPassword()` — this sets the session
+5. The existing `completeSetup` useEffect handles the rest (restaurant, magic onboarding, Stripe)
+6. Note: the `signInWithPassword` call goes through the normal Supabase client (not blocked by auth guard since `signInWithPassword` is not in the blocked list)
 
-Steps:
-1. **Google Places** — use existing `GOOGLE_PLACES_API_KEY_SERVER` to get Place ID (if not already provided), website URL, and business photos
-2. **Brandfetch** — if `BRANDFETCH_API_KEY` secret exists, call `https://api.brandfetch.io/v2/brands/{domain}` to get logo URL + brand colors. If key missing → default black background, no logo
-3. **Social Discovery** — if `OUTSCRAPER_API_KEY` secret exists, search for Instagram/TikTok URLs. If missing → skip social tiles
-4. **Media Scrape** — if social URLs found and scraper key exists, fetch 2 recent post images. If missing → use Google Places photos as fallback tile images
-5. **DB Insert** — create `personal_profiles` record with brand colors, create `personal_links` records (Google Review, Instagram, TikTok, Website) with `thumbnail_bg_url` for social tiles
+**Post-Stripe magic link:** After checkout verification succeeds (around line 155), call `send-magic-link-email` to send the user a password setup link if they signed up via email (detect by checking if `session.user.app_metadata.provider === 'email'`).
 
-**Config**: `verify_jwt = true` (requires authenticated user)
+### 3. Config
 
-Fallback defaults: black background (#0F172A), white text, no logo, standard link list without social tiles.
-
----
-
-## Phase 3: Magic Loading UI
-
-**File**: `src/components/onboarding/MagicLoadingOverlay.tsx`
-
-- Full-screen dark overlay with centered content
-- Animated TapAway logo at top
-- Cycling text with fade transitions (2.5s per step):
-  1. "Locating your Google Business Profile..."
-  2. "Fetching your brand colors and logo..."
-  3. "Pulling recent social media images..."
-  4. "Designing your custom Tapaway hub..."
-- Subtle progress bar advancing through 4 stages
-- On edge function return → auto-redirect to `/dashboard?welcome=true`
-
----
-
-## Phase 4: Integration into Onboarding Flows
-
-### B2B Flow (`Onboarding.tsx`)
-- After OAuth + restaurant creation, if `dashboardType === 'personal'`, call `magic-onboarding` and show the overlay instead of the current spinner
-- For `dashboardType === 'restaurant'`, keep existing flow unchanged
-
-### Personal Flow (`PersonalSignup.tsx`)
-- After account creation step, call `magic-onboarding` with scraped data
-- Show overlay during processing
-
----
-
-## Phase 5: Pro Hub Template
-
-**File**: `src/components/personal/ProHubTemplate.tsx`
-
-A rendering component used by `PersonalProfilePage.tsx` when profile was created via magic onboarding (detected by a `template_type = 'pro'` value on the profile, or by presence of `thumbnail_bg_url` on social links).
-
-Layout constraints enforced:
-- **A. Background & Logo**: Solid brand color background. Logo in frosted glass container (`backdrop-blur-md`, `bg-white/10`, `rounded-2xl`, max-width constrained)
-- **B. Social Tiles**: 2-column grid of `aspect-square` cards with `thumbnail_bg_url` as `object-cover` background, gradient overlay (black→transparent bottom→top), platform icon top-left, label bottom-center in bold white uppercase
-- **C. Standard Links**: Full-width `rounded-xl` rectangles below tiles. Google Review gets white bg + dark text + Google G icon. Others get brand secondary color or dark grey with white text + arrow icon
-
----
-
-## Phase 6: Dashboard Editing Constraints
-
-In `DashboardUnifiedContent.tsx` / link editor:
-- Social tile links with `thumbnail_bg_url` show an image swap button but lock grid_size to `half` and display_style to `card`
-- Prevent changing structural layout for pro-template links
-- Allow swapping background image only
-
----
+- Add `[functions.create-email-signup]` with `verify_jwt = false` to `supabase/config.toml`
 
 ## Files Changed/Created
 
 | File | Action |
 |------|--------|
-| `supabase/functions/magic-onboarding/index.ts` | Create |
+| `supabase/functions/create-email-signup/index.ts` | Create |
 | `supabase/config.toml` | Add function config |
-| `src/components/onboarding/MagicLoadingOverlay.tsx` | Create |
-| `src/components/personal/ProHubTemplate.tsx` | Create |
-| `src/pages/Onboarding.tsx` | Integrate overlay for personal dashboard type |
-| `src/pages/personal/PersonalSignup.tsx` | Integrate overlay |
-| `src/pages/personal/PersonalProfilePage.tsx` | Use ProHubTemplate when applicable |
-| `src/components/personal/DashboardUnifiedContent.tsx` | Lock social tile editing |
-| DB migration | Add `thumbnail_bg_url` to `personal_links` |
+| `src/pages/Onboarding.tsx` | Add email UI + handler + post-checkout magic link |
 
----
-
-## API Keys Needed (with fallbacks)
-
-- `BRANDFETCH_API_KEY` — optional, falls back to black bg + no logo
-- `OUTSCRAPER_API_KEY` — optional, falls back to no social discovery
-- `GOOGLE_PLACES_API_KEY_SERVER` — already configured
-
-The edge function gracefully degrades at each step. Without any external keys, users still get a clean dark-themed profile with their Google Review link.
+## Security Notes
+- The edge function uses the Service Role key server-side only — never exposed to client
+- Rate limiting prevents abuse of account creation
+- The temp password is a cryptographically random UUID — effectively unguessable
+- Magic link email sent post-checkout ensures the user sets a real password
+- `email_confirm: true` in `createUser` bypasses confirmation requirement per the user's explicit request
 
