@@ -7,7 +7,12 @@ import {
   Mail,
   Share2,
   Smartphone,
-  UserPlus
+  UserPlus,
+  Star,
+  Link as LinkIcon,
+  UtensilsCrossed,
+  BarChart3,
+  ShoppingBag
 } from "lucide-react";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
