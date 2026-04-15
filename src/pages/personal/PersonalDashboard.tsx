@@ -24,7 +24,6 @@ import {
   ArrowLeftRight,
   Smartphone,
   CreditCard,
-  Megaphone,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
