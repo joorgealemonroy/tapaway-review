@@ -1,31 +1,39 @@
 
 
-# Fix: Analytics Access for Paid Plan Types
+# Connect sugarbloomcakery to Stripe Billing
 
-## Root Cause
-The `hasProAccess` function in `src/components/personal/AdvancedAnalyticsTab.tsx` (line 46) has a hardcoded allowlist that is missing several paid plan types:
+## Problem
+The `personal_profiles` record for `sugarbloomcakery` has `plan_type: monthly` and `subscription_status: active`, but the three Stripe fields are null:
+- `stripe_customer_id` → null
+- `stripe_subscription_id` → null  
+- `stripe_billing_email` → null
 
-```typescript
-// Current - missing 'monthly', 'yearly', 'business_lite', 'plus_monthly'
-const hasProAccess = (plan, status) => {
-  if (plan && ["pro", "premium", "vip", "founding_pro", "paid"].includes(plan)) return true;
-  if (status === "trialing") return true;
-  return false;
-};
+This causes the billing tab to show "Set up Billing" instead of "Manage Subscription".
+
+## Plan
+
+### Step 1: Look up Stripe customer by email
+Use the `create-billing-portal` or a direct Stripe API call via edge function to find the customer record for `eric92.aguilar@yahoo.com`. This will return the `cus_xxx` customer ID and associated `sub_xxx` subscription ID.
+
+I'll invoke the Stripe API through an edge function curl to:
+```
+stripe.customers.list({ email: 'eric92.aguilar@yahoo.com', limit: 1 })
+```
+Then retrieve the subscription from that customer.
+
+### Step 2: Update the database record
+Once I have the real Stripe IDs, update the profile using the insert tool:
+```sql
+UPDATE personal_profiles 
+SET stripe_billing_email = 'eric92.aguilar@yahoo.com',
+    stripe_customer_id = 'cus_XXXXX',
+    stripe_subscription_id = 'sub_XXXXX'
+WHERE id = 'cc06cb55-87ab-4dc7-88f7-073d3bb38d27';
 ```
 
-@sugarbloomcakery has `plan_type = 'monthly'` and `subscription_status = 'active'`, but `'monthly'` is not in the list so they get locked out.
+This will make the "Manage Subscription" button appear on the billing tab, linking to the Stripe customer portal where the user can manage their plan.
 
-## Fix (1 file, 1 line)
-Update `hasProAccess` in `src/components/personal/AdvancedAnalyticsTab.tsx` to include all paid plan types AND also grant access when `subscription_status === 'active'`:
-
-```typescript
-const hasProAccess = (plan: string | null, status: string | null | undefined) => {
-  if (!!plan && ["pro", "premium", "vip", "founding_pro", "paid", "monthly", "yearly", "business_lite", "plus_monthly"].includes(plan)) return true;
-  if (status === "trialing" || status === "active") return true;
-  return false;
-};
-```
-
-Adding `status === 'active'` as a catch-all ensures any future plan type with an active subscription automatically gets access, preventing this class of bug from recurring.
+### Files changed
+- No code changes needed — the frontend already handles this correctly when the fields are populated.
+- Database update only (via insert tool).
 
