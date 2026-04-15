@@ -72,6 +72,7 @@ const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
+const Socials = lazy(() => import("./pages/Socials"));
 
 
 // Minimal loading spinner
