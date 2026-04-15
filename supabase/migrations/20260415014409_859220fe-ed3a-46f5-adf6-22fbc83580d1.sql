@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS contact_display_style text NOT NULL DEFAULT 'icon';
