@@ -1,23 +1,27 @@
 
 
-# Restore White Pill for Google Review Button
+# Fix Card Club Activation — DB Fix + Systemic Code Fix
 
 ## Problem
-The Google Review button currently uses the same glassmorphism style as all other links. The user wants it to stand out with a **white solid background**, dark text, and the colorful Google "G" icon — as shown in their screenshot.
+
+The `addExtraCard` field is collected during signup and saved to sessionStorage, but **never read or acted upon** after payment. The Card Club flag (`has_card_addon`) is only set by the Stripe webhook for a *separate* `card_addon` checkout — meaning anyone who selected Card Club during initial signup never gets it activated.
+
+**NY Sports Pizza** (profile `8d87b827-5858-473b-b843-4a4e342accf7`) has `has_card_addon: false` despite selecting it during signup.
 
 ## Changes
 
-Add `google_review` detection in all three rendering files. When a link is a Google Review, use `bg-white text-gray-900` instead of the glass style.
+### 1. Quick DB Fix — Activate Card Club for NY Sports Pizza
+Run a migration to set `has_card_addon = true` for profile ID `8d87b827-5858-473b-b843-4a4e342accf7`.
+
+### 2. Systemic Fix — `PersonalSignupComplete.tsx`
+After the profile is created in the signup completion flow (~line 200+), check the saved `addExtraCard` flag from sessionStorage. If `true`, update the newly created profile to set `has_card_addon = true`.
+
+### 3. Systemic Fix — `CheckoutStep.tsx` (free/VIP direct creation path)
+In the `verifyOTPAndCreateAccount` function (~line 460 profile insert), if `formData.addExtraCard` is `true`, include `has_card_addon: true` in the profile insert data.
 
 | File | Change |
 |------|--------|
-| `src/pages/personal/PersonalProfilePage.tsx` | In ProfileLink (~line 250), detect `link.link_type === 'google_review'`. If true: white bg, dark text, colorful Google icon circle. |
-| `src/components/personal/ProfilePreviewRenderer.tsx` | In renderLink (~line 486), same detection — white bg, dark text for Google Review. |
-| `src/components/personal/ProHubTemplate.tsx` | In standard links loop (~line 168), same detection — white bg, dark text for Google Review. |
-
-### Google Review style
-```
-bg-white hover:bg-gray-100 text-gray-900 border border-white/20 shadow-sm
-```
-Icon stays as the colorful Google "G" on its platform background. All other links remain glassmorphism unchanged.
+| DB Migration | `UPDATE personal_profiles SET has_card_addon = true WHERE id = '8d87b827-...'` |
+| `src/pages/personal/PersonalSignupComplete.tsx` | After profile creation, check `savedData.addExtraCard` and set `has_card_addon = true` |
+| `src/components/personal/signup/CheckoutStep.tsx` | In `profileData` insert object, add `has_card_addon: formData.addExtraCard || false` |
 
