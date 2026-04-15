@@ -167,20 +167,25 @@ export const ProHubTemplate = memo(({
       <div className="w-full max-w-sm space-y-3 relative z-10">
         {standardLinks.map((link) => {
           const config = getPlatformConfig(link.link_type);
+          const isGoogleReview = link.link_type === 'google_review';
 
           return (
             <button
               key={link.id}
               onClick={() => handleClick(link.url)}
-              className="w-full rounded-xl px-5 py-4 flex items-center justify-between transition-all group bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 text-white"
+              className={`w-full rounded-xl px-5 py-4 flex items-center justify-between transition-all group ${
+                isGoogleReview
+                  ? 'bg-white hover:bg-gray-100 text-gray-900 border border-white/20 shadow-sm'
+                  : 'bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 text-white'
+              }`}
             >
               <div className="flex items-center gap-3">
                 {config?.icon && (
-                  <config.icon className="w-5 h-5 shrink-0 text-white/80" />
+                  <config.icon className={`w-5 h-5 shrink-0 ${isGoogleReview ? 'text-gray-700' : 'text-white/80'}`} />
                 )}
                 <span className="font-semibold text-sm">{link.label}</span>
               </div>
-              <ExternalLink className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity text-white/60" />
+              <ExternalLink className={`w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity ${isGoogleReview ? 'text-gray-400' : 'text-white/60'}`} />
             </button>
           );
         })}
