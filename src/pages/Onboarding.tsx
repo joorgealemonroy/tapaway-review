@@ -493,7 +493,7 @@ const Onboarding = () => {
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).eq("id", rId);
       } else {
-        const { data: created } = await supabase.from("restaurants").insert({
+        const { data: created, error: insertErr } = await supabase.from("restaurants").insert({
           owner_id: uid,
           restaurant_name: bName,
           custom_slug: slug,
@@ -505,7 +505,28 @@ const Onboarding = () => {
           trial_ends_at: trialEndsAt,
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).select("id").single();
-        rId = created?.id;
+
+        if (insertErr && insertErr.code === '23505') {
+          // Duplicate slug — find existing row and update it
+          console.log("[onboarding] Slug collision, falling back to upsert-by-slug");
+          const { data: existing2 } = await supabase.from("restaurants")
+            .select("id").eq("custom_slug", slug).eq("owner_id", uid).maybeSingle();
+          if (existing2?.id) {
+            rId = existing2.id;
+            await supabase.from("restaurants").update({
+              restaurant_name: bName,
+              email: session.user.email,
+              subscription_status: "trialing",
+              onboarding_step: 3,
+              plan_type: plan,
+              has_loss_protection: protection,
+              trial_ends_at: trialEndsAt,
+              ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
+            }).eq("id", rId);
+          }
+        } else {
+          rId = created?.id;
+        }
       }
       if (!rId) { toast.error("Failed to create account"); setIsLoading(false); setIsCompletingSetup(false); return; }
       setRestaurantId(rId);

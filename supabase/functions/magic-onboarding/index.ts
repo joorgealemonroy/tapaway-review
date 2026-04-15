@@ -296,7 +296,7 @@ serve(async (req) => {
         url: socialData.instagramUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'card',
+        display_style: 'grid',
         grid_size: 'half',
         thumbnail_bg_url: socialData.instagramImages[0] || googleData.photoUrls[0] || null,
       });
@@ -311,7 +311,7 @@ serve(async (req) => {
         url: socialData.tiktokUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'card',
+        display_style: 'grid',
         grid_size: 'half',
         thumbnail_bg_url: socialData.tiktokImages[0] || googleData.photoUrls[1] || null,
       });
@@ -326,7 +326,7 @@ serve(async (req) => {
         url: googleData.websiteUrl || '#',
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'card',
+        display_style: 'grid',
         grid_size: 'half',
         thumbnail_bg_url: googleData.photoUrls[0],
       });
@@ -337,7 +337,7 @@ serve(async (req) => {
         url: googleData.websiteUrl || '#',
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'card',
+        display_style: 'grid',
         grid_size: 'half',
         thumbnail_bg_url: googleData.photoUrls[1],
       });

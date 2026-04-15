@@ -38,19 +38,21 @@ export const DeveloperResetButton = () => {
       if (profiles && profiles.length > 0) {
         const profileIds = profiles.map((p) => p.id);
 
-        // Delete personal_links
-        await supabase.from("personal_links").delete().in("profile_id", profileIds);
-        // Delete personal_blocks
-        await supabase.from("personal_blocks").delete().in("profile_id", profileIds);
-        // Delete lead_forms
-        await supabase.from("lead_forms").delete().in("profile_id", profileIds);
+        const { error: linksErr } = await supabase.from("personal_links").delete().in("profile_id", profileIds);
+        if (linksErr) console.error("[dev-reset] links delete failed:", linksErr);
+        const { error: blocksErr } = await supabase.from("personal_blocks").delete().in("profile_id", profileIds);
+        if (blocksErr) console.error("[dev-reset] blocks delete failed:", blocksErr);
+        const { error: leadsErr } = await supabase.from("lead_forms").delete().in("profile_id", profileIds);
+        if (leadsErr) console.error("[dev-reset] lead_forms delete failed:", leadsErr);
       }
 
       // 2. Delete personal_profiles
-      await supabase.from("personal_profiles").delete().eq("user_id", uid);
+      const { error: profilesErr } = await supabase.from("personal_profiles").delete().eq("user_id", uid);
+      if (profilesErr) console.error("[dev-reset] profiles delete failed:", profilesErr);
 
       // 3. Delete restaurants
-      await supabase.from("restaurants").delete().eq("owner_id", uid);
+      const { error: restErr } = await supabase.from("restaurants").delete().eq("owner_id", uid);
+      if (restErr) console.error("[dev-reset] restaurants delete failed:", restErr);
 
       // 4. Clear localStorage onboarding data
       localStorage.removeItem("onboarding_data");
