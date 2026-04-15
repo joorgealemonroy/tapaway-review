@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Package, Crown, Minus, Plus, Loader2, MapPin } from "lucide-react";
+import { CreditCard, Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "lucide-react";
 import { CARD_ADDON_PRICE_ID, CARD_ONETIME_PRICE_ID } from "@/lib/constants";
 
 interface CardsTabProps {
@@ -15,6 +15,7 @@ interface CardsTabProps {
   hasCardAddon: boolean;
   planType: string | null;
   stripeCustomerId: string | null;
+  fullName: string;
 }
 
 interface CardRequest {
@@ -38,13 +39,17 @@ interface ShippingAddress {
 
 const MONTHLY_LIMIT = 3;
 
-export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCustomerId }: CardsTabProps) => {
+const isAddressComplete = (addr: ShippingAddress) =>
+  !!(addr.name.trim() && addr.line1.trim() && addr.city.trim() && addr.state.trim() && addr.postal_code.trim());
+
+export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCustomerId, fullName }: CardsTabProps) => {
   const [requests, setRequests] = useState<CardRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [editingAddress, setEditingAddress] = useState(false);
   const [address, setAddress] = useState<ShippingAddress>({
-    name: "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
+    name: fullName || "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
   });
 
   useEffect(() => { loadRequests(); }, [profileId]);
@@ -52,7 +57,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   const loadRequests = async () => {
     const { data } = await supabase
       .from("personal_card_requests")
-      .select("id, quantity, status, created_at, shipping_city, shipping_state")
+      .select("id, quantity, status, created_at, shipping_name, shipping_address_line1, shipping_address_line2, shipping_city, shipping_state, shipping_postal_code")
       .eq("profile_id", profileId)
       .order("created_at", { ascending: false });
     setRequests((data as CardRequest[]) || []);
@@ -60,17 +65,21 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     // Pre-fill address from last request
     if (data && data.length > 0) {
       const last = data[0] as any;
-      if (last.shipping_name || last.shipping_address_line1) {
-        setAddress(prev => ({
-          ...prev,
-          name: last.shipping_name || prev.name,
-          line1: last.shipping_address_line1 || prev.line1,
-          line2: last.shipping_address_line2 || prev.line2,
-          city: last.shipping_city || prev.city,
-          state: last.shipping_state || prev.state,
-          postal_code: last.shipping_postal_code || prev.postal_code,
-        }));
-      }
+      const prefilled: ShippingAddress = {
+        name: last.shipping_name || fullName || "",
+        line1: last.shipping_address_line1 || "",
+        line2: last.shipping_address_line2 || "",
+        city: last.shipping_city || "",
+        state: last.shipping_state || "",
+        postal_code: last.shipping_postal_code || "",
+        country: "US",
+      };
+      setAddress(prefilled);
+      // Only show form expanded if address is incomplete
+      setEditingAddress(!isAddressComplete(prefilled));
+    } else {
+      // First time — expand form
+      setEditingAddress(true);
     }
     setLoading(false);
   };
@@ -85,8 +94,9 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   const remaining = Math.max(0, MONTHLY_LIMIT - usedThisMonth);
 
   const validateAddress = () => {
-    if (!address.name.trim() || !address.line1.trim() || !address.city.trim() || !address.state.trim() || !address.postal_code.trim()) {
+    if (!isAddressComplete(address)) {
       toast.error("Please fill in all shipping address fields");
+      setEditingAddress(true);
       return false;
     }
     return true;
@@ -130,11 +140,32 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     }
   };
 
+  const AddressSummary = () => (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+      <div className="flex items-center gap-2 min-w-0">
+        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+        <p className="text-sm truncate">
+          {address.name} · {address.line1}, {address.city} {address.state} {address.postal_code}
+        </p>
+      </div>
+      <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={() => setEditingAddress(true)}>
+        <Pencil className="h-3 w-3 mr-1" /> Edit
+      </Button>
+    </div>
+  );
+
   const AddressForm = () => (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium">Shipping Address</Label>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm font-medium">Shipping Address</Label>
+        </div>
+        {isAddressComplete(address) && (
+          <Button variant="ghost" size="sm" className="text-xs" onClick={() => setEditingAddress(false)}>
+            <Check className="h-3 w-3 mr-1" /> Done
+          </Button>
+        )}
       </div>
       <Input placeholder="Full name" value={address.name} onChange={e => setAddress(a => ({ ...a, name: e.target.value }))} />
       <Input placeholder="Address line 1" value={address.line1} onChange={e => setAddress(a => ({ ...a, line1: e.target.value }))} />
@@ -185,10 +216,10 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
                     </Button>
                   </div>
                 </div>
-                <AddressForm />
+                {editingAddress ? <AddressForm /> : <AddressSummary />}
                 <Button onClick={handleFreeRequest} disabled={submitting} className="w-full">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
-                  Request Cards (Free)
+                  Confirm Request
                 </Button>
               </>
             ) : (
@@ -211,7 +242,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <AddressForm />
+              {editingAddress ? <AddressForm /> : <AddressSummary />}
               <Button onClick={() => handleCheckout("subscribe_addon")} disabled={submitting} className="w-full">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
                 Subscribe — $5/mo
@@ -237,7 +268,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <AddressForm />
+              {editingAddress ? <AddressForm /> : <AddressSummary />}
               <Button variant="outline" onClick={() => handleCheckout("onetime")} disabled={submitting} className="w-full">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
                 Buy 3 Cards — $10
