@@ -109,6 +109,13 @@ function ProfilePreviewRendererComponent({
   const backgroundColor = profile.background_color || "#000000";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
   
+  // Premium dark base with brand glow for flat dark backgrounds
+  const isDefaultDarkBg = !isGradientBg && isColorDark(backgroundColor);
+  const effectiveBgColor = isDefaultDarkBg ? '#020617' : backgroundColor;
+  const brandGlowStyle = isDefaultDarkBg && backgroundColor !== '#020617'
+    ? { background: `radial-gradient(ellipse at top center, ${backgroundColor}30 0%, transparent 60%)` }
+    : undefined;
+  
   // Banner for premium users (header_type === "banner")
   // Uses profile_photo_url as the banner (no separate upload)
   const hasBanner = headerType === "banner";
