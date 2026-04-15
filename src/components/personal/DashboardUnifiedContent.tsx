@@ -1,6 +1,7 @@
 import { useState, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { Switch } from "@/components/ui/switch";
 import { 
   GripVertical, 
   Trash2, 
@@ -15,6 +16,7 @@ import {
   MousePointerClick,
   ShoppingBag,
   MoreHorizontal,
+  ExternalLink,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -857,19 +859,26 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
                   
-                  className={`flex items-center gap-2 p-2 bg-card rounded-lg border transition-all touch-none select-none ${
-                    isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
-                  } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all touch-none select-none backdrop-blur-sm ${
+                    isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${isFeatured ? "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20" : "border-border/50 bg-card/80"} ${!isActive ? "opacity-40" : ""}`}
                 >
                   <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    <GripVertical className="h-4 w-4 text-muted-foreground/50" />
                   </div>
-                  <div 
-                    className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${!link.pill_color ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
-                    style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
-                  >
-                    {Icon && <Icon className={`h-4 w-4 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
-                  </div>
+                  {/* Thumbnail or platform icon */}
+                  {link.thumbnail_url ? (
+                    <div className="h-9 w-9 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                      <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    </div>
+                  ) : (
+                    <div 
+                      className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${!link.pill_color ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
+                      style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
+                    >
+                      {Icon && <Icon className={`h-4 w-4 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0 select-none pointer-events-none">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm text-foreground select-none truncate">{link.label}</p>
@@ -879,11 +888,21 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         </span>
                       )}
                     </div>
+                    <p className="text-[11px] text-muted-foreground/70 truncate select-none">
+                      {link.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)}
+                    </p>
                   </div>
+                  
+                  {/* Inline active toggle */}
+                  <Switch
+                    checked={isActive}
+                    onCheckedChange={() => toggleLinkVisibility(link.id, link.is_active)}
+                    className="scale-75"
+                  />
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-2 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center">
+                      <button className="p-1.5 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center">
                         <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
@@ -891,10 +910,6 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                       <DropdownMenuItem onClick={() => toggleFeatured(link.id, link.is_featured)}>
                         <Star className={`h-4 w-4 mr-2 ${isFeatured ? "fill-amber-500 text-amber-500" : ""}`} />
                         {isFeatured ? "Unstar" : "Star"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleLinkVisibility(link.id, link.is_active)}>
-                        {isActive ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
-                        {isActive ? "Hide" : "Show"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
                         setEditingLink(convertToPersonalLink(link));
