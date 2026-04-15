@@ -915,6 +915,7 @@ const PersonalDashboard = () => {
               hasCardAddon={profile.has_card_addon || false}
               planType={profile.plan_type}
               stripeCustomerId={profile.stripe_customer_id}
+              fullName={profile.full_name}
             />
           </TabsContent>
         </Tabs>
