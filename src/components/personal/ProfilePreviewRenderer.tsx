@@ -502,6 +502,8 @@ function ProfilePreviewRendererComponent({
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
             <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
           </div>
+        ) : isGoogleReview && Icon ? (
+          <Icon className="h-7 w-7 flex-shrink-0" />
         ) : Icon && (
           <div
             className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform?.gradient || platform?.bgColor || 'bg-white/20'}`}
