@@ -319,6 +319,12 @@ All colors MUST be HSL.
     background-size: 200% 200%;
     animation: holiday-shimmer 3s ease-in-out infinite;
   }
+  
+  /* Red glow pulse for placeholder action-needed tiles */
+  @keyframes red-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(239,68,68,0.4); }
+    50% { box-shadow: 0 0 12px rgba(239,68,68,0.8); }
+  }
 }
 
 /* Prevent iOS copy/paste callout on draggable items */
