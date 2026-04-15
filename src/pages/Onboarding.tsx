@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail } from "lucide-react";
+import { MagicLoadingOverlay } from "@/components/onboarding/MagicLoadingOverlay";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
@@ -81,6 +82,7 @@ const Onboarding = () => {
 
   // Success
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMagicLoading, setShowMagicLoading] = useState(false);
 
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
@@ -442,6 +444,33 @@ const Onboarding = () => {
       // Yelp auto
       try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
 
+      // ── Magic Onboarding for Solo Pro / personal dashboard type ──
+      if (resolvedDashboardType === 'personal' || plan === 'solo') {
+        setShowMagicLoading(true);
+        try {
+          const magicUsername = slug || generateSlug(bName);
+          const { error: magicError } = await supabase.functions.invoke("magic-onboarding", {
+            body: {
+              businessName: bName,
+              address: placeAddress || shippingAddress || '',
+              placeId: placeId || undefined,
+              userId: uid,
+              email: session.user.email || '',
+              username: magicUsername,
+            },
+          });
+          if (magicError) {
+            console.error("[onboarding] Magic onboarding failed (non-blocking):", magicError);
+          } else {
+            console.log("[onboarding] Magic onboarding completed for", magicUsername);
+          }
+        } catch (err) {
+          console.error("[onboarding] Magic onboarding error (non-blocking):", err);
+        }
+        // Don't hide magic loading — it stays until Stripe redirect or success
+      }
+
+
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
         try {
@@ -513,6 +542,10 @@ const Onboarding = () => {
 
   // ── Loading ──
   if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
+    // Show magic loading overlay for personal/solo users during setup
+    if (showMagicLoading && isCompletingSetup) {
+      return <MagicLoadingOverlay isVisible={true} />;
+    }
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

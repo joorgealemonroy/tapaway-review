@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.notify-new-lead]
 verify_jwt = false
+
+[functions.magic-onboarding]
+verify_jwt = true

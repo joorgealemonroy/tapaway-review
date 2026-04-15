@@ -1731,6 +1731,7 @@ export type Database = {
           pill_color: string | null
           profile_id: string
           sort_order: number | null
+          thumbnail_bg_url: string | null
           thumbnail_url: string | null
           url: string
         }
@@ -1749,6 +1750,7 @@ export type Database = {
           pill_color?: string | null
           profile_id: string
           sort_order?: number | null
+          thumbnail_bg_url?: string | null
           thumbnail_url?: string | null
           url: string
         }
@@ -1767,6 +1769,7 @@ export type Database = {
           pill_color?: string | null
           profile_id?: string
           sort_order?: number | null
+          thumbnail_bg_url?: string | null
           thumbnail_url?: string | null
           url?: string
         }

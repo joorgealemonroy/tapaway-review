@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_links ADD COLUMN IF NOT EXISTS thumbnail_bg_url TEXT;

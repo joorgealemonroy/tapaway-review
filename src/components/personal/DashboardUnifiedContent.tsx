@@ -51,6 +51,7 @@ interface DbPersonalLink {
   cover_image_url?: string | null;
   grid_size?: string | null;
   thumbnail_url?: string | null;
+  thumbnail_bg_url?: string | null;
 }
 
 interface PersonalBlock {
