@@ -137,10 +137,14 @@ const Onboarding = () => {
         setUserId(session.user.id);
         const { data: restaurant } = await supabase
           .from("restaurants")
-          .select("id, onboarding_completed")
+          .select("id, onboarding_completed, plan_type")
           .eq("owner_id", session.user.id)
           .maybeSingle();
-        if (restaurant?.onboarding_completed) { navigate("/dashboard"); return; }
+        if (restaurant?.onboarding_completed) {
+          const dest = restaurant.plan_type === 'solo' ? "/dashboard?type=lite" : "/dashboard";
+          navigate(dest);
+          return;
+        }
         if (restaurant) setRestaurantId(restaurant.id);
 
         // Handle return from Stripe checkout
@@ -717,7 +721,7 @@ const Onboarding = () => {
           <h1 className="text-3xl font-black text-white mb-3">You're all set 🎉</h1>
           <p className="text-gray-400 mb-2">Your cards are being prepared and will ship in 1–2 business days.</p>
           <p className="text-gray-500 text-sm mb-8">We'll email you tracking info when they're on the way.</p>
-          <button onClick={() => navigate("/dashboard")} className="w-full max-w-xs mx-auto h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2">
+          <button onClick={() => navigate(dashboardType === 'personal' || selectedPlan === 'solo' ? "/dashboard?type=lite&welcome=true" : "/dashboard")} className="w-full max-w-xs mx-auto h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2">
             Go to Dashboard <ArrowRight className="w-5 h-5" />
           </button>
         </motion.div>
