@@ -1,44 +1,42 @@
 
 
-# Restore Super Admin Account (tap@tapaway.co)
+# Implementation Plan: Contact Card Display Style (Icon vs Button)
 
-## What Happened
-The `tap@tapaway.co` auth user was deleted from the database — it no longer exists in `auth.users`, and the corresponding `user_roles` admin entry is also gone. The auth logs have rotated past the event, so the exact cause is unclear, but it was likely an accidental deletion via the `delete-user-complete` edge function during admin cleanup.
+## Overview
+Add `contact_display_style` toggle to let creators choose between a top-right icon (default) or a full-width inline button for the "Save Contact" action. The user has already run the SQL migration.
 
-## Fix (One-Time)
+## Files to Modify
 
-Create and invoke a temporary edge function `restore-admin` that uses the service role key to:
+### 1. `src/hooks/useProfileCache.ts`
+Add `contact_display_style?: string | null` to the `CachedProfile` interface (after `contact_website`).
 
-1. **Recreate the auth user** via `supabase.auth.admin.createUser()` with:
-   - email: `tap@tapaway.co`
-   - password: `Ilovelovie123!` (from memory)
-   - `email_confirm: true`
-   - `app_metadata: { role: "admin" }`
+### 2. `src/components/personal/DashboardContactCard.tsx`
+- Add `contact_display_style` to `ContactSettings` interface
+- Add `onDisplayStyleChange?: (style: string) => void` to Props for instant preview feedback
+- Add `displayStyle` state initialized from `initialSettings.contact_display_style || 'icon'`
+- Add radio group (using existing RadioGroup component) below the enabled toggle: "Icon (top right)" / "Button (in content)"
+- On radio change: update local state AND call `onDisplayStyleChange` immediately for real-time preview
+- Include `contact_display_style: displayStyle` in `handleSave`
 
-2. **Insert the admin role** into `user_roles` for the new user ID.
+### 3. `src/pages/personal/PersonalDashboard.tsx`
+- Add `contact_display_style` to `PersonalProfile` interface
+- Pass it in `DashboardContactCard` initialSettings
+- Add `onDisplayStyleChange` callback that updates profile state instantly: `setProfile(prev => prev ? { ...prev, contact_display_style: style } : null)`
+- This feeds `ProfilePreviewPanel` immediately via the existing `profile` prop
 
-3. **Re-link any orphaned data** — check if `restaurants`, `fulfillment_orders`, or other tables reference the old owner_id and update them if needed.
+### 4. `src/components/personal/ProfilePreviewPanel.tsx`
+- Add `contact_enabled`, `contact_display_style`, `contact_name`, `button_theme`, `text_color` to `ProfileData` interface (pass-through to renderer)
 
-4. **Delete the edge function** after successful invocation (it's a one-time restore tool).
+### 5. `src/components/personal/ProfilePreviewRenderer.tsx`
+- Add `contact_enabled`, `contact_display_style`, `contact_name`, `button_theme`, `text_color` to `ProfileData` interface
+- After bio section (line ~842), before content section: if `profile.contact_enabled && profile.contact_display_style === 'button'`, render a full-width pill button
+- Button styling: background from `profile.button_theme` (fallback: white on dark, black on light), text auto-contrast via `isColorDark()`, `rounded-full`, `shadow-lg`, `py-3`, `font-semibold`, `UserPlus` icon
 
-## Permanent Safeguard
+### 6. `src/pages/personal/PersonalProfilePage.tsx`
+- **Tooltip suppression** (line ~981): Add guard `if (data?.profile?.contact_display_style === 'button') return;`
+- **Icon hiding** (lines ~1246, ~1298): Wrap contact icon with `&& profile.contact_display_style !== 'button'`
+- **Inline button** (after bio ~line 1389, before links section): Render full-width pill button using `profileAccentColor` for bg, `isColorDark` for text contrast, onClick calls `handleSaveContact`
 
-Add a hard block in `delete-user-complete/index.ts` so that `tap@tapaway.co` can **never** be deleted, regardless of who calls it:
-
-```typescript
-// At the top of the function, after resolving the target user
-if (targetEmail === 'tap@tapaway.co') {
-  return new Response(
-    JSON.stringify({ error: "Cannot delete super admin account" }),
-    { status: 403, headers: corsHeaders }
-  );
-}
-```
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `supabase/functions/restore-admin/index.ts` | **New** — one-time account restore (deleted after use) |
-| `supabase/functions/delete-user-complete/index.ts` | Add permanent block preventing deletion of `tap@tapaway.co` |
+## Real-time Preview UX
+The `onDisplayStyleChange` callback fires immediately on radio toggle, updating `profile` state in PersonalDashboard, which propagates to ProfilePreviewPanel → ProfilePreviewRenderer. The button appears/disappears on the preview phone instantly, before save.
 
