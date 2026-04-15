@@ -218,7 +218,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
             </div>
             <CardDescription>
               {remaining > 0
-                ? `You have ${remaining} card${remaining !== 1 ? "s" : ""} remaining this month`
+                ? `You can request ${remaining} more card${remaining !== 1 ? "s" : ""} this month`
                 : "You've used all 3 cards this month. Resets next month!"}
             </CardDescription>
           </CardHeader>
@@ -260,7 +260,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
                 <CardTitle className="text-lg">Card Club</CardTitle>
               </div>
               <CardDescription>
-                Get 3 NFC cards shipped to you every month for just $5/mo. Shipping included!
+                Request up to 3 NFC cards per month for just $5/mo. Free shipping included!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
