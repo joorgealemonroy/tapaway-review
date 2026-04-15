@@ -979,6 +979,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Show "Save my contact!" tooltip once per session
   useEffect(() => {
     if (!data?.profile?.contact_enabled) return;
+    if (data?.profile?.contact_display_style === 'button') return;
     const key = `contact_tooltip_seen_${username}`;
     if (sessionStorage.getItem(key)) return;
     setShowContactTooltip(true);
@@ -1243,7 +1244,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             />
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
-              {profile.contact_enabled && (
+              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
@@ -1295,7 +1296,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
             <div className="absolute top-0 right-4 flex gap-2">
-              {profile.contact_enabled && (
+              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
@@ -1385,6 +1386,28 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               
               {profile.bio && (
                 <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`} style={textStyle}>{profile.bio}</p>
+              )}
+              {/* Inline Save Contact button */}
+              {profile.contact_enabled && profile.contact_display_style === 'button' && (
+                <button
+                  onClick={handleSaveContact}
+                  className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-full font-semibold shadow-lg text-sm active:scale-95 transition-transform"
+                  style={{
+                    backgroundColor: (() => {
+                      const btn = profileAccentColor;
+                      if (btn && btn !== '#000000') return btn;
+                      return isDarkBg ? '#FFFFFF' : '#1A1A1A';
+                    })(),
+                    color: (() => {
+                      const btn = profileAccentColor;
+                      const bg = (btn && btn !== '#000000') ? btn : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                      return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
+                    })(),
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Save Contact
+                </button>
               )}
               <div className="mb-6" />
             </>

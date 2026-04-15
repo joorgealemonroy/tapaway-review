@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useEffect } from "react";
-import { ExternalLink, Mail } from "lucide-react";
+import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
@@ -55,6 +55,11 @@ interface ProfileData {
   banner_image_url?: string | null;
   plan_type?: string | null;
   show_username?: boolean;
+  contact_enabled?: boolean | null;
+  contact_display_style?: string | null;
+  contact_name?: string | null;
+  button_theme?: string | null;
+  text_color?: string | null;
 }
 
 interface LinkData {
@@ -838,6 +843,30 @@ function ProfilePreviewRendererComponent({
           >
             {profile.bio}
           </p>
+        </div>
+      )}
+
+      {/* Inline contact button */}
+      {profile.contact_enabled && profile.contact_display_style === 'button' && (
+        <div className="mt-4 px-6">
+          <button
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-semibold shadow-lg text-sm"
+            style={{
+              backgroundColor: (() => {
+                const btn = profile.button_theme;
+                if (btn) return btn;
+                return isDarkBg ? '#FFFFFF' : '#1A1A1A';
+              })(),
+              color: (() => {
+                const btn = profile.button_theme;
+                const bg = btn || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
+              })(),
+            }}
+          >
+            <UserPlus className="h-4 w-4" />
+            Save Contact
+          </button>
         </div>
       )}
 

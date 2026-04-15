@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Phone, Building, Briefcase, MapPin, Globe, User, Camera, Mail, ChevronDown } from "lucide-react";
@@ -19,6 +20,7 @@ interface ContactSettings {
   contact_title: string | null;
   contact_address: string | null;
   contact_website: string | null;
+  contact_display_style?: string | null;
 }
 
 interface Props {
@@ -29,6 +31,7 @@ interface Props {
   profilePhotoUrl?: string | null;
   initialSettings: ContactSettings;
   onUpdate?: () => void;
+  onDisplayStyleChange?: (style: string) => void;
 }
 
 export function DashboardContactCard({
@@ -39,6 +42,7 @@ export function DashboardContactCard({
   profilePhotoUrl,
   initialSettings,
   onUpdate,
+  onDisplayStyleChange,
 }: Props) {
   const [enabled, setEnabled] = useState(initialSettings.contact_enabled || false);
   const [contactName, setContactName] = useState(initialSettings.contact_name || "");
@@ -49,6 +53,7 @@ export function DashboardContactCard({
   const [title, setTitle] = useState(initialSettings.contact_title || "");
   const [address, setAddress] = useState(initialSettings.contact_address || "");
   const [website, setWebsite] = useState(initialSettings.contact_website || "");
+  const [displayStyle, setDisplayStyle] = useState(initialSettings.contact_display_style || "icon");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +142,7 @@ export function DashboardContactCard({
           contact_title: title.trim() || null,
           contact_address: address.trim() || null,
           contact_website: website.trim() || null,
+          contact_display_style: displayStyle,
           updated_at: new Date().toISOString(),
         })
         .eq("id", profileId);
@@ -180,6 +186,28 @@ export function DashboardContactCard({
       </div>
 
       <CollapsibleContent>
+      {/* Display Style */}
+      <div className={`space-y-3 mb-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Label className="text-sm font-medium">Display Style</Label>
+        <RadioGroup
+          value={displayStyle}
+          onValueChange={(value) => {
+            setDisplayStyle(value);
+            onDisplayStyleChange?.(value);
+          }}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="icon" id="style-icon" />
+            <Label htmlFor="style-icon" className="cursor-pointer text-sm">Icon (top right)</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="button" id="style-button" />
+            <Label htmlFor="style-button" className="cursor-pointer text-sm">Button (in content)</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
       {/* Fields */}
       <div className={`space-y-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Contact Photo */}
