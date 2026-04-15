@@ -542,6 +542,10 @@ const Onboarding = () => {
 
   // ── Loading ──
   if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
+    // Show magic loading overlay for personal/solo users during setup
+    if (showMagicLoading && isCompletingSetup) {
+      return <MagicLoadingOverlay isVisible={true} />;
+    }
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
