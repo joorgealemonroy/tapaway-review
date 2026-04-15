@@ -761,7 +761,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         
                      className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
                           isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
-                        } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive && !link.is_placeholder ? "opacity-50" : ""} ${link.is_placeholder ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
+                        } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-50" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                       >
                         {/* Cover image */}
                         {link.cover_image_url && (
@@ -783,7 +783,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         )}
 
                         {/* Red dot for placeholders */}
-                        {link.is_placeholder && (
+                        {link.url?.startsWith('#placeholder-') && (
                           <div className="absolute top-2 right-8 z-10">
                             <span className="relative flex h-3 w-3">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -871,7 +871,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   
                   className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border transition-all touch-none select-none backdrop-blur-sm ${
                     isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
-                  } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${isFeatured ? "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20" : "border-border/50 bg-card/80"} ${!isActive && !link.is_placeholder ? "opacity-40" : ""} ${link.is_placeholder ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
+                  } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${isFeatured ? "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20" : "border-border/50 bg-card/80"} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-40" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                 >
                   <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
                     <GripVertical className="h-4 w-4 text-muted-foreground/50" />
