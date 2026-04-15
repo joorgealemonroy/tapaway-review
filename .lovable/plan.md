@@ -1,27 +1,31 @@
 
 
-# Fix Card Club Copy + Update Stripe Product Description
+# Fix: Analytics showing 0 for sugarbloomcakery (RLS issue)
 
-## Problem
-The Cards tab and the Stripe product both say cards are "shipped to you every month," implying automatic fulfillment. Cards must be manually requested.
+## Root Cause
+The `personal_analytics` table has a SELECT RLS policy that only allows profile owners to view their analytics:
+```sql
+profile_id IN (SELECT id FROM personal_profiles WHERE user_id = auth.uid())
+```
 
-## Changes
+When you (admin) view sugarbloomcakery's dashboard via `admin_view_personal`, you're not the profile owner, so RLS blocks all reads → everything shows 0.
 
-### 1. Fix UI copy in `CardsTab.tsx`
-**Line 263** — Card Club promo description:
-- From: *"Get 3 NFC cards shipped to you every month for just $5/mo. Shipping included!"*
-- To: *"Request up to 3 NFC cards per month for just $5/mo. Free shipping included!"*
+**The tracking itself works fine** — there are 72 profile visits and 41 link clicks in the database for sugarbloomcakery.
 
-**Lines 220-222** — Active member description:
-- From: *"You have X cards remaining this month"*
-- To: *"You can request X more card(s) this month"* (minor wording tweak for consistency)
+## Fix
+Update the SELECT RLS policy on `personal_analytics` to also allow admin access:
 
-### 2. Update Stripe product description via API
-Run a one-off script using `STRIPE_SECRET_KEY` to update the Card Club product description. I'll look up the product ID from price `price_1TMM0LDg8DaTuVNZUgZ4GtWJ`, then call `stripe.products.update()` with:
-- Description: *"Includes a quota of up to 3 NFC cards per month. Request cards anytime from your TapAway dashboard. Free shipping included."*
-
-No new edge function needed — just a temporary exec script.
+```sql
+DROP POLICY "Users can view their own analytics" ON personal_analytics;
+CREATE POLICY "Users and admins can view analytics"
+  ON personal_analytics FOR SELECT TO authenticated
+  USING (
+    profile_id IN (SELECT id FROM personal_profiles WHERE user_id = auth.uid())
+    OR public.is_admin()
+  );
+```
 
 ## Files Changed
-- `src/components/personal/CardsTab.tsx` — update 2 copy strings
+- One database migration (RLS policy update on `personal_analytics`)
 
+No code changes needed — the UI and tracking logic are already correct.
