@@ -1387,6 +1387,28 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               {profile.bio && (
                 <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`} style={textStyle}>{profile.bio}</p>
               )}
+              {/* Inline Save Contact button */}
+              {profile.contact_enabled && profile.contact_display_style === 'button' && (
+                <button
+                  onClick={handleSaveContact}
+                  className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-full font-semibold shadow-lg text-sm active:scale-95 transition-transform"
+                  style={{
+                    backgroundColor: (() => {
+                      const btn = profileAccentColor;
+                      if (btn && btn !== '#000000') return btn;
+                      return isDarkBg ? '#FFFFFF' : '#1A1A1A';
+                    })(),
+                    color: (() => {
+                      const btn = profileAccentColor;
+                      const bg = (btn && btn !== '#000000') ? btn : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                      return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
+                    })(),
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Save Contact
+                </button>
+              )}
               <div className="mb-6" />
             </>
           )}
