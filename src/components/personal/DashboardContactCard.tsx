@@ -142,6 +142,7 @@ export function DashboardContactCard({
           contact_title: title.trim() || null,
           contact_address: address.trim() || null,
           contact_website: website.trim() || null,
+          contact_display_style: displayStyle,
           updated_at: new Date().toISOString(),
         })
         .eq("id", profileId);
@@ -185,6 +186,28 @@ export function DashboardContactCard({
       </div>
 
       <CollapsibleContent>
+      {/* Display Style */}
+      <div className={`space-y-3 mb-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <Label className="text-sm font-medium">Display Style</Label>
+        <RadioGroup
+          value={displayStyle}
+          onValueChange={(value) => {
+            setDisplayStyle(value);
+            onDisplayStyleChange?.(value);
+          }}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="icon" id="style-icon" />
+            <Label htmlFor="style-icon" className="cursor-pointer text-sm">Icon (top right)</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="button" id="style-button" />
+            <Label htmlFor="style-button" className="cursor-pointer text-sm">Button (in content)</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
       {/* Fields */}
       <div className={`space-y-4 ${!enabled ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Contact Photo */}
