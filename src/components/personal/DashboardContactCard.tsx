@@ -21,6 +21,7 @@ interface ContactSettings {
   contact_address: string | null;
   contact_website: string | null;
   contact_display_style?: string | null;
+  contact_button_label?: string | null;
 }
 
 interface Props {
@@ -54,6 +55,7 @@ export function DashboardContactCard({
   const [address, setAddress] = useState(initialSettings.contact_address || "");
   const [website, setWebsite] = useState(initialSettings.contact_website || "");
   const [displayStyle, setDisplayStyle] = useState(initialSettings.contact_display_style || "icon");
+  const [buttonLabel, setButtonLabel] = useState(initialSettings.contact_button_label || "");
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +145,7 @@ export function DashboardContactCard({
           contact_address: address.trim() || null,
           contact_website: website.trim() || null,
           contact_display_style: displayStyle,
+          contact_button_label: buttonLabel.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", profileId);
