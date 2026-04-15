@@ -62,7 +62,7 @@ export const HeroSection = () => {
             {/* Subheadline */}
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl">
               Grow your presence with high-performance branded NFC Cards.
-              Collect reviews effortlessly, or use it as your ultimate digital business card with unlimited taps. Zero setup.
+              Collect reviews effortlessly, or use it as your ultimate digital business card with unlimited taps. Zero setup. <span className="text-primary font-bold">$0 Today</span>
             </p>
 
             {/* CTAs */}
