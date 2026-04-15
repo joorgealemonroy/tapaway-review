@@ -436,41 +436,42 @@ serve(async (req) => {
       linksToInsert.push(link);
     };
 
-    // Instagram tile
-    if (socialData.instagramUrl) {
-      addLink({
-        profile_id: profileId,
-        link_type: 'instagram',
-        label: 'Instagram',
-        url: socialData.instagramUrl,
-        sort_order: sortOrder++,
-        is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
-        thumbnail_bg_url: uploadedPhotoUrls[0] || null,
-      });
-    }
+    // ── Always create two social grid tiles at positions 0 and 1 ──
+    // If we found Instagram/TikTok, use real URLs; otherwise create inactive placeholders
+    const hasInstagram = !!socialData.instagramUrl;
+    const hasTiktok = !!socialData.tiktokUrl;
 
-    // TikTok tile
-    if (socialData.tiktokUrl) {
-      addLink({
-        profile_id: profileId,
-        link_type: 'tiktok',
-        label: 'TikTok',
-        url: socialData.tiktokUrl,
-        sort_order: sortOrder++,
-        is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
-        thumbnail_bg_url: uploadedPhotoUrls[1] || uploadedPhotoUrls[0] || null,
-      });
-    }
+    // First tile: Instagram (real or placeholder)
+    addLink({
+      profile_id: profileId,
+      link_type: 'instagram',
+      label: hasInstagram ? 'Instagram' : 'Add Instagram',
+      url: hasInstagram ? socialData.instagramUrl! : '#placeholder-instagram',
+      sort_order: sortOrder++,
+      is_active: hasInstagram,
+      display_style: 'grid',
+      grid_size: 'half',
+      cover_image_url: uploadedPhotoUrls[0] || null,
+    });
 
-    // Facebook pill (if found and no IG/TikTok to avoid clutter)
-    if (socialData.facebookUrl && !socialData.instagramUrl && !socialData.tiktokUrl) {
+    // Second tile: TikTok (real or placeholder)
+    addLink({
+      profile_id: profileId,
+      link_type: 'tiktok',
+      label: hasTiktok ? 'TikTok' : 'Add TikTok',
+      url: hasTiktok ? socialData.tiktokUrl! : '#placeholder-tiktok',
+      sort_order: sortOrder++,
+      is_active: hasTiktok,
+      display_style: 'grid',
+      grid_size: 'half',
+      cover_image_url: uploadedPhotoUrls[1] || uploadedPhotoUrls[0] || null,
+    });
+
+    // Facebook pill (proper link_type) — only if found
+    if (socialData.facebookUrl) {
       addLink({
         profile_id: profileId,
-        link_type: 'custom',
+        link_type: 'facebook',
         label: 'Facebook',
         url: socialData.facebookUrl,
         sort_order: sortOrder++,
@@ -478,37 +479,6 @@ serve(async (req) => {
         display_style: 'pill',
         pill_color: '#1877F2',
       });
-    }
-
-    // If no social links but we have uploaded photos, create photo tiles linking to Google Maps
-    if (!socialData.instagramUrl && !socialData.tiktokUrl && uploadedPhotoUrls.length >= 2) {
-      const mapsUrl = googleData.googleMapsUri || null;
-      if (mapsUrl) {
-        addLink({
-          profile_id: profileId,
-          link_type: 'custom',
-          label: businessName,
-          url: mapsUrl,
-          sort_order: sortOrder++,
-          is_active: true,
-          display_style: 'grid',
-          grid_size: 'half',
-          thumbnail_bg_url: uploadedPhotoUrls[0],
-        });
-        // Second tile with different photo — use "Gallery" label and same Maps URL won't work (dedup), 
-        // so use a slightly different URL with anchor
-        addLink({
-          profile_id: profileId,
-          link_type: 'custom',
-          label: 'Gallery',
-          url: mapsUrl + '#photos',
-          sort_order: sortOrder++,
-          is_active: true,
-          display_style: 'grid',
-          grid_size: 'half',
-          thumbnail_bg_url: uploadedPhotoUrls[1],
-        });
-      }
     }
 
     // Google Review link
