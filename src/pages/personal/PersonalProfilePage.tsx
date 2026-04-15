@@ -31,6 +31,7 @@ import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
+import MarketingFooterCards from "@/components/personal/MarketingFooterCards";
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
