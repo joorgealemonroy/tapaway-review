@@ -1,39 +1,26 @@
 
 
-# Add Marketing Cards to Profile Footer
+# Make Cards Tab Visible on Desktop Dashboard (+ Admin View)
 
-## Overview
-Add three new elements (CTA pill, Examples card, Features card) to the `PersonalProfilePage.tsx` footer area, between the Shop section and the existing "Start using TapAway" footer badge. All content stays inside the existing `max-w-md mx-auto px-4` container with dark glassmorphism styling.
+## Problem
+The "Cards" tab content exists and is accessible via mobile bottom nav, but the desktop `TabsList` has no `TabsTrigger` for "cards" — making it invisible on desktop. This also affects admin impersonation view since it uses the same dashboard.
 
 ## Changes
 
-### File: `src/pages/personal/PersonalProfilePage.tsx`
+### File: `src/pages/personal/PersonalDashboard.tsx`
 
-Insert a new section block between line ~1521 (end of Shop section) and line ~1523 (Footer). This block contains:
+1. **Add `CreditCard` to the lucide-react import** (already used in `CardsTab` but not imported in the dashboard file).
 
-**1. CTA Pill** — A full-width rounded pill button with cyan/primary background. Main text "Try It Free", subtext "We'll send you cards that tap". Links to `/onboarding`.
+2. **Add a Cards `TabsTrigger`** after the "Plan" trigger (line ~740), before the profile switcher dropdown. Update the grid from `grid-cols-7` to `grid-cols-8` to accommodate the new tab.
 
-**2. Examples Card** — A dark glassmorphism card (`bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4`). Title "See real businesses using TapAway". Contains a `<select>` dropdown styled dark with 4 options (Bakery, Barbershop, Car Wraps, Restaurant). Below it, a "View Live Profile" link pill that navigates to the corresponding slug:
-- Bakery → `/sugarbloom`
-- Barbershop → `/spacestudios`
-- Car Wraps → `/rebornwraps`
-- Restaurant → `/islasmarias`
+```
+<TabsTrigger value="cards" className="flex items-center gap-2">
+  <CreditCard className="h-4 w-4" />
+  <span className="hidden sm:inline">Cards</span>
+</TabsTrigger>
+```
 
-Uses `useState` for the selected option.
+3. **Update `grid-cols-7` → `grid-cols-8`** on the `TabsList` to fit the additional tab.
 
-**3. Features Card** — Same glassmorphism style. Title "Everything in one place". 2-column grid (3 rows) with Lucide icons:
-- Star → Reviews
-- Link → Links & Socials
-- UserPlus → Contact / Save Phone
-- UtensilsCrossed → Menu & Services
-- BarChart3 → Analytics
-- ShoppingBag → Shop
-
-Each item: icon + label + one-line description in small muted text.
-
-### Technical Details
-- Add `useState` import (already imported) for the examples dropdown selection
-- Add new Lucide icon imports: `Star`, `Link`, `UtensilsCrossed`, `BarChart3`, `ShoppingBag` (some may already be imported)
-- All styling uses existing dark-mode conventions (`text-white`, `text-white/60`, `bg-white/5`, etc.)
-- No new files needed — all additions inline in the existing footer area
+No changes needed for admin view — it already renders the same `Tabs` component and loads the same `CardsTab` content. The admin banner and impersonation logic are unaffected.
 
