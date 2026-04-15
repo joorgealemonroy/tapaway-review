@@ -1392,21 +1392,23 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <button
                   onClick={handleSaveContact}
                   className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-full font-semibold shadow-lg text-sm active:scale-95 transition-transform"
-                  style={{
+                   style={{
                     backgroundColor: (() => {
                       const btn = profileAccentColor;
-                      if (btn && btn !== '#000000') return btn;
+                      const isHex = btn && /^#[0-9A-Fa-f]{3,6}$/.test(btn);
+                      if (isHex && btn !== '#000000') return btn;
                       return isDarkBg ? '#FFFFFF' : '#1A1A1A';
                     })(),
                     color: (() => {
                       const btn = profileAccentColor;
-                      const bg = (btn && btn !== '#000000') ? btn : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                      const isHex = btn && /^#[0-9A-Fa-f]{3,6}$/.test(btn);
+                      const bg = (isHex && btn !== '#000000') ? btn : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
                       return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
                     })(),
                   }}
                 >
                   <UserPlus className="h-4 w-4" />
-                  Save Contact
+                  {(profile as any).contact_button_label || 'Save Contact'}
                 </button>
               )}
               <div className="mb-6" />

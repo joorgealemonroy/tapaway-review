@@ -17,6 +17,7 @@ interface ProfileData {
   contact_enabled?: boolean | null;
   contact_display_style?: string | null;
   contact_name?: string | null;
+  contact_button_label?: string | null;
   button_theme?: string | null;
   text_color?: string | null;
 }
