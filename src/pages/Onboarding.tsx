@@ -76,6 +76,11 @@ const Onboarding = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [repSubmitting, setRepSubmitting] = useState(false);
 
+  // Email signup
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [emailSignupAddress, setEmailSignupAddress] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+
   // Auth / restaurant IDs
   const [userId, setUserId] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -153,6 +158,18 @@ const Onboarding = () => {
 
             // Finalize
             try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: restaurant.id } }); } catch {}
+
+            // Send magic link for password setup if user signed up via email
+            if (session.user.app_metadata?.provider === 'email') {
+              try {
+                await supabase.functions.invoke("send-magic-link-email", {
+                  body: { userId: session.user.id, email: session.user.email, fullName: session.user.user_metadata?.full_name || '' },
+                });
+                console.log("[onboarding] Magic link sent for password setup");
+              } catch (err) {
+                console.error("[onboarding] Magic link send failed (non-blocking):", err);
+              }
+            }
 
             clearOnboardingData();
             setShowSuccess(true);
@@ -332,6 +349,58 @@ const Onboarding = () => {
     } catch (err: any) {
       toast.error(err.message || "Auth failed");
       setIsLoading(false);
+    }
+  };
+
+  // ── Email signup handler ──
+  const handleEmailSignup = async () => {
+    const email = emailSignupAddress.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!selectedGooglePlace && !businessName.trim()) {
+      toast.error("Please search and select your business");
+      return;
+    }
+
+    setEmailSubmitting(true);
+    try {
+      // Save onboarding data (same as OAuth flow)
+      saveOnboardingData({
+        businessName: businessName.trim(),
+        shippingAddress: shippingAddress.trim(),
+        logoUrl: logoUrl || '',
+        planType: selectedPlan || 'venue',
+        hasProtection,
+        googlePlaceId: selectedGooglePlace?.placeId || '',
+        googlePlaceName: selectedGooglePlace?.name || '',
+        googlePlaceAddress: selectedGooglePlace?.address || '',
+        dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
+      });
+
+      // Create user via edge function (auto-confirmed, bypasses email verification)
+      const { data, error } = await supabase.functions.invoke("create-email-signup", {
+        body: { email, businessName: businessName.trim() },
+      });
+
+      if (error) throw new Error(error.message || "Signup failed");
+      if (data?.error) throw new Error(data.error);
+
+      // Sign in with the temp credentials to get a session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: data.tempPassword,
+      });
+
+      if (signInError) throw signInError;
+
+      // Session is now set — the completeSetup useEffect will fire automatically
+      console.log("[onboarding] Email signup successful, session set");
+    } catch (err: any) {
+      console.error("[onboarding] Email signup failed:", err);
+      toast.error(err.message || "Failed to create account");
+      setEmailSubmitting(false);
     }
   };
 
@@ -901,6 +970,44 @@ const Onboarding = () => {
                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
                     Start My Free Trial
                   </button>
+
+                  {/* Email signup option */}
+                  {!showEmailInput ? (
+                    <button
+                      onClick={() => setShowEmailInput(true)}
+                      className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors py-2 flex items-center justify-center gap-2"
+                    >
+                      <Mail className="w-3.5 h-3.5" /> or continue with email
+                    </button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-3 overflow-hidden"
+                    >
+                      <Input
+                        type="email"
+                        value={emailSignupAddress}
+                        onChange={(e) => setEmailSignupAddress(e.target.value)}
+                        placeholder="you@email.com"
+                        className="h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                        onKeyDown={(e) => { if (e.key === "Enter") handleEmailSignup(); }}
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleEmailSignup}
+                        disabled={emailSubmitting || !emailSignupAddress.trim()}
+                        className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {emailSubmitting ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>Start My Free Trial <ArrowRight className="w-5 h-5" /></>
+                        )}
+                      </button>
+                    </motion.div>
+                  )}
                 </div>
               )}
 

@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.magic-onboarding]
 verify_jwt = true
+
+[functions.create-email-signup]
+verify_jwt = false
