@@ -1158,16 +1158,25 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
 
-  // Default to black background (#000000) for users without a set background
+   // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
   const profileBgStyle = (profile as any).bg_style as string | null;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
-  // Add parallax effect for gradient backgrounds - fixed attachment makes it move with scroll
+  
+  // Premium dark base: use slate-950 as base with brand color as radial glow
+  // Only override for default flat hex backgrounds (not user-set gradients)
+  const isDefaultDarkBg = !profileBgStyle && !isGradientBg && isColorDark(bgColor);
   const bgStyle = profileBgStyle
     ? { background: profileBgStyle }
     : isGradientBg 
       ? { background: bgColor } 
-      : { backgroundColor: bgColor };
+      : isDefaultDarkBg
+        ? { backgroundColor: '#020617' }
+        : { backgroundColor: bgColor };
+  // Brand glow gradient for dark backgrounds
+  const brandGlowStyle = isDefaultDarkBg && bgColor !== '#020617'
+    ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
+    : undefined;
   const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
