@@ -523,7 +523,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     };
 
     onLinksChange([...links, newLink]);
-    markPendingChange({ addedLinks: [...pendingChanges.addedLinks, newLink] });
+    markPendingChange(prev => ({ addedLinks: [...prev.addedLinks, newLink] }));
     setLinkModalOpen(false);
   };
 
@@ -549,18 +549,18 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     ));
 
     if (isPendingAdd) {
-      // Update the pending add
-      markPendingChange({
-        addedLinks: pendingChanges.addedLinks.map(l => 
+      markPendingChange(prev => ({
+        addedLinks: prev.addedLinks.map(l => 
           l.id === id ? { ...l, ...dbUpdates } : l
         ),
-      });
+      }));
     } else {
-      // Track as update
-      const existingUpdates = pendingChanges.updatedLinks.get(id) || {};
-      const newUpdates = new Map(pendingChanges.updatedLinks);
-      newUpdates.set(id, { ...existingUpdates, ...dbUpdates });
-      markPendingChange({ updatedLinks: newUpdates });
+      markPendingChange(prev => {
+        const existingUpdates = prev.updatedLinks.get(id) || {};
+        const newUpdates = new Map(prev.updatedLinks);
+        newUpdates.set(id, { ...existingUpdates, ...dbUpdates });
+        return { updatedLinks: newUpdates };
+      });
     }
 
     setLinkModalOpen(false);
@@ -576,16 +576,18 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
 
     const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
     if (isPendingAdd) {
-      markPendingChange({
-        addedLinks: pendingChanges.addedLinks.map(l => 
+      markPendingChange(prev => ({
+        addedLinks: prev.addedLinks.map(l => 
           l.id === id ? { ...l, is_active: newState } : l
         ),
-      });
+      }));
     } else {
-      const existingUpdates = pendingChanges.updatedLinks.get(id) || {};
-      const newUpdates = new Map(pendingChanges.updatedLinks);
-      newUpdates.set(id, { ...existingUpdates, is_active: newState });
-      markPendingChange({ updatedLinks: newUpdates });
+      markPendingChange(prev => {
+        const existingUpdates = prev.updatedLinks.get(id) || {};
+        const newUpdates = new Map(prev.updatedLinks);
+        newUpdates.set(id, { ...existingUpdates, is_active: newState });
+        return { updatedLinks: newUpdates };
+      });
     }
   };
 
@@ -600,30 +602,30 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     );
     onLinksChange(updatedLinks);
 
-    // Track all the changes
-    const newUpdates = new Map(pendingChanges.updatedLinks);
-    for (const link of updatedLinks) {
-      if (link.id === id || newState) {
-        const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === link.id);
-        if (!isPendingAdd) {
-          const existingUpdates = newUpdates.get(link.id) || {};
-          newUpdates.set(link.id, { ...existingUpdates, is_featured: link.is_featured });
+    markPendingChange(prev => {
+      const newUpdates = new Map(prev.updatedLinks);
+      for (const link of updatedLinks) {
+        if (link.id === id || newState) {
+          const isPendingAdd = prev.addedLinks.find(l => l.id === link.id);
+          if (!isPendingAdd) {
+            const existingUpdates = newUpdates.get(link.id) || {};
+            newUpdates.set(link.id, { ...existingUpdates, is_featured: link.is_featured });
+          }
         }
       }
-    }
-    
-    // Update pending adds too
-    if (newState) {
-      markPendingChange({
-        updatedLinks: newUpdates,
-        addedLinks: pendingChanges.addedLinks.map(l => ({
-          ...l,
-          is_featured: l.id === id ? newState : false
-        })),
-      });
-    } else {
-      markPendingChange({ updatedLinks: newUpdates });
-    }
+      
+      if (newState) {
+        return {
+          updatedLinks: newUpdates,
+          addedLinks: prev.addedLinks.map(l => ({
+            ...l,
+            is_featured: l.id === id ? newState : false
+          })),
+        };
+      } else {
+        return { updatedLinks: newUpdates };
+      }
+    });
   };
 
   // Delete handler - now marks for deletion, doesn't delete immediately
@@ -634,15 +636,15 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === deleteItem.id);
       
       if (isPendingAdd) {
-        // Just remove from pending adds
-        markPendingChange({
-          addedLinks: pendingChanges.addedLinks.filter(l => l.id !== deleteItem.id),
-        });
+        markPendingChange(prev => ({
+          addedLinks: prev.addedLinks.filter(l => l.id !== deleteItem.id),
+        }));
       } else {
-        // Mark for deletion
-        const newDeletedIds = new Set(pendingChanges.deletedLinkIds);
-        newDeletedIds.add(deleteItem.id);
-        markPendingChange({ deletedLinkIds: newDeletedIds });
+        markPendingChange(prev => {
+          const newDeletedIds = new Set(prev.deletedLinkIds);
+          newDeletedIds.add(deleteItem.id);
+          return { deletedLinkIds: newDeletedIds };
+        });
       }
       
       onLinksChange(links.filter(l => l.id !== deleteItem.id));
@@ -650,13 +652,15 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === deleteItem.id);
       
       if (isPendingAdd) {
-        markPendingChange({
-          addedBlocks: pendingChanges.addedBlocks.filter(b => b.id !== deleteItem.id),
-        });
+        markPendingChange(prev => ({
+          addedBlocks: prev.addedBlocks.filter(b => b.id !== deleteItem.id),
+        }));
       } else {
-        const newDeletedIds = new Set(pendingChanges.deletedBlockIds);
-        newDeletedIds.add(deleteItem.id);
-        markPendingChange({ deletedBlockIds: newDeletedIds });
+        markPendingChange(prev => {
+          const newDeletedIds = new Set(prev.deletedBlockIds);
+          newDeletedIds.add(deleteItem.id);
+          return { deletedBlockIds: newDeletedIds };
+        });
       }
       
       onBlocksChange(blocks.filter(b => b.id !== deleteItem.id));
@@ -720,22 +724,23 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       
       const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === block.id);
       if (isPendingAdd) {
-        markPendingChange({
-          addedBlocks: pendingChanges.addedBlocks.map(b => 
+        markPendingChange(prev => ({
+          addedBlocks: prev.addedBlocks.map(b => 
             b.id === block.id ? block : b
           ),
-        });
+        }));
       } else {
-        const newUpdates = new Map(pendingChanges.updatedBlocks);
-        newUpdates.set(block.id, { content: block.content, alignment: block.alignment });
-        markPendingChange({ updatedBlocks: newUpdates });
+        markPendingChange(prev => {
+          const newUpdates = new Map(prev.updatedBlocks);
+          newUpdates.set(block.id, { content: block.content, alignment: block.alignment });
+          return { updatedBlocks: newUpdates };
+        });
       }
     } else {
-      // Add new - block already has DB-assigned id from BlockModal
       onBlocksChange([...blocks, block]);
-      markPendingChange({
-        addedBlocks: [...pendingChanges.addedBlocks, block],
-      });
+      markPendingChange(prev => ({
+        addedBlocks: [...prev.addedBlocks, block],
+      }));
     }
     
     setBlockModalOpen(false);
