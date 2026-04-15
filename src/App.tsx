@@ -122,7 +122,7 @@ const App = () => (
                 <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/start" element={<Navigate to="/onboarding" replace />} />
-                <Route path="/paywall" element={<Paywall />} />
+                <Route path="/paywall" element={<Navigate to="/onboarding" replace />} />
                 <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<Admin />} />

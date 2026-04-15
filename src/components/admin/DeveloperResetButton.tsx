@@ -16,6 +16,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+const LEGACY_KEYS = [
+  "onboarding_data",
+  "onboarding_step",
+  "onboarding_plan",
+  "pending_onboarding_data",
+  "tapaway_onboarding_data",
+  "tapaway_trial_intent",
+  "tapaway_trial_started_at",
+  "tapaway_pending_setup",
+  "tapaway_pending_trial",
+];
+
 export const DeveloperResetButton = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,6 +35,7 @@ export const DeveloperResetButton = () => {
 
   const handleReset = async () => {
     setResetting(true);
+    const errors: string[] = [];
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -39,30 +52,36 @@ export const DeveloperResetButton = () => {
         const profileIds = profiles.map((p) => p.id);
 
         const { error: linksErr } = await supabase.from("personal_links").delete().in("profile_id", profileIds);
-        if (linksErr) console.error("[dev-reset] links delete failed:", linksErr);
+        if (linksErr) { console.error("[dev-reset] links delete failed:", linksErr); errors.push("links"); }
         const { error: blocksErr } = await supabase.from("personal_blocks").delete().in("profile_id", profileIds);
-        if (blocksErr) console.error("[dev-reset] blocks delete failed:", blocksErr);
+        if (blocksErr) { console.error("[dev-reset] blocks delete failed:", blocksErr); errors.push("blocks"); }
         const { error: leadsErr } = await supabase.from("lead_forms").delete().in("profile_id", profileIds);
-        if (leadsErr) console.error("[dev-reset] lead_forms delete failed:", leadsErr);
+        if (leadsErr) { console.error("[dev-reset] lead_forms delete failed:", leadsErr); errors.push("lead_forms"); }
       }
 
       // 2. Delete personal_profiles
       const { error: profilesErr } = await supabase.from("personal_profiles").delete().eq("user_id", uid);
-      if (profilesErr) console.error("[dev-reset] profiles delete failed:", profilesErr);
+      if (profilesErr) { console.error("[dev-reset] profiles delete failed:", profilesErr); errors.push("profiles"); }
 
       // 3. Delete restaurants
       const { error: restErr } = await supabase.from("restaurants").delete().eq("owner_id", uid);
-      if (restErr) console.error("[dev-reset] restaurants delete failed:", restErr);
+      if (restErr) { console.error("[dev-reset] restaurants delete failed:", restErr); errors.push("restaurants"); }
 
-      // 4. Clear localStorage onboarding data
-      localStorage.removeItem("onboarding_data");
-      localStorage.removeItem("onboarding_step");
-      localStorage.removeItem("onboarding_plan");
-      localStorage.removeItem("pending_onboarding_data");
+      // 4. Clear all localStorage onboarding / trial / paywall flags
+      LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
 
-      toast({ title: "Reset complete", description: "Onboarding data cleared. Redirecting..." });
+      // 5. Clear related cookies
+      ["tapaway_trial_intent", "tapaway_trial_started_at", "tapaway_pending_setup"].forEach((name) => {
+        document.cookie = `${name}=; path=/; max-age=0`;
+      });
 
-      // 5. Redirect to onboarding
+      if (errors.length > 0) {
+        toast({ title: "Partial reset", description: `Could not delete: ${errors.join(", ")}. Check console.`, variant: "destructive" });
+      } else {
+        toast({ title: "Reset complete", description: "Onboarding data cleared. Redirecting..." });
+      }
+
+      // 6. Redirect to onboarding
       navigate("/onboarding");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Reset failed";

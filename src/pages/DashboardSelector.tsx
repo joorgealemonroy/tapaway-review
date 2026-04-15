@@ -55,8 +55,8 @@ const DashboardSelector = () => {
         return;
       }
       if (!hasBusiness && !hasPersonal) {
-        // No accounts - go to paywall
-        navigate("/paywall");
+        // No accounts - go to onboarding
+        navigate("/onboarding");
         return;
       }
 
