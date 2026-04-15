@@ -219,7 +219,7 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-  // Featured links are larger and more prominent
+   // Featured links — glassmorphism style
   if (isFeatured) {
     return (
       <a
@@ -227,34 +227,29 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg border border-black/10 ${
-          customColor 
-            ? "" 
-            : config?.gradient || config?.bgColor || "bg-primary"
-        }`}
-        style={customColor ? { backgroundColor: customColor } : undefined}
+        className="block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg bg-white/10 backdrop-blur-md border border-white/10"
       >
         <div className="flex items-center gap-4">
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
-            customColor ? "bg-white/20" : "bg-white/20"
+            config?.gradient || config?.bgColor || "bg-white/20"
           }`}>
-            {Icon && <Icon className={`h-7 w-7 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
+            {Icon && <Icon className={`h-7 w-7 ${config?.color || "text-white"}`} />}
           </div>
           <div className="flex-1">
-            <span className={`text-lg font-semibold truncate ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+            <span className="text-lg font-semibold truncate text-white">
               {link.label}
             </span>
-            <p className={`text-sm opacity-80 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+            <p className="text-sm text-white/60">
               Tap to open
             </p>
           </div>
-          <ExternalLink className={`h-5 w-5 opacity-70 ${customColor ? "" : config?.color || "text-white"}`} style={customColor ? { color: buttonTextColor } : undefined} />
+          <ExternalLink className="h-5 w-5 text-white/50" />
         </div>
       </a>
     );
   }
    
-  // Regular links
+   // Regular links — glassmorphism style
   return (
       <a
         href={sanitizeUrl(link.url)}
@@ -262,11 +257,10 @@ const ProfileLink = memo(function ProfileLink({
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        customColor 
-          ? "border border-black/10 shadow-sm" 
-          : config?.gradient || config?.bgColor || "bg-card border border-border"
+        defaultWhitePill
+          ? "bg-white border border-white/30 shadow-sm" 
+          : "bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15"
       }`}
-      style={customColor ? { backgroundColor: customColor } : undefined}
     >
       {link.thumbnail_url ? (
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
@@ -274,15 +268,15 @@ const ProfileLink = memo(function ProfileLink({
         </div>
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-          customColor ? "bg-white/20" : config ? "bg-white/20" : "bg-primary/10"
+          defaultWhitePill ? "bg-gray-100" : (config?.gradient || config?.bgColor || "bg-white/20")
         }`}>
-          {Icon && <Icon className={`h-6 w-6 ${customColor ? "" : config?.color || "text-primary"}`} style={customColor ? { color: buttonTextColor } : undefined} />}
+          {Icon && <Icon className={`h-6 w-6 ${defaultWhitePill ? "text-gray-700" : (config?.color || "text-white")}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${customColor ? "" : config?.color || "text-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined}>
+      <span className={`flex-1 font-medium truncate ${defaultWhitePill ? "text-gray-800" : "text-white"}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 opacity-60 ${customColor ? "" : config?.color || "text-muted-foreground"}`} style={customColor ? { color: buttonTextColor } : undefined} />
+      <ExternalLink className={`h-4 w-4 ${defaultWhitePill ? "text-gray-400" : "text-white/50"}`} />
     </a>
   );
 });
@@ -1225,7 +1219,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}
       >
-        {/* Full-width Banner (Premium) or standard Header */}
+        {/* Brand color radial glow overlay */}
+        {brandGlowStyle && (
+          <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
+        )}
         {hasBanner ? (
           <div className="relative">
             {/* Banner image - fully visible */}
