@@ -586,7 +586,7 @@ const Onboarding = () => {
 
       // ── ADMIN/TEST BYPASS: skip Stripe for dev testing ──
       const userEmail = session.user.email || '';
-      if (userEmail === 'tap@tapaway.co' || userEmail.includes('+test')) {
+      if (userEmail === 'tap@tapaway.co' || userEmail.endsWith('@tapaway.co') || userEmail.includes('+test')) {
         console.log("[onboarding] Admin/test bypass — skipping Stripe");
         await supabase.from("restaurants").update({
           subscription_status: "active",
