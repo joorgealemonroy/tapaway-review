@@ -18,7 +18,7 @@ export const PERSONAL_PAYMENTS_ENABLED = true;
 // Trial configuration when payments are disabled
 export const PERSONAL_TRIAL_CONFIG = {
   // Trial duration in days (0 = no trial limit for test mode)
-  trialDays: 7,
+  trialDays: 14,
   // Status to set in DB when payments are disabled
   paymentStatus: 'test_mode' as const,
   // Subscription status to use

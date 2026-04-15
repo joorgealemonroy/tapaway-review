@@ -23,7 +23,7 @@ export const FooterCTA = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-xl text-background/70 mb-10"
         >
-          Start your free 30-day trial today. No charge during the trial. Cancel anytime.
+          Start your free 14-day trial today. No charge during the trial. Cancel anytime.
         </motion.p>
 
         <motion.div

@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Check, X } from "lucide-react";
 
 const tapAwayFeatures = [
-  "Free 30-day trial",
+  "Free 14-day trial",
   "Done-for-you setup",
   "Monthly review tracking",
   "Multi-link review hub",

@@ -425,11 +425,11 @@ const Onboarding = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         <div className="text-center max-w-md">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Setting up your free 30-day TapAway trial…</h1>
+          <h1 className="text-2xl font-bold mb-2">Setting up your free 14-day TapAway trial…</h1>
           <p className="text-muted-foreground">This usually takes just a moment.</p>
           {source === 'stripe' && (
             <p className="text-xs text-muted-foreground mt-4">
-              Verifying your $0 checkout • 30-day free trial
+              Verifying your $0 checkout • 14-day free trial
             </p>
           )}
         </div>
@@ -581,7 +581,7 @@ const Onboarding = () => {
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>Your free 30-day trial is active</span>
+                <span>Your free 14-day trial is active</span>
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />

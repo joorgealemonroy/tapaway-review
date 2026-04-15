@@ -11,7 +11,7 @@ const corsHeaders = {
 // Pricing matrix
 const PLAN_CONFIG: Record<string, { name: string; amount: number; trialDays: number; productName: string }> = {
   solo: { name: 'Solo Pro', amount: 1500, trialDays: 14, productName: 'TapAway Solo Pro' },
-  venue: { name: 'Venue Pack', amount: 3900, trialDays: 21, productName: 'TapAway Venue Pack' },
+  venue: { name: 'Venue Pack', amount: 3900, trialDays: 14, productName: 'TapAway Venue Pack' },
 };
 
 const PROTECTION_AMOUNT = 500; // $5/mo

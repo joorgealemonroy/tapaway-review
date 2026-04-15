@@ -101,7 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
                       — The TapAway Team
                     </p>
                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                      Free 30-day trial • No charge today • Cancel anytime before day 30
+                      Free 14-day trial • No charge today • Cancel anytime before day 14
                     </p>
                   </td>
                 </tr>

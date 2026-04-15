@@ -704,8 +704,8 @@ function ProfilePreviewRendererComponent({
               href="/onboarding"
               className="block w-full rounded-full bg-primary py-3 text-center"
             >
-              <span className="block text-base font-bold text-primary-foreground">Try It Free</span>
-              <span className="block text-[10px] text-primary-foreground/70 mt-0.5">We'll send you cards that tap</span>
+              <span className="block text-base font-bold text-primary-foreground">Try It Free with your logo</span>
+              <span className="block text-[10px] text-primary-foreground/70 mt-0.5">We'll cover shipping</span>
             </a>
           </div>
         );
