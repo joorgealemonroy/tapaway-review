@@ -249,7 +249,7 @@ serve(async (req) => {
       // Update existing profile with brand data
       profileId = existingProfile.id;
       await supabase.from('personal_profiles').update({
-        display_name: businessName,
+        full_name: businessName,
         background_color: brandData.primaryColor,
         header_color: brandData.secondaryColor,
         ...(brandData.logoUrl ? { profile_photo_url: brandData.logoUrl } : {}),
@@ -261,7 +261,7 @@ serve(async (req) => {
         .insert({
           user_id: uid,
           username: username.toLowerCase(),
-          display_name: businessName,
+          full_name: businessName,
           email: email || user.email,
           background_color: brandData.primaryColor,
           header_color: brandData.secondaryColor,

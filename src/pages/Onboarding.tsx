@@ -129,6 +129,7 @@ const Onboarding = () => {
       if (savedData.shippingAddress) setShippingAddress(savedData.shippingAddress);
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
       if (savedData.hasProtection) setHasProtection(true);
+      if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -169,6 +170,21 @@ const Onboarding = () => {
               } catch (err) {
                 console.error("[onboarding] Magic link send failed (non-blocking):", err);
               }
+            }
+
+            // Check if this is a personal/Solo Pro user — redirect to personal dashboard
+            const restoredDashboardType = savedData.dashboardType;
+            const { data: personalProfile } = await supabase
+              .from("personal_profiles")
+              .select("id")
+              .eq("user_id", session.user.id)
+              .maybeSingle();
+
+            if (personalProfile || restoredDashboardType === 'personal') {
+              console.log("[onboarding] Solo Pro user detected, redirecting to personal dashboard");
+              clearOnboardingData();
+              navigate("/dashboard?type=lite&welcome=true");
+              return;
             }
 
             clearOnboardingData();
