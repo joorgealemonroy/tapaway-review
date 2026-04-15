@@ -1,38 +1,143 @@
 
+# Fix the real onboarding failure and remove the outdated trial page
 
-# Fix Dev Testing Loop: RLS Delete, Slug Collision & Link Constraint
+## What I confirmed
 
-## Root Cause (3 bugs)
+### 1. The account creation error is misleading
+`create-email-signup` is working for your test email.
 
-1. **RLS blocks restaurant DELETE**: The `restaurants` table has no DELETE policy for owners — only admins can delete. The Dev Reset button runs as `tap+2@tapaway.co` (not admin), so the delete silently fails, leaving orphaned rows.
+I verified the network call:
+- `POST /functions/v1/create-email-signup`
+- status `200`
+- response includes `userId` and `tempPassword`
 
-2. **Duplicate slug collision**: The orphaned restaurant row keeps the slug `thompson-building-materials-fontana`. On the next test run, the SELECT returns `[]` (different `owner_id`? no — same user, but the row still exists with `onboarding_completed=false` which the query might miss), so it tries INSERT, which hits the unique constraint.
+So the visible “Failed to create account” message is not coming from auth creation anymore.
 
-3. **`display_style: 'card'` rejected**: The magic-onboarding edge function inserts links with `display_style: 'card'`, but the DB CHECK constraint only allows `pill`, `icon`, `both`, `grid`. All tile links fail to insert.
+### 2. The actual failure is restaurant creation in `Onboarding.tsx`
+The failing request is:
 
-**Brandfetch and Google Places are both working correctly** — the logs confirm successful data retrieval.
+- `POST /rest/v1/restaurants?select=id`
+- status `409`
+- error: `duplicate key value violates unique constraint "restaurants_custom_slug_key"`
 
-## Fixes
+That means onboarding is failing later when inserting the `restaurants` row.
 
-### 1. Database Migration: Add DELETE policy + fix CHECK constraint
-- Add RLS policy: `Owners can delete their restaurants` — `USING (auth.uid() = owner_id)`
-- Alter CHECK constraint on `personal_links.display_style` to include `'card'`
+### 3. Why the current fallback still fails
+The current code does this after the duplicate slug error:
 
-### 2. Fix Onboarding Slug Handling (`src/pages/Onboarding.tsx`)
-In `completeSetup`, after the INSERT fails, try to find the existing restaurant by `custom_slug` and `owner_id`, then update it instead. This handles the re-run scenario gracefully.
+- tries to look up a restaurant by:
+  - `custom_slug = slug`
+  - `owner_id = uid`
 
-### 3. Fix Magic Onboarding Display Style (`supabase/functions/magic-onboarding/index.ts`)
-Change `display_style: 'card'` → `display_style: 'grid'` for tile-style links (the grid value is the correct one for half-width visual tiles).
+But the network trace shows:
+- the insert fails with duplicate slug
+- then the follow-up owner lookup still returns `[]`
 
-### 4. Dev Reset: Add error logging
-Add `.then`/error checks on the delete calls so failures are visible in toast messages.
+So the conflicting row exists, but it is not visible under that owner lookup. Most likely it is:
+- an orphaned row from prior testing
+- or a row not owned by the current user
+- or not deletable/recoverable through the current dev reset path
 
-## Files Changed
+Because `rId` stays empty, the code hits:
+- `toast.error("Failed to create account")`
 
-| File | Action |
-|------|--------|
-| Migration SQL | Add owner DELETE policy on `restaurants`; add `'card'` to display_style CHECK (or use `'grid'`) |
-| `src/pages/Onboarding.tsx` | Handle duplicate slug by falling back to upsert-by-slug |
-| `supabase/functions/magic-onboarding/index.ts` | Fix `display_style: 'card'` → `'grid'` |
-| `src/components/admin/DeveloperResetButton.tsx` | Add error checking on delete operations |
+That is the exact error you keep seeing.
 
+### 4. The wrong 30-day page is a legacy `/paywall` screen
+The screenshot matches `src/pages/Paywall.tsx`.
+
+That file still contains outdated copy such as:
+- “Start Your Free 30-Day TapAway Trial”
+- “$0 due today”
+- “After the trial: $30/month”
+- a Stripe payment-link CTA
+
+This page is still reachable because several places still route users to `/paywall`, including:
+- `src/pages/Dashboard.tsx`
+- `src/pages/DashboardSelector.tsx`
+- `src/pages/Auth.tsx`
+- marketing links like `src/components/landing/NewHero.tsx`
+- `/paywall` route still exists in `src/App.tsx`
+
+So the page is not accidental; it is still wired into the app.
+
+## Root causes
+
+1. **Primary bug:** onboarding still depends on inserting a `restaurants` record even for Solo Pro, and that insert is failing on slug collisions.
+2. **Secondary bug:** the duplicate-slug fallback is too narrow because it only recovers rows visible under the current `owner_id`.
+3. **Product bug:** legacy `/paywall` is still live and contains obsolete trial/pricing messaging.
+4. **Dev-reset gap:** the reset button is not clearing enough state to guarantee clean re-tests.
+
+## Implementation plan
+
+### 1. Fix Solo Pro onboarding so duplicate restaurant slugs do not block account creation
+In `src/pages/Onboarding.tsx`:
+
+- Keep the current flow for Venue Pack.
+- For Solo Pro / personal onboarding:
+  - stop treating `restaurants` creation as mandatory for success
+  - if restaurant insert fails with slug collision, continue with Magic Onboarding instead of hard failing
+  - only require `restaurants` row for true restaurant flows
+
+This is the safest fix because Solo Pro should end in the personal dashboard anyway.
+
+### 2. Make slug-collision handling robust for business flows
+Still in `src/pages/Onboarding.tsx`:
+
+- replace the current owner-only fallback with stronger recovery:
+  - first try existing row by `owner_id`
+  - if not found, try a broader collision strategy
+  - if the slug is already taken by another row, generate a unique fallback slug automatically instead of aborting
+- update the restaurant insert path so it never ends with `rId = null` on a recoverable slug conflict
+
+This removes the current dead-end that surfaces as “Failed to create account”.
+
+### 3. Remove the obsolete 30-day free-trial paywall experience
+In `src/pages/Paywall.tsx` and routing/callers:
+
+- either retire `/paywall` entirely and redirect it to `/onboarding`
+- or replace the screen with current offer messaging and no obsolete trial copy
+
+Given your message, I’d plan to **retire it**:
+- route `/paywall` to `/onboarding`
+- update all `navigate("/paywall")` and `href="/paywall"` usages to the correct current flow
+
+Targets already confirmed:
+- `src/pages/Dashboard.tsx`
+- `src/pages/DashboardSelector.tsx`
+- `src/pages/Auth.tsx`
+- `src/components/landing/NewHero.tsx`
+- `src/App.tsx`
+
+### 4. Clean up stale local trial/paywall flags
+There are still legacy flags influencing paywall behavior:
+- `tapaway_pending_setup`
+- `tapaway_pending_trial`
+- `tapaway_trial_intent`
+
+I’ll update cleanup logic so successful onboarding and dev reset both clear all of them consistently. That prevents old paywall/trial state from reviving outdated flows.
+
+### 5. Strengthen the Developer Reset button
+In `src/components/admin/DeveloperResetButton.tsx`:
+
+- clear the centralized onboarding key `tapaway_onboarding_data`
+- clear all legacy trial/onboarding flags
+- surface delete failures clearly
+- ensure reset actually returns the app to a clean `/onboarding` state
+
+## Files to change
+
+- `src/pages/Onboarding.tsx`
+- `src/components/admin/DeveloperResetButton.tsx`
+- `src/pages/Paywall.tsx` or `src/App.tsx` route handling
+- `src/pages/Dashboard.tsx`
+- `src/pages/DashboardSelector.tsx`
+- `src/pages/Auth.tsx`
+- `src/components/landing/NewHero.tsx`
+
+## Expected result after fix
+
+- Solo Pro onboarding will no longer fail just because a restaurant slug already exists.
+- The misleading “Failed to create account” toast will stop appearing for this case.
+- Users will no longer land on the obsolete “30-day free trial” page.
+- Admin/test loops will reset cleanly and start from the current onboarding flow.
