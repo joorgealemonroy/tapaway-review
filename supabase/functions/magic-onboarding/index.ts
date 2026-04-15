@@ -205,9 +205,9 @@ async function discoverSocials(placeId: string | null): Promise<SocialResult> {
   }
 
   try {
-    // Outscraper Google Maps enrichment — query by place_id
-    const url = `https://api.app.outscraper.com/maps/search-v3?query=${encodeURIComponent(`place_id:${placeId}`)}&limit=1&async=false`;
-    console.log('[magic-onboarding] Outscraper request:', url.slice(0, 120));
+    // Outscraper Google Maps enrichment — query by place_id, explicitly request social fields
+    const url = `https://api.app.outscraper.com/maps/search-v3?query=${encodeURIComponent(`place_id:${placeId}`)}&limit=1&async=false&fields=name,instagram,tiktok,facebook,site`;
+    console.log('[magic-onboarding] Outscraper request:', url.slice(0, 150));
 
     const res = await fetch(url, {
       headers: { 'X-API-KEY': apiKey },
