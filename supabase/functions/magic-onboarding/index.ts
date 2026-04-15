@@ -233,8 +233,10 @@ async function discoverSocials(placeId: string | null): Promise<SocialResult> {
     const instagramUrl = biz.instagram || biz.instagram_link || null;
     const tiktokUrl = biz.tiktok || biz.tiktok_link || null;
     const facebookUrl = biz.facebook || biz.facebook_link || null;
+    // Also check for website as fallback for scraping
+    const outscraperSite = biz.site || biz.website || null;
 
-    console.log('[magic-onboarding] Outscraper socials:', { instagramUrl, tiktokUrl, facebookUrl });
+    console.log('[magic-onboarding] Outscraper socials:', { instagramUrl, tiktokUrl, facebookUrl, outscraperSite });
     return { instagramUrl, tiktokUrl, facebookUrl };
   } catch (e) {
     console.error('[magic-onboarding] Outscraper failed:', e);
