@@ -1,143 +1,50 @@
 
-# Fix the real onboarding failure and remove the outdated trial page
 
-## What I confirmed
+# Fix Magic Onboarding: Logo, Socials, and Photo Tiles
 
-### 1. The account creation error is misleading
-`create-email-signup` is working for your test email.
+## Problems Found
 
-I verified the network call:
-- `POST /functions/v1/create-email-signup`
-- status `200`
-- response includes `userId` and `tempPassword`
+1. **No profile photo**: Brandfetch is skipped because Tacos El Guero has no website in Google Places. The function never falls back to using a Google Places photo as the profile picture.
 
-So the visible “Failed to create account” message is not coming from auth creation anymore.
+2. **No Instagram/TikTok**: `discoverSocials()` is a stub — it returns empty despite `OUTSCRAPER_API_KEY` being configured. The Google Places API (v1) also supports returning social media links via the `websiteUri` field mask, but we're not requesting them.
 
-### 2. The actual failure is restaurant creation in `Onboarding.tsx`
-The failing request is:
+3. **Blank tile images**: The thumbnail URLs use the Google Places media endpoint with the API key inline. These URLs likely fail to load in the browser because the Places API media endpoint returns a redirect that requires proper headers, or the key has HTTP referrer restrictions. The images need to be downloaded server-side and re-uploaded to Supabase Storage.
 
-- `POST /rest/v1/restaurants?select=id`
-- status `409`
-- error: `duplicate key value violates unique constraint "restaurants_custom_slug_key"`
+## Implementation
 
-That means onboarding is failing later when inserting the `restaurants` row.
+### 1. Fetch social links from Google Places API
+The Google Places API (New) supports field masks like `googleMapsLinks` and also embeds social profiles. Update the `X-Goog-FieldMask` to include `googleMapsUri` for directions. For Instagram/TikTok, we can attempt Outscraper's Google Maps API which returns social media profiles.
 
-### 3. Why the current fallback still fails
-The current code does this after the duplicate slug error:
+### 2. Implement Outscraper social discovery
+The `OUTSCRAPER_API_KEY` is already configured. Use Outscraper's Google Maps enrichment API to fetch social profiles for the business by place ID. This returns Instagram, TikTok, Facebook, etc. URLs.
 
-- tries to look up a restaurant by:
-  - `custom_slug = slug`
-  - `owner_id = uid`
+### 3. Download and re-upload Google photos to Supabase Storage
+Instead of storing raw Google Places media URLs (which expire or get blocked), download the photos server-side and upload them to the `personal-photos` bucket. Use the resulting public URLs for `thumbnail_bg_url`.
 
-But the network trace shows:
-- the insert fails with duplicate slug
-- then the follow-up owner lookup still returns `[]`
+### 4. Use first Google photo as profile photo fallback
+When Brandfetch returns no logo (no website), use the first Google Places photo as the `profile_photo_url`.
 
-So the conflicting row exists, but it is not visible under that owner lookup. Most likely it is:
-- an orphaned row from prior testing
-- or a row not owned by the current user
-- or not deletable/recoverable through the current dev reset path
+### 5. Hard-code known social links as fallback matching
+For cases where Outscraper doesn't return socials, attempt a simple Instagram/TikTok URL probe using the business slug (e.g., `tacos.el.guero.fontana`). This is a best-effort enhancement.
 
-Because `rId` stays empty, the code hits:
-- `toast.error("Failed to create account")`
+## Files Changed
 
-That is the exact error you keep seeing.
+| File | Action |
+|------|--------|
+| `supabase/functions/magic-onboarding/index.ts` | Implement Outscraper social fetch, photo re-upload to storage, profile photo fallback from Google |
 
-### 4. The wrong 30-day page is a legacy `/paywall` screen
-The screenshot matches `src/pages/Paywall.tsx`.
+## Technical Details
 
-That file still contains outdated copy such as:
-- “Start Your Free 30-Day TapAway Trial”
-- “$0 due today”
-- “After the trial: $30/month”
-- a Stripe payment-link CTA
+**Outscraper API call** (using place ID):
+```
+GET https://api.app.outscraper.com/maps/search-v3?query=place_id:ChIJk9NuMWJNw4ARzKokimctM54&fields=instagram,tiktok,facebook
+```
 
-This page is still reachable because several places still route users to `/paywall`, including:
-- `src/pages/Dashboard.tsx`
-- `src/pages/DashboardSelector.tsx`
-- `src/pages/Auth.tsx`
-- marketing links like `src/components/landing/NewHero.tsx`
-- `/paywall` route still exists in `src/App.tsx`
+**Photo re-upload flow**:
+1. Fetch photo binary from Google Places media URL (server-side, no referrer issues)
+2. Upload to `personal-photos` bucket as `{profileId}-tile-{index}.jpg`
+3. Use the Supabase public URL as `thumbnail_bg_url`
 
-So the page is not accidental; it is still wired into the app.
+**Profile photo fallback**:
+- If Brandfetch returns no logo AND Google has photos, use the first re-uploaded photo as `profile_photo_url`
 
-## Root causes
-
-1. **Primary bug:** onboarding still depends on inserting a `restaurants` record even for Solo Pro, and that insert is failing on slug collisions.
-2. **Secondary bug:** the duplicate-slug fallback is too narrow because it only recovers rows visible under the current `owner_id`.
-3. **Product bug:** legacy `/paywall` is still live and contains obsolete trial/pricing messaging.
-4. **Dev-reset gap:** the reset button is not clearing enough state to guarantee clean re-tests.
-
-## Implementation plan
-
-### 1. Fix Solo Pro onboarding so duplicate restaurant slugs do not block account creation
-In `src/pages/Onboarding.tsx`:
-
-- Keep the current flow for Venue Pack.
-- For Solo Pro / personal onboarding:
-  - stop treating `restaurants` creation as mandatory for success
-  - if restaurant insert fails with slug collision, continue with Magic Onboarding instead of hard failing
-  - only require `restaurants` row for true restaurant flows
-
-This is the safest fix because Solo Pro should end in the personal dashboard anyway.
-
-### 2. Make slug-collision handling robust for business flows
-Still in `src/pages/Onboarding.tsx`:
-
-- replace the current owner-only fallback with stronger recovery:
-  - first try existing row by `owner_id`
-  - if not found, try a broader collision strategy
-  - if the slug is already taken by another row, generate a unique fallback slug automatically instead of aborting
-- update the restaurant insert path so it never ends with `rId = null` on a recoverable slug conflict
-
-This removes the current dead-end that surfaces as “Failed to create account”.
-
-### 3. Remove the obsolete 30-day free-trial paywall experience
-In `src/pages/Paywall.tsx` and routing/callers:
-
-- either retire `/paywall` entirely and redirect it to `/onboarding`
-- or replace the screen with current offer messaging and no obsolete trial copy
-
-Given your message, I’d plan to **retire it**:
-- route `/paywall` to `/onboarding`
-- update all `navigate("/paywall")` and `href="/paywall"` usages to the correct current flow
-
-Targets already confirmed:
-- `src/pages/Dashboard.tsx`
-- `src/pages/DashboardSelector.tsx`
-- `src/pages/Auth.tsx`
-- `src/components/landing/NewHero.tsx`
-- `src/App.tsx`
-
-### 4. Clean up stale local trial/paywall flags
-There are still legacy flags influencing paywall behavior:
-- `tapaway_pending_setup`
-- `tapaway_pending_trial`
-- `tapaway_trial_intent`
-
-I’ll update cleanup logic so successful onboarding and dev reset both clear all of them consistently. That prevents old paywall/trial state from reviving outdated flows.
-
-### 5. Strengthen the Developer Reset button
-In `src/components/admin/DeveloperResetButton.tsx`:
-
-- clear the centralized onboarding key `tapaway_onboarding_data`
-- clear all legacy trial/onboarding flags
-- surface delete failures clearly
-- ensure reset actually returns the app to a clean `/onboarding` state
-
-## Files to change
-
-- `src/pages/Onboarding.tsx`
-- `src/components/admin/DeveloperResetButton.tsx`
-- `src/pages/Paywall.tsx` or `src/App.tsx` route handling
-- `src/pages/Dashboard.tsx`
-- `src/pages/DashboardSelector.tsx`
-- `src/pages/Auth.tsx`
-- `src/components/landing/NewHero.tsx`
-
-## Expected result after fix
-
-- Solo Pro onboarding will no longer fail just because a restaurant slug already exists.
-- The misleading “Failed to create account” toast will stop appearing for this case.
-- Users will no longer land on the obsolete “30-day free trial” page.
-- Admin/test loops will reset cleanly and start from the current onboarding flow.
