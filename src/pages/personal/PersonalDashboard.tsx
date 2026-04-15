@@ -231,8 +231,8 @@ const PersonalDashboard = () => {
         .order("created_at", { ascending: true });
 
       if (profileError || !allProfilesData || allProfilesData.length === 0) {
-        // User is authenticated but has no profile - redirect to paywall to choose account type
-        navigate("/paywall");
+        // User is authenticated but has no profile - redirect to onboarding
+        navigate("/onboarding");
         return;
       }
 
