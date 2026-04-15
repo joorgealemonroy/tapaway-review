@@ -36,6 +36,7 @@ import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
+import { CardsTab } from "@/components/personal/CardsTab";
 
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
@@ -90,6 +91,7 @@ interface PersonalProfile {
   founding_number?: number | null;
   show_founding_badge?: boolean;
   show_username?: boolean;
+  has_card_addon?: boolean;
 }
 
 interface DbPersonalLink {
@@ -902,6 +904,17 @@ const PersonalDashboard = () => {
               }}
               onUpgrade={() => handleUpgrade("monthly")}
               onPlanChange={loadData}
+            />
+          </TabsContent>
+
+          {/* Cards Tab */}
+          <TabsContent value="cards" className="space-y-4">
+            <CardsTab
+              profileId={profile.id}
+              userId={profile.user_id}
+              hasCardAddon={profile.has_card_addon || false}
+              planType={profile.plan_type}
+              stripeCustomerId={profile.stripe_customer_id}
             />
           </TabsContent>
         </Tabs>
