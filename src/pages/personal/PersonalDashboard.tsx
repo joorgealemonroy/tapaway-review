@@ -848,8 +848,10 @@ const PersonalDashboard = () => {
                   contact_title: profile.contact_title,
                   contact_address: profile.contact_address,
                   contact_website: profile.contact_website,
+                  contact_display_style: profile.contact_display_style,
                 }}
                 onUpdate={() => loadData()}
+                onDisplayStyleChange={(style) => setProfile(prev => prev ? { ...prev, contact_display_style: style } : null)}
               />
             </div>
           </TabsContent>
