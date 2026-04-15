@@ -159,6 +159,18 @@ const Onboarding = () => {
             // Finalize
             try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: restaurant.id } }); } catch {}
 
+            // Send magic link for password setup if user signed up via email
+            if (session.user.app_metadata?.provider === 'email') {
+              try {
+                await supabase.functions.invoke("send-magic-link-email", {
+                  body: { userId: session.user.id, email: session.user.email, fullName: session.user.user_metadata?.full_name || '' },
+                });
+                console.log("[onboarding] Magic link sent for password setup");
+              } catch (err) {
+                console.error("[onboarding] Magic link send failed (non-blocking):", err);
+              }
+            }
+
             clearOnboardingData();
             setShowSuccess(true);
           } catch (err: any) {
