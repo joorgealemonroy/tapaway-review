@@ -1,18 +1,26 @@
 
 
-# Make Hero Identity Collapsible
+# Update Venue Pack Business Type Selection Copy
 
 ## Change
-Wrap the entire Hero Identity section in `DashboardHeroEditor.tsx` with a `Collapsible` component, defaulting to **closed** on mobile (consistent with the collapsible dashboard sections pattern from memory).
+Update the two-option selector that appears after selecting "Venue Pack" (lines 625-643 in `Onboarding.tsx`) with the new "I have a..." approach:
 
-### Implementation
-- **File**: `src/components/personal/DashboardHeroEditor.tsx`
-- Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible`
-- Import `ChevronDown` icon
-- Replace the static `<Label>Hero Identity</Label>` (line 211) with a clickable trigger row showing "Hero Identity" + a rotating chevron
-- Wrap lines 213-292 (all the form fields) inside `<CollapsibleContent>`
-- Default `open={false}` so the section starts collapsed, saving vertical space
+**Current:**
+- Prompt: "What best describes your business?"
+- Option 1: 🍽️ "Restaurant / Bar / Cafe"
+- Option 2: ✂️ "Barbershop / Salon / Service"
 
-### No other files changed
-The parent component renders `DashboardHeroEditor` as-is; no props or integration changes needed.
+**New:**
+- Prompt: removed (the boxes speak for themselves)
+- Option 1: 🍽️ **"I serve food or drinks"** — sub-text: "Restaurant, Bar, Cafe, Food Truck"
+- Option 2: 🛍️ **"I provide services or retail"** — sub-text: "Salon, Boutique, Gym, Office, & More"
+
+## Implementation
+- **File**: `src/pages/Onboarding.tsx` (lines 622-645)
+- Update the prompt text and option labels/icons
+- Add sub-text below each option label using smaller gray text
+- Keep the same `dashboardType` values (`restaurant` / `personal`) and all existing logic
+
+## Files Changed
+- `src/pages/Onboarding.tsx`
 
