@@ -768,11 +768,11 @@ function ProfilePreviewRendererComponent({
               className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
               style={{
                 background: `linear-gradient(to bottom, transparent 0%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 }40 40%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 }90 70%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
                 } 100%)`
               }}
             />
