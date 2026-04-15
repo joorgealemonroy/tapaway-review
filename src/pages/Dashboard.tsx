@@ -57,7 +57,7 @@ const Dashboard = () => {
       const [restaurantResult, personalResult] = await Promise.all([
         supabase
           .from("restaurants")
-          .select("id, onboarding_completed")
+          .select("id, onboarding_completed, plan_type")
           .eq("owner_id", user.id)
           .limit(1),
         supabase
@@ -68,7 +68,7 @@ const Dashboard = () => {
           .maybeSingle(),
       ]);
       
-      const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed);
+      const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed && r.plan_type !== 'solo');
       const hasPersonal = !!personalResult.data;
       
       const hasAnyRestaurant = (restaurantResult.data?.length ?? 0) > 0;
