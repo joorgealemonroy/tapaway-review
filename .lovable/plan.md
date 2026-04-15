@@ -1,40 +1,50 @@
 
 
-# Make Marketing Footer Cards Draggable Content Items
+# Fix Stale Closure in Pending Changes State Updates
 
 ## Problem
-The three marketing elements (CTA pill, Examples card, Features card) are currently hardcoded — a static read-only block in the dashboard and hardcoded rendering in the profile. The user wants them as real, reorderable content items within the unified content system.
+While `markPendingChange` already uses the functional updater (`setPendingChanges(prev => ...)`), all **callers** read from the stale `pendingChanges` closure to construct their Maps, Sets, and arrays *before* passing them in. Two rapid edits in the same render cycle both read the same stale `pendingChanges`, so the second overwrites the first.
 
-## Approach
-Convert the three marketing elements into actual `personal_blocks` database records with new block types. This makes them automatically draggable, reorderable, and toggleable within the existing unified content editor — no special plumbing needed.
+Example: editing X builds `new Map(pendingChanges.updatedLinks)` → `{X}`, then editing Instagram builds `new Map(pendingChanges.updatedLinks)` → `{IG}` from the same stale value. X is lost.
+
+## Solution
+Upgrade `markPendingChange` to accept **merge semantics** — callers pass partial deltas and the function merges them into `prev` inside the updater. This eliminates all stale closure reads.
 
 ## Changes
 
-### 1. Database Migration
-Insert three `personal_blocks` rows for the socials profile (`893204e4-34e8-4058-a5ad-40b57de0af1a`) with block types:
-- `marketing_cta` (the "Try It Free" pill)
-- `marketing_examples` (the live business examples dropdown)
-- `marketing_features` (the 2x3 features grid)
+### `src/components/personal/DashboardUnifiedContent.tsx`
 
-Each gets a `sort_order` placed after existing content.
+**1. Rewrite `markPendingChange` (lines 163-180)**
+Instead of `{ ...prev, ...changes }`, merge each field intelligently:
+- `updatedLinks` / `updatedBlocks` (Maps): iterate incoming entries and merge into `prev`'s Map
+- `deletedLinkIds` / `deletedBlockIds` (Sets): union with `prev`'s Set
+- `addedLinks` / `addedBlocks` (arrays): concat or replace depending on caller intent
+- `orderChanged`: OR with prev
+- Scalar overwrites still work for full-replacement calls (addedLinks filter, etc.)
 
-### 2. `DashboardUnifiedContent.tsx`
-- Add the three new block types to `renderBlockIcon()` (Megaphone, ExternalLink, LayoutGrid icons)
-- Add them to `getBlockLabel()` with readable names
-- No other changes needed — they'll automatically be draggable/reorderable/toggleable like any block
+Add a second parameter `mergeMode: boolean = false` to distinguish "merge Maps/Sets into prev" from "replace entirely" (for cases like filtering `addedLinks` on delete).
 
-### 3. `ProfilePreviewRenderer.tsx`
-- In the block rendering section, handle `marketing_cta`, `marketing_examples`, and `marketing_features` block types by rendering the actual marketing UI (same content currently in `MarketingFooterCards`)
-- Remove the hardcoded `{profile.username === 'socials' && <MarketingFooterCards />}` conditional
+**2. Update callers that build from `pendingChanges.*`** (~8 call sites at lines 525, 552-562, 578-587, 603-624, 637-644, 652-658, 722-736):
+- For `updatedLinks`/`updatedBlocks`: pass just the single entry `{ id, updates }` and let `markPendingChange` merge
+- For `deletedLinkIds`/`deletedBlockIds`: pass just the single ID to add
+- For `addedLinks`/`addedBlocks` mutations (filter/map): these already produce complete new arrays, so they remain as full replacements
 
-### 4. `PersonalProfilePage.tsx`
-- Same as above — render the marketing content inline when encountering these block types
-- Remove the hardcoded `MarketingFooterCards` import and rendering
+**3. Alternatively (simpler approach):** Keep `markPendingChange` signature the same but change callers to pass **lambda-style partial updates** — convert `markPendingChange` to accept `(changes: Partial<PendingChanges> | ((prev: PendingChanges) => Partial<PendingChanges>))`. Callers that need to read previous state pass a function:
 
-### 5. `PersonalDashboard.tsx`
-- Remove the static "Marketing Footer (auto)" summary card (lines 809-833)
-- Remove `Megaphone` import if no longer used
+```typescript
+// Before (stale):
+const newUpdates = new Map(pendingChanges.updatedLinks);
+newUpdates.set(id, { ...existingUpdates, ...dbUpdates });
+markPendingChange({ updatedLinks: newUpdates });
 
-### Result
-The three marketing elements become normal blocks: draggable, reorderable, and toggleable via the existing content editor. They render their specialized marketing UI on the public profile and preview, but behave like standard blocks in the dashboard.
+// After (reads prev):
+markPendingChange(prev => {
+  const newUpdates = new Map(prev.updatedLinks);
+  const existing = prev.updatedLinks.get(id) || {};
+  newUpdates.set(id, { ...existing, ...dbUpdates });
+  return { updatedLinks: newUpdates };
+});
+```
+
+This is the cleanest fix — minimal refactor, each caller that touches Maps/Sets/arrays reads from `prev` inside the lambda. ~12 call sites need updating.
 
