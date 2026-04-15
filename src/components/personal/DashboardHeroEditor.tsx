@@ -3,8 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, AlertTriangle } from "lucide-react";
+import { Loader2, Check, X, AlertTriangle, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
@@ -206,91 +208,97 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
 
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="space-y-4">
-      <Label className="text-sm font-medium text-foreground">Hero Identity</Label>
-
-      {/* Name */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Display Name</Label>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          className="h-11"
-        />
-      </div>
-
-      {/* Username */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Username</Label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-            tapaway.co/{isFree ? "tap" : ""}
-          </span>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+        <Label className="text-sm font-medium text-foreground pointer-events-none">Hero Identity</Label>
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-4 pt-2">
+        {/* Name */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Display Name</Label>
           <Input
-            value={usernameInput}
-            onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-            placeholder="yourname"
-            className={`h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            className="h-11"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            {usernameStatus === "available" && <Check className="h-4 w-4 text-green-500" />}
-            {usernameStatus === "taken" && <X className="h-4 w-4 text-destructive" />}
-            {usernameStatus === "invalid" && <X className="h-4 w-4 text-destructive" />}
-          </div>
         </div>
-        {usernameError && (
-          <p className="text-xs text-destructive">{usernameError}</p>
-        )}
-        {usernameChanged && usernameStatus === "available" && (
-          <div className="flex items-start gap-1.5 text-xs text-amber-600">
-            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>Changing your username will update your profile URL and all linked cards</span>
+
+        {/* Username */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Username</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+              tapaway.co/{isFree ? "tap" : ""}
+            </span>
+            <Input
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              placeholder="yourname"
+              className={`h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {usernameStatus === "available" && <Check className="h-4 w-4 text-green-500" />}
+              {usernameStatus === "taken" && <X className="h-4 w-4 text-destructive" />}
+              {usernameStatus === "invalid" && <X className="h-4 w-4 text-destructive" />}
+            </div>
           </div>
-        )}
-      </div>
+          {usernameError && (
+            <p className="text-xs text-destructive">{usernameError}</p>
+          )}
+          {usernameChanged && usernameStatus === "available" && (
+            <div className="flex items-start gap-1.5 text-xs text-amber-600">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>Changing your username will update your profile URL and all linked cards</span>
+            </div>
+          )}
+        </div>
 
-      {/* Show username toggle */}
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-muted-foreground">Show username on profile</Label>
-        <Switch
-          checked={showUsernameValue}
-          onCheckedChange={setShowUsernameValue}
-        />
-      </div>
+        {/* Show username toggle */}
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground">Show username on profile</Label>
+          <Switch
+            checked={showUsernameValue}
+            onCheckedChange={setShowUsernameValue}
+          />
+        </div>
 
-      {/* Headline */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">
-          Headline <span className="opacity-50">(optional)</span>
-        </Label>
-        <Input
-          value={headlineValue}
-          onChange={(e) => setHeadlineValue(e.target.value)}
-          placeholder="e.g. Creator • LA • Tap to connect"
-          className="h-11"
-          maxLength={60}
-        />
-        <p className="text-xs text-muted-foreground">{headlineValue.length}/60</p>
-      </div>
+        {/* Headline */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">
+            Headline <span className="opacity-50">(optional)</span>
+          </Label>
+          <Input
+            value={headlineValue}
+            onChange={(e) => setHeadlineValue(e.target.value)}
+            placeholder="e.g. Creator • LA • Tap to connect"
+            className="h-11"
+            maxLength={60}
+          />
+          <p className="text-xs text-muted-foreground">{headlineValue.length}/60</p>
+        </div>
 
-      {/* Bio */}
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">
-          Bio <span className="opacity-50">(optional)</span>
-        </Label>
-        <Textarea
-          value={bioValue}
-          onChange={(e) => setBioValue(e.target.value)}
-          placeholder="A short bio about yourself"
-          className="min-h-[80px] resize-none"
-          maxLength={160}
-        />
-        <p className="text-xs text-muted-foreground">{bioValue.length}/160</p>
-      </div>
-    </div>
+        {/* Bio */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">
+            Bio <span className="opacity-50">(optional)</span>
+          </Label>
+          <Textarea
+            value={bioValue}
+            onChange={(e) => setBioValue(e.target.value)}
+            placeholder="A short bio about yourself"
+            className="min-h-[80px] resize-none"
+            maxLength={160}
+          />
+          <p className="text-xs text-muted-foreground">{bioValue.length}/160</p>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 });
 
