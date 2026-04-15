@@ -1601,6 +1601,75 @@ export type Database = {
           },
         ]
       }
+      personal_card_requests: {
+        Row: {
+          created_at: string
+          id: string
+          is_addon: boolean
+          profile_id: string
+          quantity: number
+          shipping_address_line1: string | null
+          shipping_address_line2: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_name: string | null
+          shipping_postal_code: string | null
+          shipping_state: string | null
+          status: string
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_addon?: boolean
+          profile_id: string
+          quantity?: number
+          shipping_address_line1?: string | null
+          shipping_address_line2?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_name?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_addon?: boolean
+          profile_id?: string
+          quantity?: number
+          shipping_address_line1?: string | null
+          shipping_address_line2?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_name?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_card_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_card_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_email_captures: {
         Row: {
           created_at: string | null
@@ -1747,6 +1816,7 @@ export type Database = {
           email: string
           founding_number: number | null
           full_name: string
+          has_card_addon: boolean
           header_color: string | null
           header_image_url: string | null
           header_type: string | null
@@ -1801,6 +1871,7 @@ export type Database = {
           email: string
           founding_number?: number | null
           full_name: string
+          has_card_addon?: boolean
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
@@ -1855,6 +1926,7 @@ export type Database = {
           email?: string
           founding_number?: number | null
           full_name?: string
+          has_card_addon?: boolean
           header_color?: string | null
           header_image_url?: string | null
           header_type?: string | null
