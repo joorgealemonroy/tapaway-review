@@ -46,6 +46,32 @@ Deno.serve(async (req) => {
 
     if (!profile || profile.user_id !== user.id) throw new Error('Profile not found');
 
+    // ── FETCH ADDRESS (read-only, returns Stripe shipping) ──
+    if (flow === 'fetch_address') {
+      if (!profile.stripe_customer_id) {
+        return new Response(JSON.stringify({ address: null }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2023-10-16' });
+      const customer = await stripe.customers.retrieve(profile.stripe_customer_id) as any;
+      const shipping = customer.shipping;
+      const addr = shipping?.address || customer.address;
+      return new Response(JSON.stringify({
+        address: addr ? {
+          name: shipping?.name || customer.name || '',
+          line1: addr.line1 || '',
+          line2: addr.line2 || '',
+          city: addr.city || '',
+          state: addr.state || '',
+          postal_code: addr.postal_code || '',
+          country: addr.country || 'US',
+        } : null,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ── FREE REQUEST (Card Club member) ──
     if (flow === 'free_request') {
       if (!profile.has_card_addon) throw new Error('Card Club membership required');

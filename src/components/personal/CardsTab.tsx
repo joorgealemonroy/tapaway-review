@@ -78,7 +78,29 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
       // Only show form expanded if address is incomplete
       setEditingAddress(!isAddressComplete(prefilled));
     } else {
-      // First time — expand form
+      // No prior requests — try fetching address from Stripe
+      if (stripeCustomerId) {
+        try {
+          const { data: addrData } = await supabase.functions.invoke("create-card-order", {
+            body: { flow: "fetch_address", profile_id: profileId },
+          });
+          if (addrData?.address) {
+            const stripeAddr: ShippingAddress = {
+              name: addrData.address.name || fullName || "",
+              line1: addrData.address.line1 || "",
+              line2: addrData.address.line2 || "",
+              city: addrData.address.city || "",
+              state: addrData.address.state || "",
+              postal_code: addrData.address.postal_code || "",
+              country: addrData.address.country || "US",
+            };
+            setAddress(stripeAddr);
+            setEditingAddress(!isAddressComplete(stripeAddr));
+            setLoading(false);
+            return;
+          }
+        } catch (_) { /* fallback to empty form */ }
+      }
       setEditingAddress(true);
     }
     setLoading(false);
