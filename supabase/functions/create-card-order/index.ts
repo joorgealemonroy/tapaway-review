@@ -44,7 +44,12 @@ Deno.serve(async (req) => {
       .eq('id', profile_id)
       .single();
 
-    if (!profile || profile.user_id !== user.id) throw new Error('Profile not found');
+    if (!profile) throw new Error('Profile not found');
+
+    // Allow admin OR profile owner
+    const isOwner = profile.user_id === user.id;
+    const isAdmin = user.email === 'tap@tapaway.co';
+    if (!isOwner && !isAdmin) throw new Error('Profile not found');
 
     // ── FETCH ADDRESS (read-only, returns Stripe shipping) ──
     if (flow === 'fetch_address') {
