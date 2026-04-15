@@ -1,77 +1,102 @@
 
 
-# Fix Social Discovery Fallback, Link Dedup & Logo Framing
+# Dashboard UI Upgrade: Linktree-Style Visual Builder
 
-## Changes
+## Summary
 
-### 1. Website scraping fallback for socials (`magic-onboarding/index.ts`)
+Upgrade the Business Lite dashboard from form-heavy editing to a real-time visual builder with smart link auto-population, persistent live preview, and polished card-based UI.
 
-Add `scrapeWebsiteForSocials()` — when Outscraper returns no socials and a website URL exists, fetch the HTML and regex-extract Instagram, TikTok, and Facebook links from it.
+## What Already Exists
 
-### 2. Deduplicate links and remove "Our Space" (`magic-onboarding/index.ts`)
+- **Live Preview Panel**: `ProfilePreviewPanel` already renders a phone mockup on desktop (`xl:` breakpoint, right sidebar) and below the content on mobile. It updates live as `links`, `blocks`, and `profile` state change.
+- **Drag-and-Drop**: Already implemented with native HTML5 drag + touch hold-to-drag in `DashboardUnifiedContent.tsx`.
+- **Card-based layout**: Links already render as compact cards with grip handles, icons, and dropdown menus.
 
-- Track used URLs in a `Set`. Skip any link whose URL is already added.
-- When no socials are found but photos exist, link photo tiles to `googleMapsUri` (not the website). Use labels like `businessName` and "Gallery" instead of "Our Space".
-- Never insert a link with `url: '#'` — skip it if no real URL exists.
+So the core architecture is already in place. The main gaps are:
 
-### 3. Fix zoomed-in logo on public profiles (`PersonalProfilePage.tsx`)
+1. **No OG metadata auto-fetch** when adding/editing links
+2. **Mobile preview is buried** at the bottom of the Links tab (no toggle)
+3. **Cards lack thumbnails/favicons** and could use a visual refresh
 
-The public profile renders the logo via `OptimizedAvatar` which hardcodes `object-cover` (line 247 of `OptimizedImage.tsx`). For business logos this crops them.
+## Implementation Plan
 
-Two options — the safest is to add an `objectFit` prop to `OptimizedAvatar`:
-- Add optional `objectFit?: 'cover' | 'contain'` prop (default `'cover'` to preserve existing behavior for personal headshots).
-- In `PersonalProfilePage.tsx` line 1332, pass `objectFit="contain"` when the profile is a business (detected by checking if `profile_photo_url` comes from Supabase storage with a `/tile-` path, or simpler: always use `contain` since it looks fine for both logos and headshots in a circle).
+### 1. New Edge Function: `fetch-link-metadata`
 
-Actually, `object-contain` inside a circle can leave empty space for headshots. Better approach: increase the logo container padding in `ProHubTemplate.tsx` and ensure `PersonalProfilePage` doesn't over-crop. Since `ProHubTemplate` already uses `object-contain` with `p-4`, the issue is likely on the **actual PersonalProfilePage** render — the `OptimizedAvatar` uses `object-cover` which crops logos.
+Create `supabase/functions/fetch-link-metadata/index.ts` that:
+- Accepts `{ url: string }` via POST
+- Fetches the URL server-side (follows redirects)
+- Parses HTML for `og:title`, `og:image`, `og:description`, favicon (`<link rel="icon">`)
+- Returns `{ title, image, favicon, description }`
+- Rate limited (10 req/min per IP)
+- Validates URL is http/https only
 
-**Fix**: Add `objectFit` prop to `OptimizedAvatar`, default to `cover`. Pass `contain` from `PersonalProfilePage` when appropriate.
+### 2. Smart Auto-Populate in LinkModal
 
-### 4. Increase logo breathing room in `ProHubTemplate.tsx`
+Update `src/components/personal/LinkModal.tsx`:
+- When user selects "Website" platform and pastes/finishes typing a URL, debounce 800ms then call `fetch-link-metadata`
+- Auto-fill the "Label" field with `og:title` (user can override)
+- Show a small favicon preview next to the URL input
+- If `og:image` exists, offer it as the thumbnail with one click
+- Show a subtle loading spinner during fetch
 
-The frosted container already has `p-4`. Bump `max-h-24` to `max-h-28` and increase container `max-w-[180px]` to `max-w-[200px]` for more breathing room.
+### 3. Mobile Preview Toggle
+
+Update `src/pages/personal/PersonalDashboard.tsx`:
+- Replace the inline mobile preview (currently at bottom of Links tab) with a floating "Preview" FAB button on mobile
+- Tapping it opens a bottom sheet / full-screen overlay with the `ProfilePreviewPanel`
+- The sheet updates live since it reads the same React state
+- Desktop layout stays the same (sticky sidebar)
+
+### 4. Visual Card Refresh (Glassmorphism Polish)
+
+Update `src/components/personal/DashboardUnifiedContent.tsx`:
+- Add favicon/thumbnail display on link cards (small image left of label)
+- Add subtle glassmorphism styling: `bg-white/5 backdrop-blur-sm border-white/10` (dark mode aware)
+- Add inline active/inactive toggle (small Switch component) replacing the dropdown menu item
+- Show URL subtitle below label in muted text
+- Smooth `transition-all` on drag with slight scale
+
+### 5. Store Thumbnail/Favicon on Links
+
+The `personal_links` table already has `thumbnail_url` and `thumbnail_bg_url` columns. When the OG scraper returns a favicon, store it in `thumbnail_url` so it persists and renders on the card.
 
 ## Files Changed
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `supabase/functions/magic-onboarding/index.ts` | Add `scrapeWebsiteForSocials()`, deduplicate URLs, fix "Our Space" labels, use `googleMapsUri` for photo tiles |
-| `src/components/personal/OptimizedImage.tsx` | Add `objectFit` prop to `OptimizedAvatar` |
-| `src/pages/personal/PersonalProfilePage.tsx` | Pass `objectFit="contain"` to logo avatar |
-| `src/components/personal/ProHubTemplate.tsx` | Slightly increase logo container size for breathing room |
+| `supabase/functions/fetch-link-metadata/index.ts` | **New** — OG tag scraper edge function |
+| `src/components/personal/LinkModal.tsx` | Add auto-fetch on URL paste, auto-fill label + thumbnail |
+| `src/components/personal/DashboardUnifiedContent.tsx` | Card visual refresh: favicon display, inline toggle, glassmorphism, URL subtitle |
+| `src/pages/personal/PersonalDashboard.tsx` | Mobile preview toggle FAB + bottom sheet, remove inline preview |
 
 ## Technical Details
 
-**Website scraping** (new function):
+**Edge function** uses native `fetch` + regex parsing (no heavy dependencies):
 ```typescript
-async function scrapeWebsiteForSocials(websiteUrl: string): Promise<SocialResult> {
-  const res = await fetch(websiteUrl, { redirect: 'follow' });
-  const html = await res.text();
-  const ig = html.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
-  const tk = html.match(/tiktok\.com\/@?([a-zA-Z0-9_.]+)/);
-  const fb = html.match(/facebook\.com\/([a-zA-Z0-9_.]+)/);
-  return {
-    instagramUrl: ig ? `https://instagram.com/${ig[1]}` : null,
-    tiktokUrl: tk ? `https://tiktok.com/@${tk[1]}` : null,
-    facebookUrl: fb ? `https://facebook.com/${fb[1]}` : null,
-  };
-}
+const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)?.[1];
+const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)?.[1];
+const favicon = html.match(/<link[^>]+rel="(?:icon|shortcut icon)"[^>]+href="([^"]+)"/i)?.[1];
 ```
 
-**Deduplication** (in link generation):
+**Debounced fetch** in LinkModal:
 ```typescript
-const usedUrls = new Set<string>();
-// Before each linksToInsert.push:
-if (usedUrls.has(url)) continue;
-usedUrls.add(url);
+useEffect(() => {
+  if (selectedPlatform?.type !== 'website' || !inputValue.includes('.')) return;
+  const timer = setTimeout(async () => {
+    const res = await supabase.functions.invoke('fetch-link-metadata', { body: { url } });
+    if (res.data?.title && !customLabel) setCustomLabel(res.data.title);
+    if (res.data?.favicon) setThumbnailUrl(res.data.favicon);
+  }, 800);
+  return () => clearTimeout(timer);
+}, [inputValue]);
 ```
 
-**Photo tile fallback** (no socials):
-```typescript
-// Use Google Maps URI instead of website
-label: businessName,
-url: googleData.googleMapsUri || googleData.websiteUrl || '#skip',
-// Second tile:
-label: 'Gallery',
-url: googleData.googleMapsUri || googleData.websiteUrl || '#skip',
-```
+**Mobile preview** uses existing `Drawer` component for the bottom sheet overlay.
+
+## Priority Order
+
+1. `fetch-link-metadata` edge function (core enabler)
+2. LinkModal auto-populate integration
+3. Mobile preview toggle
+4. Card visual refresh
 
