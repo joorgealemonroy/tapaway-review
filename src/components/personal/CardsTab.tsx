@@ -1,0 +1,278 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CreditCard, Package, Crown, Minus, Plus, Loader2, MapPin } from "lucide-react";
+import { CARD_ADDON_PRICE_ID, CARD_ONETIME_PRICE_ID } from "@/lib/constants";
+
+interface CardsTabProps {
+  profileId: string;
+  userId: string;
+  hasCardAddon: boolean;
+  planType: string | null;
+  stripeCustomerId: string | null;
+}
+
+interface CardRequest {
+  id: string;
+  quantity: number;
+  status: string;
+  created_at: string;
+  shipping_city: string | null;
+  shipping_state: string | null;
+}
+
+interface ShippingAddress {
+  name: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
+const MONTHLY_LIMIT = 3;
+
+export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCustomerId }: CardsTabProps) => {
+  const [requests, setRequests] = useState<CardRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [address, setAddress] = useState<ShippingAddress>({
+    name: "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
+  });
+
+  useEffect(() => { loadRequests(); }, [profileId]);
+
+  const loadRequests = async () => {
+    const { data } = await supabase
+      .from("personal_card_requests")
+      .select("id, quantity, status, created_at, shipping_city, shipping_state")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: false });
+    setRequests((data as CardRequest[]) || []);
+
+    // Pre-fill address from last request
+    if (data && data.length > 0) {
+      const last = data[0] as any;
+      if (last.shipping_name || last.shipping_address_line1) {
+        setAddress(prev => ({
+          ...prev,
+          name: last.shipping_name || prev.name,
+          line1: last.shipping_address_line1 || prev.line1,
+          line2: last.shipping_address_line2 || prev.line2,
+          city: last.shipping_city || prev.city,
+          state: last.shipping_state || prev.state,
+          postal_code: last.shipping_postal_code || prev.postal_code,
+        }));
+      }
+    }
+    setLoading(false);
+  };
+
+  // Count cards used this month (pending + shipped)
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const usedThisMonth = requests
+    .filter(r => ["pending", "shipped"].includes(r.status) && new Date(r.created_at) >= monthStart)
+    .reduce((sum, r) => sum + r.quantity, 0);
+  const remaining = Math.max(0, MONTHLY_LIMIT - usedThisMonth);
+
+  const validateAddress = () => {
+    if (!address.name.trim() || !address.line1.trim() || !address.city.trim() || !address.state.trim() || !address.postal_code.trim()) {
+      toast.error("Please fill in all shipping address fields");
+      return false;
+    }
+    return true;
+  };
+
+  const handleFreeRequest = async () => {
+    if (!validateAddress()) return;
+    if (quantity > remaining) {
+      toast.error(`You can only request ${remaining} more cards this month`);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke("create-card-order", {
+        body: { flow: "free_request", profile_id: profileId, quantity, shipping: address },
+      });
+      if (error) throw error;
+      toast.success("Card request submitted!");
+      setQuantity(1);
+      loadRequests();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCheckout = async (flow: "subscribe_addon" | "onetime") => {
+    if (!validateAddress()) return;
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-card-order", {
+        body: { flow, profile_id: profileId, quantity: 3, shipping: address },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start checkout");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const AddressForm = () => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium">Shipping Address</Label>
+      </div>
+      <Input placeholder="Full name" value={address.name} onChange={e => setAddress(a => ({ ...a, name: e.target.value }))} />
+      <Input placeholder="Address line 1" value={address.line1} onChange={e => setAddress(a => ({ ...a, line1: e.target.value }))} />
+      <Input placeholder="Address line 2 (optional)" value={address.line2} onChange={e => setAddress(a => ({ ...a, line2: e.target.value }))} />
+      <div className="grid grid-cols-3 gap-2">
+        <Input placeholder="City" value={address.city} onChange={e => setAddress(a => ({ ...a, city: e.target.value }))} />
+        <Input placeholder="State" value={address.state} onChange={e => setAddress(a => ({ ...a, state: e.target.value }))} />
+        <Input placeholder="ZIP" value={address.postal_code} onChange={e => setAddress(a => ({ ...a, postal_code: e.target.value }))} />
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-6 pb-24">
+      {hasCardAddon ? (
+        /* ─── Card Club Member ─── */
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">Request NFC Cards</CardTitle>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                <Crown className="h-3 w-3 mr-1" /> Card Club
+              </Badge>
+            </div>
+            <CardDescription>
+              {remaining > 0
+                ? `You have ${remaining} card${remaining !== 1 ? "s" : ""} remaining this month`
+                : "You've used all 3 cards this month. Resets next month!"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {remaining > 0 ? (
+              <>
+                {/* Quantity */}
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm">Quantity</Label>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-8 text-center font-medium">{quantity}</span>
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQuantity(q => Math.min(remaining, q + 1))} disabled={quantity >= remaining}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <AddressForm />
+                <Button onClick={handleFreeRequest} disabled={submitting} className="w-full">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
+                  Request Cards (Free)
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Your monthly quota resets on the 1st.</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* ─── Non-Member ─── */
+        <>
+          {/* Card Club Promo */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Card Club</CardTitle>
+              </div>
+              <CardDescription>
+                Get 3 NFC cards shipped to you every month for just $5/mo. Shipping included!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <AddressForm />
+              <Button onClick={() => handleCheckout("subscribe_addon")} disabled={submitting} className="w-full">
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                Subscribe — $5/mo
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* One-Time Purchase */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">One-Time Order</CardTitle>
+              </div>
+              <CardDescription>
+                Get 3 NFC cards shipped to you. No subscription required.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <AddressForm />
+              <Button variant="outline" onClick={() => handleCheckout("onetime")} disabled={submitting} className="w-full">
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
+                Buy 3 Cards — $10
+              </Button>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Request History */}
+      {requests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Order History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {requests.map(r => (
+                <div key={r.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div>
+                    <p className="text-sm font-medium">{r.quantity} card{r.quantity !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.created_at).toLocaleDateString()}
+                      {r.shipping_city && ` · ${r.shipping_city}, ${r.shipping_state}`}
+                    </p>
+                  </div>
+                  <Badge variant={r.status === "shipped" ? "default" : "secondary"} className="capitalize text-xs">
+                    {r.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
