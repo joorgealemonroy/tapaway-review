@@ -24,7 +24,7 @@ type Plan = "solo" | "venue";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Barbers & Personal Brands.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 7, totalTrialDays: 14 },
+  solo: { label: "Solo Pro", subtitle: "For Service Pros & Individuals.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 7, totalTrialDays: 14 },
   venue: { label: "Venue Pack", subtitle: "For Restaurants & Retail.", price: 39, cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 21 },
 };
 
