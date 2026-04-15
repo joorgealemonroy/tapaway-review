@@ -82,6 +82,7 @@ const Onboarding = () => {
 
   // Success
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMagicLoading, setShowMagicLoading] = useState(false);
 
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
@@ -442,6 +443,33 @@ const Onboarding = () => {
 
       // Yelp auto
       try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
+
+      // ── Magic Onboarding for Solo Pro / personal dashboard type ──
+      if (resolvedDashboardType === 'personal' || plan === 'solo') {
+        setShowMagicLoading(true);
+        try {
+          const magicUsername = slug || generateSlug(bName);
+          const { error: magicError } = await supabase.functions.invoke("magic-onboarding", {
+            body: {
+              businessName: bName,
+              address: placeAddress || shippingAddress || '',
+              placeId: placeId || undefined,
+              userId: uid,
+              email: session.user.email || '',
+              username: magicUsername,
+            },
+          });
+          if (magicError) {
+            console.error("[onboarding] Magic onboarding failed (non-blocking):", magicError);
+          } else {
+            console.log("[onboarding] Magic onboarding completed for", magicUsername);
+          }
+        } catch (err) {
+          console.error("[onboarding] Magic onboarding error (non-blocking):", err);
+        }
+        // Don't hide magic loading — it stays until Stripe redirect or success
+      }
+
 
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
