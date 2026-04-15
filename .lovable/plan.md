@@ -1,54 +1,44 @@
 
 
-# Fix Onboarding: Logo Upload, OAuth Flow, and Plan Specificity
+# Restore Super Admin Account (tap@tapaway.co)
 
-## Changes
+## What Happened
+The `tap@tapaway.co` auth user was deleted from the database — it no longer exists in `auth.users`, and the corresponding `user_roles` admin entry is also gone. The auth logs have rotated past the event, so the exact cause is unclear, but it was likely an accidental deletion via the `delete-user-complete` edge function during admin cleanup.
 
-### 1. Logo Upload → Base64 Deferred Upload
-**File: `src/pages/Onboarding.tsx`**
+## Fix (One-Time)
 
-Replace `handleLogoUpload` (lines 195-212). Instead of uploading to Supabase immediately, convert the file to a Base64 data URL, store it in state (`logoUrl` as data URL) and save to `localStorage` via `saveOnboardingData({ logoUrl: base64String })`. Show the preview using the Base64 string directly.
+Create and invoke a temporary edge function `restore-admin` that uses the service role key to:
 
-In `completeSetup` (line 331+), after the user is authenticated, check if `savedLogoUrl` starts with `data:`. If so, convert it back to a `Blob`, upload to the `restaurant-logos` bucket as an authenticated user, then use the resulting public URL for the restaurant record. No storage policy changes needed.
+1. **Recreate the auth user** via `supabase.auth.admin.createUser()` with:
+   - email: `tap@tapaway.co`
+   - password: `Ilovelovie123!` (from memory)
+   - `email_confirm: true`
+   - `app_metadata: { role: "admin" }`
 
-### 2. Post-OAuth Loading Screen
-**File: `src/pages/Onboarding.tsx`**
+2. **Insert the admin role** into `user_roles` for the new user ID.
 
-Add `isCompletingSetup` state (default `false`). In the `completeSetup` effect (line 329), set `isCompletingSetup = true` at the top before any async work when we detect a session + saved business name + no `session_id`.
+3. **Re-link any orphaned data** — check if `restaurants`, `fulfillment_orders`, or other tables reference the old owner_id and update them if needed.
 
-In the render section (line 482), add a check: if `isCompletingSetup` is true, show a full-screen loading state with "Setting up your account..." text. This prevents the user from seeing Step 1 flash after OAuth return.
+4. **Delete the edge function** after successful invocation (it's a one-time restore tool).
 
-### 3. Google OAuth
-No code changes needed — the `lovable.auth.signInWithOAuth("google")` call is correct. Fix #2 handles the post-return UX.
+## Permanent Safeguard
 
-### 4. $39 Plan Business Type Question
-**File: `src/pages/Onboarding.tsx`**
+Add a hard block in `delete-user-complete/index.ts` so that `tap@tapaway.co` can **never** be deleted, regardless of who calls it:
 
-Add `dashboardType` state: `"restaurant" | "personal" | null`.
-
-In Step 1 UI (line 534), after the Venue Pack card is selected, show an inline follow-up:
-- **"What best describes your business?"**
-  - "Restaurant, Bar, or Cafe" → `setDashboardType("restaurant")`
-  - "Barbershop, Salon, or Service" → `setDashboardType("personal")`
-
-The Solo Pro plan auto-sets `dashboardType = "personal"`.
-
-Save `dashboardType` to `localStorage` via `saveOnboardingData`.
-
-In `completeSetup`: if `dashboardType === "personal"`, create a `personal_profiles` record (Business Lite with 15 cards for venue, 3 for solo) instead of a `restaurants` record. If `dashboardType === "restaurant"`, create a `restaurants` record (current behavior).
-
-Update `OnboardingData` interface in `src/lib/onboardingData.ts` to include `dashboardType?: string`.
-
-### 5. Stripe Metadata
-**File: `supabase/functions/create-checkout-session/index.ts`**
-
-Accept `dashboardType` in the request body. Pass it through in the Stripe session `metadata` so `verify-checkout` can use it post-payment.
+```typescript
+// At the top of the function, after resolving the target user
+if (targetEmail === 'tap@tapaway.co') {
+  return new Response(
+    JSON.stringify({ error: "Cannot delete super admin account" }),
+    { status: 403, headers: corsHeaders }
+  );
+}
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/Onboarding.tsx` | Base64 logo, loading screen, business type question, dashboard routing |
-| `src/lib/onboardingData.ts` | Add `dashboardType` to interface |
-| `supabase/functions/create-checkout-session/index.ts` | Pass `dashboardType` in metadata |
+| `supabase/functions/restore-admin/index.ts` | **New** — one-time account restore (deleted after use) |
+| `supabase/functions/delete-user-complete/index.ts` | Add permanent block preventing deletion of `tap@tapaway.co` |
 
