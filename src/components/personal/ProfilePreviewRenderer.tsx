@@ -58,6 +58,7 @@ interface ProfileData {
   contact_enabled?: boolean | null;
   contact_display_style?: string | null;
   contact_name?: string | null;
+  contact_button_label?: string | null;
   button_theme?: string | null;
   text_color?: string | null;
 }
@@ -854,18 +855,20 @@ function ProfilePreviewRendererComponent({
             style={{
               backgroundColor: (() => {
                 const btn = profile.button_theme;
-                if (btn) return btn;
+                const isHex = btn && /^#[0-9A-Fa-f]{3,6}$/.test(btn);
+                if (isHex) return btn;
                 return isDarkBg ? '#FFFFFF' : '#1A1A1A';
               })(),
               color: (() => {
                 const btn = profile.button_theme;
-                const bg = btn || (isDarkBg ? '#FFFFFF' : '#1A1A1A');
+                const isHex = btn && /^#[0-9A-Fa-f]{3,6}$/.test(btn);
+                const bg = isHex ? btn! : (isDarkBg ? '#FFFFFF' : '#1A1A1A');
                 return isColorDark(bg) ? '#FFFFFF' : '#1A1A1A';
               })(),
             }}
           >
             <UserPlus className="h-4 w-4" />
-            Save Contact
+            {profile.contact_button_label || 'Save Contact'}
           </button>
         </div>
       )}
