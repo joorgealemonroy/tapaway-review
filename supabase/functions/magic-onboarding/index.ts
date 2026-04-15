@@ -242,6 +242,50 @@ async function discoverSocials(placeId: string | null): Promise<SocialResult> {
   }
 }
 
+// ── Step 3b: Website scraping fallback for socials ──
+async function scrapeWebsiteForSocials(websiteUrl: string | null): Promise<SocialResult> {
+  const empty: SocialResult = { instagramUrl: null, tiktokUrl: null, facebookUrl: null };
+  if (!websiteUrl) return empty;
+
+  try {
+    console.log('[magic-onboarding] Scraping website for socials:', websiteUrl);
+    const res = await fetch(websiteUrl, {
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TapAwayBot/1.0)' },
+    });
+    if (!res.ok) {
+      console.log('[magic-onboarding] Website scrape failed:', res.status);
+      return empty;
+    }
+
+    const html = await res.text();
+
+    // Extract social links from HTML — match href="..." or plain text URLs
+    const igMatch = html.match(/instagram\.com\/([a-zA-Z0-9_.]+)/);
+    const tkMatch = html.match(/tiktok\.com\/@?([a-zA-Z0-9_.]+)/);
+    const fbMatch = html.match(/facebook\.com\/([a-zA-Z0-9_.]+)/);
+
+    // Filter out generic paths like "instagram.com/accounts" etc.
+    const genericPaths = ['accounts', 'explore', 'about', 'help', 'legal', 'privacy', 'terms', 'p', 'reel', 'stories'];
+
+    const instagramHandle = igMatch?.[1] && !genericPaths.includes(igMatch[1].toLowerCase()) ? igMatch[1] : null;
+    const tiktokHandle = tkMatch?.[1] && !genericPaths.includes(tkMatch[1].toLowerCase()) ? tkMatch[1] : null;
+    const fbHandle = fbMatch?.[1] && !genericPaths.includes(fbMatch[1].toLowerCase()) ? fbMatch[1] : null;
+
+    const result: SocialResult = {
+      instagramUrl: instagramHandle ? `https://instagram.com/${instagramHandle}` : null,
+      tiktokUrl: tiktokHandle ? `https://tiktok.com/@${tiktokHandle}` : null,
+      facebookUrl: fbHandle ? `https://facebook.com/${fbHandle}` : null,
+    };
+
+    console.log('[magic-onboarding] Website scrape socials:', result);
+    return result;
+  } catch (e) {
+    console.error('[magic-onboarding] Website scrape failed:', e);
+    return empty;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -303,7 +347,13 @@ serve(async (req) => {
     console.log('[magic-onboarding] Brand:', { hasLogo: !!brandData.logoUrl, primaryColor: brandData.primaryColor });
 
     // ── Step 3: Social Discovery via Outscraper ──
-    const socialData = await discoverSocials(googleData.placeId);
+    let socialData = await discoverSocials(googleData.placeId);
+
+    // ── Step 3b: Fallback — scrape website HTML for social links ──
+    if (!socialData.instagramUrl && !socialData.tiktokUrl && !socialData.facebookUrl) {
+      console.log('[magic-onboarding] Outscraper returned no socials, trying website scrape fallback');
+      socialData = await scrapeWebsiteForSocials(googleData.websiteUrl);
+    }
 
     // ── Step 4: Create / update profile ──
     const { data: existingProfile } = await supabase
@@ -373,10 +423,20 @@ serve(async (req) => {
     // ── Step 6: Create Links ──
     const linksToInsert: any[] = [];
     let sortOrder = 0;
+    const usedUrls = new Set<string>();
+
+    const addLink = (link: any) => {
+      // Skip links with no real URL
+      if (!link.url || link.url === '#') return;
+      // Deduplicate by URL
+      if (usedUrls.has(link.url)) return;
+      usedUrls.add(link.url);
+      linksToInsert.push(link);
+    };
 
     // Instagram tile
     if (socialData.instagramUrl) {
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'instagram',
         label: 'Instagram',
@@ -391,7 +451,7 @@ serve(async (req) => {
 
     // TikTok tile
     if (socialData.tiktokUrl) {
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'tiktok',
         label: 'TikTok',
@@ -406,7 +466,7 @@ serve(async (req) => {
 
     // Facebook pill (if found and no IG/TikTok to avoid clutter)
     if (socialData.facebookUrl && !socialData.instagramUrl && !socialData.tiktokUrl) {
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'custom',
         label: 'Facebook',
@@ -418,36 +478,41 @@ serve(async (req) => {
       });
     }
 
-    // If no social links but we have uploaded photos, create photo tile links
+    // If no social links but we have uploaded photos, create photo tiles linking to Google Maps
     if (!socialData.instagramUrl && !socialData.tiktokUrl && uploadedPhotoUrls.length >= 2) {
-      linksToInsert.push({
-        profile_id: profileId,
-        link_type: 'custom',
-        label: businessName,
-        url: googleData.websiteUrl || '#',
-        sort_order: sortOrder++,
-        is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
-        thumbnail_bg_url: uploadedPhotoUrls[0],
-      });
-      linksToInsert.push({
-        profile_id: profileId,
-        link_type: 'custom',
-        label: 'Our Space',
-        url: googleData.websiteUrl || '#',
-        sort_order: sortOrder++,
-        is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
-        thumbnail_bg_url: uploadedPhotoUrls[1],
-      });
+      const mapsUrl = googleData.googleMapsUri || null;
+      if (mapsUrl) {
+        addLink({
+          profile_id: profileId,
+          link_type: 'custom',
+          label: businessName,
+          url: mapsUrl,
+          sort_order: sortOrder++,
+          is_active: true,
+          display_style: 'grid',
+          grid_size: 'half',
+          thumbnail_bg_url: uploadedPhotoUrls[0],
+        });
+        // Second tile with different photo — use "Gallery" label and same Maps URL won't work (dedup), 
+        // so use a slightly different URL with anchor
+        addLink({
+          profile_id: profileId,
+          link_type: 'custom',
+          label: 'Gallery',
+          url: mapsUrl + '#photos',
+          sort_order: sortOrder++,
+          is_active: true,
+          display_style: 'grid',
+          grid_size: 'half',
+          thumbnail_bg_url: uploadedPhotoUrls[1],
+        });
+      }
     }
 
     // Google Review link
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'google_review',
         label: 'Leave us a Review',
@@ -461,7 +526,7 @@ serve(async (req) => {
 
     // Website link
     if (googleData.websiteUrl) {
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'website',
         label: 'Visit Our Website',
@@ -476,7 +541,7 @@ serve(async (req) => {
     // Directions link
     if (address) {
       const directionsUrl = `https://maps.apple.com/?q=${encodeURIComponent(businessName)}&address=${encodeURIComponent(address)}`;
-      linksToInsert.push({
+      addLink({
         profile_id: profileId,
         link_type: 'directions',
         label: 'Get Directions',

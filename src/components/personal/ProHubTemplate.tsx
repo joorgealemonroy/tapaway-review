@@ -84,11 +84,11 @@ export const ProHubTemplate = memo(({
       {/* ── A. Logo Framing ── */}
       {profilePhotoUrl && (
         <div className="mb-8 mt-4">
-          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-4 max-w-[180px]">
+          <div className="backdrop-blur-md bg-white/10 rounded-2xl p-5 max-w-[200px]">
             <img
               src={profilePhotoUrl}
               alt={displayName}
-              className="w-full h-auto max-h-24 object-contain rounded-lg"
+              className="w-full h-auto max-h-28 object-contain rounded-lg"
             />
           </div>
         </div>
