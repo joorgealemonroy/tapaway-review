@@ -1,37 +1,27 @@
 
 
-# Fetch Shipping Address from Stripe for Pre-fill
+# Fix Card Club Copy + Update Stripe Product Description
 
 ## Problem
-Users like `sugarbloomcakery` have their shipping address stored on their Stripe customer object (from their original checkout), but no `personal_card_requests` records yet. The Cards tab shows empty address fields because there's nothing in our DB to pre-fill from.
-
-## Solution
-Add a new endpoint flow in `create-card-order` that fetches the Stripe customer's shipping address, and call it from the CardsTab on load when no previous card requests exist.
+The Cards tab and the Stripe product both say cards are "shipped to you every month," implying automatic fulfillment. Cards must be manually requested.
 
 ## Changes
 
-### 1. `supabase/functions/create-card-order/index.ts`
-Add a new flow: `fetch_address`
-- Accepts `profile_id`, looks up `stripe_customer_id`
-- Calls `stripe.customers.retrieve(customerId)` 
-- Returns `customer.shipping.address` + `customer.shipping.name` (or `customer.address` as fallback)
-- No mutation, read-only
+### 1. Fix UI copy in `CardsTab.tsx`
+**Line 263** — Card Club promo description:
+- From: *"Get 3 NFC cards shipped to you every month for just $5/mo. Shipping included!"*
+- To: *"Request up to 3 NFC cards per month for just $5/mo. Free shipping included!"*
 
-### 2. `src/components/personal/CardsTab.tsx`
-Update `loadRequests`:
-- After loading card requests, if **none exist** AND `stripeCustomerId` is set:
-  - Call `create-card-order` with `flow: 'fetch_address'`
-  - Use the returned shipping data to pre-fill the address form
-  - If address is complete, collapse the form to the compact summary
-- This gives users like sugarbloomcakery a fully pre-filled address on first visit
+**Lines 220-222** — Active member description:
+- From: *"You have X cards remaining this month"*
+- To: *"You can request X more card(s) this month"* (minor wording tweak for consistency)
 
-## UX Flow
-1. User opens Cards tab for the first time
-2. No card requests in DB → component calls `fetch_address`
-3. Stripe customer has shipping → address auto-fills and collapses
-4. User picks quantity, taps "Confirm Request" — done
+### 2. Update Stripe product description via API
+Run a one-off script using `STRIPE_SECRET_KEY` to update the Card Club product description. I'll look up the product ID from price `price_1TMM0LDg8DaTuVNZUgZ4GtWJ`, then call `stripe.products.update()` with:
+- Description: *"Includes a quota of up to 3 NFC cards per month. Request cards anytime from your TapAway dashboard. Free shipping included."*
+
+No new edge function needed — just a temporary exec script.
 
 ## Files Changed
-- `supabase/functions/create-card-order/index.ts` — add `fetch_address` flow (~15 lines)
-- `src/components/personal/CardsTab.tsx` — add Stripe address fetch fallback (~10 lines in `loadRequests`)
+- `src/components/personal/CardsTab.tsx` — update 2 copy strings
 
