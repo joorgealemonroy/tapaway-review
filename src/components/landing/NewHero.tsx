@@ -57,7 +57,7 @@ export const NewHero = () => {
         duration: 0.5,
         delay: 0.3
       }} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-          <motion.a href="/paywall" className="inline-flex items-center px-7 py-3.5 rounded-full font-bold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(11,165,164,0.35)] text-base" whileHover={{
+          <motion.a href="/onboarding" className="inline-flex items-center px-7 py-3.5 rounded-full font-bold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(11,165,164,0.35)] text-base" whileHover={{
           scale: 1.03,
           boxShadow: "0 0 50px rgba(11,165,164,0.5)"
         }} whileTap={{

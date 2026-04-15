@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
 import { Loader2 } from "lucide-react";
 
-const PAYWALL_PATH = "/paywall";
+const PAYWALL_PATH = "/onboarding";
 
 type Mode = "login" | "forgot" | "post-checkout-signup" | "post-checkout-login";
 
@@ -249,10 +249,10 @@ const Auth = () => {
    }
    // Has restaurant but blocked subscription
    if (restaurant && !hasValidBusiness) {
-     return "/paywall";
+     return "/onboarding";
    }
    // No accounts at all
-   return "/paywall";
+   return "/onboarding";
   };
 
   // Extract session_id from redirect for password setting

@@ -390,9 +390,9 @@ const DashboardBusiness = () => {
       
       fetchLocations(activeRestaurant.id);
 
-      // Check subscription status and redirect to paywall if blocked
+      // Check subscription status and redirect to onboarding if blocked
       if (!isAdmin && !isSubscriptionAllowed(activeRestaurant.subscription_status)) {
-        navigate("/paywall");
+        navigate("/onboarding");
         return;
       }
     } else if (restaurants && restaurants.length > 0) {
@@ -443,9 +443,9 @@ const DashboardBusiness = () => {
       // Super admin without restaurant - that's fine, they can still access admin dashboard
       console.log('[Dashboard] Super admin accessing dashboard without restaurant');
     } else {
-      // No restaurant found — redirect to paywall (top-level decide() handles personal routing)
-      console.log('[Dashboard] User has no restaurant, redirecting to paywall');
-      navigate("/paywall");
+      // No restaurant found — redirect to onboarding
+      console.log('[Dashboard] User has no restaurant, redirecting to onboarding');
+      navigate("/onboarding");
     }
   };
   const fetchLocations = async (restaurantId: string) => {

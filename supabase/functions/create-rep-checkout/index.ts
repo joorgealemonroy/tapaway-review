@@ -133,7 +133,7 @@ serve(async (req) => {
       mode: "subscription",
       line_items: [{ price: price.id, quantity: 1 }],
       success_url: `${baseUrl}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/paywall`,
+      cancel_url: `${baseUrl}/onboarding`,
       billing_address_collection: "required",
       shipping_address_collection: { allowed_countries: ["US"] },
       subscription_data: {

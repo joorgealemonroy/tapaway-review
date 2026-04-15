@@ -507,14 +507,18 @@ const Onboarding = () => {
         }).select("id").single();
 
         if (insertErr && insertErr.code === '23505') {
-          // Duplicate slug — find existing row and update it
-          console.log("[onboarding] Slug collision, falling back to upsert-by-slug");
-          const { data: existing2 } = await supabase.from("restaurants")
-            .select("id").eq("custom_slug", slug).eq("owner_id", uid).maybeSingle();
-          if (existing2?.id) {
-            rId = existing2.id;
+          // Duplicate slug — try owner lookup first, then broader recovery
+          console.log("[onboarding] Slug collision, attempting recovery");
+          
+          // Try 1: find by owner_id (any slug)
+          const { data: ownedRow } = await supabase.from("restaurants")
+            .select("id").eq("owner_id", uid).maybeSingle();
+          
+          if (ownedRow?.id) {
+            rId = ownedRow.id;
             await supabase.from("restaurants").update({
               restaurant_name: bName,
+              custom_slug: slug,
               email: session.user.email,
               subscription_status: "trialing",
               onboarding_step: 3,
@@ -523,6 +527,27 @@ const Onboarding = () => {
               trial_ends_at: trialEndsAt,
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).eq("id", rId);
+          } else {
+            // Try 2: slug taken by another user — append random suffix
+            const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
+            console.log("[onboarding] Slug taken by another user, using fallback:", uniqueSlug);
+            const { data: created2, error: insertErr2 } = await supabase.from("restaurants").insert({
+              owner_id: uid,
+              restaurant_name: bName,
+              custom_slug: uniqueSlug,
+              email: session.user.email,
+              subscription_status: "trialing",
+              onboarding_step: 3,
+              plan_type: plan,
+              has_loss_protection: protection,
+              trial_ends_at: trialEndsAt,
+              ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
+            }).select("id").single();
+            if (insertErr2) {
+              console.error("[onboarding] Fallback slug insert also failed:", insertErr2);
+            } else {
+              rId = created2?.id;
+            }
           }
         } else {
           rId = created?.id;

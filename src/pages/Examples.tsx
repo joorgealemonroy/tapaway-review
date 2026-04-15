@@ -235,7 +235,7 @@ const Examples = () => {
         </p>
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" asChild>
-            <a href="/paywall">Start Free Trial</a>
+            <a href="/onboarding">Start Free Trial</a>
           </Button>
           <Button size="lg" variant="outline" asChild>
             <a href={PHONE_TEL} className="flex items-center gap-2">
