@@ -479,6 +479,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
         text_color: formData.vibeId
           ? getVibeTemplate(formData.vibeId)?.mockupTheme.text || null
           : null,
+        has_card_addon: formData.addExtraCard || false,
       };
 
       const { data: profileResult, error: profileError } = await supabase

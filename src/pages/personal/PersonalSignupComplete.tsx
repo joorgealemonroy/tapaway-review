@@ -237,12 +237,17 @@ const PersonalSignupComplete = () => {
             updateData.header_image_url = headerImageUrl;
           }
 
+          // Activate Card Club if selected during signup
+          if (savedData.addExtraCard) {
+            updateData.has_card_addon = true;
+          }
+
           await supabase
             .from("personal_profiles")
             .update(updateData)
             .eq("id", profile.id);
 
-          console.log("[PersonalSignupComplete] Profile updated with theme settings");
+          console.log("[PersonalSignupComplete] Profile updated with theme settings", { hasCardAddon: !!savedData.addExtraCard });
 
           // Step 7: Delete existing links and create new ones
           if (savedData.links && savedData.links.length > 0) {
