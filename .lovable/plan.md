@@ -1,71 +1,66 @@
 
 
-# Transform tapaway.co/socials into a High-Converting Landing Page
+# Redesign /socials as Hybrid Hub + Landing Page
 
 ## Overview
-Create a new dedicated landing page at `/socials` designed to convert visitors into signups. The page replaces the generic personal landing content with a focused, conversion-oriented layout featuring real business demos, a clear CTA, and a features showcase.
+Replace the current generic hero with a hardcoded TapAway profile hub at the top, then seamlessly transition into conversion sections below. The entire page uses a black background (`bg-black`) for cohesion — the hub section looks like a real profile, then fades into marketing content.
 
 ## Page Structure
 
 ```text
 ┌─────────────────────────────────────────┐
-│  LandingNav                             │
-├─────────────────────────────────────────┤
-│  HERO                                   │
-│  Headline + subtext + "Try It Free" CTA │
-│  "We'll send you cards that tap"        │
-├─────────────────────────────────────────┤
-│  SEE EXAMPLES (dropdown demos)          │
-│  Dropdown: Bakery / Barbershop /        │
-│    Car Wraps / Restaurant               │
-│  Each opens clickable iframe/link to:   │
-│    sugarbloom / spacestudios /          │
-│    rebornwraps / islasmarias            │
-├─────────────────────────────────────────┤
-│  FEATURES — "Everything in One Place"   │
-│  Grid of 6 feature cards:              │
-│  • Reviews (Google reviews)             │
-│  • Links & Socials                      │
-│  • Contact / Save Phone                 │
-│  • Menu & Services                      │
-│  • Analytics                            │
-│  • Shop (sell courses etc, 0% fee)      │
-├─────────────────────────────────────────┤
-│  FOOTER CTA — "Try It Free"            │
-│  + Footer                               │
+│  BLACK BACKGROUND (no nav at top)       │
+│                                         │
+│  ① LIVE HUB (hardcoded profile)         │
+│  - Circular tapaway.co logo + ✓ badge   │
+│  - "TapAway" name + @socials handle     │
+│  - Instagram / X / TikTok icon row      │
+│  - Bio text                             │
+│  - White "Save Contact" button          │
+│  - Dark pill link cards (IG, X, TT, ✉)  │
+│                                         │
+│  ② TRANSITION CTA                       │
+│  - Pitch text + white "Try It Free →"   │
+│  - "No credit card required"            │
+│                                         │
+│  ③ DEMO SECTION (bg-zinc-950)           │
+│  - "See real businesses using TapAway"  │
+│  - Dropdown: Bakery/Barbershop/etc      │
+│  - Phone mockup iframe                  │
+│  - "Visit live profile" link            │
+│                                         │
+│  ④ FEATURES GRID (bg-black)             │
+│  - "Everything in one place"            │
+│  - 6 dark cards, cyan/primary icons     │
+│                                         │
+│  ⑤ FOOTER CTA (bg-white, dark text)     │
+│  - "Ready to try it?"                   │
+│  - Dark "Try It Free →" button          │
+│  - "No credit card required · Cancel…"  │
 └─────────────────────────────────────────┘
 ```
 
-## Technical Changes
+## Changes
 
 | File | Action |
 |------|--------|
-| `src/pages/Socials.tsx` | **New file** — Full landing page with Hero, Examples dropdown, Features grid, Footer CTA |
-| `src/App.tsx` | Add route: `<Route path="/socials" element={<Socials />} />` |
+| `src/pages/Socials.tsx` | **Rewrite** — Replace hero with hardcoded hub section matching real profile styling, keep existing demo/features/footer sections with adjusted backgrounds |
 
-## Examples Section Details
-- Styled dropdown/select with 4 categories: Bakery, Barbershop, Car Wraps, Restaurant
-- Selecting a category shows a phone mockup preview + a "Visit Live Profile" button linking to:
-  - Bakery → `tapaway.co/sugarbloom`
-  - Barbershop → `tapaway.co/spacestudios`
-  - Car Wraps → `tapaway.co/rebornwraps`
-  - Restaurant → `tapaway.co/islasmarias`
-- Default selection: Bakery (sugarbloom)
+## Hub Section Details
+- **No LandingNav** at top — the page opens directly as a profile
+- Profile photo: `/tapaway-logo.svg` in a white circle with a blue verified checkmark (CheckCircle2 icon)
+- Name: "TapAway" bold white, handle: "@socials" in white/50
+- Social icons row: 3 circles (Instagram gradient, X black, TikTok black) — using existing icon components from `platformLinks.tsx`
+- Bio: italic white/70 text
+- "Save Contact" button: full-width white rounded pill with UserPlus icon
+- Link cards: 4 dark glassmorphism pills (`bg-white/10 backdrop-blur-md border border-white/10`) for Instagram, X, TikTok, and Connect (email) — each with the platform icon circle and ExternalLink arrow
 
-## Features Section — "Everything in One Place"
-Six feature cards in a responsive grid (2 cols mobile, 3 cols desktop):
-1. **Reviews** — Collect Google reviews with one tap
-2. **Links & Socials** — All your platforms in one place
-3. **Contact / Save Phone** — Visitors save your contact instantly
-4. **Menu & Services** — Showcase what you offer
-5. **Analytics** — See who visits and what they click
-6. **Shop** — Sell courses, guides, products. TapAway takes 0%
+## Transition
+- Subtle gradient fade from hub into marketing section
+- CTA uses the same dark bg, white button styling
 
-## CTA Buttons
-- "Try It Free" buttons link to `/onboarding` (the signup/onboarding flow)
-- Subtext: "We'll send you cards that tap"
-
-## Design
-- Matches existing landing page aesthetic (dark sections, motion animations, card components)
-- Uses existing `LandingNav` and footer pattern from `Personal.tsx`
+## Existing Sections (kept, restyled)
+- Demo dropdown + phone mockup: moved to `bg-zinc-950` for seamless blend
+- Features grid: dark cards on black bg with cyan icon circles
+- Footer: white bg with dark text and dark CTA button (inverted from current)
 
