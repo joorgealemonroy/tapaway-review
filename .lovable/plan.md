@@ -1,42 +1,59 @@
 
 
-# Fix Magic Onboarding Routing & Edge Function Bugs
+# Developer Testing Loop for Magic Onboarding
 
-## Root Cause Analysis
+## Summary
+Add a Stripe bypass for admin/test accounts and a "Reset Onboarding" button so the admin can repeatedly test the Magic Onboarding flow without creating new accounts or completing Stripe checkout.
 
-The logs confirm the exact failure chain:
+## Changes
 
-1. **Edge function crash**: `magic-onboarding` tries to insert `display_name` into `personal_profiles`, but the column is actually called `full_name`. This causes `PGRST204` and the profile is never created.
-2. **Silent failure**: The error is caught as "non-blocking" (line 532), so onboarding continues to Stripe checkout without a personal profile.
-3. **Wrong redirect**: After Stripe, the success screen navigates to `/dashboard`. The `DashboardSelector` finds no `personal_profiles` record (because it was never created), finds only a `restaurants` record, and routes to the restaurant view.
-4. **`dashboardType` not restored**: On OAuth return, `dashboardType` state is never restored from localStorage even though it was saved. The init effect restores `businessName`, `shippingAddress`, `planType`, `hasProtection` — but not `dashboardType`.
+### 1. Stripe Bypass in `src/pages/Onboarding.tsx`
 
-## Fixes
+Insert a check **before** the Stripe redirect block (line ~587), after the free promo block:
 
-### 1. Fix Edge Function Column Name
-**File**: `supabase/functions/magic-onboarding/index.ts`
+```typescript
+// ── ADMIN/TEST BYPASS: skip Stripe for dev testing ──
+const userEmail = session.user.email || '';
+if (userEmail === 'tap@tapaway.co' || userEmail.includes('+test')) {
+  console.log("[onboarding] Admin/test bypass — skipping Stripe");
+  await supabase.from("restaurants").update({
+    subscription_status: "active",
+    onboarding_completed: true,
+    onboarding_step: 4,
+  }).eq("id", rId);
+  try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+  clearOnboardingData();
 
-Replace all references to `display_name` with `full_name` (the actual column in `personal_profiles`).
+  if (resolvedDashboardType === 'personal' || plan === 'solo') {
+    navigate("/dashboard?type=lite&welcome=true");
+  } else {
+    setShowSuccess(true);
+  }
+  return;
+}
+```
 
-### 2. Restore `dashboardType` from localStorage
-**File**: `src/pages/Onboarding.tsx` (init effect, ~line 128-131)
+### 2. New Component: `src/components/admin/DeveloperResetButton.tsx`
 
-Add: `if (savedData.dashboardType) setDashboardType(savedData.dashboardType);`
+- Small muted button: "Reset Onboarding (Dev)" with a `RotateCcw` icon
+- Only renders when `user.email === 'tap@tapaway.co'`
+- On click: shows an `AlertDialog` confirmation
+- On confirm:
+  1. `DELETE FROM personal_links WHERE profile_id IN (SELECT id FROM personal_profiles WHERE user_id = uid)` — done via two queries: fetch profile IDs, then delete links
+  2. `DELETE FROM personal_profiles WHERE user_id = uid`
+  3. `DELETE FROM restaurants WHERE owner_id = uid`
+  4. Clear localStorage onboarding data
+  5. `navigate("/onboarding")`
 
-### 3. Fix Post-Stripe Redirect for Personal Users
-**File**: `src/pages/Onboarding.tsx` (Stripe return handler, ~line 145-184)
+### 3. Place the Reset Button
 
-After checkout verification, check if user has a `personal_profiles` record. If so, redirect to `/dashboard?type=lite&welcome=true` instead of showing the generic success screen. Also check saved `dashboardType` from localStorage.
+Add it to the **SettingsTab** or **DashboardHeader** — render `<DeveloperResetButton />` at the bottom, guarded by admin email check at the component level.
 
-### 4. Add Logging to Edge Function
-**File**: `supabase/functions/magic-onboarding/index.ts`
-
-The function already has good logging (confirmed in logs). The issue is purely the wrong column name. After fixing, the existing logs will confirm successful execution.
-
-## Files Changed
+## Files Changed/Created
 
 | File | Action |
 |------|--------|
-| `supabase/functions/magic-onboarding/index.ts` | Fix `display_name` → `full_name` |
-| `src/pages/Onboarding.tsx` | Restore `dashboardType` from localStorage; fix post-Stripe redirect for personal users |
+| `src/pages/Onboarding.tsx` | Add admin/test Stripe bypass before Stripe redirect |
+| `src/components/admin/DeveloperResetButton.tsx` | Create reset button component |
+| `src/components/dashboard/SettingsTab.tsx` | Import and render DeveloperResetButton |
 
