@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 
 const exampleOptions = [
-  { label: "Bakery", slug: "/sugarbloom" },
+  { label: "Bakery", slug: "/sugarbloomcakery" },
   { label: "Barbershop", slug: "/spacestudios" },
   { label: "Car Wraps", slug: "/rebornwraps" },
   { label: "Restaurant", slug: "/islasmarias" },
+  { label: "Creator", slug: "/denzel" },
 ] as const;
 
 const features = [

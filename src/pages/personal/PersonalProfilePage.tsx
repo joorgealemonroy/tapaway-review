@@ -26,6 +26,7 @@ import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
+import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 
 
 // Helper to extract a base color from a gradient for fade effect
@@ -732,28 +733,8 @@ const ProfileBlock = memo(function ProfileBlock({
           </a>
         </div>
       );
-    case "marketing_examples": {
-      const exOpts = [
-        { label: "Bakery", slug: "/sugarbloom" },
-        { label: "Barbershop", slug: "/spacestudios" },
-        { label: "Car Wraps", slug: "/rebornwraps" },
-        { label: "Restaurant", slug: "/islasmarias" },
-      ];
-      return (
-        <div key={block.id} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-5">
-          <h4 className="text-white font-semibold text-sm mb-3">See real businesses using TapAway</h4>
-          <select className="w-full rounded-xl bg-white/10 border border-white/10 text-white text-sm px-3 py-2.5 mb-3 focus:outline-none focus:ring-1 focus:ring-primary appearance-none">
-            {exOpts.map(o => <option key={o.label} className="bg-gray-900 text-white">{o.label}</option>)}
-          </select>
-          <a href="https://tapaway.co/sugarbloom" target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full rounded-full border border-white/20 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:border-white/40 transition-colors"
-          >
-            View Live Profile
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      );
-    }
+    case "marketing_examples":
+      return <MarketingExamplesCard key={block.id} />;
     case "marketing_features": {
       const feats = [
         { title: "Reviews", desc: "Collect Google reviews with one tap" },
