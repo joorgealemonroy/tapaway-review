@@ -979,6 +979,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Show "Save my contact!" tooltip once per session
   useEffect(() => {
     if (!data?.profile?.contact_enabled) return;
+    if (data?.profile?.contact_display_style === 'button') return;
     const key = `contact_tooltip_seen_${username}`;
     if (sessionStorage.getItem(key)) return;
     setShowContactTooltip(true);
@@ -1243,7 +1244,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             />
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
-              {profile.contact_enabled && (
+              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
@@ -1295,7 +1296,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
             <div className="absolute top-0 right-4 flex gap-2">
-              {profile.contact_enabled && (
+              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
