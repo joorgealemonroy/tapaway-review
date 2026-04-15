@@ -26,7 +26,7 @@ import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
-import MarketingFooterCards from "@/components/personal/MarketingFooterCards";
+
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -718,6 +718,63 @@ const ProfileBlock = memo(function ProfileBlock({
       
       return (
         <CollageWithLightbox media={media} />
+      );
+    }
+    case "marketing_cta":
+      return (
+        <div key={block.id}>
+          <a
+            href="/onboarding"
+            className="block w-full rounded-full bg-primary py-4 text-center transition-opacity hover:opacity-90"
+          >
+            <span className="block text-lg font-bold text-primary-foreground">Try It Free</span>
+            <span className="block text-xs text-primary-foreground/70 mt-0.5">We'll send you cards that tap</span>
+          </a>
+        </div>
+      );
+    case "marketing_examples": {
+      const exOpts = [
+        { label: "Bakery", slug: "/sugarbloom" },
+        { label: "Barbershop", slug: "/spacestudios" },
+        { label: "Car Wraps", slug: "/rebornwraps" },
+        { label: "Restaurant", slug: "/islasmarias" },
+      ];
+      return (
+        <div key={block.id} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-5">
+          <h4 className="text-white font-semibold text-sm mb-3">See real businesses using TapAway</h4>
+          <select className="w-full rounded-xl bg-white/10 border border-white/10 text-white text-sm px-3 py-2.5 mb-3 focus:outline-none focus:ring-1 focus:ring-primary appearance-none">
+            {exOpts.map(o => <option key={o.label} className="bg-gray-900 text-white">{o.label}</option>)}
+          </select>
+          <a href="https://tapaway.co/sugarbloom" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full rounded-full border border-white/20 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:border-white/40 transition-colors"
+          >
+            View Live Profile
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      );
+    }
+    case "marketing_features": {
+      const feats = [
+        { title: "Reviews", desc: "Collect Google reviews with one tap" },
+        { title: "Links & Socials", desc: "All your platforms in one place" },
+        { title: "Contact / Save Phone", desc: "Visitors save your contact instantly" },
+        { title: "Menu & Services", desc: "Showcase what you offer" },
+        { title: "Analytics", desc: "See who visits and what they click" },
+        { title: "Shop", desc: "Sell courses, guides & products. TapAway takes 0%" },
+      ];
+      return (
+        <div key={block.id} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-5">
+          <h4 className="text-white font-semibold text-sm mb-3">Everything in one place</h4>
+          <div className="grid grid-cols-2 gap-3">
+            {feats.map(f => (
+              <div key={f.title} className="flex flex-col gap-1">
+                <span className="text-white text-xs font-medium">{f.title}</span>
+                <p className="text-white/50 text-[10px] leading-tight">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       );
     }
     default:
@@ -1521,10 +1578,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </div>
           )}
 
-          {/* Marketing Cards — only on the /socials demo profile */}
-          {profile.username === 'socials' && (
-            <MarketingFooterCards isDarkBg={isDarkBg} />
-          )}
 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">

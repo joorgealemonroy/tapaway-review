@@ -24,7 +24,6 @@ import {
   ArrowLeftRight,
   Smartphone,
   CreditCard,
-  Megaphone,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -806,31 +805,6 @@ const PersonalDashboard = () => {
               />
              </div>
 
-             {profile.username === 'socials' && (
-               <div className="mt-4 p-4 border border-dashed border-border rounded-xl bg-muted/30">
-                 <div className="flex items-center gap-2 mb-3 text-sm font-medium text-foreground">
-                   <Megaphone className="h-4 w-4 text-primary" />
-                   <span>Marketing Footer (auto)</span>
-                 </div>
-                 <p className="text-xs text-muted-foreground mb-3">
-                   These elements are hardcoded for the socials demo profile and render automatically on the public page.
-                 </p>
-                 <ul className="space-y-2 text-xs text-muted-foreground">
-                   <li className="flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                     <span><strong className="text-foreground">CTA Pill</strong> — "Try It Free" button linking to /onboarding</span>
-                   </li>
-                   <li className="flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                     <span><strong className="text-foreground">Examples Card</strong> — Dropdown to view live business profiles (Bakery, Barbershop, Car Wraps, Restaurant)</span>
-                   </li>
-                   <li className="flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                     <span><strong className="text-foreground">Features Grid</strong> — Reviews, Links, Contact, Menu, Analytics, Shop</span>
-                   </li>
-                 </ul>
-               </div>
-             )}
 
              {/* Mobile preview is now a floating FAB + drawer */}
           </TabsContent>
