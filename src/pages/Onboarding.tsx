@@ -76,6 +76,11 @@ const Onboarding = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [repSubmitting, setRepSubmitting] = useState(false);
 
+  // Email signup
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [emailSignupAddress, setEmailSignupAddress] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
+
   // Auth / restaurant IDs
   const [userId, setUserId] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
