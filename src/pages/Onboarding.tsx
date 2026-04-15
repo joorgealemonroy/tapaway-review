@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail } from "lucide-react";
+import { MagicLoadingOverlay } from "@/components/onboarding/MagicLoadingOverlay";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
