@@ -894,7 +894,11 @@ function ProfilePreviewRendererComponent({
             linkIndex += item.links.length;
             return (
               <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-2">
-                {item.links.map((link, i) => renderLink(link, false, true, startIndex + i))}
+                {item.links.map((link, i) => (
+                  <div key={`grid-wrap-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
+                    {renderLink(link, false, true, startIndex + i)}
+                  </div>
+                ))}
               </div>
             );
           } else if (item.kind === "link") {
