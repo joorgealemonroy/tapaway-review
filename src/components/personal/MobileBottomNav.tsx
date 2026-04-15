@@ -29,7 +29,7 @@ const BASE_MORE_TABS = [
   { value: "shop", label: "Shop", icon: ShoppingBag, description: "Sell digital products" },
   { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
-  { value: "cards", label: "Cards", icon: CreditCard, description: "Coming soon" },
+  { value: "cards", label: "Cards", icon: CreditCard, description: "Request NFC cards" },
 ];
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile }: MobileBottomNavProps) => {
