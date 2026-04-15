@@ -16,7 +16,7 @@ export const DesktopNav = () => {
     localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
   
-  const dashboardLink = isSalesRep ? "/rep" : "/select-dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
 
   return (
     <nav className="hidden md:block sticky top-0 z-50 bg-background/90 backdrop-blur-lg border-b border-border">

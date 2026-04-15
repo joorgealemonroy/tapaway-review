@@ -22,7 +22,7 @@ export const MobileNav = () => {
     localStorage.setItem('tapaway_dashboard_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
   
-  const dashboardLink = isSalesRep ? "/rep" : "/select-dashboard";
+  const dashboardLink = isSalesRep ? "/rep" : "/dashboard";
 
   const handleSignOut = async () => {
     await signOut();

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, LogOut } from "lucide-react";
-import { DashboardSwitcher } from "./DashboardSwitcher";
+
 
 interface DashboardHeaderProps {
   restaurantName: string;
@@ -28,7 +28,7 @@ export const DashboardHeader = ({ restaurantName, customSlug, onSignOut }: Dashb
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <DashboardSwitcher currentType="business" variant="header" />
+            
             {hubUrl && (
               <Button
                 variant="outline"

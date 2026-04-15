@@ -19,7 +19,7 @@ import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
-import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
+
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
@@ -496,7 +496,7 @@ const DashboardBusiness = () => {
             <span className="font-bold text-xl">TapAway</span>
           </button>
           <div className="flex items-center gap-3">
-            <DashboardSwitcher currentType="business" />
+            
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
