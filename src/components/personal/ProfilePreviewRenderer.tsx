@@ -907,6 +907,7 @@ function ProfilePreviewRendererComponent({
         });
         })()}
       </div>
+      {profile.username === 'socials' && <MarketingFooterCards isDarkBg={isDarkBg} />}
     </div>
   );
 }
