@@ -940,18 +940,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => handleTouchStart(e, index, item)}
                   
-                  className={`flex items-center gap-2 p-2 bg-card rounded-lg border border-border transition-all touch-none select-none ${
-                    isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
-                  } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive ? "opacity-50" : ""}`}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm transition-all touch-none select-none ${
+                    isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
+                  } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${!isActive ? "opacity-40" : ""}`}
                 >
                   <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
-                    <GripVertical className="h-5 w-5 text-muted-foreground" />
+                    <GripVertical className="h-4 w-4 text-muted-foreground/50" />
                   </div>
-                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {renderBlockIcon(block.block_type)}
                   </div>
                   <div className="flex-1 min-w-0 select-none pointer-events-none">
                     <p className="font-medium text-sm text-foreground select-none truncate">{getBlockLabel(block)}</p>
+                    <p className="text-[11px] text-muted-foreground/70 select-none">{block.block_type}</p>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
