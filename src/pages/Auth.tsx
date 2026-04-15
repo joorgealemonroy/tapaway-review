@@ -236,9 +236,9 @@ const Auth = () => {
    const hasPersonal = !!personal;
 
    // If user has both, let them choose
-   if (hasValidBusiness && hasPersonal) {
-     return "/select-dashboard";
-   }
+    if (hasValidBusiness && hasPersonal) {
+      return "/dashboard";
+    }
    // Valid business account
    if (hasValidBusiness) {
      return "/dashboard";

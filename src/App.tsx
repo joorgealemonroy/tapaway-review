@@ -27,7 +27,7 @@ const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileR
 
 // Business routes - lazy loaded
 const Demo = lazy(() => import("./pages/Demo"));
-const DashboardSelector = lazy(() => import("./pages/DashboardSelector"));
+
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -116,7 +116,7 @@ const App = () => (
                 <Route path="/demo" element={<Demo />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/magic" element={<MagicLinkVerify />} />
-                <Route path="/select-dashboard" element={<DashboardSelector />} />
+                <Route path="/select-dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />

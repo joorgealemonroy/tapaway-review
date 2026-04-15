@@ -28,7 +28,7 @@ import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor, DashboardHeroEditorHandle } from "@/components/personal/DashboardHeroEditor";
-import { DashboardSwitcher } from "@/components/dashboard/DashboardSwitcher";
+
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
@@ -589,7 +589,7 @@ const PersonalDashboard = () => {
                   Affiliate
                 </Button>
               )}
-              <DashboardSwitcher currentType="personal" />
+              
               <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-10 w-10">
                 <LogOut className="h-5 w-5" />
               </Button>
