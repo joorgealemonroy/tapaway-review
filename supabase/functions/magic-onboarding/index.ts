@@ -25,8 +25,48 @@ interface BrandResult {
 interface SocialResult {
   instagramUrl: string | null;
   tiktokUrl: string | null;
-  instagramImages: string[];
-  tiktokImages: string[];
+  facebookUrl: string | null;
+}
+
+// ── Helper: download image and upload to Supabase Storage ──
+async function proxyImageToStorage(
+  supabase: any,
+  imageUrl: string,
+  storagePath: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl, { redirect: 'follow' });
+    if (!res.ok) {
+      console.log(`[magic-onboarding] Image fetch failed (${res.status}) for ${imageUrl.slice(0, 80)}`);
+      return null;
+    }
+
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const blob = await res.blob();
+    const arrayBuf = await blob.arrayBuffer();
+    const uint8 = new Uint8Array(arrayBuf);
+
+    const { error: uploadErr } = await supabase.storage
+      .from('personal-photos')
+      .upload(storagePath, uint8, {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadErr) {
+      console.error(`[magic-onboarding] Storage upload failed for ${storagePath}:`, uploadErr);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('personal-photos')
+      .getPublicUrl(storagePath);
+
+    return publicUrl;
+  } catch (e) {
+    console.error('[magic-onboarding] proxyImageToStorage error:', e);
+    return null;
+  }
 }
 
 // ── Step 1: Google Places ──
@@ -34,7 +74,7 @@ async function fetchGooglePlaceData(businessName: string, address: string, exist
   const googleKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER') || Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
   if (!googleKey) {
     console.log('[magic-onboarding] No Google API key, skipping Places lookup');
-    return { placeId: existingPlaceId || null, websiteUrl: null, photoUrls: [] };
+    return { placeId: existingPlaceId || null, websiteUrl: null, photoRefs: [], googleMapsUri: null };
   }
 
   let placeId = existingPlaceId || null;
@@ -60,30 +100,33 @@ async function fetchGooglePlaceData(businessName: string, address: string, exist
     }
   }
 
-  if (!placeId) return { placeId: null, websiteUrl: null, photoUrls: [] };
+  if (!placeId) return { placeId: null, websiteUrl: null, photoRefs: [], googleMapsUri: null };
 
-  // Get place details
+  // Get place details — request photos, website, and Maps URI
   let websiteUrl: string | null = null;
-  const photoUrls: string[] = [];
+  let googleMapsUri: string | null = null;
+  const photoRefs: { name: string; url: string }[] = [];
 
   try {
     const detailRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
       headers: {
         'X-Goog-Api-Key': googleKey,
-        'X-Goog-FieldMask': 'websiteUri,photos',
+        'X-Goog-FieldMask': 'websiteUri,photos,googleMapsUri',
       },
     });
     const detail = await detailRes.json();
     websiteUrl = detail.websiteUri || null;
+    googleMapsUri = detail.googleMapsUri || null;
 
-    // Get up to 2 photo URLs
+    // Collect up to 3 photo references
     if (detail.photos?.length) {
-      for (const photo of detail.photos.slice(0, 2)) {
+      for (const photo of detail.photos.slice(0, 3)) {
         const photoName = photo.name;
         if (photoName) {
-          photoUrls.push(
-            `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&maxWidthPx=800&key=${googleKey}`
-          );
+          photoRefs.push({
+            name: photoName,
+            url: `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&maxWidthPx=800&key=${googleKey}`,
+          });
         }
       }
     }
@@ -91,7 +134,7 @@ async function fetchGooglePlaceData(businessName: string, address: string, exist
     console.error('[magic-onboarding] Place details failed:', e);
   }
 
-  return { placeId, websiteUrl, photoUrls };
+  return { placeId, websiteUrl, photoRefs, googleMapsUri };
 }
 
 // ── Step 2: Brandfetch ──
@@ -110,9 +153,7 @@ async function fetchBrandData(websiteUrl: string | null): Promise<BrandResult> {
   }
 
   try {
-    // Extract domain from URL
     const domain = new URL(websiteUrl).hostname.replace(/^www\./, '');
-    
     const res = await fetch(`https://api.brandfetch.io/v2/brands/${domain}`, {
       headers: { 'Authorization': `Bearer ${brandfetchKey}` },
     });
@@ -124,22 +165,18 @@ async function fetchBrandData(websiteUrl: string | null): Promise<BrandResult> {
 
     const brand = await res.json();
 
-    // Extract logo
     let logoUrl: string | null = null;
     if (brand.logos?.length) {
-      // Prefer icon/symbol, then logo
       const icon = brand.logos.find((l: any) => l.type === 'icon' || l.type === 'symbol');
       const logo = brand.logos.find((l: any) => l.type === 'logo');
       const chosen = icon || logo || brand.logos[0];
       if (chosen?.formats?.length) {
-        // Prefer PNG or SVG
         const png = chosen.formats.find((f: any) => f.format === 'png');
         const svg = chosen.formats.find((f: any) => f.format === 'svg');
         logoUrl = (png || svg || chosen.formats[0])?.src || null;
       }
     }
 
-    // Extract colors
     let primaryColor = defaults.primaryColor;
     let secondaryColor = defaults.secondaryColor;
     if (brand.colors?.length) {
@@ -147,7 +184,6 @@ async function fetchBrandData(websiteUrl: string | null): Promise<BrandResult> {
       const secondary = brand.colors.find((c: any) => c.type === 'dark' || c.type === 'light');
       if (primary?.hex) primaryColor = primary.hex;
       if (secondary?.hex) secondaryColor = secondary.hex;
-      // Fallback: just use first two colors
       if (primaryColor === defaults.primaryColor && brand.colors[0]?.hex) primaryColor = brand.colors[0].hex;
       if (secondaryColor === defaults.secondaryColor && brand.colors[1]?.hex) secondaryColor = brand.colors[1].hex;
     }
@@ -159,18 +195,51 @@ async function fetchBrandData(websiteUrl: string | null): Promise<BrandResult> {
   }
 }
 
-// ── Step 3: Social Discovery (stubbed — requires Outscraper or similar) ──
-async function discoverSocials(_businessName: string, _websiteUrl: string | null): Promise<SocialResult> {
-  const outscraper = Deno.env.get('OUTSCRAPER_API_KEY');
-  if (!outscraper) {
-    console.log('[magic-onboarding] No Outscraper key, skipping social discovery');
-    return { instagramUrl: null, tiktokUrl: null, instagramImages: [], tiktokImages: [] };
+// ── Step 3: Social Discovery via Outscraper ──
+async function discoverSocials(placeId: string | null): Promise<SocialResult> {
+  const empty: SocialResult = { instagramUrl: null, tiktokUrl: null, facebookUrl: null };
+  const apiKey = Deno.env.get('OUTSCRAPER_API_KEY');
+  if (!apiKey || !placeId) {
+    console.log('[magic-onboarding] No Outscraper key or placeId, skipping social discovery');
+    return empty;
   }
 
-  // TODO: Implement Outscraper API call when key is provided
-  // For now, return empty — the function gracefully degrades
-  console.log('[magic-onboarding] Social discovery not yet implemented');
-  return { instagramUrl: null, tiktokUrl: null, instagramImages: [], tiktokImages: [] };
+  try {
+    // Outscraper Google Maps enrichment — query by place_id
+    const url = `https://api.app.outscraper.com/maps/search-v3?query=${encodeURIComponent(`place_id:${placeId}`)}&limit=1&async=false`;
+    console.log('[magic-onboarding] Outscraper request:', url.slice(0, 120));
+
+    const res = await fetch(url, {
+      headers: { 'X-API-KEY': apiKey },
+    });
+
+    if (!res.ok) {
+      console.log('[magic-onboarding] Outscraper returned', res.status);
+      return empty;
+    }
+
+    const json = await res.json();
+    console.log('[magic-onboarding] Outscraper raw keys:', JSON.stringify(Object.keys(json)));
+
+    // Outscraper v3 returns { data: [[{...}]] }
+    const results = json?.data?.[0] || [];
+    const biz = results[0];
+    if (!biz) {
+      console.log('[magic-onboarding] No Outscraper results');
+      return empty;
+    }
+
+    // Extract social URLs from known Outscraper fields
+    const instagramUrl = biz.instagram || biz.instagram_link || null;
+    const tiktokUrl = biz.tiktok || biz.tiktok_link || null;
+    const facebookUrl = biz.facebook || biz.facebook_link || null;
+
+    console.log('[magic-onboarding] Outscraper socials:', { instagramUrl, tiktokUrl, facebookUrl });
+    return { instagramUrl, tiktokUrl, facebookUrl };
+  } catch (e) {
+    console.error('[magic-onboarding] Outscraper failed:', e);
+    return empty;
+  }
 }
 
 serve(async (req) => {
@@ -212,7 +281,6 @@ serve(async (req) => {
       });
     }
 
-    // Ensure the userId matches the authenticated user
     if (userId && userId !== user.id) {
       return new Response(JSON.stringify({ error: 'User ID mismatch' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -220,22 +288,24 @@ serve(async (req) => {
     }
 
     const uid = user.id;
-
     console.log(`[magic-onboarding] Starting for "${businessName}" by ${uid}`);
 
     // ── Step 1: Google Places ──
     const googleData = await fetchGooglePlaceData(businessName, address, placeId);
-    console.log('[magic-onboarding] Google:', { placeId: googleData.placeId, hasWebsite: !!googleData.websiteUrl, photos: googleData.photoUrls.length });
+    console.log('[magic-onboarding] Google:', {
+      placeId: googleData.placeId,
+      hasWebsite: !!googleData.websiteUrl,
+      photos: googleData.photoRefs.length,
+    });
 
     // ── Step 2: Brandfetch ──
     const brandData = await fetchBrandData(googleData.websiteUrl);
     console.log('[magic-onboarding] Brand:', { hasLogo: !!brandData.logoUrl, primaryColor: brandData.primaryColor });
 
-    // ── Step 3: Social Discovery ──
-    const socialData = await discoverSocials(businessName, googleData.websiteUrl);
+    // ── Step 3: Social Discovery via Outscraper ──
+    const socialData = await discoverSocials(googleData.placeId);
 
-    // ── Step 4: Database Insertion ──
-    // Check for existing profile
+    // ── Step 4: Create / update profile ──
     const { data: existingProfile } = await supabase
       .from('personal_profiles')
       .select('id')
@@ -246,7 +316,6 @@ serve(async (req) => {
     let profileId: string;
 
     if (existingProfile) {
-      // Update existing profile with brand data
       profileId = existingProfile.id;
       await supabase.from('personal_profiles').update({
         full_name: businessName,
@@ -255,7 +324,6 @@ serve(async (req) => {
         ...(brandData.logoUrl ? { profile_photo_url: brandData.logoUrl } : {}),
       }).eq('id', profileId);
     } else {
-      // Create new profile
       const { data: newProfile, error: profileError } = await supabase
         .from('personal_profiles')
         .insert({
@@ -279,15 +347,34 @@ serve(async (req) => {
           status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-
       profileId = newProfile.id;
     }
 
-    // ── Create Links ──
+    // ── Step 5: Download Google photos → Supabase Storage ──
+    const uploadedPhotoUrls: string[] = [];
+    for (let i = 0; i < googleData.photoRefs.length; i++) {
+      const ref = googleData.photoRefs[i];
+      const storagePath = `${profileId}/tile-${i}.jpg`;
+      const publicUrl = await proxyImageToStorage(supabase, ref.url, storagePath);
+      if (publicUrl) {
+        uploadedPhotoUrls.push(publicUrl);
+      }
+    }
+    console.log('[magic-onboarding] Uploaded photos:', uploadedPhotoUrls.length);
+
+    // ── Step 5b: Fallback profile photo from Google if no Brandfetch logo ──
+    if (!brandData.logoUrl && uploadedPhotoUrls.length > 0) {
+      console.log('[magic-onboarding] Using Google photo as profile photo fallback');
+      await supabase.from('personal_profiles').update({
+        profile_photo_url: uploadedPhotoUrls[0],
+      }).eq('id', profileId);
+    }
+
+    // ── Step 6: Create Links ──
     const linksToInsert: any[] = [];
     let sortOrder = 0;
 
-    // Social tile links (Instagram)
+    // Instagram tile
     if (socialData.instagramUrl) {
       linksToInsert.push({
         profile_id: profileId,
@@ -298,11 +385,11 @@ serve(async (req) => {
         is_active: true,
         display_style: 'grid',
         grid_size: 'half',
-        thumbnail_bg_url: socialData.instagramImages[0] || googleData.photoUrls[0] || null,
+        thumbnail_bg_url: uploadedPhotoUrls[0] || null,
       });
     }
 
-    // Social tile links (TikTok)
+    // TikTok tile
     if (socialData.tiktokUrl) {
       linksToInsert.push({
         profile_id: profileId,
@@ -313,12 +400,26 @@ serve(async (req) => {
         is_active: true,
         display_style: 'grid',
         grid_size: 'half',
-        thumbnail_bg_url: socialData.tiktokImages[0] || googleData.photoUrls[1] || null,
+        thumbnail_bg_url: uploadedPhotoUrls[1] || uploadedPhotoUrls[0] || null,
       });
     }
 
-    // If no social links but we have Google photos, create placeholder tile links
-    if (!socialData.instagramUrl && !socialData.tiktokUrl && googleData.photoUrls.length >= 2) {
+    // Facebook pill (if found and no IG/TikTok to avoid clutter)
+    if (socialData.facebookUrl && !socialData.instagramUrl && !socialData.tiktokUrl) {
+      linksToInsert.push({
+        profile_id: profileId,
+        link_type: 'custom',
+        label: 'Facebook',
+        url: socialData.facebookUrl,
+        sort_order: sortOrder++,
+        is_active: true,
+        display_style: 'pill',
+        pill_color: '#1877F2',
+      });
+    }
+
+    // If no social links but we have uploaded photos, create photo tile links
+    if (!socialData.instagramUrl && !socialData.tiktokUrl && uploadedPhotoUrls.length >= 2) {
       linksToInsert.push({
         profile_id: profileId,
         link_type: 'custom',
@@ -328,7 +429,7 @@ serve(async (req) => {
         is_active: true,
         display_style: 'grid',
         grid_size: 'half',
-        thumbnail_bg_url: googleData.photoUrls[0],
+        thumbnail_bg_url: uploadedPhotoUrls[0],
       });
       linksToInsert.push({
         profile_id: profileId,
@@ -339,11 +440,11 @@ serve(async (req) => {
         is_active: true,
         display_style: 'grid',
         grid_size: 'half',
-        thumbnail_bg_url: googleData.photoUrls[1],
+        thumbnail_bg_url: uploadedPhotoUrls[1],
       });
     }
 
-    // Google Review link (always present if we have a placeId)
+    // Google Review link
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
       linksToInsert.push({
@@ -389,23 +490,23 @@ serve(async (req) => {
 
     // Insert all links
     if (linksToInsert.length > 0) {
-      // Delete existing links first to avoid duplicates on re-run
       await supabase.from('personal_links').delete().eq('profile_id', profileId);
-      
       const { error: linksError } = await supabase.from('personal_links').insert(linksToInsert);
       if (linksError) {
         console.error('[magic-onboarding] Links insert failed:', linksError);
       }
     }
 
-    console.log(`[magic-onboarding] Complete! Profile: ${profileId}, Links: ${linksToInsert.length}`);
+    console.log(`[magic-onboarding] Complete! Profile: ${profileId}, Links: ${linksToInsert.length}, Photos: ${uploadedPhotoUrls.length}`);
 
     return new Response(JSON.stringify({
       success: true,
       profileId,
       username,
       linksCreated: linksToInsert.length,
+      photosUploaded: uploadedPhotoUrls.length,
       brandFound: !!brandData.logoUrl,
+      socialsFound: !!(socialData.instagramUrl || socialData.tiktokUrl),
       placeId: googleData.placeId,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
