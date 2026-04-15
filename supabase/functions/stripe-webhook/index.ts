@@ -1092,6 +1092,23 @@ if (event.type === 'checkout.session.completed') {
         }
       }
 
+      // === CARD CLUB ADDON CANCELLATION ===
+      // Check if the deleted subscription was the Card Club addon
+      try {
+        const deletedSub = event.data.object as any;
+        const priceId = deletedSub.items?.data?.[0]?.price?.id;
+        if (priceId === 'price_1TMM0LDg8DaTuVNZUgZ4GtWJ') {
+          // Find profile by stripe_customer_id and revoke card addon
+          const { error: addonErr } = await supabaseAdmin
+            .from('personal_profiles')
+            .update({ has_card_addon: false })
+            .eq('stripe_customer_id', customerId);
+          if (!addonErr) {
+            console.log(`[stripe-webhook] Card Club addon revoked for customer ${customerId}`);
+          }
+        }
+      } catch (_) { /* non-blocking */ }
+
       // === EXISTING PERSONAL PROFILE DOWNGRADE ===
       // Find personal profile by stripe_customer_id
       const { data: profile } = await supabaseAdmin
