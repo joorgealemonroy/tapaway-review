@@ -61,9 +61,8 @@ export const HeroSection = () => {
 
             {/* Subheadline */}
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl">
-              Grow your Google presence with high-performance Branded NFC Cards.
-              We ship your custom kit today. Zero setup.{" "}
-              <span className="font-bold text-foreground">$0 Today.</span>
+              Grow your presence with high-performance branded NFC Cards.
+              Collect reviews effortlessly, or use it as your ultimate digital business card with unlimited taps. Zero setup.
             </p>
 
             {/* CTAs */}
