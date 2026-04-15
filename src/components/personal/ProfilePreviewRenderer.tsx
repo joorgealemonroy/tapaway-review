@@ -55,6 +55,11 @@ interface ProfileData {
   banner_image_url?: string | null;
   plan_type?: string | null;
   show_username?: boolean;
+  contact_enabled?: boolean | null;
+  contact_display_style?: string | null;
+  contact_name?: string | null;
+  button_theme?: string | null;
+  text_color?: string | null;
 }
 
 interface LinkData {
