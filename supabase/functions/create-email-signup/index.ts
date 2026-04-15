@@ -47,6 +47,28 @@ Deno.serve(async (req) => {
     );
 
     if (existingUser) {
+      // For @tapaway.co dev/test accounts, reset password and return credentials
+      // so the developer testing loop can re-use existing accounts
+      if (email.toLowerCase().endsWith("@tapaway.co") || email.toLowerCase().includes("+test")) {
+        const newTempPassword = crypto.randomUUID();
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          existingUser.id,
+          { password: newTempPassword }
+        );
+        if (updateError) {
+          console.error("[create-email-signup] Password reset error:", updateError);
+          return new Response(
+            JSON.stringify({ error: updateError.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        console.log("[create-email-signup] Dev account re-used:", existingUser.id);
+        return new Response(
+          JSON.stringify({ userId: existingUser.id, tempPassword: newTempPassword }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: "An account with this email already exists. Please sign in instead." }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
