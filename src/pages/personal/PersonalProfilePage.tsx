@@ -1525,6 +1525,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </div>
           )}
 
+          {/* Marketing Cards — only on the /socials demo profile */}
+          {profile.username === 'socials' && (
+            <MarketingFooterCards isDarkBg={isDarkBg} />
+          )}
+
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
             {/* Glass Pill CTA */}
