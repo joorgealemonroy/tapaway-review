@@ -1,27 +1,17 @@
 
 
-# Fix Card Club Activation — DB Fix + Systemic Code Fix
+# Fix Google Review Icon — Remove Blue Circle
 
 ## Problem
-
-The `addExtraCard` field is collected during signup and saved to sessionStorage, but **never read or acted upon** after payment. The Card Club flag (`has_card_addon`) is only set by the Stripe webhook for a *separate* `card_addon` checkout — meaning anyone who selected Card Club during initial signup never gets it activated.
-
-**NY Sports Pizza** (profile `8d87b827-5858-473b-b843-4a4e342accf7`) has `has_card_addon: false` despite selecting it during signup.
+The Google Review button currently shows the multicolor "G" inside a blue circle. The user wants the clean multicolor "G" logo directly on the white pill background (as shown in their screenshot), without the circular blue container.
 
 ## Changes
 
-### 1. Quick DB Fix — Activate Card Club for NY Sports Pizza
-Run a migration to set `has_card_addon = true` for profile ID `8d87b827-5858-473b-b843-4a4e342accf7`.
-
-### 2. Systemic Fix — `PersonalSignupComplete.tsx`
-After the profile is created in the signup completion flow (~line 200+), check the saved `addExtraCard` flag from sessionStorage. If `true`, update the newly created profile to set `has_card_addon = true`.
-
-### 3. Systemic Fix — `CheckoutStep.tsx` (free/VIP direct creation path)
-In the `verifyOTPAndCreateAccount` function (~line 460 profile insert), if `formData.addExtraCard` is `true`, include `has_card_addon: true` in the profile insert data.
-
 | File | Change |
 |------|--------|
-| DB Migration | `UPDATE personal_profiles SET has_card_addon = true WHERE id = '8d87b827-...'` |
-| `src/pages/personal/PersonalSignupComplete.tsx` | After profile creation, check `savedData.addExtraCard` and set `has_card_addon = true` |
-| `src/components/personal/signup/CheckoutStep.tsx` | In `profileData` insert object, add `has_card_addon: formData.addExtraCard || false` |
+| `src/pages/personal/PersonalProfilePage.tsx` (~line 268-272) | When `isGoogleReview`, render the `GoogleIcon` directly (no wrapping circle div), sized to ~h-8 w-8 |
+| `src/components/personal/ProfilePreviewRenderer.tsx` (~line 500-510) | Same — skip the circle wrapper for Google Review, render icon inline |
+| `src/components/personal/ProHubTemplate.tsx` (~line 182-185) | Same — render `GoogleIcon` without circle container |
+
+The multicolor Google "G" SVG already exists and has correct colored fills. We just need to stop wrapping it in the blue `bg-[#4285F4]` circle for the Google Review link type.
 
