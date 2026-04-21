@@ -486,6 +486,8 @@ function ProfilePreviewRendererComponent({
     }
 
     const isGoogleReview = link.link_type === 'google_review';
+    const isYelp = link.link_type === 'yelp';
+    const isWhitePill = isGoogleReview || isYelp;
 
     return (
       <a
@@ -495,7 +497,7 @@ function ProfilePreviewRendererComponent({
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
         className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm transition-all hover:shadow-md hover:scale-[1.01] ${
-          isGoogleReview
+          isWhitePill
             ? 'bg-white hover:bg-gray-100 border-white/20 text-gray-900'
             : 'bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/15'
         }`}
@@ -504,7 +506,7 @@ function ProfilePreviewRendererComponent({
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
             <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
           </div>
-        ) : isGoogleReview && Icon ? (
+        ) : isWhitePill && Icon ? (
           <Icon className="h-7 w-7 flex-shrink-0" />
         ) : Icon && (
           <div
@@ -513,8 +515,8 @@ function ProfilePreviewRendererComponent({
             <Icon className={`h-5 w-5 ${platform?.color || 'text-white'}`} />
           </div>
         )}
-        <span className={`flex-1 font-medium ${isGoogleReview ? 'text-gray-900' : 'text-white'}`}>{link.label}</span>
-        <ExternalLink className={`h-4 w-4 ${isGoogleReview ? 'text-gray-400' : 'text-white/50'}`} />
+        <span className={`flex-1 font-medium ${isWhitePill ? 'text-gray-900' : 'text-white'}`}>{link.label}</span>
+        <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : 'text-white/50'}`} />
       </a>
     );
   };
