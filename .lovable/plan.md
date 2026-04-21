@@ -1,52 +1,58 @@
 
 
-# Unify Trials to 14 Days and Update All Copy
+# Add Yelp Pill (Compliant Copy, Red Accent)
 
-## Problem
-1. Trial durations are inconsistent across tiers and pages.
-2. Landing page and other pages reference "30 days free" everywhere.
-3. Marketing CTA in profile renderers still has old copy.
+Add a Yelp-branded version of the existing "Google Review" white pill. To stay compliant with Yelp's review-solicitation policies, the default label uses neutral wording ("Check us out on Yelp") and avoids the word "Review" anywhere the user picks the platform.
 
-## Changes
+## Visual
 
-### 1. Unify trial durations
+```text
+┌────────────────────────────────────────────┐
+│  [Y]   Check us out on Yelp          ↗     │   ← white pill, red Y (#D32323)
+└────────────────────────────────────────────┘
+```
 
-**Stripe trial = 14 days, Total trial = 21 days (includes 7-day shipping buffer)**
+Same structural treatment as the Google pill: white background, soft border + shadow, brand mark on the left, dark bold label, faded external-link arrow on the right.
 
-**`src/lib/personalConfig.ts`** — Change `trialDays: 7` → `trialDays: 14`
+## Code changes
 
-**`src/pages/Onboarding.tsx`** (line 28-29) — Update both plans:
-- Solo: `trialDays: 14, totalTrialDays: 21`
-- Venue: `trialDays: 14, totalTrialDays: 21`
+### 1. `src/lib/platformLinks.tsx`
+- Import `YelpIcon` from `@/components/icons/YelpIcon`.
+- Add new platform config:
+  ```ts
+  {
+    type: "yelp",
+    label: "Check us out on Yelp",
+    icon: YelpIcon,
+    inputType: "url",
+    placeholder: "https://www.yelp.com/biz/yourbusiness",
+    generateUrl: (v) => v.startsWith("http") ? v : `https://www.yelp.com/biz/${v}`,
+    extractValue: (url) => url,
+    color: "text-white",
+    bgColor: "bg-[#D32323]",
+  }
+  ```
+- Add brand color to the color map: `yelp: "#D32323"`.
+- In `detectPlatformFromUrl`, return `"yelp"` for any URL containing `yelp.com` or `yelp.ca`.
 
-**`supabase/functions/create-checkout-session/index.ts`** (lines 12-14) — Both plans to `trialDays: 14`
+### 2. `src/components/personal/ProfilePreviewRenderer.tsx` (~line 488)
+- Add `const isYelp = link.link_type === 'yelp';`
+- Change the white-pill className branch to fire on `isGoogleReview || isYelp`.
+- When `isYelp && Icon`, render `<Icon className="h-7 w-7 flex-shrink-0" />` (no colored circle wrapper) so the red Y sits flush on white — mirrors the Google branch.
+- Apply the same dark text / faded arrow when either pill type is active.
 
-**`supabase/functions/create-rep-checkout/index.ts`** — All four tiers to `trialDays: 14`
+### 3. `src/pages/personal/PersonalProfilePage.tsx` (~line 253)
+- Mirror the same change in the regular-link renderer.
+- Add `const isYelp = link.link_type === 'yelp';`
+- Combine with `isGoogleReview` for white-pill styling, dark text, and the icon at `h-8 w-8` without the gradient circle.
 
-**`supabase/functions/create-rep-onboarding/index.ts`** — Both plans to `trialDays: 14`
+### 4. Default link label when Yelp is auto-detected
+When Yelp is added via the link modal it will auto-fill `label = "Check us out on Yelp"` from the platform config — no extra work. (Users can still rename it.)
 
-### 2. Update all "30 days" copy to "14 days"
+## Notes / out of scope
 
-| File | Current | Updated |
-|------|---------|---------|
-| `ComparisonSection.tsx` | "Free 30-day trial" | "Free 14-day trial" |
-| `RiskReversalSection.tsx` | "30 full days" | "14 full days" |
-| `RiskReversalSection.tsx` | "before day 30" | "before day 14" |
-| `RiskReversalSection.tsx` | "Start Free 30-Day Trial" | "Start Free 14-Day Trial" |
-| `FinalCTA.tsx` | "Cancel anytime before day 30" | "Cancel anytime before day 14" |
-| `FooterCTA.tsx` | "free 30-day trial" | "free 14-day trial" |
-| `Paywall.tsx` | "Free 30-Day TapAway Trial" | "Free 14-Day TapAway Trial" |
-| `Paywall.tsx` | "30-day free trial" | "14-day free trial" |
-| `OnboardingNew.tsx` | "free 30-day TapAway trial" | "free 14-day TapAway trial" |
-| `OnboardingNew.tsx` | "30-day free trial" | "14-day free trial" |
-| `OnboardingNew.tsx` | "free 30-day trial" | "free 14-day trial" |
-| `OnboardingSuccess.tsx` | "Trial active (30 days)" | "Trial active (14 days)" |
-| `TrialConfirmed.tsx` | "free 30-day trial" / "before day 30" | "free 14-day trial" / "before day 14" |
-| `send-cards-shipping-email` | "Free 30-day trial" / "before day 30" | "Free 14-day trial" / "before day 14" |
-
-### 3. Fix marketing CTA copy in profile renderers
-
-**`ProfilePreviewRenderer.tsx`** and **`PersonalProfilePage.tsx`**:
-- "Try It Free" → "Try It Free with your logo"
-- "We'll send you cards that tap" → "We'll cover shipping"
+- **DB:** `personal_links.link_type` is free-text, so `"yelp"` works with no migration.
+- **Validation:** `src/lib/urlValidation.ts` already restricts Yelp URLs to `yelp.com` / `yelp.ca` — no change needed.
+- **B2B `ReviewHub.tsx`:** unchanged. It still uses its own `yelp_review_url` button with its existing copy. (Tell me if you want that copy softened too.)
+- **Compliance:** the dropdown picker shows "Check us out on Yelp" (no "Review"), and the default rendered pill text matches. Users typing their own custom label is on them.
 
