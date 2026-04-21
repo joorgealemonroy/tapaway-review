@@ -10,6 +10,7 @@ import {
   LucideIcon
 } from "lucide-react";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
+import { YelpIcon } from "@/components/icons/YelpIcon";
 
 // X icon
 export const XIcon = ({ className }: { className?: string }) => (
@@ -205,6 +206,7 @@ export const PLATFORM_COLORS = {
   website: "#475569",
   email: "#64748b",
   google_review: "#4285F4",
+  yelp: "#D32323",
   directions: "#2563eb",
   telegram: "#0088CC",
   linkedin: "#0A66C2",
@@ -420,6 +422,17 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     bgColor: "bg-[#4285F4]",
   },
   {
+    type: "yelp",
+    label: "Check us out on Yelp",
+    icon: YelpIcon,
+    inputType: "url",
+    placeholder: "https://www.yelp.com/biz/yourbusiness",
+    generateUrl: (v) => v.startsWith("http") ? v : `https://www.yelp.com/biz/${v}`,
+    extractValue: (url) => url,
+    color: "text-white",
+    bgColor: "bg-[#D32323]",
+  },
+  {
     type: "directions",
     label: "Directions",
     icon: MapPin,
@@ -616,6 +629,7 @@ export const detectPlatformFromUrl = (url: string): string | null => {
   if (urlLower.includes("wa.me") || urlLower.includes("whatsapp.com")) return "whatsapp";
   if (urlLower.includes("t.me") || urlLower.includes("telegram.me")) return "telegram";
   if (urlLower.includes("search.google.com/local/writereview")) return "google_review";
+  if (urlLower.includes("yelp.com") || urlLower.includes("yelp.ca")) return "yelp";
   if (urlLower.includes("maps.apple.com")) return "directions";
   if (urlLower.includes("venmo.com")) return "venmo";
   if (urlLower.includes("cash.app")) return "cashapp";
