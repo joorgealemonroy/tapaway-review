@@ -249,8 +249,10 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-   // Regular links — glassmorphism style (Google Review gets white pill)
-   const isGoogleReview = link.link_type === 'google_review';
+    // Regular links — glassmorphism style (Google Review & Yelp get white pill)
+    const isGoogleReview = link.link_type === 'google_review';
+    const isYelp = link.link_type === 'yelp';
+    const isWhitePill = isGoogleReview || isYelp;
   return (
       <a
         href={sanitizeUrl(link.url)}
@@ -258,7 +260,7 @@ const ProfileLink = memo(function ProfileLink({
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        isGoogleReview
+        isWhitePill
           ? 'bg-white hover:bg-gray-100 border border-white/20 shadow-sm'
           : 'bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15'
       }`}
@@ -267,17 +269,17 @@ const ProfileLink = memo(function ProfileLink({
         <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
           <img src={getOptimizedImageUrl(link.thumbnail_url, 160, 85)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
         </div>
-      ) : isGoogleReview && Icon ? (
+      ) : isWhitePill && Icon ? (
         <Icon className="h-8 w-8 flex-shrink-0" />
       ) : (
         <div className={`h-12 w-12 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-white/20"}`}>
           {Icon && <Icon className={`h-6 w-6 ${config?.color || "text-white"}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${isGoogleReview ? 'text-gray-900' : 'text-white'}`}>
+      <span className={`flex-1 font-medium truncate ${isWhitePill ? 'text-gray-900' : 'text-white'}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${isGoogleReview ? 'text-gray-400' : 'text-white/50'}`} />
+      <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : 'text-white/50'}`} />
     </a>
   );
 });
