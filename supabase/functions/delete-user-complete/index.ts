@@ -97,6 +97,16 @@ Deno.serve(async (req) => {
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (deleteUserError) {
+        // 404 / user_not_found means the auth user is already gone — treat as success
+        const status = (deleteUserError as { status?: number }).status;
+        const code = (deleteUserError as { code?: string }).code;
+        if (status === 404 || code === "user_not_found") {
+          console.log(`Orphan auth user ${userId} was already removed`);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         console.error("Error deleting orphan auth user:", deleteUserError);
         return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteUserError.message }), {
           status: 500,
