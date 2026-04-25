@@ -42,15 +42,15 @@ const SmsMarketingTab = ({ profileId }: Props) => {
 
   const load = useCallback(async () => {
     setLoading(true);
+    const captures: any = supabase.from("personal_email_captures" as any);
+    const campaignsTable: any = supabase.from("sms_campaigns" as any);
     const [countRes, campaignsRes] = await Promise.all([
-      supabase
-        .from("personal_email_captures")
+      captures
         .select("id", { count: "exact", head: true })
         .eq("profile_id", profileId)
-        .eq("sms_opt_in" as any, true)
+        .eq("sms_opt_in", true)
         .not("phone", "is", null),
-      supabase
-        .from("sms_campaigns" as any)
+      campaignsTable
         .select("*")
         .eq("profile_id", profileId)
         .order("created_at", { ascending: false })
@@ -58,7 +58,7 @@ const SmsMarketingTab = ({ profileId }: Props) => {
     ]);
     setSubscriberCount(countRes.count ?? 0);
     if (!campaignsRes.error && campaignsRes.data) {
-      setCampaigns(campaignsRes.data as unknown as Campaign[]);
+      setCampaigns(campaignsRes.data as Campaign[]);
     }
     setLoading(false);
   }, [profileId]);
