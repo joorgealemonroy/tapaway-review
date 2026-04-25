@@ -53,6 +53,7 @@ const ReviewHub = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   
