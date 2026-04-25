@@ -219,21 +219,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Delete related data first
-    await supabaseAdmin.from("locations").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("analytics_events").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("google_reviews").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("goals").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("competitors").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("coach_ignored").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("menu_sections").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("restaurant_engagement").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("review_sentiments").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("fulfillment_orders").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("av_meal_prep_meals").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("av_meal_prep_testimonials").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("av_trainer_bundles").delete().eq("restaurant_id", restaurantId);
-    await supabaseAdmin.from("rep_restaurants").delete().eq("linked_restaurant_id", restaurantId);
+    // Delete related data first (with error logging for non-cascade tables)
+    const safeDelete = async (table: string, column: string) => {
+      const { error } = await supabaseAdmin.from(table).delete().eq(column, restaurantId);
+      if (error) console.error(`[delete-user-complete] Failed to delete from ${table}:`, error);
+      return error;
+    };
+
+    await safeDelete("locations", "restaurant_id");
+    await safeDelete("analytics_events", "restaurant_id");
+    await safeDelete("google_reviews", "restaurant_id");
+    await safeDelete("goals", "restaurant_id");
+    await safeDelete("competitors", "restaurant_id");
+    await safeDelete("coach_ignored", "restaurant_id");
+    await safeDelete("menu_sections", "restaurant_id");
+    await safeDelete("restaurant_engagement", "restaurant_id");
+    await safeDelete("review_sentiments", "restaurant_id");
+    await safeDelete("fulfillment_orders", "restaurant_id");
+    await safeDelete("av_meal_prep_meals", "restaurant_id");
+    await safeDelete("av_meal_prep_testimonials", "restaurant_id");
+    await safeDelete("av_trainer_bundles", "restaurant_id");
+    await safeDelete("restaurant_sms_subscribers", "restaurant_id");
+    await safeDelete("restaurant_sms_campaigns", "restaurant_id");
+    await safeDelete("commissions", "restaurant_id");
+    await safeDelete("pending_trials", "linked_restaurant_id");
+    const repRestErr = await safeDelete("rep_restaurants", "linked_restaurant_id");
+    if (repRestErr) {
+      return new Response(JSON.stringify({ error: `Failed to clear sales rep link: ${repRestErr.message}` }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Delete the restaurant
     const { error: deleteRestaurantError } = await supabaseAdmin
@@ -243,7 +259,7 @@ Deno.serve(async (req) => {
 
     if (deleteRestaurantError) {
       console.error("Error deleting restaurant:", deleteRestaurantError);
-      return new Response(JSON.stringify({ error: "Failed to delete restaurant" }), {
+      return new Response(JSON.stringify({ error: `Failed to delete restaurant: ${deleteRestaurantError.message}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
