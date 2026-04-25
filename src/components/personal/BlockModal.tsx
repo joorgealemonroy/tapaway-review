@@ -1140,6 +1140,47 @@ export const BlockModal = ({
             </div>
           )}
 
+          {selectedType === "sms_subscribe" && (
+            <>
+              <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+                <Smartphone className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Visitors who tap this block will be asked for their name and phone, and added to your SMS VIP list.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Headline</Label>
+                <Input
+                  placeholder="Join our VIP Text List"
+                  value={smsHeadline}
+                  onChange={(e) => setSmsHeadline(e.target.value)}
+                  className="h-12"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Get exclusive updates and offers via text."
+                  value={smsDescription}
+                  onChange={(e) => setSmsDescription(e.target.value)}
+                  rows={2}
+                  maxLength={140}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button Text</Label>
+                <Input
+                  placeholder="Join the VIP List"
+                  value={smsButtonText}
+                  onChange={(e) => setSmsButtonText(e.target.value)}
+                  className="h-11"
+                  maxLength={40}
+                />
+              </div>
+            </>
+          )}
+
           {/* Alignment picker */}
           <div className="space-y-2">
             <Label>Alignment</Label>
