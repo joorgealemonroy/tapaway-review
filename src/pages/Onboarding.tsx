@@ -850,7 +850,7 @@ const Onboarding = () => {
             <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl font-black mb-2">Let's brand your cards</h1>
-                <p className="text-gray-400 text-sm">Tell us about your business and we'll handle the rest.</p>
+                <p className="text-gray-400 text-sm">Tell us about your business. We'll design your cards and build your digital profile for you.</p>
               </div>
 
               {/* Google Places Business Search OR Manual Entry */}
@@ -908,7 +908,25 @@ const Onboarding = () => {
                 )}
               </div>
 
-              {/* Logo upload drop zone */}
+              {/* Phone number — required for concierge follow-up */}
+              <div>
+                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> Phone Number
+                </Label>
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={ownerPhone}
+                  onChange={(e) => setOwnerPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll text you to confirm details and finalize your design.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Your Logo</Label>
                 {logoUrl ? (
