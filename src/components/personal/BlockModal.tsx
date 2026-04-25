@@ -60,6 +60,7 @@ const BLOCK_TYPES = [
   { type: "text", label: "Text", icon: Type, description: "Title and body text" },
   { type: "button", label: "Featured Button", icon: MousePointerClick, description: "Big CTA button" },
   { type: "email_capture", label: "Email Capture", icon: Mail, description: "Collect visitor emails" },
+  { type: "sms_subscribe", label: "SMS VIP List", icon: Smartphone, description: "Let visitors join your text list" },
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
   { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
@@ -122,6 +123,11 @@ export const BlockModal = ({
   // Product block options
   const [selectedProductId, setSelectedProductId] = useState("");
   const [creatorProducts, setCreatorProducts] = useState<{ id: string; title: string; price_cents: number }[]>([]);
+
+  // SMS subscribe block options
+  const [smsHeadline, setSmsHeadline] = useState("");
+  const [smsDescription, setSmsDescription] = useState("");
+  const [smsButtonText, setSmsButtonText] = useState("");
   
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
@@ -217,6 +223,10 @@ export const BlockModal = ({
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         } else if (editingBlock.block_type === "product") {
           setSelectedProductId(content.product_id || "");
+        } else if (editingBlock.block_type === "sms_subscribe") {
+          setSmsHeadline(content.headline || "");
+          setSmsDescription(content.description || "");
+          setSmsButtonText(content.buttonText || "");
         }
       } else {
         resetForm();
@@ -259,6 +269,10 @@ export const BlockModal = ({
     setCollageColumns(3);
     setCollageRawImage(null);
     setSelectedProductId("");
+    // SMS subscribe
+    setSmsHeadline("");
+    setSmsDescription("");
+    setSmsButtonText("");
   };
 
   const handleClose = () => {
@@ -629,6 +643,14 @@ export const BlockModal = ({
           return;
         }
         content = { product_id: selectedProductId };
+        break;
+      }
+      case "sms_subscribe": {
+        content = {
+          headline: smsHeadline.trim() || "Join our VIP Text List",
+          description: smsDescription.trim() || "Get exclusive updates and offers via text.",
+          buttonText: smsButtonText.trim() || "Join the VIP List",
+        };
         break;
       }
     }
@@ -1116,6 +1138,47 @@ export const BlockModal = ({
                 </Select>
               )}
             </div>
+          )}
+
+          {selectedType === "sms_subscribe" && (
+            <>
+              <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+                <Smartphone className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Visitors who tap this block will be asked for their name and phone, and added to your SMS VIP list.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Headline</Label>
+                <Input
+                  placeholder="Join our VIP Text List"
+                  value={smsHeadline}
+                  onChange={(e) => setSmsHeadline(e.target.value)}
+                  className="h-12"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Get exclusive updates and offers via text."
+                  value={smsDescription}
+                  onChange={(e) => setSmsDescription(e.target.value)}
+                  rows={2}
+                  maxLength={140}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button Text</Label>
+                <Input
+                  placeholder="Join the VIP List"
+                  value={smsButtonText}
+                  onChange={(e) => setSmsButtonText(e.target.value)}
+                  className="h-11"
+                  maxLength={40}
+                />
+              </div>
+            </>
           )}
 
           {/* Alignment picker */}

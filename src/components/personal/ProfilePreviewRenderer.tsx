@@ -659,6 +659,31 @@ function ProfilePreviewRendererComponent({
           </div>
         );
       }
+      case "sms_subscribe": {
+        const headline = (content.headline as string) || "Join our VIP Text List";
+        const description = (content.description as string) || "Get exclusive updates and offers via text.";
+        const buttonText = (content.buttonText as string) || "Join the VIP List";
+        return (
+          <div
+            key={block.id}
+            className={`w-full p-4 rounded-xl border shadow-sm space-y-2 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/80'}`}
+            style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
+          >
+            <div className="text-center">
+              <h3 className={`font-semibold text-sm ${headingClass}`}>{headline}</h3>
+              <p className={`text-xs mt-0.5 ${textClass}`}>{description}</p>
+            </div>
+            <button
+              className="w-full py-2 text-sm rounded-lg font-semibold text-white"
+              style={{ backgroundColor: headerColor }}
+              onClick={(e) => { if (isPreview) { e.preventDefault(); onLinkClick?.("#sms"); } }}
+              type="button"
+            >
+              {buttonText}
+            </button>
+          </div>
+        );
+      }
       case "photo_collage": {
         // Parse mixed media (new format) or legacy images
         let media: Array<{ url: string; type: "image" | "video"; poster?: string }> = [];
