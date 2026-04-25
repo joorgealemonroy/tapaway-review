@@ -36,6 +36,7 @@ import {
   Link as LinkIcon,
   Timer,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -76,7 +77,7 @@ const NAV_CARDS = [
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -331,9 +332,20 @@ const Admin = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold">TapAway Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Logged in as {user?.email}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">TapAway Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Logged in as {user?.email}</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => { await signOut(); navigate("/auth"); }}
+          className="shrink-0"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Log out
+        </Button>
       </div>
 
       {/* Sales Rep Portal — Collapsible on mobile */}
