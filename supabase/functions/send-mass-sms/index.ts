@@ -67,18 +67,26 @@ Deno.serve(async (req) => {
       return json(400, { error: `Message must be 1-${MAX_LEN} characters` });
     }
 
-    // ---- Authz: confirm caller owns this profile ----
+    // ---- Authz: caller must own this profile (or be an admin impersonating) ----
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
     const { data: profile, error: profileErr } = await admin
       .from("personal_profiles")
-      .select("id, user_id")
+      .select("id, user_id, full_name, contact_name, username")
       .eq("id", profileId)
       .maybeSingle();
     if (profileErr) return json(500, { error: "Profile lookup failed" });
-    if (!profile || profile.user_id !== userId) return json(403, { error: "Forbidden" });
+    if (!profile) return json(404, { error: "Profile not found" });
+
+    if (profile.user_id !== userId) {
+      const { data: isAdmin } = await admin.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) return json(403, { error: "Forbidden" });
+    }
 
     // ---- Recipients (strictly scoped to this profile) ----
     const { data: recipients, error: recErr } = await admin
@@ -102,8 +110,12 @@ Deno.serve(async (req) => {
       return json(200, { recipient_count: 0, success_count: 0, failure_count: 0 });
     }
 
-    // ---- Log campaign ----
-    const fullMessage = message + STOP_SUFFIX;
+    // ---- Build message: identify sender so recipients know who it's from ----
+    const senderName =
+      (profile.full_name && String(profile.full_name).trim()) ||
+      (profile.contact_name && String(profile.contact_name).trim()) ||
+      (profile.username ? `@${profile.username}` : "TapAway");
+    const fullMessage = `${senderName}: ${message}${STOP_SUFFIX}`;
     const { data: campaign, error: campErr } = await admin
       .from("sms_campaigns")
       .insert({

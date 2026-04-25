@@ -1,31 +1,26 @@
 ## Diagnosis
 
-The opt-in **did** save successfully — Jorge Monroy's row is in `personal_email_captures` with `sms_opt_in=true` for profile `socials`. The dashboard shows "0" because of an RLS gap, not a write failure.
+Two separate problems are stopping the mass text:
 
-**Root cause:** The `personal_email_captures` SELECT policy only allows the profile's owning user:
-
-```sql
-USING (EXISTS (SELECT 1 FROM personal_profiles
-               WHERE personal_profiles.id = personal_email_captures.profile_id
-                 AND personal_profiles.user_id = auth.uid()))
-```
-
-You are currently viewing this dashboard via admin impersonation (`?admin_view_personal=...`). Admins are not included in the policy, so the subscriber count query returns 0 — even though the row exists. (For comparison, `sms_campaigns` already has an `is_admin()` policy and works correctly under impersonation.)
+1. **Stale deploy** — edge logs still show `userClient.auth.getClaims is not a function`. The `getUser` fix was written to disk but the function hasn't been redeployed yet, so the old code is still running and returning 500.
+2. **Admin impersonation blocked** — even after redeploy, the function checks `profile.user_id !== userId` and returns 403. You're sending as `tap@tapaway.co` (admin) for the `@socials` profile, which is owned by a different user.
 
 ## Fix
 
-Add an admin-read policy to `personal_email_captures` mirroring the one on `sms_campaigns`, via a new migration:
+Update `supabase/functions/send-mass-sms/index.ts`:
 
-```sql
-CREATE POLICY "Admins can view all email captures"
-  ON public.personal_email_captures
-  FOR SELECT
-  USING (public.is_admin());
-```
+1. **Allow admin bypass.** After the ownership check fails, look up `has_role(userId, 'admin')`; if true, allow the send. Otherwise return 403.
+2. **Identify the sender in the SMS.** Pull `full_name`, `contact_name`, and `username` from `personal_profiles`. Prepend the resolved name (preferred order: `full_name` → `contact_name` → `@username` → `"TapAway"`) to every message so recipients know who it's from. Final body becomes:
 
-That's the only change. No frontend or edge function changes are needed — the existing query in `SmsMarketingTab.tsx` (filtered by `profile_id` + `sms_opt_in=true`) will then return the correct count for both the profile owner and admins viewing via impersonation.
+   ```
+   {Sender Name}: {message}
+   Reply STOP to opt out.
+   ```
 
-## Verification after deploy
+3. **Redeploy** the `send-mass-sms` function so the previous `getUser` fix and these new changes go live.
 
-1. Reload the SMS tab — "Total SMS Subscribers" should show **1** (Jorge Monroy).
-2. The actual owner of `@socials` will also continue to see their own subscribers (their existing policy is untouched).
+## Notes
+
+- The 160-char composer limit only applies to the user-typed body; the sender prefix and STOP suffix are appended server-side. Twilio supports up to 1600 chars per message and segments automatically — no limit issue.
+- No frontend changes required.
+- No new secrets required (Twilio + Lovable API key already configured).
