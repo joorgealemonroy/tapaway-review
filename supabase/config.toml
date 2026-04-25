@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.create-email-signup]
 verify_jwt = false
+
+[functions.twilio-webhook]
+verify_jwt = false
