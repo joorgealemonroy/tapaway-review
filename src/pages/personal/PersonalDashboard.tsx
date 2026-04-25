@@ -24,6 +24,7 @@ import {
   ArrowLeftRight,
   Smartphone,
   CreditCard,
+  MessageSquare,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
@@ -35,6 +36,7 @@ import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
+import SmsMarketingTab from "@/components/personal/SmsMarketingTab";
 import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
@@ -700,7 +702,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-8">
+          <TabsList className="hidden md:grid w-full grid-cols-9">
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -726,6 +728,10 @@ const PersonalDashboard = () => {
             <TabsTrigger value="leads" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               <span className="hidden sm:inline">Leads</span>
+            </TabsTrigger>
+            <TabsTrigger value="sms" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">SMS</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -855,6 +861,11 @@ const PersonalDashboard = () => {
           {/* Leads Tab */}
           <TabsContent value="leads" className="space-y-4">
             <EmailLeadsTab profileId={profile.id} />
+          </TabsContent>
+
+          {/* SMS Marketing Tab */}
+          <TabsContent value="sms" className="space-y-4">
+            <SmsMarketingTab profileId={profile.id} />
           </TabsContent>
 
           {/* Analytics Tab */}

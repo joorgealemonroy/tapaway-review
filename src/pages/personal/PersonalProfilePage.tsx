@@ -443,6 +443,7 @@ const ProfileBlock = memo(function ProfileBlock({
   const [phoneInput, setPhoneInput] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(false);
   
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
@@ -478,15 +479,19 @@ const ProfileBlock = memo(function ProfileBlock({
     
     setEmailSubmitting(true);
     try {
+      const phoneTrimmed = phoneInput.trim();
+      const optedIn = smsOptIn && !!phoneTrimmed;
       const { error } = await supabase
         .from("personal_email_captures")
         .insert({
           profile_id: profileId,
           email: emailInput.trim() || null,
-          phone: phoneInput.trim() || null,
+          phone: phoneTrimmed || null,
           name: nameInput.trim() || null,
           message: messageInput.trim() || null,
-        });
+          sms_opt_in: optedIn,
+          sms_opt_in_at: optedIn ? new Date().toISOString() : null,
+        } as any);
       
       if (error) throw error;
       setEmailSubmitted(true);
@@ -687,6 +692,20 @@ const ProfileBlock = memo(function ProfileBlock({
               rows={2}
               className={`${inputClass} resize-none`}
             />
+          )}
+          {showPhone && phoneInput.trim().length > 0 && (
+            <label className={`flex items-start gap-2 text-xs leading-snug ${mutedClass} cursor-pointer select-none`}>
+              <input
+                type="checkbox"
+                checked={smsOptIn}
+                onChange={(e) => setSmsOptIn(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 rounded accent-primary"
+              />
+              <span>
+                Send me exclusive updates and offers via text message.
+                <span className="block opacity-70">Msg &amp; data rates may apply. Reply STOP to opt out.</span>
+              </span>
+            </label>
           )}
           <button
             type="submit"
