@@ -27,6 +27,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
+import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 
 
 // Helper to extract a base color from a gradient for fade effect
@@ -444,6 +445,7 @@ const ProfileBlock = memo(function ProfileBlock({
   const [nameInput, setNameInput] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [smsOptIn, setSmsOptIn] = useState(false);
+  const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   
   const content = block.content as Record<string, string>;
   const alignClass = block.alignment === "left" ? "text-left" : block.alignment === "right" ? "text-right" : "text-center";
@@ -715,6 +717,45 @@ const ProfileBlock = memo(function ProfileBlock({
             {emailSubmitting ? "Submitting..." : buttonText}
           </button>
         </form>
+      );
+    }
+    case "sms_subscribe": {
+      const headline = (content.headline as string) || "Join our VIP Text List";
+      const description = (content.description as string) || "Get exclusive updates and offers via text.";
+      const buttonText = (content.buttonText as string) || "Join the VIP List";
+      return (
+        <>
+          <div
+            className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-semibold text-base ${textClass}`} style={textStyleObj}>{headline}</h3>
+                <p className={`text-sm ${mutedClass} mt-0.5`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{description}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSmsDrawerOpen(true)}
+              className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            >
+              {buttonText}
+            </button>
+          </div>
+          {profileId && (
+            <SmsOptInDrawer
+              open={smsDrawerOpen}
+              onOpenChange={setSmsDrawerOpen}
+              profileId={profileId}
+              headline={headline}
+              description={description}
+              buttonText={buttonText}
+            />
+          )}
+        </>
       );
     }
     case "photo_collage": {
