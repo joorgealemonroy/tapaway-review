@@ -97,6 +97,16 @@ Deno.serve(async (req) => {
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (deleteUserError) {
+        // 404 / user_not_found means the auth user is already gone — treat as success
+        const status = (deleteUserError as { status?: number }).status;
+        const code = (deleteUserError as { code?: string }).code;
+        if (status === 404 || code === "user_not_found") {
+          console.log(`Orphan auth user ${userId} was already removed`);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         console.error("Error deleting orphan auth user:", deleteUserError);
         return new Response(JSON.stringify({ error: "Failed to delete auth user: " + deleteUserError.message }), {
           status: 500,
@@ -145,10 +155,19 @@ Deno.serve(async (req) => {
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (deleteUserError) {
+        const status = (deleteUserError as { status?: number }).status;
+        const code = (deleteUserError as { code?: string }).code;
+        if (status === 404 || code === "user_not_found") {
+          console.log(`Personal account profile deleted; auth user ${userId} was already removed`);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         console.error("Error deleting auth user:", deleteUserError);
-        return new Response(JSON.stringify({ 
-          success: true, 
-          warning: "Profile deleted but could not remove auth user" 
+        return new Response(JSON.stringify({
+          success: true,
+          warning: "Profile deleted but could not remove auth user"
         }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -239,6 +258,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // If this owner still owns other restaurants, keep the auth user
+    const { count: remainingCount } = await supabaseAdmin
+      .from("restaurants")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId);
+
+    if ((remainingCount ?? 0) > 0) {
+      console.log(`Restaurant ${restaurantId} deleted; owner ${ownerId} still has ${remainingCount} other restaurant(s), preserving auth user`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Delete user roles
     await supabaseAdmin.from("user_roles").delete().eq("user_id", ownerId);
 
@@ -246,10 +279,19 @@ Deno.serve(async (req) => {
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(ownerId);
 
     if (deleteUserError) {
+      const status = (deleteUserError as { status?: number }).status;
+      const code = (deleteUserError as { code?: string }).code;
+      if (status === 404 || code === "user_not_found") {
+        console.log(`Restaurant ${restaurantId} deleted; auth user ${ownerId} was already removed`);
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       console.error("Error deleting auth user:", deleteUserError);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        warning: "Restaurant deleted but could not remove auth user" 
+      return new Response(JSON.stringify({
+        success: true,
+        warning: "Restaurant deleted but could not remove auth user"
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
