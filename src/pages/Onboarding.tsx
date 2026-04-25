@@ -265,6 +265,10 @@ const Onboarding = () => {
       toast.error("Please search and select the business");
       return;
     }
+    if (ownerPhone.replace(/\D/g, "").length < 7) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
 
     setRepSubmitting(true);
     try {
@@ -277,6 +281,7 @@ const Onboarding = () => {
         googlePlaceName: selectedGooglePlace?.name || "",
         googlePlaceAddress: selectedGooglePlace?.address || "",
         logoUrl: logoUrl || "",
+        ownerPhone: ownerPhone.trim(),
         repRestaurantId: repId || "",
       };
 
