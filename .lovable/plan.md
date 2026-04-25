@@ -1,45 +1,47 @@
 ## Goal
 
-Add a public Twilio webhook to auto-sync STOP replies into our database, so opted-out numbers are removed from `personal_email_captures.sms_opt_in` immediately.
+Temporarily lock down mass SMS sending in the dashboard while A2P 10DLC carrier approval is pending. Keep all metrics and subscriber capture flowing.
 
-## Changes
+## Changes — single file
 
-### 1. New edge function: `supabase/functions/twilio-webhook/index.ts`
+`src/components/personal/SmsMarketingTab.tsx`
 
-- Public (no JWT). Accepts `POST` from Twilio.
-- Parse body via `await req.text()` + `URLSearchParams` (Twilio sends `application/x-www-form-urlencoded`).
-- Extract `From` and `Body`.
-- Normalize `Body`: `trim().toUpperCase()`. Match against `["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "QUIT", "END"]` (added `STOPALL` since Twilio recognizes it; spec keywords still included).
-- If match:
-  - Use service-role client (`SUPABASE_SERVICE_ROLE_KEY`) to bypass RLS.
-  - `update personal_email_captures set sms_opt_in = false where phone = <From>`.
-  - Log row count for observability.
-- Always respond `200 OK` with `Content-Type: text/xml` and body `<?xml version="1.0" encoding="UTF-8"?><Response></Response>` (empty TwiML — Twilio already sends its own STOP confirmation, we don't want to double-send).
-- Handle `OPTIONS` with CORS headers (harmless).
-- Wrap in try/catch; on error still return empty TwiML 200 so Twilio doesn't retry-storm, but log the error.
+### 1. Pending-approval banner
 
-### 2. Config: `supabase/config.toml`
+Add at the top of the returned JSX (above the Audience card):
 
-Add:
-```toml
-[functions.twilio-webhook]
-verify_jwt = false
+```tsx
+<div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-4 text-sm text-amber-900 dark:text-amber-200">
+  🚧 SMS Marketing is currently pending carrier approval. Mass texting will be unlocked in a few days!
+</div>
 ```
 
-### 3. Deploy
+Uses amber/yellow alert tone, dark-mode aware.
 
-Deploy `twilio-webhook` so the URL is live.
+### 2. Disable the Send button
 
-## Webhook URL to paste into Twilio Console
+Add a single feature flag at the top of the component body:
 
+```ts
+const SENDING_LOCKED = true;
 ```
-https://xfrvckdcrqvkqdwjzopt.supabase.co/functions/v1/twilio-webhook
-```
 
-In Twilio Console → Phone Numbers → your `TWILIO_FROM_NUMBER` → **Messaging** → "A message comes in" → Webhook → paste URL → method **HTTP POST** → Save.
+- Force `disabled={true}` on the Send button (override `canSend`).
+- Replace button label with **"Coming Soon"** (drop the spinner / Send icon while locked).
+- Also disable the textarea so users don't waste time composing.
+- Keep the `AlertDialog` confirmation logic untouched — it just can't be opened while locked.
 
-## Notes / non-goals
+When carrier approval lands, flip `SENDING_LOCKED = false` to re-enable everything.
 
-- Phone match is exact string equality on the `From` value Twilio sends (E.164, e.g. `+15551234567`). Our existing `personal_email_captures.phone` values stored from the opt-in drawer are already E.164, so a direct `eq` match is correct. No normalization layer added in this pass.
-- We do NOT handle `START`/`UNSTOP` re-opt-in here — out of scope for this phase. Can add in a follow-up.
-- We do NOT validate Twilio's `X-Twilio-Signature` in this pass to keep the webhook simple and unblock testing. Recommend adding signature validation as a follow-up hardening step (requires `TWILIO_AUTH_TOKEN`, which we don't currently store — only `TWILIO_API_KEY`).
+### 3. Keep metrics & subscriber capture intact
+
+- Audience card (Total SMS Subscribers) — unchanged.
+- Recent campaigns list — unchanged.
+- `personal_email_captures` opt-in flow on the public profile — untouched.
+- `send-mass-sms` edge function — untouched (just unreachable from the UI).
+
+## Out of scope
+
+- No backend / edge function changes.
+- No DB changes.
+- No copy changes elsewhere in the app.
