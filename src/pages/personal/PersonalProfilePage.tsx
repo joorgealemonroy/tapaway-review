@@ -728,14 +728,9 @@ const ProfileBlock = memo(function ProfileBlock({
           <div
             className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}
           >
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <Smartphone className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className={`font-semibold text-base ${textClass}`} style={textStyleObj}>{headline}</h3>
-                <p className={`text-sm ${mutedClass} mt-0.5`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{description}</p>
-              </div>
+            <div className="text-center">
+              <h3 className={`font-semibold text-base ${textClass}`} style={textStyleObj}>{headline}</h3>
+              <p className={`text-sm ${mutedClass} mt-1`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{description}</p>
             </div>
             <button
               type="button"
