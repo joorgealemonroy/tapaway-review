@@ -5,8 +5,8 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail } from "lucide-react";
-import { MagicLoadingOverlay } from "@/components/onboarding/MagicLoadingOverlay";
+import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone } from "lucide-react";
+// MagicLoadingOverlay removed — concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
@@ -72,6 +72,7 @@ const Onboarding = () => {
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
   } | null>(null);
+  const [ownerPhone, setOwnerPhone] = useState("");
 
   // Rep mode: client email
   const [clientEmail, setClientEmail] = useState("");
@@ -86,9 +87,7 @@ const Onboarding = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-  // Success
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showMagicLoading, setShowMagicLoading] = useState(false);
+  // Success/loading
 
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
@@ -130,6 +129,7 @@ const Onboarding = () => {
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
       if (savedData.hasProtection) setHasProtection(true);
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
+      if (savedData.phone) setOwnerPhone(savedData.phone);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -176,23 +176,10 @@ const Onboarding = () => {
               }
             }
 
-            // Check if this is a personal/Solo Pro user — redirect to personal dashboard
-            const restoredDashboardType = savedData.dashboardType;
-            const { data: personalProfile } = await supabase
-              .from("personal_profiles")
-              .select("id")
-              .eq("user_id", session.user.id)
-              .maybeSingle();
-
-            if (personalProfile || restoredDashboardType === 'personal') {
-              console.log("[onboarding] Solo Pro user detected, redirecting to personal dashboard");
-              clearOnboardingData();
-              navigate("/dashboard?type=lite&welcome=true");
-              return;
-            }
-
+            // Concierge model: route ALL paid users to VIP success screen
             clearOnboardingData();
-            setShowSuccess(true);
+            navigate("/onboarding-success");
+            return;
           } catch (err: any) {
             console.error("[onboarding] Checkout verification failed:", err);
             toast.error("Payment verification failed. Please contact support.");
@@ -277,6 +264,10 @@ const Onboarding = () => {
       toast.error("Please search and select the business");
       return;
     }
+    if (ownerPhone.replace(/\D/g, "").length < 7) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
 
     setRepSubmitting(true);
     try {
@@ -289,6 +280,7 @@ const Onboarding = () => {
         googlePlaceName: selectedGooglePlace?.name || "",
         googlePlaceAddress: selectedGooglePlace?.address || "",
         logoUrl: logoUrl || "",
+        ownerPhone: ownerPhone.trim(),
         repRestaurantId: repId || "",
       };
 
@@ -344,6 +336,7 @@ const Onboarding = () => {
   // ── Auth + complete ──
   const handleOAuth = async (provider: "google" | "apple") => {
     if (!selectedGooglePlace && !businessName.trim()) { toast.error("Please search and select your business"); return; }
+    if (ownerPhone.replace(/\D/g, "").length < 7) { toast.error("Please enter a valid phone number"); return; }
     setIsLoading(true);
 
     try {
@@ -356,6 +349,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        phone: ownerPhone.trim(),
         dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
@@ -380,6 +374,10 @@ const Onboarding = () => {
       toast.error("Please search and select your business");
       return;
     }
+    if (ownerPhone.replace(/\D/g, "").length < 7) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
 
     setEmailSubmitting(true);
     try {
@@ -392,6 +390,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        phone: ownerPhone.trim(),
         dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
@@ -479,6 +478,8 @@ const Onboarding = () => {
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
+      const ownerPhoneSaved = (savedData.phone || ownerPhone || '').trim();
+
       let rId = existing?.id || restaurantId;
       if (rId) {
         await supabase.from("restaurants").update({
@@ -490,6 +491,7 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
+          ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).eq("id", rId);
       } else {
@@ -503,17 +505,18 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
+          ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).select("id").single();
 
         if (insertErr && insertErr.code === '23505') {
           // Duplicate slug — try owner lookup first, then broader recovery
           console.log("[onboarding] Slug collision, attempting recovery");
-          
+
           // Try 1: find by owner_id (any slug)
           const { data: ownedRow } = await supabase.from("restaurants")
             .select("id").eq("owner_id", uid).maybeSingle();
-          
+
           if (ownedRow?.id) {
             rId = ownedRow.id;
             await supabase.from("restaurants").update({
@@ -525,6 +528,7 @@ const Onboarding = () => {
               plan_type: plan,
               has_loss_protection: protection,
               trial_ends_at: trialEndsAt,
+              ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).eq("id", rId);
           } else {
@@ -541,6 +545,7 @@ const Onboarding = () => {
               plan_type: plan,
               has_loss_protection: protection,
               trial_ends_at: trialEndsAt,
+              ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).select("id").single();
             if (insertErr2) {
@@ -572,37 +577,8 @@ const Onboarding = () => {
         }).eq("id", rId);
       }
 
-      // Yelp auto
-      try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
-
-      // ── Magic Onboarding for Solo Pro / personal dashboard type ──
-      if (resolvedDashboardType === 'personal' || plan === 'solo') {
-        setShowMagicLoading(true);
-        try {
-          const magicUsername = slug || generateSlug(bName);
-          const { error: magicError } = await supabase.functions.invoke("magic-onboarding", {
-            body: {
-              businessName: bName,
-              address: placeAddress || '',
-              placeId: placeId || undefined,
-              userId: uid,
-              email: session.user.email || '',
-              username: magicUsername,
-              logoUrl: savedLogoUrl || undefined,
-              websiteUrl: websiteUrl || undefined,
-            },
-          });
-          if (magicError) {
-            console.error("[onboarding] Magic onboarding failed (non-blocking):", magicError);
-          } else {
-            console.log("[onboarding] Magic onboarding completed for", magicUsername);
-          }
-        } catch (err) {
-          console.error("[onboarding] Magic onboarding error (non-blocking):", err);
-        }
-        // Don't hide magic loading — it stays until Stripe redirect or success
-      }
-
+      // Concierge model: NO auto-builder. Our team builds the profile manually.
+      // (Removed: auto-yelp-from-place + magic-onboarding edge function calls.)
 
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
@@ -620,7 +596,7 @@ const Onboarding = () => {
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
           clearOnboardingData();
-          setShowSuccess(true);
+          navigate("/onboarding-success");
           return;
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Failed to activate free promo";
@@ -643,12 +619,7 @@ const Onboarding = () => {
         }).eq("id", rId);
         try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
         clearOnboardingData();
-
-        if (resolvedDashboardType === 'personal' || plan === 'solo') {
-          navigate("/dashboard?type=lite&welcome=true");
-        } else {
-          setShowSuccess(true);
-        }
+        navigate("/onboarding-success");
         return;
       }
 
@@ -695,34 +666,11 @@ const Onboarding = () => {
 
   // ── Loading ──
   if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
-    // Show magic loading overlay for personal/solo users during setup
-    if (showMagicLoading && isCompletingSetup) {
-      return <MagicLoadingOverlay isVisible={true} />;
-    }
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
         {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
-      </div>
-    );
-  }
-
-  // ── Success ──
-  if (showSuccess) {
-    return (
-      <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-blue-400" />
-          </div>
-          <h1 className="text-3xl font-black text-white mb-3">You're all set 🎉</h1>
-          <p className="text-gray-400 mb-2">Your cards are being prepared and will ship in 1–2 business days.</p>
-          <p className="text-gray-500 text-sm mb-8">We'll email you tracking info when they're on the way.</p>
-          <button onClick={() => navigate(dashboardType === 'personal' || selectedPlan === 'solo' ? "/dashboard?type=lite&welcome=true" : "/dashboard")} className="w-full max-w-xs mx-auto h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2">
-            Go to Dashboard <ArrowRight className="w-5 h-5" />
-          </button>
-        </motion.div>
       </div>
     );
   }
@@ -901,7 +849,7 @@ const Onboarding = () => {
             <motion.div key="info" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="space-y-8">
               <div className="text-center">
                 <h1 className="text-2xl font-black mb-2">Let's brand your cards</h1>
-                <p className="text-gray-400 text-sm">Tell us about your business and we'll handle the rest.</p>
+                <p className="text-gray-400 text-sm">Tell us about your business. We'll design your cards and build your digital profile for you.</p>
               </div>
 
               {/* Google Places Business Search OR Manual Entry */}
@@ -959,7 +907,25 @@ const Onboarding = () => {
                 )}
               </div>
 
-              {/* Logo upload drop zone */}
+              {/* Phone number — required for concierge follow-up */}
+              <div>
+                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> Phone Number
+                </Label>
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={ownerPhone}
+                  onChange={(e) => setOwnerPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="mt-1 h-12 bg-[#111827] border-white/10 text-white placeholder:text-gray-600 rounded-xl focus:border-blue-500 focus:ring-blue-500/20"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll text you to confirm details and finalize your design.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Your Logo</Label>
                 {logoUrl ? (
