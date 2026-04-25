@@ -15,9 +15,9 @@ import UsernameResolver from "./pages/UsernameResolver";
 import CardResolver from "./pages/CardResolver";
 import NotFound from "./pages/NotFound";
 
-// Auth routes - relatively lightweight
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
+// Auth routes - lazy loaded (not needed on landing page)
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
 
 // Personal TapAway - code split (Business Lite dashboard still used internally)
