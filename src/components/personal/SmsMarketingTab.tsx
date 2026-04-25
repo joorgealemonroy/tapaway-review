@@ -97,8 +97,15 @@ const SmsMarketingTab = ({ profileId }: Props) => {
     message.length <= MAX_LEN &&
     (subscriberCount ?? 0) > 0;
 
+  const SENDING_LOCKED = true;
+
   return (
     <div className="space-y-6">
+      {/* Pending carrier approval banner */}
+      <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-4 text-sm text-amber-900 dark:text-amber-200">
+        🚧 SMS Marketing is currently pending carrier approval. Mass texting will be unlocked in a few days!
+      </div>
+
       {/* Audience */}
       <Card className="p-6">
         <div className="flex items-center gap-4">
@@ -126,7 +133,7 @@ const SmsMarketingTab = ({ profileId }: Props) => {
           onChange={(e) => setMessage(e.target.value.slice(0, MAX_LEN))}
           maxLength={MAX_LEN}
           rows={4}
-          disabled={sending}
+          disabled={sending || SENDING_LOCKED}
         />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>"Reply STOP to opt out." will be appended automatically.</span>
@@ -136,11 +143,13 @@ const SmsMarketingTab = ({ profileId }: Props) => {
         </div>
         <Button
           onClick={() => setConfirmOpen(true)}
-          disabled={!canSend}
+          disabled={SENDING_LOCKED || !canSend}
           className="w-full"
           size="lg"
         >
-          {sending ? (
+          {SENDING_LOCKED ? (
+            "Coming Soon"
+          ) : sending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
             </>
@@ -150,7 +159,7 @@ const SmsMarketingTab = ({ profileId }: Props) => {
             </>
           )}
         </Button>
-        {(subscriberCount ?? 0) === 0 && !loading && (
+        {!SENDING_LOCKED && (subscriberCount ?? 0) === 0 && !loading && (
           <p className="text-xs text-muted-foreground text-center">
             No SMS subscribers yet. Visitors who opt in via your contact form will appear here.
           </p>
