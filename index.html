@@ -9,17 +9,17 @@
     <meta name="description" content="TapAway makes it easy to share your links, contact info, and more with a single tap." />
     <meta name="author" content="TapAway" />
     
-    <!-- DNS prefetch for external resources -->
+    <!-- DNS prefetch for Supabase (used after hydration, not on critical path) -->
     <link rel="dns-prefetch" href="https://xfrvckdcrqvkqdwjzopt.supabase.co" />
-    <link rel="preconnect" href="https://xfrvckdcrqvkqdwjzopt.supabase.co" crossorigin />
+
+    <!-- Preconnect to font origins (used immediately for FCP) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <!-- Preload critical font -->
+
+    <!-- Preload critical Inter woff2 -->
     <link rel="preload" as="font" type="font/woff2" href="https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" crossorigin />
-    
-    <!-- Load fonts with optimal strategy -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+
+    <!-- Non-blocking font stylesheet load -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=League+Spartan:wght@700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=League+Spartan:wght@700&display=swap" rel="stylesheet"></noscript>
 
