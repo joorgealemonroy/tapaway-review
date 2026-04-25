@@ -123,6 +123,11 @@ export const BlockModal = ({
   // Product block options
   const [selectedProductId, setSelectedProductId] = useState("");
   const [creatorProducts, setCreatorProducts] = useState<{ id: string; title: string; price_cents: number }[]>([]);
+
+  // SMS subscribe block options
+  const [smsHeadline, setSmsHeadline] = useState("");
+  const [smsDescription, setSmsDescription] = useState("");
+  const [smsButtonText, setSmsButtonText] = useState("");
   
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
@@ -218,6 +223,10 @@ export const BlockModal = ({
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         } else if (editingBlock.block_type === "product") {
           setSelectedProductId(content.product_id || "");
+        } else if (editingBlock.block_type === "sms_subscribe") {
+          setSmsHeadline(content.headline || "");
+          setSmsDescription(content.description || "");
+          setSmsButtonText(content.buttonText || "");
         }
       } else {
         resetForm();
@@ -260,6 +269,10 @@ export const BlockModal = ({
     setCollageColumns(3);
     setCollageRawImage(null);
     setSelectedProductId("");
+    // SMS subscribe
+    setSmsHeadline("");
+    setSmsDescription("");
+    setSmsButtonText("");
   };
 
   const handleClose = () => {
@@ -630,6 +643,14 @@ export const BlockModal = ({
           return;
         }
         content = { product_id: selectedProductId };
+        break;
+      }
+      case "sms_subscribe": {
+        content = {
+          headline: smsHeadline.trim() || "Join our VIP Text List",
+          description: smsDescription.trim() || "Get exclusive updates and offers via text.",
+          buttonText: smsButtonText.trim() || "Join the VIP List",
+        };
         break;
       }
     }
