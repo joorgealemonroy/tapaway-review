@@ -87,8 +87,7 @@ const Onboarding = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-  // Success
-  const [showSuccess, setShowSuccess] = useState(false);
+  // Success/loading
 
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
