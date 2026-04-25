@@ -479,6 +479,8 @@ const Onboarding = () => {
       const totalTrialDays = PLAN_DETAILS[plan].totalTrialDays;
       const trialEndsAt = new Date(Date.now() + totalTrialDays * 86400000).toISOString();
 
+      const ownerPhoneSaved = (savedData.phone || ownerPhone || '').trim();
+
       let rId = existing?.id || restaurantId;
       if (rId) {
         await supabase.from("restaurants").update({
@@ -490,6 +492,7 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
+          ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).eq("id", rId);
       } else {
@@ -503,17 +506,18 @@ const Onboarding = () => {
           plan_type: plan,
           has_loss_protection: protection,
           trial_ends_at: trialEndsAt,
+          ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
           ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
         }).select("id").single();
 
         if (insertErr && insertErr.code === '23505') {
           // Duplicate slug — try owner lookup first, then broader recovery
           console.log("[onboarding] Slug collision, attempting recovery");
-          
+
           // Try 1: find by owner_id (any slug)
           const { data: ownedRow } = await supabase.from("restaurants")
             .select("id").eq("owner_id", uid).maybeSingle();
-          
+
           if (ownedRow?.id) {
             rId = ownedRow.id;
             await supabase.from("restaurants").update({
@@ -525,6 +529,7 @@ const Onboarding = () => {
               plan_type: plan,
               has_loss_protection: protection,
               trial_ends_at: trialEndsAt,
+              ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).eq("id", rId);
           } else {
@@ -541,6 +546,7 @@ const Onboarding = () => {
               plan_type: plan,
               has_loss_protection: protection,
               trial_ends_at: trialEndsAt,
+              ...(ownerPhoneSaved ? { phone: ownerPhoneSaved } : {}),
               ...(savedLogoUrl ? { logo_url: savedLogoUrl } : {}),
             }).select("id").single();
             if (insertErr2) {
@@ -572,37 +578,8 @@ const Onboarding = () => {
         }).eq("id", rId);
       }
 
-      // Yelp auto
-      try { await supabase.functions.invoke("auto-yelp-from-place", { body: { restaurantId: rId } }); } catch {}
-
-      // ── Magic Onboarding for Solo Pro / personal dashboard type ──
-      if (resolvedDashboardType === 'personal' || plan === 'solo') {
-        setShowMagicLoading(true);
-        try {
-          const magicUsername = slug || generateSlug(bName);
-          const { error: magicError } = await supabase.functions.invoke("magic-onboarding", {
-            body: {
-              businessName: bName,
-              address: placeAddress || '',
-              placeId: placeId || undefined,
-              userId: uid,
-              email: session.user.email || '',
-              username: magicUsername,
-              logoUrl: savedLogoUrl || undefined,
-              websiteUrl: websiteUrl || undefined,
-            },
-          });
-          if (magicError) {
-            console.error("[onboarding] Magic onboarding failed (non-blocking):", magicError);
-          } else {
-            console.log("[onboarding] Magic onboarding completed for", magicUsername);
-          }
-        } catch (err) {
-          console.error("[onboarding] Magic onboarding error (non-blocking):", err);
-        }
-        // Don't hide magic loading — it stays until Stripe redirect or success
-      }
-
+      // Concierge model: NO auto-builder. Our team builds the profile manually.
+      // (Removed: auto-yelp-from-place + magic-onboarding edge function calls.)
 
       // ── FREE PROMO: skip Stripe entirely ──
       if (promoDiscountType === 'free' && promoTokenParam) {
@@ -620,7 +597,7 @@ const Onboarding = () => {
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
           clearOnboardingData();
-          setShowSuccess(true);
+          navigate("/onboarding-success");
           return;
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : "Failed to activate free promo";
@@ -643,12 +620,7 @@ const Onboarding = () => {
         }).eq("id", rId);
         try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
         clearOnboardingData();
-
-        if (resolvedDashboardType === 'personal' || plan === 'solo') {
-          navigate("/dashboard?type=lite&welcome=true");
-        } else {
-          setShowSuccess(true);
-        }
+        navigate("/onboarding-success");
         return;
       }
 
