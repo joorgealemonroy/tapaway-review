@@ -1679,6 +1679,8 @@ export type Database = {
           name: string | null
           phone: string | null
           profile_id: string
+          sms_opt_in: boolean
+          sms_opt_in_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1688,6 +1690,8 @@ export type Database = {
           name?: string | null
           phone?: string | null
           profile_id: string
+          sms_opt_in?: boolean
+          sms_opt_in_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1697,6 +1701,8 @@ export type Database = {
           name?: string | null
           phone?: string | null
           profile_id?: string
+          sms_opt_in?: boolean
+          sms_opt_in_at?: string | null
         }
         Relationships: [
           {
@@ -2656,6 +2662,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sms_campaigns: {
+        Row: {
+          created_at: string
+          failure_count: number
+          id: string
+          message: string
+          profile_id: string
+          recipient_count: number
+          success_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failure_count?: number
+          id?: string
+          message: string
+          profile_id: string
+          recipient_count?: number
+          success_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failure_count?: number
+          id?: string
+          message?: string
+          profile_id?: string
+          recipient_count?: number
+          success_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_campaigns_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_requests: {
         Row: {
