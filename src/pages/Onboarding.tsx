@@ -5,8 +5,8 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail } from "lucide-react";
-import { MagicLoadingOverlay } from "@/components/onboarding/MagicLoadingOverlay";
+import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone } from "lucide-react";
+// MagicLoadingOverlay removed — concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
@@ -72,6 +72,7 @@ const Onboarding = () => {
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
   } | null>(null);
+  const [ownerPhone, setOwnerPhone] = useState("");
 
   // Rep mode: client email
   const [clientEmail, setClientEmail] = useState("");
@@ -88,7 +89,6 @@ const Onboarding = () => {
 
   // Success
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showMagicLoading, setShowMagicLoading] = useState(false);
 
   const totalPrice = selectedPlan ? PLAN_DETAILS[selectedPlan].price + (hasProtection ? PROTECTION_PRICE : 0) : 0;
   const stepNumber = step === "plan" ? 1 : step === "protection" ? 2 : 3;
