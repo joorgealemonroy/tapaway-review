@@ -684,6 +684,7 @@ function ProfilePreviewRendererComponent({
           </div>
         );
       }
+      case "photo_collage": {
         // Parse mixed media (new format) or legacy images
         let media: Array<{ url: string; type: "image" | "video"; poster?: string }> = [];
         try {
