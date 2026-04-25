@@ -60,6 +60,7 @@ const BLOCK_TYPES = [
   { type: "text", label: "Text", icon: Type, description: "Title and body text" },
   { type: "button", label: "Featured Button", icon: MousePointerClick, description: "Big CTA button" },
   { type: "email_capture", label: "Email Capture", icon: Mail, description: "Collect visitor emails" },
+  { type: "sms_subscribe", label: "SMS VIP List", icon: Smartphone, description: "Let visitors join your text list" },
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
   { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
