@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
+import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
+import { Smartphone } from "lucide-react";
 
 interface Restaurant {
   id: string;
