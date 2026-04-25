@@ -130,6 +130,7 @@ const Onboarding = () => {
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
       if (savedData.hasProtection) setHasProtection(true);
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
+      if (savedData.phone) setOwnerPhone(savedData.phone);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
