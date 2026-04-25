@@ -667,34 +667,11 @@ const Onboarding = () => {
 
   // ── Loading ──
   if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
-    // Show magic loading overlay for personal/solo users during setup
-    if (showMagicLoading && isCompletingSetup) {
-      return <MagicLoadingOverlay isVisible={true} />;
-    }
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
         {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
-      </div>
-    );
-  }
-
-  // ── Success ──
-  if (showSuccess) {
-    return (
-      <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-blue-400" />
-          </div>
-          <h1 className="text-3xl font-black text-white mb-3">You're all set 🎉</h1>
-          <p className="text-gray-400 mb-2">Your cards are being prepared and will ship in 1–2 business days.</p>
-          <p className="text-gray-500 text-sm mb-8">We'll email you tracking info when they're on the way.</p>
-          <button onClick={() => navigate(dashboardType === 'personal' || selectedPlan === 'solo' ? "/dashboard?type=lite&welcome=true" : "/dashboard")} className="w-full max-w-xs mx-auto h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2">
-            Go to Dashboard <ArrowRight className="w-5 h-5" />
-          </button>
-        </motion.div>
       </div>
     );
   }
