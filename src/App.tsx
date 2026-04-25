@@ -29,6 +29,7 @@ const LegacyProfileRedirect = lazy(() => import("./pages/personal/LegacyProfileR
 const Demo = lazy(() => import("./pages/Demo"));
 
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const OnboardingSuccess = lazy(() => import("./pages/OnboardingSuccess"));
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ReviewHub = lazy(() => import("./pages/ReviewHub"));
@@ -119,6 +120,7 @@ const App = () => (
                 <Route path="/select-dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/onboarding-success" element={<OnboardingSuccess />} />
                 <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/start" element={<Navigate to="/onboarding" replace />} />
