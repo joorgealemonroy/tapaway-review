@@ -619,6 +619,36 @@ const ReviewHub = () => {
             </div>
           ))}
 
+          {/* SMS VIP TEXT LIST — primary CTA */}
+          <button
+            type="button"
+            onClick={() => setSmsDrawerOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              justifyContent: 'center',
+              width: '100%',
+              border: 'none',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: '#fff',
+              padding: '18px 16px',
+              borderRadius: '14px',
+              fontWeight: 800,
+              fontSize: '16px',
+              marginBottom: '16px',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s ease',
+              fontFamily: 'inherit',
+              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.35)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.92')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            <Smartphone size={20} />
+            Join our VIP Text List
+          </button>
+
           {/* GOOGLE REVIEW */}
           {isSafeUrl(restaurant.google_review_url) && (
             <a 
@@ -714,35 +744,6 @@ const ReviewHub = () => {
               Follow Us on Instagram
             </a>
           )}
-
-          {/* SMS VIP TEXT LIST */}
-          <button
-            type="button"
-            onClick={() => setSmsDrawerOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              justifyContent: 'center',
-              width: '100%',
-              border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#fff',
-              padding: '14px 16px',
-              borderRadius: '12px',
-              fontWeight: 700,
-              marginBottom: '12px',
-              cursor: 'pointer',
-              transition: 'opacity 0.2s ease',
-              fontFamily: 'inherit',
-              fontSize: 'inherit',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-          >
-            <Smartphone size={18} />
-            Join our VIP Text List
-          </button>
 
           {/* DIRECTIONS */}
           {isSafeUrl(restaurant.directions_url) && (
