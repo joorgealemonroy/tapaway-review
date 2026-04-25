@@ -337,6 +337,7 @@ const Onboarding = () => {
   // ── Auth + complete ──
   const handleOAuth = async (provider: "google" | "apple") => {
     if (!selectedGooglePlace && !businessName.trim()) { toast.error("Please search and select your business"); return; }
+    if (ownerPhone.replace(/\D/g, "").length < 7) { toast.error("Please enter a valid phone number"); return; }
     setIsLoading(true);
 
     try {
@@ -349,6 +350,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        phone: ownerPhone.trim(),
         dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
@@ -373,6 +375,10 @@ const Onboarding = () => {
       toast.error("Please search and select your business");
       return;
     }
+    if (ownerPhone.replace(/\D/g, "").length < 7) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
 
     setEmailSubmitting(true);
     try {
@@ -385,6 +391,7 @@ const Onboarding = () => {
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
         googlePlaceAddress: selectedGooglePlace?.address || '',
+        phone: ownerPhone.trim(),
         dashboardType: dashboardType || (selectedPlan === 'solo' ? 'personal' : 'restaurant'),
       });
 
