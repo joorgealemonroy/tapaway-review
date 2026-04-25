@@ -2391,6 +2391,99 @@ export type Database = {
           },
         ]
       }
+      restaurant_sms_campaigns: {
+        Row: {
+          created_at: string
+          failure_count: number
+          id: string
+          message: string
+          recipient_count: number
+          restaurant_id: string
+          success_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failure_count?: number
+          id?: string
+          message: string
+          recipient_count?: number
+          restaurant_id: string
+          success_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failure_count?: number
+          id?: string
+          message?: string
+          recipient_count?: number
+          restaurant_id?: string
+          success_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_sms_campaigns_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_sms_campaigns_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_sms_subscribers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          phone: string
+          restaurant_id: string
+          sms_opt_in: boolean
+          sms_opt_in_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          phone: string
+          restaurant_id: string
+          sms_opt_in?: boolean
+          sms_opt_in_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          phone?: string
+          restaurant_id?: string
+          sms_opt_in?: boolean
+          sms_opt_in_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_sms_subscribers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_sms_subscribers_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null

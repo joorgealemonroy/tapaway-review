@@ -1,41 +1,52 @@
-## Problem
+Mirror the Personal-side SMS Marketing system onto the Restaurant (Venue Pack) side: new restaurant-scoped subscriber + campaign tables, a public opt-in drawer on the review hub, an SMS Marketing tab on the restaurant Dashboard (locked behind the same "Coming Soon / Pending Carrier Approval" banner), and edge functions that handle both account types.
 
-When deleting test restaurants (created with `+#` email aliases), the admin panel shows the warning:
+## 1. Database (migration)
 
-> "Restaurant deleted but could not remove auth user"
+Create two restaurant-scoped tables that mirror the Personal-side schema:
 
-### Root cause
+- `restaurant_sms_subscribers` — `id`, `restaurant_id` (FK→ restaurants), `name`, `phone`, `sms_opt_in` (default true), `sms_opt_in_at`, `created_at`. Index on `restaurant_id` and on `phone` (for the STOP webhook lookup).
+- `restaurant_sms_campaigns` — mirrors `sms_campaigns`: `id`, `restaurant_id`, `user_id`, `message`, `recipient_count`, `success_count` (default 0), `failure_count` (default 0), `created_at`.
 
-Edge function logs show the actual error is:
+RLS:
+- `restaurant_sms_subscribers`: public INSERT (mirrors `personal_email_captures` lead-capture pattern); SELECT/UPDATE/DELETE restricted to the restaurant owner (`restaurants.owner_id = auth.uid()`) plus `is_admin()`.
+- `restaurant_sms_campaigns`: SELECT/INSERT restricted to the restaurant owner + admin; no public access.
 
-```
-AuthApiError: User not found (status 404, code user_not_found)
-```
+## 2. Public opt-in drawer (Review Hub)
 
-The restaurant's `owner_id` points to an auth user that no longer exists (already deleted in a previous run, or the row was orphaned). The current code treats *any* `deleteUser` error as a warning, including the harmless "already gone" case — so admins see a scary message even though everything worked correctly.
+- New component `src/components/restaurant/RestaurantSmsOptInDrawer.tsx` — copy of `SmsOptInDrawer` but inserts into `restaurant_sms_subscribers` with `restaurant_id` instead of `profile_id`.
+- Add a "Join our VIP Text List" CTA button on `src/pages/ReviewHub.tsx`, placed in the action button stack alongside the Google/Yelp/Instagram links. Opens the drawer.
+- Same compliance copy: "By joining, you agree to receive recurring marketing text messages. Msg & data rates may apply. Reply STOP to opt out."
 
-A secondary contributor: when several test restaurants were seeded sharing one auth user, deleting the second one finds the auth user already gone from the first delete.
+## 3. Restaurant Dashboard tab
 
-## Fix
+- New component `src/components/restaurant/RestaurantSmsMarketingTab.tsx` — mirror of `SmsMarketingTab` but queries `restaurant_sms_subscribers` and `restaurant_sms_campaigns` by `restaurant_id`, and invokes `send-mass-sms` with `{ restaurant_id, message }`.
+- Includes the identical yellow "🚧 SMS Marketing is currently pending carrier approval. Mass texting will be unlocked in a few days!" banner and the `SENDING_LOCKED = true` flag that disables the Send button (renders "Coming Soon"). Subscriber count and history remain visible.
+- In `src/pages/Dashboard.tsx`, add a new `<TabsTrigger value="sms">SMS</TabsTrigger>` (bumping the grid from `md:grid-cols-7` → `md:grid-cols-8`, and `md:grid-cols-4` → `md:grid-cols-5` for demo view) and a matching `<TabsContent value="sms">` rendering the new component with the current restaurant id.
 
-Update `supabase/functions/delete-user-complete/index.ts` so that a `user_not_found` (404) response from `auth.admin.deleteUser` is treated as **success**, not a warning. Keep the warning behavior only for genuine failures.
+## 4. Edge function updates
 
-### Specific changes
+`send-mass-sms`:
+- Accept either `profile_id` (existing personal flow) **or** `restaurant_id`. Branch on which is present.
+- Restaurant branch: verify caller owns the restaurant (`restaurants.owner_id = userId`) or is admin; pull recipients from `restaurant_sms_subscribers` filtered by `sms_opt_in = true`; sender name = `restaurants.restaurant_name`; log into `restaurant_sms_campaigns`. All other logic (Twilio gateway call, batching, STOP suffix, dedupe) is unchanged.
 
-1. **Restaurant deletion path** (around line 246): after `deleteUser`, check `deleteUserError.status === 404` or `code === 'user_not_found'`. If so, log "auth user already removed" and return `{ success: true }` with no warning.
+`twilio-webhook` (STOP handler):
+- After matching an opt-out keyword, run the existing `personal_email_captures` update **and** an additional update on `restaurant_sms_subscribers` setting `sms_opt_in = false where phone = from`. Log row counts from each so we can see which list the number was on.
 
-2. **Personal account deletion path** (around line 145): same treatment.
+## 5. Notes
 
-3. **Orphan auth user path** (around line 97): same — 404 means the orphan is already gone, return success.
+- The Send button stays locked on both Personal and Restaurant tabs (single shared `SENDING_LOCKED` constant in each component) — backend is wired and tested-ready, but UI prevents broadcasting until carrier approval lands.
+- Twilio connector + `TWILIO_FROM_NUMBER` + `LOVABLE_API_KEY` are already configured; no new secrets required.
+- Frontend types regenerate automatically after migration — components use `as any` casts where needed (matching the existing Personal SMS pattern) until types are refreshed.
 
-4. Pre-check (optional, cleaner): before attempting `deleteUser`, call `auth.admin.getUserById(ownerId)`. If it returns no user, skip the delete entirely and return success. This avoids the error log noise.
+## Files
 
-### Optional cleanup
+Created:
+- `src/components/restaurant/RestaurantSmsOptInDrawer.tsx`
+- `src/components/restaurant/RestaurantSmsMarketingTab.tsx`
+- New migration for the two tables + RLS
 
-Add a one-time admin utility (or just a SQL note for the user) to identify orphan auth users left over from prior failed deletions — but only if the user wants this; not required for the fix.
-
-## Files to change
-
-- `supabase/functions/delete-user-complete/index.ts` — three small edits to handle 404 as success.
-
-No DB migrations, no schema changes, no new endpoints.
+Edited:
+- `src/pages/ReviewHub.tsx` — add VIP Text List button + drawer state
+- `src/pages/Dashboard.tsx` — add SMS tab trigger + content
+- `supabase/functions/send-mass-sms/index.ts` — branch on profile vs restaurant
+- `supabase/functions/twilio-webhook/index.ts` — opt-out across both tables

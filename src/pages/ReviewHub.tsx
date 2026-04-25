@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
+import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
+import { Smartphone } from "lucide-react";
 
 interface Restaurant {
   id: string;
@@ -51,6 +53,7 @@ const ReviewHub = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
   
@@ -712,6 +715,35 @@ const ReviewHub = () => {
             </a>
           )}
 
+          {/* SMS VIP TEXT LIST */}
+          <button
+            type="button"
+            onClick={() => setSmsDrawerOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              justifyContent: 'center',
+              width: '100%',
+              border: 'none',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: '#fff',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              marginBottom: '12px',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s ease',
+              fontFamily: 'inherit',
+              fontSize: 'inherit',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
+            <Smartphone size={18} />
+            Join our VIP Text List
+          </button>
+
           {/* DIRECTIONS */}
           {isSafeUrl(restaurant.directions_url) && (
             <a 
@@ -925,6 +957,14 @@ const ReviewHub = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {restaurant && (
+        <RestaurantSmsOptInDrawer
+          open={smsDrawerOpen}
+          onOpenChange={setSmsDrawerOpen}
+          restaurantId={restaurant.id}
+        />
       )}
     </>
   );

@@ -1,7 +1,8 @@
 // Public Twilio inbound-message webhook.
 // Listens for STOP/UNSUBSCRIBE/CANCEL/QUIT/END replies and flips
-// personal_email_captures.sms_opt_in = false so our sender list stays in
-// sync with Twilio's carrier-level block.
+// sms_opt_in = false in BOTH personal_email_captures and
+// restaurant_sms_subscribers so our sender lists stay in sync with
+// Twilio's carrier-level block.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -41,7 +42,6 @@ Deno.serve(async (req) => {
     console.log("twilio-webhook inbound", { from, body });
 
     if (!from || !OPT_OUT_KEYWORDS.has(keyword)) {
-      // Not an opt-out — acknowledge and do nothing.
       return twiml(200);
     }
 
@@ -56,22 +56,39 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const { data, error } = await admin
-      .from("personal_email_captures")
-      .update({ sms_opt_in: false })
-      .eq("phone", from)
-      .select("id");
+    // Opt out across BOTH subscriber tables in parallel
+    const [personalRes, restaurantRes] = await Promise.all([
+      admin
+        .from("personal_email_captures")
+        .update({ sms_opt_in: false })
+        .eq("phone", from)
+        .select("id"),
+      admin
+        .from("restaurant_sms_subscribers")
+        .update({ sms_opt_in: false })
+        .eq("phone", from)
+        .select("id"),
+    ]);
 
-    if (error) {
-      console.error("twilio-webhook update failed", error);
+    if (personalRes.error) {
+      console.error("twilio-webhook personal update failed", personalRes.error);
     } else {
-      console.log(`twilio-webhook opted out ${data?.length ?? 0} row(s) for ${from}`);
+      console.log(
+        `twilio-webhook opted out ${personalRes.data?.length ?? 0} personal row(s) for ${from}`,
+      );
+    }
+
+    if (restaurantRes.error) {
+      console.error("twilio-webhook restaurant update failed", restaurantRes.error);
+    } else {
+      console.log(
+        `twilio-webhook opted out ${restaurantRes.data?.length ?? 0} restaurant row(s) for ${from}`,
+      );
     }
 
     return twiml(200);
   } catch (err) {
     console.error("twilio-webhook unexpected error", err);
-    // Still return 200 so Twilio doesn't retry-storm.
     return twiml(200);
   }
 });

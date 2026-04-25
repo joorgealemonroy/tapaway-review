@@ -16,6 +16,7 @@ import { SupportTab } from "@/components/dashboard/SupportTab";
 import { BillingTab } from "@/components/dashboard/BillingTab";
 import { ReviewRepliesTab } from "@/components/dashboard/ReviewRepliesTab";
 import { EngagementTab } from "@/components/dashboard/EngagementTab";
+import RestaurantSmsMarketingTab from "@/components/restaurant/RestaurantSmsMarketingTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
@@ -621,13 +622,14 @@ const DashboardBusiness = () => {
                     )}
                   </TabsList>
                 ) : (
-                  <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-4' : 'md:grid-cols-7'} h-auto gap-1`}>
+                  <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-4' : 'md:grid-cols-8'} h-auto gap-1`}>
                     <TabsTrigger value="overview" className="text-sm whitespace-nowrap px-3 py-2">Overview</TabsTrigger>
                     <TabsTrigger value="replies" className="text-sm whitespace-nowrap px-3 py-2">Replies</TabsTrigger>
                     <TabsTrigger value="engagement" className="text-sm whitespace-nowrap px-3 py-2">Engagement</TabsTrigger>
                     <TabsTrigger value="menu" className="text-sm whitespace-nowrap px-3 py-2">Menu</TabsTrigger>
                     {!isDemoView && (
                       <>
+                        <TabsTrigger value="sms" className="text-sm whitespace-nowrap px-3 py-2">SMS</TabsTrigger>
                         <TabsTrigger value="settings" className="text-sm whitespace-nowrap px-3 py-2">Settings</TabsTrigger>
                         <TabsTrigger value="support" className="text-sm whitespace-nowrap px-3 py-2">Support</TabsTrigger>
                         <TabsTrigger value="billing" className="text-sm whitespace-nowrap px-3 py-2">Billing</TabsTrigger>
@@ -674,6 +676,10 @@ const DashboardBusiness = () => {
 
               {!isDemoView && (
                 <>
+                  <TabsContent value="sms">
+                    <RestaurantSmsMarketingTab restaurantId={restaurant.id} />
+                  </TabsContent>
+
                   <TabsContent value="settings">
                     <SettingsTab restaurantId={restaurant.id} />
                   </TabsContent>
