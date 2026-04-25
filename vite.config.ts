@@ -15,4 +15,28 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react-dom") || id.includes("scheduler") || id.includes("/react/")) {
+            return "react-vendor";
+          }
+          if (id.includes("@supabase")) {
+            return "supabase-vendor";
+          }
+          if (id.includes("@radix-ui")) {
+            return "radix-vendor";
+          }
+          if (id.includes("framer-motion")) {
+            return "motion-vendor";
+          }
+          if (id.includes("recharts") || id.includes("d3-")) {
+            return "charts-vendor";
+          }
+        },
+      },
+    },
+  },
 }));
