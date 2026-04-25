@@ -958,6 +958,14 @@ const ReviewHub = () => {
           </div>
         </div>
       )}
+
+      {restaurant && (
+        <RestaurantSmsOptInDrawer
+          open={smsDrawerOpen}
+          onOpenChange={setSmsDrawerOpen}
+          restaurantId={restaurant.id}
+        />
+      )}
     </>
   );
 };
