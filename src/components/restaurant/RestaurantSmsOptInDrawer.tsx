@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Smartphone } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -127,9 +127,6 @@ export const RestaurantSmsOptInDrawer = ({
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent>
           <DrawerHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Smartphone className="h-6 w-6 text-primary" />
-            </div>
             <DrawerTitle>{headline}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
@@ -143,9 +140,6 @@ export const RestaurantSmsOptInDrawer = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-            <Smartphone className="h-6 w-6 text-primary" />
-          </div>
           <DialogTitle>{headline}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
