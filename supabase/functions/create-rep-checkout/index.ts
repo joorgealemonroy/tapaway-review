@@ -93,7 +93,7 @@ serve(async (req) => {
     });
 
     let product = products.data.find(
-      (p) => p.metadata?.plan_key === plan && p.metadata?.source === 'rep_portal'
+      (p: any) => p.metadata?.plan_key === plan && p.metadata?.source === 'rep_portal'
     );
 
     if (!product) {
@@ -112,7 +112,7 @@ serve(async (req) => {
     });
 
     let price = prices.data.find(
-      (p) =>
+      (p: any) =>
         p.unit_amount === tierConfig.priceAmount &&
         p.recurring?.interval === tierConfig.interval
     );

@@ -63,7 +63,7 @@ async function findOrCreatePrice(
     limit: 20,
   });
   const match = prices.data.find(
-    (p) => p.unit_amount === unitAmount && p.currency === 'usd' && p.recurring?.interval === 'month',
+    (p: any) => p.unit_amount === unitAmount && p.currency === 'usd' && p.recurring?.interval === 'month',
   );
   if (match) return match.id;
 
@@ -152,7 +152,7 @@ serve(async (req) => {
         // Find or create a 50% off coupon
         const existingCoupons = await stripe.coupons.list({ limit: 100 });
         let couponId = existingCoupons.data.find(
-          (c) => c.percent_off === 50 && c.duration === 'once' && c.valid
+          (c: any) => c.percent_off === 50 && c.duration === 'once' && c.valid
         )?.id;
 
         if (!couponId) {
