@@ -155,10 +155,19 @@ Deno.serve(async (req) => {
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (deleteUserError) {
+        const status = (deleteUserError as { status?: number }).status;
+        const code = (deleteUserError as { code?: string }).code;
+        if (status === 404 || code === "user_not_found") {
+          console.log(`Personal account profile deleted; auth user ${userId} was already removed`);
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         console.error("Error deleting auth user:", deleteUserError);
-        return new Response(JSON.stringify({ 
-          success: true, 
-          warning: "Profile deleted but could not remove auth user" 
+        return new Response(JSON.stringify({
+          success: true,
+          warning: "Profile deleted but could not remove auth user"
         }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
