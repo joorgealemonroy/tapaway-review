@@ -177,23 +177,10 @@ const Onboarding = () => {
               }
             }
 
-            // Check if this is a personal/Solo Pro user — redirect to personal dashboard
-            const restoredDashboardType = savedData.dashboardType;
-            const { data: personalProfile } = await supabase
-              .from("personal_profiles")
-              .select("id")
-              .eq("user_id", session.user.id)
-              .maybeSingle();
-
-            if (personalProfile || restoredDashboardType === 'personal') {
-              console.log("[onboarding] Solo Pro user detected, redirecting to personal dashboard");
-              clearOnboardingData();
-              navigate("/dashboard?type=lite&welcome=true");
-              return;
-            }
-
+            // Concierge model: route ALL paid users to VIP success screen
             clearOnboardingData();
-            setShowSuccess(true);
+            navigate("/onboarding-success");
+            return;
           } catch (err: any) {
             console.error("[onboarding] Checkout verification failed:", err);
             toast.error("Payment verification failed. Please contact support.");
