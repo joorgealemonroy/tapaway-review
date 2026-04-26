@@ -32,9 +32,8 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("framer-motion")) {
             return "motion-vendor";
           }
-          if (id.includes("recharts") || id.includes("d3-")) {
-            return "charts-vendor";
-          }
+          // NOTE: Do NOT split recharts/d3 into a separate vendor chunk.
+          // Their circular deps cause a TDZ ReferenceError in production builds.
         },
       },
     },
