@@ -1,23 +1,50 @@
-## Make VIP Text List the #1 CTA on restaurant hubs
+# Urgent Fix: Blank Screen on tapaway.co
 
-In `src/pages/ReviewHub.tsx`, promote the "Join our VIP Text List" button to the top of the action stack on the restaurant review hub so it's the first thing visitors see and tap after the header.
+## The Problem
 
-### Changes
+The live site shows a blank loading spinner. The browser console reveals the root cause:
 
-1. **Reorder the action buttons** (currently: Google → Yelp → Instagram → SMS VIP → Directions → Phone). New order:
-   - **Join our VIP Text List** (first)
-   - Leave a Google Review
-   - Find Us on Yelp
-   - Follow Us on Instagram
-   - Directions
-   - Phone
+```
+ReferenceError: Cannot access 'P' before initialization
+  at charts-vendor-k3dInSJJ.js:9:16763
+```
 
-2. **Boost the VIP button's visual weight** so it reads as the hero CTA without overwhelming the card:
-   - Larger padding (`18px 16px` vs `14px 16px`)
-   - Slightly larger font (`16px`, weight `800`)
-   - Soft purple glow shadow (`0 8px 24px rgba(99,102,241,0.35)`)
-   - Slightly larger icon (`20px`)
-   - Keep the existing indigo→violet gradient so it visually pops above the white/neutral review buttons
-   - 16px bottom margin to separate it from the secondary actions below
+This is a **Temporal Dead Zone (TDZ) error** thrown synchronously while the `charts-vendor` chunk evaluates. Because it happens during module init, the entire React app fails to mount, leaving the user staring at the inline loader in `index.html` forever.
 
-No other behavior, drawer, or backend changes — just reordering and a small visual bump. The AvMealPrep custom hub is unaffected.
+## Root Cause
+
+In the recent FCP optimization, `vite.config.ts` was updated with `manualChunks` that split `recharts` + all `d3-*` packages into a separate `charts-vendor` chunk:
+
+```ts
+if (id.includes("recharts") || id.includes("d3-")) {
+  return "charts-vendor";
+}
+```
+
+Recharts and the d3 ecosystem have **circular dependencies between d3 sub-packages** (e.g. `d3-scale` ↔ `d3-interpolate` ↔ `d3-color`). When Rollup bundles them together with their consumers, the circular refs resolve fine. When forced into an isolated vendor chunk, the hoisted `let`/`const` bindings get accessed before their initializer runs → TDZ ReferenceError.
+
+This is a well-known Rollup/Vite gotcha with d3 + recharts.
+
+## The Fix
+
+Remove the `charts-vendor` rule from `vite.config.ts`. Let recharts/d3 bundle naturally alongside the components that import them. Those components (`AnalyticsOverview`, `AdvancedAnalyticsTab`, `AvMealPrepDashboard`, `chart.tsx`) are only used inside lazy-loaded dashboard routes, so they were never on the landing page critical path anyway — splitting them as their own vendor chunk gave us zero FCP benefit while breaking production.
+
+The other vendor splits (react, supabase, radix, motion) are safe and stay.
+
+## Change
+
+**`vite.config.ts`** — delete this block from `manualChunks`:
+
+```ts
+if (id.includes("recharts") || id.includes("d3-")) {
+  return "charts-vendor";
+}
+```
+
+That's it. One deletion. After redeploy, the landing page renders normally.
+
+## Why this is safe
+
+- Landing page (`Index.tsx`) does not import recharts → no FCP regression.
+- Charts code already lives inside lazy routes → it was already deferred regardless of the manual chunk.
+- All other optimizations (react-vendor, supabase-vendor, radix-vendor, motion-vendor splits, lazy auth routes, font loading tweaks) remain intact.
