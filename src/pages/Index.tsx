@@ -61,7 +61,7 @@ const Index = () => {
               <a href="https://www.youtube.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">YouTube</a>
               <span className="text-background/30">|</span>
               <a href="/terms" className="hover:text-background transition-colors">Terms</a>
-              <a href="/privacy" className="hover:text-background transition-colors">Privacy</a>
+              <a href="/privacy" className="hover:text-background transition-colors">Privacy Policy</a>
               <a href="/refund" className="hover:text-background transition-colors">Refund</a>
               <a href="/cookie-policy" className="hover:text-background transition-colors">Cookies</a>
               <a href="/rep/apply" className="hover:text-background transition-colors">Sales Partners</a>
