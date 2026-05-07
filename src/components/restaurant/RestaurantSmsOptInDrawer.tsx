@@ -116,8 +116,11 @@ export const RestaurantSmsOptInDrawer = ({
         )}
       </Button>
       <p className="text-xs text-muted-foreground text-center leading-snug">
-        By joining, you agree to receive recurring marketing text messages.
-        Msg &amp; data rates may apply. Reply STOP to opt out.
+        By submitting, you agree to receive recurring marketing text messages from this business at the number provided.
+        Consent is not a condition of any purchase.{" "}
+        <strong>Message and data rates may apply. Message frequency varies. Reply STOP to cancel, HELP for help.</strong>{" "}
+        See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a> and{" "}
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a>.
       </p>
     </form>
   );

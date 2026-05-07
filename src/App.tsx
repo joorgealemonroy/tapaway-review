@@ -73,6 +73,7 @@ const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
+const Compliance = lazy(() => import("./pages/Compliance"));
 
 
 // Minimal loading spinner
@@ -166,6 +167,7 @@ const App = () => (
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
                 <Route path="/examples" element={<Examples />} />
+                <Route path="/compliance" element={<Compliance />} />
                 
                 {/* NFC Card Activation */}
                 <Route path="/c/:publicCode" element={<CardResolver />} />
