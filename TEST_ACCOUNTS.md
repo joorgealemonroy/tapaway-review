@@ -86,7 +86,7 @@ All test account emails and metadata are defined in `src/lib/testAccounts.ts`:
 export const TEST_ACCOUNTS = [
   {
     email: "test-owner1@tapaway.co",
-    password: "TapawayTest123!",
+    // password not stored in code — see "Test Account Credentials" above
     name: "Test Owner 1",
     restaurantName: "Test Restaurant 1 (TEST)",
     slug: "test-restaurant-1"
