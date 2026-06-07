@@ -2981,6 +2981,7 @@ export type Database = {
           show_username: boolean | null
           subscription_status: string | null
           text_color: string | null
+          user_id: string | null
           username: string | null
           vibe_id: string | null
         }
@@ -3017,6 +3018,7 @@ export type Database = {
           show_username?: boolean | null
           subscription_status?: string | null
           text_color?: string | null
+          user_id?: string | null
           username?: string | null
           vibe_id?: string | null
         }
@@ -3053,6 +3055,7 @@ export type Database = {
           show_username?: boolean | null
           subscription_status?: string | null
           text_color?: string | null
+          user_id?: string | null
           username?: string | null
           vibe_id?: string | null
         }
