@@ -63,7 +63,7 @@ interface UseProfileDataResult {
  * Fetch parallel data (links, blocks, nfc) given a profile
  */
 async function fetchParallelData(profileData: { id: string; user_id?: string }): Promise<Omit<ProfileData, 'profile'>> {
-  const [linksResult, blocksResult, nfcResult] = await Promise.all([
+  const [linksResult, blocksResult, hasCardResult] = await Promise.all([
     supabase
       .from('personal_links')
       .select('id, link_type, label, url, pill_color, sort_order, is_active, is_featured, display_style, cover_image_url, grid_size, is_archived, thumbnail_url')
@@ -77,18 +77,15 @@ async function fetchParallelData(profileData: { id: string; user_id?: string }):
       .eq('is_active', true)
       .or('is_archived.is.null,is_archived.eq.false')
       .order('sort_order', { ascending: true }),
-    supabase
-      .from('nfc_cards')
-      .select('id')
-      .eq('owner_user_id', profileData.user_id)
-      .eq('status', 'claimed')
-      .limit(1),
+    profileData.user_id
+      ? supabase.rpc('profile_has_active_card', { _user_id: profileData.user_id })
+      : Promise.resolve({ data: false as boolean | null }),
   ]);
 
   return {
     links: linksResult.data || [],
     blocks: blocksResult.data || [],
-    hasActiveCard: (nfcResult.data?.length ?? 0) > 0,
+    hasActiveCard: Boolean((hasCardResult as { data: boolean | null }).data),
   };
 }
 
