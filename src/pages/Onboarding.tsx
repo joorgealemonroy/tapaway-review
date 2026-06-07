@@ -590,7 +590,7 @@ const Onboarding = () => {
           }).eq("id", rId);
 
           await supabase.functions.invoke("validate-promo-token", {
-            body: { token: promoTokenParam, markUsed: true, usedByUserId: uid },
+            body: { token: promoTokenParam, markUsed: true },
           });
 
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
