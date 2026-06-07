@@ -13,7 +13,7 @@ Test accounts are special accounts that:
 
 ## Test Account Credentials
 
-All test accounts use the same password: **`TapawayTest123!`**
+All test accounts use the same password. The password is **not stored in this repo** — request it from an admin or retrieve it from the team password manager (1Password). Placeholder shown below as `<ask-admin>`.
 
 | Email | Name | Restaurant | Slug |
 |-------|------|------------|------|
@@ -86,7 +86,7 @@ All test account emails and metadata are defined in `src/lib/testAccounts.ts`:
 export const TEST_ACCOUNTS = [
   {
     email: "test-owner1@tapaway.co",
-    password: "TapawayTest123!",
+    // password not stored in code — see "Test Account Credentials" above
     name: "Test Owner 1",
     restaurantName: "Test Restaurant 1 (TEST)",
     slug: "test-restaurant-1"

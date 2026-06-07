@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, markUsed, usedByUserId } = body;
+    const { token, markUsed } = body;
 
     if (!token || typeof token !== 'string') {
       return new Response(JSON.stringify({ valid: false, error: 'Missing token' }), {
@@ -28,13 +29,43 @@ serve(async (req) => {
       });
     }
 
+    // Rate limit: stricter for markUsed (mutation), looser for read-only validation
+    const rlKey = getRateLimitKey(req, markUsed ? 'validate-promo-token:mark' : 'validate-promo-token:read');
+    const rlLimit = markUsed ? 5 : 20;
+    if (!checkRateLimit(rlKey, rlLimit, 60 * 1000)) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.7');
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // If markUsed, require authenticated caller; derive user id from JWT (never from body)
+    let authedUserId: string | null = null;
+    if (markUsed) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ valid: false, error: 'Authentication required to consume token' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: { user }, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ valid: false, error: 'Invalid session' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      authedUserId = user.id;
+    }
 
     const { data: tokenRow, error: fetchError } = await adminClient
       .from('promo_tokens')
@@ -60,14 +91,11 @@ serve(async (req) => {
       });
     }
 
-    // Optionally mark as used
-    if (markUsed) {
-      const updateData: Record<string, unknown> = { is_used: true };
-      if (usedByUserId) updateData.used_by_user_id = usedByUserId;
-
+    // Optionally mark as used (only with verified JWT; user id is from the JWT, not the body)
+    if (markUsed && authedUserId) {
       const { error: updateError } = await adminClient
         .from('promo_tokens')
-        .update(updateData)
+        .update({ is_used: true, used_by_user_id: authedUserId })
         .eq('id', tokenRow.id);
 
       if (updateError) {
