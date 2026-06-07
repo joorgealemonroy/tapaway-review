@@ -95,7 +95,7 @@ async function fetchParallelData(profileData: { id: string; user_id?: string }):
 async function fetchProfileData(username: string): Promise<ProfileData | null> {
   const { data: profileData, error: profileError } = await supabase
     .from('personal_profiles_public')
-    .select('id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username')
+    .select('id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username')
     .eq('username', username.toLowerCase())
     .maybeSingle();
 
