@@ -82,10 +82,10 @@ const CardResolver = () => {
 
     const resolveCard = async () => {
       const { data: card, error } = await supabase
-        .from("nfc_cards")
+        .from("nfc_cards_public")
         .select("status, destination_type, destination_value, card_type")
         .eq("public_code", publicCode.toUpperCase())
-        .single();
+        .maybeSingle();
 
       if (error || !card) {
         setCardStatus("not_found");
