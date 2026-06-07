@@ -145,7 +145,7 @@ export function BookingCalendar({ creatorId, productId, durationMinutes, priceCe
     const dateStr = toDateString(selectedDate);
     
     supabase
-      .from("bookings")
+      .from("bookings_public")
       .select("booking_date, start_time, status, created_at")
       .eq("product_id", productId)
       .eq("booking_date", dateStr)

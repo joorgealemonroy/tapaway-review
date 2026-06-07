@@ -1377,6 +1377,13 @@ export type Database = {
             referencedRelation: "nfc_cards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nfc_card_taps_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "nfc_cards_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       nfc_cards: {
@@ -2878,13 +2885,79 @@ export type Database = {
       }
     }
     Views: {
+      bookings_public: {
+        Row: {
+          booking_date: string | null
+          created_at: string | null
+          product_id: string | null
+          start_time: string | null
+          status: string | null
+          timezone: string | null
+        }
+        Insert: {
+          booking_date?: string | null
+          created_at?: string | null
+          product_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          timezone?: string | null
+        }
+        Update: {
+          booking_date?: string | null
+          created_at?: string | null
+          product_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          timezone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "creator_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfc_cards_public: {
+        Row: {
+          card_type: string | null
+          destination_type: string | null
+          destination_value: string | null
+          id: string | null
+          public_code: string | null
+          status: string | null
+        }
+        Insert: {
+          card_type?: string | null
+          destination_type?: string | null
+          destination_value?: string | null
+          id?: string | null
+          public_code?: string | null
+          status?: string | null
+        }
+        Update: {
+          card_type?: string | null
+          destination_type?: string | null
+          destination_value?: string | null
+          id?: string | null
+          public_code?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       personal_profiles_public: {
         Row: {
           background_color: string | null
           banner_image_url: string | null
+          bg_style: string | null
           bio: string | null
+          button_theme: string | null
           contact_address: string | null
+          contact_button_label: string | null
           contact_company: string | null
+          contact_display_style: string | null
           contact_email: string | null
           contact_enabled: boolean | null
           contact_name: string | null
@@ -2903,16 +2976,25 @@ export type Database = {
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
+          show_founding_badge: boolean | null
           show_shop_section: boolean | null
+          show_username: boolean | null
           subscription_status: string | null
+          text_color: string | null
+          user_id: string | null
           username: string | null
+          vibe_id: string | null
         }
         Insert: {
           background_color?: string | null
           banner_image_url?: string | null
+          bg_style?: string | null
           bio?: string | null
+          button_theme?: string | null
           contact_address?: string | null
+          contact_button_label?: string | null
           contact_company?: string | null
+          contact_display_style?: string | null
           contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
@@ -2931,16 +3013,25 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          show_founding_badge?: boolean | null
           show_shop_section?: boolean | null
+          show_username?: boolean | null
           subscription_status?: string | null
+          text_color?: string | null
+          user_id?: string | null
           username?: string | null
+          vibe_id?: string | null
         }
         Update: {
           background_color?: string | null
           banner_image_url?: string | null
+          bg_style?: string | null
           bio?: string | null
+          button_theme?: string | null
           contact_address?: string | null
+          contact_button_label?: string | null
           contact_company?: string | null
+          contact_display_style?: string | null
           contact_email?: string | null
           contact_enabled?: boolean | null
           contact_name?: string | null
@@ -2959,9 +3050,14 @@ export type Database = {
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
+          show_founding_badge?: boolean | null
           show_shop_section?: boolean | null
+          show_username?: boolean | null
           subscription_status?: string | null
+          text_color?: string | null
+          user_id?: string | null
           username?: string | null
+          vibe_id?: string | null
         }
         Relationships: []
       }
@@ -3119,6 +3215,7 @@ export type Database = {
         Args: { check_username: string }
         Returns: boolean
       }
+      profile_has_active_card: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "sales_rep" | "affiliate"

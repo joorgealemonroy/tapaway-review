@@ -66,10 +66,10 @@ const PersonalProfile = () => {
       try {
         // Fetch profile
         const { data: profileData, error: profileError } = await supabase
-          .from("personal_profiles")
+          .from("personal_profiles_public")
           .select("id, username, full_name, profile_photo_url, subscription_status")
           .eq("username", username.toLowerCase())
-          .single();
+          .maybeSingle();
 
         if (profileError || !profileData || profileData.subscription_status !== "active") {
           setNotFound(true);

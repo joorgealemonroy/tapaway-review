@@ -88,7 +88,12 @@ export const PersonalizeStep = ({
   const uploadToStorage = async (blob: Blob): Promise<string | null> => {
     setUploading(true);
     try {
-      const fileName = `temp/${crypto.randomUUID()}.jpg`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please complete sign-in before uploading.");
+        return null;
+      }
+      const fileName = `${user.id}/temp/${crypto.randomUUID()}.jpg`;
       const { error } = await supabase.storage
         .from("personal-link-images")
         .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
