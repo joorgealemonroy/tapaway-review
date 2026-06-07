@@ -11,7 +11,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // External APIs
-const GOOGLE_PLACES_API_KEY = Deno.env.get("VITE_GOOGLE_MAPS_API_KEY");
+const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY_SERVER");
 const YELP_API_KEY = Deno.env.get("YELP_API_KEY");
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
