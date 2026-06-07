@@ -23,7 +23,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER') || Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+    const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER');
 
     if (!googleApiKey) {
       console.error('No Google API key found');
