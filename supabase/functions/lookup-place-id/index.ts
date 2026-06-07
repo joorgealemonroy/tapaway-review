@@ -21,7 +21,7 @@ serve(async (req) => {
       );
     }
 
-    const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER') || Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+    const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER');
     if (!googleApiKey) {
       console.error('[lookup-place-id] No Google API key configured');
       return new Response(
