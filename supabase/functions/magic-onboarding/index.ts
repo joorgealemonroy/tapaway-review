@@ -73,7 +73,7 @@ async function proxyImageToStorage(
 
 // ── Step 1: Google Places ──
 async function fetchGooglePlaceData(businessName: string, address: string, existingPlaceId?: string) {
-  const googleKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER') || Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+  const googleKey = Deno.env.get('GOOGLE_PLACES_API_KEY_SERVER');
   if (!googleKey) {
     console.log('[magic-onboarding] No Google API key, skipping Places lookup');
     return { placeId: existingPlaceId || null, websiteUrl: null, photoRefs: [], googleMapsUri: null };
