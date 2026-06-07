@@ -1,71 +1,43 @@
-# Twilio / A2P 10DLC Carrier Compliance
+## Fix three security findings
 
-Three small, additive changes — no behavior or design regression. All edits are display-only text or a new static page.
+### 1. `validate-promo-token` — Unauthenticated token invalidation (error)
+File: `supabase/functions/validate-promo-token/index.ts`
 
-## 1. Privacy Policy — add SMS data-sharing clause
+- Keep the read-only "is this token valid?" path public (called from `Onboarding.tsx` line 103 before the user is signed in — required for the promo landing UX).
+- When `markUsed: true` is requested:
+  - Require an `Authorization: Bearer <jwt>`; reject otherwise with 401.
+  - Verify the JWT via `supabase.auth.getUser(token)`.
+  - Ignore any `usedByUserId` from the body — always use the authenticated `user.id`.
+- Add IP-based rate limiting via the existing `_shared/rateLimit.ts` (e.g. 20/min validation, 5/min markUsed).
+- Update caller `src/pages/Onboarding.tsx` line 592: drop `usedByUserId` from the body (the server now derives it from the JWT, which the supabase-js client attaches automatically post-signup).
 
-**File:** `src/pages/Privacy.tsx`
+### 2. `fetch-link-metadata` — Unauthenticated open proxy (warn)
+File: `supabase/functions/fetch-link-metadata/index.ts`
 
-Add a new highlighted subsection inside the existing "Information We Collect" / SMS area (or as its own SMS Communications section near the top of the body) containing the **exact** sentence required by carriers:
+- Require a valid Supabase JWT (only caller is `LinkModal.tsx` from an authenticated dashboard). Return 401 if missing/invalid.
+- Keep the existing rate limit, but key it by `user.id` instead of IP once authenticated.
+- Leave protocol validation + 50KB cap + 8s timeout in place. No allowlist needed (users paste arbitrary URLs by design).
+- No client changes needed — `supabase.functions.invoke` already attaches the session JWT.
 
-> "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes. All other categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
+(Note: `scrape-link-bio` is flagged in the description but not in the finding list. Skipping to keep scope to the three reported findings.)
 
-Wrap it in a visually distinct block (bordered card with `border-primary/30 bg-primary/5 p-4 rounded-lg`) and label it "SMS / Text Messaging Data" so the carrier reviewer can spot it instantly. Also confirm the footer link in `src/pages/Index.tsx` already labels it "Privacy" — update the visible label to **"Privacy Policy"** to match the carrier requirement exactly.
+### 3. `TEST_ACCOUNTS.md` — Hardcoded test password (error)
+File: `TEST_ACCOUNTS.md`
 
-## 2. CTA disclosure near Submit on every opt-in form
+- Replace every occurrence of `TapawayTest123!` with the placeholder `<set out-of-band — ask an admin>`.
+- Update the "All test accounts use the same password" line to instruct devs to retrieve the password from 1Password / admin handoff.
+- No code references the literal password (`rg` confirms it lives only in this doc), so this is a docs-only change.
+- Note in the closing message: the user should rotate the actual auth passwords for `test-owner1/2/3@tapaway.co` via the Cloud Users panel since the old value is in git history.
 
-The current footer text on the SMS drawers says *"By joining, you agree to receive recurring marketing text messages. Msg & data rates may apply. Reply STOP to opt out."* — it's missing **"Message frequency varies"** and the wording must be the canonical carrier-required trio.
+### Files touched
+- `supabase/functions/validate-promo-token/index.ts` (auth gate + rate limit + drop body-supplied user id)
+- `supabase/functions/fetch-link-metadata/index.ts` (auth gate, user-keyed rate limit)
+- `src/pages/Onboarding.tsx` (remove `usedByUserId` from markUsed call)
+- `TEST_ACCOUNTS.md` (strip plaintext password)
 
-**Files:**
-- `src/components/personal/SmsOptInDrawer.tsx`
-- `src/components/restaurant/RestaurantSmsOptInDrawer.tsx`
+### Out of scope
+- Google Maps client key restriction (separate warn finding, requires Google Cloud Console action by the user).
+- `scrape-link-bio` hardening (not in the three requested findings).
+- Any DB / RLS changes.
 
-Replace the existing disclaimer paragraph (rendered just under the Submit button) with:
-
-> By submitting, you agree to receive recurring marketing text messages from TapAway / this business at the number provided. Consent is not a condition of any purchase.
-> **Message and data rates may apply. Message frequency varies. Reply STOP to cancel, HELP for help.**
-> See our [Privacy Policy](/privacy) and [Terms](/terms).
-
-Keep the same `text-xs text-muted-foreground text-center` styling so layout doesn't shift. Bold the three required sentences for reviewer visibility. Privacy / Terms render as `<a>` tags opening in a new tab.
-
-Also audit any other lead/contact forms that capture phone numbers and add the same disclaimer if a phone field is present (e.g. `LeadFormBlock`-style components inside `BlockModal.tsx` and `ProfilePreviewRenderer.tsx` if they include a phone input). For non-marketing phone capture (pure contact lead), only the Privacy Policy link is needed — no SMS disclaimer.
-
-## 3. New `/compliance` Carrier Review page
-
-**New file:** `src/pages/Compliance.tsx`
-**Route:** add `<Route path="/compliance" element={<Compliance />} />` in `src/App.tsx` (lazy-loaded, above the `/:slug` catch).
-
-Page contents (single scroll, public, no auth, mobile-friendly):
-
-1. **Header**: "TapAway — SMS Compliance & Opt-In Flow" + brand name, business contact email, last updated date.
-2. **Brand & Use Case summary**: short paragraph describing the platform (NFC cards → customer taps → lands on a business profile → can join the business's VIP text list).
-3. **Step-by-step opt-in flow with screenshots**:
-   - Step 1 — Customer taps NFC card (image of phone tapping a card).
-   - Step 2 — Customer lands on the business profile (screenshot of a profile page with "Join VIP Text List" button).
-   - Step 3 — Opt-in form drawer with phone field + visible disclaimer (screenshot showing the new disclaimer with all three required phrases highlighted).
-   - Step 4 — Confirmation toast / welcome SMS sample.
-4. **Sample messages section**: example welcome message, example marketing message, example STOP reply, example HELP reply.
-5. **The exact required Privacy sentence** quoted verbatim with a deep link to `/privacy`.
-6. **Disclaimer block** quoted verbatim (the same trio used near Submit).
-7. **Contact** for carrier reviewers: support@tapaway.co.
-
-**Image assets:** create a `public/compliance/` folder. Initially the page can reference placeholder paths like `/compliance/step-1-tap.png`, `/compliance/step-2-profile.png`, `/compliance/step-3-form.png`, `/compliance/step-4-confirmation.png`. After the page is wired up, you (the user) upload real screenshots to those paths via chat — no code change needed to swap them in.
-
-**Indexing:** add `<meta name="robots" content="noindex,nofollow" />` via `react-helmet-async` so the page exists for the carrier link but doesn't appear in search results. It will remain reachable directly at `tapaway.co/compliance` to paste into the Twilio "Message Flow" field.
-
-## Out of scope / no changes
-
-- Backend, DB, edge functions — none touched.
-- `vite.config.ts`, lazy-loading setup — unchanged.
-- All existing opt-in form behavior, validation, and submission logic — unchanged; only the static disclaimer text below the button is rewritten.
-
-## Files touched
-
-- `src/pages/Privacy.tsx` (add SMS clause block)
-- `src/pages/Index.tsx` (footer label "Privacy" → "Privacy Policy")
-- `src/components/personal/SmsOptInDrawer.tsx` (replace disclaimer)
-- `src/components/restaurant/RestaurantSmsOptInDrawer.tsx` (replace disclaimer)
-- `src/components/personal/BlockModal.tsx` & related lead-form renderers (add disclaimer when phone field present) — only if audit confirms phone capture
-- `src/pages/Compliance.tsx` (new)
-- `src/App.tsx` (add lazy route)
-- `public/compliance/` (placeholder dir for screenshots you'll upload)
+After applying, mark the three findings as fixed via `manage_security_finding` and update security memory.
