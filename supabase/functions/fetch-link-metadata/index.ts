@@ -23,13 +23,37 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limit: 10 requests per minute per IP
-  const rlKey = getRateLimitKey(req, "fetch-link-metadata");
-  if (!checkRateLimit(rlKey, 10, 60 * 1000)) {
-    return rateLimitResponse(corsHeaders);
-  }
-
   try {
+    // Require authenticated caller — this is only invoked from the logged-in dashboard.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.39.7");
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Rate limit: 20 requests per minute per authenticated user
+    const rlKey = `fetch-link-metadata:${user.id}`;
+    if (!checkRateLimit(rlKey, 20, 60 * 1000)) {
+      return rateLimitResponse(corsHeaders);
+    }
+
     const { url } = await req.json();
 
     if (!url || typeof url !== "string") {
