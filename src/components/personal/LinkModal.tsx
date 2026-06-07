@@ -265,9 +265,11 @@ export const LinkModal = ({
 
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
       const ext = croppedBlob.type.includes("webp") ? "webp" : "jpeg";
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const filePath = `${folder}/${fileName}`;
+      const filePath = `${user.id}/${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("personal-link-images")
