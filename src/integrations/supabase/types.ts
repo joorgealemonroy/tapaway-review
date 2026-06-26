@@ -3215,6 +3215,10 @@ export type Database = {
         Args: { check_username: string }
         Returns: boolean
       }
+      personal_profile_is_active: {
+        Args: { _profile_id: string }
+        Returns: boolean
+      }
       profile_has_active_card: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
