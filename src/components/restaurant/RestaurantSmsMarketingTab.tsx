@@ -97,7 +97,7 @@ const RestaurantSmsMarketingTab = ({ restaurantId }: Props) => {
     message.length <= MAX_LEN &&
     (subscriberCount ?? 0) > 0;
 
-  const SENDING_LOCKED = true;
+  const SENDING_LOCKED = false;
 
   return (
     <div className="space-y-6">
