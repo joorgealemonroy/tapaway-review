@@ -74,6 +74,7 @@ const NAV_CARDS = [
   { label: "W-9 Tax Review", desc: "Review tax documents", icon: FileText, path: "/admin/tax-review" },
   { label: "Comp Settings", desc: "Rates & bonus thresholds", icon: Settings, path: "/admin/settings/comp" },
   { label: "Demo Requests", desc: "Demo kit requests", icon: ClipboardList, path: "/admin/demo-requests" },
+  { label: "VIP SMS Subscribers", desc: "Search & export VIP text lists", icon: MessageSquare, path: "/admin/sms-subscribers" },
 ];
 
 const Admin = () => {
