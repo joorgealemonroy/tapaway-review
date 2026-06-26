@@ -164,6 +164,7 @@ const App = () => (
                 <Route path="/admin/affiliates" element={<AdminAffiliates />} />
                 <Route path="/admin/cards" element={<AdminCards />} />
                 <Route path="/admin/founders" element={<AdminFounders />} />
+                <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
