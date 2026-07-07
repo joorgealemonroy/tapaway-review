@@ -61,7 +61,7 @@ export const RiskReversalSection = () => {
           </motion.div>
 
           <p className="text-sm text-muted-foreground mt-6">
-            After trial: $30/month • Cancel with one click
+            Cancel anytime.
           </p>
         </motion.div>
       </div>
