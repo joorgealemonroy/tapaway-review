@@ -5,28 +5,28 @@ import { Star, TrendingUp } from "lucide-react";
 
 const results = [
   {
-    restaurant: "Taqueria Las Islas",
-    location: "San Diego, CA",
-    before: 47,
+    business: "Las Nuevas Islas",
+    location: "Fontana, CA",
+    before: 30,
     after: 63,
-    days: 45,
-    rating: 4.8,
-  },
-  {
-    restaurant: "AV Meal Prep",
-    location: "Los Angeles, CA",
-    before: 23,
-    after: 41,
-    days: 60,
-    rating: 4.9,
-  },
-  {
-    restaurant: "Burger & Brew",
-    location: "Austin, TX",
-    before: 89,
-    after: 112,
     days: 30,
-    rating: 4.7,
+    rating: 4.6,
+  },
+  {
+    business: "Space Studios",
+    location: "Rancho Cucamonga, CA",
+    before: 2,
+    after: 22,
+    days: 30,
+    rating: 5.0,
+  },
+  {
+    business: "Reborn Wraps Auto Design",
+    location: "",
+    before: 0,
+    after: 19,
+    days: 30,
+    rating: 4.8,
   },
 ];
 
@@ -44,7 +44,7 @@ export const ProofSection = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
-            Real Results from Real Restaurants
+            Real Results from Real Businesses
           </h2>
           <p className="text-muted-foreground text-lg">
             See how TapAway is helping businesses like yours get more reviews.
@@ -54,15 +54,15 @@ export const ProofSection = () => {
         <div className="grid md:grid-cols-3 gap-6">
           {results.map((result, i) => (
             <motion.div
-              key={result.restaurant}
+              key={result.business}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
               className="bg-card rounded-2xl border border-border p-6 hover:shadow-lg transition-all"
             >
-              {/* Restaurant Info */}
+              {/* Business Info */}
               <div className="mb-6">
-                <h3 className="font-bold text-foreground text-lg">{result.restaurant}</h3>
+                <h3 className="font-bold text-foreground text-lg">{result.business}</h3>
                 <p className="text-sm text-muted-foreground">{result.location}</p>
               </div>
 
@@ -112,10 +112,10 @@ export const ProofSection = () => {
           className="mt-12 text-center"
         >
           <div className="inline-flex items-center gap-4 bg-card rounded-full px-8 py-4 border border-border shadow-sm">
-            <div className="text-4xl font-black text-primary">+16</div>
+            <div className="text-4xl font-black text-primary">+24</div>
             <div className="text-left">
-              <p className="font-semibold text-foreground">average new 5-star reviews</p>
-              <p className="text-sm text-muted-foreground">in the first 45 days</p>
+              <p className="font-semibold text-foreground">average new reviews</p>
+              <p className="text-sm text-muted-foreground">in the first 30 days</p>
             </div>
           </div>
         </motion.div>
