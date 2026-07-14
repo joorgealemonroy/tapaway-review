@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 
 const STEPS = [
@@ -19,15 +19,15 @@ const OnboardingSuccess = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white">
+    <div className="relative min-h-screen bg-[#0a0e1a] text-white">
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
 
-      {/* Minimal wordmark, no nav */}
-      <header className="max-w-md mx-auto px-6 py-4">
+      {/* Top-left wordmark, separate from centered content */}
+      <header className="absolute top-0 left-0 px-6 py-4">
         <span className="font-black text-xl tracking-tight">TapAway</span>
       </header>
 
-      <main className="max-w-md mx-auto px-6 py-8">
+      <main className="max-w-md mx-auto px-6 py-16 text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -43,15 +43,25 @@ const OnboardingSuccess = () => {
             ✦ Concierge Build
           </motion.div>
 
-          <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-3">
+          {/* Premium hero visual */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
+            <Sparkles className="w-16 h-16 text-cyan-400 mx-auto mb-5 drop-shadow-[0_0_14px_rgba(34,211,238,0.45)]" />
+          </motion.div>
+
+          <h1 className="text-3xl sm:text-4xl font-black leading-tight mb-3 text-center">
             You're in! Let our design team take it from here.
           </h1>
-          <p className="text-gray-400 text-base leading-relaxed mb-8">
+          <p className="text-gray-400 text-base leading-relaxed mb-8 max-w-sm mx-auto text-center">
             We are manually building your custom digital profile so it looks perfect. We'll text you shortly to review your design before we program and ship your physical cards.
           </p>
 
-          <div className="space-y-3 mb-8">
-            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-3">
+          {/* Centered checklist with left-aligned items */}
+          <div className="max-w-xs mx-auto mb-8 text-left">
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-3 text-center">
               What happens next
             </p>
             {STEPS.map((step, i) => (
