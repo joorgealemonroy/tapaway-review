@@ -1,26 +1,60 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, MessageSquare, Package, ExternalLink, Mail } from 'lucide-react';
+import { ArrowLeft, Palette, Gift, PlayCircle, Copy, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+
+const CANVA_URL = 'https://canva.com/your-custom-card-template-placeholder';
+
+const GIFT_DROP_SCRIPT = `Hey [Owner Name] — I've got a little gift for you.
+
+I noticed [Restaurant Name] has some incredible reviews already, and I built you a free custom review hub to help you get even more. It's live right now — I'll leave the demo card on the counter so you can see exactly how it works.
+
+Here's how it works in 3 taps:
+1. Customer taps the card on their phone (no app needed)
+2. Your custom hub opens instantly — logo, photos, menu
+3. One tap sends them straight to your Google review page
+
+I'm not here to pitch you anything today. Just wanted to drop this off, let you play with it, and if you love it we can talk later this week about keeping it live permanently for less than the price of one lost customer.
+
+Cool? Enjoy the free week. I'll swing back Friday.`;
+
+const DEMO_HUB_GUIDE = [
+  {
+    step: 'Step 1 — Scout the venue (30 seconds)',
+    body: 'Walk in. Check for review cards on tables. Look up their Google rating. If they have < 100 reviews, they are a perfect target.',
+  },
+  {
+    step: 'Step 2 — Build the demo hub (2 minutes)',
+    body: 'Tap "New Demo Hub". Enter the business name + owner phone. Grab their logo + 2 photos from their Instagram. Paste their Google Review URL. Save.',
+  },
+  {
+    step: 'Step 3 — Print the card (1 minute)',
+    body: 'Upload the print-ready PDF (from the Canva template). It attaches to the hub. Print at any office supply store.',
+  },
+  {
+    step: 'Step 4 — Drop the gift (1 minute)',
+    body: 'Walk in with the card + the Gift Drop script. Leave the card. Do not pitch. Let the product speak for itself for 5 days.',
+  },
+  {
+    step: 'Step 5 — Follow up (1 minute)',
+    body: 'The system SMS-reminds you at 48h. Swing back Friday. Ask "did you love it?" — if yes, walk them through the paywall. That is your commission.',
+  },
+];
 
 const RepResources = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { loading: repLoading, isSalesRep } = useSalesRep();
+  const [scriptOpen, setScriptOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-      return;
-    }
-
-    if (!repLoading && !isSalesRep) {
-      navigate('/');
-      return;
-    }
+    if (!authLoading && !user) { navigate('/auth'); return; }
+    if (!repLoading && !isSalesRep) { navigate('/'); return; }
   }, [authLoading, repLoading, user, isSalesRep, navigate]);
 
   if (authLoading || repLoading) {
@@ -31,9 +65,48 @@ const RepResources = () => {
     );
   }
 
+  const copyScript = async () => {
+    await navigator.clipboard.writeText(GIFT_DROP_SCRIPT);
+    toast.success('Script copied to clipboard');
+  };
+
+  const tiles = [
+    {
+      icon: Palette,
+      title: 'Canva Design Studio',
+      desc: 'Open the branded print-ready card template. Customize colors, logo, and QR placement.',
+      action: (
+        <Button asChild className="w-full">
+          <a href={CANVA_URL} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" /> Open Canva Template
+          </a>
+        </Button>
+      ),
+    },
+    {
+      icon: Gift,
+      title: 'Local Gift Drop Script',
+      desc: 'The exact high-converting drop script. No pitch, just leave a gift.',
+      action: (
+        <Button className="w-full" onClick={() => setScriptOpen(true)}>
+          <Copy className="mr-2 h-4 w-4" /> Open Script
+        </Button>
+      ),
+    },
+    {
+      icon: PlayCircle,
+      title: '5-Minute Demo Hub Guide',
+      desc: 'The exact 5-step process from scouting to closing a restaurant.',
+      action: (
+        <Button className="w-full" onClick={() => setGuideOpen(true)}>
+          <PlayCircle className="mr-2 h-4 w-4" /> Open Walkthrough
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -41,130 +114,63 @@ const RepResources = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Resources</h1>
-              <p className="text-sm text-muted-foreground">Scripts, product info, and support</p>
+              <h1 className="text-xl font-bold text-foreground">Resource Vault</h1>
+              <p className="text-sm text-muted-foreground">Everything you need to close a restaurant this week</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6 max-w-3xl">
-        {/* Sales Scripts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Sales Scripts
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2">Opening a Conversation</h4>
-              <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
-                <p>"Hey! I'm [Name] with TapAway. Quick question — are you guys actively trying to get more Google reviews?"</p>
-                <p className="text-muted-foreground italic">Wait for response, then:</p>
-                <p>"Most restaurants struggle with that. We have a simple tool that makes it super easy for your happy customers to leave you 5-star reviews. Takes 30 seconds to set up."</p>
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {tiles.map(({ icon: Icon, title, desc, action }) => (
+            <div key={title} className="rounded-2xl border bg-card p-5 flex flex-col gap-4">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Icon className="h-5 w-5 text-primary" />
               </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">The 30-Second Pitch</h4>
-              <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
-                <p>"TapAway gives you NFC cards that customers tap with their phone. It opens your Google review page instantly — no searching, no friction."</p>
-                <p>"You put them on tables, near the register, wherever. Happy customers tap, leave a review, done. Most restaurants see 5-10 new reviews in the first month."</p>
-                <p>"It's $30/month or $150 for the whole year right now — December special."</p>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+                <p className="text-sm text-muted-foreground">{desc}</p>
               </div>
+              {action}
             </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Handling "Not Interested"</h4>
-              <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
-                <p><strong>If they say they're too busy:</strong></p>
-                <p>"Totally get it. The signup takes 2 minutes and we ship the cards ready to use. You literally just put them out. Can I leave you a card to try?"</p>
-                
-                <p className="mt-3"><strong>If they say they already have reviews:</strong></p>
-                <p>"That's great! But here's the thing — Google ranks restaurants with recent reviews higher. TapAway keeps fresh reviews coming in consistently. That's what bumps you up in search results."</p>
-                
-                <p className="mt-3"><strong>If they say it's too expensive:</strong></p>
-                <p>"One new customer from a good review covers the whole year. Most restaurants make that back in the first week. Plus we have a December deal — $150 for the whole year instead of $300."</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Product Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Product Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <div>
-                  <p className="font-medium">NFC & QR Cards</p>
-                  <p className="text-sm text-muted-foreground">Customers tap or scan to open the review page instantly</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <div>
-                  <p className="font-medium">Works with Google Reviews</p>
-                  <p className="text-sm text-muted-foreground">Links directly to Google, Yelp, or any review platform</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <div>
-                  <p className="font-medium">Dashboard & Analytics</p>
-                  <p className="text-sm text-muted-foreground">Track taps, reviews, and customer engagement</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <div>
-                  <p className="font-medium">Simple Pricing</p>
-                  <p className="text-sm text-muted-foreground">$30/month or $150/year (December promo) — no hidden fees</p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-green-500 mt-0.5">✓</span>
-                <div>
-                  <p className="font-medium">Fast Setup</p>
-                  <p className="text-sm text-muted-foreground">Cards ship within a few days, ready to use out of the box</p>
-                </div>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* Links */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ExternalLink className="h-5 w-5" />
-              Helpful Links
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <a href="https://tapaway.co" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                TapAway Website
-              </a>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <a href="mailto:tap@tapaway.co">
-                <Mail className="mr-2 h-4 w-4" />
-                Support: tap@tapaway.co
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </main>
+
+      <Dialog open={scriptOpen} onOpenChange={setScriptOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Local Gift Drop Script</DialogTitle>
+            <DialogDescription>Copy this verbatim. Do not pitch. Let the product speak.</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg bg-muted/50 p-4 text-sm whitespace-pre-wrap font-mono max-h-[50vh] overflow-y-auto">
+            {GIFT_DROP_SCRIPT}
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={copyScript}>
+              <Copy className="mr-2 h-4 w-4" /> Copy Script
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>5-Minute Demo Hub Guide</DialogTitle>
+            <DialogDescription>The exact play from cold walk-in to closed deal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {DEMO_HUB_GUIDE.map((s, i) => (
+              <div key={i} className="rounded-lg border p-4 bg-muted/30">
+                <p className="font-semibold text-foreground text-sm">{s.step}</p>
+                <p className="text-sm text-muted-foreground mt-1">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
