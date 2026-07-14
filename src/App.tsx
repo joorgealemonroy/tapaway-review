@@ -106,7 +106,9 @@ const App = () => (
         <AuthProvider>
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
+              <RepImpersonationOverlay />
               <Routes>
+
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
                 {/* /personal/* routes redirect — namespace deprecated */}
