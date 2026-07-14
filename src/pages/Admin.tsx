@@ -72,6 +72,7 @@ type Restaurant = {
   logo_url?: string | null;
   greeting_name?: string | null;
   total_taps?: number;
+  card_print_pdf_path?: string | null;
 };
 
 type Location = {
@@ -249,6 +250,21 @@ const Admin = () => {
     } finally {
       setSavingEdit(false);
     }
+  };
+
+  const downloadPrintPdf = async (r: Restaurant) => {
+    if (!r.card_print_pdf_path) {
+      toast.error("No print PDF on file");
+      return;
+    }
+    const { data, error: signErr } = await supabase.storage
+      .from("card-print-files")
+      .createSignedUrl(r.card_print_pdf_path, 900, { download: `${r.custom_slug || r.id}-print.pdf` });
+    if (signErr || !data?.signedUrl) {
+      toast.error("Could not generate download link");
+      return;
+    }
+    window.location.href = data.signedUrl;
   };
 
   const toggleSub = async (r: Restaurant) => {
@@ -484,6 +500,11 @@ const Admin = () => {
                       <DropdownMenuItem onClick={() => openHub(r)}>
                         <ExternalLink className="h-4 w-4 mr-2" /> Open Hub
                       </DropdownMenuItem>
+                      {r.card_print_pdf_path && (
+                        <DropdownMenuItem onClick={() => downloadPrintPdf(r)}>
+                          <FileText className="h-4 w-4 mr-2" /> Print PDF
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => toggleSub(r)}>
                         Toggle Subscription
                       </DropdownMenuItem>

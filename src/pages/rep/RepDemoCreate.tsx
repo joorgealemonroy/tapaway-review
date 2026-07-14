@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Upload, X, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Upload, X, ImagePlus, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const slugify = (name: string) => {
@@ -54,6 +54,8 @@ const RepDemoCreate = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [gallery, setGallery] = useState<string[]>([]);
   const [existingSlug, setExistingSlug] = useState<string | null>(null);
+  const [printPdfPath, setPrintPdfPath] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -83,11 +85,57 @@ const RepDemoCreate = () => {
       });
       setLogoUrl(data.logo_url);
       setExistingSlug(data.custom_slug);
+      setPrintPdfPath((data as any).card_print_pdf_path || null);
       const settings = (data.settings as any) || {};
       if (Array.isArray(settings.gallery)) setGallery(settings.gallery);
       setLoading(false);
     })();
   }, [editId, user, navigate]);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editId) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are accepted');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('PDF must be under 15MB');
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const path = `${editId}/print_ready.pdf`;
+      const { error: uploadErr } = await supabase.storage
+        .from('card-print-files')
+        .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+      if (uploadErr) throw uploadErr;
+      const { error: dbErr } = await supabase
+        .from('restaurants')
+        .update({ card_print_pdf_path: path })
+        .eq('id', editId);
+      if (dbErr) throw dbErr;
+      setPrintPdfPath(path);
+      toast.success('Print PDF uploaded');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const viewPdf = async () => {
+    if (!printPdfPath) return;
+    const { data, error } = await supabase.storage
+      .from('card-print-files')
+      .createSignedUrl(printPdfPath, 900);
+    if (error || !data?.signedUrl) {
+      toast.error('Could not open file');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -312,6 +360,49 @@ const RepDemoCreate = () => {
             </div>
           </CardContent>
         </Card>
+
+        {editId && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Print-Ready Card PDF</CardTitle>
+              <CardDescription>Upload the finished vector PDF from the Canva template. PDFs only, 15MB max.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3 flex-wrap">
+                {printPdfPath ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/40 text-sm">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span>print_ready.pdf uploaded</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    No PDF uploaded yet
+                  </div>
+                )}
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={handlePdfUpload}
+                    disabled={uploadingPdf}
+                  />
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-md border bg-background text-sm hover:bg-accent">
+                    <Upload className="h-4 w-4" />
+                    {uploadingPdf ? 'Uploading...' : printPdfPath ? 'Replace PDF' : 'Upload PDF'}
+                  </span>
+                </label>
+                {printPdfPath && (
+                  <Button variant="outline" size="sm" onClick={viewPdf} type="button">
+                    <ExternalLink className="h-4 w-4 mr-1" /> View
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/rep/restaurants')} className="flex-1">

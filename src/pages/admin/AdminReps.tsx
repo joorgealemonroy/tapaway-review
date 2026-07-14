@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -166,6 +166,10 @@ const AdminReps = () => {
   };
 
   const handleToggleActive = async (repId: string, isActive: boolean) => {
+    const action = isActive ? 'reactivate' : 'revoke access for';
+    if (!isActive && !window.confirm(`Are you sure you want to ${action} this rep? They will lose portal access immediately.`)) {
+      return;
+    }
     try {
       const { error } = await supabase
         .from('sales_reps')
@@ -174,10 +178,10 @@ const AdminReps = () => {
 
       if (error) throw error;
 
-      setReps(prev => prev.map(r => 
+      setReps(prev => prev.map(r =>
         r.id === repId ? { ...r, is_active: isActive } : r
       ));
-      toast.success(isActive ? 'Rep activated' : 'Rep deactivated');
+      toast.success(isActive ? 'Rep reactivated' : 'Rep access revoked');
     } catch (error) {
       console.error('Error toggling rep status:', error);
       toast.error('Failed to update rep status');
@@ -325,7 +329,7 @@ const AdminReps = () => {
                       <TableHead>Closes</TableHead>
                       <TableHead>Pending</TableHead>
                       <TableHead>Paid</TableHead>
-                      <TableHead>Active</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -338,7 +342,7 @@ const AdminReps = () => {
                       </TableRow>
                     ) : (
                       reps.map((rep) => (
-                        <TableRow key={rep.id}>
+                        <TableRow key={rep.id} className={!rep.is_active ? 'opacity-50' : ''}>
                           <TableCell className="font-medium">{rep.name}</TableCell>
                           <TableCell>{rep.email}</TableCell>
                           <TableCell>
@@ -352,21 +356,42 @@ const AdminReps = () => {
                           <TableCell className="text-yellow-600">${rep.pending_commission}</TableCell>
                           <TableCell className="text-green-600">${rep.paid_commission}</TableCell>
                           <TableCell>
-                            <Switch
-                              checked={rep.is_active}
-                              onCheckedChange={(checked) => handleToggleActive(rep.id, checked)}
-                            />
+                            {rep.is_active ? (
+                              <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 border-emerald-500/20">Active</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Revoked</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
                                 View as Rep
                               </Button>
+                              {rep.is_active ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleToggleActive(rep.id, false)}
+                                >
+                                  <Ban className="h-3 w-3 mr-1" />
+                                  Revoke
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleToggleActive(rep.id, true)}
+                                >
+                                  <RotateCw className="h-3 w-3 mr-1" />
+                                  Reactivate
+                                </Button>
+                              )}
                               {!rep.agreement_accepted && (
                                 <Button
                                   size="sm"
