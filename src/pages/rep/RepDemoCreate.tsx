@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Upload, X, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Upload, X, ImagePlus, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const slugify = (name: string) => {
