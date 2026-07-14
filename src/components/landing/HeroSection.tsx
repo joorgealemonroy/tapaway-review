@@ -70,24 +70,26 @@ export const HeroSection = () => {
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-start">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full sm:w-auto"
-              >
-                <Link
-                  to="/start"
-                  className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
+            <div className="flex flex-col sm:flex-row gap-4 justify-start items-start">
+              <div className="flex flex-col items-center w-full sm:w-auto">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full sm:w-auto"
                 >
-                  Send Me My Cards
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </motion.div>
+                  <Link
+                    to="/start"
+                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 py-4 rounded-xl bg-primary text-primary-foreground font-bold text-base shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all"
+                  >
+                    Send Me My Cards
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </motion.div>
 
-              <p className="text-xs text-center text-muted-foreground mt-3 w-full sm:w-auto">
-                Pay $0 today. Cancel anytime.
-              </p>
+                <p className="text-xs text-center text-muted-foreground mt-3 w-full">
+                  Pay $0 today. Cancel anytime.
+                </p>
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
