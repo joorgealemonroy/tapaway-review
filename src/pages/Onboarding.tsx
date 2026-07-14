@@ -762,7 +762,7 @@ const Onboarding = () => {
 
 
               {/* Spacer for fixed bottom button */}
-              {selectedPlan && (selectedPlan === "solo" || dashboardType) && <div className="h-20" />}
+              {selectedPlan && <div className="h-20" />}
             </motion.div>
           )}
 
