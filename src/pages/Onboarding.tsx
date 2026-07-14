@@ -760,7 +760,6 @@ const Onboarding = () => {
                 })}
               </div>
 
-
               {/* Spacer for fixed bottom button */}
               {selectedPlan && <div className="h-20" />}
             </motion.div>
