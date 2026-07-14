@@ -72,6 +72,7 @@ type Restaurant = {
   logo_url?: string | null;
   greeting_name?: string | null;
   total_taps?: number;
+  card_print_pdf_path?: string | null;
 };
 
 type Location = {
