@@ -775,16 +775,14 @@ const Admin = () => {
       {/* Main viewport */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-10 flex items-center gap-3 px-6 md:px-8 h-14 border-b border-white/5 bg-[#0a0e1a]/80 backdrop-blur">
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-white/70 hover:text-white hover:bg-white/[0.05]"
-              onClick={() => setMobileNavOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden text-white/70 hover:text-white hover:bg-white/[0.05]"
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <h1 className="text-sm font-medium text-white/90">{sectionTitle}</h1>
           <div className="ml-auto text-xs text-white/40 hidden sm:block">{user?.email}</div>
         </header>
