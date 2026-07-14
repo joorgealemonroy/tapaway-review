@@ -85,11 +85,57 @@ const RepDemoCreate = () => {
       });
       setLogoUrl(data.logo_url);
       setExistingSlug(data.custom_slug);
+      setPrintPdfPath((data as any).card_print_pdf_path || null);
       const settings = (data.settings as any) || {};
       if (Array.isArray(settings.gallery)) setGallery(settings.gallery);
       setLoading(false);
     })();
   }, [editId, user, navigate]);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editId) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are accepted');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('PDF must be under 15MB');
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const path = `${editId}/print_ready.pdf`;
+      const { error: uploadErr } = await supabase.storage
+        .from('card-print-files')
+        .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+      if (uploadErr) throw uploadErr;
+      const { error: dbErr } = await supabase
+        .from('restaurants')
+        .update({ card_print_pdf_path: path })
+        .eq('id', editId);
+      if (dbErr) throw dbErr;
+      setPrintPdfPath(path);
+      toast.success('Print PDF uploaded');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const viewPdf = async () => {
+    if (!printPdfPath) return;
+    const { data, error } = await supabase.storage
+      .from('card-print-files')
+      .createSignedUrl(printPdfPath, 900);
+    if (error || !data?.signedUrl) {
+      toast.error('Could not open file');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
