@@ -11,15 +11,15 @@ export const TrialBanner = () => {
   useEffect(() => {
     // Check if user has trial intent but hasn't completed onboarding
     const hasPendingTrial = localStorage.getItem('tapaway_pending_trial') === 'true';
-    const hasTrialIntent = localStorage.getItem('tapaway_trial_intent') === 'true';
     const hasPendingSetup = localStorage.getItem('tapaway_pending_setup') === 'true';
     const onboardingComplete = localStorage.getItem('tapaway_onboarding_complete') === 'true';
-    
+
     // Don't show on start, paywall, or onboarding pages
     const excludedPaths = ['/start', '/paywall', '/onboarding', '/onboarding-start', '/auth', '/dashboard'];
     const isExcludedPath = excludedPaths.some(path => location.pathname.startsWith(path));
-    
-    if ((hasPendingTrial || hasTrialIntent || hasPendingSetup) && !onboardingComplete && !isExcludedPath && !dismissed) {
+
+    // Only show if user has actually started setup (paid/pending), not just clicked a CTA
+    if ((hasPendingTrial || hasPendingSetup) && !onboardingComplete && !isExcludedPath && !dismissed) {
       setShowBanner(true);
     } else {
       setShowBanner(false);
