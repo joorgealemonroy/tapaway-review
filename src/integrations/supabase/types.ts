@@ -2501,10 +2501,12 @@ export type Database = {
           avm_question_subtitle: string | null
           avm_question_title: string | null
           created_at: string
+          created_by: string | null
           custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
           email: string | null
+          expires_at: string | null
           google_place_id: string | null
           google_rating: number | null
           google_review_url: string | null
@@ -2528,6 +2530,7 @@ export type Database = {
           onboarding_step: number | null
           owner_id: string
           owner_name: string | null
+          owner_phone: string | null
           phone: string | null
           plan_type: string | null
           restaurant_name: string
@@ -2542,6 +2545,7 @@ export type Database = {
           trial_ends_at: string | null
           type: string | null
           updated_at: string
+          website_url: string | null
           yelp_business_id: string | null
           yelp_review_url: string | null
         }
@@ -2554,10 +2558,12 @@ export type Database = {
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
           created_at?: string
+          created_by?: string | null
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
+          expires_at?: string | null
           google_place_id?: string | null
           google_rating?: number | null
           google_review_url?: string | null
@@ -2581,6 +2587,7 @@ export type Database = {
           onboarding_step?: number | null
           owner_id: string
           owner_name?: string | null
+          owner_phone?: string | null
           phone?: string | null
           plan_type?: string | null
           restaurant_name: string
@@ -2595,6 +2602,7 @@ export type Database = {
           trial_ends_at?: string | null
           type?: string | null
           updated_at?: string
+          website_url?: string | null
           yelp_business_id?: string | null
           yelp_review_url?: string | null
         }
@@ -2607,10 +2615,12 @@ export type Database = {
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
           created_at?: string
+          created_by?: string | null
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
           email?: string | null
+          expires_at?: string | null
           google_place_id?: string | null
           google_rating?: number | null
           google_review_url?: string | null
@@ -2634,6 +2644,7 @@ export type Database = {
           onboarding_step?: number | null
           owner_id?: string
           owner_name?: string | null
+          owner_phone?: string | null
           phone?: string | null
           plan_type?: string | null
           restaurant_name?: string
@@ -2648,6 +2659,7 @@ export type Database = {
           trial_ends_at?: string | null
           type?: string | null
           updated_at?: string
+          website_url?: string | null
           yelp_business_id?: string | null
           yelp_review_url?: string | null
         }
@@ -3127,6 +3139,7 @@ export type Database = {
           custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
+          expires_at: string | null
           google_review_url: string | null
           header_subtitle: string | null
           header_title: string | null
@@ -3148,6 +3161,7 @@ export type Database = {
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
+          expires_at?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
@@ -3169,6 +3183,7 @@ export type Database = {
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
+          expires_at?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null

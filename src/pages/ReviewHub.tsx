@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
 import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
+import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
 
 interface Restaurant {
@@ -27,6 +29,7 @@ interface Restaurant {
   avm_question_subtitle?: string | null;
   avm_positive_label?: string | null;
   avm_negative_label?: string | null;
+  expires_at?: string | null;
 }
 
 interface MenuSection {
@@ -56,6 +59,7 @@ const ReviewHub = () => {
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
+  const { isAdmin } = useAdminAccess();
   
   // Visitor theme preference (light/dark) - defaults to light, respects saved preference
   const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
@@ -268,10 +272,25 @@ const ReviewHub = () => {
     );
   }
 
+  // Expiration wall for rep-created demo hubs
+  if (
+    restaurant.expires_at &&
+    new Date(restaurant.expires_at) < new Date() &&
+    !isAdmin
+  ) {
+    return (
+      <ExpiredHubGate
+        businessName={restaurant.restaurant_name}
+        restaurantId={restaurant.id}
+      />
+    );
+  }
+
   // AV Meal Prep custom hub
   if (restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep') {
     return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
+
 
   const handlePollVote = async (engagementId: string, optionIndex: number, engagementOptions: any) => {
     if (!restaurant) return;
