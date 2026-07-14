@@ -147,6 +147,8 @@ const App = () => (
                 <Route path="/rep" element={<RepHome />} />
                 <Route path="/rep/restaurants" element={<RepRestaurants />} />
                 <Route path="/rep/close" element={<RepClose />} />
+                <Route path="/rep/demo/new" element={<RepDemoCreate />} />
+                <Route path="/rep/demo/:id" element={<RepDemoCreate />} />
                 <Route path="/rep/commissions" element={<RepCommissions />} />
                 <Route path="/rep/resources" element={<RepResources />} />
                 <Route path="/rep/docs" element={<RepDocs />} />
