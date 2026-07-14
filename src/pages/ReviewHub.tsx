@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { YelpIcon } from "@/components/icons/YelpIcon";
 import { AvMealPrepHub } from "@/components/hubs/AvMealPrepHub";
 import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsOptInDrawer";
+import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
 
 interface Restaurant {
@@ -27,6 +29,7 @@ interface Restaurant {
   avm_question_subtitle?: string | null;
   avm_positive_label?: string | null;
   avm_negative_label?: string | null;
+  expires_at?: string | null;
 }
 
 interface MenuSection {
