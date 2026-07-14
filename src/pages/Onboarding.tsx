@@ -730,22 +730,29 @@ const Onboarding = () => {
                           {d.badge}
                         </div>
                       )}
-                      {selected && (
-                        <div className="absolute top-4 right-4 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      )}
                       <div className="flex items-start gap-4 mt-3">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected ? "bg-blue-500/20" : "bg-white/5"}`}>
                           <Icon className={`w-6 h-6 ${selected ? "text-blue-400" : "text-gray-400"}`} />
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-baseline gap-2 mb-1">
+                          <div className="flex items-center justify-between gap-2 mb-1">
                             <span className="text-lg font-bold">{d.label}</span>
-                            <span className="text-2xl font-black text-[#3B82F6]">${d.price}<span className="text-sm font-normal text-gray-500">/mo</span></span>
+                            {/* Radio selection indicator */}
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                selected ? "border-[#3B82F6] bg-[#3B82F6]" : "border-white/30 bg-transparent"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                          <div className="mb-1">
+                            <div className="text-2xl font-black text-[#3B82F6] leading-tight">$0 Today</div>
+                            <div className="text-xs text-gray-500">(then ${d.price}/mo after {d.trialDays} days)</div>
                           </div>
                           <p className="text-sm text-gray-400 mb-1">{d.subtitle}</p>
-                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards</span>.</p>
+                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards + Free Shipping</span>.</p>
                         </div>
                       </div>
                     </button>
