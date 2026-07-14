@@ -942,6 +942,20 @@ const Onboarding = () => {
                     />
                   </div>
                 )}
+                {!logoUrl && !logoSkipped && (
+                  <button
+                    type="button"
+                    onClick={() => setLogoSkipped(true)}
+                    className="w-full text-center text-xs text-gray-400 hover:text-gray-300 transition-colors underline"
+                  >
+                    Don't have it on your phone? Skip for now.
+                  </button>
+                )}
+                {logoSkipped && !logoUrl && (
+                  <p className="text-center text-xs text-gray-500">
+                    Skipped. You can upload your logo from your dashboard later.
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 italic">
                   Pro Tip: High-resolution PNGs work best. Our design team will manually optimize your logo for the best print quality.
                 </p>
