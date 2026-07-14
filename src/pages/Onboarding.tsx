@@ -142,10 +142,10 @@ const Onboarding = () => {
           .eq("owner_id", session.user.id)
           .maybeSingle();
         if (restaurant?.onboarding_completed) {
-          const dest = restaurant.plan_type === 'solo' ? "/dashboard?type=lite" : "/dashboard";
-          navigate(dest);
+          navigate("/dashboard");
           return;
         }
+
         if (restaurant) setRestaurantId(restaurant.id);
 
         // Handle return from Stripe checkout

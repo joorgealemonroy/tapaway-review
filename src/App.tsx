@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -105,7 +106,9 @@ const App = () => (
         <AuthProvider>
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
+              <RepImpersonationOverlay />
               <Routes>
+
               <Route path="/" element={<Index />} />
                 <Route path="/business" element={<Navigate to="/" replace />} />
                 {/* /personal/* routes redirect — namespace deprecated */}

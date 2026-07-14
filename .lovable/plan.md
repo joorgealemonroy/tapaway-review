@@ -1,88 +1,85 @@
 
-# Sales Partner Demo Factory — 5-Day Expiring Hubs
+# Sales Partner Demo Factory & Business Lite Default Routing
 
-Turn the Sales Partner area into a fast tool for reps to hand-build demo review hubs that expire in 5 days unless the owner pays.
+## Part 1 — Admin "View as Sales Partner"
 
-## 1. Database migration (safe, additive)
+Give the super admin a one-click way to open the Sales Partner portal exactly as the selected rep sees it — dashboard totals, commissions, demo hubs, profile, docs, resources — with a clear banner and a Back to Admin button.
 
-Add columns to `restaurants`:
-- `created_by uuid references auth.users(id)` — nullable, stamped only on rep-created demos.
-- `expires_at timestamptz` — nullable. **NULL for all existing rows**, so paying customers never expire.
-- `owner_phone text` — nullable. Used for the SMS reminder.
-- `website_url text` — nullable. Replaces Google Places lookup for reps.
+### Entry point
 
-RLS additions on `restaurants`:
-- New policy: reps can `SELECT / UPDATE / DELETE` rows where `created_by = auth.uid()`.
-- New policy: authenticated `INSERT` allowed when `created_by = auth.uid()` and `expires_at IS NOT NULL`.
-- Admin bypass policies via `is_admin()` remain — admins keep full access.
-- No changes to existing policies for real owners or `is_demo_account` seed data.
+In `src/pages/admin/AdminReps.tsx`, add a **"View as Rep"** button on each row of the reps table (Actions column). It navigates to:
 
-## 2. Rep hub creation flow (new page `RepDemoCreate.tsx`)
+```
+/rep?admin_view_rep={rep_id}
+```
 
-Replace the current "Close a Restaurant" (`RepClose.tsx`) flow with a single-screen manual form. Route: `/rep/demo/new` (and edit at `/rep/demo/:id`).
+### Impersonation logic
 
-Fields:
-- Business Name (required)
-- Owner Phone (required — powers the SMS reminder)
-- Website URL
-- Google Review URL
-- Instagram URL (optional)
-- Yelp URL (optional)
-- Logo upload → existing `restaurant-logos` bucket
-- Up to 3 gallery images → same `restaurant-logos` bucket under `gallery/{restaurant_slug}/` (no new bucket)
+Extend `src/hooks/useSalesRep.tsx`:
+- Read `admin_view_rep` from the URL.
+- If present **and** the caller is a super admin (`useAdminAccess`), load *that* rep's row from `sales_reps` instead of the caller's own row, and return `isSalesRep: true`.
+- Otherwise, unchanged behavior. Non-admins with `admin_view_rep` in the URL are ignored — no privilege escalation.
+- The existing `if (!isSalesRep) navigate('/')` gate on each rep page passes automatically because the hook returns `true` for admins.
 
-Submit behavior — insert into `restaurants` with:
-- `owner_id = auth.uid()` (lets the rep view/edit it initially)
-- `created_by = auth.uid()`
-- `expires_at = now() + interval '5 days'`
-- `subscription_status = 'trialing'`
-- `custom_slug` auto-generated from business name (kebab-case + short random suffix, uniqueness checked)
+### DRY banner + link forwarding
 
-Then redirect to the rep dashboard list with a toast + "View Live" link. Edit mode reuses the same form and updates the row (RLS: `created_by = auth.uid()`).
+Instead of editing all seven rep pages, add one global overlay component `src/components/rep/RepImpersonationOverlay.tsx` that:
+- Renders only when `location.pathname` starts with `/rep` **and** `admin_view_rep` is present **and** the caller is admin.
+- Shows a sticky amber banner: "Viewing as {rep.name}" with a **Back to Admin** button returning to `/admin/reps`.
+- On any intra-portal navigation that drops the query param, silently re-appends `?admin_view_rep={id}` via `navigate(..., { replace: true })`. This keeps impersonation sticky across every `navigate('/rep/...')` call without touching each page.
 
-## 3. Rep dashboard list (`RepRestaurants.tsx` rewrite)
+Mount `<RepImpersonationOverlay />` once inside `App.tsx`, above `<Routes>`.
 
-Minimalist table, filtered by `.eq('created_by', user.id)`:
+## Part 2 — Business Lite becomes the only dashboard for new users
 
-| Business Name | Created | Status | Actions |
-|---|---|---|---|
-| name | "Jul 14" | "4 days left" (amber ≤2d, red = "Expired") | Edit · View Live · Remind Owner |
+All new users should land on Business Lite (`PersonalDashboard`). Users already on a legacy paid restaurant plan keep the existing business dashboard.
 
-- Status computed from `expires_at` vs `now()`.
-- **Remind Owner** button visible only when `expires_at` is within 48h or already expired. Opens `sms:{owner_phone}?body={encoded_text}` with:
-  > "Hey! Your TapAway custom review hub trial ends in 48 hours. Don't lose your custom page and review cards — tap here to secure your profile and keep collecting reviews: {checkout_url}"
-- `checkout_url` = existing claim/paywall path for this hub (`/onboarding?claim={id}` or `/paywall?restaurant={id}`).
-- View Live opens `/{custom_slug}` in a new tab.
-- Top of page: "+ New Demo Hub" button linking to `/rep/demo/new`.
+### Legacy plan list
 
-## 4. Public expiration wall & ownership hand-off
+In `src/lib/subscriptionStatus.ts`, export:
 
-In `ReviewHub.tsx` (mirror in `PersonalProfilePage` if a rep-created row ever resolves there):
+```ts
+export const LEGACY_BUSINESS_PLANS = new Set([
+  'venue', 'venue_pack', 'solo_pro', 'multi',
+]);
+export const ACTIVE_SUB_STATUSES = new Set([
+  'active', 'trialing', 'past_due', 'paused',
+]);
+```
 
-- After fetch, if `expires_at !== null && new Date(expires_at) < new Date()` and viewer is not admin (`useAdminAccess`), render `<ExpiredHubGate businessName={...} restaurantId={...} />`.
+### Routing rule (`Dashboard.tsx`)
 
-`src/components/hub/ExpiredHubGate.tsx` — premium minimalist dark screen, TapAway wordmark top-left, centered:
-- H1: "Review Page Paused"
-- Body: "This TapAway custom digital profile is currently inactive. If you are the owner of {businessName} and want to reactivate your review card, tap the button below."
-- Primary button: "Unlock My Hub" → standard payment/checkout path.
+Replace the "has any completed non-solo restaurant → business" branch. New rule:
 
-**Ownership hand-off on payment.** On successful Stripe checkout webhook (or claim completion at `/onboarding?claim={id}`):
-- Set `expires_at = NULL`.
-- Update `owner_id` to the paying customer's authenticated user id.
-- This permanently transfers the hub from the rep to the paying customer's dashboard.
+Route to Legacy Business dashboard **only** when all of these hold:
+1. Restaurant row exists for the user.
+2. `onboarding_completed = true`.
+3. `plan_type` ∈ `LEGACY_BUSINESS_PLANS`.
+4. `subscription_status` ∈ `ACTIVE_SUB_STATUSES`.
 
-## 5. Out of scope
+Anything else → Business Lite (`PersonalDashboard`).
 
-- No changes to non-expiring paying customers' hubs.
-- No changes to admin overrides — admins still see everything and bypass the wall.
-- Global auth and rep commission calculations remain untouched.
+Preserve existing overrides:
+- `?admin_view=` and `?demo_restaurant_id=` still force the business view.
+- `?admin_view_personal=` / `?type=lite` still force lite.
+
+### Onboarding destination
+
+In `src/pages/Onboarding.tsx`, change the two branches that redirect after completion / on already-completed restaurants (the ones currently choosing `/dashboard?type=lite` vs `/dashboard`) to always redirect to plain `/dashboard`. The new routing rule decides Lite vs Legacy.
+
+## Out of scope
+
+- No DB schema changes.
+- No changes to `Onboarding.tsx` internals beyond the final redirect target.
+- No changes to `admin_view` (restaurant) or `admin_view_personal` (profile) impersonation.
+- No changes to rep RLS or the rep application/approval flow.
 
 ## Files touched
 
-- Migration (new)
-- `src/pages/rep/RepDemoCreate.tsx` (new)
-- `src/pages/rep/RepRestaurants.tsx` (rewrite)
-- `src/pages/ReviewHub.tsx` (expiration check)
-- `src/components/hub/ExpiredHubGate.tsx` (new)
-- `src/App.tsx` (routes for `/rep/demo/new`, `/rep/demo/:id`)
-- Stripe webhook + claim edge function (clear `expires_at`, reassign `owner_id`)
+- `src/pages/admin/AdminReps.tsx` — add "View as Rep" button.
+- `src/hooks/useSalesRep.tsx` — impersonation lookup for admins.
+- `src/components/rep/RepImpersonationOverlay.tsx` — new global banner + param-sticky helper.
+- `src/App.tsx` — mount the overlay.
+- `src/lib/subscriptionStatus.ts` — export `LEGACY_BUSINESS_PLANS` and `ACTIVE_SUB_STATUSES`.
+- `src/pages/Dashboard.tsx` — new legacy-plan routing gate.
+- `src/pages/Onboarding.tsx` — clean redirect target.

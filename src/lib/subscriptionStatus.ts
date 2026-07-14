@@ -18,6 +18,27 @@ const BLOCKED_STATUSES = new Set([
   'past_due',
 ]);
 
+/**
+ * Legacy paid restaurant plans. Users with a completed restaurant on one of
+ * these plans keep the old Business dashboard. Everyone else — including all
+ * new signups — is routed to Business Lite (PersonalDashboard).
+ */
+export const LEGACY_BUSINESS_PLANS = new Set<string>([
+  'venue',
+  'venue_pack',
+  'solo_pro',
+  'multi',
+]);
+
+/** Subscription statuses that count as an active/holdable legacy account. */
+export const ACTIVE_SUB_STATUSES = new Set<string>([
+  'active',
+  'trialing',
+  'past_due',
+  'paused',
+]);
+
+
 /** Routes that should NEVER redirect to /paywall. */
 export const PUBLIC_ROUTES = [
   '/',

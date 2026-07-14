@@ -24,7 +24,7 @@ import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
-import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
+import { isSubscriptionAllowed, LEGACY_BUSINESS_PLANS, ACTIVE_SUB_STATUSES } from "@/lib/subscriptionStatus";
 
 const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
 
@@ -58,9 +58,8 @@ const Dashboard = () => {
       const [restaurantResult, personalResult] = await Promise.all([
         supabase
           .from("restaurants")
-          .select("id, onboarding_completed, plan_type")
-          .eq("owner_id", user.id)
-          .limit(1),
+          .select("id, onboarding_completed, plan_type, subscription_status")
+          .eq("owner_id", user.id),
         supabase
           .from("personal_profiles")
           .select("id")
@@ -68,24 +67,24 @@ const Dashboard = () => {
           .limit(1)
           .maybeSingle(),
       ]);
-      
-      const hasCompletedRestaurant = restaurantResult.data?.some(r => r.onboarding_completed && r.plan_type !== 'solo');
-      const hasPersonal = !!personalResult.data;
-      
-      const hasAnyRestaurant = (restaurantResult.data?.length ?? 0) > 0;
-      
-      if (hasCompletedRestaurant) {
-        setRouteDecision("business");
-      } else if (hasPersonal) {
-        setRouteDecision("lite");
-      } else if (hasAnyRestaurant) {
-        // Has restaurant but not completed — let DashboardBusiness handle onboarding
+
+      // Legacy Business dashboard only for users with an active restaurant on
+      // a legacy paid plan. Everyone else — including all new signups —
+      // routes to Business Lite (PersonalDashboard).
+      const hasLegacyBusiness = restaurantResult.data?.some(
+        (r) =>
+          r.onboarding_completed &&
+          LEGACY_BUSINESS_PLANS.has(String(r.plan_type ?? '')) &&
+          ACTIVE_SUB_STATUSES.has(String(r.subscription_status ?? ''))
+      );
+
+      if (hasLegacyBusiness) {
         setRouteDecision("business");
       } else {
-        // No restaurant at all — default to lite (prevents wrong dashboard flash)
         setRouteDecision("lite");
       }
     };
+
     
     decide();
   }, [authLoading, user, isLiteParam, adminViewPersonalId, adminViewId, demoRestaurantId]);

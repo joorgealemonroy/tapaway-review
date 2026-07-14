@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -358,18 +358,29 @@ const AdminReps = () => {
                             />
                           </TableCell>
                           <TableCell>
-                            {!rep.agreement_accepted && (
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleResendInvite(rep.id, rep.email)}
-                                disabled={resendingInvite === rep.id}
+                                onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
                               >
-                                <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
-                                {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+                                <Eye className="h-3 w-3 mr-1" />
+                                View as Rep
                               </Button>
-                            )}
+                              {!rep.agreement_accepted && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleResendInvite(rep.id, rep.email)}
+                                  disabled={resendingInvite === rep.id}
+                                >
+                                  <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
+                                  {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
+
                         </TableRow>
                       ))
                     )}
