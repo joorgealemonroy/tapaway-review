@@ -44,7 +44,7 @@ export const ProofSection = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
-            Real Results from Real Restaurants
+            Real Results from Real Businesses
           </h2>
           <p className="text-muted-foreground text-lg">
             See how TapAway is helping businesses like yours get more reviews.
@@ -54,15 +54,15 @@ export const ProofSection = () => {
         <div className="grid md:grid-cols-3 gap-6">
           {results.map((result, i) => (
             <motion.div
-              key={result.restaurant}
+              key={result.business}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
               className="bg-card rounded-2xl border border-border p-6 hover:shadow-lg transition-all"
             >
-              {/* Restaurant Info */}
+              {/* Business Info */}
               <div className="mb-6">
-                <h3 className="font-bold text-foreground text-lg">{result.restaurant}</h3>
+                <h3 className="font-bold text-foreground text-lg">{result.business}</h3>
                 <p className="text-sm text-muted-foreground">{result.location}</p>
               </div>
 
