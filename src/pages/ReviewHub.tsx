@@ -59,6 +59,7 @@ const ReviewHub = () => {
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
+  const { isAdmin } = useAdminAccess();
   
   // Visitor theme preference (light/dark) - defaults to light, respects saved preference
   const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
