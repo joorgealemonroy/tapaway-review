@@ -1,85 +1,86 @@
+# Admin Cockpit Redesign
 
-# Sales Partner Demo Factory & Business Lite Default Routing
+Refactor `src/pages/Admin.tsx` from a stacked-section page into a premium sidebar cockpit. Purely a UI reorganization — every existing handler (edit, hub open, view dashboard, toggle sub, repair Google, Yelp debug, delete, promo generate, unified Business Lite table) stays wired to its current function; nothing about data fetching, RLS, webhooks, or routes changes.
 
-## Part 1 — Admin "View as Sales Partner"
+## 1. Shell & layout
 
-Give the super admin a one-click way to open the Sales Partner portal exactly as the selected rep sees it — dashboard totals, commissions, demo hubs, profile, docs, resources — with a clear banner and a Back to Admin button.
+Rebuild the return of `Admin.tsx` as a two-pane shell:
 
-### Entry point
+- Root: `min-h-screen bg-[#0a0e1a] text-foreground flex`.
+- Left: fixed `w-60` sidebar, `border-r border-white/5`, obsidian bg, containing:
+  - Small TapAway wordmark + "Admin" label at top.
+  - Nav list with 5 items, each a button that sets internal `section` state (no route changes):
+    1. Overview — `LayoutDashboard`
+    2. Accounts & Hubs — `Building2`
+    3. Sales Reps — `Users`
+    4. Promo Links — `LinkIcon`
+    5. System & SMS — `Settings`
+  - Active item: `bg-white/5 text-white`, inactive: `text-white/60 hover:text-white hover:bg-white/[0.03]`.
+  - Log-out button pinned to bottom.
+- Right: main viewport, `flex-1 overflow-y-auto`, top bar with section title + admin email, content padded `px-8 py-6`.
+- Mobile (`md:` breakpoint): sidebar collapses to a `Sheet` triggered by a hamburger in the top bar. No route changes.
 
-In `src/pages/admin/AdminReps.tsx`, add a **"View as Rep"** button on each row of the reps table (Actions column). It navigates to:
+Section state lives in `useState<'overview'|'accounts'|'reps'|'promo'|'system'>`; content switches via conditional render, existing effects untouched.
 
-```
-/rep?admin_view_rep={rep_id}
-```
+## 2. Section contents
 
-### Impersonation logic
+**Overview** — small "quick stats" strip (total accounts = restaurants.length, total taps sum, active subs count — derived from existing state, no new queries) as 3 minimal panels (`rounded-xl border border-white/5 bg-white/[0.02] p-4`). No card containers beyond that.
 
-Extend `src/hooks/useSalesRep.tsx`:
-- Read `admin_view_rep` from the URL.
-- If present **and** the caller is a super admin (`useAdminAccess`), load *that* rep's row from `sales_reps` instead of the caller's own row, and return `isSalesRep: true`.
-- Otherwise, unchanged behavior. Non-admins with `admin_view_rep` in the URL are ignored — no privilege escalation.
-- The existing `if (!isSalesRep) navigate('/')` gate on each rep page passes automatically because the hook returns `true` for admins.
+**Accounts & Hubs** — the unified datagrid (see §3).
 
-### DRY banner + link forwarding
+**Sales Reps** — the existing `NAV_CARDS` grid, but restyled: thin `border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10`, monochrome `text-white/50` icons that go `group-hover:text-primary`, uniform card heights via `min-h-[112px]` and consistent `gap-4`. Same navigate targets.
 
-Instead of editing all seven rep pages, add one global overlay component `src/components/rep/RepImpersonationOverlay.tsx` that:
-- Renders only when `location.pathname` starts with `/rep` **and** `admin_view_rep` is present **and** the caller is admin.
-- Shows a sticky amber banner: "Viewing as {rep.name}" with a **Back to Admin** button returning to `/admin/reps`.
-- On any intra-portal navigation that drops the query param, silently re-appends `?admin_view_rep={id}` via `navigate(..., { replace: true })`. This keeps impersonation sticky across every `navigate('/rep/...')` call without touching each page.
+**Promo Links** — the promo generator refactored into one constrained card (`max-w-2xl rounded-xl border border-white/5 bg-white/[0.02] p-5`). Discount `Select` + "Generate 30-Min Link" button on a single `flex items-end gap-3` row. Generated URL + copy button + expiry render below when present. Same handler `handleGeneratePromo`.
 
-Mount `<RepImpersonationOverlay />` once inside `App.tsx`, above `<Routes>`.
+**System & SMS** — links out to VIP SMS subscribers and Comp Settings using the same nav targets already in `NAV_CARDS` for those two, presented as two clean list rows (not blocky icon cards).
 
-## Part 2 — Business Lite becomes the only dashboard for new users
+## 3. Unified Accounts datagrid
 
-All new users should land on Business Lite (`PersonalDashboard`). Users already on a legacy paid restaurant plan keep the existing business dashboard.
+Replaces the current `Tabs` (`business-lite` / `restaurants`).
 
-### Legacy plan list
+- Header row above table:
+  - Segmented switcher (custom, built from buttons in a `inline-flex rounded-lg bg-white/[0.03] border border-white/5 p-1` container; active segment `bg-white/10 text-white`, inactive `text-white/50`) with three segments: **All Accounts**, **Business (Legacy)**, **Business Lite (Solo)**. Stored in `useState<'all'|'legacy'|'lite'>`.
+  - Same row on the right: `Search` input, plan `Select`, status `Select`, and `+ Add Account` button. Filters only show when relevant to the current segment (plan/status filters visible for legacy + all; lite uses the plan filter from the existing `AdminBusinessLiteTable`).
+- Body:
+  - Segment `legacy` → render the current restaurants table exactly as it exists today, but with the action column refactored per §4.
+  - Segment `lite` → render `<AdminBusinessLiteTable />` unchanged (component already handles its own filters; we hide the outer filter row when this segment is active to avoid duplication).
+  - Segment `all` → stacked: a "Legacy" subheading + legacy table, then a "Business Lite" subheading + `<AdminBusinessLiteTable />`. Simplest correct interpretation of "unified"; no data merging risk.
+- `+ Add Account` button opens a small dropdown (`DropdownMenu`) with two options: "New Business (Legacy)" → `/onboarding`, "New Business Lite" → `/personal/signup`. Uses existing routes, no new flows.
 
-In `src/lib/subscriptionStatus.ts`, export:
+## 4. Row action dropdown
 
-```ts
-export const LEGACY_BUSINESS_PLANS = new Set([
-  'venue', 'venue_pack', 'solo_pro', 'multi',
-]);
-export const ACTIVE_SUB_STATUSES = new Set([
-  'active', 'trialing', 'past_due', 'paused',
-]);
-```
+In the legacy restaurants table, replace the 6-button action cell with:
 
-### Routing rule (`Dashboard.tsx`)
+- **Visible primary icons** (two icon buttons only):
+  - `Pencil` → calls existing `openEdit(r)`.
+  - `ExternalLink` → calls existing `openHub(r)` (opens `/{custom_slug}` in new tab).
+- **Secondary menu**: `DropdownMenu` triggered by `MoreVertical` icon button. Items:
+  - "View Dashboard" → existing `navigate('/dashboard?admin_view=' + r.id)` handler.
+  - "Toggle Subscription" → existing `toggleSub(r)`.
+  - "Repair Google Link" → existing `repairGoogleReviewLink(r)`.
+  - "Yelp Debug" → existing `setYelpDebugTarget(...)` handler.
+  - `DropdownMenuSeparator`.
+  - "Delete Account" → existing `startDelete(r)`, styled `text-red-400/80 focus:text-red-400 focus:bg-red-500/10` (muted red, not neon).
 
-Replace the "has any completed non-solo restaurant → business" branch. New rule:
+All handler functions in `Admin.tsx` stay as-is; only the JSX call sites move.
 
-Route to Legacy Business dashboard **only** when all of these hold:
-1. Restaurant row exists for the user.
-2. `onboarding_completed = true`.
-3. `plan_type` ∈ `LEGACY_BUSINESS_PLANS`.
-4. `subscription_status` ∈ `ACTIVE_SUB_STATUSES`.
+## 5. Aesthetic tokens (component-local, no global CSS changes)
 
-Anything else → Business Lite (`PersonalDashboard`).
+- Panel: `rounded-xl border border-white/5 bg-white/[0.02]`.
+- Divider: `border-white/5`.
+- Muted text: `text-white/60`; subtle: `text-white/40`.
+- Table header row: `bg-white/[0.02] text-white/50 uppercase tracking-wide text-[11px]`.
+- Table rows: `border-b border-white/5 hover:bg-white/[0.02]`.
 
-Preserve existing overrides:
-- `?admin_view=` and `?demo_restaurant_id=` still force the business view.
-- `?admin_view_personal=` / `?type=lite` still force lite.
-
-### Onboarding destination
-
-In `src/pages/Onboarding.tsx`, change the two branches that redirect after completion / on already-completed restaurants (the ones currently choosing `/dashboard?type=lite` vs `/dashboard`) to always redirect to plain `/dashboard`. The new routing rule decides Lite vs Legacy.
-
-## Out of scope
-
-- No DB schema changes.
-- No changes to `Onboarding.tsx` internals beyond the final redirect target.
-- No changes to `admin_view` (restaurant) or `admin_view_personal` (profile) impersonation.
-- No changes to rep RLS or the rep application/approval flow.
+No changes to `index.css`, `tailwind.config.ts`, or design tokens — Tailwind arbitrary values used inline since this is a single admin surface. Keeps blast radius zero.
 
 ## Files touched
 
-- `src/pages/admin/AdminReps.tsx` — add "View as Rep" button.
-- `src/hooks/useSalesRep.tsx` — impersonation lookup for admins.
-- `src/components/rep/RepImpersonationOverlay.tsx` — new global banner + param-sticky helper.
-- `src/App.tsx` — mount the overlay.
-- `src/lib/subscriptionStatus.ts` — export `LEGACY_BUSINESS_PLANS` and `ACTIVE_SUB_STATUSES`.
-- `src/pages/Dashboard.tsx` — new legacy-plan routing gate.
-- `src/pages/Onboarding.tsx` — clean redirect target.
+- `src/pages/Admin.tsx` — full JSX restructure; imports add `DropdownMenu*`, `Sheet*`, `LayoutDashboard`, `Building2`, `Pencil`, `ExternalLink`, `MoreVertical`. Handlers, effects, state (aside from new `section` and `segment` local state) unchanged.
+
+## Out of scope (confirmed)
+
+- No DB, RLS, edge function, webhook, or route changes.
+- No changes to `AdminBusinessLiteTable.tsx` internals (reused as-is).
+- No changes to sub-pages (`/admin/reps`, `/admin/commissions`, etc.) — just the entry surface.
+- No global theme token changes.
