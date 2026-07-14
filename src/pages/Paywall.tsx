@@ -28,19 +28,63 @@ const Paywall = () => {
     );
   }
 
-  const handleContinueToCheckout = () => {
+  const handleContinueToCheckout = async () => {
     // Set local flags for trial intent
     const timestamp = Date.now().toString();
     localStorage.setItem('tapaway_trial_intent', 'true');
     localStorage.setItem('tapaway_trial_started_at', timestamp);
     localStorage.setItem('tapaway_pending_setup', 'true');
-    
-    // Also set cookie for cross-tab support
-    document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`; // 7 days
+
+    document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`;
     document.cookie = `tapaway_trial_started_at=${timestamp}; path=/; max-age=604800`;
     document.cookie = `tapaway_pending_setup=true; path=/; max-age=604800`;
-    
-    // Redirect to Stripe Payment Link (same tab for iOS reliability)
+
+    // If claiming a rep-created demo hub, generate a dynamic checkout session
+    // so the webhook can reassign ownership via claim_restaurant_id metadata.
+    if (claimRestaurantId) {
+      try {
+        setLoading(true);
+        const { data: userData } = await supabase.auth.getUser();
+        const email = userData?.user?.email;
+        if (!email) {
+          toast({
+            title: "Please sign in",
+            description: "You need an account to claim this hub.",
+            variant: "destructive",
+          });
+          navigate(`/auth?next=/paywall?restaurant=${claimRestaurantId}`);
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            email,
+            userId: userData!.user!.id,
+            planType: 'solo',
+            claimRestaurantId,
+            dashboardType: 'restaurant',
+          },
+        });
+
+        if (error) throw error;
+        if (data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error('No checkout URL returned');
+      } catch (err) {
+        console.error('[Paywall] Dynamic checkout failed:', err);
+        toast({
+          title: "Checkout unavailable",
+          description: "We couldn't start checkout. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Default: static trial payment link
     window.location.href = TRIAL_URL;
   };
 
