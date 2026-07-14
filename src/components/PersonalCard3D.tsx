@@ -71,7 +71,8 @@ const PersonalCard3D = () => {
             style={{ 
               transformStyle: "preserve-3d",
               transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-              transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+              transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+              willChange: "transform",
             }}
           >
             <div
@@ -80,6 +81,7 @@ const PersonalCard3D = () => {
                 width: "min(220px, 70vw)",
                 aspectRatio: "1 / 1.586",
                 transformStyle: "preserve-3d",
+                transform: "translateZ(0)",
               }}
             >
               {/* FRONT */}
