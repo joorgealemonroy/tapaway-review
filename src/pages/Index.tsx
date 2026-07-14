@@ -32,6 +32,8 @@ const Index = () => {
       
       {/* Trial Resume Banner */}
       <TrialBanner />
+      <OfferBanner />
+      
       
       {/* Navigation */}
       <LandingNav />
