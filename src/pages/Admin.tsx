@@ -485,6 +485,11 @@ const Admin = () => {
                       <DropdownMenuItem onClick={() => openHub(r)}>
                         <ExternalLink className="h-4 w-4 mr-2" /> Open Hub
                       </DropdownMenuItem>
+                      {r.card_print_pdf_path && (
+                        <DropdownMenuItem onClick={() => downloadPrintPdf(r)}>
+                          <FileText className="h-4 w-4 mr-2" /> Print PDF
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => toggleSub(r)}>
                         Toggle Subscription
                       </DropdownMenuItem>
