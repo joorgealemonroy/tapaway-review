@@ -2116,7 +2116,9 @@ export type Database = {
           id: string
           rep_user_id: string
           requested_at: string | null
+          shipped_at: string | null
           state: string
+          tracking_number: string | null
           zip: string
         }
         Insert: {
@@ -2128,7 +2130,9 @@ export type Database = {
           id?: string
           rep_user_id: string
           requested_at?: string | null
+          shipped_at?: string | null
           state: string
+          tracking_number?: string | null
           zip: string
         }
         Update: {
@@ -2140,7 +2144,9 @@ export type Database = {
           id?: string
           rep_user_id?: string
           requested_at?: string | null
+          shipped_at?: string | null
           state?: string
+          tracking_number?: string | null
           zip?: string
         }
         Relationships: []
@@ -2500,6 +2506,7 @@ export type Database = {
           avm_positive_label: string | null
           avm_question_subtitle: string | null
           avm_question_title: string | null
+          card_print_pdf_path: string | null
           created_at: string
           created_by: string | null
           custom_background_url: string | null
@@ -2532,6 +2539,7 @@ export type Database = {
           owner_name: string | null
           owner_phone: string | null
           phone: string | null
+          pipeline_status: string
           plan_type: string | null
           restaurant_name: string
           review_hub_url: string | null
@@ -2557,6 +2565,7 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
           custom_background_url?: string | null
@@ -2589,6 +2598,7 @@ export type Database = {
           owner_name?: string | null
           owner_phone?: string | null
           phone?: string | null
+          pipeline_status?: string
           plan_type?: string | null
           restaurant_name: string
           review_hub_url?: string | null
@@ -2614,6 +2624,7 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
           custom_background_url?: string | null
@@ -2646,6 +2657,7 @@ export type Database = {
           owner_name?: string | null
           owner_phone?: string | null
           phone?: string | null
+          pipeline_status?: string
           plan_type?: string | null
           restaurant_name?: string
           review_hub_url?: string | null
