@@ -53,6 +53,7 @@ const DPA = lazy(() => import("./pages/DPA"));
 const RepHome = lazy(() => import("./pages/rep/RepHome"));
 const RepRestaurants = lazy(() => import("./pages/rep/RepRestaurants"));
 const RepClose = lazy(() => import("./pages/rep/RepClose"));
+const RepDemoCreate = lazy(() => import("./pages/rep/RepDemoCreate"));
 const RepCommissions = lazy(() => import("./pages/rep/RepCommissions"));
 const RepResources = lazy(() => import("./pages/rep/RepResources"));
 const RepDocs = lazy(() => import("./pages/rep/RepDocs"));
