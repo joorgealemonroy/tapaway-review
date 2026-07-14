@@ -48,7 +48,9 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                className="w-full h-full object-cover rounded-2xl"
+                className="w-full h-full object-cover"
+                style={{ borderRadius: "1.5rem" }}
+
               />
 
               {/* Logo overlay — centered on the card face */}
