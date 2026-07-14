@@ -166,6 +166,10 @@ const AdminReps = () => {
   };
 
   const handleToggleActive = async (repId: string, isActive: boolean) => {
+    const action = isActive ? 'reactivate' : 'revoke access for';
+    if (!isActive && !window.confirm(`Are you sure you want to ${action} this rep? They will lose portal access immediately.`)) {
+      return;
+    }
     try {
       const { error } = await supabase
         .from('sales_reps')
@@ -174,10 +178,10 @@ const AdminReps = () => {
 
       if (error) throw error;
 
-      setReps(prev => prev.map(r => 
+      setReps(prev => prev.map(r =>
         r.id === repId ? { ...r, is_active: isActive } : r
       ));
-      toast.success(isActive ? 'Rep activated' : 'Rep deactivated');
+      toast.success(isActive ? 'Rep reactivated' : 'Rep access revoked');
     } catch (error) {
       console.error('Error toggling rep status:', error);
       toast.error('Failed to update rep status');
