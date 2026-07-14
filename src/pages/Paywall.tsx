@@ -5,11 +5,16 @@ import { Check, CreditCard, Truck, Headphones, Shield, Info, ArrowRight, Sparkle
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion } from "framer-motion";
 import { TRIAL_URL } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const Paywall = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const canceled = searchParams.get('canceled') === 'true';
+  const claimRestaurantId = searchParams.get('restaurant') || searchParams.get('claim');
+  const [loading, setLoading] = useState(false);
   const { checking } = usePaywallGuard();
 
   if (checking) {
