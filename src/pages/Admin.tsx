@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import AdminBusinessLiteTable from "@/components/admin/AdminBusinessLiteTable";
 import { toast } from "sonner";
