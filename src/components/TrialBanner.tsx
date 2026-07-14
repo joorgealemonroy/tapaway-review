@@ -44,7 +44,7 @@ export const TrialBanner = () => {
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1">
               <span className="text-sm font-medium">
-                You started your TapAway trial — let's finish setup!
+                You started your TapAway trial, let's finish setup!
               </span>
               <Link
                 to="/onboarding-start?source=resume"

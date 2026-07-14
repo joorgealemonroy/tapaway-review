@@ -6,7 +6,7 @@ import { Smartphone, QrCode, Zap, Clock, TrendingUp, X, Check } from "lucide-rea
 const comparisons = [
   {
     feature: "User Action",
-    tapaway: "One tap — instant",
+    tapaway: "One tap, instant",
     qr: "Open camera → scan → wait",
     tapawayIcon: Zap,
     qrIcon: Clock,
@@ -117,7 +117,7 @@ export const QRComparisonSection = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="text-center text-sm text-muted-foreground mt-8"
         >
-          NFC works on all iPhones (7+) and most Android phones — no app required.
+          NFC works on all iPhones (7+) and most Android phones, no app required.
         </motion.p>
       </div>
     </section>

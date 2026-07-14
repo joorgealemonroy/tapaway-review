@@ -28,7 +28,7 @@ export const RiskReversalSection = () => {
 
           <div className="space-y-4 mb-8 max-w-xl mx-auto">
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Use TapAway for <span className="font-semibold text-foreground">14 full days</span> — completely free.
+              Use TapAway for <span className="font-semibold text-foreground">14 full days</span>, completely free.
             </p>
             <ul className="text-base text-muted-foreground space-y-3">
               <li className="flex items-center justify-center gap-2">
