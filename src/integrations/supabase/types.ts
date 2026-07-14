@@ -3139,6 +3139,7 @@ export type Database = {
           custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
+          expires_at: string | null
           google_review_url: string | null
           header_subtitle: string | null
           header_title: string | null
@@ -3160,6 +3161,7 @@ export type Database = {
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
+          expires_at?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
@@ -3181,6 +3183,7 @@ export type Database = {
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
+          expires_at?: string | null
           google_review_url?: string | null
           header_subtitle?: string | null
           header_title?: string | null
