@@ -252,7 +252,21 @@ const Admin = () => {
     }
   };
 
-  const toggleSub = async (r: Restaurant) => {
+  const downloadPrintPdf = async (r: Restaurant) => {
+    if (!r.card_print_pdf_path) {
+      toast.error("No print PDF on file");
+      return;
+    }
+    const { data, error: signErr } = await supabase.storage
+      .from("card-print-files")
+      .createSignedUrl(r.card_print_pdf_path, 900, { download: `${r.custom_slug || r.id}-print.pdf` });
+    if (signErr || !data?.signedUrl) {
+      toast.error("Could not generate download link");
+      return;
+    }
+    window.location.href = data.signedUrl;
+  };
+
     const next = r.subscription_status === "active" ? "paused" : "active";
     const { data, error: updateError } = await supabase
       .from("restaurants")
