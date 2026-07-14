@@ -5,28 +5,28 @@ import { Star, TrendingUp } from "lucide-react";
 
 const results = [
   {
-    restaurant: "Taqueria Las Islas",
-    location: "San Diego, CA",
-    before: 47,
+    business: "Las Nuevas Islas",
+    location: "Fontana, CA",
+    before: 30,
     after: 63,
-    days: 45,
-    rating: 4.8,
-  },
-  {
-    restaurant: "AV Meal Prep",
-    location: "Los Angeles, CA",
-    before: 23,
-    after: 41,
-    days: 60,
-    rating: 4.9,
-  },
-  {
-    restaurant: "Burger & Brew",
-    location: "Austin, TX",
-    before: 89,
-    after: 112,
     days: 30,
-    rating: 4.7,
+    rating: 4.6,
+  },
+  {
+    business: "Space Studios",
+    location: "Rancho Cucamonga, CA",
+    before: 2,
+    after: 22,
+    days: 30,
+    rating: 5.0,
+  },
+  {
+    business: "Reborn Wraps Auto Design",
+    location: "",
+    before: 0,
+    after: 19,
+    days: 30,
+    rating: 4.8,
   },
 ];
 

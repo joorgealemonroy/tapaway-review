@@ -1,31 +1,31 @@
-## Mobile Hero Redesign
+Update the social-proof section on the landing page to reflect the new business-focused case studies.
 
-### Goal
-Tighten the mobile hero layout and add a product visual + trust signal to improve conversion.
+## Changes
 
-### Changes
+1. **Section heading**
+   - Change "Real Results from Real Restaurants" to "Real Results from Real Businesses".
 
-1. **Tighten top spacing**
-   - Reduce vertical padding/margin between the sticky mobile navbar and the "Trusted by" badge in `HeroSection.tsx`.
-   - Keep desktop spacing unchanged.
+2. **Case-study cards**
+   Replace the three current cards with:
 
-2. **Add NFC card visual below headline**
-   - Render `TapAwayCard3D` directly under the `<h1>` on mobile only.
-   - Scale the card for mobile (smaller than the desktop hero visual, centered, no perspective tilt).
-   - Hide the existing right-column card visual on mobile (it already is `hidden lg:block`, so this is mostly confirming behavior).
+   - **Las Nuevas Islas** — Fontana, CA
+     - Before: 30 reviews, 4.0 stars
+     - After: 63 reviews, 4.6 stars
+     - Timeframe: 30 days
+   - **Space Studios** — Rancho Cucamonga, CA
+     - Before: 2 reviews, 5.0 stars
+     - After: 22 reviews, 5.0 stars
+     - Timeframe: 30 days
+   - **Reborn Wraps Auto Design**
+     - Current: 19 reviews, 4.8 stars
+     - Because no "before" number was provided, default to showing growth from 0 reviews to 19 reviews over 30 days. If you prefer a different baseline, reply with the before count.
 
-3. **Shorten subheadline**
-   - Replace current subheadline copy with a two-line version focused on "Zero setup. $0 Today."
-   - Suggested copy: "Grow your presence with branded NFC Cards. Collect reviews effortlessly. Zero setup. $0 Today."
+3. **Bottom highlight stat**
+   - Recalculate the average new-review gain: (33 + 20 + 19) / 3 = 24.
+   - Update the pill from "+16 average new 5-star reviews in the first 45 days" to "+24 average new reviews in the first 30 days".
 
-4. **Add trust text under CTA**
-   - Insert small, centered text directly below the "Send Me My Cards" button.
-   - Copy: "Pay $0 today. Cancel anytime."
+## Files to edit
+- `src/components/landing/ProofSection.tsx`
 
-### Files to edit
-- `src/components/landing/HeroSection.tsx`
-- `src/components/TapAwayCard3D.tsx` (minor mobile sizing tweak if needed)
-
-### Out of scope
-- No backend or routing changes.
-- No desktop layout changes beyond the card visual appearing on mobile.
+## Out of scope
+- No layout, styling, animation, or backend changes.
