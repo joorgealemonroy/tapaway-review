@@ -74,18 +74,21 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps
 
             {/* BACK */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden"
+              className="absolute inset-0 overflow-hidden"
               style={{
+                borderRadius: "1.5rem",
                 backfaceVisibility: "hidden",
-                transform: "rotateY(180deg)",
+                WebkitBackfaceVisibility: "hidden",
+                transform: "rotateY(180deg) translateZ(0)",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                isolation: "isolate",
               }}
             >
               <img
                 src="/tapaway-card-back.svg"
                 alt="TapAway card back"
-                className="w-full h-full object-cover rounded-2xl"
-                style={{ transform: "rotate(180deg)" }}
+                className="w-full h-full object-cover"
+                style={{ transform: "rotate(180deg)", borderRadius: "1.5rem" }}
               />
             </div>
           </div>
