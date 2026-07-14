@@ -1084,7 +1084,7 @@ const Onboarding = () => {
 
       {/* Fixed bottom CTA for plan step */}
       <AnimatePresence>
-        {step === "plan" && selectedPlan && (selectedPlan === "solo" || dashboardType) && (
+        {step === "plan" && selectedPlan && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
