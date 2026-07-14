@@ -112,10 +112,10 @@ export const ProofSection = () => {
           className="mt-12 text-center"
         >
           <div className="inline-flex items-center gap-4 bg-card rounded-full px-8 py-4 border border-border shadow-sm">
-            <div className="text-4xl font-black text-primary">+16</div>
+            <div className="text-4xl font-black text-primary">+24</div>
             <div className="text-left">
-              <p className="font-semibold text-foreground">average new 5-star reviews</p>
-              <p className="text-sm text-muted-foreground">in the first 45 days</p>
+              <p className="font-semibold text-foreground">average new reviews</p>
+              <p className="text-sm text-muted-foreground">in the first 30 days</p>
             </div>
           </div>
         </motion.div>
