@@ -23,11 +23,11 @@ const OnboardingSuccess = () => {
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
 
       {/* Minimal wordmark, no nav */}
-      <header className="max-w-md mx-auto px-4 py-4">
+      <header className="max-w-md mx-auto px-6 py-4">
         <span className="font-black text-xl tracking-tight">TapAway</span>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-8">
+      <main className="max-w-md mx-auto px-6 py-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
