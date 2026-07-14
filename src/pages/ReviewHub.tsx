@@ -272,10 +272,25 @@ const ReviewHub = () => {
     );
   }
 
+  // Expiration wall for rep-created demo hubs
+  if (
+    restaurant.expires_at &&
+    new Date(restaurant.expires_at) < new Date() &&
+    !isAdmin
+  ) {
+    return (
+      <ExpiredHubGate
+        businessName={restaurant.restaurant_name}
+        restaurantId={restaurant.id}
+      />
+    );
+  }
+
   // AV Meal Prep custom hub
   if (restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep') {
     return <AvMealPrepHub restaurant={restaurant} trackEvent={trackEvent} />;
   }
+
 
   const handlePollVote = async (engagementId: string, optionIndex: number, engagementOptions: any) => {
     if (!restaurant) return;
