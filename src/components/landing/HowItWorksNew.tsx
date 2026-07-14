@@ -9,7 +9,7 @@ const steps = [
     number: "01",
     icon: Package,
     title: "We install TapAway for free",
-    description: "We ship your NFC cards and set up your custom review page — all done for you.",
+    description: "We ship your NFC cards and set up your custom review page, all done for you.",
   },
   {
     number: "02",

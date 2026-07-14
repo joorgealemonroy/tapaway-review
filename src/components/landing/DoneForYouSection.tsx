@@ -66,7 +66,7 @@ export const DoneForYouSection = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="text-center text-sm text-muted-foreground mt-8 font-medium"
         >
-          This is <span className="text-foreground">infrastructure</span> — not a gadget.
+          This is <span className="text-foreground">infrastructure</span>, not a gadget.
         </motion.p>
       </div>
     </section>
