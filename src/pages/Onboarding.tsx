@@ -805,23 +805,25 @@ const Onboarding = () => {
                 Add Protection — $0 Today
               </button>
 
-              <button
-                onClick={() => { setHasProtection(false); goTo("info", 1); }}
-                className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors py-2"
-              >
-                No thanks, I'll pay $10 + shipping per replacement
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => { setHasProtection(false); goTo("info", 1); }}
+                  className="w-full text-center text-sm text-gray-400 hover:text-gray-300 transition-colors underline"
+                >
+                  No thanks, I'll pay $10 + shipping per replacement
+                </button>
 
-              <p className="text-center text-xs text-gray-600">
-                Standard billing starts after your trial ends. Cancel anytime.
-              </p>
+                <p className="text-center text-xs text-gray-400">
+                  Standard billing starts after your trial ends. Cancel anytime.
+                </p>
 
-              <button
-                onClick={() => goTo("plan", -1)}
-                className="w-full text-center text-xs text-gray-600 hover:text-gray-400 transition-colors"
-              >
-                ← Back
-              </button>
+                <button
+                  onClick={() => goTo("plan", -1)}
+                  className="w-full text-center text-xs text-gray-500 hover:text-gray-400 transition-colors"
+                >
+                  ← Back
+                </button>
+              </div>
             </motion.div>
           )}
 
