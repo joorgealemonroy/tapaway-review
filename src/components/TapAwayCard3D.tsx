@@ -12,33 +12,45 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps
           className={staticTilt ? "" : "animate-[spin-3d_12s_ease-in-out_infinite]"}
           style={{
             transformStyle: "preserve-3d",
+            willChange: "transform",
             ...(staticTilt ? { transform: "rotateY(0deg)" } : {}),
           }}
         >
           <div
-            className="relative rounded-2xl"
+            className="relative"
             style={{
               width: "min(240px, 70vw)",
               aspectRatio: "2.125 / 3.375",
               transformStyle: "preserve-3d",
-              borderRadius: "1rem",
+              borderRadius: "1.5rem",
+              WebkitBackfaceVisibility: "hidden",
+              backfaceVisibility: "hidden",
+              WebkitFontSmoothing: "antialiased",
+              transform: "translateZ(0)",
             }}
           >
             {/* FRONT */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden"
+              className="absolute inset-0 overflow-hidden"
               style={{
+                borderRadius: "1.5rem",
                 backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                transform: "translateZ(0)",
+                isolation: "isolate",
               }}
             >
+
               <img
                 src="/tapaway-card-front.svg"
                 alt="TapAway card front"
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                className="w-full h-full object-cover rounded-2xl"
+                className="w-full h-full object-cover"
+                style={{ borderRadius: "1.5rem" }}
+
               />
 
               {/* Logo overlay — centered on the card face */}
@@ -64,18 +76,21 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps
 
             {/* BACK */}
             <div
-              className="absolute inset-0 rounded-2xl overflow-hidden"
+              className="absolute inset-0 overflow-hidden"
               style={{
+                borderRadius: "1.5rem",
                 backfaceVisibility: "hidden",
-                transform: "rotateY(180deg)",
+                WebkitBackfaceVisibility: "hidden",
+                transform: "rotateY(180deg) translateZ(0)",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                isolation: "isolate",
               }}
             >
               <img
                 src="/tapaway-card-back.svg"
                 alt="TapAway card back"
-                className="w-full h-full object-cover rounded-2xl"
-                style={{ transform: "rotate(180deg)" }}
+                className="w-full h-full object-cover"
+                style={{ transform: "rotate(180deg)", borderRadius: "1.5rem" }}
               />
             </div>
           </div>

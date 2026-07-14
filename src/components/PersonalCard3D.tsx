@@ -71,7 +71,8 @@ const PersonalCard3D = () => {
             style={{ 
               transformStyle: "preserve-3d",
               transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-              transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+              transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+              willChange: "transform",
             }}
           >
             <div
@@ -80,14 +81,19 @@ const PersonalCard3D = () => {
                 width: "min(220px, 70vw)",
                 aspectRatio: "1 / 1.586",
                 transformStyle: "preserve-3d",
+                transform: "translateZ(0)",
               }}
             >
               {/* FRONT */}
               <div
-                className="absolute inset-0 rounded-2xl overflow-hidden"
+                className="absolute inset-0 overflow-hidden"
                 style={{
+                  borderRadius: "1.5rem",
                   backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
                   boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                  transform: "translateZ(0)",
+                  isolation: "isolate",
                 }}
               >
                 <img 
@@ -96,17 +102,21 @@ const PersonalCard3D = () => {
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"
-                  className="w-full h-full object-cover pointer-events-none" 
+                  className="w-full h-full object-cover pointer-events-none"
+                  style={{ borderRadius: "1.5rem" }}
                 />
               </div>
 
               {/* BACK */}
               <div
-                className="absolute inset-0 rounded-2xl overflow-hidden bg-[#f5f5f5] flex flex-col items-center justify-center gap-3 p-4"
+                className="absolute inset-0 overflow-hidden bg-[#f5f5f5] flex flex-col items-center justify-center gap-3 p-4"
                 style={{
+                  borderRadius: "1.5rem",
                   backfaceVisibility: "hidden",
-                  transform: "rotateY(180deg)",
+                  WebkitBackfaceVisibility: "hidden",
+                  transform: "rotateY(180deg) translateZ(0)",
                   boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
+                  isolation: "isolate",
                 }}
               >
                 {/* QR Code */}
