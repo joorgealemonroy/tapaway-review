@@ -68,6 +68,7 @@ const Onboarding = () => {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoSkipped, setLogoSkipped] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
