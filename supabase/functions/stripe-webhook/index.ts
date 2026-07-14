@@ -159,6 +159,38 @@ if (event.type === 'checkout.session.completed') {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
       const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
+      // Rep-created demo hub ownership hand-off.
+      // When metadata.claim_restaurant_id is present, transfer that hub to the
+      // paying user, clear its expiration, and short-circuit — no new restaurant
+      // is created, and the rep's dashboard loses the row because created_by
+      // is cleared.
+      const claimRestaurantId = session.metadata?.claim_restaurant_id || null;
+      if (claimRestaurantId) {
+        const { error: claimError } = await supabaseAdmin
+          .from('restaurants')
+          .update({
+            owner_id: userId,
+            created_by: null,
+            expires_at: null,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            plan_type: planType,
+            subscription_status: 'active',
+          })
+          .eq('id', claimRestaurantId);
+
+        if (claimError) {
+          console.error('[stripe-webhook] Failed to claim demo hub:', claimError);
+        } else {
+          console.log('[stripe-webhook] Handed off demo hub to paying owner:', claimRestaurantId);
+        }
+
+        return new Response(
+          JSON.stringify({ received: true, claimed: claimRestaurantId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Check if restaurant already exists for this user
       const { data: existingRestaurant } = await supabaseAdmin
         .from('restaurants')
