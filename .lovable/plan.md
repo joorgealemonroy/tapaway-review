@@ -1,38 +1,41 @@
+
 ## Goal
-Make the top banner context-aware: show the "Finish Setup" message only to users who have genuinely started the trial/setup, and show a marketing offer banner ("$0 Today + Free Shipping") to everyone else on public/landing pages.
 
-## Current behavior
-`src/components/TrialBanner.tsx` reads three localStorage flags (`tapaway_pending_trial`, `tapaway_trial_intent`, `tapaway_pending_setup`) and shows the "You started your TapAway trial — let's finish setup!" bar whenever any are set and onboarding isn't complete. Anyone who ever clicked a CTA that set `trial_intent` sees it even if they never really began setup. New visitors see nothing.
+Reframe the post-Stripe checkout return as a premium "done-for-you" concierge moment. Scope is intentionally minimal: rewrite one file, touch nothing else.
 
-## Changes
+## Single file to change
 
-### 1. Tighten the "Finish Setup" trigger
-In `TrialBanner.tsx`, only treat a user as having "actually started setup" when a stronger signal exists:
-- `tapaway_pending_trial === 'true'` (they hit the paywall/checkout success), OR
-- `tapaway_pending_setup === 'true'` (Stripe returned them mid-setup)
+`src/pages/OnboardingSuccess.tsx` (full rewrite; route `/onboarding-success` already wired in `App.tsx`).
 
-Drop `tapaway_trial_intent` from the trigger — it fires from a simple CTA click and produces false positives. (Leave the flag itself untouched elsewhere; just don't use it to show the banner.)
+### Layout
 
-### 2. Add an OfferBanner for everyone else
-New component `src/components/OfferBanner.tsx` with the same visual style as `TrialBanner` (cyan/primary bar, dismissible, same top offset) but content:
-- Message: "Zero setup. $0 today + free shipping on your NFC cards."
-- CTA: "Claim Offer" → links to `/start` (same entry point the hero uses)
-- Dismissible via an `X`; remember dismissal for the session with `sessionStorage` key `tapaway_offer_dismissed` so it doesn't nag on every route change.
+- Reuse the existing dark shell: `#0a0e1a` page bg, `#111827` card, TapAway wordmark at top, `max-w-md` centered card — matches the current success page and the rest of onboarding.
+- Fire `ConfettiEffect` from `src/components/personal/ConfettiEffect.tsx` once on mount (mount unconditionally, unmount itself via its `onComplete`).
 
-Visibility rules:
-- Hide on the same excluded paths as `TrialBanner` (`/start`, `/paywall`, `/onboarding*`, `/auth`, `/dashboard`, plus `/admin`, `/rep`, `/affiliate` to keep it off internal tools).
-- Hide if the user is signed in (`useAuth().user` present) — no point pitching signup to an existing user.
-- Hide if `TrialBanner` is showing (mutually exclusive; TrialBanner takes precedence).
+### Content
 
-### 3. Wire it into the app
-Wherever `<TrialBanner />` is currently rendered (likely `src/App.tsx`), render `<OfferBanner />` right after it. The two components decide internally whether to appear, so only one is ever visible.
+- Small VIP-style pill at top of card: "✦ Concierge Build".
+- **Headline (h1)**: "You're in! Let our design team take it from here."
+- **Subheadline**: "We are manually building your custom digital profile so it looks perfect. We'll text you shortly to review your design before we program and ship your physical cards."
+- **Next steps checklist** — 3 items, `CheckCircle2` icon (lucide) in cyan/blue-400 for each, staggered `motion.div` fade-in (`delay: 0.2 + i * 0.12`):
+  1. We build your profile.
+  2. You approve the design via text.
+  3. Your NFC cards ship.
+- **Primary button** — full-width, primary blue, label "Go to Dashboard". `onClick` → `navigate("/dashboard")`. This is the existing app route that already dispatches users to the personal dashboard view via `Dashboard.tsx` → `PersonalDashboard`; no routing changes needed here.
 
-## Out of scope
-- No changes to onboarding flow, paywall logic, or which flags get written elsewhere.
-- No copy/design changes to the hero or other sections.
-- No backend or analytics changes.
+### Behavior
+
+- `useEffect` scrolls to top on mount.
+- No data fetching, no auth checks, no side-effects beyond confetti + navigation. Safe to render for any post-Stripe return.
+
+## Explicitly out of scope
+
+- No SQL migrations, no `setup_status` column, no schema changes of any kind.
+- No edits to `src/pages/Dashboard.tsx`, `PersonalDashboard.tsx`, or any business-branch routing.
+- No new tracker component, no "Missing Assets" module, no gated dashboard state.
+- No changes to `App.tsx` (route already exists).
+- No changes to Stripe redirect targets or edge functions.
 
 ## Files touched
-- `src/components/TrialBanner.tsx` — tighten trigger condition (remove `trial_intent`).
-- `src/components/OfferBanner.tsx` — new file.
-- `src/App.tsx` (or wherever `TrialBanner` mounts) — add `<OfferBanner />`.
+
+- `src/pages/OnboardingSuccess.tsx` — full rewrite (only file changed).
