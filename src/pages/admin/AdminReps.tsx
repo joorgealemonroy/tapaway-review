@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
