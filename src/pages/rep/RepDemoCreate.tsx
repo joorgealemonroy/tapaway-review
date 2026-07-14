@@ -54,6 +54,8 @@ const RepDemoCreate = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [gallery, setGallery] = useState<string[]>([]);
   const [existingSlug, setExistingSlug] = useState<string | null>(null);
+  const [printPdfPath, setPrintPdfPath] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
