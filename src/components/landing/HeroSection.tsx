@@ -29,7 +29,7 @@ export const HeroSection = () => {
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
       
-      <div className="relative max-w-6xl mx-auto px-6 sm:px-8 py-16 md:py-20">
+      <div className="relative max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {/* Left: Copy */}
           <motion.div
@@ -43,7 +43,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/40 border border-slate-800 backdrop-blur-sm text-slate-300 text-sm font-medium mb-8"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/40 border border-slate-800 backdrop-blur-sm text-slate-300 text-sm font-medium mb-4 md:mb-8"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -54,15 +54,19 @@ export const HeroSection = () => {
             </motion.div>
 
             {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
               <span className="text-primary whitespace-nowrap">5-Star</span> Reviews.
             </h1>
 
+            {/* Mobile card visual */}
+            <div className="flex justify-center lg:hidden mb-6">
+              <TapAwayCard3D width="min(180px, 55vw)" />
+            </div>
+
             {/* Subheadline */}
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-12 max-w-xl">
-              Grow your presence with high-performance branded NFC Cards.
-              Collect reviews effortlessly, or use it as your ultimate digital business card with unlimited taps. Zero setup. <span className="text-primary font-bold">$0 Today</span>
+            <p className="text-base md:text-lg text-muted-foreground leading-relaxed mb-8 md:mb-12 max-w-xl">
+              Collect reviews effortlessly with branded NFC Cards. Zero setup. <span className="text-primary font-bold">$0 Today</span>
             </p>
 
             {/* CTAs */}
@@ -80,6 +84,10 @@ export const HeroSection = () => {
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </motion.div>
+
+              <p className="text-xs text-center text-muted-foreground mt-3 w-full sm:w-auto">
+                Pay $0 today. Cancel anytime.
+              </p>
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
