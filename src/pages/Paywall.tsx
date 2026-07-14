@@ -185,10 +185,11 @@ const Paywall = () => {
               {/* CTA Button */}
               <Button
                 onClick={handleContinueToCheckout}
+                disabled={loading}
                 className="w-full h-14 text-lg font-bold"
                 size="lg"
               >
-                Continue to Secure Checkout
+                {loading ? "Preparing checkout..." : (claimRestaurantId ? "Unlock My Hub" : "Continue to Secure Checkout")}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
