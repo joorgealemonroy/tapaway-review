@@ -358,18 +358,29 @@ const AdminReps = () => {
                             />
                           </TableCell>
                           <TableCell>
-                            {!rep.agreement_accepted && (
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleResendInvite(rep.id, rep.email)}
-                                disabled={resendingInvite === rep.id}
+                                onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
                               >
-                                <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
-                                {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+                                <Eye className="h-3 w-3 mr-1" />
+                                View as Rep
                               </Button>
-                            )}
+                              {!rep.agreement_accepted && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleResendInvite(rep.id, rep.email)}
+                                  disabled={resendingInvite === rep.id}
+                                >
+                                  <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
+                                  {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
+
                         </TableRow>
                       ))
                     )}
