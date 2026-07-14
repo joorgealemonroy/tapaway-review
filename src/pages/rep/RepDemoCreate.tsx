@@ -361,6 +361,49 @@ const RepDemoCreate = () => {
           </CardContent>
         </Card>
 
+        {editId && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Print-Ready Card PDF</CardTitle>
+              <CardDescription>Upload the finished vector PDF from the Canva template. PDFs only, 15MB max.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3 flex-wrap">
+                {printPdfPath ? (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/40 text-sm">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span>print_ready.pdf uploaded</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    No PDF uploaded yet
+                  </div>
+                )}
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={handlePdfUpload}
+                    disabled={uploadingPdf}
+                  />
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-md border bg-background text-sm hover:bg-accent">
+                    <Upload className="h-4 w-4" />
+                    {uploadingPdf ? 'Uploading...' : printPdfPath ? 'Replace PDF' : 'Upload PDF'}
+                  </span>
+                </label>
+                {printPdfPath && (
+                  <Button variant="outline" size="sm" onClick={viewPdf} type="button">
+                    <ExternalLink className="h-4 w-4 mr-1" /> View
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/rep/restaurants')} className="flex-1">
             Cancel
