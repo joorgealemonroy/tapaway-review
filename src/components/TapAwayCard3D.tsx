@@ -2,9 +2,10 @@ interface TapAwayCard3DProps {
   logoUrl?: string;
   businessName?: string;
   staticTilt?: boolean;
+  width?: string;
 }
 
-const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps) => {
+const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 70vw)" }: TapAwayCard3DProps) => {
   return (
     <div className="flex justify-center items-center" style={{ perspective: "1100px" }}>
       <div style={{ transform: staticTilt ? "none" : "rotateZ(12deg)" }}>
@@ -19,7 +20,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt }: TapAwayCard3DProps
           <div
             className="relative"
             style={{
-              width: "min(240px, 70vw)",
+              width,
               aspectRatio: "2.125 / 3.375",
               transformStyle: "preserve-3d",
               borderRadius: "1.5rem",
