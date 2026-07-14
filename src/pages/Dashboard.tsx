@@ -24,7 +24,7 @@ import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { isTestAccount as checkIsTestAccount } from "@/lib/testAccounts";
 import { useSalesRep } from "@/hooks/useSalesRep";
-import { isSubscriptionAllowed } from "@/lib/subscriptionStatus";
+import { isSubscriptionAllowed, LEGACY_BUSINESS_PLANS, ACTIVE_SUB_STATUSES } from "@/lib/subscriptionStatus";
 
 const PersonalDashboard = lazy(() => import("./personal/PersonalDashboard"));
 
