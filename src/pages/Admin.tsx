@@ -267,6 +267,7 @@ const Admin = () => {
     window.location.href = data.signedUrl;
   };
 
+  const toggleSub = async (r: Restaurant) => {
     const next = r.subscription_status === "active" ? "paused" : "active";
     const { data, error: updateError } = await supabase
       .from("restaurants")
