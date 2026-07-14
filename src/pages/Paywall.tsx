@@ -5,11 +5,16 @@ import { Check, CreditCard, Truck, Headphones, Shield, Info, ArrowRight, Sparkle
 import { usePaywallGuard } from "./PaywallGuard";
 import { motion } from "framer-motion";
 import { TRIAL_URL } from "@/lib/constants";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const Paywall = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const canceled = searchParams.get('canceled') === 'true';
+  const claimRestaurantId = searchParams.get('restaurant') || searchParams.get('claim');
+  const [loading, setLoading] = useState(false);
   const { checking } = usePaywallGuard();
 
   if (checking) {
@@ -23,19 +28,63 @@ const Paywall = () => {
     );
   }
 
-  const handleContinueToCheckout = () => {
+  const handleContinueToCheckout = async () => {
     // Set local flags for trial intent
     const timestamp = Date.now().toString();
     localStorage.setItem('tapaway_trial_intent', 'true');
     localStorage.setItem('tapaway_trial_started_at', timestamp);
     localStorage.setItem('tapaway_pending_setup', 'true');
-    
-    // Also set cookie for cross-tab support
-    document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`; // 7 days
+
+    document.cookie = `tapaway_trial_intent=true; path=/; max-age=604800`;
     document.cookie = `tapaway_trial_started_at=${timestamp}; path=/; max-age=604800`;
     document.cookie = `tapaway_pending_setup=true; path=/; max-age=604800`;
-    
-    // Redirect to Stripe Payment Link (same tab for iOS reliability)
+
+    // If claiming a rep-created demo hub, generate a dynamic checkout session
+    // so the webhook can reassign ownership via claim_restaurant_id metadata.
+    if (claimRestaurantId) {
+      try {
+        setLoading(true);
+        const { data: userData } = await supabase.auth.getUser();
+        const email = userData?.user?.email;
+        if (!email) {
+          toast({
+            title: "Please sign in",
+            description: "You need an account to claim this hub.",
+            variant: "destructive",
+          });
+          navigate(`/auth?next=/paywall?restaurant=${claimRestaurantId}`);
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+          body: {
+            email,
+            userId: userData!.user!.id,
+            planType: 'solo',
+            claimRestaurantId,
+            dashboardType: 'restaurant',
+          },
+        });
+
+        if (error) throw error;
+        if (data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error('No checkout URL returned');
+      } catch (err) {
+        console.error('[Paywall] Dynamic checkout failed:', err);
+        toast({
+          title: "Checkout unavailable",
+          description: "We couldn't start checkout. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Default: static trial payment link
     window.location.href = TRIAL_URL;
   };
 
@@ -136,10 +185,11 @@ const Paywall = () => {
               {/* CTA Button */}
               <Button
                 onClick={handleContinueToCheckout}
+                disabled={loading}
                 className="w-full h-14 text-lg font-bold"
                 size="lg"
               >
-                Continue to Secure Checkout
+                {loading ? "Preparing checkout..." : (claimRestaurantId ? "Unlock My Hub" : "Continue to Secure Checkout")}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 

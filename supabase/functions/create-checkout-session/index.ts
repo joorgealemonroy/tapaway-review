@@ -93,7 +93,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, hasProtection: hasProtectionFlag, promoToken, dashboardType } = body;
+    const { email, userId, restaurantId, planType, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId } = body;
 
     // Validate plan type
     const validPlanType = planType === 'solo' || planType === 'venue' ? planType : 'venue';
@@ -188,6 +188,7 @@ serve(async (req) => {
         restaurant_id: restaurantId || '',
         promo_token: promoToken || '',
         dashboard_type: dashboardType || 'restaurant',
+        claim_restaurant_id: claimRestaurantId || '',
       },
     };
 
