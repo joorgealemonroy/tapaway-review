@@ -68,6 +68,7 @@ const Onboarding = () => {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoSkipped, setLogoSkipped] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<{
     placeId: string; name: string; address: string;
@@ -940,6 +941,20 @@ const Onboarding = () => {
                       onChange={(e) => { if (e.target.files?.[0]) handleLogoUpload(e.target.files[0]); }}
                     />
                   </div>
+                )}
+                {!logoUrl && !logoSkipped && (
+                  <button
+                    type="button"
+                    onClick={() => setLogoSkipped(true)}
+                    className="w-full text-center text-xs text-gray-400 hover:text-gray-300 transition-colors underline"
+                  >
+                    Don't have it on your phone? Skip for now.
+                  </button>
+                )}
+                {logoSkipped && !logoUrl && (
+                  <p className="text-center text-xs text-gray-500">
+                    Skipped. You can upload your logo from your dashboard later.
+                  </p>
                 )}
                 <p className="text-xs text-gray-500 italic">
                   Pro Tip: High-resolution PNGs work best. Our design team will manually optimize your logo for the best print quality.
