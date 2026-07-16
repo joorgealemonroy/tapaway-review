@@ -87,7 +87,8 @@ const RepHome = () => {
   }
 
   const quotaMet = demosToday >= DEMO_QUOTA;
-  const bonusesEarned = quotaMet ? demosToday * DEMO_BONUS : 0;
+  const capReached = demosToday >= DEMO_CAP;
+  const bonusesEarned = quotaMet ? Math.min(demosToday, DEMO_CAP) * DEMO_BONUS : 0;
 
   return (
     <RepShell
