@@ -450,6 +450,7 @@ const Admin = () => {
             <th className="p-3 text-left font-medium">Plan</th>
             <th className="p-3 text-left font-medium">Status</th>
             <th className="p-3 text-left font-medium">Locations</th>
+            <th className="p-3 text-left font-medium">Approval</th>
             <th className="p-3 text-left font-medium">Created</th>
             <th className="p-3 text-right font-medium">Actions</th>
           </tr>
