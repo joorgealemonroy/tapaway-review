@@ -594,101 +594,47 @@ const RepDemoCreate = () => {
             {/* DESIGN TAB */}
             <TabsContent value="design" className="mt-4 space-y-4">
               <RepCard className={cardCls}>
-                <h3 className="text-white font-semibold mb-1">Header Style</h3>
-                <p className="text-xs text-white/50 mb-3">How the top of the page looks.</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { v: 'solid', label: 'Solid Color', icon: Palette },
-                    { v: 'image', label: 'Image', icon: ImageIcon },
-                    { v: 'full_banner', label: 'Full Banner', icon: LayoutTemplate },
-                  ] as const).map(o => {
-                    const Icon = o.icon;
-                    const active = headerStyle === o.v;
-                    return (
-                      <button
-                        key={o.v}
-                        type="button"
-                        onClick={() => setHeaderStyle(o.v)}
-                        className={`p-3 rounded-lg border text-xs font-medium transition-colors flex flex-col items-center gap-1.5 ${
-                          active
-                            ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-200'
-                            : 'bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.06]'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {o.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {(headerStyle === 'image' || headerStyle === 'full_banner') && (
-                  <div className="mt-4">
-                    <Label className="text-white/70">Banner Image</Label>
-                    <div className="mt-1 flex items-center gap-3">
-                      {bannerUrl ? (
-                        <img src={bannerUrl} alt="" className="h-16 w-32 object-cover rounded-lg border border-white/10" />
-                      ) : (
-                        <div className="h-16 w-32 rounded-lg bg-white/[0.03] border border-dashed border-white/10 flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-white/40" />
-                        </div>
-                      )}
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
-                          <Upload className="h-4 w-4" /> {bannerUrl ? 'Replace' : 'Upload'}
-                        </span>
-                      </label>
+                <h3 className="text-white font-semibold mb-1">Banner Image</h3>
+                <p className="text-xs text-white/50 mb-3">This banner acts as your logo and header.</p>
+                <div className="flex items-center gap-3">
+                  {bannerUrl ? (
+                    <img src={bannerUrl} alt="" className="h-16 w-32 object-cover rounded-lg border border-white/10" />
+                  ) : (
+                    <div className="h-16 w-32 rounded-lg bg-white/[0.03] border border-dashed border-white/10 flex items-center justify-center">
+                      <ImageIcon className="h-5 w-5 text-white/40" />
                     </div>
-                  </div>
-                )}
+                  )}
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                    <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
+                      <Upload className="h-4 w-4" /> {bannerUrl ? 'Replace' : 'Upload'}
+                    </span>
+                  </label>
+                </div>
               </RepCard>
 
               <RepCard className={cardCls}>
-                <h3 className="text-white font-semibold mb-1">Logo & Gallery</h3>
-                <p className="text-xs text-white/50 mb-4">Round logo overlaps the banner.</p>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-white/70">Logo</Label>
-                    <div className="flex items-center gap-4 mt-1">
-                      {logoUrl ? (
-                        <img src={logoUrl} alt="" className="w-20 h-20 object-cover rounded-full border border-white/10" />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center">
-                          <Upload className="h-5 w-5 text-white/40" />
-                        </div>
-                      )}
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
-                          <Upload className="h-4 w-4" /> {logoUrl ? 'Replace Logo' : 'Upload Logo'}
-                        </span>
-                      </label>
+                <h3 className="text-white font-semibold mb-1">Gallery</h3>
+                <p className="text-xs text-white/50 mb-3">Up to 3 photos shown beneath the header.</p>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {gallery.map((url, i) => (
+                    <div key={url} className="relative aspect-square">
+                      <img src={url} alt="" className="w-full h-full object-cover rounded-lg border border-white/10" />
+                      <button onClick={() => removeGalleryImage(i)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1" type="button">
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-white/70">Gallery <span className="text-white/40">(up to 3)</span></Label>
-                    <div className="grid grid-cols-3 gap-2 mt-1">
-                      {gallery.map((url, i) => (
-                        <div key={url} className="relative aspect-square">
-                          <img src={url} alt="" className="w-full h-full object-cover rounded-lg border border-white/10" />
-                          <button onClick={() => removeGalleryImage(i)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1" type="button">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {gallery.length < 3 && (
-                        <label className="cursor-pointer aspect-square rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 hover:border-emerald-400/40">
-                          <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
-                          <ImagePlus className="h-5 w-5 text-white/40" />
-                          <span className="text-[10px] text-white/40">Add</span>
-                        </label>
-                      )}
-                    </div>
-                  </div>
+                  ))}
+                  {gallery.length < 3 && (
+                    <label className="cursor-pointer aspect-square rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 hover:border-emerald-400/40">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+                      <ImagePlus className="h-5 w-5 text-white/40" />
+                      <span className="text-[10px] text-white/40">Add</span>
+                    </label>
+                  )}
                 </div>
               </RepCard>
+
 
               <RepCard className={cardCls}>
                 <h3 className="text-white font-semibold mb-1">Colors & Theme</h3>
