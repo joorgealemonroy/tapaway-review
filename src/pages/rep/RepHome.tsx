@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSalesRep } from '@/hooks/useSalesRep';
@@ -28,10 +30,11 @@ interface DemoRestaurant {
 }
 
 const RepHome = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [stats, setStats] = useState<RepStats>({
     availableBalance: 0,
     pendingClawback: 0,
@@ -78,8 +81,10 @@ const RepHome = () => {
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!repLoading && !isSalesRep) { navigate('/'); return; }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    if (!repLoading && !adminLoading && !isSalesRep) {
+      navigate(isAdmin ? '/admin/reps' : '/');
+    }
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {

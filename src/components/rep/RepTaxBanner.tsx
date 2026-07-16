@@ -1,12 +1,12 @@
 import { AlertTriangle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
 
 interface RepTaxBannerProps {
   status: 'missing' | 'submitted' | 'approved' | 'rejected';
 }
 
 export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   
   if (status === 'approved') return null;
 

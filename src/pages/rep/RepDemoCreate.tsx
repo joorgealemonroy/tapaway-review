@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,10 +38,11 @@ const uploadToBucket = async (file: File, path: string): Promise<string | null> 
 };
 
 const RepDemoCreate = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const { id: editId } = useParams<{ id?: string }>();
   const { user, loading: authLoading } = useAuth();
   const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   const [loading, setLoading] = useState(!!editId);
   const [saving, setSaving] = useState(false);
@@ -59,8 +62,8 @@ const RepDemoCreate = () => {
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
-    else if (!repLoading && !isSalesRep) navigate('/');
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    else if (!repLoading && !adminLoading && !isSalesRep) navigate(isAdmin ? '/admin/reps' : '/');
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     if (!editId || !user) return;

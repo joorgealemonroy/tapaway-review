@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,10 +58,11 @@ const PLAN_OPTIONS = [
 ];
 
 const RepClose = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   const [step, setStep] = useState(1);
   const [restaurants, setRestaurants] = useState<RepRestaurant[]>([]);
@@ -76,8 +79,8 @@ const RepClose = () => {
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!repLoading && !isSalesRep) { navigate('/'); return; }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    if (!repLoading && !adminLoading && !isSalesRep) { navigate(isAdmin ? '/admin/reps' : '/'); return; }
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
