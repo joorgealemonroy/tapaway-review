@@ -608,13 +608,23 @@ const RepDemoCreate = () => {
                           {img && (
                             <button
                               type="button"
-                              onClick={() => updateBlock(b.id, { image: null } as any)}
+                              onClick={() => updateBlock(b.id, { image: null, layout: 'pill' } as any)}
                               className="text-[11px] text-white/40 hover:text-red-400"
                             >
                               Remove image
                             </button>
                           )}
                         </div>
+                        {img && (
+                          <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                            <span className="text-[11px] text-white/50">Show as image tile</span>
+                            <Switch
+                              checked={((b as any).layout ?? 'tile') === 'tile'}
+                              onCheckedChange={v => updateBlock(b.id, { layout: v ? 'tile' : 'pill' } as any)}
+                            />
+                          </div>
+                        )}
+
                       </div>
                     );
                   })}
