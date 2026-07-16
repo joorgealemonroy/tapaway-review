@@ -1,75 +1,33 @@
-## Goal
+## Unify Access Controls on the Applications Tab
 
-Harden `rep-tax-docs` W-9 storage: keep the bucket strictly private, replace the current split rep/admin policies with one unified strict policy, and confirm the admin dashboard reads files only via short-lived signed URLs. No visual changes.
+Add the same access-control shortcuts (View as Rep, Revoke / Reactivate, Resend Invite) directly on the **Applications** tab whenever an application already has a matching `sales_reps` account. No database changes.
 
-## Current state
+### What changes in `src/pages/admin/AdminReps.tsx`
 
-- Bucket `rep-tax-docs` already exists and is private (public: No — confirmed in storage buckets list).
-- `storage.objects` has 4 separate policies on this bucket:
-  - `Admin can read all W9 files` (SELECT, admin only)
-  - `Admin can delete W9 files` (DELETE, admin only)
-  - `Reps can upload own W9` (INSERT, folder = auth.uid())
-  - `Reps can update own W9` (UPDATE, folder = auth.uid())
-- Reps have **no SELECT policy**, so they currently cannot read their own W-9 back — only admins can.
-- `AdminTaxReview.tsx` already uses `supabase.storage.from('rep-tax-docs').createSignedUrl(path, 60)` — 60s signed URL. Good.
+1. **Match applications to reps by email.** Build a `repByEmail` map from the already-loaded `reps` array (case-insensitive). No extra query needed.
+2. **Update the row's Actions cell** in the Applications table:
+   - `status === 'pending'` → keep current **Approve / Reject** buttons (unchanged).
+   - `status === 'approved'` **and** a matching rep exists → render the same action cluster used on the Active Reps tab:
+     - `View as Rep` → navigates to `/rep?admin_view_rep=<rep.id>`
+     - `Revoke` (if `rep.is_active`) or `Reactivate` (if not) → calls existing `handleToggleActive(rep.id, ...)`
+     - `Resend Invite` (only when `!rep.agreement_accepted`) → calls existing `handleResendInvite(rep.id, rep.email)`
+   - `status === 'approved'` but no rep row found (rare/edge case) → show a small muted "No rep account" hint so it's visible instead of blank.
+   - `status === 'rejected'` → leave empty (no change).
+3. **Reflect revoked state on the row.** When the matched rep exists and `is_active === false`, apply `opacity-50` to the row and swap the status badge to a neutral `Revoked` badge (mirrors Active Reps styling) so admins instantly see access state without switching tabs.
+4. **Confirmation dialog for Revoke/Reactivate.** The Active Reps tab currently uses a plain `handleToggleActive` call; wrap both entry points (Applications and Active Reps) in a shared `AlertDialog` confirmation so accidental clicks don't nuke access. Single shared dialog state in the component — no new files.
 
-## Plan
+### Out of scope
 
-### 1. Migration: replace policies with one strict unified policy
+- No schema changes; RLS already allows admin management.
+- No changes to Active Reps behavior other than the shared confirm dialog.
+- No changes to approve/reject flow itself.
 
-Drop the four existing per-op policies and replace with a single FOR ALL policy that matches the requested spec, so both admin and owning rep have full CRUD on their own folder, and nobody else:
+### Files touched
 
-```sql
-drop policy if exists "Admin can read all W9 files"  on storage.objects;
-drop policy if exists "Admin can delete W9 files"    on storage.objects;
-drop policy if exists "Reps can upload own W9"       on storage.objects;
-drop policy if exists "Reps can update own W9"       on storage.objects;
+- `src/pages/admin/AdminReps.tsx` (only)
 
-create policy "Strict Admin and Owner Access to Tax Docs"
-on storage.objects
-for all
-to authenticated
-using (
-  bucket_id = 'rep-tax-docs' and (
-    (storage.foldername(name))[1] = auth.uid()::text
-    or public.is_admin()
-  )
-)
-with check (
-  bucket_id = 'rep-tax-docs' and (
-    (storage.foldername(name))[1] = auth.uid()::text
-    or public.is_admin()
-  )
-);
-```
+### Technical notes
 
-Notes on the SQL vs. the version in your message:
-- Uses `storage.foldername(name)[1]` (Supabase's helper) instead of `split_part(name, '/', 1)::uuid`. Same first-segment check, safer against non-UUID paths (won't throw on legacy rows) and matches the existing convention already in this project.
-- Adds `WITH CHECK` so INSERT/UPDATE are also constrained, not only USING for reads.
-- `FOR ALL` covers SELECT, INSERT, UPDATE, DELETE in one policy, replacing the four separate ones.
-- Reps regain SELECT on their own folder (previously missing) — needed so a rep can preview or re-download their own W-9 from the rep portal.
-
-### 2. Bucket confirmation (no code change)
-
-`rep-tax-docs` already exists as private. No `storage_create_bucket` / `storage_update_bucket` call needed.
-
-### 3. Admin dashboard signed-URL flow (no code change needed)
-
-`AdminTaxReview.tsx` already:
-- Calls `createSignedUrl(profile.w9_file_path, 60)` on demand.
-- Opens the resulting URL in a new tab.
-- Never exposes a persistent public URL.
-
-That matches the "short-lived signed URLs" requirement. Nothing to change there. Design stays as-is (obsidian-dark work is untouched by this task).
-
-### 4. Verification
-
-After migration approval + run:
-- Confirm the four old policies are gone and the new policy exists on `storage.objects`.
-- Confirm admin download in `/admin/tax-review` still returns a valid signed URL (no code path changed).
-- Note to user: reps can now also read their own W-9 back, which was previously blocked.
-
-## Files / changes
-
-- New migration on `storage.objects` (drop 4 policies, create 1 unified strict policy).
-- No app code changes.
+- Matching uses `email.trim().toLowerCase()` on both sides to avoid case mismatches from Supabase Auth.
+- The action cluster is extracted into a small in-file helper (`renderRepAccessActions(rep)`) so Applications and Active Reps render the identical buttons and stay in sync.
+- The `AlertDialog` uses shadcn's existing component; state shape: `{ rep: SalesRep; next: boolean } | null`.
