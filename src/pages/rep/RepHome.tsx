@@ -23,6 +23,7 @@ const RepHome = () => {
 
   const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
   const [demosToday, setDemosToday] = useState(0);
+  const [pendingToday, setPendingToday] = useState(0);
   const [monthlyRecurring, setMonthlyRecurring] = useState(0);
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
