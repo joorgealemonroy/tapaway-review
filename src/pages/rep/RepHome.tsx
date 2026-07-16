@@ -30,10 +30,11 @@ interface DemoRestaurant {
 }
 
 const RepHome = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [stats, setStats] = useState<RepStats>({
     availableBalance: 0,
     pendingClawback: 0,
