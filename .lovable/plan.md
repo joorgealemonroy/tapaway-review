@@ -1,33 +1,53 @@
-## Unify Access Controls on the Applications Tab
+## Fix: impersonation dropped when navigating between rep tabs
 
-Add the same access-control shortcuts (View as Rep, Revoke / Reactivate, Resend Invite) directly on the **Applications** tab whenever an application already has a matching `sales_reps` account. No database changes.
+### Root cause
 
-### What changes in `src/pages/admin/AdminReps.tsx`
+Rep pages call `navigate('/rep/restaurants')` etc. without carrying `?admin_view_rep=<id>`. The destination page's guard runs before `RepImpersonationOverlay` re-appends the param, sees `isSalesRep = false` (admins are not reps themselves), and redirects home.
 
-1. **Match applications to reps by email.** Build a `repByEmail` map from the already-loaded `reps` array (case-insensitive). No extra query needed.
-2. **Update the row's Actions cell** in the Applications table:
-   - `status === 'pending'` → keep current **Approve / Reject** buttons (unchanged).
-   - `status === 'approved'` **and** a matching rep exists → render the same action cluster used on the Active Reps tab:
-     - `View as Rep` → navigates to `/rep?admin_view_rep=<rep.id>`
-     - `Revoke` (if `rep.is_active`) or `Reactivate` (if not) → calls existing `handleToggleActive(rep.id, ...)`
-     - `Resend Invite` (only when `!rep.agreement_accepted`) → calls existing `handleResendInvite(rep.id, rep.email)`
-   - `status === 'approved'` but no rep row found (rare/edge case) → show a small muted "No rep account" hint so it's visible instead of blank.
-   - `status === 'rejected'` → leave empty (no change).
-3. **Reflect revoked state on the row.** When the matched rep exists and `is_active === false`, apply `opacity-50` to the row and swap the status badge to a neutral `Revoked` badge (mirrors Active Reps styling) so admins instantly see access state without switching tabs.
-4. **Confirmation dialog for Revoke/Reactivate.** The Active Reps tab currently uses a plain `handleToggleActive` call; wrap both entry points (Applications and Active Reps) in a shared `AlertDialog` confirmation so accidental clicks don't nuke access. Single shared dialog state in the component — no new files.
+### Fix — two coordinated changes
+
+**1. New helper `src/hooks/useRepNavigate.ts`**
+
+Wraps `useNavigate`. When the current URL has `admin_view_rep` and the target is a string path starting with `/rep`, appends the param (idempotent; skips if the caller already set it, preserves any other query the caller added). Numeric back navigation and non-`/rep` paths pass through untouched, so the impersonation id never leaks off the rep portal.
+
+**2. Swap `useNavigate` → `useRepNavigate`** for internal rep-portal targets in:
+- `src/pages/rep/RepHome.tsx`
+- `src/pages/rep/RepRestaurants.tsx`
+- `src/pages/rep/RepCommissions.tsx`
+- `src/pages/rep/RepDocs.tsx`
+- `src/pages/rep/RepProfile.tsx`
+- `src/pages/rep/RepClose.tsx`
+- `src/pages/rep/RepDemoCreate.tsx`
+- `src/pages/rep/RepResources.tsx`
+- `src/components/rep/RepTaxBanner.tsx`
+
+External navigations (`/auth`, `/admin`, `/`) keep plain `useNavigate`.
+
+**3. Safe guard tweak (per user direction)**
+
+Currently: `if (!repLoading && !isSalesRep) navigate('/')`.
+
+Change to (using `useAdminAccess`):
+
+```
+if (!authLoading && !user) navigate('/auth');
+else if (!repLoading && !adminLoading && !isSalesRep) {
+  navigate(isAdmin ? '/admin/reps' : '/');
+}
+```
+
+This avoids rendering a page with a null `salesRep`. If the impersonation param is somehow lost, the admin is redirected to `/admin/reps` (safety), not left on a crashing page; non-admins still get kicked to `/`.
+
+Applied to the same guard blocks in: `RepRestaurants`, `RepCommissions`, `RepDocs`, `RepProfile`, `RepClose`, `RepDemoCreate`, `RepResources`, and `RepHome` if it has a similar guard.
 
 ### Out of scope
 
-- No schema changes; RLS already allows admin management.
-- No changes to Active Reps behavior other than the shared confirm dialog.
-- No changes to approve/reject flow itself.
-
-### Files touched
-
-- `src/pages/admin/AdminReps.tsx` (only)
+- No DB / RLS / edge-function changes.
+- No design changes.
+- `RepImpersonationOverlay`'s sticky re-append stays as a safety net.
 
 ### Technical notes
 
-- Matching uses `email.trim().toLowerCase()` on both sides to avoid case mismatches from Supabase Auth.
-- The action cluster is extracted into a small in-file helper (`renderRepAccessActions(rep)`) so Applications and Active Reps render the identical buttons and stay in sync.
-- The `AlertDialog` uses shadcn's existing component; state shape: `{ rep: SalesRep; next: boolean } | null`.
+- `useRepNavigate` signature mirrors `useNavigate`: `nav(path, options?)`; `nav(-1)` supported.
+- Reads `admin_view_rep` from `useSearchParams` each render so it always reflects the current URL.
+- Guard uses already-imported `useAdminAccess`; waits for both `adminLoading` and `repLoading` to be false before deciding.
