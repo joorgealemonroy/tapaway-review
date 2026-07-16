@@ -18,11 +18,12 @@ import { RepAgreementCard } from '@/components/rep/RepAgreementCard';
 import { RepDemoRequestCard } from '@/components/rep/RepDemoRequestCard';
 
 const RepProfile = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const location = useLocation();
   const { user, loading: authLoading, signOut } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
-  
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
@@ -33,11 +34,11 @@ const RepProfile = () => {
       return;
     }
 
-    if (!repLoading && !isSalesRep) {
-      navigate('/');
+    if (!repLoading && !adminLoading && !isSalesRep) {
+      navigate(isAdmin ? '/admin/reps' : '/');
       return;
     }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     if (salesRep) {
