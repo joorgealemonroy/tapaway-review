@@ -211,7 +211,7 @@ export default function AdminTaxReview() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-slate-400">{profiles.filter(p => p.status === 'missing').length}</div>
+              <div className="text-2xl font-bold text-muted-foreground">{profiles.filter(p => p.status === 'missing').length}</div>
               <div className="text-sm text-muted-foreground">Missing</div>
             </CardContent>
           </Card>
