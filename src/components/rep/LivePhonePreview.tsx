@@ -17,6 +17,7 @@ export interface LinkBlock {
   url: string;
   kind: 'email' | 'website' | 'directions' | 'custom';
   active: boolean;
+  image?: string | null;
 }
 
 export interface Socials {
@@ -25,6 +26,8 @@ export interface Socials {
   facebook?: string;
   tiktok?: string;
 }
+
+export type SocialImages = Partial<Record<'instagram' | 'yelp' | 'facebook' | 'tiktok', string>>;
 
 interface Props {
   businessName: string;
@@ -38,6 +41,7 @@ interface Props {
   headerStyle?: HeaderStyle;
   bannerUrl?: string | null;
   socials?: Socials;
+  socialImages?: SocialImages;
   blocks?: LinkBlock[];
   contactCardEnabled?: boolean;
   foundingBadge?: boolean;
@@ -58,6 +62,7 @@ export const LivePhonePreview = ({
   headerStyle = 'solid',
   bannerUrl,
   socials = {},
+  socialImages = {},
   blocks = [],
   contactCardEnabled = true,
   foundingBadge = false,
