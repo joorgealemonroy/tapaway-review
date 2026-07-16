@@ -1,53 +1,93 @@
-## Fix: impersonation dropped when navigating between rep tabs
 
-### Root cause
+# Sales Partner Portal — Obsidian-Dark Rebuild
 
-Rep pages call `navigate('/rep/restaurants')` etc. without carrying `?admin_view_rep=<id>`. The destination page's guard runs before `RepImpersonationOverlay` re-appends the param, sees `isSalesRep = false` (admins are not reps themselves), and redirects home.
+Full visual + informational overhaul of the rep-facing portal. No DB schema, RLS, or webhook changes. Existing `useSalesRep`, `useAdminAccess`, `useRepNavigate`, and supabase queries stay; only presentation and computed metrics change.
 
-### Fix — two coordinated changes
+## 1. Global aesthetic + navigation
 
-**1. New helper `src/hooks/useRepNavigate.ts`**
+- Introduce a single shared shell (new `src/components/rep/RepShell.tsx`) used by all five rep pages:
+  - Background `bg-[#0a0e1a]` with subtle radial gradient overlay.
+  - Top bar: logo, page title, rep name, and admin-impersonation pill (when applicable).
+  - Bottom nav (mobile) + inline tab strip (desktop): Home · Businesses · Commissions · Docs · Profile.
+  - Card primitive: `bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-2xl`.
+  - Text tokens: headings `text-white`, body `text-white/70`, muted `text-white/40`.
+- Rename "Restaurants" → "Businesses" everywhere in the rep UI (nav label, page title, table header, empty states, home CTA "View My Pipeline"). Route stays `/rep/restaurants` to avoid breaking bookmarks; file renamed to `RepBusinesses.tsx` and re-exported from the existing route.
+- `RepTaxBanner` restyled: `bg-amber-500/10 border border-amber-500/20 text-amber-200/90`, small pill "Action needed", inline "Upload W-9 →" link. Keeps existing statuses (`missing / submitted / rejected`).
 
-Wraps `useNavigate`. When the current URL has `admin_view_rep` and the target is a string path starting with `/rep`, appends the param (idempotent; skips if the caller already set it, preserves any other query the caller added). Numeric back navigation and non-`/rep` paths pass through untouched, so the impersonation id never leaks off the rep portal.
+## 2. Home (`RepHome.tsx`)
 
-**2. Swap `useNavigate` → `useRepNavigate`** for internal rep-portal targets in:
-- `src/pages/rep/RepHome.tsx`
-- `src/pages/rep/RepRestaurants.tsx`
-- `src/pages/rep/RepCommissions.tsx`
-- `src/pages/rep/RepDocs.tsx`
-- `src/pages/rep/RepProfile.tsx`
-- `src/pages/rep/RepClose.tsx`
-- `src/pages/rep/RepDemoCreate.tsx`
-- `src/pages/rep/RepResources.tsx`
-- `src/components/rep/RepTaxBanner.tsx`
+Remove point system, clawback callout, and Volume Bonus Tracker. Replace with three metric cards driven by existing `commissions` + `rep_restaurants` data:
 
-External navigations (`/auth`, `/admin`, `/`) keep plain `useNavigate`.
+- **Shift Base Pay** — today's `$50` flat, status `Earned` if a `commissions` row exists today with `type = 'shift_base'`, else `Available`. (Purely presentational; no schema changes — falls back to zero if no such row exists yet.)
+- **Completed Demos Today** — count of `rep_restaurants` rows created today by this rep. Badge:
+  - `>= 10` → emerald "Quota Met · Bonus Unlocked"
+  - `< 10` → amber "N more to unlock $5/demo bonus"
+- **Active Monthly Stream** — sum of `commissions.amount` where `commission_type = 'recurring'` and `status in ('available','pending')` for the current period. Shown as `$X.XX / mo`.
 
-**3. Safe guard tweak (per user direction)**
+Primary CTAs:
+- Solid emerald "+ Create New Demo" → `/rep/demo/new`.
+- Ghost "View My Pipeline" → `/rep/restaurants`.
 
-Currently: `if (!repLoading && !isSalesRep) navigate('/')`.
+"How You Get Paid" accordion (static content) rewritten to three rows:
+1. Daily Shift Base — $50 flat for completing daily target.
+2. Production Bonus — +$5 per completed demo package, unlocks at 10.
+3. 10% Monthly Recurring — passive cut per active subscriber (examples: $1.50/mo Solo Pro, $3.90/mo Venue Pack).
 
-Change to (using `useAdminAccess`):
+## 3. Businesses (`RepRestaurants.tsx` → `RepBusinesses.tsx`)
 
-```
-if (!authLoading && !user) navigate('/auth');
-else if (!repLoading && !adminLoading && !isSalesRep) {
-  navigate(isAdmin ? '/admin/reps' : '/');
-}
-```
+Rebuild as a compact CRM table using existing `rep_restaurants` fields (`pipeline_status`, `card_print_pdf_path`, `custom_slug`, `expires_at`).
 
-This avoids rendering a page with a null `salesRep`. If the impersonation param is somehow lost, the admin is redirected to `/admin/reps` (safety), not left on a crashing page; non-admins still get kicked to `/`.
+Columns: **Business Name · Date Created · Status · Card PDF · Action**
 
-Applied to the same guard blocks in: `RepRestaurants`, `RepCommissions`, `RepDocs`, `RepProfile`, `RepClose`, `RepDemoCreate`, `RepResources`, and `RepHome` if it has a similar guard.
+- Status cell: existing `<Select>` swapped to a dark-styled variant with a colored dot before each label:
+  - `draft` — slate-400
+  - `card_ready` — amber-400
+  - `delivered` — blue-400
+  - `converted` — emerald-400
+  - `inactive` — zinc-500
+- Card PDF cell: if `card_print_pdf_path` present → "View PDF" link (signed URL via existing storage path) + "Replace" button; if absent → dashed "Upload PDF" dropzone that writes to the same existing bucket/column already in use.
+- Canva template link surfaced as a header action button (opens external Canva URL in new tab).
+- Row action button: "Open Hub" → existing preview route.
+- Empty state styled to match dark theme.
 
-### Out of scope
+## 4. Commissions (`RepCommissions.tsx`)
 
-- No DB / RLS / edge-function changes.
-- No design changes.
-- `RepImpersonationOverlay`'s sticky re-append stays as a safety net.
+Same data source, restyled + relabeled:
 
-### Technical notes
+- Three big overview cards: **Available Balance**, **Pending Validation**, **Total Lifetime Earned** (sum of all `paid` + `available`).
+- Ledger table columns: **Date · Business / Shift · Type · Amount · Status**.
+  - Type badge derived from `commission_type`: `shift_base` → "Base Pay", `bonus` → "Production Bonus", `recurring` → "10% Recurring", `upfront` (legacy) → "Upfront".
+- Filters (status, type) restyled to dark. No query changes.
 
-- `useRepNavigate` signature mirrors `useNavigate`: `nav(path, options?)`; `nav(-1)` supported.
-- Reads `admin_view_rep` from `useSearchParams` each render so it always reflects the current URL.
-- Guard uses already-imported `useAdminAccess`; waits for both `adminLoading` and `repLoading` to be false before deciding.
+## 5. Docs & Training (`RepDocs.tsx`)
+
+Replace the long scroll with a structured hub:
+
+- **Resource Vault** — 3-tile grid at top:
+  1. "Canva Template" — external link button.
+  2. "The Local Gift Drop Script" — opens a `<Dialog>` with the pitch script and a "Copy to Clipboard" button (uses `navigator.clipboard`).
+  3. "5-Minute Hub Setup Guide" — expands an inline accordion with step-by-step walkthrough (content lifted from current RepDocs body).
+- **Objections & FAQs** — shadcn `<Accordion>` grouping current inline copy into: "We already ask for reviews", "My staff won't remember", "We use QR codes", plus any other objection sections currently present. Content preserved, structure only.
+- Search box at top filters accordion items by text match (client-side).
+
+## 6. Profile & Banking (`RepProfile.tsx`)
+
+Restyle existing sub-cards (`RepPayoutCard`, `RepPayoutHistory`, `RepTaxCard`, `RepAgreementCard`, `RepDemoRequestCard`) to the shared dark card primitive. No logic changes — same upload targets, same masking behavior already implemented in `RepPayoutCard` / `RepTaxCard`. The W-9 upload continues to write to its existing private bucket via the existing edge path.
+
+## Technical details
+
+- New files:
+  - `src/components/rep/RepShell.tsx` — layout + nav.
+  - `src/components/rep/RepCard.tsx` — shared card primitive (`bg-white/[0.02] backdrop-blur-md border-white/5`).
+  - `src/components/rep/StatusDot.tsx` — colored-dot indicator for pipeline status.
+  - `src/components/rep/PitchScriptDialog.tsx` — copy-to-clipboard script modal.
+- Renamed: `src/pages/rep/RepRestaurants.tsx` → `src/pages/rep/RepBusinesses.tsx`. Update `App.tsx` route import; route path unchanged.
+- Edited: `RepHome.tsx`, `RepCommissions.tsx`, `RepDocs.tsx`, `RepProfile.tsx`, `RepTaxBanner.tsx`, `RepImpersonationOverlay.tsx` (dark restyle only), `RepPayoutCard.tsx`, `RepPayoutHistory.tsx`, `RepTaxCard.tsx`, `RepAgreementCard.tsx`, `RepDemoRequestCard.tsx` — restyle to dark tokens; no behavior change.
+- Existing guards (`if (!repLoading && !adminLoading && !isSalesRep) navigate(isAdmin ? '/admin/reps' : '/')`) preserved verbatim.
+- All colors applied via Tailwind arbitrary values + `white/x` opacity so no `index.css` token churn is required (kept intentionally local to the rep portal so it doesn't affect the admin theme).
+
+## Out of scope
+
+- No changes to `commissions` schema, RLS, or the commission-writing edge functions. If `shift_base` rows don't yet exist for a rep, the Shift Base card simply shows `$0 Available`.
+- No changes to admin-side impersonation logic.
+- Route paths remain the same; only labels change.
