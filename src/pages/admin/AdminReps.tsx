@@ -324,26 +324,33 @@ const AdminReps = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      applications.map((app) => (
-                        <TableRow key={app.id}>
+                      applications.map((app) => {
+                        const matchedRep = repByEmail.get(app.email.trim().toLowerCase());
+                        const isRevoked = matchedRep && !matchedRep.is_active;
+                        return (
+                        <TableRow key={app.id} className={isRevoked ? 'opacity-50' : ''}>
                           <TableCell className="font-medium">{app.name}</TableCell>
                           <TableCell>{app.email}</TableCell>
                           <TableCell>{app.phone || '—'}</TableCell>
                           <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                           <TableCell>
-                            <Badge variant={
-                              app.status === 'approved' ? 'default' : 
-                              app.status === 'rejected' ? 'destructive' : 
-                              'secondary'
-                            }>
-                              {app.status}
-                            </Badge>
+                            {isRevoked ? (
+                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Revoked</Badge>
+                            ) : (
+                              <Badge variant={
+                                app.status === 'approved' ? 'default' :
+                                app.status === 'rejected' ? 'destructive' :
+                                'secondary'
+                              }>
+                                {app.status}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             {app.status === 'pending' && (
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedApplication(app);
                                     setApproveDialogOpen(true);
@@ -352,8 +359,8 @@ const AdminReps = () => {
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => handleReject(app.id)}
                                 >
@@ -362,9 +369,14 @@ const AdminReps = () => {
                                 </Button>
                               </div>
                             )}
+                            {app.status === 'approved' && matchedRep && renderRepAccessActions(matchedRep)}
+                            {app.status === 'approved' && !matchedRep && (
+                              <span className="text-xs text-muted-foreground">No rep account</span>
+                            )}
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
