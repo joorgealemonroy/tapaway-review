@@ -73,6 +73,7 @@ type Restaurant = {
   greeting_name?: string | null;
   total_taps?: number;
   card_print_pdf_path?: string | null;
+  is_approved?: boolean;
 };
 
 type Location = {
