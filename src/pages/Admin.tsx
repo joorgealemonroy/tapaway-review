@@ -150,7 +150,7 @@ const Admin = () => {
         const { data: allRestaurants, error: restaurantsError } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
+            "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name, is_approved, card_print_pdf_path"
           )
           .order("created_at", { ascending: false });
         if (restaurantsError) throw restaurantsError;
