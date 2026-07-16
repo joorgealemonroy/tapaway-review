@@ -261,7 +261,7 @@ const RepDemoCreate = () => {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${user.id}/block-${blockId}-${Date.now()}-${safeName}`;
     const url = await uploadToBucket(file, path);
-    if (url) updateBlock(blockId, { image: url } as any);
+    if (url) updateBlock(blockId, { image: url, layout: 'tile' } as any);
     e.target.value = '';
   };
 
