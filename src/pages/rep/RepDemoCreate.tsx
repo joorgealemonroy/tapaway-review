@@ -112,7 +112,7 @@ const RepDemoCreate = () => {
   const [themeStyle, setThemeStyle] = useState<BackgroundThemeStyle>('default');
   const [primaryColor, setPrimaryColor] = useState(DEFAULT_PRIMARY);
   const [secondaryColor, setSecondaryColor] = useState(DEFAULT_SECONDARY);
-  const [headerStyle, setHeaderStyle] = useState<HeaderStyle>('solid');
+  const [headerStyle, setHeaderStyle] = useState<HeaderStyle>('full_banner');
   const [socials, setSocials] = useState<Socials>({});
   const [blocks, setBlocks] = useState<LinkBlock[]>([]);
   const [contactCardEnabled, setContactCardEnabled] = useState(true);
