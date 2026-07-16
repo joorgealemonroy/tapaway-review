@@ -275,6 +275,7 @@ const RepDemoCreate = () => {
           facebook: socials.facebook?.trim() || '',
           tiktok: socials.tiktok?.trim() || '',
         },
+        social_images: socialImages,
         blocks,
         contact_card_enabled: contactCardEnabled,
         badges: { founding: foundingBadge },
