@@ -42,16 +42,17 @@ const buildReminderSms = (hub: DemoHub) => {
 };
 
 const RepRestaurants = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const { user, loading: authLoading } = useAuth();
   const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [hubs, setHubs] = useState<DemoHub[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
-    else if (!repLoading && !isSalesRep) navigate('/');
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    else if (!repLoading && !adminLoading && !isSalesRep) navigate(isAdmin ? '/admin/reps' : '/');
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     if (!user) return;
