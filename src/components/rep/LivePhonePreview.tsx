@@ -108,7 +108,8 @@ export const LivePhonePreview = ({
     icon: React.ReactNode,
     bg: string,
     color: string,
-    key: string
+    key: string,
+    customImage?: string,
   ) => (
     <div
       key={key}
@@ -116,16 +117,22 @@ export const LivePhonePreview = ({
         width: 36,
         height: 36,
         borderRadius: '50%',
-        background: bg,
+        background: customImage ? '#000' : bg,
         color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
-      {icon}
+      {customImage ? (
+        <img src={customImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        icon
+      )}
     </div>
   );
+
 
   return (
     <div className="sticky top-4">
