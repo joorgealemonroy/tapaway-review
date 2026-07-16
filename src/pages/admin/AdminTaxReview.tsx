@@ -176,7 +176,7 @@ export default function AdminTaxReview() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -211,7 +211,7 @@ export default function AdminTaxReview() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-slate-400">{profiles.filter(p => p.status === 'missing').length}</div>
+              <div className="text-2xl font-bold text-muted-foreground">{profiles.filter(p => p.status === 'missing').length}</div>
               <div className="text-sm text-muted-foreground">Missing</div>
             </CardContent>
           </Card>
@@ -233,7 +233,7 @@ export default function AdminTaxReview() {
                 {profiles.map((profile) => (
                   <div
                     key={profile.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border rounded-lg bg-white"
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border rounded-lg bg-card"
                   >
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
