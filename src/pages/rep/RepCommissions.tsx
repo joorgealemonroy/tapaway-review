@@ -40,9 +40,10 @@ const STATUS_BADGES: Record<string, { label: string; variant: 'default' | 'secon
 };
 
 const RepCommissions = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const { user, loading: authLoading } = useAuth();
   const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -57,8 +58,8 @@ const RepCommissions = () => {
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!repLoading && !isSalesRep) { navigate('/'); return; }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    if (!repLoading && !adminLoading && !isSalesRep) { navigate(isAdmin ? '/admin/reps' : '/'); return; }
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     const fetchCommissions = async () => {
