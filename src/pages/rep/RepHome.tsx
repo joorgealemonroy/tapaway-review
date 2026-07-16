@@ -81,8 +81,10 @@ const RepHome = () => {
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!repLoading && !isSalesRep) { navigate('/'); return; }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    if (!repLoading && !adminLoading && !isSalesRep) {
+      navigate(isAdmin ? '/admin/reps' : '/');
+    }
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {
