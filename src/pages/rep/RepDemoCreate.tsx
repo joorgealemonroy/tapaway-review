@@ -239,6 +239,33 @@ const RepDemoCreate = () => {
     setGallery(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleSocialImageUpload = async (
+    platform: 'instagram' | 'yelp' | 'facebook' | 'tiktok',
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/social-${platform}-${Date.now()}-${safeName}`;
+    const url = await uploadToBucket(file, path);
+    if (url) setSocialImages(prev => ({ ...prev, [platform]: url }));
+    e.target.value = '';
+  };
+
+  const handleBlockImageUpload = async (
+    blockId: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/block-${blockId}-${Date.now()}-${safeName}`;
+    const url = await uploadToBucket(file, path);
+    if (url) updateBlock(blockId, { image: url } as any);
+    e.target.value = '';
+  };
+
+
   const addBlock = (preset?: 'email' | 'website' | 'directions') => {
     const presets: Record<string, { title: string; url: string; kind: LinkBlock['kind'] }> = {
       email: { title: 'Get In Contact!', url: 'mailto:hello@example.com', kind: 'email' },
