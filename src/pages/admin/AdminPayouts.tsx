@@ -201,64 +201,65 @@ const AdminPayouts = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">Payout Management</h1>
-            <p className="text-sm text-slate-500">Manage sales rep ACH payouts</p>
+            <h1 className="text-xl font-bold text-foreground">Payout Management</h1>
+            <p className="text-sm text-muted-foreground">Manage sales rep ACH payouts</p>
           </div>
           <Button onClick={handleExportACH} disabled={exporting || payouts.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             {exporting ? 'Exporting...' : 'Generate ACH Export'}
           </Button>
         </div>
+      </header>
 
+      <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Card className="border-slate-200">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{payouts.length}</p>
-                  <p className="text-xs text-slate-500">Reps with Bank Info</p>
+                  <p className="text-2xl font-bold text-foreground">{payouts.length}</p>
+                  <p className="text-xs text-muted-foreground">Reps with Bank Info</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-slate-200">
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-emerald-600" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold text-foreground">
                     ${payouts.reduce((sum, p) => sum + p.pending_amount, 0).toLocaleString()}
                   </p>
-                  <p className="text-xs text-slate-500">Total Pending Payouts</p>
+                  <p className="text-xs text-muted-foreground">Total Pending Payouts</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-slate-200">
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-violet-600" />
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold text-foreground">
                     {payouts.filter((p) => p.pending_amount > 0).length}
                   </p>
-                  <p className="text-xs text-slate-500">Reps Owed Money</p>
+                  <p className="text-xs text-muted-foreground">Reps Owed Money</p>
                 </div>
               </div>
             </CardContent>
@@ -266,7 +267,7 @@ const AdminPayouts = () => {
         </div>
 
         {/* Payouts Table */}
-        <Card className="border-slate-200 shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Reps with Payout Accounts</CardTitle>
             <CardDescription className="text-xs">
@@ -275,66 +276,66 @@ const AdminPayouts = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="py-8 text-center text-slate-400 animate-pulse">Loading...</div>
+              <div className="py-8 text-center text-muted-foreground animate-pulse">Loading...</div>
             ) : payouts.length === 0 ? (
-              <div className="py-8 text-center text-slate-500">
-                <Building2 className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+              <div className="py-8 text-center text-muted-foreground">
+                <Building2 className="h-10 w-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No reps have submitted bank details yet</p>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 sm:mx-0">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Rep</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Payee Name</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Type</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Account</th>
-                      <th className="text-right py-2 px-4 text-xs font-medium text-slate-500">Pending</th>
-                      <th className="text-center py-2 px-4 text-xs font-medium text-slate-500">Notify</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-slate-500">Added</th>
-                      <th className="text-right py-2 px-4 text-xs font-medium text-slate-500">Actions</th>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Rep</th>
+                      <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Payee Name</th>
+                      <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Type</th>
+                      <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Account</th>
+                      <th className="text-right py-2 px-4 text-xs font-medium text-muted-foreground">Pending</th>
+                      <th className="text-center py-2 px-4 text-xs font-medium text-muted-foreground">Notify</th>
+                      <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Added</th>
+                      <th className="text-right py-2 px-4 text-xs font-medium text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payouts.map((payout) => (
-                      <tr key={payout.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                      <tr key={payout.id} className="border-b last:border-0 hover:bg-muted/40">
                         <td className="py-3 px-4">
-                          <div className="font-medium text-slate-900">{payout.rep_name}</div>
-                          <div className="text-xs text-slate-500">{payout.rep_email}</div>
+                          <div className="font-medium text-foreground">{payout.rep_name}</div>
+                          <div className="text-xs text-muted-foreground">{payout.rep_email}</div>
                         </td>
-                        <td className="py-3 px-4 text-slate-700">{payout.payee_name}</td>
+                        <td className="py-3 px-4 text-foreground/90">{payout.payee_name}</td>
                         <td className="py-3 px-4">
                           <Badge variant="outline" className="capitalize text-xs">
                             {payout.payee_type}
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="font-mono text-slate-700">****{payout.account_last4}</span>
+                          <span className="font-mono text-foreground/90">****{payout.account_last4}</span>
                           {payout.bank_name && (
-                            <div className="text-xs text-slate-500">{payout.bank_name}</div>
+                            <div className="text-xs text-muted-foreground">{payout.bank_name}</div>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right">
                           {payout.pending_amount > 0 ? (
-                            <span className="font-semibold text-emerald-600">
+                            <span className="font-semibold text-primary">
                               ${payout.pending_amount.toLocaleString()}
                             </span>
                           ) : (
-                            <span className="text-slate-400">$0</span>
+                            <span className="text-muted-foreground">$0</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           {payout.email_payout_notifications ? (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            <Badge variant="outline" className="text-xs">
                               <Mail className="h-3 w-3 mr-1" />
                               On
                             </Badge>
                           ) : (
-                            <span className="text-slate-400 text-xs">Off</span>
+                            <span className="text-muted-foreground text-xs">Off</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-slate-500 text-xs">
+                        <td className="py-3 px-4 text-muted-foreground text-xs">
                           {format(new Date(payout.created_at), 'MMM d, yyyy')}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -359,7 +360,7 @@ const AdminPayouts = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 };
