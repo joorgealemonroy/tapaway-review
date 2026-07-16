@@ -3163,6 +3163,8 @@ export type Database = {
           avm_positive_label: string | null
           avm_question_subtitle: string | null
           avm_question_title: string | null
+          background_theme_style: string | null
+          business_phone: string | null
           custom_background_url: string | null
           custom_slug: string | null
           directions_url: string | null
@@ -3173,10 +3175,13 @@ export type Database = {
           hub_background_style: string | null
           id: string | null
           instagram_url: string | null
+          is_approved: boolean | null
           logo_url: string | null
           menu_title: string | null
           phone: string | null
+          primary_color: string | null
           restaurant_name: string | null
+          secondary_color: string | null
           type: string | null
           yelp_review_url: string | null
         }
@@ -3185,6 +3190,8 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          background_theme_style?: string | null
+          business_phone?: string | null
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
@@ -3195,10 +3202,13 @@ export type Database = {
           hub_background_style?: string | null
           id?: string | null
           instagram_url?: string | null
+          is_approved?: boolean | null
           logo_url?: string | null
           menu_title?: string | null
           phone?: string | null
+          primary_color?: string | null
           restaurant_name?: string | null
+          secondary_color?: string | null
           type?: string | null
           yelp_review_url?: string | null
         }
@@ -3207,6 +3217,8 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          background_theme_style?: string | null
+          business_phone?: string | null
           custom_background_url?: string | null
           custom_slug?: string | null
           directions_url?: string | null
@@ -3217,10 +3229,13 @@ export type Database = {
           hub_background_style?: string | null
           id?: string | null
           instagram_url?: string | null
+          is_approved?: boolean | null
           logo_url?: string | null
           menu_title?: string | null
           phone?: string | null
+          primary_color?: string | null
           restaurant_name?: string | null
+          secondary_color?: string | null
           type?: string | null
           yelp_review_url?: string | null
         }
