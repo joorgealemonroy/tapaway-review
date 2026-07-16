@@ -197,14 +197,16 @@ export const LivePhonePreview = ({
                   <Instagram className="h-4 w-4" />,
                   'linear-gradient(45deg,#f58529,#dd2a7b,#8134af,#515bd4)',
                   '#fff',
-                  'ig'
+                  'ig',
+                  socialImages.instagram,
                 )}
               {socials.facebook &&
-                socialIcon(<Facebook className="h-4 w-4" />, '#1877f2', '#fff', 'fb')}
+                socialIcon(<Facebook className="h-4 w-4" />, '#1877f2', '#fff', 'fb', socialImages.facebook)}
               {socials.tiktok &&
-                socialIcon(<Music2 className="h-4 w-4" />, '#000', '#fff', 'tt')}
+                socialIcon(<Music2 className="h-4 w-4" />, '#000', '#fff', 'tt', socialImages.tiktok)}
               {socials.yelp &&
-                socialIcon(<ExternalLink className="h-4 w-4" />, '#d32323', '#fff', 'yelp')}
+                socialIcon(<ExternalLink className="h-4 w-4" />, '#d32323', '#fff', 'yelp', socialImages.yelp)}
+
             </div>
           )}
 
