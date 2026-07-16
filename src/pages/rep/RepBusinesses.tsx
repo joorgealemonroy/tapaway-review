@@ -22,7 +22,7 @@ interface Business {
   card_print_pdf_path: string | null;
 }
 
-const CANVA_TEMPLATE_URL = 'https://www.canva.com/design/DAG_TapAway_Card_Template/view';
+const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
