@@ -463,6 +463,34 @@ const AdminReps = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmToggle} onOpenChange={(open) => !open && setConfirmToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmToggle?.next ? 'Reactivate rep access?' : 'Revoke rep access?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmToggle?.next
+                ? `${confirmToggle?.rep.name} will regain portal access immediately.`
+                : `${confirmToggle?.rep.name} will lose portal access immediately.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmToggle?.next ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+              onClick={async () => {
+                if (!confirmToggle) return;
+                await handleToggleActive(confirmToggle.rep.id, confirmToggle.next);
+                setConfirmToggle(null);
+              }}
+            >
+              {confirmToggle?.next ? 'Reactivate' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
