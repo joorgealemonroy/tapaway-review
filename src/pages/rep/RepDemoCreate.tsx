@@ -624,26 +624,51 @@ const RepDemoCreate = () => {
 
               <RepCard className={cardCls}>
                 <h3 className="text-white font-semibold mb-1">Social Blocks</h3>
-                <p className="text-xs text-white/50 mb-4">Rendered as tappable icons — deep-linked on mobile.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-white/70">Instagram</Label>
-                    <Input value={socials.instagram || ''} onChange={e => setSocials({ ...socials, instagram: e.target.value })} placeholder="https://instagram.com/joespizza" className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">Yelp</Label>
-                    <Input value={socials.yelp || ''} onChange={e => setSocials({ ...socials, yelp: e.target.value })} placeholder="https://yelp.com/biz/..." className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">Facebook</Label>
-                    <Input value={socials.facebook || ''} onChange={e => setSocials({ ...socials, facebook: e.target.value })} placeholder="https://facebook.com/joespizza" className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">TikTok</Label>
-                    <Input value={socials.tiktok || ''} onChange={e => setSocials({ ...socials, tiktok: e.target.value })} placeholder="https://tiktok.com/@joespizza" className={inputCls} />
-                  </div>
+                <p className="text-xs text-white/50 mb-4">Rendered as tappable icons — deep-linked on mobile. Add a custom image to override the default icon.</p>
+                <div className="space-y-3">
+                  {([
+                    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/joespizza' },
+                    { key: 'yelp', label: 'Yelp', placeholder: 'https://yelp.com/biz/...' },
+                    { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/joespizza' },
+                    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@joespizza' },
+                  ] as const).map(s => {
+                    const img = socialImages[s.key];
+                    return (
+                      <div key={s.key}>
+                        <Label className="text-white/70">{s.label}</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <label className="cursor-pointer flex-shrink-0">
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleSocialImageUpload(s.key, e)} />
+                            {img ? (
+                              <img src={img} alt="" className="h-10 w-10 rounded-full object-cover border border-white/10" />
+                            ) : (
+                              <span className="h-10 w-10 rounded-full border border-dashed border-white/15 bg-white/[0.03] flex items-center justify-center text-white/40 hover:bg-white/[0.06]">
+                                <ImageIcon className="h-4 w-4" />
+                              </span>
+                            )}
+                          </label>
+                          <Input
+                            value={(socials as any)[s.key] || ''}
+                            onChange={e => setSocials({ ...socials, [s.key]: e.target.value })}
+                            placeholder={s.placeholder}
+                            className={inputCls}
+                          />
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() => setSocialImages(prev => { const n = { ...prev }; delete n[s.key]; return n; })}
+                              className="text-[11px] text-white/40 hover:text-red-400 whitespace-nowrap"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </RepCard>
+
             </TabsContent>
 
             {/* DESIGN TAB */}
