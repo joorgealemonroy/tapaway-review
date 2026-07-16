@@ -817,6 +817,7 @@ const RepDemoCreate = () => {
             headerStyle={headerStyle}
             bannerUrl={bannerUrl}
             socials={socials}
+            socialImages={socialImages}
             blocks={blocks}
             contactCardEnabled={contactCardEnabled}
             foundingBadge={foundingBadge}
