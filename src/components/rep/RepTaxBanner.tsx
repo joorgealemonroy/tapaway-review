@@ -6,7 +6,7 @@ interface RepTaxBannerProps {
 }
 
 export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   
   if (status === 'approved') return null;
 
