@@ -341,11 +341,14 @@ const ReviewHub = () => {
     localStorage.setItem('tapaway_hub_theme', newTheme);
   };
 
-  // Use visitor theme instead of restaurant setting
-  const getBackgroundStyle = () => {
-    if (visitorTheme === 'dark') {
-      return { background: '#1a1a1a' };
-    }
+  // Use custom brand theme if the rep set one; otherwise fall back to visitor light/dark
+  const brandTheme = restaurant?.background_theme_style && restaurant.background_theme_style !== 'default'
+    ? getHubTheme(restaurant.background_theme_style)
+    : null;
+
+  const getBackgroundStyle = (): React.CSSProperties => {
+    if (brandTheme) return brandTheme.containerStyle;
+    if (visitorTheme === 'dark') return { background: '#1a1a1a' };
     return { background: '#f9fafb' };
   };
 
