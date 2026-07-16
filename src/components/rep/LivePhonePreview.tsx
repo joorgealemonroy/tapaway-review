@@ -18,6 +18,7 @@ export interface LinkBlock {
   kind: 'email' | 'website' | 'directions' | 'custom';
   active: boolean;
   image?: string | null;
+  layout?: 'pill' | 'tile';
 }
 
 export interface Socials {
