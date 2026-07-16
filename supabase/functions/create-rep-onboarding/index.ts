@@ -130,7 +130,7 @@ async function createSoloProfile(
   const profileData: Record<string, unknown> = {
     full_name: opts.businessName.trim(),
     email: opts.clientEmail,
-    plan_type: "monthly",
+    plan_type: "solo_pro",
     subscription_status: opts.subscriptionStatus,
     ...(opts.trialEndsAt ? { trial_ends_at: opts.trialEndsAt } : {}),
     ...(opts.logoUrl ? { profile_photo_url: opts.logoUrl } : {}),
@@ -155,10 +155,10 @@ async function createSoloProfile(
     }
     profileId = created.id;
 
-    // Fix founding trigger override — solo plan should always be 'monthly'
+    // Owner-claim path always defaults to Solo Pro (premium layout on from day one).
     await adminClient
       .from("personal_profiles")
-      .update({ plan_type: "monthly", is_founding_user: false, founding_number: null })
+      .update({ plan_type: "solo_pro", is_founding_user: false, founding_number: null })
       .eq("id", profileId);
   }
 

@@ -9,8 +9,8 @@ export function sanitizeUrl(url: string | null | undefined): string {
   const trimmed = url.trim();
   if (!trimmed) return "#";
 
-  // Allow safe protocols
-  if (/^(https?|mailto|tel|sms|instagram):\/?\/?/i.test(trimmed)) {
+  // Allow safe protocols (incl. mobile app deep links)
+  if (/^(https?|mailto|tel|sms|instagram|fb|snssdk1128|intent):\/?\/?/i.test(trimmed)) {
     return trimmed;
   }
 
