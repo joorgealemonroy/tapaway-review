@@ -481,6 +481,30 @@ const Admin = () => {
                 </span>
               </td>
               <td className="p-3 text-white/60">{locationsCount[r.id] ?? 0}</td>
+              <td className="p-3">
+                {r.is_approved ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/10 text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Approved
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => approveHub(r)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400"
+                    >
+                      Approve Hub
+                    </button>
+                    {r.custom_slug && (
+                      <button
+                        onClick={() => window.open(`/${r.custom_slug}`, "_blank")}
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                      >
+                        Review Layout
+                      </button>
+                    )}
+                  </div>
+                )}
+              </td>
               <td className="p-3 text-white/50 text-xs">
                 {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
               </td>
