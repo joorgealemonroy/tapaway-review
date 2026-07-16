@@ -2506,6 +2506,8 @@ export type Database = {
           avm_positive_label: string | null
           avm_question_subtitle: string | null
           avm_question_title: string | null
+          background_theme_style: string
+          business_phone: string | null
           card_print_pdf_path: string | null
           created_at: string
           created_by: string | null
@@ -2525,6 +2527,7 @@ export type Database = {
           hub_background_style: string | null
           id: string
           instagram_url: string | null
+          is_approved: boolean
           is_demo_account: boolean | null
           is_legacy_user: boolean
           last_google_sync_at: string | null
@@ -2541,9 +2544,11 @@ export type Database = {
           phone: string | null
           pipeline_status: string
           plan_type: string | null
+          primary_color: string
           restaurant_name: string
           review_hub_url: string | null
           sales_rep_id: string | null
+          secondary_color: string
           settings: Json | null
           slug_locked_at: string | null
           stripe_customer_id: string | null
@@ -2565,6 +2570,8 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          background_theme_style?: string
+          business_phone?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -2584,6 +2591,7 @@ export type Database = {
           hub_background_style?: string | null
           id?: string
           instagram_url?: string | null
+          is_approved?: boolean
           is_demo_account?: boolean | null
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
@@ -2600,9 +2608,11 @@ export type Database = {
           phone?: string | null
           pipeline_status?: string
           plan_type?: string | null
+          primary_color?: string
           restaurant_name: string
           review_hub_url?: string | null
           sales_rep_id?: string | null
+          secondary_color?: string
           settings?: Json | null
           slug_locked_at?: string | null
           stripe_customer_id?: string | null
@@ -2624,6 +2634,8 @@ export type Database = {
           avm_positive_label?: string | null
           avm_question_subtitle?: string | null
           avm_question_title?: string | null
+          background_theme_style?: string
+          business_phone?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -2643,6 +2655,7 @@ export type Database = {
           hub_background_style?: string | null
           id?: string
           instagram_url?: string | null
+          is_approved?: boolean
           is_demo_account?: boolean | null
           is_legacy_user?: boolean
           last_google_sync_at?: string | null
@@ -2659,9 +2672,11 @@ export type Database = {
           phone?: string | null
           pipeline_status?: string
           plan_type?: string | null
+          primary_color?: string
           restaurant_name?: string
           review_hub_url?: string | null
           sales_rep_id?: string | null
+          secondary_color?: string
           settings?: Json | null
           slug_locked_at?: string | null
           stripe_customer_id?: string | null
