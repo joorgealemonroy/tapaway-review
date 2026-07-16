@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useSalesRep } from '@/hooks/useSalesRep';
