@@ -248,32 +248,60 @@ export const LivePhonePreview = ({
               </button>
             )}
 
-            {activeBlocks.map((b, idx) => (
-              <button
-                key={b.id}
-                type="button"
-                style={{
-                  ...btn(cardBg, heading),
-                  border: `1px solid ${border}`,
-                  transitionDelay: `${idx * 30}ms`,
-                  justifyContent: 'flex-start',
-                  paddingLeft: 10,
-                }}
-                className="hover:scale-[1.01]"
-              >
-                {b.image ? (
-                  <img src={b.image} alt="" className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
-                ) : (
-                  <>
-                    {b.kind === 'email' && <ExternalLink className="h-4 w-4" />}
-                    {b.kind === 'website' && <Globe className="h-4 w-4" />}
-                    {b.kind === 'directions' && <ExternalLink className="h-4 w-4" />}
-                    {b.kind === 'custom' && <ExternalLink className="h-4 w-4" />}
-                  </>
-                )}
-                <span className="flex-1 text-center pr-6">{b.title}</span>
-              </button>
-            ))}
+            {blockGroups.map((g, gi) => {
+              if (g.kind === 'tiles') {
+                return (
+                  <div key={`grp-${gi}`} className="grid grid-cols-2 gap-2">
+                    {g.items.map(b => (
+                      <div
+                        key={b.id}
+                        className={`relative overflow-hidden rounded-xl ${g.items.length === 1 ? 'col-span-2 aspect-[2/1]' : 'aspect-square'}`}
+                        style={{ border: `1px solid ${border}` }}
+                      >
+                        <img src={b.image!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        <div
+                          className="absolute inset-0"
+                          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 55%)' }}
+                        />
+                        <span
+                          className="absolute bottom-2 left-2 right-2 text-white text-[12px] font-bold truncate"
+                          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                        >
+                          {b.title}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              const b = g.item;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  style={{
+                    ...btn(cardBg, heading),
+                    border: `1px solid ${border}`,
+                    justifyContent: 'flex-start',
+                    paddingLeft: 10,
+                  }}
+                  className="hover:scale-[1.01]"
+                >
+                  {b.image ? (
+                    <img src={b.image} alt="" className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
+                  ) : (
+                    <>
+                      {b.kind === 'email' && <ExternalLink className="h-4 w-4" />}
+                      {b.kind === 'website' && <Globe className="h-4 w-4" />}
+                      {b.kind === 'directions' && <ExternalLink className="h-4 w-4" />}
+                      {b.kind === 'custom' && <ExternalLink className="h-4 w-4" />}
+                    </>
+                  )}
+                  <span className="flex-1 text-center pr-6">{b.title}</span>
+                </button>
+              );
+            })}
+
 
 
             {businessPhone && (
