@@ -123,26 +123,41 @@ const RepHome = () => {
               <Trophy className="h-5 w-5 text-amber-300" />
             </div>
             <span className={`text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
-              quotaMet
+              capReached
+                ? 'bg-rose-400/15 text-rose-200 border-rose-400/30'
+                : quotaMet
                 ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30'
                 : 'bg-amber-400/15 text-amber-200 border-amber-400/30'
             }`}>
-              {quotaMet ? 'Quota Met' : `${DEMO_QUOTA - demosToday} to go`}
+              {capReached ? 'Daily Cap Reached' : quotaMet ? 'Quota Met' : `${DEMO_QUOTA - demosToday} to go`}
             </span>
           </div>
           <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Completed Demos Today</p>
           <p className="text-3xl font-semibold text-white mt-1">
-            {demosToday}<span className="text-white/30 text-xl"> / {DEMO_QUOTA}</span>
+            {demosToday}
+            <span className="text-white/30 text-xl">
+              {quotaMet ? ` / ${DEMO_CAP}` : ` / ${DEMO_QUOTA}`}
+            </span>
+            {quotaMet && !capReached && (
+              <span className="text-white/30 text-xs ml-1">· Daily cap</span>
+            )}
           </p>
           <p className="text-xs text-white/40 mt-1">
-            {quotaMet
+            {capReached
+              ? 'Daily 50-demo cap reached — resets at midnight.'
+              : quotaMet
               ? `Bonus unlocked · +$${bonusesEarned} in production bonuses.`
               : `${DEMO_QUOTA - demosToday} more to unlock $${DEMO_BONUS}/demo bonus.`}
           </p>
           <div className="mt-3 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
             <div
-              className={`h-full ${quotaMet ? 'bg-emerald-400' : 'bg-amber-400'} transition-all`}
-              style={{ width: `${Math.min(100, (demosToday / DEMO_QUOTA) * 100)}%` }}
+              className={`h-full ${capReached ? 'bg-rose-400' : quotaMet ? 'bg-emerald-400' : 'bg-amber-400'} transition-all`}
+              style={{
+                width: `${Math.min(
+                  100,
+                  quotaMet ? (demosToday / DEMO_CAP) * 100 : (demosToday / DEMO_QUOTA) * 100
+                )}%`,
+              }}
             />
           </div>
         </RepCard>
@@ -167,10 +182,16 @@ const RepHome = () => {
       {/* CTAs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         <button
-          onClick={() => navigate('/rep/demo/new')}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400 transition-colors active:scale-[0.98]"
+          onClick={() => !capReached && navigate('/rep/demo/new')}
+          disabled={capReached}
+          title={capReached ? 'Daily 50-demo cap reached — resets at midnight.' : undefined}
+          className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-colors ${
+            capReached
+              ? 'bg-emerald-500/30 text-[#0a0e1a]/60 cursor-not-allowed opacity-50'
+              : 'bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400 active:scale-[0.98]'
+          }`}
         >
-          <Plus className="h-4 w-4" /> Create New Demo
+          <Plus className="h-4 w-4" /> {capReached ? 'Daily Cap Reached' : 'Create New Demo'}
         </button>
         <button
           onClick={() => navigate('/rep/restaurants')}
