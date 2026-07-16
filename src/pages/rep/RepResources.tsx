@@ -47,16 +47,17 @@ const DEMO_HUB_GUIDE = [
 ];
 
 const RepResources = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const { user, loading: authLoading } = useAuth();
   const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [scriptOpen, setScriptOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!repLoading && !isSalesRep) { navigate('/'); return; }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+    if (!repLoading && !adminLoading && !isSalesRep) { navigate(isAdmin ? '/admin/reps' : '/'); return; }
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   if (authLoading || repLoading) {
     return (
