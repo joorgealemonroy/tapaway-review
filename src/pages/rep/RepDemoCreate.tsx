@@ -582,18 +582,43 @@ const RepDemoCreate = () => {
                       No blocks yet — use the presets above to add one.
                     </div>
                   )}
-                  {blocks.map(b => (
-                    <div key={b.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Input value={b.title} onChange={e => updateBlock(b.id, { title: e.target.value })} placeholder="Button title" className={`${inputCls} h-9 text-sm`} />
-                        <Switch checked={b.active} onCheckedChange={v => updateBlock(b.id, { active: v })} />
-                        <button onClick={() => removeBlock(b.id)} className="text-white/40 hover:text-red-400 p-1" type="button">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                  {blocks.map(b => {
+                    const img = (b as any).image as string | undefined;
+                    return (
+                      <div key={b.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer flex-shrink-0">
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleBlockImageUpload(b.id, e)} />
+                            {img ? (
+                              <img src={img} alt="" className="h-9 w-9 rounded-md object-cover border border-white/10" />
+                            ) : (
+                              <span className="h-9 w-9 rounded-md border border-dashed border-white/15 bg-white/[0.03] flex items-center justify-center text-white/40 hover:bg-white/[0.06]">
+                                <ImageIcon className="h-4 w-4" />
+                              </span>
+                            )}
+                          </label>
+                          <Input value={b.title} onChange={e => updateBlock(b.id, { title: e.target.value })} placeholder="Button title" className={`${inputCls} h-9 text-sm`} />
+                          <Switch checked={b.active} onCheckedChange={v => updateBlock(b.id, { active: v })} />
+                          <button onClick={() => removeBlock(b.id)} className="text-white/40 hover:text-red-400 p-1" type="button">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input value={b.url} onChange={e => updateBlock(b.id, { url: e.target.value })} placeholder="URL / mailto: / tel:" className={`${inputCls} h-9 text-sm font-mono`} />
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() => updateBlock(b.id, { image: null } as any)}
+                              className="text-[11px] text-white/40 hover:text-red-400"
+                            >
+                              Remove image
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <Input value={b.url} onChange={e => updateBlock(b.id, { url: e.target.value })} placeholder="URL / mailto: / tel:" className={`${inputCls} h-9 text-sm font-mono`} />
-                    </div>
-                  ))}
+                    );
+                  })}
+
                 </div>
               </RepCard>
 
