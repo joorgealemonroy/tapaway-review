@@ -141,29 +141,10 @@ export const LivePhonePreview = ({
             }}
           />
 
-          {/* Logo overlap */}
-          <div className="flex flex-col items-center px-5 -mt-10 text-center">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt=""
-                className="w-20 h-20 rounded-full object-cover border-4 shadow-lg"
-                style={{ borderColor: theme.isDark ? '#0a0e1a' : '#fff' }}
-              />
-            ) : (
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold border-4 shadow-lg"
-                style={{
-                  color: heading,
-                  background: cardBg,
-                  borderColor: theme.isDark ? '#0a0e1a' : '#fff',
-                }}
-              >
-                {(businessName || '?').charAt(0).toUpperCase()}
-              </div>
-            )}
+          {/* Content below banner */}
+          <div className="flex flex-col items-center px-5 pt-4 text-center">
+            <h1 className="text-xl font-bold" style={{ color: heading }}>
 
-            <h1 className="text-xl font-bold mt-3" style={{ color: heading }}>
               {businessName || 'Your Business'}
             </h1>
 
