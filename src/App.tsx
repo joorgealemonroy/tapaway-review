@@ -52,7 +52,7 @@ const DPA = lazy(() => import("./pages/DPA"));
 
 // Sales Rep Portal - lazy loaded
 const RepHome = lazy(() => import("./pages/rep/RepHome"));
-const RepRestaurants = lazy(() => import("./pages/rep/RepRestaurants"));
+const RepRestaurants = lazy(() => import("./pages/rep/RepBusinesses"));
 const RepClose = lazy(() => import("./pages/rep/RepClose"));
 const RepDemoCreate = lazy(() => import("./pages/rep/RepDemoCreate"));
 const RepCommissions = lazy(() => import("./pages/rep/RepCommissions"));

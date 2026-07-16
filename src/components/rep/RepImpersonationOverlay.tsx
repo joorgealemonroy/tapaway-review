@@ -2,16 +2,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { Button } from "@/components/ui/button";
 import { Eye, ArrowLeft } from "lucide-react";
 
 /**
  * Global overlay for admin impersonation of the Sales Partner portal.
- *
- * Renders on any /rep/* route when ?admin_view_rep=<id> is present and the
- * caller is a super admin. Also re-appends the query param whenever a rep
- * page navigates and drops it, so impersonation stays sticky without having
- * to edit every rep page's navigation logic.
  */
 export const RepImpersonationOverlay = () => {
   const location = useLocation();
@@ -22,8 +16,6 @@ export const RepImpersonationOverlay = () => {
   const isRepRoute = location.pathname.startsWith("/rep");
   const paramRepId = searchParams.get("admin_view_rep");
 
-  // Remember the impersonated id even after navigations that drop the param,
-  // so we can re-append it before the next render commits.
   const [stickyRepId, setStickyRepId] = useState<string | null>(paramRepId);
   const [repName, setRepName] = useState<string>("");
 
@@ -33,9 +25,6 @@ export const RepImpersonationOverlay = () => {
 
   const active = isRepRoute && !!stickyRepId && isAdmin;
 
-  // If we're on a rep route with a sticky impersonation id but the URL has
-  // lost the query param (e.g. after `navigate('/rep/restaurants')`), silently
-  // put it back.
   useEffect(() => {
     if (!active) return;
     if (paramRepId) return;
@@ -69,20 +58,22 @@ export const RepImpersonationOverlay = () => {
   if (!active) return null;
 
   return (
-    <div className="sticky top-0 z-[60] bg-amber-500 text-amber-950 px-4 py-2 flex items-center justify-between">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <Eye className="h-4 w-4" />
-        <span>Viewing as {repName || "…"}</span>
+    <div className="sticky top-0 z-[60] bg-amber-500/10 border-b border-amber-400/20 backdrop-blur-md text-amber-100 px-4 py-2 flex items-center justify-between">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-400/20">
+          <Eye className="h-3.5 w-3.5" />
+        </span>
+        <span>
+          Impersonating <span className="font-semibold">{repName || "…"}</span>
+        </span>
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        className="bg-amber-600/20 border-amber-700 text-amber-950 hover:bg-amber-600/40 h-7 text-xs"
+      <button
         onClick={() => navigate("/admin/reps")}
+        className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 transition-colors"
       >
-        <ArrowLeft className="h-3 w-3 mr-1" />
+        <ArrowLeft className="h-3 w-3" />
         Back to Admin
-      </Button>
+      </button>
     </div>
   );
 };

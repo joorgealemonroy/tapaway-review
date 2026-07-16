@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { useRepNavigate } from '@/hooks/useRepNavigate';
 
 interface RepTaxBannerProps {
@@ -7,7 +7,7 @@ interface RepTaxBannerProps {
 
 export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
   const navigate = useRepNavigate();
-  
+
   if (status === 'approved') return null;
 
   const getMessage = () => {
@@ -23,22 +23,30 @@ export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
     }
   };
 
-  const bgColor = status === 'rejected' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200';
-  const textColor = status === 'rejected' ? 'text-red-800' : 'text-amber-800';
-  const iconColor = status === 'rejected' ? 'text-red-500' : 'text-amber-500';
+  const isRejected = status === 'rejected';
+  const container = isRejected
+    ? 'bg-red-500/10 border-red-500/20 text-red-200/90'
+    : 'bg-amber-500/10 border-amber-500/20 text-amber-200/90';
+  const pill = isRejected
+    ? 'bg-red-500/20 text-red-100 border-red-400/30'
+    : 'bg-amber-500/20 text-amber-100 border-amber-400/30';
+  const iconClass = isRejected ? 'text-red-300' : 'text-amber-300';
 
   return (
-    <div className={`${bgColor} border rounded-lg p-3 mb-4`}>
-      <div className="flex items-start gap-2">
-        <AlertTriangle className={`h-4 w-4 mt-0.5 flex-shrink-0 ${iconColor}`} />
-        <div className={`text-sm ${textColor}`}>
-          <span>{getMessage()}</span>
+    <div className={`border rounded-2xl px-4 py-3 mb-5 ${container} backdrop-blur-md`}>
+      <div className="flex items-start gap-3">
+        <AlertTriangle className={`h-4 w-4 mt-0.5 flex-shrink-0 ${iconClass}`} />
+        <div className="flex-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className={`text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border ${pill}`}>
+            Action needed
+          </span>
+          <span className="opacity-90">{getMessage()}</span>
           {status !== 'submitted' && (
-            <button 
+            <button
               onClick={() => navigate('/rep/profile')}
-              className="ml-1 font-medium underline hover:no-underline"
+              className="ml-auto inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
             >
-              Go to Profile →
+              Upload W-9 <ArrowRight className="h-3 w-3" />
             </button>
           )}
         </div>
