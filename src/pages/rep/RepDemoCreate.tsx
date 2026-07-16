@@ -5,6 +5,9 @@ import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -25,11 +28,26 @@ import {
   CheckCircle2,
   Sparkles,
   HelpCircle,
+  Plus,
+  Trash2,
+  Mail,
+  Globe,
+  MapPin,
+  Link as LinkIcon,
+  Palette,
+  MessagesSquare,
+  Image as ImageIcon,
+  LayoutTemplate,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
-import { LivePhonePreview } from '@/components/rep/LivePhonePreview';
+import {
+  LivePhonePreview,
+  type LinkBlock,
+  type Socials,
+  type HeaderStyle,
+} from '@/components/rep/LivePhonePreview';
 import {
   DEFAULT_PRIMARY,
   DEFAULT_SECONDARY,
@@ -63,6 +81,8 @@ const uploadToBucket = async (file: File, path: string): Promise<string | null> 
 
 type Step = 'edit' | 'upload_pdf' | 'done';
 
+const newBlockId = () => Math.random().toString(36).slice(2, 10);
+
 const RepDemoCreate = () => {
   const navigate = useRepNavigate();
   const { id: editId } = useParams<{ id?: string }>();
@@ -74,16 +94,17 @@ const RepDemoCreate = () => {
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<Step>('edit');
   const [savedId, setSavedId] = useState<string | null>(editId || null);
+  const [activeTab, setActiveTab] = useState<'links' | 'design' | 'leads'>('links');
 
   const [form, setForm] = useState({
     business_name: '',
     business_phone: '',
     website_url: '',
     google_place_id: '',
-    instagram_url: '',
-    yelp_review_url: '',
+    bio: '',
   });
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [gallery, setGallery] = useState<string[]>([]);
   const [existingSlug, setExistingSlug] = useState<string | null>(null);
   const [printPdfPath, setPrintPdfPath] = useState<string | null>(null);
@@ -91,6 +112,12 @@ const RepDemoCreate = () => {
   const [themeStyle, setThemeStyle] = useState<BackgroundThemeStyle>('default');
   const [primaryColor, setPrimaryColor] = useState(DEFAULT_PRIMARY);
   const [secondaryColor, setSecondaryColor] = useState(DEFAULT_SECONDARY);
+  const [headerStyle, setHeaderStyle] = useState<HeaderStyle>('solid');
+  const [socials, setSocials] = useState<Socials>({});
+  const [blocks, setBlocks] = useState<LinkBlock[]>([]);
+  const [contactCardEnabled, setContactCardEnabled] = useState(true);
+  const [foundingBadge, setFoundingBadge] = useState(false);
+  const [leadFormEnabled, setLeadFormEnabled] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -111,22 +138,33 @@ const RepDemoCreate = () => {
         return;
       }
       const d = data as any;
+      const settings = (d.settings as any) || {};
       setForm({
         business_name: d.restaurant_name || '',
         business_phone: d.business_phone || d.owner_phone || '',
         website_url: d.website_url || '',
         google_place_id: d.google_place_id || '',
-        instagram_url: d.instagram_url || '',
-        yelp_review_url: d.yelp_review_url || '',
+        bio: settings.bio || '',
       });
       setLogoUrl(d.logo_url);
+      setBannerUrl(settings.banner_url || null);
       setExistingSlug(d.custom_slug);
       setPrintPdfPath(d.card_print_pdf_path || null);
       setThemeStyle((d.background_theme_style as BackgroundThemeStyle) || 'default');
       setPrimaryColor(d.primary_color || DEFAULT_PRIMARY);
       setSecondaryColor(d.secondary_color || DEFAULT_SECONDARY);
-      const settings = (d.settings as any) || {};
       if (Array.isArray(settings.gallery)) setGallery(settings.gallery);
+      if (settings.header_style) setHeaderStyle(settings.header_style);
+      setSocials({
+        instagram: d.instagram_url || settings.socials?.instagram || '',
+        yelp: d.yelp_review_url || settings.socials?.yelp || '',
+        facebook: settings.socials?.facebook || '',
+        tiktok: settings.socials?.tiktok || '',
+      });
+      if (Array.isArray(settings.blocks)) setBlocks(settings.blocks);
+      if (typeof settings.contact_card_enabled === 'boolean') setContactCardEnabled(settings.contact_card_enabled);
+      if (settings.badges?.founding) setFoundingBadge(true);
+      if (typeof settings.lead_form_enabled === 'boolean') setLeadFormEnabled(settings.lead_form_enabled);
       setLoading(false);
     })();
   }, [editId, user, navigate]);
@@ -170,17 +208,27 @@ const RepDemoCreate = () => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    const path = `demo/${user.id}/${Date.now()}-${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/logo-${Date.now()}-${safeName}`;
     const url = await uploadToBucket(file, path);
     if (url) setLogoUrl(url);
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/banner-${Date.now()}-${safeName}`;
+    const url = await uploadToBucket(file, path);
+    if (url) setBannerUrl(url);
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     if (gallery.length >= 3) return toast.error('Maximum 3 gallery images');
-    const slug = existingSlug || slugify(form.business_name || 'demo');
-    const path = `gallery/${slug}/${Date.now()}-${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/gallery-${Date.now()}-${safeName}`;
     const url = await uploadToBucket(file, path);
     if (url) setGallery(prev => [...prev, url]);
   };
@@ -189,6 +237,24 @@ const RepDemoCreate = () => {
     setGallery(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const addBlock = (preset?: 'email' | 'website' | 'directions') => {
+    const presets: Record<string, { title: string; url: string; kind: LinkBlock['kind'] }> = {
+      email: { title: 'Get In Contact!', url: 'mailto:hello@example.com', kind: 'email' },
+      website: { title: 'Check Out Our Website!', url: '', kind: 'website' },
+      directions: { title: 'Directions', url: 'https://maps.apple.com/?q=', kind: 'directions' },
+    };
+    const p = preset ? presets[preset] : { title: '', url: '', kind: 'custom' as const };
+    setBlocks(prev => [
+      ...prev,
+      { id: newBlockId(), title: p.title, url: p.url, kind: p.kind, active: true },
+    ]);
+  };
+
+  const updateBlock = (id: string, patch: Partial<LinkBlock>) => {
+    setBlocks(prev => prev.map(b => (b.id === id ? { ...b, ...patch } : b)));
+  };
+  const removeBlock = (id: string) => setBlocks(prev => prev.filter(b => b.id !== id));
+
   const handleSubmit = async () => {
     if (!user) return;
     if (!form.business_name.trim()) return toast.error('Business name is required');
@@ -196,19 +262,36 @@ const RepDemoCreate = () => {
 
     setSaving(true);
     try {
+      const settingsPayload = {
+        gallery,
+        bio: form.bio.trim(),
+        banner_url: bannerUrl,
+        header_style: headerStyle,
+        socials: {
+          instagram: socials.instagram?.trim() || '',
+          yelp: socials.yelp?.trim() || '',
+          facebook: socials.facebook?.trim() || '',
+          tiktok: socials.tiktok?.trim() || '',
+        },
+        blocks,
+        contact_card_enabled: contactCardEnabled,
+        badges: { founding: foundingBadge },
+        lead_form_enabled: leadFormEnabled,
+      };
+
       const payload: any = {
         restaurant_name: form.business_name.trim(),
         business_phone: form.business_phone.trim(),
         owner_phone: form.business_phone.trim(),
         website_url: form.website_url.trim() || null,
         google_place_id: form.google_place_id.trim() || null,
-        instagram_url: form.instagram_url.trim() || null,
-        yelp_review_url: form.yelp_review_url.trim() || null,
+        instagram_url: socials.instagram?.trim() || null,
+        yelp_review_url: socials.yelp?.trim() || null,
         logo_url: logoUrl,
         background_theme_style: themeStyle,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
-        settings: { gallery },
+        settings: settingsPayload,
       };
 
       if (editId) {
@@ -217,7 +300,7 @@ const RepDemoCreate = () => {
         toast.success('Demo hub updated');
         navigate('/rep/restaurants');
       } else {
-        // Enforce 50-demo daily cap on raw creations
+        // 50-demo daily cap
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
         const { count: todayCount, error: countError } = await supabase
@@ -271,7 +354,6 @@ const RepDemoCreate = () => {
     );
   }
 
-  // Step 3: Done
   if (step === 'done') {
     return (
       <RepShell title="Submitted for Admin Review" subtitle="Great work.">
@@ -303,7 +385,6 @@ const RepDemoCreate = () => {
     );
   }
 
-  // Step 2: Print PDF Upload
   if (step === 'upload_pdf') {
     return (
       <RepShell title="Step 2 of 2 — Upload Print File" subtitle="Almost done.">
@@ -377,11 +458,13 @@ const RepDemoCreate = () => {
     );
   }
 
-  // Step 1: Split-screen editor
+  const inputCls = 'bg-white/[0.03] border-white/10 text-white placeholder:text-white/30';
+  const cardCls = 'p-4';
+
   return (
     <RepShell
       title={editId ? 'Edit Demo Hub' : 'New Demo Hub'}
-      subtitle={editId ? 'Update this demo hub' : 'Live for 5 days from creation · pending admin approval'}
+      subtitle={editId ? 'Update this demo hub' : 'Live for 5 days · pending admin approval'}
     >
       <div className="mb-4">
         <Button
@@ -394,238 +477,326 @@ const RepDemoCreate = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* LEFT — Configuration */}
-        <div className="space-y-4">
-          {/* Business Info */}
-          <RepCard className="p-5">
-            <h3 className="text-white font-semibold mb-1">Business Info</h3>
-            <p className="text-xs text-white/50 mb-4">Fast manual entry — no address lookups.</p>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="business_name" className="text-white/70">Business Name *</Label>
-                <Input
-                  id="business_name"
-                  value={form.business_name}
-                  onChange={e => setForm({ ...form, business_name: e.target.value })}
-                  placeholder="Joe's Pizza"
-                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                />
-              </div>
-              <div>
-                <Label htmlFor="business_phone" className="text-white/70">Business Phone Number *</Label>
-                <Input
-                  id="business_phone"
-                  type="tel"
-                  value={form.business_phone}
-                  onChange={e => setForm({ ...form, business_phone: e.target.value })}
-                  placeholder="+1 555 555 5555"
-                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                />
-                <p className="text-xs text-white/40 mt-1">Direct line for customers to call.</p>
-              </div>
-              <div>
-                <Label htmlFor="website_url" className="text-white/70">Website URL <span className="text-white/40">(Optional)</span></Label>
-                <Input
-                  id="website_url"
-                  value={form.website_url}
-                  onChange={e => setForm({ ...form, website_url: e.target.value })}
-                  placeholder="https://joespizza.com"
-                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                />
-                <p className="text-xs text-white/40 mt-1">Not every local business has one — leave blank if so.</p>
-              </div>
+        {/* LEFT — tabs */}
+        <div>
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
+            <TabsList className="grid grid-cols-3 w-full bg-white/[0.03] border border-white/10">
+              <TabsTrigger value="links" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-[#0a0e1a]">
+                <LinkIcon className="h-4 w-4 mr-1.5" /> Links
+              </TabsTrigger>
+              <TabsTrigger value="design" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-[#0a0e1a]">
+                <Palette className="h-4 w-4 mr-1.5" /> Design
+              </TabsTrigger>
+              <TabsTrigger value="leads" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-[#0a0e1a]">
+                <MessagesSquare className="h-4 w-4 mr-1.5" /> Leads
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold mb-3">Optional platforms</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* LINKS TAB */}
+            <TabsContent value="links" className="mt-4 space-y-4">
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-1">Hero Identity</h3>
+                <p className="text-xs text-white/50 mb-4">The basics shown at the top of the page.</p>
+                <div className="space-y-3">
                   <div>
-                    <Label htmlFor="instagram_url" className="text-white/70">Instagram</Label>
-                    <Input
-                      id="instagram_url"
-                      value={form.instagram_url}
-                      onChange={e => setForm({ ...form, instagram_url: e.target.value })}
-                      placeholder="https://instagram.com/..."
-                      className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                    />
+                    <Label className="text-white/70">Business Name *</Label>
+                    <Input value={form.business_name} onChange={e => setForm({ ...form, business_name: e.target.value })} placeholder="Joe's Pizza" className={inputCls} />
                   </div>
                   <div>
-                    <Label htmlFor="yelp_review_url" className="text-white/70">Yelp</Label>
-                    <Input
-                      id="yelp_review_url"
-                      value={form.yelp_review_url}
-                      onChange={e => setForm({ ...form, yelp_review_url: e.target.value })}
-                      placeholder="https://yelp.com/biz/..."
-                      className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30"
-                    />
+                    <Label className="text-white/70">Phone Number *</Label>
+                    <Input type="tel" value={form.business_phone} onChange={e => setForm({ ...form, business_phone: e.target.value })} placeholder="+1 555 555 5555" className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Bio / Description</Label>
+                    <Textarea rows={2} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} placeholder="Family-owned pizzeria in Brooklyn since 1979" className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Website URL <span className="text-white/40">(Optional)</span></Label>
+                    <Input value={form.website_url} onChange={e => setForm({ ...form, website_url: e.target.value })} placeholder="https://joespizza.com" className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Google Place ID</Label>
+                    <Input value={form.google_place_id} onChange={e => setForm({ ...form, google_place_id: e.target.value })} placeholder="ChIJV_SjbZJMw4ARZINlm2uAaoE" className={`${inputCls} font-mono text-sm`} />
+                    <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-300 hover:text-emerald-200 mt-1">
+                      <HelpCircle className="h-3 w-3" /> How to find a Place ID
+                    </a>
                   </div>
                 </div>
-              </div>
-            </div>
-          </RepCard>
+              </RepCard>
 
-          {/* Google Place ID */}
-          <RepCard className="p-5">
-            <h3 className="text-white font-semibold mb-1">Google Review</h3>
-            <p className="text-xs text-white/50 mb-4">Enter the Place ID — we'll build the review URL automatically.</p>
-            <Label htmlFor="google_place_id" className="text-white/70">Google Place ID</Label>
-            <Input
-              id="google_place_id"
-              value={form.google_place_id}
-              onChange={e => setForm({ ...form, google_place_id: e.target.value })}
-              placeholder="ChIJV_SjbZJMw4ARZINlm2uAaoE"
-              className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/30 font-mono text-sm"
-            />
-            <a
-              href="https://developers.google.com/maps/documentation/places/web-service/place-id"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-emerald-300 hover:text-emerald-200 mt-2"
-            >
-              <HelpCircle className="h-3 w-3" /> How to find a Place ID
-            </a>
-          </RepCard>
+              <RepCard className={cardCls}>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-white font-semibold">Content Blocks</h3>
+                    <p className="text-xs text-white/50">Custom CTA buttons rendered on the hub.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Button size="sm" variant="outline" onClick={() => addBlock('email')} className="border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]">
+                    <Mail className="h-3.5 w-3.5 mr-1" /> Email
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => addBlock('website')} className="border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]">
+                    <Globe className="h-3.5 w-3.5 mr-1" /> Website
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => addBlock('directions')} className="border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]">
+                    <MapPin className="h-3.5 w-3.5 mr-1" /> Directions
+                  </Button>
+                  <Button size="sm" onClick={() => addBlock()} className="bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400">
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Link
+                  </Button>
+                </div>
 
-          {/* Brand Engine */}
-          <RepCard className="p-5">
-            <h3 className="text-white font-semibold mb-1">Brand Engine</h3>
-            <p className="text-xs text-white/50 mb-4">Logo, gallery, colors and background.</p>
-
-            <div className="space-y-4">
-              {/* Logo */}
-              <div>
-                <Label className="text-white/70">Logo</Label>
-                <div className="flex items-center gap-4 mt-1">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="" className="w-20 h-20 object-cover rounded-lg border border-white/10" />
-                  ) : (
-                    <div className="w-20 h-20 rounded-lg bg-white/[0.03] border border-white/10 flex items-center justify-center">
-                      <Upload className="h-5 w-5 text-white/40" />
+                <div className="space-y-2">
+                  {blocks.length === 0 && (
+                    <div className="text-center py-6 text-xs text-white/40 border border-dashed border-white/10 rounded-lg">
+                      No blocks yet — use the presets above to add one.
                     </div>
                   )}
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                    <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
-                      <Upload className="h-4 w-4" />
-                      {logoUrl ? 'Replace Logo' : 'Upload Logo'}
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Gallery */}
-              <div>
-                <Label className="text-white/70">Gallery <span className="text-white/40">(up to 3)</span></Label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  {gallery.map((url, i) => (
-                    <div key={url} className="relative aspect-square">
-                      <img src={url} alt="" className="w-full h-full object-cover rounded-lg border border-white/10" />
-                      <button
-                        onClick={() => removeGalleryImage(i)}
-                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
-                        type="button"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                  {blocks.map(b => (
+                    <div key={b.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Input value={b.title} onChange={e => updateBlock(b.id, { title: e.target.value })} placeholder="Button title" className={`${inputCls} h-9 text-sm`} />
+                        <Switch checked={b.active} onCheckedChange={v => updateBlock(b.id, { active: v })} />
+                        <button onClick={() => removeBlock(b.id)} className="text-white/40 hover:text-red-400 p-1" type="button">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <Input value={b.url} onChange={e => updateBlock(b.id, { url: e.target.value })} placeholder="URL / mailto: / tel:" className={`${inputCls} h-9 text-sm font-mono`} />
                     </div>
                   ))}
-                  {gallery.length < 3 && (
-                    <label className="cursor-pointer aspect-square rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 hover:border-emerald-400/40 hover:bg-white/[0.03] transition-colors">
-                      <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
-                      <ImagePlus className="h-5 w-5 text-white/40" />
-                      <span className="text-[10px] text-white/40">Add</span>
-                    </label>
-                  )}
                 </div>
-              </div>
+              </RepCard>
 
-              {/* Colors */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="primary_color" className="text-white/70">Primary Color</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      id="primary_color"
-                      type="color"
-                      value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="h-10 w-14 rounded-md border border-white/10 bg-transparent cursor-pointer"
-                    />
-                    <Input
-                      value={primaryColor}
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="bg-white/[0.03] border-white/10 text-white text-sm font-mono"
-                    />
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-1">Social Blocks</h3>
+                <p className="text-xs text-white/50 mb-4">Rendered as tappable icons — deep-linked on mobile.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-white/70">Instagram</Label>
+                    <Input value={socials.instagram || ''} onChange={e => setSocials({ ...socials, instagram: e.target.value })} placeholder="https://instagram.com/joespizza" className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Yelp</Label>
+                    <Input value={socials.yelp || ''} onChange={e => setSocials({ ...socials, yelp: e.target.value })} placeholder="https://yelp.com/biz/..." className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Facebook</Label>
+                    <Input value={socials.facebook || ''} onChange={e => setSocials({ ...socials, facebook: e.target.value })} placeholder="https://facebook.com/joespizza" className={inputCls} />
+                  </div>
+                  <div>
+                    <Label className="text-white/70">TikTok</Label>
+                    <Input value={socials.tiktok || ''} onChange={e => setSocials({ ...socials, tiktok: e.target.value })} placeholder="https://tiktok.com/@joespizza" className={inputCls} />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="secondary_color" className="text-white/70">Secondary Color</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      id="secondary_color"
-                      type="color"
-                      value={secondaryColor}
-                      onChange={e => setSecondaryColor(e.target.value)}
-                      className="h-10 w-14 rounded-md border border-white/10 bg-transparent cursor-pointer"
-                    />
-                    <Input
-                      value={secondaryColor}
-                      onChange={e => setSecondaryColor(e.target.value)}
-                      className="bg-white/[0.03] border-white/10 text-white text-sm font-mono"
-                    />
+              </RepCard>
+            </TabsContent>
+
+            {/* DESIGN TAB */}
+            <TabsContent value="design" className="mt-4 space-y-4">
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-1">Header Style</h3>
+                <p className="text-xs text-white/50 mb-3">How the top of the page looks.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { v: 'solid', label: 'Solid Color', icon: Palette },
+                    { v: 'image', label: 'Image', icon: ImageIcon },
+                    { v: 'full_banner', label: 'Full Banner', icon: LayoutTemplate },
+                  ] as const).map(o => {
+                    const Icon = o.icon;
+                    const active = headerStyle === o.v;
+                    return (
+                      <button
+                        key={o.v}
+                        type="button"
+                        onClick={() => setHeaderStyle(o.v)}
+                        className={`p-3 rounded-lg border text-xs font-medium transition-colors flex flex-col items-center gap-1.5 ${
+                          active
+                            ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-200'
+                            : 'bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {(headerStyle === 'image' || headerStyle === 'full_banner') && (
+                  <div className="mt-4">
+                    <Label className="text-white/70">Banner Image</Label>
+                    <div className="mt-1 flex items-center gap-3">
+                      {bannerUrl ? (
+                        <img src={bannerUrl} alt="" className="h-16 w-32 object-cover rounded-lg border border-white/10" />
+                      ) : (
+                        <div className="h-16 w-32 rounded-lg bg-white/[0.03] border border-dashed border-white/10 flex items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-white/40" />
+                        </div>
+                      )}
+                      <label className="cursor-pointer">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
+                          <Upload className="h-4 w-4" /> {bannerUrl ? 'Replace' : 'Upload'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </RepCard>
+
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-1">Logo & Gallery</h3>
+                <p className="text-xs text-white/50 mb-4">Round logo overlaps the banner.</p>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-white/70">Logo</Label>
+                    <div className="flex items-center gap-4 mt-1">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="" className="w-20 h-20 object-cover rounded-full border border-white/10" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center">
+                          <Upload className="h-5 w-5 text-white/40" />
+                        </div>
+                      )}
+                      <label className="cursor-pointer">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-white/10 bg-white/[0.03] text-sm text-white/80 hover:bg-white/[0.06]">
+                          <Upload className="h-4 w-4" /> {logoUrl ? 'Replace Logo' : 'Upload Logo'}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-white/70">Gallery <span className="text-white/40">(up to 3)</span></Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {gallery.map((url, i) => (
+                        <div key={url} className="relative aspect-square">
+                          <img src={url} alt="" className="w-full h-full object-cover rounded-lg border border-white/10" />
+                          <button onClick={() => removeGalleryImage(i)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1" type="button">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {gallery.length < 3 && (
+                        <label className="cursor-pointer aspect-square rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 hover:border-emerald-400/40">
+                          <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+                          <ImagePlus className="h-5 w-5 text-white/40" />
+                          <span className="text-[10px] text-white/40">Add</span>
+                        </label>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </RepCard>
 
-              {/* Theme */}
-              <div>
-                <Label className="text-white/70">Background Style</Label>
-                <Select value={themeStyle} onValueChange={v => setThemeStyle(v as BackgroundThemeStyle)}>
-                  <SelectTrigger className="bg-white/[0.03] border-white/10 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0f1420] border-white/10 text-white">
-                    {THEME_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </RepCard>
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-1">Colors & Theme</h3>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <Label className="text-white/70">Primary</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="h-10 w-14 rounded-md border border-white/10 bg-transparent cursor-pointer" />
+                      <Input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className={`${inputCls} text-sm font-mono`} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-white/70">Page Background</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input type="color" value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="h-10 w-14 rounded-md border border-white/10 bg-transparent cursor-pointer" />
+                      <Input value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className={`${inputCls} text-sm font-mono`} />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label className="text-white/70">Background Style</Label>
+                  <Select value={themeStyle} onValueChange={v => setThemeStyle(v as BackgroundThemeStyle)}>
+                    <SelectTrigger className="bg-white/[0.03] border-white/10 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0f1420] border-white/10 text-white">
+                      {THEME_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </RepCard>
 
-          {/* Submit */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/rep/restaurants')}
-              className="flex-1 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
-            >
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-3">Badges & Contact</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white font-medium">Founding Creator Badge</p>
+                      <p className="text-xs text-white/50">Adds a subtle badge beneath the bio.</p>
+                    </div>
+                    <Switch checked={foundingBadge} onCheckedChange={setFoundingBadge} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white font-medium">Contact Card</p>
+                      <p className="text-xs text-white/50">Shows a "Save Contact" pill under the bio.</p>
+                    </div>
+                    <Switch checked={contactCardEnabled} onCheckedChange={setContactCardEnabled} />
+                  </div>
+                </div>
+              </RepCard>
+            </TabsContent>
+
+            {/* LEADS TAB */}
+            <TabsContent value="leads" className="mt-4 space-y-4">
+              <RepCard className={cardCls}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-semibold">Lead Capture Form</h3>
+                    <p className="text-xs text-white/50">Adds an email input block for VIP club signups.</p>
+                  </div>
+                  <Switch checked={leadFormEnabled} onCheckedChange={setLeadFormEnabled} />
+                </div>
+              </RepCard>
+
+              <RepCard className={cardCls}>
+                <h3 className="text-white font-semibold mb-3">Form Submissions</h3>
+                <div className="text-center py-10 border border-dashed border-white/10 rounded-lg bg-white/[0.01]">
+                  <MessagesSquare className="h-8 w-8 text-white/20 mx-auto mb-2" />
+                  <p className="text-sm text-white/50">No form submissions yet</p>
+                  <p className="text-xs text-white/30 mt-1">Once approved, customer inquiries land here.</p>
+                </div>
+              </RepCard>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={() => navigate('/rep/restaurants')} className="flex-1 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]">
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="flex-1 bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400"
-            >
+            <Button onClick={handleSubmit} disabled={saving} className="flex-1 bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400">
               {saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Demo Hub'}
             </Button>
           </div>
         </div>
 
-        {/* RIGHT — Live phone simulator */}
+        {/* RIGHT — simulator */}
         <div>
           <LivePhonePreview
             businessName={form.business_name}
+            bio={form.bio}
             logoUrl={logoUrl}
             gallery={gallery}
             themeStyle={themeStyle}
             primaryColor={primaryColor}
             secondaryColor={secondaryColor}
-            hasGoogle={!!form.google_place_id.trim()}
-            hasYelp={!!form.yelp_review_url.trim()}
-            hasInstagram={!!form.instagram_url.trim()}
-            hasWebsite={!!form.website_url.trim()}
             businessPhone={form.business_phone.trim()}
+            headerStyle={headerStyle}
+            bannerUrl={bannerUrl}
+            socials={socials}
+            blocks={blocks}
+            contactCardEnabled={contactCardEnabled}
+            foundingBadge={foundingBadge}
+            leadFormEnabled={leadFormEnabled}
+            hasGoogle={!!form.google_place_id.trim()}
+            hasWebsite={!!form.website_url.trim()}
           />
         </div>
       </div>
