@@ -57,6 +57,7 @@ const AdminReps = () => {
   const [selectedApplication, setSelectedApplication] = useState<RepApplication | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [confirmToggle, setConfirmToggle] = useState<{ rep: SalesRep; next: boolean } | null>(null);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
