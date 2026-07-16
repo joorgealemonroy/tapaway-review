@@ -294,6 +294,7 @@ const Admin = () => {
       setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_approved: true } : x)));
       toast.success(`Hub approved — commission unlocked for the rep.`);
     }
+  };
 
   const repairGoogleReviewLink = async (r: Restaurant) => {
     if (!r.google_place_id || !r.google_place_id.trim()) {
