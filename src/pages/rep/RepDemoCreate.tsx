@@ -114,6 +114,7 @@ const RepDemoCreate = () => {
   const [secondaryColor, setSecondaryColor] = useState(DEFAULT_SECONDARY);
   const [headerStyle, setHeaderStyle] = useState<HeaderStyle>('full_banner');
   const [socials, setSocials] = useState<Socials>({});
+  const [socialImages, setSocialImages] = useState<Partial<Record<'instagram' | 'yelp' | 'facebook' | 'tiktok', string>>>({});
   const [blocks, setBlocks] = useState<LinkBlock[]>([]);
   const [contactCardEnabled, setContactCardEnabled] = useState(true);
   const [foundingBadge, setFoundingBadge] = useState(false);
@@ -161,6 +162,7 @@ const RepDemoCreate = () => {
         facebook: settings.socials?.facebook || '',
         tiktok: settings.socials?.tiktok || '',
       });
+      setSocialImages(settings.social_images || {});
       if (Array.isArray(settings.blocks)) setBlocks(settings.blocks);
       if (typeof settings.contact_card_enabled === 'boolean') setContactCardEnabled(settings.contact_card_enabled);
       if (settings.badges?.founding) setFoundingBadge(true);
@@ -237,6 +239,33 @@ const RepDemoCreate = () => {
     setGallery(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleSocialImageUpload = async (
+    platform: 'instagram' | 'yelp' | 'facebook' | 'tiktok',
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/social-${platform}-${Date.now()}-${safeName}`;
+    const url = await uploadToBucket(file, path);
+    if (url) setSocialImages(prev => ({ ...prev, [platform]: url }));
+    e.target.value = '';
+  };
+
+  const handleBlockImageUpload = async (
+    blockId: string,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/block-${blockId}-${Date.now()}-${safeName}`;
+    const url = await uploadToBucket(file, path);
+    if (url) updateBlock(blockId, { image: url } as any);
+    e.target.value = '';
+  };
+
+
   const addBlock = (preset?: 'email' | 'website' | 'directions') => {
     const presets: Record<string, { title: string; url: string; kind: LinkBlock['kind'] }> = {
       email: { title: 'Get In Contact!', url: 'mailto:hello@example.com', kind: 'email' },
@@ -273,6 +302,7 @@ const RepDemoCreate = () => {
           facebook: socials.facebook?.trim() || '',
           tiktok: socials.tiktok?.trim() || '',
         },
+        social_images: socialImages,
         blocks,
         contact_card_enabled: contactCardEnabled,
         badges: { founding: foundingBadge },
@@ -552,43 +582,93 @@ const RepDemoCreate = () => {
                       No blocks yet — use the presets above to add one.
                     </div>
                   )}
-                  {blocks.map(b => (
-                    <div key={b.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Input value={b.title} onChange={e => updateBlock(b.id, { title: e.target.value })} placeholder="Button title" className={`${inputCls} h-9 text-sm`} />
-                        <Switch checked={b.active} onCheckedChange={v => updateBlock(b.id, { active: v })} />
-                        <button onClick={() => removeBlock(b.id)} className="text-white/40 hover:text-red-400 p-1" type="button">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                  {blocks.map(b => {
+                    const img = (b as any).image as string | undefined;
+                    return (
+                      <div key={b.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer flex-shrink-0">
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleBlockImageUpload(b.id, e)} />
+                            {img ? (
+                              <img src={img} alt="" className="h-9 w-9 rounded-md object-cover border border-white/10" />
+                            ) : (
+                              <span className="h-9 w-9 rounded-md border border-dashed border-white/15 bg-white/[0.03] flex items-center justify-center text-white/40 hover:bg-white/[0.06]">
+                                <ImageIcon className="h-4 w-4" />
+                              </span>
+                            )}
+                          </label>
+                          <Input value={b.title} onChange={e => updateBlock(b.id, { title: e.target.value })} placeholder="Button title" className={`${inputCls} h-9 text-sm`} />
+                          <Switch checked={b.active} onCheckedChange={v => updateBlock(b.id, { active: v })} />
+                          <button onClick={() => removeBlock(b.id)} className="text-white/40 hover:text-red-400 p-1" type="button">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input value={b.url} onChange={e => updateBlock(b.id, { url: e.target.value })} placeholder="URL / mailto: / tel:" className={`${inputCls} h-9 text-sm font-mono`} />
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() => updateBlock(b.id, { image: null } as any)}
+                              className="text-[11px] text-white/40 hover:text-red-400"
+                            >
+                              Remove image
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <Input value={b.url} onChange={e => updateBlock(b.id, { url: e.target.value })} placeholder="URL / mailto: / tel:" className={`${inputCls} h-9 text-sm font-mono`} />
-                    </div>
-                  ))}
+                    );
+                  })}
+
                 </div>
               </RepCard>
 
               <RepCard className={cardCls}>
                 <h3 className="text-white font-semibold mb-1">Social Blocks</h3>
-                <p className="text-xs text-white/50 mb-4">Rendered as tappable icons — deep-linked on mobile.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-white/70">Instagram</Label>
-                    <Input value={socials.instagram || ''} onChange={e => setSocials({ ...socials, instagram: e.target.value })} placeholder="https://instagram.com/joespizza" className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">Yelp</Label>
-                    <Input value={socials.yelp || ''} onChange={e => setSocials({ ...socials, yelp: e.target.value })} placeholder="https://yelp.com/biz/..." className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">Facebook</Label>
-                    <Input value={socials.facebook || ''} onChange={e => setSocials({ ...socials, facebook: e.target.value })} placeholder="https://facebook.com/joespizza" className={inputCls} />
-                  </div>
-                  <div>
-                    <Label className="text-white/70">TikTok</Label>
-                    <Input value={socials.tiktok || ''} onChange={e => setSocials({ ...socials, tiktok: e.target.value })} placeholder="https://tiktok.com/@joespizza" className={inputCls} />
-                  </div>
+                <p className="text-xs text-white/50 mb-4">Rendered as tappable icons — deep-linked on mobile. Add a custom image to override the default icon.</p>
+                <div className="space-y-3">
+                  {([
+                    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/joespizza' },
+                    { key: 'yelp', label: 'Yelp', placeholder: 'https://yelp.com/biz/...' },
+                    { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/joespizza' },
+                    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@joespizza' },
+                  ] as const).map(s => {
+                    const img = socialImages[s.key];
+                    return (
+                      <div key={s.key}>
+                        <Label className="text-white/70">{s.label}</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <label className="cursor-pointer flex-shrink-0">
+                            <input type="file" accept="image/*" className="hidden" onChange={e => handleSocialImageUpload(s.key, e)} />
+                            {img ? (
+                              <img src={img} alt="" className="h-10 w-10 rounded-full object-cover border border-white/10" />
+                            ) : (
+                              <span className="h-10 w-10 rounded-full border border-dashed border-white/15 bg-white/[0.03] flex items-center justify-center text-white/40 hover:bg-white/[0.06]">
+                                <ImageIcon className="h-4 w-4" />
+                              </span>
+                            )}
+                          </label>
+                          <Input
+                            value={(socials as any)[s.key] || ''}
+                            onChange={e => setSocials({ ...socials, [s.key]: e.target.value })}
+                            placeholder={s.placeholder}
+                            className={inputCls}
+                          />
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() => setSocialImages(prev => { const n = { ...prev }; delete n[s.key]; return n; })}
+                              className="text-[11px] text-white/40 hover:text-red-400 whitespace-nowrap"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </RepCard>
+
             </TabsContent>
 
             {/* DESIGN TAB */}
@@ -737,6 +817,7 @@ const RepDemoCreate = () => {
             headerStyle={headerStyle}
             bannerUrl={bannerUrl}
             socials={socials}
+            socialImages={socialImages}
             blocks={blocks}
             contactCardEnabled={contactCardEnabled}
             foundingBadge={foundingBadge}

@@ -17,6 +17,7 @@ export interface LinkBlock {
   url: string;
   kind: 'email' | 'website' | 'directions' | 'custom';
   active: boolean;
+  image?: string | null;
 }
 
 export interface Socials {
@@ -25,6 +26,8 @@ export interface Socials {
   facebook?: string;
   tiktok?: string;
 }
+
+export type SocialImages = Partial<Record<'instagram' | 'yelp' | 'facebook' | 'tiktok', string>>;
 
 interface Props {
   businessName: string;
@@ -38,6 +41,7 @@ interface Props {
   headerStyle?: HeaderStyle;
   bannerUrl?: string | null;
   socials?: Socials;
+  socialImages?: SocialImages;
   blocks?: LinkBlock[];
   contactCardEnabled?: boolean;
   foundingBadge?: boolean;
@@ -58,6 +62,7 @@ export const LivePhonePreview = ({
   headerStyle = 'solid',
   bannerUrl,
   socials = {},
+  socialImages = {},
   blocks = [],
   contactCardEnabled = true,
   foundingBadge = false,
@@ -103,7 +108,8 @@ export const LivePhonePreview = ({
     icon: React.ReactNode,
     bg: string,
     color: string,
-    key: string
+    key: string,
+    customImage?: string,
   ) => (
     <div
       key={key}
@@ -111,16 +117,22 @@ export const LivePhonePreview = ({
         width: 36,
         height: 36,
         borderRadius: '50%',
-        background: bg,
+        background: customImage ? '#000' : bg,
         color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
-      {icon}
+      {customImage ? (
+        <img src={customImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        icon
+      )}
     </div>
   );
+
 
   return (
     <div className="sticky top-4">
@@ -185,14 +197,16 @@ export const LivePhonePreview = ({
                   <Instagram className="h-4 w-4" />,
                   'linear-gradient(45deg,#f58529,#dd2a7b,#8134af,#515bd4)',
                   '#fff',
-                  'ig'
+                  'ig',
+                  socialImages.instagram,
                 )}
               {socials.facebook &&
-                socialIcon(<Facebook className="h-4 w-4" />, '#1877f2', '#fff', 'fb')}
+                socialIcon(<Facebook className="h-4 w-4" />, '#1877f2', '#fff', 'fb', socialImages.facebook)}
               {socials.tiktok &&
-                socialIcon(<Music2 className="h-4 w-4" />, '#000', '#fff', 'tt')}
+                socialIcon(<Music2 className="h-4 w-4" />, '#000', '#fff', 'tt', socialImages.tiktok)}
               {socials.yelp &&
-                socialIcon(<ExternalLink className="h-4 w-4" />, '#d32323', '#fff', 'yelp')}
+                socialIcon(<ExternalLink className="h-4 w-4" />, '#d32323', '#fff', 'yelp', socialImages.yelp)}
+
             </div>
           )}
 
@@ -227,16 +241,25 @@ export const LivePhonePreview = ({
                   ...btn(cardBg, heading),
                   border: `1px solid ${border}`,
                   transitionDelay: `${idx * 30}ms`,
+                  justifyContent: 'flex-start',
+                  paddingLeft: 10,
                 }}
                 className="hover:scale-[1.01]"
               >
-                {b.kind === 'email' && <ExternalLink className="h-4 w-4" />}
-                {b.kind === 'website' && <Globe className="h-4 w-4" />}
-                {b.kind === 'directions' && <ExternalLink className="h-4 w-4" />}
-                {b.kind === 'custom' && <ExternalLink className="h-4 w-4" />}
-                {b.title}
+                {b.image ? (
+                  <img src={b.image} alt="" className="h-6 w-6 rounded-md object-cover flex-shrink-0" />
+                ) : (
+                  <>
+                    {b.kind === 'email' && <ExternalLink className="h-4 w-4" />}
+                    {b.kind === 'website' && <Globe className="h-4 w-4" />}
+                    {b.kind === 'directions' && <ExternalLink className="h-4 w-4" />}
+                    {b.kind === 'custom' && <ExternalLink className="h-4 w-4" />}
+                  </>
+                )}
+                <span className="flex-1 text-center pr-6">{b.title}</span>
               </button>
             ))}
+
 
             {businessPhone && (
               <button type="button" style={btn(secondary, secondaryText)}>
