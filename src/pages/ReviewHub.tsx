@@ -8,6 +8,7 @@ import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsO
 import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
+import { getHubTheme, safeColor, contrastOn, DEFAULT_PRIMARY } from "@/lib/hubThemes";
 
 interface Restaurant {
   id: string;
