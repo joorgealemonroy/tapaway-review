@@ -225,6 +225,54 @@ const AdminReps = () => {
 
   const pendingApplications = applications.filter(a => a.status === 'pending');
 
+  const repByEmail = new Map(
+    reps.map(r => [r.email.trim().toLowerCase(), r] as const)
+  );
+
+  const renderRepAccessActions = (rep: SalesRep) => (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
+      >
+        <Eye className="h-3 w-3 mr-1" />
+        View as Rep
+      </Button>
+      {rep.is_active ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => setConfirmToggle({ rep, next: false })}
+        >
+          <Ban className="h-3 w-3 mr-1" />
+          Revoke
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setConfirmToggle({ rep, next: true })}
+        >
+          <RotateCw className="h-3 w-3 mr-1" />
+          Reactivate
+        </Button>
+      )}
+      {!rep.agreement_accepted && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleResendInvite(rep.id, rep.email)}
+          disabled={resendingInvite === rep.id}
+        >
+          <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
+          {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
