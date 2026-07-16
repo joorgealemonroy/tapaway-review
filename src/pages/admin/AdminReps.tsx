@@ -7,6 +7,16 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban } from 'lucide-react';
@@ -47,6 +57,7 @@ const AdminReps = () => {
   const [selectedApplication, setSelectedApplication] = useState<RepApplication | null>(null);
   const [processing, setProcessing] = useState(false);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [confirmToggle, setConfirmToggle] = useState<{ rep: SalesRep; next: boolean } | null>(null);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
@@ -166,10 +177,6 @@ const AdminReps = () => {
   };
 
   const handleToggleActive = async (repId: string, isActive: boolean) => {
-    const action = isActive ? 'reactivate' : 'revoke access for';
-    if (!isActive && !window.confirm(`Are you sure you want to ${action} this rep? They will lose portal access immediately.`)) {
-      return;
-    }
     try {
       const { error } = await supabase
         .from('sales_reps')
@@ -217,6 +224,54 @@ const AdminReps = () => {
   }
 
   const pendingApplications = applications.filter(a => a.status === 'pending');
+
+  const repByEmail = new Map(
+    reps.map(r => [r.email.trim().toLowerCase(), r] as const)
+  );
+
+  const renderRepAccessActions = (rep: SalesRep) => (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
+      >
+        <Eye className="h-3 w-3 mr-1" />
+        View as Rep
+      </Button>
+      {rep.is_active ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => setConfirmToggle({ rep, next: false })}
+        >
+          <Ban className="h-3 w-3 mr-1" />
+          Revoke
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setConfirmToggle({ rep, next: true })}
+        >
+          <RotateCw className="h-3 w-3 mr-1" />
+          Reactivate
+        </Button>
+      )}
+      {!rep.agreement_accepted && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleResendInvite(rep.id, rep.email)}
+          disabled={resendingInvite === rep.id}
+        >
+          <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
+          {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -269,26 +324,33 @@ const AdminReps = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      applications.map((app) => (
-                        <TableRow key={app.id}>
+                      applications.map((app) => {
+                        const matchedRep = repByEmail.get(app.email.trim().toLowerCase());
+                        const isRevoked = matchedRep && !matchedRep.is_active;
+                        return (
+                        <TableRow key={app.id} className={isRevoked ? 'opacity-50' : ''}>
                           <TableCell className="font-medium">{app.name}</TableCell>
                           <TableCell>{app.email}</TableCell>
                           <TableCell>{app.phone || '—'}</TableCell>
                           <TableCell>{format(new Date(app.created_at), 'MMM d, yyyy')}</TableCell>
                           <TableCell>
-                            <Badge variant={
-                              app.status === 'approved' ? 'default' : 
-                              app.status === 'rejected' ? 'destructive' : 
-                              'secondary'
-                            }>
-                              {app.status}
-                            </Badge>
+                            {isRevoked ? (
+                              <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Revoked</Badge>
+                            ) : (
+                              <Badge variant={
+                                app.status === 'approved' ? 'default' :
+                                app.status === 'rejected' ? 'destructive' :
+                                'secondary'
+                              }>
+                                {app.status}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             {app.status === 'pending' && (
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedApplication(app);
                                     setApproveDialogOpen(true);
@@ -297,8 +359,8 @@ const AdminReps = () => {
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   variant="outline"
                                   onClick={() => handleReject(app.id)}
                                 >
@@ -307,9 +369,14 @@ const AdminReps = () => {
                                 </Button>
                               </div>
                             )}
+                            {app.status === 'approved' && matchedRep && renderRepAccessActions(matchedRep)}
+                            {app.status === 'approved' && !matchedRep && (
+                              <span className="text-xs text-muted-foreground">No rep account</span>
+                            )}
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -363,47 +430,7 @@ const AdminReps = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View as Rep
-                              </Button>
-                              {rep.is_active ? (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleToggleActive(rep.id, false)}
-                                >
-                                  <Ban className="h-3 w-3 mr-1" />
-                                  Revoke
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleToggleActive(rep.id, true)}
-                                >
-                                  <RotateCw className="h-3 w-3 mr-1" />
-                                  Reactivate
-                                </Button>
-                              )}
-                              {!rep.agreement_accepted && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleResendInvite(rep.id, rep.email)}
-                                  disabled={resendingInvite === rep.id}
-                                >
-                                  <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
-                                  {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
-                                </Button>
-                              )}
-                            </div>
+                            {renderRepAccessActions(rep)}
                           </TableCell>
 
                         </TableRow>
@@ -436,6 +463,34 @@ const AdminReps = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmToggle} onOpenChange={(open) => !open && setConfirmToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmToggle?.next ? 'Reactivate rep access?' : 'Revoke rep access?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmToggle?.next
+                ? `${confirmToggle?.rep.name} will regain portal access immediately.`
+                : `${confirmToggle?.rep.name} will lose portal access immediately.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmToggle?.next ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+              onClick={async () => {
+                if (!confirmToggle) return;
+                await handleToggleActive(confirmToggle.rep.id, confirmToggle.next);
+                setConfirmToggle(null);
+              }}
+            >
+              {confirmToggle?.next ? 'Reactivate' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
