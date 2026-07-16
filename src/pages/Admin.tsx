@@ -73,6 +73,7 @@ type Restaurant = {
   greeting_name?: string | null;
   total_taps?: number;
   card_print_pdf_path?: string | null;
+  is_approved?: boolean;
 };
 
 type Location = {
@@ -149,7 +150,7 @@ const Admin = () => {
         const { data: allRestaurants, error: restaurantsError } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name"
+            "id, restaurant_name, header_title, custom_slug, plan_type, subscription_status, created_at, google_place_id, google_review_url, yelp_business_id, yelp_review_url, directions_url, instagram_url, logo_url, greeting_name, is_approved, card_print_pdf_path"
           )
           .order("created_at", { ascending: false });
         if (restaurantsError) throw restaurantsError;
@@ -276,6 +277,23 @@ const Admin = () => {
       .select("*")
       .single();
     if (!updateError && data) setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
+  };
+
+  const approveHub = async (r: Restaurant) => {
+    const { data, error: approveError } = await supabase
+      .from("restaurants")
+      .update({ is_approved: true })
+      .eq("id", r.id)
+      .select("*")
+      .single();
+    if (approveError) {
+      toast.error("Approval failed: " + approveError.message);
+      return;
+    }
+    if (data) {
+      setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_approved: true } : x)));
+      toast.success(`Hub approved — commission unlocked for the rep.`);
+    }
   };
 
   const repairGoogleReviewLink = async (r: Restaurant) => {
@@ -432,6 +450,7 @@ const Admin = () => {
             <th className="p-3 text-left font-medium">Plan</th>
             <th className="p-3 text-left font-medium">Status</th>
             <th className="p-3 text-left font-medium">Locations</th>
+            <th className="p-3 text-left font-medium">Approval</th>
             <th className="p-3 text-left font-medium">Created</th>
             <th className="p-3 text-right font-medium">Actions</th>
           </tr>
@@ -462,6 +481,30 @@ const Admin = () => {
                 </span>
               </td>
               <td className="p-3 text-white/60">{locationsCount[r.id] ?? 0}</td>
+              <td className="p-3">
+                {r.is_approved ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/10 text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Approved
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => approveHub(r)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400"
+                    >
+                      Approve Hub
+                    </button>
+                    {r.custom_slug && (
+                      <button
+                        onClick={() => window.open(`/${r.custom_slug}`, "_blank")}
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                      >
+                        Review Layout
+                      </button>
+                    )}
+                  </div>
+                )}
+              </td>
               <td className="p-3 text-white/50 text-xs">
                 {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
               </td>
@@ -540,7 +583,7 @@ const Admin = () => {
           ))}
           {!loadingData && filteredRestaurants.length === 0 && (
             <tr>
-              <td colSpan={8} className="p-6 text-center text-xs text-white/40">
+              <td colSpan={9} className="p-6 text-center text-xs text-white/40">
                 No restaurants match filters.
               </td>
             </tr>

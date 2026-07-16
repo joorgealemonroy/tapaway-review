@@ -23,6 +23,7 @@ const RepHome = () => {
 
   const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
   const [demosToday, setDemosToday] = useState(0);
+  const [pendingToday, setPendingToday] = useState(0);
   const [monthlyRecurring, setMonthlyRecurring] = useState(0);
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
@@ -50,13 +51,24 @@ const RepHome = () => {
       const start = new Date(); start.setHours(0, 0, 0, 0);
       const end = new Date(); end.setHours(23, 59, 59, 999);
 
-      const { count } = await supabase
+      const { count: approvedCount } = await supabase
         .from('restaurants')
         .select('id', { count: 'exact', head: true })
         .eq('created_by', user.id)
+        .eq('is_approved', true)
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString());
-      setDemosToday(count ?? 0);
+      setDemosToday(approvedCount ?? 0);
+
+      const { count: pendingCount } = await supabase
+        .from('restaurants')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', user.id)
+        .eq('is_approved', false)
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString());
+      setPendingToday(pendingCount ?? 0);
+
 
       const { data: commissions } = await supabase
         .from('commissions')
@@ -160,6 +172,11 @@ const RepHome = () => {
               }}
             />
           </div>
+          {pendingToday > 0 && (
+            <p className="text-[11px] text-white/40 mt-2">
+              Pending admin review: <span className="text-amber-200 font-semibold">{pendingToday}</span> · counts once approved.
+            </p>
+          )}
         </RepCard>
 
         <RepCard className="p-5">

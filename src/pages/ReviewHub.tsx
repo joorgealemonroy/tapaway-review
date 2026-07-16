@@ -8,6 +8,7 @@ import { RestaurantSmsOptInDrawer } from "@/components/restaurant/RestaurantSmsO
 import { ExpiredHubGate } from "@/components/hub/ExpiredHubGate";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Smartphone } from "lucide-react";
+import { getHubTheme, safeColor, contrastOn, DEFAULT_PRIMARY } from "@/lib/hubThemes";
 
 interface Restaurant {
   id: string;
@@ -30,6 +31,10 @@ interface Restaurant {
   avm_positive_label?: string | null;
   avm_negative_label?: string | null;
   expires_at?: string | null;
+  background_theme_style?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  business_phone?: string | null;
 }
 
 interface MenuSection {
@@ -120,7 +125,7 @@ const ReviewHub = () => {
   const fetchRestaurant = async (id: string) => {
     const { data } = await supabase
       .from("restaurant_public_info")
-      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label, phone")
+      .select("id, restaurant_name, header_title, header_subtitle, menu_title, google_review_url, yelp_review_url, directions_url, instagram_url, logo_url, hub_background_style, custom_slug, custom_background_url, type, avm_question_title, avm_question_subtitle, avm_positive_label, avm_negative_label, phone, background_theme_style, primary_color, secondary_color, business_phone")
       .eq("id", id)
       .single();
 
@@ -337,11 +342,14 @@ const ReviewHub = () => {
     localStorage.setItem('tapaway_hub_theme', newTheme);
   };
 
-  // Use visitor theme instead of restaurant setting
-  const getBackgroundStyle = () => {
-    if (visitorTheme === 'dark') {
-      return { background: '#1a1a1a' };
-    }
+  // Use custom brand theme if the rep set one; otherwise fall back to visitor light/dark
+  const brandTheme = restaurant?.background_theme_style && restaurant.background_theme_style !== 'default'
+    ? getHubTheme(restaurant.background_theme_style)
+    : null;
+
+  const getBackgroundStyle = (): React.CSSProperties => {
+    if (brandTheme) return brandTheme.containerStyle;
+    if (visitorTheme === 'dark') return { background: '#1a1a1a' };
     return { background: '#f9fafb' };
   };
 
@@ -675,23 +683,27 @@ const ReviewHub = () => {
               target="_blank" 
               rel="noopener noreferrer"
               onClick={() => trackEvent('google_click')}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px', 
-                justifyContent: 'center', 
-                width: '100%', 
-                textDecoration: 'none', 
-                background: visitorTheme === 'dark' ? '#3a3a3a' : '#fff', 
-                border: `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
-                color: getTextColor(), 
-                padding: '14px 16px', 
-                borderRadius: '12px', 
-                fontWeight: '700', 
-                marginBottom: '12px', 
-                transition: '.2s',
-                cursor: 'pointer'
-              }}
+              style={(() => {
+                const hasBrand = !!restaurant.primary_color && restaurant.primary_color !== DEFAULT_PRIMARY;
+                const brandBg = safeColor(restaurant.primary_color, DEFAULT_PRIMARY);
+                return {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  justifyContent: 'center',
+                  width: '100%',
+                  textDecoration: 'none',
+                  background: hasBrand ? brandBg : (visitorTheme === 'dark' ? '#3a3a3a' : '#fff'),
+                  border: hasBrand ? 'none' : `1px solid ${visitorTheme === 'dark' ? '#4a4a4a' : '#e5e7eb'}`,
+                  color: hasBrand ? contrastOn(brandBg) : getTextColor(),
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  marginBottom: '12px',
+                  transition: '.2s',
+                  cursor: 'pointer',
+                };
+              })()}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
                 <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.223 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C33.64 6.053 29.084 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
