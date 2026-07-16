@@ -1,25 +1,23 @@
 ## Goal
+Let reps attach a custom image thumbnail to each Social Block (Instagram, Yelp, Facebook, TikTok) and each Content Block, matching how solo dashboard links use `cover_image_url`.
 
-Simplify the Demo Hub header so the banner IS the logo — no header-style picker, no circular profile-photo overlap, no separate logo uploader.
+## Data model (no DB changes)
+Everything already lives in `restaurants.settings` JSON.
+- Extend `Socials` from `{instagram, yelp, facebook, tiktok}` strings to per-platform objects: `{ url: string; image?: string }`. Keep backwards-read for old string values.
+- Extend `LinkBlock` with optional `image?: string`.
 
-## Changes
+## `src/pages/rep/RepDemoCreate.tsx`
+1. **Socials editor (Links tab)** — for each of Instagram / Yelp / Facebook / TikTok, add a small 40x40 image tile next to the URL input with an Upload / Replace / Remove control. Reuse existing `restaurant-logos` bucket with user-scoped path `${user.id}/social-${platform}-${ts}-${filename}`.
+2. **Content Blocks editor** — add the same small image tile inside each block row; uploads use path `${user.id}/block-${blockId}-${ts}-${filename}`.
+3. Normalize on load: if `settings.socials.instagram` is a plain string, coerce to `{ url }`. Save always writes the object form.
+4. Migration is purely runtime (JSON reshape), no SQL.
 
-**1. `src/pages/rep/RepDemoCreate.tsx` — Design tab**
-- Delete the "Header Style" card (Solid Color / Image / Full Banner tri-toggle). Hard-code `headerStyle = 'full_banner'` in saved settings.
-- Rename the section to just **"Banner Image"** with the existing uploader (bannerUrl). Copy: "This banner acts as your logo and header."
-- Remove the entire **"Logo & Gallery" → Logo** subsection (upload button + circular preview). Keep the **Gallery (up to 3)** uploader intact under its own "Gallery" card.
-- Stop writing `logoUrl` to `restaurants.logo_url` on save (or write `null`) since it's no longer edited here. Keep the DB column untouched otherwise.
-
-**2. `src/components/rep/LivePhonePreview.tsx`**
-- Remove the circular logo overlap block and the fallback initial circle.
-- Remove the `-mt-10` negative margin so the business name + bio sit cleanly below the banner (small `pt-4` instead).
-- Increase default banner height for `full_banner` so it reads as a proper hero (keep 160px, or bump to 180px).
-- Drop the `logoUrl` prop usage inside the header area (prop can stay for type compat but is ignored).
-
-**3. Public hub `/:slug` renderer (`src/pages/ReviewHub.tsx`)**
-- Mirror the same change: banner-only header, no circular logo overlap, so the live page matches the simulator.
+## `src/components/rep/LivePhonePreview.tsx`
+1. Update `Socials` and `LinkBlock` types to include `image?`.
+2. Social row: when `image` is set, render a 36x36 rounded thumbnail (`<img>` object-cover) instead of the branded lucide icon; keep the current icon fallback.
+3. Content block buttons: when `image` is set, render a small 24x24 rounded thumbnail on the left instead of the generic lucide icon; keep icon fallback.
 
 ## Out of scope
-- No DB migration. `logo_url`, `header_style`, `banner_url` columns stay as-is.
-- No changes to Links tab, Leads tab, socials, gallery, color pickers, theme dropdown, or approval flow.
-- No changes to other hub renderers (AvMealPrepHub, personal profiles).
+- No changes to public `/:slug` hub renderer, gallery, header banner, colors, leads tab, or DB schema.
+- No image cropping UI — plain upload only, matching the current logo/banner uploaders.
+- No changes to how deep-links resolve on tap; images are pure visual.
