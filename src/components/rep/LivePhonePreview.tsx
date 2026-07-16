@@ -98,6 +98,20 @@ export const LivePhonePreview = ({
   });
 
   const activeBlocks = blocks.filter(b => b.active && b.title.trim() && b.url.trim());
+  const isTile = (b: LinkBlock) => !!b.image && (b.layout ?? 'tile') === 'tile';
+
+  // Group consecutive tile-blocks into 2-col grids; keep pill blocks as-is.
+  type BlockGroup = { kind: 'tiles'; items: LinkBlock[] } | { kind: 'pill'; item: LinkBlock };
+  const blockGroups: BlockGroup[] = [];
+  for (const b of activeBlocks) {
+    if (isTile(b)) {
+      const last = blockGroups[blockGroups.length - 1];
+      if (last && last.kind === 'tiles') last.items.push(b);
+      else blockGroups.push({ kind: 'tiles', items: [b] });
+    } else {
+      blockGroups.push({ kind: 'pill', item: b });
+    }
+  }
 
   const bannerHeight = headerStyle === 'full_banner' ? 160 : headerStyle === 'image' ? 110 : 80;
   const bannerBg =
