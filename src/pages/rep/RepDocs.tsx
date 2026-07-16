@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/accordion";
 
 const RepDocs = () => {
-  const navigate = useNavigate();
+  const navigate = useRepNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -29,11 +30,11 @@ const RepDocs = () => {
       return;
     }
 
-    if (!repLoading && !isSalesRep) {
-      navigate('/');
+    if (!repLoading && !adminLoading && !isSalesRep) {
+      navigate(isAdmin ? '/admin/reps' : '/');
       return;
     }
-  }, [authLoading, repLoading, user, isSalesRep, navigate]);
+  }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   if (authLoading || repLoading) {
     return (
