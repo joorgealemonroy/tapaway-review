@@ -172,6 +172,11 @@ const RepHome = () => {
               }}
             />
           </div>
+          {pendingToday > 0 && (
+            <p className="text-[11px] text-white/40 mt-2">
+              Pending admin review: <span className="text-amber-200 font-semibold">{pendingToday}</span> · counts once approved.
+            </p>
+          )}
         </RepCard>
 
         <RepCard className="p-5">
