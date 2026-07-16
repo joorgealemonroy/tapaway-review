@@ -177,10 +177,6 @@ const AdminReps = () => {
   };
 
   const handleToggleActive = async (repId: string, isActive: boolean) => {
-    const action = isActive ? 'reactivate' : 'revoke access for';
-    if (!isActive && !window.confirm(`Are you sure you want to ${action} this rep? They will lose portal access immediately.`)) {
-      return;
-    }
     try {
       const { error } = await supabase
         .from('sales_reps')
