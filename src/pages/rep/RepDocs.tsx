@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useRepNavigate } from '@/hooks/useRepNavigate';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { 
