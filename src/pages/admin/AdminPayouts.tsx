@@ -360,7 +360,7 @@ const AdminPayouts = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 };
