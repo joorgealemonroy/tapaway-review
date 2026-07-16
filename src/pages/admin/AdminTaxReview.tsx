@@ -233,7 +233,7 @@ export default function AdminTaxReview() {
                 {profiles.map((profile) => (
                   <div
                     key={profile.id}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border rounded-lg bg-white"
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 border rounded-lg bg-card"
                   >
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
