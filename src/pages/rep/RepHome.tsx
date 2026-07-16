@@ -13,6 +13,7 @@ import { RepCard } from '@/components/rep/RepCard';
 const DAILY_BASE = 50;
 const DEMO_QUOTA = 10;
 const DEMO_BONUS = 5;
+const DEMO_CAP = 50;
 
 const RepHome = () => {
   const navigate = useRepNavigate();

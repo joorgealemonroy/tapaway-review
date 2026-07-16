@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Palette, Gift, PlayCircle, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CANVA_URL = 'https://canva.com/your-custom-card-template-placeholder';
+const CANVA_URL = 'https://canva.link/tapaway-temp';
 
 const GIFT_DROP_SCRIPT = `Hey [Owner Name] — I've got a little gift for you.
 

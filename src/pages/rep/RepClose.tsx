@@ -51,7 +51,7 @@ const PLAN_OPTIONS = [
     id: 'solo_monthly',
     name: 'Solo Pro Monthly',
     price: '$15/mo',
-    commission: '$10 upfront + $1.50/mo recurring',
+    commission: '$15 upfront + $1.50/mo recurring',
     points: '0.5 pts',
     tag: null,
   },

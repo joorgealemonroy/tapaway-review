@@ -7,7 +7,7 @@ const SCRIPT = `Hey! I'm dropping off a small gift for the owner — a free demo
 
 We help local spots get more 5-star Google reviews without ever asking customers. Your staff just place this card down after a happy moment, guests tap it out of curiosity, and reviews come in on their own.
 
-I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $10–$39/mo. If not, keep the cards, no strings.
+I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $15–$39/mo. If not, keep the cards, no strings.
 
 Tap here to see your hub: {{hub_url}}
 

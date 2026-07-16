@@ -191,6 +191,21 @@ const RepDemoCreate = () => {
         if (error) throw error;
         toast.success('Demo hub updated');
       } else {
+        // Enforce 50-demo daily cap
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const { count: todayCount, error: countError } = await supabase
+          .from('restaurants')
+          .select('id', { count: 'exact', head: true })
+          .eq('created_by', user.id)
+          .gte('created_at', startOfDay.toISOString());
+        if (countError) throw countError;
+        if ((todayCount ?? 0) >= 50) {
+          toast.error("You've hit the 50-demo daily cap. Please continue tomorrow.");
+          setSaving(false);
+          return;
+        }
+
         const slug = slugify(form.business_name);
         const expiresAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
         const { error } = await supabase.from('restaurants').insert({
