@@ -30,6 +30,10 @@ interface Restaurant {
   avm_positive_label?: string | null;
   avm_negative_label?: string | null;
   expires_at?: string | null;
+  background_theme_style?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  business_phone?: string | null;
 }
 
 interface MenuSection {
