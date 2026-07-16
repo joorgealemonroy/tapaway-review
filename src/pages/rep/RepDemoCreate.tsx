@@ -162,6 +162,7 @@ const RepDemoCreate = () => {
         facebook: settings.socials?.facebook || '',
         tiktok: settings.socials?.tiktok || '',
       });
+      setSocialImages(settings.social_images || {});
       if (Array.isArray(settings.blocks)) setBlocks(settings.blocks);
       if (typeof settings.contact_card_enabled === 'boolean') setContactCardEnabled(settings.contact_card_enabled);
       if (settings.badges?.founding) setFoundingBadge(true);
