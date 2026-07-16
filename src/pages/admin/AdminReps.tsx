@@ -430,47 +430,7 @@ const AdminReps = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => navigate(`/rep?admin_view_rep=${rep.id}`)}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View as Rep
-                              </Button>
-                              {rep.is_active ? (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleToggleActive(rep.id, false)}
-                                >
-                                  <Ban className="h-3 w-3 mr-1" />
-                                  Revoke
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleToggleActive(rep.id, true)}
-                                >
-                                  <RotateCw className="h-3 w-3 mr-1" />
-                                  Reactivate
-                                </Button>
-                              )}
-                              {!rep.agreement_accepted && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleResendInvite(rep.id, rep.email)}
-                                  disabled={resendingInvite === rep.id}
-                                >
-                                  <RotateCw className={`h-3 w-3 mr-1 ${resendingInvite === rep.id ? 'animate-spin' : ''}`} />
-                                  {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
-                                </Button>
-                              )}
-                            </div>
+                            {renderRepAccessActions(rep)}
                           </TableCell>
 
                         </TableRow>
