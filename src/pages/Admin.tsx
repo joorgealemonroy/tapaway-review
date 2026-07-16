@@ -279,6 +279,22 @@ const Admin = () => {
     if (!updateError && data) setRestaurants((prev) => prev.map((x) => (x.id === r.id ? data : x)));
   };
 
+  const approveHub = async (r: Restaurant) => {
+    const { data, error: approveError } = await supabase
+      .from("restaurants")
+      .update({ is_approved: true })
+      .eq("id", r.id)
+      .select("*")
+      .single();
+    if (approveError) {
+      toast.error("Approval failed: " + approveError.message);
+      return;
+    }
+    if (data) {
+      setRestaurants((prev) => prev.map((x) => (x.id === r.id ? { ...x, is_approved: true } : x)));
+      toast.success(`Hub approved — commission unlocked for the rep.`);
+    }
+
   const repairGoogleReviewLink = async (r: Restaurant) => {
     if (!r.google_place_id || !r.google_place_id.trim()) {
       setError("No Google Place ID is set for this restaurant.");
