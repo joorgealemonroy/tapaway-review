@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
