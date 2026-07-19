@@ -119,6 +119,19 @@ export const DashboardDesignTab = ({
     }
   }, [isRepDemo, headerType, profileId, onUpdate]);
 
+  // Re-sync pending state when props change externally (e.g. photo upload
+  // auto-matches background_color). Without this, pendingBgColor stays stale
+  // and the Unsaved-Changes bar can overwrite the freshly-sampled color
+  // back to the previous value.
+  useEffect(() => {
+    if (userPickedBg.current) return;
+    setPendingHeaderType(isRepDemo ? "banner" : headerType);
+    setPendingHeaderColor(headerColor);
+    setPendingBgColor(backgroundColor);
+    setCustomColorInput(headerColor || "#6BCB77");
+    setBgColorInput(backgroundColor || "#ffffff");
+  }, [headerType, headerColor, backgroundColor, isRepDemo]);
+
   const hasChanges = useMemo(() => {
     return (
       pendingHeaderType !== headerType ||
