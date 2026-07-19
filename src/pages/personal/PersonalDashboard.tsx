@@ -586,6 +586,17 @@ const PersonalDashboard = () => {
                    @{profile.username}
                  </span>
                )}
+              {isSalesRep && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/rep/restaurants")}
+                  className="border-emerald-400/30 bg-emerald-400/10 text-emerald-700 hover:bg-emerald-400/15 dark:text-emerald-200"
+                >
+                  <ArrowLeftRight className="h-4 w-4 mr-1" />
+                  Partner Portal
+                </Button>
+              )}
               {isAffiliate && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/affiliate")}>
                   <Users className="h-4 w-4 mr-1" />
