@@ -3032,6 +3032,7 @@ export type Database = {
           header_type: string | null
           headline: string | null
           id: string | null
+          is_approved: boolean | null
           is_founding_user: boolean | null
           pfp_position: string | null
           plan_type: string | null
@@ -3069,6 +3070,7 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string | null
+          is_approved?: boolean | null
           is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
@@ -3106,6 +3108,7 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string | null
+          is_approved?: boolean | null
           is_founding_user?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
