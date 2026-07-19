@@ -140,7 +140,7 @@ const AdminPendingHubApprovals = () => {
                   </td>
                   <td className="p-2">
                     <button
-                      onClick={() => window.open(`/${r.username}`, "_blank", "noopener,noreferrer")}
+                      onClick={() => window.open(`/${r.username}?admin_preview=1`, "_blank", "noopener,noreferrer")}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                     >
                       <ExternalLink className="h-3 w-3" /> Review
