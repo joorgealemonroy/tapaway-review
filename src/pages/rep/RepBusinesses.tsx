@@ -20,6 +20,7 @@ interface Business {
   created_at: string;
   pipeline_status: string | null;
   card_print_pdf_path: string | null;
+  is_approved: boolean | null;
 }
 
 const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
@@ -30,7 +31,7 @@ const formatDate = (iso: string) =>
 const RepBusinesses = () => {
   const navigate = useRepNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [hubs, setHubs] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,22 +43,34 @@ const RepBusinesses = () => {
   }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!salesRep) return;
     (async () => {
       const { data, error } = await supabase
-        .from('restaurants')
-        .select('id, restaurant_name, custom_slug, owner_phone, expires_at, created_at, pipeline_status, card_print_pdf_path')
-        .eq('created_by', user.id)
+        .from('personal_profiles')
+        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved')
+        .eq('sales_rep_id', salesRep.id)
         .order('created_at', { ascending: false });
       if (error) {
         console.error(error);
         toast.error('Failed to load businesses');
       } else {
-        setHubs((data || []) as Business[]);
+        setHubs(
+          ((data || []) as any[]).map((d) => ({
+            id: d.id,
+            restaurant_name: d.full_name,
+            custom_slug: d.username,
+            owner_phone: d.business_phone || d.contact_phone || null,
+            expires_at: null,
+            created_at: d.created_at,
+            pipeline_status: d.pipeline_status,
+            card_print_pdf_path: d.card_print_pdf_path,
+            is_approved: d.is_approved ?? false,
+          })),
+        );
       }
       setLoading(false);
     })();
-  }, [user]);
+  }, [salesRep]);
 
   const updatePipeline = async (hubId: string, value: string) => {
     const prev = hubs;
