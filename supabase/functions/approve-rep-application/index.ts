@@ -68,8 +68,37 @@ serve(async (req) => {
       throw new Error("Application not found");
     }
 
-    if (application.status !== "pending") {
-      throw new Error("Application has already been processed");
+    // Idempotency: if a sales_rep already exists for this email and is active,
+    // treat this call as a no-op success instead of erroring. This lets admins
+    // safely retry approval when the app row was flipped to 'approved' but
+    // provisioning never completed.
+    const { data: existingRepByEmail } = await supabase
+      .from("sales_reps")
+      .select("id, is_active")
+      .eq("email", application.email.toLowerCase())
+      .maybeSingle();
+
+    if (existingRepByEmail && existingRepByEmail.is_active) {
+      // Make sure app status reflects approval even if only the rep row existed.
+      if (application.status !== "approved") {
+        await supabase
+          .from("rep_applications")
+          .update({
+            status: "approved",
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: user.id,
+          })
+          .eq("id", applicationId);
+      }
+      return new Response(
+        JSON.stringify({
+          success: true,
+          alreadyProvisioned: true,
+          userId: existingRepByEmail.id,
+          message: "Rep already provisioned",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Check if a user with this email already exists
