@@ -117,6 +117,10 @@ export const GooglePlacesAutocomplete = ({
       placeId: result.placeId,
       name: result.name,
       address: result.formattedAddress,
+      phone: result.phone ?? null,
+      website: result.website ?? null,
+      googleMapsUri: result.googleMapsUri ?? null,
+      photoName: result.photoName ?? null,
     });
   };
 
