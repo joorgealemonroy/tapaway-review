@@ -1,73 +1,49 @@
-## Google Places Auto-Fill for 1-Click Demo Creation
+## Root cause (confirmed)
 
-Replace the current auto-spawning `RepDemoCreate.tsx` behavior with a single Google Places search that enriches the demo profile before dropping the rep into the dashboard.
+`oxydgo@gmail.com`'s `rep_applications` row has `status = 'approved'` (reviewed 2026-07-19 06:50), but:
+- No row in `auth.users` for that email
+- No row in `sales_reps` for that email
+- No edge-function logs for `approve-rep-application`
 
-### 1. Extend `lookup-place-id` edge function
+So the app row was flipped to `approved` without the edge function ever succeeding (either an earlier manual/legacy flip, or an old error path). The current edge function then guards at:
 
-Currently returns only `id`, `displayName`, `formattedAddress`. Broaden the `X-Goog-FieldMask` to also fetch:
-- `places.internationalPhoneNumber`
-- `places.nationalPhoneNumber`
-- `places.websiteUri`
-- `places.googleMapsUri`
-- `places.photos` (first photo `name` only)
-
-Map into each result:
-```
-{ placeId, name, formattedAddress, phone, website, googleMapsUri, photoName }
+```ts
+if (application.status !== "pending") {
+  throw new Error("Application has already been processed");
+}
 ```
 
-Add a companion action (`?action=photo`, or a new `get-place-photo` function) that, given a `photos[].name`, calls `https://places.googleapis.com/v1/{photoName}/media?maxWidthPx=1200&skipHttpRedirect=true` and returns the `photoUri`. Server-side call keeps the API key hidden.
+…so clicking Approve again does nothing. The AdminReps UI correctly shows "No rep account" (line 373 of `src/pages/admin/AdminReps.tsx`), but there's no way to recover.
 
-### 2. Rewrite `src/pages/rep/RepDemoCreate.tsx`
+## Fix
 
-Drop the auto-spawn logic. Render a centered dark-theme card with:
-- Title "Create a new demo hub"
-- Subheading explaining the flow
-- Single `GooglePlacesAutocomplete` input (reuses existing component)
-- Small helper text about the 50/day cap
+### 1. `supabase/functions/approve-rep-application/index.ts` — make it idempotent
 
-When a place is selected → run `handleCreateDemo(place)`:
+Replace the strict `status !== 'pending'` guard with a guard based on **whether a sales_rep already exists** for that email:
 
-1. **Daily cap check** (unchanged: count `personal_profiles` for `sales_rep_id` since midnight; if ≥ 50 toast + return).
-2. **Fetch enriched details** by re-calling `lookup-place-id` with the exact business name (or extend the current call to already return them so no second round trip is required).
-3. **Resolve photo URL** via the photo helper when `photoName` exists; on any failure just skip the photo (never block creation).
-4. **Derive unique username** from `place.name`:
-   - slugify (`lowercase`, `[^a-z0-9]+` → `-`, trim `-`, cap 32 chars)
-   - loop with `is_username_available` RPC, append `-2`, `-3`… until free (max 8 tries, fall back to `demo-<rand>` if all taken)
-5. **Insert `personal_profiles`** with:
-   - `user_id`: rep's `user.id`
-   - `username`, `full_name: place.name`
-   - `email: <username>@demo.tapaway.local`
-   - `business_phone: place.phone ?? null`
-   - `profile_photo_url: resolvedPhotoUrl ?? null`
-   - `header_type: 'banner'` (so uploaded/banner photo behaves as banner header per existing rep-demo defaults)
-   - `background_color: '#ffffff'`
-   - `plan_type: 'solo_pro'`, `subscription_status: 'trialing'`, `trial_ends_at: now() + 7d`
-   - `sales_rep_id`, `created_by_rep_id`
-   - `is_approved: false`, `pipeline_status: 'draft'`
-   - `show_username: true`
-6. **Insert two `personal_links` rows** (best-effort — swallow errors, keep flow moving):
-   - `{ profile_id, label: 'Visit Our Website', url: place.website, link_type: 'custom', sort_order: 0, is_active: true }` — only if `place.website` is present.
-   - `{ profile_id, label: 'Leave us a 5-Star Review', url: place.googleMapsUri, link_type: 'google_review', sort_order: 1, is_active: true }` — only if `googleMapsUri` present.
-7. Toast "Demo created — customize away 🎉" and `navigate('/dashboard?profile_id=<new_id>')` (preserving `admin_view_rep` when present, matching current logic).
+- Look up an existing `sales_reps` row by `lower(email)`.
+- If one already exists AND `is_active = true` → return early with `{ success: true, alreadyProvisioned: true }`.
+- Otherwise proceed with the existing flow (create/find auth user, insert `sales_reps`, insert `user_roles`, upsert setup token, send welcome email, set status = `approved`).
 
-While the async work is running show the same loader/`Loader2` UI in place of the search card so reps get instant feedback.
+Everything after that guard already uses "check-then-insert" for auth user, sales_reps row, and user_roles, and it deletes old setup tokens before inserting a new one — so a re-run is safe.
 
-### 3. Edge cases
+### 2. `src/pages/admin/AdminReps.tsx` — add a "Provision account" action
 
-- Search returns no phone/website/photo → still create the profile; just skip the missing fields and any dependent link inserts.
-- Photo fetch fails or is CORS-blocked → skip silently, do not throw.
-- Slug collision after 8 tries → fall back to `demo-<rand6>` so we never block the rep.
-- Legacy `/rep/demo/:id` edit route continues to redirect to `/dashboard?profile_id=<id>` (unchanged).
+In the approved-but-no-rep branch (currently just static text `"No rep account"` at line 374), render an inline **Provision account** button that calls the same `approve-rep-application` edge function with the application id, then refreshes both `applications` and `reps` lists (same refresh block already in `handleApprove`). Reuse `handleApprove`'s logic — extract a small helper so both entry points share it.
 
-### Technical notes
+### 3. Immediate recovery for oxydgo@gmail.com
 
-- `personal_links.link_type` uses free-form strings — `'custom'` and `'google_review'` already exist in the codebase (`platformLinks`), so no schema changes.
-- No DB migrations required — all new fields already exist on `personal_profiles` and `personal_links`.
-- Only files touched:
-  - `supabase/functions/lookup-place-id/index.ts` (field mask + photo endpoint)
-  - `src/pages/rep/RepDemoCreate.tsx` (full rewrite)
+Once (1) and (2) ship, Admin opens `/admin/reps`, finds Oxydgo's row (Approved, "No rep account"), clicks **Provision account**. That will:
+- Create the auth user
+- Insert the `sales_reps` row + `sales_rep` role
+- Generate a fresh 7-day setup token
+- Email the setup-password link
 
-### Out of scope
+No manual DB edits required.
 
-Admin approval queue, pipeline view, and existing dashboard editing behavior stay untouched.
+## Technical notes
+
+- The status guard change is the only behavior change to the edge function; success payload stays compatible.
+- Keep the `application.status !== 'pending'` case out of the error path — return success with a flag so the UI toast can say "already provisioned" vs "approved" if we want to distinguish later.
+- No schema/RLS changes.
+- No changes to `handleReject` or the pending-application Approve flow.

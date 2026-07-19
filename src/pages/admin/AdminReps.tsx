@@ -122,36 +122,49 @@ const AdminReps = () => {
     }
   }, [isAdmin]);
 
+  const provisionRep = async (applicationId: string) => {
+    const { data, error } = await supabase.functions.invoke('approve-rep-application', {
+      body: { applicationId },
+    });
+    if (error) throw error;
+
+    const already = (data as any)?.alreadyProvisioned;
+    toast.success(already ? 'Rep account already provisioned.' : 'Rep approved! They will receive a login email.');
+
+    const { data: appsData } = await supabase
+      .from('rep_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setApplications(appsData || []);
+
+    const { data: repsData } = await supabase
+      .from('sales_reps')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setReps(repsData || []);
+  };
+
   const handleApprove = async () => {
     if (!selectedApplication) return;
-
     setProcessing(true);
     try {
-      // Create auth user via edge function - FRONTEND_URL is set server-side
-      const { data, error } = await supabase.functions.invoke('approve-rep-application', {
-        body: { applicationId: selectedApplication.id },
-      });
-
-      if (error) throw error;
-
-      toast.success('Rep approved! They will receive a login email.');
+      await provisionRep(selectedApplication.id);
       setApproveDialogOpen(false);
-
-      // Refresh data
-      const { data: appsData } = await supabase
-        .from('rep_applications')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setApplications(appsData || []);
-
-      const { data: repsData } = await supabase
-        .from('sales_reps')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setReps(repsData || []);
     } catch (error) {
       console.error('Error approving application:', error);
       toast.error('Failed to approve application');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleProvision = async (applicationId: string) => {
+    setProcessing(true);
+    try {
+      await provisionRep(applicationId);
+    } catch (error) {
+      console.error('Error provisioning rep:', error);
+      toast.error('Failed to provision rep account');
     } finally {
       setProcessing(false);
     }
@@ -371,7 +384,14 @@ const AdminReps = () => {
                             )}
                             {app.status === 'approved' && matchedRep && renderRepAccessActions(matchedRep)}
                             {app.status === 'approved' && !matchedRep && (
-                              <span className="text-xs text-muted-foreground">No rep account</span>
+                              <Button
+                                size="sm"
+                                onClick={() => handleProvision(app.id)}
+                                disabled={processing}
+                              >
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Provision account
+                              </Button>
                             )}
                           </TableCell>
                         </TableRow>
