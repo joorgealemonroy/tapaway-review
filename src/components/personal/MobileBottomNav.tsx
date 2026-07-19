@@ -141,8 +141,8 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfil
              })}
             </div>
 
-             {/* Switch Profile */}
-             {allProfiles.length > 1 && onSwitchProfile && (
+             {/* Switch Profile — hidden while trialing */}
+             {!isTrialing && allProfiles.length > 1 && onSwitchProfile && (
                <div className="border-t border-border mt-2 pt-2">
                  {allProfiles.length === 2 ? (
                    (() => {
