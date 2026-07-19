@@ -38,7 +38,10 @@ interface PersonalAccount {
   subscription_status: string | null;
   created_at: string;
   profile_photo_url: string | null;
+  sales_rep_id: string | null;
+  created_by_rep_id: string | null;
 }
+
 
 const AdminBusinessLiteTable = () => {
   const navigate = useNavigate();
