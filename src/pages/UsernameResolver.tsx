@@ -49,8 +49,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
   const [adminPreviewActive, setAdminPreviewActive] = useState(false);
 
   useEffect(() => {
-    // Wait until admin status is resolved when admin preview is requested
-    if (isAdminPreview && adminLoading) return;
+    // Wait until admin status is resolved so we can auto-fallback to admin
+    // preview mode when the slug isn't publicly visible.
+    if (adminLoading) return;
 
     const resolve = async () => {
       if (!slug) {
