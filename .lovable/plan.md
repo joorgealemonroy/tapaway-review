@@ -1,34 +1,30 @@
-## Root cause
+# Fix: Admin "Review" 404 on Pending Hub Approvals
 
-Rep-created demos live in `personal_profiles` with `user_id` = the rep's own auth user id. When an admin deletes such a demo:
+## Root cause (confirmed)
 
-1. `AdminBusinessLiteTable.handleDelete` removes the profile row.
-2. It counts remaining profiles for that `user_id`. For a rep with only one demo → 0.
-3. Calls `delete-user-complete` with `{ userId: rep.id, isPersonalAccount: true }`.
-4. That function calls `auth.admin.deleteUser(rep.id)` — wiping the rep's auth user.
-5. `sales_reps.id` FKs `auth.users(id) ON DELETE CASCADE`, so the rep row disappears too. The application row stays `approved` but the UI shows "No rep account".
+`UsernameResolver.tsx` gates public visibility to:
+- `subscription_status = 'active'` **OR**
+- `subscription_status = 'trialing' AND is_approved = true`
 
-That is exactly what killed Diego's account, and any other rep whose demo count drops to zero is one delete away from the same fate.
+Pending hubs are `trialing` + `is_approved = false`, so the resolver falls through to `NotFound`. This is the correct public behavior — we just need an admin-only preview path.
 
-## Three-layer fix
+## Plan
 
-### 1. Server guards in `supabase/functions/delete-user-complete/index.ts`
-Add a shared helper `isProtectedRepOrAdmin(userId)` that checks `public.sales_reps` and `public.user_roles.role='admin'`. Before any `auth.admin.deleteUser(...)` call — in all three branches (`deleteAuthUserOnly`, `isPersonalAccount`, restaurant owner cleanup) — call the helper. If protected, skip the auth-user deletion and return `{ success: true, preserved: 'sales_rep' | 'admin' }`. The profile / restaurant row is still removed; only the auth user survives.
+**1. Add an admin preview mode to `UsernameResolver.tsx`**
+- Detect `?admin_preview=1` in the URL.
+- When present, verify the caller is an admin via `useAdminAccess` (server-verified role — no client trust).
+- If admin: fetch the profile directly from `personal_profiles` (not the `_public` view) and render it regardless of `is_approved` / `subscription_status`.
+- If not admin: fall back to the normal public gate (still 404s for randos who guess the param).
+- Show a small "Admin preview — unapproved hub" ribbon so it's obvious the page isn't live yet.
 
-Add a new opt-in branch: when the request body contains `deleteSalesRepAccount: true`, allow deleting the rep's `sales_reps` row + auth user. This is the ONLY code path that can remove a rep.
+**2. Update `AdminPendingHubApprovals.tsx` Review button**
+- Change the opened URL from `/${username}` to `/${username}?admin_preview=1`.
 
-### 2. Client bypass in `src/components/admin/AdminBusinessLiteTable.tsx`
-In `handleDelete`, if `deletingAccount.sales_rep_id || deletingAccount.created_by_rep_id` is set, skip the `delete-user-complete` call entirely — the profile row and children are already removed and no auth cleanup is needed.
+**3. No DB / RLS changes**
+- `personal_profiles` already lets admins select all rows via existing admin policy, so no new grants/policies needed.
 
-### 3. Revoke vs Delete separation in `src/pages/admin/AdminReps.tsx`
-Keep the current **Revoke** / **Reactivate** buttons (`is_active` toggle only — never touches auth).
-Add a new destructive **Delete rep permanently** button behind a typed-confirmation dialog that calls `delete-user-complete` with `{ userId: rep.id, deleteSalesRepAccount: true }`. This is the single sanctioned path to remove a rep entirely.
+## Result
 
-## Data recovery for Diego
-Re-link his two orphaned demos (`c9759931-…` demo-rjcutj, `c419db63-…` demo-dk8kc4) so `user_id`, `sales_rep_id`, `created_by_rep_id` all point to his new auth id `05a4c94b-aa80-4183-8e01-0f7e80ee5433`. Approved by the user — will run as an UPDATE.
-
-## Files touched
-- `supabase/functions/delete-user-complete/index.ts` (guards + new `deleteSalesRepAccount` branch)
-- `src/components/admin/AdminBusinessLiteTable.tsx` (skip auth deletion for rep demos)
-- `src/pages/admin/AdminReps.tsx` (add Delete-permanently action with typed-confirm dialog)
-- Data update on `personal_profiles` for Diego's two demos
+- Admins click **Review** → hub renders in a new tab exactly as it will look when live, with an "Admin preview" ribbon.
+- Public visitors hitting `/username` or `/username?admin_preview=1` on an unapproved hub still get 404 until you approve it.
+- Approval flow is unchanged.
