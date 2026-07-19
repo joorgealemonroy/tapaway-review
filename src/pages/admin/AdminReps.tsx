@@ -60,6 +60,10 @@ const AdminReps = () => {
   const [processing, setProcessing] = useState(false);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<{ rep: SalesRep; next: boolean } | null>(null);
+  const [deletingRep, setDeletingRep] = useState<SalesRep | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingPermanently, setDeletingPermanently] = useState(false);
+
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
