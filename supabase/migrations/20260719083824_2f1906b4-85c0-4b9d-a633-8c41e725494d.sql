@@ -1,0 +1,1 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS submitted_for_review_at timestamptz;
