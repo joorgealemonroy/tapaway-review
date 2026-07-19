@@ -75,7 +75,10 @@ const RepBusinesses = () => {
   const updatePipeline = async (hubId: string, value: string) => {
     const prev = hubs;
     setHubs(prev.map(h => (h.id === hubId ? { ...h, pipeline_status: value } : h)));
-    const { error } = await supabase.from('restaurants').update({ pipeline_status: value }).eq('id', hubId);
+    const { error } = await supabase
+      .from('personal_profiles')
+      .update({ pipeline_status: value } as any)
+      .eq('id', hubId);
     if (error) {
       setHubs(prev);
       toast.error('Failed to update status');
@@ -105,7 +108,7 @@ const RepBusinesses = () => {
       });
       if (upErr) throw upErr;
       const { error: dbErr } = await supabase
-        .from('restaurants').update({ card_print_pdf_path: path }).eq('id', hubId);
+        .from('personal_profiles').update({ card_print_pdf_path: path } as any).eq('id', hubId);
       if (dbErr) throw dbErr;
       setHubs(prev => prev.map(h => (h.id === hubId ? { ...h, card_print_pdf_path: path } : h)));
       toast.success('Print file saved');
