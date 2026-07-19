@@ -20,6 +20,7 @@ interface Business {
   created_at: string;
   pipeline_status: string | null;
   card_print_pdf_path: string | null;
+  is_approved: boolean | null;
 }
 
 const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
@@ -30,7 +31,7 @@ const formatDate = (iso: string) =>
 const RepBusinesses = () => {
   const navigate = useRepNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { loading: repLoading, isSalesRep } = useSalesRep();
+  const { salesRep, loading: repLoading, isSalesRep } = useSalesRep();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [hubs, setHubs] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,27 +43,42 @@ const RepBusinesses = () => {
   }, [authLoading, repLoading, adminLoading, user, isSalesRep, isAdmin, navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!salesRep) return;
     (async () => {
       const { data, error } = await supabase
-        .from('restaurants')
-        .select('id, restaurant_name, custom_slug, owner_phone, expires_at, created_at, pipeline_status, card_print_pdf_path')
-        .eq('created_by', user.id)
+        .from('personal_profiles')
+        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved')
+        .eq('sales_rep_id', salesRep.id)
         .order('created_at', { ascending: false });
       if (error) {
         console.error(error);
         toast.error('Failed to load businesses');
       } else {
-        setHubs((data || []) as Business[]);
+        setHubs(
+          ((data || []) as any[]).map((d) => ({
+            id: d.id,
+            restaurant_name: d.full_name,
+            custom_slug: d.username,
+            owner_phone: d.business_phone || d.contact_phone || null,
+            expires_at: null,
+            created_at: d.created_at,
+            pipeline_status: d.pipeline_status,
+            card_print_pdf_path: d.card_print_pdf_path,
+            is_approved: d.is_approved ?? false,
+          })),
+        );
       }
       setLoading(false);
     })();
-  }, [user]);
+  }, [salesRep]);
 
   const updatePipeline = async (hubId: string, value: string) => {
     const prev = hubs;
     setHubs(prev.map(h => (h.id === hubId ? { ...h, pipeline_status: value } : h)));
-    const { error } = await supabase.from('restaurants').update({ pipeline_status: value }).eq('id', hubId);
+    const { error } = await supabase
+      .from('personal_profiles')
+      .update({ pipeline_status: value } as any)
+      .eq('id', hubId);
     if (error) {
       setHubs(prev);
       toast.error('Failed to update status');
@@ -92,7 +108,7 @@ const RepBusinesses = () => {
       });
       if (upErr) throw upErr;
       const { error: dbErr } = await supabase
-        .from('restaurants').update({ card_print_pdf_path: path }).eq('id', hubId);
+        .from('personal_profiles').update({ card_print_pdf_path: path } as any).eq('id', hubId);
       if (dbErr) throw dbErr;
       setHubs(prev => prev.map(h => (h.id === hubId ? { ...h, card_print_pdf_path: path } : h)));
       toast.success('Print file saved');
@@ -231,7 +247,7 @@ const RepBusinesses = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 md:justify-end">
                   <button
-                    onClick={() => navigate(`/rep/demo/${hub.id}`)}
+                    onClick={() => navigate(`/dashboard?profile_id=${hub.id}`)}
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit

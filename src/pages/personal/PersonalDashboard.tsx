@@ -46,6 +46,7 @@ import { CardsTab } from "@/components/personal/CardsTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
+import { useSalesRep } from "@/hooks/useSalesRep";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
@@ -125,6 +126,7 @@ interface PersonalBlock {
 const PersonalDashboard = () => {
   const navigate = useNavigate();
   const { isAffiliate } = useAffiliateAccess();
+  const { isSalesRep } = useSalesRep();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
@@ -586,6 +588,17 @@ const PersonalDashboard = () => {
                    @{profile.username}
                  </span>
                )}
+              {isSalesRep && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/rep/restaurants")}
+                  className="border-emerald-400/30 bg-emerald-400/10 text-emerald-700 hover:bg-emerald-400/15 dark:text-emerald-200"
+                >
+                  <ArrowLeftRight className="h-4 w-4 mr-1" />
+                  Partner Portal
+                </Button>
+              )}
               {isAffiliate && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/affiliate")}>
                   <Users className="h-4 w-4 mr-1" />
