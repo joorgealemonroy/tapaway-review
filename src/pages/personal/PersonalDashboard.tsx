@@ -1120,6 +1120,7 @@ const PersonalDashboard = () => {
           setLoading(true);
           loadData();
         }}
+        isTrialing={isTrialing}
       />
 
     </div>
