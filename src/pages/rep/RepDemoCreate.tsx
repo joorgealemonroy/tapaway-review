@@ -179,11 +179,12 @@ const RepDemoCreate = () => {
           is_active: true,
         });
       }
-      if (place.googleMapsUri) {
+      const reviewUrl = buildGoogleReviewUrl(place.placeId) || place.googleMapsUri;
+      if (reviewUrl) {
         seedLinks.push({
           profile_id: profileId,
           label: 'Leave us a 5-Star Review',
-          url: place.googleMapsUri,
+          url: reviewUrl,
           link_type: 'google_review',
           sort_order: seedLinks.length,
           is_active: true,
