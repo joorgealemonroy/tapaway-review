@@ -46,15 +46,21 @@ const resolveUniqueUsername = async (base: string): Promise<string> => {
   return randomFallback();
 };
 
-const fetchPlacePhoto = async (photoName: string): Promise<string | null> => {
+const fetchHostedPlacePhoto = async (
+  photoName: string,
+  slug: string,
+): Promise<{ publicUrl: string | null; photoUri: string | null }> => {
   try {
     const { data, error } = await supabase.functions.invoke('lookup-place-id', {
-      body: { action: 'photo', photoName, maxWidthPx: 1200 },
+      body: { action: 'photo_hosted', photoName, maxWidthPx: 1200, slug },
     });
-    if (error) return null;
-    return (data as any)?.photoUri ?? null;
+    if (error) return { publicUrl: null, photoUri: null };
+    return {
+      publicUrl: (data as any)?.publicUrl ?? null,
+      photoUri: (data as any)?.photoUri ?? null,
+    };
   } catch {
-    return null;
+    return { publicUrl: null, photoUri: null };
   }
 };
 
