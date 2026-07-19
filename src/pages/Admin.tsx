@@ -29,6 +29,7 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import AdminBusinessLiteTable from "@/components/admin/AdminBusinessLiteTable";
+import AdminPendingHubApprovals from "@/components/admin/AdminPendingHubApprovals";
 import { toast } from "sonner";
 import {
   Users,
