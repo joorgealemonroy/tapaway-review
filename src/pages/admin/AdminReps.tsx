@@ -384,7 +384,14 @@ const AdminReps = () => {
                             )}
                             {app.status === 'approved' && matchedRep && renderRepAccessActions(matchedRep)}
                             {app.status === 'approved' && !matchedRep && (
-                              <span className="text-xs text-muted-foreground">No rep account</span>
+                              <Button
+                                size="sm"
+                                onClick={() => handleProvision(app.id)}
+                                disabled={processing}
+                              >
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Provision account
+                              </Button>
                             )}
                           </TableCell>
                         </TableRow>
