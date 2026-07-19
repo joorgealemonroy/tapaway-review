@@ -147,9 +147,18 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const protectedKind = await isProtectedRepOrAdmin(userId);
+      if (protectedKind) {
+        console.warn(`BLOCKED orphan-auth delete for ${userId}: protected as ${protectedKind}`);
+        return new Response(JSON.stringify({ success: true, preserved: protectedKind }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
 
       if (deleteUserError) {
         // 404 / user_not_found means the auth user is already gone — treat as success
