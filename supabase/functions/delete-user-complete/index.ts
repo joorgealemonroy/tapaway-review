@@ -363,11 +363,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Guard: never wipe a rep's or admin's auth user via restaurant cleanup
+    const protectedKindO = await isProtectedRepOrAdmin(ownerId);
+    if (protectedKindO) {
+      console.warn(`Restaurant delete for owner ${ownerId}: preserving auth user (${protectedKindO})`);
+      return new Response(JSON.stringify({ success: true, preserved: protectedKindO }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Delete user roles
     await supabaseAdmin.from("user_roles").delete().eq("user_id", ownerId);
 
     // Delete the auth user completely
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(ownerId);
+
 
     if (deleteUserError) {
       const status = (deleteUserError as { status?: number }).status;
