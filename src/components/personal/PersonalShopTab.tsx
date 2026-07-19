@@ -636,6 +636,49 @@ export function PersonalShopTab({
 
   if (isFreeUser) return <ShopLockedPreview />;
 
+  // Trialing users can preview the Shop but cannot connect Stripe yet
+  if (isTrialing) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <ShoppingBag className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-xl">Sell Digital Products</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              Sell PDFs, courses, videos, and coaching sessions directly from your profile.
+              Payments go to your own Stripe account — you keep full control of payouts, refunds, and disputes.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <DollarSign className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>Direct Stripe payouts to your bank — no middleman.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Upload className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>Secure, time-limited buyer download links.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <ExternalLink className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>Automatic "Shop" section on your public profile.</span>
+              </div>
+            </div>
+
+            <Button disabled className="w-full" size="lg">
+              Connect Stripe — available after activation
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              You'll connect your payout account once you activate a paid plan.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Not onboarded yet — show Connect Stripe
   if (!isStripeOnboarded) {
     return (
