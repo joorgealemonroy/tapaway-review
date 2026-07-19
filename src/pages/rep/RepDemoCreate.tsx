@@ -9,6 +9,7 @@ import { GooglePlacesAutocomplete } from '@/components/GooglePlacesAutocomplete'
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
+import { buildGoogleReviewUrl } from '@/lib/google';
 
 const DEMO_CAP = 50;
 const TRIAL_DAYS = 7;
@@ -179,11 +180,12 @@ const RepDemoCreate = () => {
           is_active: true,
         });
       }
-      if (place.googleMapsUri) {
+      const reviewUrl = buildGoogleReviewUrl(place.placeId) || place.googleMapsUri;
+      if (reviewUrl) {
         seedLinks.push({
           profile_id: profileId,
           label: 'Leave us a 5-Star Review',
-          url: place.googleMapsUri,
+          url: reviewUrl,
           link_type: 'google_review',
           sort_order: seedLinks.length,
           is_active: true,
