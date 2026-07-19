@@ -1,52 +1,49 @@
-## Rep Demo Editor — Draft/Submit + Trial-Wide Tab Gating (Corrected)
+## 1. Resolver: allow approved trialing demos to render publicly
 
-### Scoping rules (final)
-- `const isRepDemo = !!profile.sales_rep_id && !profile.is_approved;`
-- `const isTrialing = profile.subscription_status === 'trialing';`
-- Rep-only features → `isRepDemo`
-- Trial-restriction features → `isTrialing` (covers all trial users, including rep demos)
+**`src/pages/UsernameResolver.tsx`**
+- Add `is_approved` to the select on `personal_profiles_public`.
+- Change the render gate from `subscription_status === 'active'` to:
+  `subscription_status === 'active' || (subscription_status === 'trialing' && is_approved === true)`
 
-### 1. Rep-editing banner + Draft/Submit controls (`isRepDemo` only)
-Sticky sub-header under the main header in `PersonalDashboard.tsx`:
-- Left: "Editing demo hub — **{business name}**" + pipeline chip (Draft / Ready for review / Approved).
-- Right buttons:
-  - **Save draft** → `pipeline_status='draft'`, toast, stay.
-  - **Submit for review** → `pipeline_status='ready_for_review'`, `submitted_for_review_at=now()`, toast, redirect to `/rep/restaurants`.
-  - If already `ready_for_review` → "Awaiting admin approval" + **Recall to draft** button.
+**`src/hooks/useProfileData.ts`**
+- Add `is_approved` to the select.
+- Same predicate: fail out only when neither active nor (trialing + approved).
 
-`AdminPendingHubApprovals.tsx` will filter to `pipeline_status='ready_for_review'` so drafts stay hidden.
+Everything else (restaurant slug fallback, 404 path, caching) stays as-is.
 
-### 2. Tab gating for ALL trialing profiles (`isTrialing`)
-In `PersonalDashboard.tsx` desktop tab list and `MobileBottomNav.tsx`:
-- **Hide "Cards" tab entirely** when `isTrialing`.
-- **Hide "Switch Profile" dropdown/button entirely** when `isTrialing` (desktop dropdown + mobile Switch Profile section).
-- **Keep "Shop" tab** but render a locked state inside `PersonalShopTab`: existing explainer copy retained, Stripe-Connect connect UI replaced with a disabled "Connect Stripe — available after activation" button + note "You'll connect payouts once you activate a plan."
-- Inside the **Plan** tab, add a small upsell pill: "Card Club — unlocks with any paid plan."
+## 2. Auto-generate vanity slug on "Submit for review"
 
-Non-trialing (active/paid) users see everything exactly as today.
+Where the rep's submit banner action lives in `PersonalDashboard.tsx`, extend the submit handler:
 
-### 3. SMS copy change (all users)
-In `src/components/personal/SmsMarketingTab.tsx` and `src/components/restaurant/RestaurantSmsMarketingTab.tsx`, replace every "Mass texting will be unlocked in a few days" with **"Will be unlocked very soon."**
+1. Load the current profile's `username` and `full_name`.
+2. If `username` starts with `demo-`, derive a slug from `full_name`:
+   - lowercase, trim
+   - replace any non `[a-z0-9]` run with `-`
+   - collapse repeats and strip leading/trailing `-`
+   - fall back to the existing `demo-xxxxx` if the derived base is empty
+3. Ensure uniqueness against `personal_profiles`:
+   - Query `username` in `(base, base-2, base-3, ...)`; pick the lowest suffix not taken.
+   - Also respect the existing `is_username_available` DB function's "tap"-prefix collision rules — call it and increment on false.
+   - Cap attempts (e.g. 25) to avoid runaway loops; on exhaustion, keep the placeholder and surface a toast so admin can rename manually.
+4. Single UPDATE on `personal_profiles` sets, together:
+   - `username` = new slug (only when changed)
+   - `pipeline_status = 'ready_for_review'`
+   - `submitted_for_review_at = now()`
+5. On success, refresh in-memory profile state and show the submit toast with the new public URL.
 
-### 4. Full Banner–only Design tab (`isRepDemo` only)
-Pass an `isRepDemo` prop from `PersonalDashboard.tsx` → `DashboardDesignTab` → `HeaderCustomizer.tsx`:
-- Regular owners: keep Solid Color / Image / Full Banner radio group unchanged.
-- When `isRepDemo`: hide the radio group entirely, force `headerType='banner'` on mount if not already, and render only the banner explainer + logo upload + Page Background controls.
+If `username` doesn't start with `demo-` (rep already customized it), skip slug generation and just flip the status fields.
 
-### 5. DB migration
-Add `submitted_for_review_at timestamptz` (nullable) to `personal_profiles`. `pipeline_status` already accepts free-text values, so no enum change needed; `'ready_for_review'` slots in directly.
+## 3. Verification
 
-### Files touched
-- `src/pages/personal/PersonalDashboard.tsx` — banner (rep-only), tab gating (trial), pass `isRepDemo` down
-- `src/components/personal/HeaderCustomizer.tsx` — accept `isRepDemo`, banner-only when true
-- `src/components/personal/DashboardDesignTab.tsx` — forward `isRepDemo`
-- `src/components/personal/PersonalShopTab.tsx` — locked Stripe-connect state when `isTrialing`
-- `src/components/personal/PersonalBillingTab.tsx` (Plan tab) — Card Club upsell pill when `isTrialing`
-- `src/components/personal/SmsMarketingTab.tsx` + `src/components/restaurant/RestaurantSmsMarketingTab.tsx` — copy change
-- `src/components/personal/MobileBottomNav.tsx` — hide Cards + Switch Profile when trialing
-- `src/components/admin/AdminPendingHubApprovals.tsx` — filter `pipeline_status='ready_for_review'`
-- New migration: `submitted_for_review_at` column on `personal_profiles`
+- Reload `tapaway.co/demo-dk8kc4` — should now render (approved, trialing).
+- `demo-rjcutj` still 404s until approved (expected).
+- Create a fresh demo, set business name "Something Eats", click Submit → username becomes `something-eats` (or `something-eats-2` if taken), status flips to `ready_for_review`.
+- Admin approval flow untouched; approved profile resolves at the new clean slug.
 
-### Out of scope
-- No change to owner behavior for active/paid accounts (they see Cards, Switch Profile, full Design options, full Shop).
-- No change to legacy Business (restaurant) dashboard tabs.
+## Files touched
+
+- `src/pages/UsernameResolver.tsx`
+- `src/hooks/useProfileData.ts`
+- `src/pages/personal/PersonalDashboard.tsx` (submit-for-review handler)
+
+No DB migration required. No RLS changes.
