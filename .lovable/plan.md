@@ -1,49 +1,34 @@
-## Root cause (confirmed)
+## Root cause
 
-`oxydgo@gmail.com`'s `rep_applications` row has `status = 'approved'` (reviewed 2026-07-19 06:50), but:
-- No row in `auth.users` for that email
-- No row in `sales_reps` for that email
-- No edge-function logs for `approve-rep-application`
+Rep-created demos live in `personal_profiles` with `user_id` = the rep's own auth user id. When an admin deletes such a demo:
 
-So the app row was flipped to `approved` without the edge function ever succeeding (either an earlier manual/legacy flip, or an old error path). The current edge function then guards at:
+1. `AdminBusinessLiteTable.handleDelete` removes the profile row.
+2. It counts remaining profiles for that `user_id`. For a rep with only one demo → 0.
+3. Calls `delete-user-complete` with `{ userId: rep.id, isPersonalAccount: true }`.
+4. That function calls `auth.admin.deleteUser(rep.id)` — wiping the rep's auth user.
+5. `sales_reps.id` FKs `auth.users(id) ON DELETE CASCADE`, so the rep row disappears too. The application row stays `approved` but the UI shows "No rep account".
 
-```ts
-if (application.status !== "pending") {
-  throw new Error("Application has already been processed");
-}
-```
+That is exactly what killed Diego's account, and any other rep whose demo count drops to zero is one delete away from the same fate.
 
-…so clicking Approve again does nothing. The AdminReps UI correctly shows "No rep account" (line 373 of `src/pages/admin/AdminReps.tsx`), but there's no way to recover.
+## Three-layer fix
 
-## Fix
+### 1. Server guards in `supabase/functions/delete-user-complete/index.ts`
+Add a shared helper `isProtectedRepOrAdmin(userId)` that checks `public.sales_reps` and `public.user_roles.role='admin'`. Before any `auth.admin.deleteUser(...)` call — in all three branches (`deleteAuthUserOnly`, `isPersonalAccount`, restaurant owner cleanup) — call the helper. If protected, skip the auth-user deletion and return `{ success: true, preserved: 'sales_rep' | 'admin' }`. The profile / restaurant row is still removed; only the auth user survives.
 
-### 1. `supabase/functions/approve-rep-application/index.ts` — make it idempotent
+Add a new opt-in branch: when the request body contains `deleteSalesRepAccount: true`, allow deleting the rep's `sales_reps` row + auth user. This is the ONLY code path that can remove a rep.
 
-Replace the strict `status !== 'pending'` guard with a guard based on **whether a sales_rep already exists** for that email:
+### 2. Client bypass in `src/components/admin/AdminBusinessLiteTable.tsx`
+In `handleDelete`, if `deletingAccount.sales_rep_id || deletingAccount.created_by_rep_id` is set, skip the `delete-user-complete` call entirely — the profile row and children are already removed and no auth cleanup is needed.
 
-- Look up an existing `sales_reps` row by `lower(email)`.
-- If one already exists AND `is_active = true` → return early with `{ success: true, alreadyProvisioned: true }`.
-- Otherwise proceed with the existing flow (create/find auth user, insert `sales_reps`, insert `user_roles`, upsert setup token, send welcome email, set status = `approved`).
+### 3. Revoke vs Delete separation in `src/pages/admin/AdminReps.tsx`
+Keep the current **Revoke** / **Reactivate** buttons (`is_active` toggle only — never touches auth).
+Add a new destructive **Delete rep permanently** button behind a typed-confirmation dialog that calls `delete-user-complete` with `{ userId: rep.id, deleteSalesRepAccount: true }`. This is the single sanctioned path to remove a rep entirely.
 
-Everything after that guard already uses "check-then-insert" for auth user, sales_reps row, and user_roles, and it deletes old setup tokens before inserting a new one — so a re-run is safe.
+## Data recovery for Diego
+Re-link his two orphaned demos (`c9759931-…` demo-rjcutj, `c419db63-…` demo-dk8kc4) so `user_id`, `sales_rep_id`, `created_by_rep_id` all point to his new auth id `05a4c94b-aa80-4183-8e01-0f7e80ee5433`. Approved by the user — will run as an UPDATE.
 
-### 2. `src/pages/admin/AdminReps.tsx` — add a "Provision account" action
-
-In the approved-but-no-rep branch (currently just static text `"No rep account"` at line 374), render an inline **Provision account** button that calls the same `approve-rep-application` edge function with the application id, then refreshes both `applications` and `reps` lists (same refresh block already in `handleApprove`). Reuse `handleApprove`'s logic — extract a small helper so both entry points share it.
-
-### 3. Immediate recovery for oxydgo@gmail.com
-
-Once (1) and (2) ship, Admin opens `/admin/reps`, finds Oxydgo's row (Approved, "No rep account"), clicks **Provision account**. That will:
-- Create the auth user
-- Insert the `sales_reps` row + `sales_rep` role
-- Generate a fresh 7-day setup token
-- Email the setup-password link
-
-No manual DB edits required.
-
-## Technical notes
-
-- The status guard change is the only behavior change to the edge function; success payload stays compatible.
-- Keep the `application.status !== 'pending'` case out of the error path — return success with a flag so the UI toast can say "already provisioned" vs "approved" if we want to distinguish later.
-- No schema/RLS changes.
-- No changes to `handleReject` or the pending-application Approve flow.
+## Files touched
+- `supabase/functions/delete-user-complete/index.ts` (guards + new `deleteSalesRepAccount` branch)
+- `src/components/admin/AdminBusinessLiteTable.tsx` (skip auth deletion for rep demos)
+- `src/pages/admin/AdminReps.tsx` (add Delete-permanently action with typed-confirm dialog)
+- Data update on `personal_profiles` for Diego's two demos
