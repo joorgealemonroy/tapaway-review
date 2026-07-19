@@ -9,6 +9,7 @@ import { GooglePlacesAutocomplete } from '@/components/GooglePlacesAutocomplete'
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
+import { buildGoogleReviewUrl } from '@/lib/google';
 
 const DEMO_CAP = 50;
 const TRIAL_DAYS = 7;
