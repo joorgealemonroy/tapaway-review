@@ -7,6 +7,10 @@ interface PlaceResult {
   placeId: string;
   name: string;
   formattedAddress: string;
+  phone?: string | null;
+  website?: string | null;
+  googleMapsUri?: string | null;
+  photoName?: string | null;
 }
 
 interface GooglePlacesAutocompleteProps {
@@ -14,6 +18,10 @@ interface GooglePlacesAutocompleteProps {
     placeId: string;
     name: string;
     address: string;
+    phone?: string | null;
+    website?: string | null;
+    googleMapsUri?: string | null;
+    photoName?: string | null;
   }) => void;
   defaultValue?: string;
   disabled?: boolean;
