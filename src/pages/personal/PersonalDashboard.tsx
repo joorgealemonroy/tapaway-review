@@ -126,6 +126,7 @@ interface PersonalBlock {
 const PersonalDashboard = () => {
   const navigate = useNavigate();
   const { isAffiliate } = useAffiliateAccess();
+  const { isSalesRep } = useSalesRep();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<PersonalProfile | null>(null);
