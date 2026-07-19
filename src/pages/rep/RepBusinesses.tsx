@@ -99,6 +99,10 @@ const RepBusinesses = () => {
       toast.error('Please upload a PDF file');
       return;
     }
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('PDF must be under 15MB');
+      return;
+    }
     setUploadingId(hubId);
     try {
       const path = `${hubId}/${Date.now()}-${file.name}`;
