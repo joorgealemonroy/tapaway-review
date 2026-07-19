@@ -549,6 +549,38 @@ const AdminReps = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permanent delete dialog */}
+      <Dialog open={!!deletingRep} onOpenChange={(open) => { if (!open) { setDeletingRep(null); setDeleteConfirmText(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete rep permanently</DialogTitle>
+            <DialogDescription>
+              This removes {deletingRep?.name}'s sales rep record AND their login. This cannot be undone. Any demos they own will lose their creator link.
+              To confirm, type <span className="font-mono font-bold">DELETE</span> below.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Type DELETE to confirm"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="ghost" onClick={() => { setDeletingRep(null); setDeleteConfirmText(''); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeletePermanently}
+              disabled={deleteConfirmText !== 'DELETE' || deletingPermanently}
+            >
+              {deletingPermanently ? 'Deleting...' : 'Delete permanently'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
