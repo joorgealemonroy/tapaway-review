@@ -232,13 +232,24 @@ const PersonalDashboard = () => {
       }
 
       // Fetch all profiles for this user (multi-profile support)
+      // Include profiles the user owns AND demo profiles they created as a sales rep
       const { data: allProfilesData, error: profileError } = await supabase
         .from("personal_profiles")
         .select("*")
-        .eq("user_id", user.id)
+        .or(`user_id.eq.${user.id},sales_rep_id.eq.${user.id},created_by_rep_id.eq.${user.id}`)
         .order("created_at", { ascending: true });
 
       if (profileError || !allProfilesData || allProfilesData.length === 0) {
+        // Sales reps without any demos yet should go back to the partner portal, not onboarding
+        const { data: repRow } = await supabase
+          .from("sales_reps")
+          .select("id")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (repRow) {
+          navigate("/rep/restaurants");
+          return;
+        }
         // User is authenticated but has no profile - redirect to onboarding
         navigate("/onboarding");
         return;
