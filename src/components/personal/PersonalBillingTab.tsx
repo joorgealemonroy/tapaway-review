@@ -123,6 +123,22 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
           </div>
         </CardContent>
       </Card>
+
+      {isTrialing && (
+        <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+          <CardContent className="flex items-start gap-3 p-4">
+            <div className="h-10 w-10 rounded-full bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+              <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Card Club — unlocks with any paid plan</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Once you activate, add the Card Club at checkout for $5/mo and get up to 3 NFC cards shipped monthly, free shipping included.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
