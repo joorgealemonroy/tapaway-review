@@ -1002,6 +1002,7 @@ const PersonalDashboard = () => {
               isStripeOnboarded={(profile as any).is_stripe_onboarded || false}
               onProfileUpdate={loadData}
               planType={profile.plan_type}
+              isTrialing={isTrialing}
             />
           </TabsContent>
 
