@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Phone, Star, Instagram, Globe, ExternalLink, Facebook, Music2, UserPlus, Sparkles } from 'lucide-react';
 import {
   getHubTheme,
@@ -8,6 +9,7 @@ import {
   type BackgroundThemeStyle,
 } from '@/lib/hubThemes';
 import { toSocialDeepLink } from '@/lib/deepLinks';
+import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
 
 export type HeaderStyle = 'solid' | 'image' | 'full_banner';
 
@@ -119,6 +121,30 @@ export const LivePhonePreview = ({
       ? secondary
       : undefined;
 
+  // Auto-sample the bottom-center color of the banner so the phone-preview
+  // background matches, giving reps the same seamless look they'll see live.
+  const [sampledBg, setSampledBg] = useState<string | null>(null);
+  useEffect(() => {
+    if (headerStyle !== 'full_banner' || !bannerUrl) {
+      setSampledBg(null);
+      return;
+    }
+    let cancelled = false;
+    sampleBottomEdgeColor(bannerUrl).then((hex) => {
+      if (!cancelled) setSampledBg(hex);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [headerStyle, bannerUrl]);
+
+  const containerStyle: React.CSSProperties = {
+    ...theme.containerStyle,
+    ...(sampledBg ? { background: sampledBg } : {}),
+  };
+
+  const useMask = headerStyle === 'full_banner' && !!bannerUrl;
+
   const socialIcon = (
     icon: React.ReactNode,
     bg: string,
@@ -155,7 +181,7 @@ export const LivePhonePreview = ({
         className="border-[12px] border-zinc-800 rounded-[3rem] h-[750px] shadow-2xl bg-[#0a0e1a] overflow-hidden mx-auto"
         style={{ width: 360 }}
       >
-        <div className="w-full h-full overflow-y-auto" style={theme.containerStyle}>
+        <div className="w-full h-full overflow-y-auto" style={containerStyle}>
           {/* Banner */}
           <div
             style={{
@@ -165,6 +191,12 @@ export const LivePhonePreview = ({
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               position: 'relative',
+              ...(useMask
+                ? {
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                    maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                  }
+                : {}),
             }}
           />
 
