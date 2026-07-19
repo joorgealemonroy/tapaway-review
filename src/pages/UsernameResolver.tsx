@@ -6,6 +6,7 @@ import { isUsernameReserved } from "@/lib/reservedUsernames";
 import PersonalProfilePage from "./personal/PersonalProfilePage";
 import { lazy, Suspense } from "react";
 import type { CachedProfile } from "@/hooks/useProfileCache";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 // Lazy load ReviewHub since it's less common and heavier
 const ReviewHub = lazy(() => import("./ReviewHub"));
@@ -18,25 +19,39 @@ const MinimalLoader = memo(() => (
   </div>
 ));
 
+const PROFILE_COLUMNS = "id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label, is_approved";
+
+const AdminPreviewRibbon = () => (
+  <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
+    Admin preview — this hub is not yet approved and not publicly visible.
+  </div>
+);
+
 const UsernameResolver = () => {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const routeState = location.state as { type?: string } | null;
+  const isAdminPreview = new URLSearchParams(location.search).get("admin_preview") === "1";
 
   // If CardResolver already confirmed this is a personal profile, skip the DB query entirely
-  if (routeState?.type === 'personal') {
+  if (routeState?.type === 'personal' && !isAdminPreview) {
     return <PersonalProfilePage />;
   }
 
-  return <UsernameResolverInner slug={slug} routeState={routeState} />;
+  return <UsernameResolverInner slug={slug} isAdminPreview={isAdminPreview} />;
 };
 
-const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; routeState?: { type?: string } | null }) => {
+const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; isAdminPreview?: boolean }) => {
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const [loading, setLoading] = useState(true);
   const [resolvedType, setResolvedType] = useState<"personal" | "restaurant" | "notfound" | null>(null);
   const [resolvedProfile, setResolvedProfile] = useState<CachedProfile | null>(null);
+  const [adminPreviewActive, setAdminPreviewActive] = useState(false);
 
   useEffect(() => {
+    // Wait until admin status is resolved when admin preview is requested
+    if (isAdminPreview && adminLoading) return;
+
     const resolve = async () => {
       if (!slug) {
         setResolvedType("notfound");
@@ -46,9 +61,25 @@ const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; route
 
       const lowerSlug = slug.toLowerCase();
 
+      // Admin preview: bypass the public gate and read from personal_profiles directly
+      if (isAdminPreview && isAdmin) {
+        const { data: adminProfile } = await supabase
+          .from("personal_profiles")
+          .select(PROFILE_COLUMNS)
+          .eq("username", lowerSlug)
+          .maybeSingle();
+
+        if (adminProfile) {
+          setResolvedProfile(adminProfile as unknown as CachedProfile);
+          setResolvedType("personal");
+          setAdminPreviewActive(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Reserved usernames should not match personal profiles
       if (isUsernameReserved(slug)) {
-        // Check restaurant slug
         const { data: restaurant } = await supabase
           .from("restaurant_public_info")
           .select("id")
@@ -60,10 +91,9 @@ const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; route
         return;
       }
 
-      // Fetch only the columns needed for rendering (matches useProfileData's select)
       const { data: profile } = await supabase
         .from("personal_profiles_public")
-        .select("id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label, is_approved")
+        .select(PROFILE_COLUMNS)
         .eq("username", lowerSlug)
         .maybeSingle();
 
@@ -78,7 +108,6 @@ const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; route
         return;
       }
 
-      // Check restaurant slug as fallback
       const { data: restaurant } = await supabase
         .from("restaurant_public_info")
         .select("id")
@@ -90,14 +119,19 @@ const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; route
     };
 
     resolve();
-  }, [slug]);
+  }, [slug, isAdminPreview, isAdmin, adminLoading]);
 
   if (loading) {
     return <MinimalLoader />;
   }
 
   if (resolvedType === "personal") {
-    return <PersonalProfilePage initialProfile={resolvedProfile ?? undefined} />;
+    return (
+      <>
+        {adminPreviewActive && <AdminPreviewRibbon />}
+        <PersonalProfilePage initialProfile={resolvedProfile ?? undefined} />
+      </>
+    );
   }
 
   if (resolvedType === "restaurant") {
