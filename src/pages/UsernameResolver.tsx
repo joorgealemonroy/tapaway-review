@@ -108,6 +108,23 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
+      // Not publicly visible — if the viewer is a verified admin, auto-enter
+      // preview mode against the plain slug (no ?admin_preview=1 needed).
+      if (isAdmin) {
+        const { data: adminProfile } = await supabase
+          .from("personal_profiles")
+          .select(PROFILE_COLUMNS)
+          .eq("username", lowerSlug)
+          .maybeSingle();
+        if (adminProfile) {
+          setResolvedProfile(adminProfile as unknown as CachedProfile);
+          setResolvedType("personal");
+          setAdminPreviewActive(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       const { data: restaurant } = await supabase
         .from("restaurant_public_info")
         .select("id")
