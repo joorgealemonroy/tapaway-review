@@ -1857,6 +1857,7 @@ export type Database = {
           stripe_connect_account_id: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          submitted_for_review_at: string | null
           subscription_status: string | null
           text_color: string | null
           trial_ends_at: string | null
@@ -1918,6 +1919,7 @@ export type Database = {
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          submitted_for_review_at?: string | null
           subscription_status?: string | null
           text_color?: string | null
           trial_ends_at?: string | null
@@ -1979,6 +1981,7 @@ export type Database = {
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          submitted_for_review_at?: string | null
           subscription_status?: string | null
           text_color?: string | null
           trial_ends_at?: string | null

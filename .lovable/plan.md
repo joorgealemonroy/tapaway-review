@@ -1,41 +1,52 @@
-## Goal
+## Rep Demo Editor — Draft/Submit + Trial-Wide Tab Gating (Corrected)
 
-Pressing **New Demo Hub** in the sales partner portal should skip the intake form and drop the rep straight into the real Business dashboard for a freshly-created demo profile — the same editor the owner will use. Business name, phone, and other details are edited later from inside that dashboard, exactly like a real owner does.
+### Scoping rules (final)
+- `const isRepDemo = !!profile.sales_rep_id && !profile.is_approved;`
+- `const isTrialing = profile.subscription_status === 'trialing';`
+- Rep-only features → `isRepDemo`
+- Trial-restriction features → `isTrialing` (covers all trial users, including rep demos)
 
-## Changes
+### 1. Rep-editing banner + Draft/Submit controls (`isRepDemo` only)
+Sticky sub-header under the main header in `PersonalDashboard.tsx`:
+- Left: "Editing demo hub — **{business name}**" + pipeline chip (Draft / Ready for review / Approved).
+- Right buttons:
+  - **Save draft** → `pipeline_status='draft'`, toast, stay.
+  - **Submit for review** → `pipeline_status='ready_for_review'`, `submitted_for_review_at=now()`, toast, redirect to `/rep/restaurants`.
+  - If already `ready_for_review` → "Awaiting admin approval" + **Recall to draft** button.
 
-### 1. `RepDemoCreate.tsx` → auto-create then redirect (no form)
-Replace the current Step 1 UI with a tiny "Spinning up your demo…" state that runs immediately on mount:
+`AdminPendingHubApprovals.tsx` will filter to `pipeline_status='ready_for_review'` so drafts stay hidden.
 
-- Enforce the existing 50/day cap. If hit → toast + redirect back to `/rep/restaurants`.
-- Generate a unique placeholder username (e.g. `demo-<random>`; retried against `is_username_available`).
-- Insert one `personal_profiles` row with:
-  - `user_id: rep.user.id`
-  - `full_name: "Untitled Demo"` (rep renames it in the dashboard)
-  - `email: <username>@demo.tapaway.local` placeholder
-  - `plan_type: 'solo_pro'`, `subscription_status: 'trialing'`, `trial_ends_at: now()+7d`
-  - `sales_rep_id`, `created_by_rep_id`, `is_approved: false`, `pipeline_status: 'draft'`
-  - default header/background tokens
-- `navigate('/dashboard?profile_id=<new_id>')` (preserving `admin_view_rep` when present).
-- No form fields, no "Create & Continue" button, no Step 1/Step 2 chrome.
+### 2. Tab gating for ALL trialing profiles (`isTrialing`)
+In `PersonalDashboard.tsx` desktop tab list and `MobileBottomNav.tsx`:
+- **Hide "Cards" tab entirely** when `isTrialing`.
+- **Hide "Switch Profile" dropdown/button entirely** when `isTrialing` (desktop dropdown + mobile Switch Profile section).
+- **Keep "Shop" tab** but render a locked state inside `PersonalShopTab`: existing explainer copy retained, Stripe-Connect connect UI replaced with a disabled "Connect Stripe — available after activation" button + note "You'll connect payouts once you activate a plan."
+- Inside the **Plan** tab, add a small upsell pill: "Card Club — unlocks with any paid plan."
 
-### 2. New pipeline entry point
-Add a **"+ New Demo Hub"** button on `RepBusinesses.tsx` and `RepHome.tsx` that routes to `/rep/demo/new` — same route, but now that route just spawns the profile and redirects. Rename any lingering "Step 1 · basic info" copy.
+Non-trialing (active/paid) users see everything exactly as today.
 
-### 3. Business name / phone editing in the real dashboard
-The Solo dashboard's existing hero/profile editor already handles `full_name` (business name) and `contact_phone`. No new UI needed — the rep sets these on the dashboard itself, matching what a real owner does. Nothing to build here; just verify the fields are exposed in `DashboardHeroEditor` / profile settings (they already are).
+### 3. SMS copy change (all users)
+In `src/components/personal/SmsMarketingTab.tsx` and `src/components/restaurant/RestaurantSmsMarketingTab.tsx`, replace every "Mass texting will be unlocked in a few days" with **"Will be unlocked very soon."**
 
-### 4. Pipeline list still works
-`RepBusinesses.tsx` pipeline already reads `personal_profiles` where `sales_rep_id = rep.id`. Newly-spawned drafts appear immediately with `full_name = "Untitled Demo"` until the rep edits it inside the dashboard. No query changes.
+### 4. Full Banner–only Design tab (`isRepDemo` only)
+Pass an `isRepDemo` prop from `PersonalDashboard.tsx` → `DashboardDesignTab` → `HeaderCustomizer.tsx`:
+- Regular owners: keep Solid Color / Image / Full Banner radio group unchanged.
+- When `isRepDemo`: hide the radio group entirely, force `headerType='banner'` on mount if not already, and render only the banner explainer + logo upload + Page Background controls.
 
-## Technical notes
+### 5. DB migration
+Add `submitted_for_review_at timestamptz` (nullable) to `personal_profiles`. `pipeline_status` already accepts free-text values, so no enum change needed; `'ready_for_review'` slots in directly.
 
-- The existing RLS policies (added last turn) already let the rep read/update the new profile plus its links/blocks while `is_approved = false`.
-- The `assign_founding_status` trigger already short-circuits for rep-created rows, so the badge shows **Pro Trial**, not VIP.
-- The auto-create runs once per mount, guarded by a ref so React StrictMode double-invocation doesn't create two profiles.
+### Files touched
+- `src/pages/personal/PersonalDashboard.tsx` — banner (rep-only), tab gating (trial), pass `isRepDemo` down
+- `src/components/personal/HeaderCustomizer.tsx` — accept `isRepDemo`, banner-only when true
+- `src/components/personal/DashboardDesignTab.tsx` — forward `isRepDemo`
+- `src/components/personal/PersonalShopTab.tsx` — locked Stripe-connect state when `isTrialing`
+- `src/components/personal/PersonalBillingTab.tsx` (Plan tab) — Card Club upsell pill when `isTrialing`
+- `src/components/personal/SmsMarketingTab.tsx` + `src/components/restaurant/RestaurantSmsMarketingTab.tsx` — copy change
+- `src/components/personal/MobileBottomNav.tsx` — hide Cards + Switch Profile when trialing
+- `src/components/admin/AdminPendingHubApprovals.tsx` — filter `pipeline_status='ready_for_review'`
+- New migration: `submitted_for_review_at` column on `personal_profiles`
 
-## Out of scope
-
-- Any changes to the client Solo dashboard UI.
-- Rewriting the pipeline table view.
-- Admin approval queue (unchanged).
+### Out of scope
+- No change to owner behavior for active/paid accounts (they see Cards, Switch Profile, full Design options, full Shop).
+- No change to legacy Business (restaurant) dashboard tabs.

@@ -98,6 +98,11 @@ interface PersonalProfile {
   show_founding_badge?: boolean;
   show_username?: boolean;
   has_card_addon?: boolean;
+  // Rep-demo fields
+  sales_rep_id?: string | null;
+  is_approved?: boolean | null;
+  pipeline_status?: string | null;
+  submitted_for_review_at?: string | null;
 }
 
 interface DbPersonalLink {
@@ -580,12 +585,93 @@ const PersonalDashboard = () => {
     is_active: b.is_active ?? true,
   }));
 
+  const isRepDemo = !!profile.sales_rep_id && !profile.is_approved;
+  const isTrialing = profile.subscription_status === "trialing";
+  const pipelineStatus = profile.pipeline_status || "draft";
+
+  const handleSaveDraft = async () => {
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update({ pipeline_status: "draft" } as any)
+      .eq("id", profile.id);
+    if (error) { toast.error("Failed to save draft"); return; }
+    setProfile(p => p ? { ...p, pipeline_status: "draft" } : p);
+    toast.success("Draft saved");
+  };
+
+  const handleSubmitForReview = async () => {
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update({
+        pipeline_status: "ready_for_review",
+        submitted_for_review_at: new Date().toISOString(),
+      } as any)
+      .eq("id", profile.id);
+    if (error) { toast.error("Failed to submit"); return; }
+    toast.success("Sent to admin for approval");
+    navigate("/rep/restaurants");
+  };
+
+  const handleRecallDraft = async () => {
+    const { error } = await supabase
+      .from("personal_profiles")
+      .update({ pipeline_status: "draft", submitted_for_review_at: null } as any)
+      .eq("id", profile.id);
+    if (error) { toast.error("Failed to recall"); return; }
+    setProfile(p => p ? { ...p, pipeline_status: "draft", submitted_for_review_at: null } : p);
+    toast.success("Pulled back to draft");
+  };
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden max-w-full">
       {showConfetti && <ConfettiEffect onComplete={() => setShowConfetti(false)} />}
       {isAdminView && (
         <AdminViewBanner name={adminViewName} backTo="/admin/personal-accounts" />
       )}
+
+      {/* Rep-demo editing banner */}
+      {isRepDemo && (
+        <div className="sticky top-0 z-[55] bg-emerald-500/10 border-b border-emerald-500/30 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                Editing demo hub
+              </span>
+              <span className="text-sm font-medium text-foreground truncate">
+                {profile.full_name}
+              </span>
+              <span className={cn(
+                "text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                pipelineStatus === "ready_for_review" && "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+                pipelineStatus === "draft" && "bg-white/10 text-muted-foreground",
+                pipelineStatus === "approved" && "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+              )}>
+                {pipelineStatus === "ready_for_review" ? "Ready for review" : pipelineStatus === "approved" ? "Approved" : "Draft"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {pipelineStatus === "ready_for_review" ? (
+                <>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Awaiting admin approval</span>
+                  <Button size="sm" variant="outline" onClick={handleRecallDraft}>
+                    Recall to draft
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={handleSaveDraft}>
+                    Save draft
+                  </Button>
+                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]" onClick={handleSubmitForReview}>
+                    Submit for review
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -726,7 +812,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-9">
+          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-7" : "grid-cols-9")}>
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -769,11 +855,13 @@ const PersonalDashboard = () => {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Plan</span>
             </TabsTrigger>
-            <TabsTrigger value="cards" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Cards</span>
-            </TabsTrigger>
-            {allProfiles.length > 1 && (
+            {!isTrialing && (
+              <TabsTrigger value="cards" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">Cards</span>
+              </TabsTrigger>
+            )}
+            {!isTrialing && allProfiles.length > 1 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-1.5">
@@ -851,6 +939,7 @@ const PersonalDashboard = () => {
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
+              isRepDemo={isRepDemo}
               onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
@@ -913,6 +1002,7 @@ const PersonalDashboard = () => {
               isStripeOnboarded={(profile as any).is_stripe_onboarded || false}
               onProfileUpdate={loadData}
               planType={profile.plan_type}
+              isTrialing={isTrialing}
             />
           </TabsContent>
 
@@ -1030,6 +1120,7 @@ const PersonalDashboard = () => {
           setLoading(true);
           loadData();
         }}
+        isTrialing={isTrialing}
       />
 
     </div>

@@ -17,6 +17,7 @@ interface MobileBottomNavProps {
   allProfiles?: ProfileInfo[];
   activeProfileId?: string;
   onSwitchProfile?: (profileId: string) => void;
+  isTrialing?: boolean;
 }
  
  const PRIMARY_TABS = [
@@ -32,7 +33,7 @@ const BASE_MORE_TABS = [
   { value: "cards", label: "Cards", icon: CreditCard, description: "Request NFC cards" },
 ];
  
-export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile }: MobileBottomNavProps) => {
+export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('tapaway_dashboard_theme') !== 'light');
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfil
   }, [isDark]);
   
   const MORE_TABS = [
-    ...BASE_MORE_TABS,
+    ...BASE_MORE_TABS.filter(t => !(isTrialing && t.value === "cards")),
     ...(isAffiliate ? [{ value: "affiliate", label: "Affiliate", icon: Users, description: "Your affiliate dashboard" }] : []),
   ];
    
@@ -140,8 +141,8 @@ export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfil
              })}
             </div>
 
-             {/* Switch Profile */}
-             {allProfiles.length > 1 && onSwitchProfile && (
+             {/* Switch Profile — hidden while trialing */}
+             {!isTrialing && allProfiles.length > 1 && onSwitchProfile && (
                <div className="border-t border-border mt-2 pt-2">
                  {allProfiles.length === 2 ? (
                    (() => {
