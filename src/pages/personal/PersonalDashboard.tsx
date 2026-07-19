@@ -444,41 +444,49 @@ const PersonalDashboard = () => {
         .from("personal-photos")
         .getPublicUrl(filePath);
 
-      // Add cache buster
+      // Add cache buster for display; sample from clean URL to avoid CORS
+      // caching issues with query strings.
       const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
 
-      const { error: updateError } = await supabase
-        .from("personal_profiles")
-        .update({ profile_photo_url: urlWithCacheBust })
-        .eq("id", profile.id);
-
-      if (updateError) throw updateError;
-
-      let nextBgColor = profile.background_color;
-      // When this photo is being used as a full banner, auto-match the page
-      // background to the bottom edge of the image — but only if the user
-      // hasn't customized the background yet.
-      if (
+      // Determine whether we should auto-match the page background to the
+      // bottom edge of this photo (only when using a full-banner header and
+      // the user hasn't manually customized the background yet).
+      const shouldAutoMatchBg =
         profile.header_type === "banner" &&
         (profile.background_color ?? DEFAULT_HUB_BACKGROUND_COLOR).toLowerCase() ===
-          DEFAULT_HUB_BACKGROUND_COLOR
-      ) {
-        const sampled = await sampleBottomEdgeColor(urlWithCacheBust);
-        if (sampled) {
-          const { error: bgError } = await supabase
-            .from("personal_profiles")
-            .update({ background_color: sampled })
-            .eq("id", profile.id);
-          if (!bgError) nextBgColor = sampled;
+          DEFAULT_HUB_BACKGROUND_COLOR;
+
+      let sampledBg: string | null = null;
+      if (shouldAutoMatchBg) {
+        sampledBg = await sampleBottomEdgeColor(publicUrl);
+        if (!sampledBg) {
+          console.warn(
+            "[banner] sampleBottomEdgeColor returned null — likely CORS or decode failure; leaving background_color as-is",
+          );
         }
       }
 
-      setProfile({ ...profile, profile_photo_url: urlWithCacheBust, background_color: nextBgColor });
+      // Fold both writes into a single atomic UPDATE so the sampled bg
+      // can't be lost to a partial failure or later refetch.
+      const updates: Record<string, string> = { profile_photo_url: urlWithCacheBust };
+      if (sampledBg) updates.background_color = sampledBg;
 
-      // If this was a regular photo edit, just proceed
-      if (profile) {
-        invalidateProfileCache(profile.username);
-      }
+      const { data: updatedRow, error: updateError } = await supabase
+        .from("personal_profiles")
+        .update(updates)
+        .eq("id", profile.id)
+        .select("profile_photo_url, background_color")
+        .single();
+
+      if (updateError) throw updateError;
+
+      setProfile({
+        ...profile,
+        profile_photo_url: updatedRow?.profile_photo_url ?? urlWithCacheBust,
+        background_color: updatedRow?.background_color ?? profile.background_color,
+      });
+
+      invalidateProfileCache(profile.username);
 
       toast.success("Photo updated!");
     } catch (err) {
