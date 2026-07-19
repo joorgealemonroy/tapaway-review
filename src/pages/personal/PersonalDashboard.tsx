@@ -98,6 +98,11 @@ interface PersonalProfile {
   show_founding_badge?: boolean;
   show_username?: boolean;
   has_card_addon?: boolean;
+  // Rep-demo fields
+  sales_rep_id?: string | null;
+  is_approved?: boolean | null;
+  pipeline_status?: string | null;
+  submitted_for_review_at?: string | null;
 }
 
 interface DbPersonalLink {
