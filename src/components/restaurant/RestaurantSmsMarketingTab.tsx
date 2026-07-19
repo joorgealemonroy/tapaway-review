@@ -103,7 +103,7 @@ const RestaurantSmsMarketingTab = ({ restaurantId }: Props) => {
     <div className="space-y-6">
       {/* Pending carrier approval banner */}
       <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-4 text-sm text-amber-900 dark:text-amber-200">
-        🚧 SMS Marketing is currently pending carrier approval. Mass texting will be unlocked in a few days!
+        🚧 SMS Marketing is currently pending carrier approval. Will be unlocked very soon.
       </div>
 
       {/* Audience */}

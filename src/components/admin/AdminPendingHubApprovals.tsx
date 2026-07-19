@@ -26,7 +26,8 @@ const AdminPendingHubApprovals = () => {
         .select("id, full_name, username, created_at, sales_rep_id, card_print_pdf_path")
         .not("sales_rep_id", "is", null)
         .eq("is_approved", false)
-        .order("created_at", { ascending: false });
+        .eq("pipeline_status", "ready_for_review")
+        .order("submitted_for_review_at", { ascending: false });
       if (error) throw error;
 
       const repIds = Array.from(
