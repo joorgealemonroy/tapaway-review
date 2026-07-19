@@ -24,7 +24,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 1500, // $15/mo
     interval: 'month',
     productName: 'TapAway Solo Pro (Monthly)',
-    trialDays: 14,
+    trialDays: 7,
   },
   solo_annual: {
     label: 'Solo Pro Annual',
@@ -33,7 +33,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 15000, // $150/yr
     interval: 'year',
     productName: 'TapAway Solo Pro (Annual)',
-    trialDays: 14,
+    trialDays: 7,
   },
   venue_monthly: {
     label: 'Venue Pack Monthly',
@@ -42,7 +42,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 3900, // $39/mo
     interval: 'month',
     productName: 'TapAway Venue Pack (Monthly)',
-    trialDays: 14,
+    trialDays: 7,
   },
   venue_annual: {
     label: 'Venue Pack Annual',
@@ -51,7 +51,7 @@ const PLAN_TIERS: Record<string, {
     priceAmount: 39000, // $390/yr
     interval: 'year',
     productName: 'TapAway Venue Pack (Annual)',
-    trialDays: 14,
+    trialDays: 7,
   },
 };
 
