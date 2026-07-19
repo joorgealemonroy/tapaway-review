@@ -1,0 +1,1 @@
+UPDATE public.personal_profiles SET is_approved = true WHERE username = 'las-nuevas-islas';
