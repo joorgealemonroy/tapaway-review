@@ -786,6 +786,10 @@ function ProfilePreviewRendererComponent({
                   src={bannerUrl}
                   alt="Banner"
                   className="h-full w-full object-cover object-top"
+                  style={{
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                    maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                  }}
                 />
               ) : (
                 <div 

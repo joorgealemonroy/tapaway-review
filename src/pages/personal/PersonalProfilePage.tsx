@@ -1332,6 +1332,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 decoding="async"
                 fetchPriority="high"
                 className="w-full h-full object-cover object-top"
+                style={{
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                  maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                }}
               />
             </div>
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
