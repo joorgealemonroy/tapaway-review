@@ -1,49 +1,44 @@
-## 1. Resolver: allow approved trialing demos to render publicly
 
-**`src/pages/UsernameResolver.tsx`**
-- Add `is_approved` to the select on `personal_profiles_public`.
-- Change the render gate from `subscription_status === 'active'` to:
-  `subscription_status === 'active' || (subscription_status === 'trialing' && is_approved === true)`
+## Seamless full-banner background matching
 
-**`src/hooks/useProfileData.ts`**
-- Add `is_approved` to the select.
-- Same predicate: fail out only when neither active nor (trialing + approved).
+### 1. New helper — `src/lib/sampleBannerColor.ts`
 
-Everything else (restaurant slug fallback, 404 path, caching) stays as-is.
+`sampleBottomEdgeColor(imageUrl: string): Promise<string | null>`
 
-## 2. Auto-generate vanity slug on "Submit for review"
+- Load image with `crossOrigin="anonymous"` in an offscreen `<canvas>`.
+- Wrap the entire `drawImage` + `getImageData` block in a single `try/catch`; on any failure (CORS taint, load error, decode error) resolve with `null` so callers keep the current background untouched.
+- Sampling window: **bottom-center 20% of width** × bottom 5% of height, stepped every ~4px.
+- Skip pixels with alpha < 200.
+- Average remaining RGB → return `#rrggbb`.
 
-Where the rep's submit banner action lives in `PersonalDashboard.tsx`, extend the submit handler:
+### 2. Auto-apply on banner upload — `src/pages/personal/tabs/DashboardDesignTab.tsx`
 
-1. Load the current profile's `username` and `full_name`.
-2. If `username` starts with `demo-`, derive a slug from `full_name`:
-   - lowercase, trim
-   - replace any non `[a-z0-9]` run with `-`
-   - collapse repeats and strip leading/trailing `-`
-   - fall back to the existing `demo-xxxxx` if the derived base is empty
-3. Ensure uniqueness against `personal_profiles`:
-   - Query `username` in `(base, base-2, base-3, ...)`; pick the lowest suffix not taken.
-   - Also respect the existing `is_username_available` DB function's "tap"-prefix collision rules — call it and increment on false.
-   - Cap attempts (e.g. 25) to avoid runaway loops; on exhaustion, keep the placeholder and surface a toast so admin can rename manually.
-4. Single UPDATE on `personal_profiles` sets, together:
-   - `username` = new slug (only when changed)
-   - `pipeline_status = 'ready_for_review'`
-   - `submitted_for_review_at = now()`
-5. On success, refresh in-memory profile state and show the submit toast with the new public URL.
+After a successful `header_image_url` upload:
+- Call `sampleBottomEdgeColor(uploadedUrl)`.
+- Read the current `background_color`. Only overwrite when it **exactly equals the app default hex** (locate the constant already used at profile creation — likely `#000000` or the value in `PersonalDashboard`/instant-profile helper). If unclear, define/reuse a shared `DEFAULT_BACKGROUND_COLOR` constant so both the creator and this handler reference the same source of truth.
+- Persist both `header_image_url` and (conditionally) `background_color` in the same update.
+- If the helper returns `null`, silently skip — never block the upload.
 
-If `username` doesn't start with `demo-` (rep already customized it), skip slug generation and just flip the status fields.
+### 3. Live preview parity — `src/components/personal/LivePhonePreview.tsx`
 
-## 3. Verification
+- Run the same sampling when a new banner URL comes in via props/state so the preview updates instantly, before save.
+- Same "only if still default" gate.
 
-- Reload `tapaway.co/demo-dk8kc4` — should now render (approved, trialing).
-- `demo-rjcutj` still 404s until approved (expected).
-- Create a fresh demo, set business name "Something Eats", click Submit → username becomes `something-eats` (or `something-eats-2` if taken), status flips to `ready_for_review`.
-- Admin approval flow untouched; approved profile resolves at the new clean slug.
+### 4. CSS feather on the full banner (new)
 
-## Files touched
+Apply to the banner `<img>`/`<div>` wherever `header_type === 'full_banner'` renders:
 
-- `src/pages/UsernameResolver.tsx`
-- `src/hooks/useProfileData.ts`
-- `src/pages/personal/PersonalDashboard.tsx` (submit-for-review handler)
+```
+maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+```
 
-No DB migration required. No RLS changes.
+Targets to update:
+- `src/components/personal/LivePhonePreview.tsx` (rep editor preview)
+- The public hub full-banner renderer — locate via a search for `header_type === 'full_banner'` / `full_banner` in `src/components/personal/*` and `src/pages/personal/*`; apply to the same element that currently shows the banner image. Do not change the layout, only add the mask styles.
+
+### Out of scope
+
+- No schema change — still using `background_color`.
+- No behavior change to `image` or `solid` header types.
+- No public-hub logic change beyond adding the CSS mask.
