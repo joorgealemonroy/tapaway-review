@@ -812,7 +812,7 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className="hidden md:grid w-full grid-cols-9">
+          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-7" : "grid-cols-9")}>
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -855,11 +855,13 @@ const PersonalDashboard = () => {
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Plan</span>
             </TabsTrigger>
-            <TabsTrigger value="cards" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Cards</span>
-            </TabsTrigger>
-            {allProfiles.length > 1 && (
+            {!isTrialing && (
+              <TabsTrigger value="cards" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">Cards</span>
+              </TabsTrigger>
+            )}
+            {!isTrialing && allProfiles.length > 1 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-1.5">
