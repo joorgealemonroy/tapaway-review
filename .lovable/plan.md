@@ -1,48 +1,73 @@
+## Google Places Auto-Fill for 1-Click Demo Creation
 
-## Problem
+Replace the current auto-spawning `RepDemoCreate.tsx` behavior with a single Google Places search that enriches the demo profile before dropping the rep into the dashboard.
 
-After a rep uploads their profile photo (the full-banner logo), the auto-matched background looks correct. But saving something unrelated (e.g. adding an Instagram link in Content) causes the page background to snap back to the previous/default color. The user wants this diagnosed and fixed with real test coverage.
+### 1. Extend `lookup-place-id` edge function
 
-## Suspected root causes (to verify, not assume)
+Currently returns only `id`, `displayName`, `formattedAddress`. Broaden the `X-Goog-FieldMask` to also fetch:
+- `places.internationalPhoneNumber`
+- `places.nationalPhoneNumber`
+- `places.websiteUri`
+- `places.googleMapsUri`
+- `places.photos` (first photo `name` only)
 
-There are three code paths that touch `background_color`, and only one of them (the photo upload) writes the sampled color. The revert points to one of these:
+Map into each result:
+```
+{ placeId, name, formattedAddress, phone, website, googleMapsUri, photoName }
+```
 
-1. **DB write never actually persisted.** `PersonalDashboard.handleCroppedPhoto` calls `sampleBottomEdgeColor(urlWithCacheBust)` and then `UPDATE personal_profiles SET background_color = <sampled>`. If the canvas read is CORS-blocked (the sampler swallows errors and returns `null`), no DB update runs — but the in-memory `LivePhonePreview` samples on its own, so the editor still *looks* right. On the next refetch, the DB value (still `#ffffff`) wins and the bg "reverts."
+Add a companion action (`?action=photo`, or a new `get-place-photo` function) that, given a `photos[].name`, calls `https://places.googleapis.com/v1/{photoName}/media?maxWidthPx=1200&skipHttpRedirect=true` and returns the `photoUri`. Server-side call keeps the API key hidden.
 
-2. **Stale `pendingBgColor` in `DashboardDesignTab`.** `pendingBgColor` is initialized from the `backgroundColor` prop once and never re-syncs when the parent updates it after the photo upload. That means `hasChanges` becomes true against a stale baseline; the `UnsavedChangesBar` can then overwrite the freshly-sampled bg back to white when saved — even from a different tab context.
+### 2. Rewrite `src/pages/rep/RepDemoCreate.tsx`
 
-3. **Refetch clobber after Content save.** Content-tab save calls `loadData()` (line 1025 `onUpdate={() => loadData()}`), which re-reads the profile. If (1) is true, the refetched row still has the old bg and stomps the good in-memory value.
+Drop the auto-spawn logic. Render a centered dark-theme card with:
+- Title "Create a new demo hub"
+- Subheading explaining the flow
+- Single `GooglePlacesAutocomplete` input (reuses existing component)
+- Small helper text about the 50/day cap
 
-## Investigation steps
+When a place is selected → run `handleCreateDemo(place)`:
 
-1. Query the affected profile directly to see whether `background_color` was actually written after the photo upload:
-   ```
-   SELECT id, username, background_color, profile_photo_url, updated_at
-   FROM personal_profiles WHERE id = '<current profile>';
-   ```
-   This confirms whether the DB matches the visible bg.
-2. Add temporary `console.debug` around the sample + update in `handleCroppedPhoto` to log: sampled hex, update error, and whether the branch even ran.
-3. Reproduce in the preview with the sales-partner demo hub, then check network + console.
+1. **Daily cap check** (unchanged: count `personal_profiles` for `sales_rep_id` since midnight; if ≥ 50 toast + return).
+2. **Fetch enriched details** by re-calling `lookup-place-id` with the exact business name (or extend the current call to already return them so no second round trip is required).
+3. **Resolve photo URL** via the photo helper when `photoName` exists; on any failure just skip the photo (never block creation).
+4. **Derive unique username** from `place.name`:
+   - slugify (`lowercase`, `[^a-z0-9]+` → `-`, trim `-`, cap 32 chars)
+   - loop with `is_username_available` RPC, append `-2`, `-3`… until free (max 8 tries, fall back to `demo-<rand>` if all taken)
+5. **Insert `personal_profiles`** with:
+   - `user_id`: rep's `user.id`
+   - `username`, `full_name: place.name`
+   - `email: <username>@demo.tapaway.local`
+   - `business_phone: place.phone ?? null`
+   - `profile_photo_url: resolvedPhotoUrl ?? null`
+   - `header_type: 'banner'` (so uploaded/banner photo behaves as banner header per existing rep-demo defaults)
+   - `background_color: '#ffffff'`
+   - `plan_type: 'solo_pro'`, `subscription_status: 'trialing'`, `trial_ends_at: now() + 7d`
+   - `sales_rep_id`, `created_by_rep_id`
+   - `is_approved: false`, `pipeline_status: 'draft'`
+   - `show_username: true`
+6. **Insert two `personal_links` rows** (best-effort — swallow errors, keep flow moving):
+   - `{ profile_id, label: 'Visit Our Website', url: place.website, link_type: 'custom', sort_order: 0, is_active: true }` — only if `place.website` is present.
+   - `{ profile_id, label: 'Leave us a 5-Star Review', url: place.googleMapsUri, link_type: 'google_review', sort_order: 1, is_active: true }` — only if `googleMapsUri` present.
+7. Toast "Demo created — customize away 🎉" and `navigate('/dashboard?profile_id=<new_id>')` (preserving `admin_view_rep` when present, matching current logic).
 
-## Fix plan (apply after diagnosis)
+While the async work is running show the same loader/`Loader2` UI in place of the search card so reps get instant feedback.
 
-**A. Guarantee the sampled bg is persisted, and surface failures.**
-- In `handleCroppedPhoto`, sample from the `publicUrl` (no `?t=` cache-buster — the query string can defeat CORS caching), and if `sampled` is `null`, log a `console.warn` so we know the sampler failed instead of silently doing nothing.
-- Fold the sampled bg into the *same* `UPDATE` as `profile_photo_url` (one round-trip, atomic).
-- After the update, verify with a `.select("background_color").single()` and set `profile` from the returned row instead of the local `nextBgColor`.
+### 3. Edge cases
 
-**B. Keep `DashboardDesignTab` pending state in sync.**
-- Add a `useEffect` that resets `pendingBgColor`, `pendingHeaderType`, `pendingHeaderColor`, `bgColorInput`, `customColorInput` whenever the corresponding prop changes and `userPickedBg.current === false`. Prevents the Unsaved-Changes bar from re-saving stale white over a freshly-sampled color.
+- Search returns no phone/website/photo → still create the profile; just skip the missing fields and any dependent link inserts.
+- Photo fetch fails or is CORS-blocked → skip silently, do not throw.
+- Slug collision after 8 tries → fall back to `demo-<rand6>` so we never block the rep.
+- Legacy `/rep/demo/:id` edit route continues to redirect to `/dashboard?profile_id=<id>` (unchanged).
 
-**C. Make the live renderer honor the saved value first.**
-- In `PersonalProfilePage` and `ProfilePreviewRenderer`, when `header_type === 'banner'` and `background_color` is already set to a non-default value, skip the runtime sampler and use the stored value. Only sample at runtime when `background_color` is still the default. This makes the visible bg match what's actually in the database and eliminates the "looks fine until refetch" illusion.
+### Technical notes
 
-**D. Re-run the tests.**
-- Manual pass in the preview: upload logo → confirm bg matches → open Content → add Instagram → save → confirm bg unchanged → hard refresh → confirm bg still correct.
-- Repeat with a high-contrast image (dark logo on light corners) to confirm the sampled anchor sticks.
-- Repeat while logged in as a rep viewing the demo, then again as the eventual owner, so we catch any RLS mismatch on the `background_color` update for rep-created demos.
-- Confirm with a direct DB query that `background_color` is the sampled hex, not `#ffffff`, after each save.
+- `personal_links.link_type` uses free-form strings — `'custom'` and `'google_review'` already exist in the codebase (`platformLinks`), so no schema changes.
+- No DB migrations required — all new fields already exist on `personal_profiles` and `personal_links`.
+- Only files touched:
+  - `supabase/functions/lookup-place-id/index.ts` (field mask + photo endpoint)
+  - `src/pages/rep/RepDemoCreate.tsx` (full rewrite)
 
-## Out of scope
+### Out of scope
 
-No visual/design changes, no schema changes, no changes to other tabs. This is strictly a persistence + state-sync fix on the banner background.
+Admin approval queue, pipeline view, and existing dashboard editing behavior stay untouched.
