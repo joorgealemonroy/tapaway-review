@@ -100,11 +100,24 @@ export const DashboardDesignTab = ({
   const hasInitialized = useRef(false);
 
   // --- Pending (buffered) state for deferred save ---
-  const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
+  const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
+
+  // Force banner mode on rep-created demo hubs and persist it once
+  useEffect(() => {
+    if (!isRepDemo) return;
+    if (headerType !== "banner") {
+      setPendingHeaderType("banner");
+      supabase
+        .from("personal_profiles")
+        .update({ header_type: "banner" })
+        .eq("id", profileId)
+        .then(() => onUpdate({ headerType: "banner" }));
+    }
+  }, [isRepDemo, headerType, profileId, onUpdate]);
 
   const hasChanges = useMemo(() => {
     return (
