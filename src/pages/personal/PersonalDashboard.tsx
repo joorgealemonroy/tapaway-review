@@ -939,6 +939,7 @@ const PersonalDashboard = () => {
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
+              isRepDemo={isRepDemo}
               onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
