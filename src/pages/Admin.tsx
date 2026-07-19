@@ -600,6 +600,7 @@ const Admin = () => {
 
   const renderAccounts = () => (
     <div className="space-y-4">
+      <AdminPendingHubApprovals />
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="inline-flex rounded-lg bg-white/[0.03] border border-white/5 p-1 w-fit">
           {([
