@@ -1812,11 +1812,13 @@ export type Database = {
           banner_image_url: string | null
           bg_style: string | null
           bio: string | null
+          business_phone: string | null
           button_theme: string | null
           card_back_text: string | null
           card_confirmed: boolean | null
           card_confirmed_at: string | null
           card_front_headline: string | null
+          card_print_pdf_path: string | null
           contact_address: string | null
           contact_button_label: string | null
           contact_company: string | null
@@ -1843,6 +1845,7 @@ export type Database = {
           is_founding_user: boolean
           is_stripe_onboarded: boolean | null
           pfp_position: string | null
+          pipeline_status: string | null
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
@@ -1870,11 +1873,13 @@ export type Database = {
           banner_image_url?: string | null
           bg_style?: string | null
           bio?: string | null
+          business_phone?: string | null
           button_theme?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
           card_front_headline?: string | null
+          card_print_pdf_path?: string | null
           contact_address?: string | null
           contact_button_label?: string | null
           contact_company?: string | null
@@ -1901,6 +1906,7 @@ export type Database = {
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
+          pipeline_status?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
@@ -1928,11 +1934,13 @@ export type Database = {
           banner_image_url?: string | null
           bg_style?: string | null
           bio?: string | null
+          business_phone?: string | null
           button_theme?: string | null
           card_back_text?: string | null
           card_confirmed?: boolean | null
           card_confirmed_at?: string | null
           card_front_headline?: string | null
+          card_print_pdf_path?: string | null
           contact_address?: string | null
           contact_button_label?: string | null
           contact_company?: string | null
@@ -1959,6 +1967,7 @@ export type Database = {
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
+          pipeline_status?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
