@@ -212,11 +212,22 @@ Deno.serve(async (req) => {
         await supabaseAdmin.from("personal_profiles").delete().eq("id", profile.id);
       }
 
+      // Guard: never wipe a rep's or admin's auth user via demo cleanup
+      const protectedKindP = await isProtectedRepOrAdmin(userId);
+      if (protectedKindP) {
+        console.warn(`Personal-account delete for ${userId}: preserving auth user (${protectedKindP})`);
+        return new Response(JSON.stringify({ success: true, preserved: protectedKindP }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Delete user roles
       await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
 
       // Delete the auth user
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
 
       if (deleteUserError) {
         const status = (deleteUserError as { status?: number }).status;
