@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly } = await req.json();
+    const { restaurantId, userId, isPersonalAccount, deleteAuthUserOnly, deleteSalesRepAccount } = await req.json();
 
     // ──── PERMANENT SAFEGUARD ────────────────────────────────────────────
     // Resolve the target user's email and block deletion of the super admin
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
     // Check all possible target user IDs
     const targetUserId = userId || (restaurantId ? null : undefined);
-    
+
     if (targetUserId) {
       const targetEmail = await resolveTargetEmail(targetUserId);
       if (targetEmail?.toLowerCase() === PROTECTED_EMAIL) {
@@ -84,6 +84,61 @@ Deno.serve(async (req) => {
     }
     // ──── END SAFEGUARD ──────────────────────────────────────────────────
 
+    // ──── SALES-REP / ADMIN GUARD ────────────────────────────────────────
+    // Prevents demo cleanup from wiping out a rep's auth account (which cascades
+    // sales_reps via ON DELETE CASCADE). The only path allowed to delete a rep's
+    // auth user is the explicit "Delete rep permanently" action, which sets
+    // deleteSalesRepAccount = true.
+    const isProtectedRepOrAdmin = async (targetId: string | undefined): Promise<string | null> => {
+      if (!targetId) return null;
+      const { data: rep } = await supabaseAdmin
+        .from("sales_reps")
+        .select("id")
+        .eq("id", targetId)
+        .maybeSingle();
+      if (rep) return "sales_rep";
+      const { data: adminRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", targetId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (adminRole) return "admin";
+      return null;
+    };
+    // ──── END GUARD ──────────────────────────────────────────────────────
+
+    // ──── EXPLICIT REP-DELETION BRANCH ───────────────────────────────────
+    // The ONLY sanctioned path to remove a sales rep's auth user + sales_reps row.
+    if (deleteSalesRepAccount && userId) {
+      if (userId === caller.id) {
+        return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      await supabaseAdmin.from("sales_reps").delete().eq("id", userId);
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+      const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (deleteErr) {
+        const status = (deleteErr as { status?: number }).status;
+        const code = (deleteErr as { code?: string }).code;
+        if (status !== 404 && code !== "user_not_found") {
+          console.error("Error deleting rep auth user:", deleteErr);
+          return new Response(JSON.stringify({ error: "Failed to delete rep: " + deleteErr.message }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      console.log(`Successfully deleted sales rep ${userId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     // Handle orphan auth user deletion (no profile, no restaurant)
     if (deleteAuthUserOnly && userId) {
       if (userId === caller.id) {
@@ -92,9 +147,18 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const protectedKind = await isProtectedRepOrAdmin(userId);
+      if (protectedKind) {
+        console.warn(`BLOCKED orphan-auth delete for ${userId}: protected as ${protectedKind}`);
+        return new Response(JSON.stringify({ success: true, preserved: protectedKind }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
 
       if (deleteUserError) {
         // 404 / user_not_found means the auth user is already gone — treat as success
@@ -148,11 +212,22 @@ Deno.serve(async (req) => {
         await supabaseAdmin.from("personal_profiles").delete().eq("id", profile.id);
       }
 
+      // Guard: never wipe a rep's or admin's auth user via demo cleanup
+      const protectedKindP = await isProtectedRepOrAdmin(userId);
+      if (protectedKindP) {
+        console.warn(`Personal-account delete for ${userId}: preserving auth user (${protectedKindP})`);
+        return new Response(JSON.stringify({ success: true, preserved: protectedKindP }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Delete user roles
       await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
 
       // Delete the auth user
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
 
       if (deleteUserError) {
         const status = (deleteUserError as { status?: number }).status;
@@ -288,11 +363,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Guard: never wipe a rep's or admin's auth user via restaurant cleanup
+    const protectedKindO = await isProtectedRepOrAdmin(ownerId);
+    if (protectedKindO) {
+      console.warn(`Restaurant delete for owner ${ownerId}: preserving auth user (${protectedKindO})`);
+      return new Response(JSON.stringify({ success: true, preserved: protectedKindO }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Delete user roles
     await supabaseAdmin.from("user_roles").delete().eq("user_id", ownerId);
 
     // Delete the auth user completely
     const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(ownerId);
+
 
     if (deleteUserError) {
       const status = (deleteUserError as { status?: number }).status;

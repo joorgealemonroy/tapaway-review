@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -58,6 +60,10 @@ const AdminReps = () => {
   const [processing, setProcessing] = useState(false);
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<{ rep: SalesRep; next: boolean } | null>(null);
+  const [deletingRep, setDeletingRep] = useState<SalesRep | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingPermanently, setDeletingPermanently] = useState(false);
+
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
@@ -228,6 +234,28 @@ const AdminReps = () => {
     }
   };
 
+  const handleDeletePermanently = async () => {
+    if (!deletingRep || deleteConfirmText !== 'DELETE') return;
+    setDeletingPermanently(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user-complete', {
+        body: { userId: deletingRep.id, deleteSalesRepAccount: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`Rep ${deletingRep.email} deleted permanently`);
+      setReps((prev) => prev.filter((r) => r.id !== deletingRep.id));
+      setDeletingRep(null);
+      setDeleteConfirmText('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete rep';
+      toast.error(msg);
+    } finally {
+      setDeletingPermanently(false);
+    }
+  };
+
+
   if (adminLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -283,8 +311,18 @@ const AdminReps = () => {
           {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
         </Button>
       )}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        onClick={() => { setDeletingRep(rep); setDeleteConfirmText(''); }}
+      >
+        <Trash2 className="h-3 w-3 mr-1" />
+        Delete permanently
+      </Button>
     </div>
   );
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -511,6 +549,38 @@ const AdminReps = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Permanent delete dialog */}
+      <Dialog open={!!deletingRep} onOpenChange={(open) => { if (!open) { setDeletingRep(null); setDeleteConfirmText(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete rep permanently</DialogTitle>
+            <DialogDescription>
+              This removes {deletingRep?.name}'s sales rep record AND their login. This cannot be undone. Any demos they own will lose their creator link.
+              To confirm, type <span className="font-mono font-bold">DELETE</span> below.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Type DELETE to confirm"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="ghost" onClick={() => { setDeletingRep(null); setDeleteConfirmText(''); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeletePermanently}
+              disabled={deleteConfirmText !== 'DELETE' || deletingPermanently}
+            >
+              {deletingPermanently ? 'Deleting...' : 'Delete permanently'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

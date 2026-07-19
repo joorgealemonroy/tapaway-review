@@ -38,7 +38,10 @@ interface PersonalAccount {
   subscription_status: string | null;
   created_at: string;
   profile_photo_url: string | null;
+  sales_rep_id: string | null;
+  created_by_rep_id: string | null;
 }
+
 
 const AdminBusinessLiteTable = () => {
   const navigate = useNavigate();
@@ -59,8 +62,9 @@ const AdminBusinessLiteTable = () => {
     try {
       const { data, error } = await supabase
         .from("personal_profiles")
-        .select("id, user_id, username, full_name, email, plan_type, subscription_status, created_at, profile_photo_url")
+        .select("id, user_id, username, full_name, email, plan_type, subscription_status, created_at, profile_photo_url, sales_rep_id, created_by_rep_id")
         .order("created_at", { ascending: false });
+
 
       if (error) throw error;
       setAccounts(data || []);
@@ -103,19 +107,24 @@ const AdminBusinessLiteTable = () => {
 
       if (profileError) throw profileError;
 
-      // Only delete the auth user if no other profiles reference them
-      // (rep-created demos are proxy-owned by the rep/admin and must not delete that account)
-      const { count: remaining } = await supabase
-        .from("personal_profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", deletingAccount.user_id);
-      if (!remaining || remaining === 0) {
-        try {
-          await supabase.functions.invoke("delete-user-complete", {
-            body: { userId: deletingAccount.user_id, isPersonalAccount: true },
-          });
-        } catch {}
+      // Only delete the auth user for standalone personal accounts.
+      // Rep-created demos share the rep's (or admin's) auth user — deleting that
+      // auth user would cascade the sales_reps row and lock the rep out.
+      const isRepDemo = Boolean(deletingAccount.sales_rep_id || deletingAccount.created_by_rep_id);
+      if (!isRepDemo) {
+        const { count: remaining } = await supabase
+          .from("personal_profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", deletingAccount.user_id);
+        if (!remaining || remaining === 0) {
+          try {
+            await supabase.functions.invoke("delete-user-complete", {
+              body: { userId: deletingAccount.user_id, isPersonalAccount: true },
+            });
+          } catch {}
+        }
       }
+
 
       toast.success(`Account @${deletingAccount.username} deleted`);
       setAccounts((prev) => prev.filter((a) => a.id !== deletingAccount.id));
