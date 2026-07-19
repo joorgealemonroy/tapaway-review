@@ -234,6 +234,28 @@ const AdminReps = () => {
     }
   };
 
+  const handleDeletePermanently = async () => {
+    if (!deletingRep || deleteConfirmText !== 'DELETE') return;
+    setDeletingPermanently(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user-complete', {
+        body: { userId: deletingRep.id, deleteSalesRepAccount: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success(`Rep ${deletingRep.email} deleted permanently`);
+      setReps((prev) => prev.filter((r) => r.id !== deletingRep.id));
+      setDeletingRep(null);
+      setDeleteConfirmText('');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete rep';
+      toast.error(msg);
+    } finally {
+      setDeletingPermanently(false);
+    }
+  };
+
+
   if (adminLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
