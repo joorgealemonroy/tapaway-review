@@ -311,8 +311,18 @@ const AdminReps = () => {
           {resendingInvite === rep.id ? 'Sending...' : 'Resend Invite'}
         </Button>
       )}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+        onClick={() => { setDeletingRep(rep); setDeleteConfirmText(''); }}
+      >
+        <Trash2 className="h-3 w-3 mr-1" />
+        Delete permanently
+      </Button>
     </div>
   );
+
 
   return (
     <div className="min-h-screen bg-background">
