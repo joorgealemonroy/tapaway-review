@@ -32,6 +32,7 @@ interface Props {
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
+  isRepDemo?: boolean;
   onUpgrade?: () => void;
   onUpdate: (updates: {
     headerType?: string;
@@ -83,6 +84,7 @@ export const DashboardDesignTab = ({
   isPremium,
   isFoundingUser,
   showFoundingBadge,
+  isRepDemo,
   onUpgrade,
   onUpdate,
 }: Props) => {
