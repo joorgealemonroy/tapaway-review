@@ -63,11 +63,15 @@ const UsernameResolverInner = memo(({ slug, routeState }: { slug?: string; route
       // Fetch only the columns needed for rendering (matches useProfileData's select)
       const { data: profile } = await supabase
         .from("personal_profiles_public")
-        .select("id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label")
+        .select("id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label, is_approved")
         .eq("username", lowerSlug)
         .maybeSingle();
 
-      if (profile?.subscription_status === "active") {
+      const isPubliclyVisible =
+        profile?.subscription_status === "active" ||
+        (profile?.subscription_status === "trialing" && (profile as { is_approved?: boolean }).is_approved === true);
+
+      if (isPubliclyVisible) {
         setResolvedProfile(profile as unknown as CachedProfile);
         setResolvedType("personal");
         setLoading(false);

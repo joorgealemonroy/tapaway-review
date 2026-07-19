@@ -600,15 +600,52 @@ const PersonalDashboard = () => {
   };
 
   const handleSubmitForReview = async () => {
+    // Auto-generate a vanity slug from the business name if the username is
+    // still the placeholder "demo-xxxxxx" created at demo-hub spin-up.
+    let nextUsername: string | null = null;
+    const currentUsername = (profile.username || "").toLowerCase();
+    if (currentUsername.startsWith("demo-")) {
+      const base = (profile.full_name || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 40);
+
+      if (base.length >= 2) {
+        // Find the first non-colliding variant: base, base-2, base-3, ...
+        for (let i = 0; i < 25; i++) {
+          const candidate = i === 0 ? base : `${base}-${i + 1}`;
+          const { data: available } = await supabase.rpc("is_username_available", {
+            check_username: candidate,
+          });
+          if (available === true) {
+            nextUsername = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    const updates: Record<string, unknown> = {
+      pipeline_status: "ready_for_review",
+      submitted_for_review_at: new Date().toISOString(),
+    };
+    if (nextUsername) updates.username = nextUsername;
+
     const { error } = await supabase
       .from("personal_profiles")
-      .update({
-        pipeline_status: "ready_for_review",
-        submitted_for_review_at: new Date().toISOString(),
-      } as any)
+      .update(updates as any)
       .eq("id", profile.id);
     if (error) { toast.error("Failed to submit"); return; }
-    toast.success("Sent to admin for approval");
+
+    if (nextUsername) {
+      setProfile(p => p ? { ...p, username: nextUsername! } : p);
+      toast.success(`Sent for approval — public URL will be /${nextUsername}`);
+    } else {
+      toast.success("Sent to admin for approval");
+    }
     navigate("/rep/restaurants");
   };
 
