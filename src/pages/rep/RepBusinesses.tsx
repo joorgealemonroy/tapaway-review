@@ -247,7 +247,7 @@ const RepBusinesses = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 md:justify-end">
                   <button
-                    onClick={() => navigate(`/rep/demo/${hub.id}`)}
+                    onClick={() => navigate(`/dashboard?profile_id=${hub.id}`)}
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
