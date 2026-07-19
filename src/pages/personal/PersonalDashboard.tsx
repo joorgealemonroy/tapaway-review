@@ -46,6 +46,7 @@ import { CardsTab } from "@/components/personal/CardsTab";
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
+import { useSalesRep } from "@/hooks/useSalesRep";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
