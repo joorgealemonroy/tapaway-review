@@ -49,8 +49,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
   const [adminPreviewActive, setAdminPreviewActive] = useState(false);
 
   useEffect(() => {
-    // Wait until admin status is resolved when admin preview is requested
-    if (isAdminPreview && adminLoading) return;
+    // Wait until admin status is resolved so we can auto-fallback to admin
+    // preview mode when the slug isn't publicly visible.
+    if (adminLoading) return;
 
     const resolve = async () => {
       if (!slug) {
@@ -106,6 +107,23 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         setResolvedType("personal");
         setLoading(false);
         return;
+      }
+
+      // Not publicly visible — if the viewer is a verified admin, auto-enter
+      // preview mode against the plain slug (no ?admin_preview=1 needed).
+      if (isAdmin) {
+        const { data: adminProfile } = await supabase
+          .from("personal_profiles")
+          .select(PROFILE_COLUMNS)
+          .eq("username", lowerSlug)
+          .maybeSingle();
+        if (adminProfile) {
+          setResolvedProfile(adminProfile as unknown as CachedProfile);
+          setResolvedType("personal");
+          setAdminPreviewActive(true);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data: restaurant } = await supabase

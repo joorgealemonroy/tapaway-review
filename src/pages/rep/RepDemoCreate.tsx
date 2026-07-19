@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { GooglePlacesAutocomplete } from '@/components/GooglePlacesAutocomplete';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
+import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
 
 const DEMO_CAP = 50;
 const TRIAL_DAYS = 7;
@@ -46,15 +47,21 @@ const resolveUniqueUsername = async (base: string): Promise<string> => {
   return randomFallback();
 };
 
-const fetchPlacePhoto = async (photoName: string): Promise<string | null> => {
+const fetchHostedPlacePhoto = async (
+  photoName: string,
+  slug: string,
+): Promise<{ publicUrl: string | null; photoUri: string | null }> => {
   try {
     const { data, error } = await supabase.functions.invoke('lookup-place-id', {
-      body: { action: 'photo', photoName, maxWidthPx: 1200 },
+      body: { action: 'photo_hosted', photoName, maxWidthPx: 1200, slug },
     });
-    if (error) return null;
-    return (data as any)?.photoUri ?? null;
+    if (error) return { publicUrl: null, photoUri: null };
+    return {
+      publicUrl: (data as any)?.publicUrl ?? null,
+      photoUri: (data as any)?.photoUri ?? null,
+    };
   } catch {
-    return null;
+    return { publicUrl: null, photoUri: null };
   }
 };
 
@@ -111,12 +118,24 @@ const RepDemoCreate = () => {
         return;
       }
 
-      // 2. Resolve photo (best-effort)
-      setStatus('Grabbing business details…');
-      const photoUrl = place.photoName ? await fetchPlacePhoto(place.photoName) : null;
-
-      // 3. Unique username slug
+      // 2. Unique username slug (so re-hosted photo path uses the final slug)
       const username = await resolveUniqueUsername(place.name);
+
+      // 3. Resolve photo — re-host on our storage so we can canvas-sample it
+      setStatus('Grabbing business details…');
+      let profilePhotoUrl: string | null = null;
+      let sampledBg: string | null = null;
+      if (place.photoName) {
+        const { publicUrl, photoUri } = await fetchHostedPlacePhoto(place.photoName, username);
+        profilePhotoUrl = publicUrl ?? photoUri; // fallback to raw Google URL
+        if (publicUrl) {
+          try {
+            sampledBg = await sampleBottomEdgeColor(publicUrl);
+          } catch {
+            sampledBg = null;
+          }
+        }
+      }
 
       // 4. Insert profile
       setStatus('Spinning up your demo hub…');
@@ -129,7 +148,7 @@ const RepDemoCreate = () => {
           full_name: place.name,
           email: `${username}@demo.tapaway.local`,
           business_phone: place.phone ?? null,
-          profile_photo_url: photoUrl,
+          profile_photo_url: profilePhotoUrl,
           plan_type: 'solo_pro',
           subscription_status: 'trialing',
           trial_ends_at: trialEndsAt,
@@ -139,7 +158,7 @@ const RepDemoCreate = () => {
           pipeline_status: 'draft',
           header_type: 'banner',
           header_color: '#0a0e1a',
-          background_color: '#ffffff',
+          background_color: sampledBg ?? '#ffffff',
           show_username: true,
         } as any)
         .select('id')

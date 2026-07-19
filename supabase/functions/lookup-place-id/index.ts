@@ -34,7 +34,7 @@ serve(async (req) => {
     }
 
     // --- Action: fetch a photo URL for a given photo resource name ---
-    if (body?.action === 'photo') {
+    if (body?.action === 'photo' || body?.action === 'photo_hosted') {
       const photoName = typeof body.photoName === 'string' ? body.photoName.trim() : '';
       if (!photoName) {
         return new Response(
@@ -55,10 +55,77 @@ serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      return new Response(
-        JSON.stringify({ photoUri: photoData?.photoUri || null }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+
+      // Default: return Google's short-lived photo URI as-is.
+      if (body.action === 'photo') {
+        return new Response(
+          JSON.stringify({ photoUri: photoData?.photoUri || null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // photo_hosted: download the bytes server-side (no browser CORS)
+      // and re-host in personal-photos so the client can canvas-sample it.
+      const googlePhotoUri: string | null = photoData?.photoUri || null;
+      if (!googlePhotoUri) {
+        return new Response(
+          JSON.stringify({ photoUri: null, publicUrl: null }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      try {
+        const imgResp = await fetch(googlePhotoUri);
+        if (!imgResp.ok) throw new Error(`photo download ${imgResp.status}`);
+        const contentType = imgResp.headers.get('content-type') || 'image/jpeg';
+        const ext = contentType.includes('png') ? 'png'
+          : contentType.includes('webp') ? 'webp'
+          : 'jpg';
+        const bytes = new Uint8Array(await imgResp.arrayBuffer());
+
+        const subdir = typeof body.subdir === 'string' && body.subdir.length > 0 ? body.subdir : 'rep-demos';
+        const safeSlug = (typeof body.slug === 'string' ? body.slug : 'demo')
+          .toLowerCase()
+          .replace(/[^a-z0-9-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40) || 'demo';
+        const objectPath = `${subdir}/${safeSlug}-${Date.now()}.${ext}`;
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (!supabaseUrl || !serviceKey) throw new Error('supabase env missing');
+
+        const uploadResp = await fetch(
+          `${supabaseUrl}/storage/v1/object/personal-photos/${objectPath}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              apikey: serviceKey,
+              'Content-Type': contentType,
+              'x-upsert': 'true',
+              'cache-control': '3600',
+            },
+            body: bytes,
+          }
+        );
+        if (!uploadResp.ok) {
+          const errText = await uploadResp.text().catch(() => '');
+          throw new Error(`storage upload ${uploadResp.status}: ${errText}`);
+        }
+
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/personal-photos/${objectPath}`;
+        return new Response(
+          JSON.stringify({ photoUri: googlePhotoUri, publicUrl, path: objectPath }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (rehostErr) {
+        console.error('[lookup-place-id] rehost error:', rehostErr);
+        return new Response(
+          JSON.stringify({ photoUri: googlePhotoUri, publicUrl: null, error: 'rehost_failed' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // --- Default: text search ---
