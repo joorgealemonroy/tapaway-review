@@ -35,6 +35,7 @@ import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
+import { sampleBottomEdgeColor, DEFAULT_HUB_BACKGROUND_COLOR } from "@/lib/sampleBannerColor";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import SmsMarketingTab from "@/components/personal/SmsMarketingTab";
 import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab";
@@ -453,13 +454,32 @@ const PersonalDashboard = () => {
 
       if (updateError) throw updateError;
 
-      setProfile({ ...profile, profile_photo_url: urlWithCacheBust });
-      
+      let nextBgColor = profile.background_color;
+      // When this photo is being used as a full banner, auto-match the page
+      // background to the bottom edge of the image — but only if the user
+      // hasn't customized the background yet.
+      if (
+        profile.header_type === "banner" &&
+        (profile.background_color ?? DEFAULT_HUB_BACKGROUND_COLOR).toLowerCase() ===
+          DEFAULT_HUB_BACKGROUND_COLOR
+      ) {
+        const sampled = await sampleBottomEdgeColor(urlWithCacheBust);
+        if (sampled) {
+          const { error: bgError } = await supabase
+            .from("personal_profiles")
+            .update({ background_color: sampled })
+            .eq("id", profile.id);
+          if (!bgError) nextBgColor = sampled;
+        }
+      }
+
+      setProfile({ ...profile, profile_photo_url: urlWithCacheBust, background_color: nextBgColor });
+
       // If this was a regular photo edit, just proceed
       if (profile) {
         invalidateProfileCache(profile.username);
       }
-      
+
       toast.success("Photo updated!");
     } catch (err) {
       console.error("Error uploading photo:", err);
