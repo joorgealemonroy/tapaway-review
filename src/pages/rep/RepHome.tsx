@@ -52,18 +52,18 @@ const RepHome = () => {
       const end = new Date(); end.setHours(23, 59, 59, 999);
 
       const { count: approvedCount } = await supabase
-        .from('restaurants')
+        .from('personal_profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id)
+        .eq('sales_rep_id', salesRep.id)
         .eq('is_approved', true)
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString());
       setDemosToday(approvedCount ?? 0);
 
       const { count: pendingCount } = await supabase
-        .from('restaurants')
+        .from('personal_profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('created_by', user.id)
+        .eq('sales_rep_id', salesRep.id)
         .eq('is_approved', false)
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString());
