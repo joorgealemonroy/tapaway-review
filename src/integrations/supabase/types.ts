@@ -1829,6 +1829,7 @@ export type Database = {
           contact_title: string | null
           contact_website: string | null
           created_at: string | null
+          created_by_rep_id: string | null
           email: string
           founding_number: number | null
           full_name: string
@@ -1838,12 +1839,14 @@ export type Database = {
           header_type: string | null
           headline: string | null
           id: string
+          is_approved: boolean
           is_founding_user: boolean
           is_stripe_onboarded: boolean | null
           pfp_position: string | null
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
+          sales_rep_id: string | null
           show_founding_badge: boolean
           show_shop_section: boolean | null
           show_username: boolean
@@ -1884,6 +1887,7 @@ export type Database = {
           contact_title?: string | null
           contact_website?: string | null
           created_at?: string | null
+          created_by_rep_id?: string | null
           email: string
           founding_number?: number | null
           full_name: string
@@ -1893,12 +1897,14 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          sales_rep_id?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
@@ -1939,6 +1945,7 @@ export type Database = {
           contact_title?: string | null
           contact_website?: string | null
           created_at?: string | null
+          created_by_rep_id?: string | null
           email?: string
           founding_number?: number | null
           full_name?: string
@@ -1948,12 +1955,14 @@ export type Database = {
           header_type?: string | null
           headline?: string | null
           id?: string
+          is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          sales_rep_id?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
