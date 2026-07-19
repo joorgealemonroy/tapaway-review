@@ -89,6 +89,7 @@ interface PersonalShopTabProps {
   isStripeOnboarded: boolean;
   onProfileUpdate: () => void;
   planType?: string | null;
+  isTrialing?: boolean;
 }
 
 function ShopLockedPreview() {
@@ -139,7 +140,8 @@ export function PersonalShopTab({
   stripeConnectAccountId, 
   isStripeOnboarded,
   onProfileUpdate,
-  planType
+  planType,
+  isTrialing = false,
 }: PersonalShopTabProps) {
   const isFreeUser = !planType || planType === 'free';
 
