@@ -62,8 +62,9 @@ const AdminBusinessLiteTable = () => {
     try {
       const { data, error } = await supabase
         .from("personal_profiles")
-        .select("id, user_id, username, full_name, email, plan_type, subscription_status, created_at, profile_photo_url")
+        .select("id, user_id, username, full_name, email, plan_type, subscription_status, created_at, profile_photo_url, sales_rep_id, created_by_rep_id")
         .order("created_at", { ascending: false });
+
 
       if (error) throw error;
       setAccounts(data || []);
