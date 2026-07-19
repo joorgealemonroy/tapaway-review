@@ -1,44 +1,48 @@
 
-## Seamless full-banner background matching
+## Problem
 
-### 1. New helper — `src/lib/sampleBannerColor.ts`
+After a rep uploads their profile photo (the full-banner logo), the auto-matched background looks correct. But saving something unrelated (e.g. adding an Instagram link in Content) causes the page background to snap back to the previous/default color. The user wants this diagnosed and fixed with real test coverage.
 
-`sampleBottomEdgeColor(imageUrl: string): Promise<string | null>`
+## Suspected root causes (to verify, not assume)
 
-- Load image with `crossOrigin="anonymous"` in an offscreen `<canvas>`.
-- Wrap the entire `drawImage` + `getImageData` block in a single `try/catch`; on any failure (CORS taint, load error, decode error) resolve with `null` so callers keep the current background untouched.
-- Sampling window: **bottom-center 20% of width** × bottom 5% of height, stepped every ~4px.
-- Skip pixels with alpha < 200.
-- Average remaining RGB → return `#rrggbb`.
+There are three code paths that touch `background_color`, and only one of them (the photo upload) writes the sampled color. The revert points to one of these:
 
-### 2. Auto-apply on banner upload — `src/pages/personal/tabs/DashboardDesignTab.tsx`
+1. **DB write never actually persisted.** `PersonalDashboard.handleCroppedPhoto` calls `sampleBottomEdgeColor(urlWithCacheBust)` and then `UPDATE personal_profiles SET background_color = <sampled>`. If the canvas read is CORS-blocked (the sampler swallows errors and returns `null`), no DB update runs — but the in-memory `LivePhonePreview` samples on its own, so the editor still *looks* right. On the next refetch, the DB value (still `#ffffff`) wins and the bg "reverts."
 
-After a successful `header_image_url` upload:
-- Call `sampleBottomEdgeColor(uploadedUrl)`.
-- Read the current `background_color`. Only overwrite when it **exactly equals the app default hex** (locate the constant already used at profile creation — likely `#000000` or the value in `PersonalDashboard`/instant-profile helper). If unclear, define/reuse a shared `DEFAULT_BACKGROUND_COLOR` constant so both the creator and this handler reference the same source of truth.
-- Persist both `header_image_url` and (conditionally) `background_color` in the same update.
-- If the helper returns `null`, silently skip — never block the upload.
+2. **Stale `pendingBgColor` in `DashboardDesignTab`.** `pendingBgColor` is initialized from the `backgroundColor` prop once and never re-syncs when the parent updates it after the photo upload. That means `hasChanges` becomes true against a stale baseline; the `UnsavedChangesBar` can then overwrite the freshly-sampled bg back to white when saved — even from a different tab context.
 
-### 3. Live preview parity — `src/components/personal/LivePhonePreview.tsx`
+3. **Refetch clobber after Content save.** Content-tab save calls `loadData()` (line 1025 `onUpdate={() => loadData()}`), which re-reads the profile. If (1) is true, the refetched row still has the old bg and stomps the good in-memory value.
 
-- Run the same sampling when a new banner URL comes in via props/state so the preview updates instantly, before save.
-- Same "only if still default" gate.
+## Investigation steps
 
-### 4. CSS feather on the full banner (new)
+1. Query the affected profile directly to see whether `background_color` was actually written after the photo upload:
+   ```
+   SELECT id, username, background_color, profile_photo_url, updated_at
+   FROM personal_profiles WHERE id = '<current profile>';
+   ```
+   This confirms whether the DB matches the visible bg.
+2. Add temporary `console.debug` around the sample + update in `handleCroppedPhoto` to log: sampled hex, update error, and whether the branch even ran.
+3. Reproduce in the preview with the sales-partner demo hub, then check network + console.
 
-Apply to the banner `<img>`/`<div>` wherever `header_type === 'full_banner'` renders:
+## Fix plan (apply after diagnosis)
 
-```
-maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-```
+**A. Guarantee the sampled bg is persisted, and surface failures.**
+- In `handleCroppedPhoto`, sample from the `publicUrl` (no `?t=` cache-buster — the query string can defeat CORS caching), and if `sampled` is `null`, log a `console.warn` so we know the sampler failed instead of silently doing nothing.
+- Fold the sampled bg into the *same* `UPDATE` as `profile_photo_url` (one round-trip, atomic).
+- After the update, verify with a `.select("background_color").single()` and set `profile` from the returned row instead of the local `nextBgColor`.
 
-Targets to update:
-- `src/components/personal/LivePhonePreview.tsx` (rep editor preview)
-- The public hub full-banner renderer — locate via a search for `header_type === 'full_banner'` / `full_banner` in `src/components/personal/*` and `src/pages/personal/*`; apply to the same element that currently shows the banner image. Do not change the layout, only add the mask styles.
+**B. Keep `DashboardDesignTab` pending state in sync.**
+- Add a `useEffect` that resets `pendingBgColor`, `pendingHeaderType`, `pendingHeaderColor`, `bgColorInput`, `customColorInput` whenever the corresponding prop changes and `userPickedBg.current === false`. Prevents the Unsaved-Changes bar from re-saving stale white over a freshly-sampled color.
 
-### Out of scope
+**C. Make the live renderer honor the saved value first.**
+- In `PersonalProfilePage` and `ProfilePreviewRenderer`, when `header_type === 'banner'` and `background_color` is already set to a non-default value, skip the runtime sampler and use the stored value. Only sample at runtime when `background_color` is still the default. This makes the visible bg match what's actually in the database and eliminates the "looks fine until refetch" illusion.
 
-- No schema change — still using `background_color`.
-- No behavior change to `image` or `solid` header types.
-- No public-hub logic change beyond adding the CSS mask.
+**D. Re-run the tests.**
+- Manual pass in the preview: upload logo → confirm bg matches → open Content → add Instagram → save → confirm bg unchanged → hard refresh → confirm bg still correct.
+- Repeat with a high-contrast image (dark logo on light corners) to confirm the sampled anchor sticks.
+- Repeat while logged in as a rep viewing the demo, then again as the eventual owner, so we catch any RLS mismatch on the `background_color` update for rep-created demos.
+- Confirm with a direct DB query that `background_color` is the sampled hex, not `#ffffff`, after each save.
+
+## Out of scope
+
+No visual/design changes, no schema changes, no changes to other tabs. This is strictly a persistence + state-sync fix on the banner background.
