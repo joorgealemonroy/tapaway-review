@@ -353,6 +353,7 @@ const RepDemoCreate = () => {
             ...payload,
             owner_id: user.id,
             created_by: user.id,
+            sales_rep_id: user.id,
             expires_at: expiresAt,
             subscription_status: 'trialing',
             custom_slug: slug,
