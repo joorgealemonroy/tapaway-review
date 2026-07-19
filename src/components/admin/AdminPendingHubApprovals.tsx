@@ -36,9 +36,9 @@ const AdminPendingHubApprovals = () => {
       if (repIds.length > 0) {
         const { data: reps } = await supabase
           .from("sales_reps")
-          .select("id, full_name")
+          .select("id, name")
           .in("id", repIds);
-        repMap = Object.fromEntries((reps ?? []).map((r) => [r.id, r.full_name ?? ""]));
+        repMap = Object.fromEntries((reps ?? []).map((r) => [r.id, r.name ?? ""]));
       }
 
       setRows(
