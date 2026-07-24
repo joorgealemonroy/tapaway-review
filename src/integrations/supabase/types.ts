@@ -3278,6 +3278,36 @@ export type Database = {
         }[]
       }
       get_founding_count: { Args: never; Returns: number }
+      get_public_restaurant_hub: {
+        Args: { _id?: string; _slug?: string }
+        Returns: {
+          avm_negative_label: string
+          avm_positive_label: string
+          avm_question_subtitle: string
+          avm_question_title: string
+          background_theme_style: string
+          business_phone: string
+          custom_background_url: string
+          custom_slug: string
+          directions_url: string
+          expires_at: string
+          google_review_url: string
+          header_subtitle: string
+          header_title: string
+          hub_background_style: string
+          id: string
+          instagram_url: string
+          is_approved: boolean
+          logo_url: string
+          menu_title: string
+          phone: string
+          primary_color: string
+          restaurant_name: string
+          secondary_color: string
+          type: string
+          yelp_review_url: string
+        }[]
+      }
       get_signup_dropoff_stats: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {
