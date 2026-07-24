@@ -42,7 +42,6 @@ const checks = [
   },
 ];
 
-const readRows = async (path) => {
 const readRows = async ({ path, body }) => {
   const response = await fetch(`${supabaseUrl}${path}`, {
     headers: body
