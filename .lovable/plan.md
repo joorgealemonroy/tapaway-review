@@ -1,20 +1,33 @@
-## Plan: Direct Google Review Popup URL in Rep Demo Creation
+## What I verified
+- The hosted backend is healthy; this is not an infrastructure outage.
+- Public personal hubs are still available through `personal_profiles_public`.
+- Restaurant hubs exist in the database, including `islasmarias` and `lasislasmarias`, but the public restaurant view uses `security_invoker=true`, so anonymous visitors only see rows allowed by the base table’s public rules.
+- Most restaurant rows are not marked as demo accounts, and the current public rule only exposes demo restaurants. That explains why restaurant slugs like `/islasmarias` and `/lasislasmarias` are returning 404 even though the rows exist.
 
-### What we’re changing
-In `src/pages/rep/RepDemoCreate.tsx`, when a sales rep creates a demo hub from a Google Places result, the auto-generated “Leave us a 5-Star Review” link currently uses `place.googleMapsUri`. We’ll switch it to the direct review popup URL.
+## Plan
+1. **Restore restaurant hub visibility immediately**
+   - Add a narrow public-read rule for approved restaurant hubs only.
+   - Keep admin/owner/rep editing rules unchanged.
+   - Do not expose unapproved restaurants.
 
-### Implementation
-1. Import `buildGoogleReviewUrl` from `src/lib/google.ts` into `RepDemoCreate.tsx`.
-2. In the link-seeding block for `link_type: 'google_review'`, set the URL to:
-   - `buildGoogleReviewUrl(place.placeId)` when `place.placeId` exists.
-   - `place.googleMapsUri` as a fallback if `placeId` is missing.
-3. Keep the existing `link_type`, label, sort order, and active flag unchanged.
+2. **Make approved trial Business demos public-safe**
+   - Confirm the personal hub public view continues to show `active` hubs and approved `trialing` hubs only.
+   - Preserve admin-only preview for unapproved hubs.
 
-### Files to edit
-- `src/pages/rep/RepDemoCreate.tsx`
+3. **Add a regression safety net**
+   - Add a small hub-resolution guard/test utility that checks representative slugs for both hub systems:
+     - personal approved active hub
+     - personal approved trial demo
+     - restaurant approved hub
+     - unapproved hub remains hidden publicly
+   - This prevents future changes to approval gates, views, or RLS from silently taking hubs down.
 
-### Verification
-- Type-check the project to ensure the import and usage are valid.
-- Confirm the generated URL matches `https://search.google.com/local/writereview?placeid=<placeId>`.
+4. **Verify live behavior after the fix**
+   - Check database-level visibility as an anonymous visitor.
+   - Verify `/islasmarias`, `/lasislasmarias`, and `/las-nuevas-islas` resolve correctly.
+   - Confirm an unapproved draft still does not become public.
 
-No database or edge-function changes are required; `placeId` is already returned by `GooglePlacesAutocomplete` and passed into `handlePlaceSelected`.
+## Technical details
+- The likely fix is a database migration on `public.restaurants`, not a frontend routing change.
+- The policy should allow public viewing only when `is_approved = true` and `custom_slug` is present, rather than relying on `is_demo_account = true`.
+- This keeps the `restaurant_public_info` view secured through the base table while restoring approved hub access.
