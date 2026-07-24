@@ -20,12 +20,14 @@ const headers = {
 const checks = [
   {
     label: "approved restaurant hub",
-    path: "/rest/v1/restaurant_public_info?select=id,custom_slug&custom_slug=eq.islasmarias",
+    path: "/rest/v1/rpc/get_public_restaurant_hub",
+    body: { _slug: "islasmarias" },
     expectRows: true,
   },
   {
     label: "approved restaurant legacy hub",
-    path: "/rest/v1/restaurant_public_info?select=id,custom_slug&custom_slug=eq.lasislasmarias",
+    path: "/rest/v1/rpc/get_public_restaurant_hub",
+    body: { _slug: "lasislasmarias" },
     expectRows: true,
   },
   {
@@ -41,7 +43,14 @@ const checks = [
 ];
 
 const readRows = async (path) => {
-  const response = await fetch(`${supabaseUrl}${path}`, { headers });
+const readRows = async ({ path, body }) => {
+  const response = await fetch(`${supabaseUrl}${path}`, {
+    headers: body
+      ? { ...headers, "Content-Type": "application/json" }
+      : headers,
+    method: body ? "POST" : "GET",
+    body: body ? JSON.stringify(body) : undefined,
+  });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
@@ -58,7 +67,7 @@ const failures = [];
 
 for (const check of checks) {
   try {
-    const rows = await readRows(check.path);
+    const rows = await readRows(check);
     const passed = check.expectRows ? rows.length > 0 : rows.length === 0;
     if (!passed) {
       failures.push(`${check.label}: expected ${check.expectRows ? "visible" : "hidden"}, got ${rows.length} row(s)`);

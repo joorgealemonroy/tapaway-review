@@ -82,12 +82,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
       // Reserved usernames should not match personal profiles
       if (isUsernameReserved(slug)) {
         const { data: restaurant } = await supabase
-          .from("restaurant_public_info")
-          .select("id")
-          .eq("custom_slug", lowerSlug)
-          .maybeSingle();
+          .rpc("get_public_restaurant_hub", { _slug: lowerSlug });
 
-        setResolvedType(restaurant ? "restaurant" : "notfound");
+        setResolvedType(restaurant && restaurant.length > 0 ? "restaurant" : "notfound");
         setLoading(false);
         return;
       }
@@ -127,12 +124,9 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
       }
 
       const { data: restaurant } = await supabase
-        .from("restaurant_public_info")
-        .select("id")
-        .eq("custom_slug", lowerSlug)
-        .maybeSingle();
+        .rpc("get_public_restaurant_hub", { _slug: lowerSlug });
 
-      setResolvedType(restaurant ? "restaurant" : "notfound");
+      setResolvedType(restaurant && restaurant.length > 0 ? "restaurant" : "notfound");
       setLoading(false);
     };
 
