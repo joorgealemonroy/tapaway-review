@@ -85,6 +85,7 @@ const RepApply = () => {
     }
   };
 
+  if (submitted) {
     return (
       <Shell>
         <RepCard className="p-8 sm:p-10 text-center max-w-lg mx-auto">
@@ -108,6 +109,7 @@ const RepApply = () => {
       </Shell>
     );
   }
+
 
   const perks = [
     { icon: DollarSign, title: 'Shift base pay', body: 'Earn a guaranteed base for every field shift you complete.' },
