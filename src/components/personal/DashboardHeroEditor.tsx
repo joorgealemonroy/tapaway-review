@@ -35,6 +35,7 @@ interface Props {
   bio: string | null;
   planType: string | null;
   showUsername: boolean;
+  usernameLocked?: boolean;
   onUpdate: (updates: Partial<{
     full_name: string;
     headline: string | null;
@@ -46,6 +47,7 @@ interface Props {
   onPendingChangesChange?: (hasPending: boolean) => void;
   onEdit?: () => void;
 }
+
 
 export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(({
   profileId,
