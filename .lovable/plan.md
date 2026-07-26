@@ -1,54 +1,44 @@
-## Goal
+## Problem
 
-Autosave every edit in the hub dashboard and give the user an Undo instead of a manual Save button, so heavy editing sessions never lose data.
+When the auto-scan (magic-onboarding) recognizes a business website, it seeds the Website and Google Review as plain **pill rows** (no cover image, `grid_size = null`). That's why:
 
-## New behavior
+1. **No image on the tile** — `cover_image_url` is never set on those two links.
+2. **Buttons "glitch" when more content is added** — the dashboard's grid-pairing logic in `DashboardUnifiedContent.tsx` only groups *consecutive* links that have both `cover_image_url` AND `grid_size === "half"`. Because Website/Google Review are pills, they break the run of grid tiles above/below them, so adding any new item re-shuffles which items pair 2-up and rows appear to jump around.
 
-1. **Debounced autosave (1.5s idle, reset on every edit).**
-   - `DashboardHeroEditor` and `DashboardUnifiedContent` each expose a `lastEditedAt: number` (timestamp) via their imperative refs, bumped inside every state setter that currently flips `hasPendingChanges`.
-   - `PersonalDashboard` reads both `lastEditedAt` values through a small subscription (ref + `useSyncExternalStore`-style callback, or a `tick` state the children call via a new `onEdit` prop). On each tick it clears and restarts a 1.5s `setTimeout` (`ReturnType<typeof setTimeout>`).
-   - Only when the user truly pauses for 1.5s does the timer fire → autosave flush.
-2. **Flush triggers besides the debounce.**
-   - `visibilitychange` → hidden: run the flush.
-   - `beforeunload`: fire-and-forget — call `saveAllChanges()` without awaiting, don't try to block the unload or read a response. This is best-effort only; the debounce + visibility flush are the real guarantees.
-   - Component unmount / route change: flush.
-3. **Concurrency guard.** A `savingRef` prevents overlapping saves. If edits arrive during a save, the debounce restarts after it finishes.
-4. **Autosave status pill** replaces `UnsavedChangesBar`:
-   - `Editing…` (pending debounce)
-   - `Saving…` (in-flight)
-   - `Saved · Undo` (visible ~8s after success)
-   - `Save failed · Retry` (on error, pending changes are kept — matches existing behavior at `DashboardUnifiedContent.tsx:325`)
-   - No more per-save toast spam.
-5. **Safe Undo (pure client state, no DELETEs).**
-   - Immediately before each flush, snapshot the *current in-memory state* of both editors: hero fields + the full links/blocks arrays and their `pendingChanges` maps as they exist in React.
-   - Undo re-hydrates those snapshots into the children via new `restoreSnapshot(snapshot)` imperative methods, which overwrite local state.
-   - That flips `hasPendingChanges` back to true against the just-saved DB rows, so the normal diffing `saveAllChanges()` path pushes the reversion — no destructive delete/insert, no risk of orphaning rows if the network drops.
-   - Single-level undo only; snapshot is dropped after 8s or after a new edit.
+Confirmed against `personal_links` for the current profile: the two auto-seeded rows have `cover_image_url: null`, `grid_size: null`, while Instagram/TikTok have both fields populated and render as tiles correctly.
 
-## Files
+## Fix (frontend + edge function only)
 
-- `src/pages/personal/PersonalDashboard.tsx`
-  - Replace `UnsavedChangesBar` with new `AutosaveStatusBar`.
-  - Add debounce effect keyed on `heroLastEditedAt + contentLastEditedAt`.
-  - Add `visibilitychange` + `beforeunload` listeners; unmount flush.
-  - Add snapshot capture before flush, `undoLastSave()` handler that calls `restoreSnapshot()` on both refs then schedules the next autosave.
-- `src/components/personal/DashboardHeroEditor.tsx`
-  - Add `lastEditedAt: number` and `restoreSnapshot(snap)` / `getSnapshot()` to the imperative handle. Bump `lastEditedAt` in the setters that already mark pending.
-- `src/components/personal/DashboardUnifiedContent.tsx`
-  - Same additions: `lastEditedAt`, `getSnapshot()`, `restoreSnapshot()` covering `links`, `blocks`, and `pendingChanges`.
-- `src/components/personal/AutosaveStatusBar.tsx` (new)
-  - Small fixed pill, same positioning as `UnsavedChangesBar` (`bottom-16 md:bottom-0 …`). Props: `status`, `onUndo`, `onRetry`.
-- `src/components/personal/UnsavedChangesBar.tsx` — leave file; grep for other usages before removing.
+### 1. `supabase/functions/magic-onboarding/index.ts`
+Seed the Website and Google Review links as **half-width image tiles**, matching the Instagram/TikTok pattern already used above:
 
-## Non-goals
+- Google Review link (~line 493):
+  - `display_style: 'grid'`
+  - `grid_size: 'half'`
+  - `cover_image_url:` a Google-branded cover — prefer `uploadedPhotoUrls[2] || uploadedPhotoUrls[0] || resolvedLogoUrl || null` so it always has an image.
+- Website link (~line 507):
+  - `display_style: 'grid'`
+  - `grid_size: 'half'`
+  - `cover_image_url:` `uploadedPhotoUrls[3] || uploadedPhotoUrls[0] || resolvedLogoUrl || null`, with a favicon fallback (`https://www.google.com/s2/favicons?domain=<host>&sz=256`) when no Google photo exists.
 
-- No DB schema changes, no changes to child components' diffing/save logic beyond exposing snapshot + edit-timestamp.
-- Multi-step undo history.
-- No new toasts on every autosave.
+Keep labels ("Visit Our Website", "Leave us a Review") and URLs unchanged.
 
-## Edge cases
+### 2. `src/pages/rep/RepDemoCreate.tsx`
+Already seeds half tiles, but the Website favicon can be null when the URL has no hostname. Add the same fallback chain (favicon → hosted place photo → banner cover) so `cover_image_url` is never null. This guarantees the tile groups instead of collapsing to a pill row.
 
-- Save in flight + new edit → queue; do not start a second save concurrently.
-- Undo clicked while a debounce is pending → cancel the pending timer, restore snapshot, let the next debounce push the correction.
-- Admin impersonation and rep demo flows use the same dashboard and inherit autosave automatically.
-- Timers use `ReturnType<typeof setTimeout>` per project convention.
+### 3. `src/components/personal/DashboardUnifiedContent.tsx` — grid-group stability
+The grouping loop (lines 206–222) currently breaks a group the moment a single non-half item appears between tiles. That is the "glitch when adding more" the user is seeing. Two tweaks:
+
+- Treat any link with `grid_size === "half"` as eligible for the grid group even if `cover_image_url` is missing (render a neutral tinted tile as fallback). This keeps auto-seeded half tiles grouped even before an image loads.
+- When a grid group has an **odd count**, render the last tile at full width inside the same 2-col grid (`col-span-2`) instead of leaving a phantom empty cell that jumps positions on reorder.
+
+No changes to save/reorder logic — the existing drag indices already reference `unifiedItems`, they just render inside groups, so odd-count handling removes the perceived "glitch".
+
+## Out of scope
+- No DB schema changes, no RLS changes.
+- No backfill of existing pill-style Website/Review rows (user can drag-convert or re-run scan); we can add a one-time migration only if requested.
+
+## Verification
+1. Run magic-onboarding against a fresh profile → confirm Website + Review rows have `cover_image_url` and `grid_size = 'half'` in DB.
+2. In dashboard, add a text block between two tiles → tiles stay in place, no reorder glitch.
+3. Add a 5th half tile → last tile spans full width cleanly.
