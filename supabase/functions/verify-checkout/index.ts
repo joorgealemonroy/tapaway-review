@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,10 @@ const DEFAULT_PORTAL_RETURN_URL = 'https://tapaway.co/dashboard';
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!checkRateLimit(getRateLimitKey(req, "verify-checkout"), 30, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {
