@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
+import { SMS_CONSENT_TEXT } from "@/lib/smsConsent";
 
 interface Props {
   open: boolean;
@@ -58,15 +59,27 @@ export const RestaurantSmsOptInDrawer = ({
 
     setSubmitting(true);
     try {
+      const optInAt = new Date().toISOString();
       const { error } = await (supabase.from("restaurant_sms_subscribers" as any) as any).insert({
         restaurant_id: restaurantId,
         name: parsed.data.name,
         phone: parsed.data.phone,
         sms_opt_in: true,
-        sms_opt_in_at: new Date().toISOString(),
+        sms_opt_in_at: optInAt,
       });
 
       if (error) throw error;
+
+      // A2P 10DLC audit trail — persist the exact consent copy the user saw.
+      await supabase.from("sms_signup_submissions" as any).insert({
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        consent_text: SMS_CONSENT_TEXT,
+        consent_at: optInAt,
+        user_agent: navigator.userAgent,
+        source: `restaurant-hub:${restaurantId}`,
+      } as any);
+
 
       toast.success("You're on the list! 🎉");
       setName("");

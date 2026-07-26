@@ -156,7 +156,7 @@ const SmsSignup = () => {
 
               <Button
                 type="submit"
-                disabled={submitting || !consent}
+                disabled={submitting || !consent || !schema.safeParse({ name, phone }).success}
                 className="w-full h-12 text-base font-semibold"
               >
                 {submitting ? (
@@ -175,7 +175,8 @@ const SmsSignup = () => {
         <section className="mt-8 rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center">
           <h2 className="text-lg font-semibold mb-2">Alternative Opt-In Method</h2>
           <p className="text-muted-foreground">
-            Text <strong className="text-foreground">{SMS_KEYWORD}</strong> to{" "}
+            Text <strong className="text-foreground">JOIN</strong> or{" "}
+            <strong className="text-foreground">{SMS_KEYWORD}</strong> to{" "}
             <strong className="text-foreground">{SMS_HELP_NUMBER}</strong> to join our demo customer
             VIP list.
           </p>
