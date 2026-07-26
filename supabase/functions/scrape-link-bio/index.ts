@@ -220,6 +220,11 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Public scraper: throttle to 20/min per IP to prevent abuse as a general fetch proxy.
+  if (!checkRateLimit(getRateLimitKey(req, "scrape-link-bio"), 20, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
   try {
     const { url } = await req.json();
 
