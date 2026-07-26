@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
+import { requireUser, isAdmin, jsonResponse } from "../_shared/security.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,10 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated caller — either the restaurant owner or an admin.
+    const auth = await requireUser(req);
+    if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
+
     const { restaurant_id } = await req.json();
 
     if (!restaurant_id) {
@@ -38,7 +43,7 @@ serve(async (req) => {
     // Fetch restaurant data
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id, google_place_id, last_google_sync_at')
+      .select('id, owner_id, google_place_id, last_google_sync_at')
       .eq('id', restaurant_id)
       .single();
 
@@ -48,6 +53,12 @@ serve(async (req) => {
         JSON.stringify({ error: 'Restaurant not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Ownership check: only the restaurant owner or an admin can trigger a paid sync.
+    const callerIsAdmin = await isAdmin(auth.user.id);
+    if (restaurant.owner_id !== auth.user.id && !callerIsAdmin) {
+      return jsonResponse({ error: 'Forbidden' }, 403, corsHeaders);
     }
 
     if (!restaurant.google_place_id) {

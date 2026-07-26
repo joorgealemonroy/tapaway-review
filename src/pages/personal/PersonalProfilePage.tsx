@@ -953,13 +953,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     if (!data?.profile?.id) return;
     
     supabase
-      .from("creator_products")
-      .select("*")
-      .eq("creator_id", data.profile.id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
+      .rpc("get_public_creator_products", { _creator_id: data.profile.id })
       .then(({ data: products }) => {
-        if (products) setCreatorProducts(products);
+        if (products) setCreatorProducts(products as typeof creatorProducts);
       });
   }, [data?.profile?.id]);
 
