@@ -1,3 +1,5 @@
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -216,6 +218,11 @@ function extractBeacons(html: string, pageUrl: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Public scraper: throttle to 20/min per IP to prevent abuse as a general fetch proxy.
+  if (!checkRateLimit(getRateLimitKey(req, "scrape-link-bio"), 20, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

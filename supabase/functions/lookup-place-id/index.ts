@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +22,11 @@ const FIELD_MASK = [
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Google Places calls cost money — throttle unauthenticated callers to 20/min.
+  if (!checkRateLimit(getRateLimitKey(req, "lookup-place-id"), 20, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
   }
 
   try {

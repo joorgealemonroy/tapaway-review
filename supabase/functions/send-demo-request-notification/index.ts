@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { escapeHtml, validateFieldLengths } from "../_shared/sanitize.ts";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -23,6 +24,11 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  if (!checkRateLimit(getRateLimitKey(req, "send-demo-request-notification"), 5, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
 
   try {
     const { fullName, addressLine1, addressLine2, city, state, zip }: DemoRequestNotification = await req.json();

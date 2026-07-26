@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,6 +144,12 @@ serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
+
+  // Anti-abuse: 5 magic-link emails per IP per 15 minutes.
+  if (!checkRateLimit(getRateLimitKey(req, "send-magic-link-email"), 5, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
 
   try {
     // Parse body FIRST (can only be read once)

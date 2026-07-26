@@ -4,6 +4,7 @@
 // restaurant_sms_subscribers so our sender lists stay in sync with
 // Twilio's carrier-level block.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { checkRateLimit, getRateLimitKey } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +54,12 @@ async function verifyTwilioSignature(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return twiml(200);
+
+  // Per-IP throttle to blunt forged-signature flooding (300/min).
+  if (!checkRateLimit(getRateLimitKey(req, "twilio-webhook"), 300, 60 * 1000)) {
+    return twiml(429);
+  }
+
 
   try {
     const raw = await req.text();
