@@ -3350,6 +3350,20 @@ export type Database = {
           vibe_id: string
         }[]
       }
+      get_public_personal_showcase: {
+        Args: { _limit?: number }
+        Returns: {
+          background_color: string
+          full_name: string
+          header_color: string
+          header_type: string
+          headline: string
+          id: string
+          plan_type: string
+          profile_photo_url: string
+          username: string
+        }[]
+      }
       get_public_restaurant_hub: {
         Args: { _id?: string; _slug?: string }
         Returns: {
