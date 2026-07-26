@@ -364,12 +364,102 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     onDiscardRequest?.();
   }, [onPendingChangesChange, onDiscardRequest]);
 
+  // Snapshot the current visible state (props reflect what user sees).
+  const getSnapshot = useCallback((): UnifiedContentSnapshot => ({
+    links: links.map(l => ({ ...l })),
+    blocks: blocks.map(b => ({ ...b, content: b.content })),
+  }), [links, blocks]);
+
+  // Restore to a target snapshot by rebuilding pendingChanges as a diff
+  // between the current (just-saved) state and the target. No DELETE queries here —
+  // the existing diffing save path handles the correction on the next debounce tick.
+  const restoreSnapshot = useCallback((snap: UnifiedContentSnapshot) => {
+    const currentLinksById = new Map(links.map(l => [l.id, l] as const));
+    const currentBlocksById = new Map(blocks.map(b => [b.id, b] as const));
+    const targetLinkIds = new Set(snap.links.map(l => l.id));
+    const targetBlockIds = new Set(snap.blocks.map(b => b.id));
+
+    const next = createEmptyPendingChanges();
+
+    // Links that exist now but not in target → delete on next save.
+    for (const l of links) {
+      if (!targetLinkIds.has(l.id)) next.deletedLinkIds.add(l.id);
+    }
+    // Blocks that exist now but not in target → delete.
+    for (const b of blocks) {
+      if (!targetBlockIds.has(b.id)) next.deletedBlockIds.add(b.id);
+    }
+    // Target links not in current → add (reuse old id).
+    for (const l of snap.links) {
+      if (!currentLinksById.has(l.id)) {
+        next.addedLinks.push({ ...l });
+      } else {
+        const cur = currentLinksById.get(l.id)!;
+        // Update if any field differs.
+        const diff: Partial<DbPersonalLink> = {};
+        (Object.keys(l) as (keyof DbPersonalLink)[]).forEach(k => {
+          if ((cur as any)[k] !== (l as any)[k]) (diff as any)[k] = (l as any)[k];
+        });
+        if (Object.keys(diff).length > 0) {
+          next.updatedLinks.set(l.id, diff);
+        }
+      }
+    }
+    for (const b of snap.blocks) {
+      if (!currentBlocksById.has(b.id)) {
+        next.addedBlocks.push({ ...b });
+      } else {
+        const cur = currentBlocksById.get(b.id)!;
+        const diff: Partial<PersonalBlock> = {};
+        (Object.keys(b) as (keyof PersonalBlock)[]).forEach(k => {
+          if (JSON.stringify((cur as any)[k]) !== JSON.stringify((b as any)[k])) {
+            (diff as any)[k] = (b as any)[k];
+          }
+        });
+        if (Object.keys(diff).length > 0) {
+          next.updatedBlocks.set(b.id, diff);
+        }
+      }
+    }
+    // Order: mark changed if any sort_order in target differs from current for common items.
+    const orderChanged =
+      snap.links.some(l => {
+        const cur = currentLinksById.get(l.id);
+        return cur && cur.sort_order !== l.sort_order;
+      }) ||
+      snap.blocks.some(b => {
+        const cur = currentBlocksById.get(b.id);
+        return cur && cur.sort_order !== b.sort_order;
+      });
+    next.orderChanged = orderChanged;
+
+    // Swap parent visible state to the snapshot so the UI shows the reverted view.
+    onLinksChange(snap.links.map(l => ({ ...l })));
+    onBlocksChange(snap.blocks.map(b => ({ ...b })));
+
+    setPendingChanges(next);
+    const hasChanges =
+      next.addedLinks.length > 0 ||
+      next.updatedLinks.size > 0 ||
+      next.deletedLinkIds.size > 0 ||
+      next.addedBlocks.length > 0 ||
+      next.updatedBlocks.size > 0 ||
+      next.deletedBlockIds.size > 0 ||
+      next.orderChanged;
+    setTimeout(() => {
+      onPendingChangesChange(hasChanges);
+      onEdit?.();
+    }, 0);
+  }, [links, blocks, onLinksChange, onBlocksChange, onPendingChangesChange, onEdit]);
+
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     saveAllChanges,
     discardChanges,
     hasPendingChanges,
-  }), [hasPendingChanges]);
+    getSnapshot,
+    restoreSnapshot,
+  }), [hasPendingChanges, getSnapshot, restoreSnapshot]);
 
   // Drag handlers (update local state, mark order as changed)
   const handleDragStart = (index: number, item: UnifiedItem) => {
