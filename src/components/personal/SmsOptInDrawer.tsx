@@ -60,16 +60,27 @@ export const SmsOptInDrawer = ({
 
     setSubmitting(true);
     try {
+      const optInAt = new Date().toISOString();
       const { error } = await supabase.from("personal_email_captures").insert({
         profile_id: profileId,
         name: parsed.data.name,
         phone: parsed.data.phone,
         email: null,
         sms_opt_in: true,
-        sms_opt_in_at: new Date().toISOString(),
+        sms_opt_in_at: optInAt,
       } as any);
 
       if (error) throw error;
+
+      // A2P 10DLC audit trail — store the exact consent copy shown at opt-in.
+      await supabase.from("sms_signup_submissions" as any).insert({
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        consent_text: SMS_CONSENT_TEXT,
+        consent_at: optInAt,
+        user_agent: navigator.userAgent,
+        source: `personal-hub:${profileId}`,
+      } as any);
 
       toast.success("You're on the list! 🎉");
       setName("");
