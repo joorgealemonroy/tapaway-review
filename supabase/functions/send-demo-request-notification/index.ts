@@ -25,6 +25,11 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!checkRateLimit(getRateLimitKey(req, "send-demo-request-notification"), 5, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+
   try {
     const { fullName, addressLine1, addressLine2, city, state, zip }: DemoRequestNotification = await req.json();
 
