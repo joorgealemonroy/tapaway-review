@@ -858,7 +858,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
             if (groupedItem.kind === "grid-group") {
               return (
                 <div key={`grid-group-${groupIdx}`} className="grid grid-cols-2 gap-2">
-                  {groupedItem.links.map((link) => {
+                  {groupedItem.links.map((link, tileIdx) => {
                     const index = unifiedItems.findIndex(
                       (i) => i.kind === "link" && i.data.id === link.id
                     );
@@ -866,6 +866,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                     const Icon = config?.icon;
                     const isActive = link.is_active !== false;
                     const isDragging = draggedItem?.index === index;
+                    const isLastOdd = tileIdx === groupedItem.links.length - 1 && groupedItem.links.length % 2 === 1;
                     
                     return (
                       <div
@@ -878,8 +879,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         onTouchStart={(e) => handleTouchStart(e, index, { kind: "link", data: link })}
                         
                      className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
-                          isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
-                        } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-50" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
+                          isLastOdd ? "col-span-2 aspect-[2/1]" : ""
+                        } ${isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""} ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-50" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                       >
                         {/* Cover image */}
                         {link.cover_image_url && (
