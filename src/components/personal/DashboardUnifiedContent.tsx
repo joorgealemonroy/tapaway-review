@@ -343,8 +343,6 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       // Clear pending changes
       setPendingChanges(createEmptyPendingChanges());
       onPendingChangesChange(false);
-      
-      toast.success("Changes saved!");
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save changes");
