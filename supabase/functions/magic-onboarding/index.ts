@@ -296,6 +296,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Heavy multi-API pipeline — cap at 10/min per IP.
+  if (!checkRateLimit(getRateLimitKey(req, "magic-onboarding"), 10, 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+
   try {
     // Auth check
     const authHeader = req.headers.get('Authorization');
