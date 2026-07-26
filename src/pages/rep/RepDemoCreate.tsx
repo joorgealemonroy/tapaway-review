@@ -179,7 +179,7 @@ const RepDemoCreate = () => {
         try { host = new URL(place.website).hostname.replace(/^www\./, ''); } catch { /* noop */ }
         const favicon = host
           ? `https://www.google.com/s2/favicons?domain=${host}&sz=256`
-          : bannerCover;
+          : null;
         seedLinks.push({
           profile_id: profileId,
           label: 'Visit Our Website',
