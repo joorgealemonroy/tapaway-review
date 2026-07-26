@@ -1215,7 +1215,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   let currentGridGroup: typeof links = [];
   
   for (const item of unifiedItems) {
-    if (item.kind === "link" && item.data.grid_size === 'half') {
+    if (item.kind === "link" && item.data.grid_size === 'half' && item.data.cover_image_url) {
       currentGridGroup.push(item.data);
     } else {
       // Flush current grid group if any
