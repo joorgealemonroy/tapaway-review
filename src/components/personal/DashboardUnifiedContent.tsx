@@ -207,7 +207,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   let currentGridGroup: DbPersonalLink[] = [];
   
   for (const item of unifiedItems) {
-    if (item.kind === "link" && item.data.cover_image_url && item.data.grid_size === "half" && !item.data.is_featured) {
+    if (item.kind === "link" && item.data.grid_size === "half" && !item.data.is_featured) {
       currentGridGroup.push(item.data);
     } else {
       if (currentGridGroup.length > 0) {
