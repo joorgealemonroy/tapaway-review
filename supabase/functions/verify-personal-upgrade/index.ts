@@ -108,6 +108,7 @@ serve(async (req) => {
           persistSession: false,
         },
       }
+    );
 
     // Enforce that the authenticated caller owns the profile bound to this Stripe session.
     const { data: ownerRow } = await supabaseAdmin
