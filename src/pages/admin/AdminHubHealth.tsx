@@ -34,7 +34,6 @@ async function probeHub(row: HubRow): Promise<ProbeState> {
     const url = isPersonal
       ? `${SUPABASE_URL}/rest/v1/rpc/get_public_personal_profile`
       : `${SUPABASE_URL}/rest/v1/rpc/get_public_restaurant_hub`;
-    const body = isPersonal ? { _slug: row.slug } : { _slug: row.slug };
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -42,19 +41,42 @@ async function probeHub(row: HubRow): Promise<ProbeState> {
         Authorization: `Bearer ${ANON_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ _slug: row.slug }),
     });
     if (!res.ok) {
       const text = await res.text();
-      return { status: "error", detail: `HTTP ${res.status}: ${text.slice(0, 160)}` };
+      return { status: "error", detail: `profile HTTP ${res.status}: ${text.slice(0, 160)}` };
     }
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) return { status: "ok" };
-    return { status: "empty" };
+    if (!Array.isArray(data) || data.length === 0) return { status: "empty", detail: "profile RPC returned 0 rows" };
+
+    // For personal hubs, also probe the tables the client reads directly.
+    // A missing GRANT here is what silently emptied paying customers' hubs.
+    if (isPersonal) {
+      const profileId = data[0].id as string;
+      const linksRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/personal_links?select=id&profile_id=eq.${profileId}&limit=1`,
+        { headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` } },
+      );
+      if (!linksRes.ok) {
+        const text = await linksRes.text();
+        return { status: "error", detail: `links HTTP ${linksRes.status}: ${text.slice(0, 160)}` };
+      }
+      const blocksRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/personal_blocks?select=id&profile_id=eq.${profileId}&limit=1`,
+        { headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` } },
+      );
+      if (!blocksRes.ok) {
+        const text = await blocksRes.text();
+        return { status: "error", detail: `blocks HTTP ${blocksRes.status}: ${text.slice(0, 160)}` };
+      }
+    }
+    return { status: "ok" };
   } catch (e) {
     return { status: "error", detail: e instanceof Error ? e.message : "unknown error" };
   }
 }
+
 
 export default function AdminHubHealth() {
   const [rows, setRows] = useState<HubRow[]>([]);
