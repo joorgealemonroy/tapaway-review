@@ -149,6 +149,18 @@ const PersonalDashboard = () => {
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
   const [heroHasPending, setHeroHasPending] = useState(false);
+
+  // Autosave state
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
+  const editTickRef = useRef(0);
+  const [editTick, setEditTick] = useState(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
+  const pendingReflushRef = useRef(false);
+  const lastSavedSnapshotRef = useRef<{ hero: HeroSnapshot | null; content: UnifiedContentSnapshot | null }>({ hero: null, content: null });
+  const undoTargetRef = useRef<{ hero: HeroSnapshot | null; content: UnifiedContentSnapshot | null } | null>(null);
+  const savedBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
