@@ -139,6 +139,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   onBlocksChange,
   onPendingChangesChange,
   onDiscardRequest,
+  onEdit,
   planType,
   onUpgrade,
 }, ref) => {
