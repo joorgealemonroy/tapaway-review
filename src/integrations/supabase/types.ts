@@ -3278,6 +3278,18 @@ export type Database = {
         }[]
       }
       get_founding_count: { Args: never; Returns: number }
+      get_hub_health: {
+        Args: never
+        Returns: {
+          expected_status: string
+          expires_at: string
+          is_approved: boolean
+          kind: string
+          owner_label: string
+          slug: string
+          subscription_status: string
+        }[]
+      }
       get_public_creator_products: {
         Args: { _creator_id: string }
         Returns: {
