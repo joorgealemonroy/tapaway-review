@@ -9,6 +9,27 @@ import { CheckCircle, Briefcase, DollarSign, Repeat, ArrowRight } from 'lucide-r
 import { toast } from 'sonner';
 import { RepCard } from '@/components/rep/RepCard';
 
+const Shell = ({ children }: { children: React.ReactNode }) => (
+  <div className="min-h-screen bg-[#0a0e1a] text-white/90 relative">
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 opacity-[0.35]"
+      style={{
+        background:
+          'radial-gradient(ellipse 60% 40% at 20% 0%, rgba(16,185,129,0.10), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 10%, rgba(59,130,246,0.08), transparent 60%)',
+      }}
+    />
+    <div className="relative mx-auto w-full max-w-3xl px-4 py-10 sm:py-16">
+      <div className="mb-8">
+        <p className="text-[10px] font-semibold tracking-[0.24em] text-white/40 uppercase">
+          Sales Partner Portal
+        </p>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
 const RepApply = () => {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
@@ -64,28 +85,6 @@ const RepApply = () => {
     }
   };
 
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-screen bg-[#0a0e1a] text-white/90 relative">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 opacity-[0.35]"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 40% at 20% 0%, rgba(16,185,129,0.10), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 10%, rgba(59,130,246,0.08), transparent 60%)',
-        }}
-      />
-      <div className="relative mx-auto w-full max-w-3xl px-4 py-10 sm:py-16">
-        <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-[0.24em] text-white/40 uppercase">
-            Sales Partner Portal
-          </p>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-
-  if (submitted) {
     return (
       <Shell>
         <RepCard className="p-8 sm:p-10 text-center max-w-lg mx-auto">
