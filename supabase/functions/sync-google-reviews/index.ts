@@ -55,6 +55,12 @@ serve(async (req) => {
       );
     }
 
+    // Ownership check: only the restaurant owner or an admin can trigger a paid sync.
+    const callerIsAdmin = await isAdmin(auth.user.id);
+    if (restaurant.owner_id !== auth.user.id && !callerIsAdmin) {
+      return jsonResponse({ error: 'Forbidden' }, 403, corsHeaders);
+    }
+
     if (!restaurant.google_place_id) {
       // Return 200 with error flag so frontend can read the response body
       return new Response(
