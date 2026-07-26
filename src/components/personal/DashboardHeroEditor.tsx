@@ -178,7 +178,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     if (!hasChanges) return;
 
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
-    const usernameChanged = newPublicUsername !== username;
+    const usernameChanged = !usernameLocked && newPublicUsername !== username;
 
     if (usernameChanged && usernameStatus !== "available") {
       throw new Error("Please fix username issues before saving");
@@ -222,7 +222,8 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
     onUpdate(updates);
     setUsernameStatus("idle");
-  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue]);
+  }, [hasChanges, isFree, planType, usernameInput, username, usernameStatus, name, headlineValue, bioValue, profileId, onUpdate, showUsernameValue, usernameLocked]);
+
 
   const discardChanges = useCallback(() => {
     setName(fullName);
