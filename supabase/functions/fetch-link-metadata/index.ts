@@ -66,7 +66,7 @@ serve(async (req) => {
     // Validate protocol + block private/loopback/link-local hosts to prevent SSRF
     const trimmedUrl = url.trim();
     const { isSafeExternalUrl } = await import("../_shared/security.ts");
-    if (!isSafeExternalUrl(trimmedUrl, { allowHttp: true })) {
+    if (!isSafeExternalUrl(trimmedUrl)) {
       return new Response(
         JSON.stringify({ error: "URL not allowed" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -96,6 +96,14 @@ serve(async (req) => {
       );
     }
     clearTimeout(timeout);
+
+    // Re-validate the final URL after any redirects (SSRF hardening).
+    if (res.url && !isSafeExternalUrl(res.url)) {
+      return new Response(
+        JSON.stringify({ error: "URL not allowed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Only read first 50KB to avoid memory issues
     const reader = res.body?.getReader();

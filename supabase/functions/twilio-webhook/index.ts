@@ -28,6 +28,28 @@ function twiml(status = 200) {
   });
 }
 
+async function verifyTwilioSignature(
+  authToken: string,
+  signature: string,
+  url: string,
+  params: URLSearchParams,
+): Promise<boolean> {
+  // Twilio signs: URL + sorted(key + value) concatenated, HMAC-SHA1, base64.
+  const keys = Array.from(new Set(Array.from(params.keys()))).sort();
+  let data = url;
+  for (const k of keys) {
+    for (const v of params.getAll(k)) data += k + v;
+  }
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(authToken),
+    { name: "HMAC", hash: "SHA-1" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return b64 === signature;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return twiml(200);
@@ -38,6 +60,21 @@ Deno.serve(async (req) => {
     const from = (params.get("From") ?? "").trim();
     const body = (params.get("Body") ?? "").trim();
     const keyword = body.toUpperCase();
+
+    // Verify request is genuinely from Twilio before mutating opt-in state.
+    const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const signature = req.headers.get("x-twilio-signature") || "";
+    if (authToken && signature) {
+      const url = req.headers.get("x-forwarded-url") || req.url;
+      const ok = await verifyTwilioSignature(authToken, signature, url, params);
+      if (!ok) {
+        console.warn("twilio-webhook signature verification failed", { from });
+        return twiml(200); // Silent 200 — do NOT leak validity signal.
+      }
+    } else {
+      console.warn("twilio-webhook missing TWILIO_AUTH_TOKEN or signature — rejecting");
+      return twiml(200);
+    }
 
     console.log("twilio-webhook inbound", { from, body });
 

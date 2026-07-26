@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { requireUser, adminClient, isAdmin, jsonResponse } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,21 +26,36 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, email, planType, currentUsername } = await req.json();
+    // Require an authenticated caller who owns the profile being upgraded.
+    const auth = await requireUser(req);
+    if (!auth) return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
 
-    if (!profileId || !email || !planType) {
+    const { profileId, planType } = await req.json();
+
+    if (!profileId || !planType) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("[create-personal-upgrade] Creating upgrade checkout for:", {
-      profileId,
-      email,
-      planType,
-      currentUsername,
-    });
+    // Verify ownership (or admin) — email/currentUsername are derived server-side.
+    const admin = adminClient();
+    const { data: profile, error: profileError } = await admin
+      .from("personal_profiles")
+      .select("user_id, email, username")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (profileError || !profile) return jsonResponse({ error: "Profile not found" }, 404, corsHeaders);
+    const callerIsAdmin = await isAdmin(auth.user.id);
+    if (profile.user_id !== auth.user.id && !callerIsAdmin) {
+      return jsonResponse({ error: "Forbidden" }, 403, corsHeaders);
+    }
+
+    const email = profile.email || auth.user.email!;
+    const currentUsername = profile.username;
+
+    console.log("[create-personal-upgrade] Creating upgrade checkout for:", { profileId, planType });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2023-10-16",

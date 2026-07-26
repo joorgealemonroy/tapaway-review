@@ -55,12 +55,40 @@ serve(async (req) => {
       );
     }
 
+    // Trust Stripe session metadata — never the client request body.
     const profileId = metadata.profile_id;
     const oldUsername = metadata.old_username;
     const newUsername = metadata.new_username;
     const planType = metadata.plan_type || "monthly";
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
+
+    if (!profileId) {
+      return new Response(
+        JSON.stringify({ error: "Session missing profile metadata" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Require authenticated caller and verify they own the profile bound to this session.
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: authData, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !authData.user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("[verify-personal-upgrade] Upgrade details:", {
       profileId,
@@ -81,6 +109,24 @@ serve(async (req) => {
         },
       }
     );
+
+    // Enforce that the authenticated caller owns the profile bound to this Stripe session.
+    const { data: ownerRow } = await supabaseAdmin
+      .from("personal_profiles")
+      .select("user_id")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (!ownerRow) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (ownerRow.user_id !== authData.user.id) {
+      console.warn("[verify-personal-upgrade] Caller does not own bound profile — refusing");
+      return new Response(JSON.stringify({ error: "Session does not belong to caller" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if new username is available (if different from old)
     let finalUsername = oldUsername;
