@@ -93,10 +93,17 @@ interface PendingChanges {
   orderChanged: boolean;
 }
 
+export interface UnifiedContentSnapshot {
+  links: DbPersonalLink[];
+  blocks: PersonalBlock[];
+}
+
 export interface DashboardUnifiedContentHandle {
   saveAllChanges: () => Promise<void>;
   discardChanges: () => void;
   hasPendingChanges: boolean;
+  getSnapshot: () => UnifiedContentSnapshot;
+  restoreSnapshot: (snap: UnifiedContentSnapshot) => void;
 }
 
 interface Props {
@@ -108,6 +115,7 @@ interface Props {
   onBlocksChange: (blocks: PersonalBlock[]) => void;
   onPendingChangesChange: (hasPending: boolean) => void;
   onDiscardRequest?: () => void;
+  onEdit?: () => void;
   planType?: string | null;
   onUpgrade?: () => void;
 }
