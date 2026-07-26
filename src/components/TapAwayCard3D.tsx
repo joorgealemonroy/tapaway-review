@@ -40,6 +40,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
                 transform: "translateZ(0)",
                 isolation: "isolate",
+                background: "#ffffff",
               }}
             >
 
@@ -85,6 +86,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
                 transform: "rotateY(180deg) translateZ(0)",
                 boxShadow: "0 18px 40px rgba(10,20,40,0.28)",
                 isolation: "isolate",
+                background: "#ffffff",
               }}
             >
               <img
