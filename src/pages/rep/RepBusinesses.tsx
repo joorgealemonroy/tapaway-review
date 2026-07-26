@@ -279,6 +279,14 @@ const RepBusinesses = () => {
                   >
                     <ExternalLink className="h-3.5 w-3.5" /> Open
                   </button>
+                  {!hub.is_approved && hub.pipeline_status !== 'ready_for_review' && (
+                    <button
+                      onClick={() => deleteDraft(hub)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-red-400/30 bg-red-400/10 text-red-200 hover:bg-red-400/20"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );
