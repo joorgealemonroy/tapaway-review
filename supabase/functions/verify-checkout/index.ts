@@ -20,8 +20,8 @@ serve(async (req) => {
   }
 
   try {
-    const { sessionId, userId } = await req.json();
-    
+    const { sessionId } = await req.json();
+
     if (!sessionId) {
       console.error('[verify-checkout] No session ID provided');
       return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -30,15 +30,27 @@ serve(async (req) => {
       });
     }
 
-    if (!userId) {
-      console.error('[verify-checkout] No user ID provided');
-      return new Response(JSON.stringify({ error: 'User ID required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Require an authenticated caller — the resolved userId comes from the JWT / Stripe session, never the client body.
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.7');
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: authData, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !authData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const callerUserId = authData.user.id;
 
-    console.log('[verify-checkout] Verifying checkout session:', sessionId, 'for user:', userId);
+    console.log('[verify-checkout] Verifying checkout session:', sessionId, 'for caller:', callerUserId);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -75,6 +87,15 @@ serve(async (req) => {
 
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
     const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+    // Derive user id from the Stripe session's metadata (bound at session creation time), not the client body.
+    const metadataUserId = (session.metadata?.user_id || session.metadata?.userId || session.client_reference_id) as string | undefined;
+    const userId = metadataUserId || callerUserId;
+    if (metadataUserId && metadataUserId !== callerUserId) {
+      console.warn('[verify-checkout] Session metadata user does not match caller — refusing');
+      return new Response(JSON.stringify({ error: 'Session does not belong to caller' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const customerEmail = session.customer_email;
 
     // Determine plan type

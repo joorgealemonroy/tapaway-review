@@ -63,11 +63,12 @@ serve(async (req) => {
       );
     }
 
-    // Validate protocol
+    // Validate protocol + block private/loopback/link-local hosts to prevent SSRF
     const trimmedUrl = url.trim();
-    if (!/^https?:\/\//i.test(trimmedUrl)) {
+    const { isSafeExternalUrl } = await import("../_shared/security.ts");
+    if (!isSafeExternalUrl(trimmedUrl, { allowHttp: true })) {
       return new Response(
-        JSON.stringify({ error: "Only http/https URLs are allowed" }),
+        JSON.stringify({ error: "URL not allowed" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

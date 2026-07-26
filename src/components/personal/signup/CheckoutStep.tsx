@@ -882,11 +882,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
       };
       
       sessionStorage.setItem("personal_signup_data", JSON.stringify(signupData));
-      
-      // Store password temporarily for auto-login after payment
-      if (formData.password) {
-        sessionStorage.setItem("signup_password", formData.password);
-      }
+      // SECURITY: do not store the plaintext password across the Stripe redirect.
+      // After payment, the user is signed in via magic link on return.
 
       // Use affiliate payment link if referred, otherwise plan-based link
       const referralCode = sessionStorage.getItem("tapaway_ref");

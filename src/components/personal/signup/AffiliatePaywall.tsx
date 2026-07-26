@@ -87,7 +87,8 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
       };
 
       localStorage.setItem("personal_signup_data", JSON.stringify(signupData));
-      localStorage.setItem("signup_password", password);
+      // SECURITY: never persist the plaintext password across the Stripe redirect.
+      // Account activation happens via magic link on return.
       localStorage.setItem("tapaway_ref", referralCode);
 
       // Build Stripe URL
