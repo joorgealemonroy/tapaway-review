@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -11,10 +11,20 @@ import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
 
+export interface HeroSnapshot {
+  name: string;
+  headlineValue: string;
+  bioValue: string;
+  usernameInput: string;
+  showUsernameValue: boolean;
+}
+
 export interface DashboardHeroEditorHandle {
   saveAllChanges: () => Promise<void>;
   discardChanges: () => void;
   hasPendingChanges: boolean;
+  getSnapshot: () => HeroSnapshot;
+  restoreSnapshot: (snap: HeroSnapshot) => void;
 }
 
 interface Props {
@@ -34,6 +44,7 @@ interface Props {
     show_username: boolean;
   }>) => void;
   onPendingChangesChange?: (hasPending: boolean) => void;
+  onEdit?: () => void;
 }
 
 export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(({
@@ -46,11 +57,13 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   showUsername,
   onUpdate,
   onPendingChangesChange,
+  onEdit,
 }, ref) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
   const [showUsernameValue, setShowUsernameValue] = useState(showUsername);
+  const suppressEditPingRef = useRef(true);
 
   // Username editing state
   const isFree = !planType || planType === "free";
@@ -66,12 +79,22 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   useEffect(() => {
+    suppressEditPingRef.current = true;
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
     setShowUsernameValue(showUsername);
   }, [fullName, headline, bio, username, isFree, showUsername]);
+
+  // Ping parent debounce on any user edit (skips the sync-from-props effect above).
+  useEffect(() => {
+    if (suppressEditPingRef.current) {
+      suppressEditPingRef.current = false;
+      return;
+    }
+    onEdit?.();
+  }, [name, headlineValue, bioValue, usernameInput, showUsernameValue, onEdit]);
 
   const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
@@ -200,11 +223,34 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     setUsernameError(null);
   }, [fullName, headline, bio, username, isFree, showUsername]);
 
+  const getSnapshot = useCallback((): HeroSnapshot => ({
+    name,
+    headlineValue,
+    bioValue,
+    usernameInput,
+    showUsernameValue,
+  }), [name, headlineValue, bioValue, usernameInput, showUsernameValue]);
+
+  const restoreSnapshot = useCallback((snap: HeroSnapshot) => {
+    suppressEditPingRef.current = true;
+    setName(snap.name);
+    setHeadlineValue(snap.headlineValue);
+    setBioValue(snap.bioValue);
+    setUsernameInput(snap.usernameInput);
+    setShowUsernameValue(snap.showUsernameValue);
+    setUsernameStatus("idle");
+    setUsernameError(null);
+    // Fire onEdit on the next tick so the debounce restarts against restored values.
+    setTimeout(() => onEdit?.(), 0);
+  }, [onEdit]);
+
   useImperativeHandle(ref, () => ({
     saveAllChanges: handleSave,
     discardChanges,
     hasPendingChanges: hasChanges,
-  }), [handleSave, discardChanges, hasChanges]);
+    getSnapshot,
+    restoreSnapshot,
+  }), [handleSave, discardChanges, hasChanges, getSnapshot, restoreSnapshot]);
 
   const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
 

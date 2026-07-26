@@ -27,12 +27,12 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
+import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
-import { DashboardHeroEditor, DashboardHeroEditorHandle } from "@/components/personal/DashboardHeroEditor";
+import { DashboardHeroEditor, DashboardHeroEditorHandle, HeroSnapshot } from "@/components/personal/DashboardHeroEditor";
 
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
-import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
+import { AutosaveStatusBar, AutosaveStatus } from "@/components/personal/AutosaveStatusBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import { sampleBottomEdgeColor, DEFAULT_HUB_BACKGROUND_COLOR } from "@/lib/sampleBannerColor";
@@ -149,6 +149,18 @@ const PersonalDashboard = () => {
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
   const [heroHasPending, setHeroHasPending] = useState(false);
+
+  // Autosave state
+  const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>("idle");
+  const editTickRef = useRef(0);
+  const [editTick, setEditTick] = useState(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
+  const pendingReflushRef = useRef(false);
+  const lastSavedSnapshotRef = useRef<{ hero: HeroSnapshot | null; content: UnifiedContentSnapshot | null }>({ hero: null, content: null });
+  const undoTargetRef = useRef<{ hero: HeroSnapshot | null; content: UnifiedContentSnapshot | null } | null>(null);
+  const savedBadgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
@@ -586,30 +598,146 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
-  // Save bar handlers — unified across hero editor + content
-  const handleSaveChanges = useCallback(async () => {
-    setSaving(true);
-    try {
-      const saves: Promise<void>[] = [];
-      if (heroEditorRef.current?.hasPendingChanges) saves.push(heroEditorRef.current.saveAllChanges());
-      if (unifiedContentRef.current?.hasPendingChanges) saves.push(unifiedContentRef.current.saveAllChanges());
-      const results = await Promise.allSettled(saves);
-      const failures = results.filter(r => r.status === 'rejected');
-      if (failures.length > 0) {
-        const reason = (failures[0] as PromiseRejectedResult).reason;
-        toast.error(reason?.message || "Some changes failed to save");
-      } else {
-        toast.success("Changes saved!");
-      }
-    } finally {
-      setSaving(false);
+  // Autosave: notified by children whenever they mutate local state.
+  const handleEdit = useCallback(() => {
+    editTickRef.current += 1;
+    setEditTick(editTickRef.current);
+    setAutosaveStatus(prev => (prev === "saving" ? prev : "editing"));
+    // An edit invalidates any pending Undo.
+    if (undoTargetRef.current) undoTargetRef.current = null;
+    if (savedBadgeTimerRef.current) {
+      clearTimeout(savedBadgeTimerRef.current);
+      savedBadgeTimerRef.current = null;
     }
   }, []);
 
-  const handleDiscardChanges = useCallback(() => {
-    heroEditorRef.current?.discardChanges();
-    unifiedContentRef.current?.discardChanges();
+  const flushAutosave = useCallback(async () => {
+    if (savingRef.current) {
+      pendingReflushRef.current = true;
+      return;
+    }
+    const heroPending = heroEditorRef.current?.hasPendingChanges;
+    const contentPending = unifiedContentRef.current?.hasPendingChanges;
+    if (!heroPending && !contentPending) return;
+
+    savingRef.current = true;
+    setSaving(true);
+    setAutosaveStatus("saving");
+
+    // Snapshot BEFORE the flush so Undo can restore the state that existed
+    // BEFORE this batch of edits — that's the previous known DB state.
+    const previousDbSnapshot = lastSavedSnapshotRef.current;
+
+    try {
+      const saves: Promise<void>[] = [];
+      if (heroPending) saves.push(heroEditorRef.current!.saveAllChanges());
+      if (contentPending) saves.push(unifiedContentRef.current!.saveAllChanges());
+      const results = await Promise.allSettled(saves);
+      const failed = results.some(r => r.status === "rejected");
+      if (failed) {
+        const reason = (results.find(r => r.status === "rejected") as PromiseRejectedResult).reason;
+        console.error("Autosave failed:", reason);
+        setAutosaveStatus("error");
+        return;
+      }
+
+      // Success — the current state is now what's in the DB.
+      const newSnapshot = {
+        hero: heroEditorRef.current?.getSnapshot() ?? null,
+        content: unifiedContentRef.current?.getSnapshot() ?? null,
+      };
+      undoTargetRef.current = previousDbSnapshot.hero || previousDbSnapshot.content
+        ? previousDbSnapshot
+        : null;
+      lastSavedSnapshotRef.current = newSnapshot;
+      setAutosaveStatus("saved");
+      if (savedBadgeTimerRef.current) clearTimeout(savedBadgeTimerRef.current);
+      savedBadgeTimerRef.current = setTimeout(() => {
+        setAutosaveStatus(current => (current === "saved" ? "idle" : current));
+        undoTargetRef.current = null;
+      }, 8000);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+      if (pendingReflushRef.current) {
+        pendingReflushRef.current = false;
+        // Re-arm debounce for edits that arrived while we were saving.
+        editTickRef.current += 1;
+        setEditTick(editTickRef.current);
+      }
+    }
   }, []);
+
+  // Debounced autosave: 1.5s idle after the last edit.
+  useEffect(() => {
+    if (editTick === 0) return;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      flushAutosave();
+    }, 1500);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [editTick, flushAutosave]);
+
+  // Flush on tab-hide and best-effort on beforeunload.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = null;
+        }
+        flushAutosave();
+      }
+    };
+    const handleBeforeUnload = () => {
+      // Fire-and-forget. We can't await async work reliably here.
+      const heroPending = heroEditorRef.current?.hasPendingChanges;
+      const contentPending = unifiedContentRef.current?.hasPendingChanges;
+      if (heroPending) heroEditorRef.current!.saveAllChanges().catch(() => {});
+      if (contentPending) unifiedContentRef.current!.saveAllChanges().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [flushAutosave]);
+
+  // Prime the last-saved snapshot once profile + children are mounted.
+  useEffect(() => {
+    if (!profile) return;
+    const t = setTimeout(() => {
+      lastSavedSnapshotRef.current = {
+        hero: heroEditorRef.current?.getSnapshot() ?? null,
+        content: unifiedContentRef.current?.getSnapshot() ?? null,
+      };
+    }, 100);
+    return () => clearTimeout(t);
+  }, [profile?.id]);
+
+  const handleUndo = useCallback(() => {
+    const target = undoTargetRef.current;
+    if (!target) return;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (savedBadgeTimerRef.current) {
+      clearTimeout(savedBadgeTimerRef.current);
+      savedBadgeTimerRef.current = null;
+    }
+    if (target.hero) heroEditorRef.current?.restoreSnapshot(target.hero);
+    if (target.content) unifiedContentRef.current?.restoreSnapshot(target.content);
+    undoTargetRef.current = null;
+    setAutosaveStatus("editing");
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    flushAutosave();
+  }, [flushAutosave]);
 
 
   if (loading) {
@@ -988,6 +1116,7 @@ const PersonalDashboard = () => {
               showUsername={profile.show_username ?? true}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
+              onEdit={handleEdit}
             />
             
             <div className="border-t pt-6">
@@ -1000,6 +1129,7 @@ const PersonalDashboard = () => {
                 onLinksChange={setLinks}
                 onBlocksChange={setBlocks}
                 onPendingChangesChange={setHasPendingChanges}
+                onEdit={handleEdit}
                 onDiscardRequest={loadData}
                 planType={profile.plan_type}
                 onUpgrade={() => handleUpgrade("yearly")}
@@ -1156,13 +1286,14 @@ const PersonalDashboard = () => {
         </DrawerContent>
       </Drawer>
 
-      {/* Unsaved Changes Bar */}
-      <UnsavedChangesBar
-        hasPendingChanges={hasPendingChanges || heroHasPending}
-        onSave={handleSaveChanges}
-        onDiscard={handleDiscardChanges}
-        saving={saving}
+      {/* Autosave status */}
+      <AutosaveStatusBar
+        status={autosaveStatus}
+        onUndo={handleUndo}
+        onRetry={handleRetry}
+        canUndo={!!undoTargetRef.current}
       />
+
 
       {/* Image Cropper */}
       {rawImageUrl && (
