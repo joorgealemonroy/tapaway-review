@@ -1,20 +1,29 @@
-## Problem
+Two small changes to the Sales Partner portal.
 
-On `/rep/apply`, inputs only accept one character at a time (focus is lost after each keystroke).
+## 1. Delete button for draft demos only
 
-## Root cause
+In `src/pages/rep/RepBusinesses.tsx`, add a red **Delete** action next to Edit / Open in the row's action column.
 
-In `src/pages/rep/RepApply.tsx`, the `Shell` wrapper component is declared **inside** the `RepApply` function body. Every time `setForm` runs on a keystroke, `RepApply` re-renders and a brand-new `Shell` function reference is created. React sees a different component type at that position in the tree, unmounts the entire subtree (including the `<Input>`), and mounts a fresh one — which drops focus. The user has to click back into the field for every character.
+Show the button only when the hub is still a draft:
+- `hub.is_approved !== true` AND
+- `hub.pipeline_status !== 'ready_for_review'`
 
-## Fix
+Behavior:
+- Click → confirm dialog ("Delete this draft? This cannot be undone.")
+- On confirm: `supabase.from('personal_profiles').delete().eq('id', hub.id)`, then optimistically drop the row from state and toast success.
+- If the row is approved or submitted, no button is rendered (defense in depth beyond RLS).
 
-Move `Shell` out of the `RepApply` component so its identity is stable across renders.
+## 2. Rep preview of their own unapproved hubs
 
-- Extract `Shell` to a module-scope component (defined above `RepApply`, same file).
-- It only needs `children` as a prop — no other closure values are used.
-- No behavior, styling, or markup changes; just relocation.
+Today `UsernameResolver.tsx` only auto-enters preview mode for admins. Extend the same fallback so the rep who created the demo can also view it live before approval, with the same amber ribbon.
 
-## Verification
+Changes in `src/pages/UsernameResolver.tsx`:
+- After the "not publicly visible" branch, if the viewer is authenticated but not admin, attempt a direct `personal_profiles` select by slug. Existing RLS already restricts this to owner / admin / linked `sales_rep_id`, so a row will only come back for the rep that owns the demo.
+- If a row is returned, set `resolvedProfile`, `resolvedType = "personal"`, and `adminPreviewActive = true` (reuse existing ribbon — copy stays generic: "Preview — this hub is not yet approved and not publicly visible.").
+- Update the ribbon copy in `AdminPreviewRibbon` to remove the word "Admin" so it reads correctly for both admins and reps.
 
-- Type a multi-character string into Name / Email / Phone / Message on `/rep/apply` and confirm focus is retained and the full string appears.
-- Confirm the success state (`submitted === true`) still renders correctly inside the same `Shell`.
+No DB / RLS changes needed — reps already have SELECT on `personal_profiles` rows where `sales_rep_id = auth.uid()`.
+
+## Files touched
+- `src/pages/rep/RepBusinesses.tsx` — add Delete button + handler
+- `src/pages/UsernameResolver.tsx` — authenticated fallback + ribbon copy
