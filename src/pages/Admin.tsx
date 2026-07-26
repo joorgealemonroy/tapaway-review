@@ -52,6 +52,7 @@ import {
   FileText,
   ClipboardList,
   ChevronRight,
+  Activity,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
