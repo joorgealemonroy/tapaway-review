@@ -119,7 +119,13 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   // Debounced username availability check
   useEffect(() => {
+    if (usernameLocked) {
+      setUsernameStatus("idle");
+      setUsernameError(null);
+      return;
+    }
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
+
 
     if (newPublicUsername === username) {
       setUsernameStatus("idle");
