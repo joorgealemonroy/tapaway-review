@@ -87,6 +87,15 @@ serve(async (req) => {
 
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
     const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+    // Derive user id from the Stripe session's metadata (bound at session creation time), not the client body.
+    const metadataUserId = (session.metadata?.user_id || session.metadata?.userId || session.client_reference_id) as string | undefined;
+    const userId = metadataUserId || callerUserId;
+    if (metadataUserId && metadataUserId !== callerUserId) {
+      console.warn('[verify-checkout] Session metadata user does not match caller — refusing');
+      return new Response(JSON.stringify({ error: 'Session does not belong to caller' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const customerEmail = session.customer_email;
 
     // Determine plan type
