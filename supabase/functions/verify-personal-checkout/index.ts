@@ -26,7 +26,10 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    const { sessionId, signupEmail } = await req.json();
+    const { sessionId } = await req.json();
+    // SECURITY: Ignore any client-supplied signupEmail. The target account is
+    // always derived from the Stripe session's verified customer email below,
+    // otherwise anyone with any paid session could re-link a victim's account.
 
     if (!sessionId) {
       return new Response(
