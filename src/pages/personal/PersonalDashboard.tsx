@@ -1286,13 +1286,14 @@ const PersonalDashboard = () => {
         </DrawerContent>
       </Drawer>
 
-      {/* Unsaved Changes Bar */}
-      <UnsavedChangesBar
-        hasPendingChanges={hasPendingChanges || heroHasPending}
-        onSave={handleSaveChanges}
-        onDiscard={handleDiscardChanges}
-        saving={saving}
+      {/* Autosave status */}
+      <AutosaveStatusBar
+        status={autosaveStatus}
+        onUndo={handleUndo}
+        onRetry={handleRetry}
+        canUndo={!!undoTargetRef.current}
       />
+
 
       {/* Image Cropper */}
       {rawImageUrl && (
