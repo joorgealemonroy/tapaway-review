@@ -168,11 +168,10 @@ const RepDemoCreate = () => {
       if (error) throw error;
       const profileId = inserted!.id;
 
-      // 5. Seed links as half-width tiles (best-effort). Using cover_image_url +
-      // grid_size:'half' makes them render as reorderable image tiles alongside
-      // anything the rep adds later. Tiles auto-pair 2-up in the dashboard.
+      // 5. Seed links as standard list rows (like manually added links). They
+      // render identically to what the rep would add by hand and can be freely
+      // reordered without any grid-tile layout logic.
       const seedLinks: Array<Record<string, unknown>> = [];
-      const bannerCover = profilePhotoUrl || undefined;
 
       if (place.website) {
         let host = '';
@@ -187,8 +186,8 @@ const RepDemoCreate = () => {
           link_type: 'custom',
           sort_order: 0,
           is_active: true,
-          grid_size: 'half',
-          cover_image_url: favicon ?? bannerCover ?? null,
+          display_style: 'pill',
+          thumbnail_url: favicon,
         });
       }
       const reviewUrl = buildGoogleReviewUrl(place.placeId) || place.googleMapsUri;
@@ -200,8 +199,7 @@ const RepDemoCreate = () => {
           link_type: 'google_review',
           sort_order: seedLinks.length,
           is_active: true,
-          grid_size: 'half',
-          cover_image_url: bannerCover ?? null,
+          display_style: 'pill',
         });
       }
       if (seedLinks.length > 0) {
