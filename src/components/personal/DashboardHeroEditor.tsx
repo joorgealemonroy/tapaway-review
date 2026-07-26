@@ -57,11 +57,13 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   showUsername,
   onUpdate,
   onPendingChangesChange,
+  onEdit,
 }, ref) => {
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
   const [showUsernameValue, setShowUsernameValue] = useState(showUsername);
+  const suppressEditPingRef = useRef(true);
 
   // Username editing state
   const isFree = !planType || planType === "free";
