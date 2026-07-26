@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResponsiveModal } from "@/components/personal/ResponsiveModal";
+import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2, MessageSquareText } from "lucide-react";
 
@@ -34,6 +35,7 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const [form, setForm] = useState<LeadForm | null>(null);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [smsConsent, setSmsConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -54,8 +56,15 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
     loadForm();
   }, [profileId]);
 
+  const hasPhoneField = !!form?.fields.some((f) => f.type === "phone");
+
   const handleSubmit = useCallback(async () => {
     if (!form) return;
+
+    // A2P 10DLC: block submission when a phone field is present without SMS consent.
+    if (hasPhoneField && !smsConsent) {
+      return;
+    }
 
     // Validate required fields
     for (const field of form.fields) {
@@ -90,13 +99,14 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
         setOpen(false);
         setSubmitted(false);
         setFormData({});
+        setSmsConsent(false);
       }, 2000);
     } catch (err) {
       console.error("Submission error:", err);
     } finally {
       setSubmitting(false);
     }
-  }, [form, formData, profileId]);
+  }, [form, formData, profileId, hasPhoneField, smsConsent]);
 
   if (!form) return null;
 
@@ -217,9 +227,17 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
                 </div>
               ))}
 
+              {hasPhoneField && (
+                <SmsConsentBlock
+                  id="lead-sms-consent"
+                  checked={smsConsent}
+                  onChange={setSmsConsent}
+                />
+              )}
+
               <Button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || (hasPhoneField && !smsConsent)}
                 className="w-full"
                 style={isHex ? { backgroundColor: accentColor, color: "#ffffff" } : undefined}
               >
