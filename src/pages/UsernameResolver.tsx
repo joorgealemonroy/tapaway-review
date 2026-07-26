@@ -89,11 +89,12 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("personal_profiles_public")
-        .select(PROFILE_COLUMNS)
-        .eq("username", lowerSlug)
-        .maybeSingle();
+      const { data: profileRows, error: profileError } = await supabase
+        .rpc("get_public_personal_profile", { _slug: lowerSlug });
+      if (profileError) {
+        console.error("[UsernameResolver] public profile RPC failed", profileError);
+      }
+      const profile = Array.isArray(profileRows) && profileRows.length > 0 ? profileRows[0] : null;
 
       const isPubliclyVisible =
         profile?.subscription_status === "active" ||
