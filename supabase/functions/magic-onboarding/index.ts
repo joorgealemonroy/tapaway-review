@@ -487,7 +487,10 @@ serve(async (req) => {
       });
     }
 
-    // Google Review link — standard list row
+    // Half-width image tile cover — use first uploaded place photo when available
+    const tileCover = uploadedPhotoUrls[0] || null;
+
+    // Google Review — half-width tile with cover image (fallback to pill)
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
       addLink({
@@ -497,12 +500,14 @@ serve(async (req) => {
         url: reviewUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'pill',
+        display_style: tileCover ? 'grid' : 'pill',
+        grid_size: tileCover ? 'half' : null,
+        cover_image_url: tileCover,
         pill_color: '#FFFFFF',
       });
     }
 
-    // Website link — standard list row
+    // Website — half-width tile with cover image (fallback to pill)
     if (googleData.websiteUrl) {
       addLink({
         profile_id: profileId,
@@ -511,7 +516,9 @@ serve(async (req) => {
         url: googleData.websiteUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'pill',
+        display_style: tileCover ? 'grid' : 'pill',
+        grid_size: tileCover ? 'half' : null,
+        cover_image_url: uploadedPhotoUrls[1] || tileCover,
         pill_color: brandData.secondaryColor,
       });
     }
