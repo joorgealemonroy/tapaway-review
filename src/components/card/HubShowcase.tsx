@@ -133,12 +133,7 @@ export const HubShowcase = ({ onCopyLayout }: Props) => {
   useEffect(() => {
     const fetchProfiles = async () => {
       const { data: profileData } = await supabase
-        .from("personal_profiles_public")
-        .select("id, username, full_name, headline, profile_photo_url, header_type, header_color, background_color, plan_type")
-        .eq("subscription_status", "active")
-        .not("profile_photo_url", "is", null)
-        .not("username", "in", '("lovie","tapjorge","tapaway")')
-        .limit(6);
+        .rpc("get_public_personal_showcase", { _limit: 6 });
 
       if (!profileData || profileData.length === 0) {
         setLoading(false);

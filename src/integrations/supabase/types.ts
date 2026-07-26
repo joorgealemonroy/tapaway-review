@@ -3278,6 +3278,18 @@ export type Database = {
         }[]
       }
       get_founding_count: { Args: never; Returns: number }
+      get_hub_health: {
+        Args: never
+        Returns: {
+          expected_status: string
+          expires_at: string
+          is_approved: boolean
+          kind: string
+          owner_label: string
+          slug: string
+          subscription_status: string
+        }[]
+      }
       get_public_creator_products: {
         Args: { _creator_id: string }
         Returns: {
@@ -3295,6 +3307,61 @@ export type Database = {
           product_type: string
           title: string
           updated_at: string
+        }[]
+      }
+      get_public_personal_profile: {
+        Args: { _slug: string }
+        Returns: {
+          background_color: string
+          banner_image_url: string
+          bg_style: string
+          bio: string
+          button_theme: string
+          contact_address: string
+          contact_button_label: string
+          contact_company: string
+          contact_display_style: string
+          contact_email: string
+          contact_enabled: boolean
+          contact_name: string
+          contact_phone: string
+          contact_photo_url: string
+          contact_title: string
+          contact_website: string
+          founding_number: number
+          full_name: string
+          header_color: string
+          header_image_url: string
+          header_type: string
+          headline: string
+          id: string
+          is_approved: boolean
+          is_founding_user: boolean
+          pfp_position: string
+          plan_type: string
+          profile_photo_url: string
+          show_founding_badge: boolean
+          show_shop_section: boolean
+          show_username: boolean
+          subscription_status: string
+          text_color: string
+          user_id: string
+          username: string
+          vibe_id: string
+        }[]
+      }
+      get_public_personal_showcase: {
+        Args: { _limit?: number }
+        Returns: {
+          background_color: string
+          full_name: string
+          header_color: string
+          header_type: string
+          headline: string
+          id: string
+          plan_type: string
+          profile_photo_url: string
+          username: string
         }[]
       }
       get_public_restaurant_hub: {

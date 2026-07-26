@@ -74,6 +74,7 @@ const AdminAffiliates = lazy(() => import("./pages/admin/AdminAffiliates"));
 const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AdminSmsSubscribers = lazy(() => import("./pages/admin/AdminSmsSubscribers"));
+const AdminHubHealth = lazy(() => import("./pages/admin/AdminHubHealth"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
 const Compliance = lazy(() => import("./pages/Compliance"));
@@ -171,6 +172,7 @@ const App = () => (
                 <Route path="/admin/cards" element={<AdminCards />} />
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
+                <Route path="/admin/hub-health" element={<AdminHubHealth />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
