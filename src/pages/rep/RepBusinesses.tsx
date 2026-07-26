@@ -124,6 +124,23 @@ const RepBusinesses = () => {
     }
   };
 
+  const deleteDraft = async (hub: Business) => {
+    if (hub.is_approved || hub.pipeline_status === 'ready_for_review') {
+      toast.error('Submitted or approved hubs cannot be deleted here');
+      return;
+    }
+    if (!window.confirm(`Delete draft "${hub.restaurant_name}"? This cannot be undone.`)) return;
+    const prev = hubs;
+    setHubs(prev.filter(h => h.id !== hub.id));
+    const { error } = await supabase.from('personal_profiles').delete().eq('id', hub.id);
+    if (error) {
+      setHubs(prev);
+      toast.error('Delete failed: ' + error.message);
+    } else {
+      toast.success('Draft deleted');
+    }
+  };
+
   if (authLoading || repLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0e1a]">
