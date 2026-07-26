@@ -23,7 +23,7 @@ const PROFILE_COLUMNS = "id, user_id, username, full_name, profile_photo_url, su
 
 const AdminPreviewRibbon = () => (
   <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
-    Admin preview — this hub is not yet approved and not publicly visible.
+    Preview — this hub is not yet approved and not publicly visible.
   </div>
 );
 
