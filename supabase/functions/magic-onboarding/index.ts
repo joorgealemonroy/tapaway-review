@@ -487,7 +487,7 @@ serve(async (req) => {
       });
     }
 
-    // Google Review link — half-width image tile
+    // Google Review link — standard list row
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
       addLink({
@@ -497,22 +497,13 @@ serve(async (req) => {
         url: reviewUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
+        display_style: 'pill',
         pill_color: '#FFFFFF',
-        cover_image_url: uploadedPhotoUrls[2] || uploadedPhotoUrls[0] || resolvedLogoUrl || null,
       });
     }
 
-    // Website link — half-width image tile with favicon fallback
+    // Website link — standard list row
     if (googleData.websiteUrl) {
-      let websiteCover: string | null = uploadedPhotoUrls[3] || uploadedPhotoUrls[0] || resolvedLogoUrl || null;
-      if (!websiteCover) {
-        try {
-          const host = new URL(googleData.websiteUrl).hostname.replace(/^www\./, '');
-          if (host) websiteCover = `https://www.google.com/s2/favicons?domain=${host}&sz=256`;
-        } catch { /* noop */ }
-      }
       addLink({
         profile_id: profileId,
         link_type: 'website',
@@ -520,10 +511,8 @@ serve(async (req) => {
         url: googleData.websiteUrl,
         sort_order: sortOrder++,
         is_active: true,
-        display_style: 'grid',
-        grid_size: 'half',
+        display_style: 'pill',
         pill_color: brandData.secondaryColor,
-        cover_image_url: websiteCover,
       });
     }
 
