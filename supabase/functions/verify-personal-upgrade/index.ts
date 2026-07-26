@@ -55,12 +55,40 @@ serve(async (req) => {
       );
     }
 
+    // Trust Stripe session metadata — never the client request body.
     const profileId = metadata.profile_id;
     const oldUsername = metadata.old_username;
     const newUsername = metadata.new_username;
     const planType = metadata.plan_type || "monthly";
     const customerId = session.customer as string;
     const subscriptionId = session.subscription as string;
+
+    if (!profileId) {
+      return new Response(
+        JSON.stringify({ error: "Session missing profile metadata" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Require authenticated caller and verify they own the profile bound to this session.
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: authData, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !authData.user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("[verify-personal-upgrade] Upgrade details:", {
       profileId,
