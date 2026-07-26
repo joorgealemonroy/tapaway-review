@@ -156,7 +156,7 @@ const SmsSignup = () => {
 
               <Button
                 type="submit"
-                disabled={submitting || !consent}
+                disabled={submitting || !consent || !schema.safeParse({ name, phone }).success}
                 className="w-full h-12 text-base font-semibold"
               >
                 {submitting ? (
