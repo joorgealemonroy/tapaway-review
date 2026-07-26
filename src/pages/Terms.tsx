@@ -26,6 +26,30 @@ const Terms = () => {
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
         <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
 
+        {/* A2P 10DLC / TCR-required SMS terms block, placed above the fold so reviewers can find it immediately */}
+        <section className="border border-primary/30 bg-primary/5 p-5 rounded-lg mb-8">
+          <h2 className="text-2xl font-bold mb-3">SMS & Mobile Messaging Terms</h2>
+          <p className="text-sm text-foreground mb-3">
+            TapAway provides SMS loyalty updates, exclusive discounts, and review reminders on
+            behalf of registered small business owners (restaurants, bakeries, salons, barbers, and
+            similar merchants). Recipients opt in via web forms on TapAway hubs, our{" "}
+            <a href="/sms-signup" className="underline">SMS signup page</a>, or by texting the
+            keyword <strong>TAPVIP</strong> to <strong>(978) 827-2929</strong>.
+          </p>
+          <ul className="list-disc pl-5 text-sm text-foreground space-y-1 mb-3">
+            <li><strong>Opt-out:</strong> Reply <strong>STOP</strong> to any message to unsubscribe.</li>
+            <li>
+              <strong>Support:</strong> Reply <strong>HELP</strong> or contact{" "}
+              <a href="mailto:support@tapaway.co" className="underline">support@tapaway.co</a>.
+            </li>
+            <li>Message frequency varies. Message & data rates may apply.</li>
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            Carriers are not liable for delayed or undelivered messages. Message & data rates may
+            apply. Message frequency varies.
+          </p>
+        </section>
+
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
           {/* 1. BINDING AGREEMENT */}
           <section>

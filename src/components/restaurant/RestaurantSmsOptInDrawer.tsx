@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
 
 interface Props {
   open: boolean;
@@ -40,10 +41,15 @@ export const RestaurantSmsOptInDrawer = ({
   const isMobile = useIsMobile();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consent) {
+      toast.error("Please check the consent box to continue.");
+      return;
+    }
     const parsed = schema.safeParse({ name, phone });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Please check your info");
@@ -65,6 +71,7 @@ export const RestaurantSmsOptInDrawer = ({
       toast.success("You're on the list! 🎉");
       setName("");
       setPhone("");
+      setConsent(false);
       onOpenChange(false);
     } catch (err) {
       console.error("Restaurant SMS opt-in error:", err);
@@ -105,7 +112,12 @@ export const RestaurantSmsOptInDrawer = ({
           className="h-12"
         />
       </div>
-      <Button type="submit" disabled={submitting} className="w-full h-12 text-base font-semibold">
+      <SmsConsentBlock id="restaurant-sms-consent" checked={consent} onChange={setConsent} />
+      <Button
+        type="submit"
+        disabled={submitting || !consent}
+        className="w-full h-12 text-base font-semibold"
+      >
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -115,13 +127,6 @@ export const RestaurantSmsOptInDrawer = ({
           buttonText
         )}
       </Button>
-      <p className="text-xs text-muted-foreground text-center leading-snug">
-        By submitting, you agree to receive recurring marketing text messages from this business at the number provided.
-        Consent is not a condition of any purchase.{" "}
-        <strong>Message and data rates may apply. Message frequency varies. Reply STOP to cancel, HELP for help.</strong>{" "}
-        See our <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a> and{" "}
-        <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a>.
-      </p>
     </form>
   );
 

@@ -2871,6 +2871,39 @@ export type Database = {
           },
         ]
       }
+      sms_signup_submissions: {
+        Row: {
+          consent_at: string
+          consent_text: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          source: string
+          user_agent: string | null
+        }
+        Insert: {
+          consent_at?: string
+          consent_text: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          source?: string
+          user_agent?: string | null
+        }
+        Update: {
+          consent_at?: string
+          consent_text?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          source?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       support_requests: {
         Row: {
           business_name: string

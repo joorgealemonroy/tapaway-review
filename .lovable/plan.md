@@ -1,44 +1,83 @@
-## Root cause
+# A2P 10DLC Compliance & TCR CTA Verification Overhaul
 
-Anonymous requests to `personal_links` return `permission denied for table personal_profiles` — not because RLS blocked the row, but because the tables in the `public` schema have **zero GRANTs** to `anon`, `authenticated`, or `service_role`. PostgREST rejects the request before RLS is even evaluated, so every visitor sees "No links yet".
+Goal: resolve Twilio 30909 rejection by adding required TCR disclosures to legal pages, publishing a dedicated public `/sms-signup` verification landing page, and adding an unchecked consent checkbox + 4 required disclosures to every phone-number form.
 
-The restaurant hubs and the profile fetch itself keep working only because they go through `SECURITY DEFINER` RPCs (which bypass grants). Everything the client reads directly from a table — links, blocks, analytics, lead forms — is one restart away from silently returning empty. That is why the same class of outage keeps recurring.
+## 1. Privacy Policy (`src/pages/Privacy.tsx`)
 
-## Fix
+Add a new top-level section **"SMS Communications & Mobile Information"** near the top (above the fold in the ToC) containing:
 
-### 1. Add the missing GRANTs (migration)
+- The exact required clause, verbatim in a highlighted callout:
+  > "No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
+- Bullet list:
+  - Users opt in via web forms on TapAway hubs or via keyword (TAPVIP to 978-827-2929).
+  - Message frequency varies based on business updates.
+  - Message and data rates may apply.
+  - Reply STOP to cancel, HELP for assistance.
 
-For every public-facing table, add explicit grants that match its RLS intent:
+Route is already public in `App.tsx` at `/privacy` — no routing change needed.
 
-**Public-readable content (visitors must see it):**
-- `personal_links`, `personal_blocks` — `GRANT SELECT TO anon`; full CRUD to `authenticated`; `ALL` to `service_role`.
-- `personal_profiles` — `GRANT SELECT TO anon` (needed by the public policy for approved profiles); full CRUD to `authenticated`.
-- `lead_forms` — `GRANT SELECT TO anon` (public visitors need to render the form on a hub); CRUD to `authenticated`.
+## 2. Terms of Service (`src/pages/Terms.tsx`)
 
-**Public-writable (anon inserts only):**
-- `personal_analytics`, `lead_submissions`, `personal_email_captures`, `nfc_card_taps`, `pending_otps`, `restaurant_sms_subscribers` — `GRANT INSERT TO anon` (RLS already scopes what they can write); CRUD to `authenticated` where owners manage rows.
+Add a new **"SMS & Mobile Messaging Terms"** section covering:
 
-**Auth-only tables** (every policy scopes to `auth.uid()` or admin): `GRANT SELECT, INSERT, UPDATE, DELETE TO authenticated`, `ALL TO service_role`, **no anon grant**. Covers: `user_roles`, `personal_card_requests`, `sms_campaigns`, `bookings`, `creator_products`, `creator_availability`, `creator_purchases`, `sales_reps`, `rep_*`, `commissions`, `affiliate_*`, `admin_audit_log`, `app_settings`, `goals`, `competitors`, `coach_ignored`, `menu_sections`, `menu_items`, `analytics_events`, `restaurants`, `locations`, `google_reviews`, `review_sentiments`, `restaurant_engagement`, `av_*`, `fulfillment_orders`, `magic_link_tokens`, `promo_tokens`, `banned_words`, `pending_trials`, `support_requests`.
+- TapAway provides SMS loyalty updates, exclusive discounts, and review reminders on behalf of registered small business owners.
+- Opt-out: Reply STOP to any message to unsubscribe.
+- Support: Reply HELP or contact support@tapaway.co.
+- Disclaimer: "Carriers are not liable for delayed or undelivered messages. Message & data rates may apply. Message frequency varies."
 
-RLS policies are already correct — this migration only re-opens the API surface that was silently closed off.
+Route already public at `/terms`.
 
-### 2. Prevent regressions
+## 3. New Public Landing Page `/sms-signup`
 
-Extend `/admin/hub-health` (added last turn) to probe **end-to-end** for a curated list of live paying customers, not just the profile RPC:
-- Anonymous fetch of the profile RPC → must return 1 row.
-- Anonymous `SELECT` on `personal_links` filtered by that profile id → must return `>= 1` row for hubs that have links.
-- Anonymous `SELECT` on `personal_blocks` for hubs that have blocks.
+Create `src/pages/SmsSignup.tsx` and register the route in `src/App.tsx` (lazy-loaded, above the `/:slug` catch-all). Fully public, no auth.
 
-If any probe returns `0` rows or a permission error, the row turns red with the exact endpoint that failed. This surfaces both missing GRANTs and RLS regressions on the first page load, not after a customer complains.
+Sections:
+1. **H1:** "TapAway SMS Customer VIP Club Signup"
+2. **Business description** paragraph (exact copy from request).
+3. **Interactive form** (writes to a new `sms_signup_submissions` table, see technical section):
+   - Full Name input
+   - Phone Number input (tel, validated)
+   - **Unchecked-by-default** checkbox with the exact consent copy from the request rendered inline next to it.
+   - Submit button disabled until checkbox is checked and fields valid.
+   - Visible inline links to `/privacy` and `/terms` directly below the form.
+4. **Keyword opt-in section** below the form:
+   - "Alternative Opt-In Method: Text **TAPVIP** to **(978) 827-2929** to join our demo customer VIP list."
+5. SEO: title "SMS VIP Club Signup | TapAway", meta description, canonical, and a static `robots` allow (already default). Add `/sms-signup` to `public/sitemap.xml`.
 
-Also extend `scripts/check-public-hubs.mjs` with the same three-part probe for `rebornwraps` and `sugarbloomcakery` so CI catches this class of bug before it ships.
+## 4. Audit Existing Phone Forms
 
-### 3. Verify
+Update every form that collects a phone number so it (a) includes an **unchecked** consent checkbox required before submit, and (b) shows the 4 required disclosures + links to `/privacy` and `/terms` directly under the phone field.
 
-After the migration, run the anon `personal_links` request for `rebornwraps` and `sugarbloomcakery` and confirm 5 and 6 rows respectively (matches what's in the database today). Then reload `/rebornwraps` in the preview and confirm links render.
+Files to update:
 
-## Technical notes
+- `src/components/personal/SmsOptInDrawer.tsx` — add unchecked checkbox, block submit until checked; current disclosure paragraph already has STOP/HELP + frequency/rates and links, so mainly add the checkbox gate.
+- `src/components/restaurant/RestaurantSmsOptInDrawer.tsx` — same treatment.
+- `src/components/personal/LeadFormSheet.tsx` — when the form contains a `phone` field, render the same unchecked SMS consent checkbox + 4 disclosures + `/privacy` `/terms` links above the submit button; block submit until checked. If no phone field is present, no change.
 
-- Not touching any RLS policies — this is grants-only.
-- Not touching auto-generated `src/integrations/supabase/client.ts` or types.
-- The health dashboard change is admin-only and read-only (uses the anon key from `import.meta.env` to simulate a real visitor).
+Reuse a small shared component `src/components/compliance/SmsConsentBlock.tsx` (checkbox + disclosure paragraph + links) to keep copy identical everywhere.
+
+## Technical section
+
+**New page route**
+- `src/App.tsx`: `const SmsSignup = lazy(() => import("./pages/SmsSignup"));` and `<Route path="/sms-signup" element={<SmsSignup />} />` placed above the `/:slug` dynamic route.
+
+**Submissions storage**
+- New Supabase migration adds `public.sms_signup_submissions` (name, phone, consent_at, consent_text, ip inferred client-side omitted, user_agent, source='/sms-signup'). Follows required 4-step pattern: CREATE TABLE → GRANT `INSERT` to `anon`/`authenticated` and `ALL` to `service_role` (no SELECT to anon) → ENABLE RLS → policies: `INSERT` allowed for `anon`+`authenticated` with `WITH CHECK (true)`; SELECT restricted to `service_role` only (admins can read via existing admin surfaces later if needed). Includes standard `id`, `created_at` defaults.
+- Client insert stores the exact consent text string shown to the user for audit.
+
+**Shared consent component**
+- `SmsConsentBlock.tsx` exports `{ checked, onChange }` controlled checkbox + fixed disclosure copy + `/privacy` and `/terms` anchor links. Used by all three existing forms and the new page.
+
+**Copy source of truth**
+- Consent paragraph string exported as a constant from `src/lib/smsConsent.ts` so the exact wording is identical across forms and stored with each submission.
+
+**Sitemap**
+- Append `<url><loc>https://tapaway.co/sms-signup</loc></url>` to `public/sitemap.xml`.
+
+**No changes** to `src/integrations/supabase/client.ts` or auto-generated files.
+
+## Out of scope
+
+- Wiring the Twilio inbound TAPVIP keyword handler (assumed already configured in Twilio console; page only documents the number).
+- Changing existing SMS sending logic or Twilio Edge Functions.
+- Admin UI to browse `sms_signup_submissions` (can be a follow-up).

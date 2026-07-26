@@ -26,14 +26,24 @@ const Privacy = () => {
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
         <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
 
-        {/* SMS / A2P 10DLC Carrier-required disclosure */}
+        {/* SMS / A2P 10DLC Carrier-required disclosure — exact clause required by TCR */}
         <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg mb-8">
-          <h2 className="text-lg font-bold mb-2">SMS / Text Messaging Data</h2>
-          <p className="text-sm text-foreground">
-            Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes.
-            All other categories exclude text messaging originator opt-in data and consent; this information will
-            not be shared with any third parties.
+          <h2 className="text-lg font-bold mb-2">SMS Communications & Mobile Information</h2>
+          <p className="text-sm text-foreground font-medium mb-3">
+            No mobile information will be shared with third parties or affiliates for marketing or
+            promotional purposes. All the above categories exclude text messaging originator opt-in
+            data and consent; this information will not be shared with any third parties.
           </p>
+          <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
+            <li>
+              Users opt in via web forms on TapAway hubs, our{" "}
+              <a href="/sms-signup" className="underline">SMS signup page</a>, or by texting the
+              keyword <strong>TAPVIP</strong> to <strong>(978) 827-2929</strong>.
+            </li>
+            <li>Message frequency varies based on business updates.</li>
+            <li>Message and data rates may apply.</li>
+            <li>Reply <strong>STOP</strong> to cancel at any time, or <strong>HELP</strong> for assistance.</li>
+          </ul>
         </div>
 
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
