@@ -106,10 +106,11 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
       name !== fullName ||
       headlineValue !== (headline || "") ||
       bioValue !== (bio || "") ||
-      newPublicUsername !== username ||
+      (!usernameLocked && newPublicUsername !== username) ||
       showUsernameValue !== showUsername
     );
-  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType, showUsernameValue, showUsername]);
+  }, [name, headlineValue, bioValue, usernameInput, fullName, headline, bio, username, isFree, planType, showUsernameValue, showUsername, usernameLocked]);
+
 
   // Report pending changes to parent
   useEffect(() => {
