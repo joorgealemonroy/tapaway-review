@@ -1116,6 +1116,7 @@ const PersonalDashboard = () => {
               showUsername={profile.show_username ?? true}
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
+              onEdit={handleEdit}
             />
             
             <div className="border-t pt-6">
@@ -1128,6 +1129,7 @@ const PersonalDashboard = () => {
                 onLinksChange={setLinks}
                 onBlocksChange={setBlocks}
                 onPendingChangesChange={setHasPendingChanges}
+                onEdit={handleEdit}
                 onDiscardRequest={loadData}
                 planType={profile.plan_type}
                 onUpgrade={() => handleUpgrade("yearly")}
