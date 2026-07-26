@@ -79,12 +79,22 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   useEffect(() => {
+    suppressEditPingRef.current = true;
     setName(fullName);
     setHeadlineValue(headline || "");
     setBioValue(bio || "");
     setUsernameInput(extractEditableUsername(username));
     setShowUsernameValue(showUsername);
   }, [fullName, headline, bio, username, isFree, showUsername]);
+
+  // Ping parent debounce on any user edit (skips the sync-from-props effect above).
+  useEffect(() => {
+    if (suppressEditPingRef.current) {
+      suppressEditPingRef.current = false;
+      return;
+    }
+    onEdit?.();
+  }, [name, headlineValue, bioValue, usernameInput, showUsernameValue, onEdit]);
 
   const hasChanges = useMemo(() => {
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
