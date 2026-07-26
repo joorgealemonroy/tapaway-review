@@ -27,12 +27,12 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { DashboardUnifiedContent, DashboardUnifiedContentHandle } from "@/components/personal/DashboardUnifiedContent";
+import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
-import { DashboardHeroEditor, DashboardHeroEditorHandle } from "@/components/personal/DashboardHeroEditor";
+import { DashboardHeroEditor, DashboardHeroEditorHandle, HeroSnapshot } from "@/components/personal/DashboardHeroEditor";
 
 import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
-import { UnsavedChangesBar } from "@/components/personal/UnsavedChangesBar";
+import { AutosaveStatusBar, AutosaveStatus } from "@/components/personal/AutosaveStatusBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
 import { sampleBottomEdgeColor, DEFAULT_HUB_BACKGROUND_COLOR } from "@/lib/sampleBannerColor";
