@@ -64,12 +64,10 @@ const PersonalProfile = () => {
       }
 
       try {
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("personal_profiles_public")
-          .select("id, username, full_name, profile_photo_url, subscription_status")
-          .eq("username", username.toLowerCase())
-          .maybeSingle();
+        // Fetch profile via public RPC (works for anon)
+        const { data: rows, error: profileError } = await supabase
+          .rpc("get_public_personal_profile", { _slug: username.toLowerCase() });
+        const profileData = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
         if (profileError || !profileData || profileData.subscription_status !== "active") {
           setNotFound(true);
