@@ -297,7 +297,11 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
               placeholder="yourname"
-              className={`h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`}
+              disabled={usernameLocked}
+              className={cn(
+                `h-11 ${isFree ? "pl-[120px]" : "pl-[100px]"} pr-10`,
+                usernameLocked && "opacity-70 cursor-not-allowed"
+              )}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               {usernameStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -306,16 +310,25 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               {usernameStatus === "invalid" && <X className="h-4 w-4 text-destructive" />}
             </div>
           </div>
-          {usernameError && (
-            <p className="text-xs text-destructive">{usernameError}</p>
-          )}
-          {usernameChanged && usernameStatus === "available" && (
-            <div className="flex items-start gap-1.5 text-xs text-amber-600">
-              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>Changing your username will update your profile URL and all linked cards</span>
-            </div>
+          {usernameLocked ? (
+            <p className="text-xs text-muted-foreground">
+              Username is locked once your hub is approved.
+            </p>
+          ) : (
+            <>
+              {usernameError && (
+                <p className="text-xs text-destructive">{usernameError}</p>
+              )}
+              {usernameChanged && usernameStatus === "available" && (
+                <div className="flex items-start gap-1.5 text-xs text-amber-600">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>Changing your username will update your profile URL and all linked cards</span>
+                </div>
+              )}
+            </>
           )}
         </div>
+
 
         {/* Show username toggle */}
         <div className="flex items-center justify-between">
