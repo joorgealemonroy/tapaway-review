@@ -106,9 +106,9 @@ serve(async (req) => {
       amountTotal: session.amount_total,
     });
 
-    // Use signup form email for account creation; fall back to Stripe billing email
-    const accountEmail = signupEmail || customerEmail;
-    console.log('[verify-personal-checkout] Account email:', accountEmail, '| Stripe billing email:', customerEmail);
+    // Always trust Stripe's verified payer email; never a client-supplied value.
+    const accountEmail = customerEmail;
+    console.log('[verify-personal-checkout] Account email (from Stripe):', accountEmail);
 
     // Only match by accountEmail (the user's chosen signup email).
     // Never match by billing email -- Apple Pay, Google Pay, etc. use
