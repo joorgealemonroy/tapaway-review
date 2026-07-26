@@ -172,10 +172,28 @@ const PersonalDashboard = () => {
         return;
       }
 
+      // Admin never gets bound to a personal profile at /dashboard.
+      // If admin lands here without an explicit impersonation target, send them
+      // to the account picker. If they arrived via a legacy ?profile_id=..., rewrite
+      // it to ?admin_view_personal=... so the impersonation branch owns the session.
+      if (!adminViewId) {
+        const { data: isAdminEarly } = await supabase.rpc("is_admin");
+        if (isAdminEarly) {
+          const legacyProfileId = searchParams.get("profile_id");
+          if (legacyProfileId) {
+            navigate(`/dashboard?admin_view_personal=${legacyProfileId}`, { replace: true });
+            return;
+          }
+          navigate("/admin/personal-accounts", { replace: true });
+          return;
+        }
+      }
+
       // Admin impersonation: load a specific profile by ID
       if (adminViewId) {
         const { data: isAdminData } = await supabase.rpc("is_admin");
         if (isAdminData) {
+
           const { data: profileData, error: profileError } = await supabase
             .from("personal_profiles")
             .select("*")

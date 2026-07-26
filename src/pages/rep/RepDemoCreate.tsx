@@ -168,9 +168,18 @@ const RepDemoCreate = () => {
       if (error) throw error;
       const profileId = inserted!.id;
 
-      // 5. Seed links (best-effort)
+      // 5. Seed links as half-width tiles (best-effort). Using cover_image_url +
+      // grid_size:'half' makes them render as reorderable image tiles alongside
+      // anything the rep adds later. Tiles auto-pair 2-up in the dashboard.
       const seedLinks: Array<Record<string, unknown>> = [];
+      const bannerCover = profilePhotoUrl || undefined;
+
       if (place.website) {
+        let host = '';
+        try { host = new URL(place.website).hostname.replace(/^www\./, ''); } catch { /* noop */ }
+        const favicon = host
+          ? `https://www.google.com/s2/favicons?domain=${host}&sz=256`
+          : bannerCover;
         seedLinks.push({
           profile_id: profileId,
           label: 'Visit Our Website',
@@ -178,6 +187,8 @@ const RepDemoCreate = () => {
           link_type: 'custom',
           sort_order: 0,
           is_active: true,
+          grid_size: 'half',
+          cover_image_url: favicon ?? bannerCover ?? null,
         });
       }
       const reviewUrl = buildGoogleReviewUrl(place.placeId) || place.googleMapsUri;
@@ -189,12 +200,15 @@ const RepDemoCreate = () => {
           link_type: 'google_review',
           sort_order: seedLinks.length,
           is_active: true,
+          grid_size: 'half',
+          cover_image_url: bannerCover ?? null,
         });
       }
       if (seedLinks.length > 0) {
         const { error: linkError } = await supabase.from('personal_links').insert(seedLinks as any);
         if (linkError) console.warn('[RepDemoCreate] seed links failed:', linkError);
       }
+
 
       toast.success('Demo created — customize away 🎉');
 
