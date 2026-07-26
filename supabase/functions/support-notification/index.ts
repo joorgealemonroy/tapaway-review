@@ -35,6 +35,12 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Anti-spam throttle: 5 support emails per IP per hour.
+  if (!checkRateLimit(getRateLimitKey(req, "support-notification"), 5, 60 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+
   try {
     const data: SupportNotificationRequest = await req.json();
 
