@@ -1,29 +1,28 @@
-Two small changes to the Sales Partner portal.
+## Goal
 
-## 1. Delete button for draft demos only
+Only fix the corner rounding of the TapAway card so it looks clean on dark backgrounds. Do not change the card art, colors, or layout.
 
-In `src/pages/rep/RepBusinesses.tsx`, add a red **Delete** action next to Edit / Open in the row's action column.
+## Problem
 
-Show the button only when the hub is still a draft:
-- `hub.is_approved !== true` AND
-- `hub.pipeline_status !== 'ready_for_review'`
+On dark backgrounds, faint white pixels/seams show at the card corners. The SVG has its own baked-in rounded corners, but the wrapper also clips with `border-radius: 1.5rem`. Because the two radii don't match exactly, the SVG's white corner background peeks out — invisible on light bg, obvious on dark bg.
 
-Behavior:
-- Click → confirm dialog ("Delete this draft? This cannot be undone.")
-- On confirm: `supabase.from('personal_profiles').delete().eq('id', hub.id)`, then optimistically drop the row from state and toast success.
-- If the row is approved or submitted, no button is rendered (defense in depth beyond RLS).
+## Fix
 
-## 2. Rep preview of their own unapproved hubs
+In `src/components/TapAwayCard3D.tsx` (and mirror the same in `src/components/PersonalCard3D.tsx` if it uses the same pattern):
 
-Today `UsernameResolver.tsx` only auto-enters preview mode for admins. Extend the same fallback so the rep who created the demo can also view it live before approval, with the same amber ribbon.
+- Match the wrapper's `border-radius` to the SVG's actual corner radius so the clip and the art align pixel-perfectly.
+- Add `overflow: hidden` on the front/back face wrappers (already present) and ensure the `<img>` inherits the same radius.
+- Nudge the SVGs' outer `<rect>` to be fully opaque card-colored to the very edge (no anti-aliased white halo). If needed, add a 1px inset so the wrapper's radius fully covers the SVG edge.
 
-Changes in `src/pages/UsernameResolver.tsx`:
-- After the "not publicly visible" branch, if the viewer is authenticated but not admin, attempt a direct `personal_profiles` select by slug. Existing RLS already restricts this to owner / admin / linked `sales_rep_id`, so a row will only come back for the rep that owns the demo.
-- If a row is returned, set `resolvedProfile`, `resolvedType = "personal"`, and `adminPreviewActive = true` (reuse existing ribbon — copy stays generic: "Preview — this hub is not yet approved and not publicly visible.").
-- Update the ribbon copy in `AdminPreviewRibbon` to remove the word "Admin" so it reads correctly for both admins and reps.
-
-No DB / RLS changes needed — reps already have SELECT on `personal_profiles` rows where `sales_rep_id = auth.uid()`.
+No changes to card art, copy, logo overlay, business-name text, animation, or the light-mode look.
 
 ## Files touched
-- `src/pages/rep/RepBusinesses.tsx` — add Delete button + handler
-- `src/pages/UsernameResolver.tsx` — authenticated fallback + ribbon copy
+
+- `src/components/TapAwayCard3D.tsx` — corner radius alignment only
+- `src/components/PersonalCard3D.tsx` — same, if it shares the pattern
+- `public/tapaway-card-front.svg` / `public/tapaway-card-back.svg` — only if a tiny edge tweak is required to remove the halo
+
+## Validation
+
+- On a light page: card looks identical to today.
+- On a dark page (rep portal / admin cockpit): no visible white pixels at any corner; rounding reads clean.
