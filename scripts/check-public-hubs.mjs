@@ -90,6 +90,33 @@ for (const check of checks) {
   }
 }
 
+// End-to-end probes: for each live personal hub, confirm the anon key
+// can also reach links/blocks tables. A missing GRANT here is what caused
+// the "No links yet" outage for paying customers.
+const personalHubs = ["rebornwraps", "sugarbloomcakery", "las-nuevas-islas"];
+for (const slug of personalHubs) {
+  try {
+    const profileRows = await readRows({
+      path: "/rest/v1/rpc/get_public_personal_profile",
+      body: { _slug: slug },
+    });
+    if (profileRows.length === 0) {
+      failures.push(`personal hub end-to-end (${slug}): profile RPC returned 0 rows`);
+      continue;
+    }
+    const profileId = profileRows[0].id;
+    const linkRows = await readRows({
+      path: `/rest/v1/personal_links?select=id&profile_id=eq.${profileId}&limit=1`,
+    });
+    if (linkRows.length === 0) {
+      failures.push(`personal hub end-to-end (${slug}): personal_links returned 0 rows (grant or RLS regression)`);
+    }
+  } catch (error) {
+    failures.push(`personal hub end-to-end (${slug}): ${error instanceof Error ? error.message : "unknown error"}`);
+  }
+}
+
+
 if (failures.length > 0) {
   console.error("Public hub checks failed:");
   for (const failure of failures) {
