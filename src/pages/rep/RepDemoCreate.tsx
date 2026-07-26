@@ -168,11 +168,10 @@ const RepDemoCreate = () => {
       if (error) throw error;
       const profileId = inserted!.id;
 
-      // 5. Seed links as half-width image tiles when a hosted photo is available,
-      // so they render alongside social tiles (TikTok/Instagram) in the 2-col
-      // grid and can be freely reordered. Falls back to plain pills if no photo.
+      // 5. Seed Website + Google Review as full-width list rows (pills). Socials
+      // added later can be half-width image tiles; keeping these as pills matches
+      // the target layout and reorders cleanly.
       const seedLinks: Array<Record<string, unknown>> = [];
-      const tileCover = profilePhotoUrl; // re-hosted place photo, canvas-safe
 
       if (place.website) {
         let host = '';
@@ -187,9 +186,7 @@ const RepDemoCreate = () => {
           link_type: 'custom',
           sort_order: 0,
           is_active: true,
-          display_style: tileCover ? 'grid' : 'pill',
-          grid_size: tileCover ? 'half' : null,
-          cover_image_url: tileCover,
+          display_style: 'pill',
           thumbnail_url: favicon,
         });
       }
@@ -202,9 +199,7 @@ const RepDemoCreate = () => {
           link_type: 'google_review',
           sort_order: seedLinks.length,
           is_active: true,
-          display_style: tileCover ? 'grid' : 'pill',
-          grid_size: tileCover ? 'half' : null,
-          cover_image_url: tileCover,
+          display_style: 'pill',
         });
       }
       if (seedLinks.length > 0) {
