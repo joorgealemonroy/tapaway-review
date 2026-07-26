@@ -11,10 +11,20 @@ import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
 
+export interface HeroSnapshot {
+  name: string;
+  headlineValue: string;
+  bioValue: string;
+  usernameInput: string;
+  showUsernameValue: boolean;
+}
+
 export interface DashboardHeroEditorHandle {
   saveAllChanges: () => Promise<void>;
   discardChanges: () => void;
   hasPendingChanges: boolean;
+  getSnapshot: () => HeroSnapshot;
+  restoreSnapshot: (snap: HeroSnapshot) => void;
 }
 
 interface Props {
@@ -34,6 +44,7 @@ interface Props {
     show_username: boolean;
   }>) => void;
   onPendingChangesChange?: (hasPending: boolean) => void;
+  onEdit?: () => void;
 }
 
 export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(({
