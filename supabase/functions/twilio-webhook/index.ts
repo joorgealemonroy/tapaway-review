@@ -4,6 +4,7 @@
 // restaurant_sms_subscribers so our sender lists stay in sync with
 // Twilio's carrier-level block.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { checkRateLimit, getRateLimitKey } from "../_shared/rateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
