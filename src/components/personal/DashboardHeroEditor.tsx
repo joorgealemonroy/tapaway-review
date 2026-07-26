@@ -57,10 +57,12 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   bio,
   planType,
   showUsername,
+  usernameLocked = false,
   onUpdate,
   onPendingChangesChange,
   onEdit,
 }, ref) => {
+
   const [name, setName] = useState(fullName);
   const [headlineValue, setHeadlineValue] = useState(headline || "");
   const [bioValue, setBioValue] = useState(bio || "");
