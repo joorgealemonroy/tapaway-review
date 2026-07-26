@@ -13,6 +13,10 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated caller — either the restaurant owner or an admin.
+    const auth = await requireUser(req);
+    if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, corsHeaders);
+
     const { restaurant_id } = await req.json();
 
     if (!restaurant_id) {
@@ -39,7 +43,7 @@ serve(async (req) => {
     // Fetch restaurant data
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id, google_place_id, last_google_sync_at')
+      .select('id, owner_id, google_place_id, last_google_sync_at')
       .eq('id', restaurant_id)
       .single();
 
