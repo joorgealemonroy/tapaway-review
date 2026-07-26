@@ -31,13 +31,27 @@ const checks = [
     expectRows: true,
   },
   {
+    label: "approved personal hub — rebornwraps",
+    path: "/rest/v1/rpc/get_public_personal_profile",
+    body: { _slug: "rebornwraps" },
+    expectRows: true,
+  },
+  {
+    label: "approved personal hub — sugarbloomcakery",
+    path: "/rest/v1/rpc/get_public_personal_profile",
+    body: { _slug: "sugarbloomcakery" },
+    expectRows: true,
+  },
+  {
     label: "approved trial personal demo hub",
-    path: "/rest/v1/personal_profiles_public?select=id,username&username=eq.las-nuevas-islas",
+    path: "/rest/v1/rpc/get_public_personal_profile",
+    body: { _slug: "las-nuevas-islas" },
     expectRows: true,
   },
   {
     label: "unapproved demo remains hidden",
-    path: "/rest/v1/personal_profiles_public?select=id,username&username=eq.demo-rjcutj",
+    path: "/rest/v1/rpc/get_public_personal_profile",
+    body: { _slug: "demo-rjcutj" },
     expectRows: false,
   },
 ];
