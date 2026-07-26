@@ -66,24 +66,24 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("lead_submissions").insert([{
-        form_id: form.id,
-        profile_id: profileId,
-        submission_data: JSON.parse(JSON.stringify(formData)),
-      }]);
+      const { data: inserted, error } = await supabase
+        .from("lead_submissions")
+        .insert([{
+          form_id: form.id,
+          profile_id: profileId,
+          submission_data: JSON.parse(JSON.stringify(formData)),
+        }])
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      // Fire-and-forget notification
-      supabase.functions
-        .invoke("notify-new-lead", {
-          body: {
-            profileId,
-            formTitle: form.form_title,
-            submissionData: formData,
-          },
-        })
-        .catch(() => {});
+      // Fire-and-forget notification — server re-reads the row and derives all content.
+      if (inserted?.id) {
+        supabase.functions
+          .invoke("notify-new-lead", { body: { submissionId: inserted.id } })
+          .catch(() => {});
+      }
 
       setSubmitted(true);
       setTimeout(() => {
