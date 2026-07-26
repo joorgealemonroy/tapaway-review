@@ -223,11 +223,34 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     setUsernameError(null);
   }, [fullName, headline, bio, username, isFree, showUsername]);
 
+  const getSnapshot = useCallback((): HeroSnapshot => ({
+    name,
+    headlineValue,
+    bioValue,
+    usernameInput,
+    showUsernameValue,
+  }), [name, headlineValue, bioValue, usernameInput, showUsernameValue]);
+
+  const restoreSnapshot = useCallback((snap: HeroSnapshot) => {
+    suppressEditPingRef.current = true;
+    setName(snap.name);
+    setHeadlineValue(snap.headlineValue);
+    setBioValue(snap.bioValue);
+    setUsernameInput(snap.usernameInput);
+    setShowUsernameValue(snap.showUsernameValue);
+    setUsernameStatus("idle");
+    setUsernameError(null);
+    // Fire onEdit on the next tick so the debounce restarts against restored values.
+    setTimeout(() => onEdit?.(), 0);
+  }, [onEdit]);
+
   useImperativeHandle(ref, () => ({
     saveAllChanges: handleSave,
     discardChanges,
     hasPendingChanges: hasChanges,
-  }), [handleSave, discardChanges, hasChanges]);
+    getSnapshot,
+    restoreSnapshot,
+  }), [handleSave, discardChanges, hasChanges, getSnapshot, restoreSnapshot]);
 
   const usernameChanged = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput) !== username;
 
