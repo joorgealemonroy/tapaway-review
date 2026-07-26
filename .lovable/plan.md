@@ -1,23 +1,28 @@
-## Fix: seed auto-fetched links as list rows, not tiles
+## Changes
 
-The glitch happens because auto-fetched Website + Google Review links are seeded as `grid_size: 'half'` image tiles. When mixed with manually added list-style links, the grid grouping shifts them around unexpectedly. The screenshot the user wants (image-175) shows them as regular full-width list rows with a favicon — identical to manually added links, and freely draggable without any grid layout logic in the way.
+### 1. Lock username once a hub is approved
+Once `personal_profiles.is_approved = true`, the public slug is live (and printed on cards / shared). Editing it silently breaks every existing link, so we disable the field entirely.
 
-### Changes
+**`src/components/personal/DashboardHeroEditor.tsx`**
+- Add a new prop `usernameLocked?: boolean`.
+- When `usernameLocked` is true:
+  - Render the username `<Input>` as `disabled`, with muted styling.
+  - Skip the availability-check `useEffect` and the "changing your username will update..." warning.
+  - In `handleSave`, ignore any username diff (never include `username` in the update payload, never touch `nfc_cards`).
+  - Show a small helper line under the field: "Username is locked once your hub is approved."
 
-**1. `src/pages/rep/RepDemoCreate.tsx`**
-- Seed Website and Google Review as standard list rows: remove `grid_size: 'half'` and `cover_image_url`.
-- Keep `thumbnail_url` (favicon for website, Google "G" icon for review) so the row shows a small icon like manual links do.
-- Result: they render exactly like manually added links and drag anywhere in the list.
+**`src/pages/personal/PersonalDashboard.tsx`**
+- Pass `usernameLocked={!!profile.is_approved}` when rendering `<DashboardHeroEditor>`.
 
-**2. `supabase/functions/magic-onboarding/index.ts`**
-- Revert Website + Google Review seeding to `display_style: 'pill'` (no `grid_size`, no `cover_image_url`).
-- Keep the platform icon rendering by relying on `link_type` (`google_review`, `website`).
+This applies to everyone (rep, owner, admin impersonation) — approved slugs are immutable from the dashboard. Admin-level slug edits stay possible from the admin tools.
 
-**3. `src/components/personal/DashboardUnifiedContent.tsx`**
-- Revert the grouping condition to require `cover_image_url` again (`item.data.cover_image_url && item.data.grid_size === "half"`). This restores the invariant: only image-bearing half tiles group into the 2-col grid — so a stray half without an image can never trigger layout shift.
-- Remove the odd-count `col-span-2` branch added in the last turn (no longer needed once seeds aren't half tiles).
+### 2. Reps return to their Businesses list after saving a draft
+Right now `handleSubmitForReview` navigates to `/rep/restaurants` but `handleSaveDraft` just fires a toast and leaves the rep sitting inside the editor. The rep wants a clean handoff back to their portal.
 
-### Result
-- Auto-seeded links look and behave identically to manually added ones.
-- No grid glitching when adding more content afterward.
-- Rep can still promote them to image tiles manually by editing the link and adding a cover image + half size.
+**`src/pages/personal/PersonalDashboard.tsx`**
+- In `handleSaveDraft`, after the successful update + toast, if `isRepDemo` is true, call `navigate("/rep/restaurants")` (matching the existing Submit-for-review behavior).
+- Non-rep flows (owner / admin) keep current behavior — no redirect.
+
+## Out of scope
+- No database or RLS changes; approved-hub protection is enforced in the dashboard UI only (admin tools remain the canonical place to change a live slug).
+- No changes to how usernames are auto-generated at submission time.

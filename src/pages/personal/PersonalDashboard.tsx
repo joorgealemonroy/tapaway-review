@@ -771,7 +771,9 @@ const PersonalDashboard = () => {
     if (error) { toast.error("Failed to save draft"); return; }
     setProfile(p => p ? { ...p, pipeline_status: "draft" } : p);
     toast.success("Draft saved");
+    if (isRepDemo) navigate("/rep/restaurants");
   };
+
 
   const handleSubmitForReview = async () => {
     // Auto-generate a vanity slug from the business name if the username is
@@ -1114,6 +1116,8 @@ const PersonalDashboard = () => {
               bio={profile.bio}
               planType={profile.plan_type}
               showUsername={profile.show_username ?? true}
+              usernameLocked={!!profile.is_approved}
+
               onUpdate={(updates) => setProfile(prev => prev ? { ...prev, ...updates } : null)}
               onPendingChangesChange={setHeroHasPending}
               onEdit={handleEdit}
