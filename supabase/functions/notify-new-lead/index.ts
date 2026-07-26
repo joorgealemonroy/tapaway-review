@@ -26,11 +26,11 @@ serve(async (req) => {
   }
 
   try {
-    const { profileId, formTitle, submissionData } = await req.json();
+    const { submissionId } = await req.json();
 
-    if (!profileId || !submissionData) {
+    if (!submissionId) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing submissionId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
