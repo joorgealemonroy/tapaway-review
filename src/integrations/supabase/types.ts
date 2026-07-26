@@ -3278,6 +3278,25 @@ export type Database = {
         }[]
       }
       get_founding_count: { Args: never; Returns: number }
+      get_public_creator_products: {
+        Args: { _creator_id: string }
+        Returns: {
+          booking_url: string
+          cover_image_url: string
+          created_at: string
+          creator_id: string
+          description: string
+          duration_minutes: number
+          id: string
+          image_urls: string[]
+          is_active: boolean
+          long_description: string
+          price_cents: number
+          product_type: string
+          title: string
+          updated_at: string
+        }[]
+      }
       get_public_restaurant_hub: {
         Args: { _id?: string; _slug?: string }
         Returns: {
