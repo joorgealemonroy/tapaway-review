@@ -487,7 +487,7 @@ serve(async (req) => {
       });
     }
 
-    // Google Review — full-width pill row
+    // Google Review — full-width pill row (explicit grid_size null to override DB default)
     if (googleData.placeId) {
       const reviewUrl = `https://search.google.com/local/writereview?placeid=${googleData.placeId}`;
       addLink({
@@ -498,6 +498,8 @@ serve(async (req) => {
         sort_order: sortOrder++,
         is_active: true,
         display_style: 'pill',
+        grid_size: null,
+        cover_image_url: null,
         pill_color: '#FFFFFF',
       });
     }
@@ -512,6 +514,8 @@ serve(async (req) => {
         sort_order: sortOrder++,
         is_active: true,
         display_style: 'pill',
+        grid_size: null,
+        cover_image_url: null,
         pill_color: brandData.secondaryColor,
       });
     }
