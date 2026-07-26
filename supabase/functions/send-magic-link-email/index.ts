@@ -145,6 +145,12 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
+  // Anti-abuse: 5 magic-link emails per IP per 15 minutes.
+  if (!checkRateLimit(getRateLimitKey(req, "send-magic-link-email"), 5, 15 * 60 * 1000)) {
+    return rateLimitResponse(corsHeaders);
+  }
+
+
   try {
     // Parse body FIRST (can only be read once)
     const { userId, email, fullName, baseUrl: requestBaseUrl } = await req.json();
