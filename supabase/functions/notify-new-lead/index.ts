@@ -40,6 +40,33 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Verify the submission exists server-side and derive all email content from it.
+    const { data: submission } = await supabaseAdmin
+      .from("lead_submissions")
+      .select("profile_id, submission_data, form_id, created_at")
+      .eq("id", submissionId)
+      .maybeSingle();
+
+    if (!submission) {
+      return new Response(
+        JSON.stringify({ error: "Submission not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const profileId = submission.profile_id;
+    const submissionData = (submission.submission_data ?? {}) as Record<string, string>;
+
+    let formTitle = "New Lead";
+    if (submission.form_id) {
+      const { data: form } = await supabaseAdmin
+        .from("lead_forms")
+        .select("form_title")
+        .eq("id", submission.form_id)
+        .maybeSingle();
+      if (form?.form_title) formTitle = form.form_title;
+    }
+
     // Look up profile owner
     const { data: profile } = await supabaseAdmin
       .from("personal_profiles")
