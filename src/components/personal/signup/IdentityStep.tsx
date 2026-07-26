@@ -46,7 +46,6 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
   // Pre-fill from sessionStorage (card activation flow) or auth session
   useEffect(() => {
     const cardEmail = sessionStorage.getItem("tapaway_card_email");
-    const cardPassword = sessionStorage.getItem("tapaway_card_password");
     const cardPreAuthed = sessionStorage.getItem("tapaway_card_preauthed") === "true";
     const updates: Partial<SignupData> = {};
 
@@ -59,10 +58,7 @@ export const IdentityStep = ({ formData, updateFormData, onNext, isLoading, setI
       setEmailReadOnly(true);
       sessionStorage.removeItem("tapaway_card_email");
     }
-    if (cardPassword) {
-      updates.password = cardPassword;
-      sessionStorage.removeItem("tapaway_card_password");
-    }
+    // SECURITY: passwords are no longer persisted in sessionStorage; user re-enters if needed.
 
     if (Object.keys(updates).length > 0) {
       updateFormData(updates);

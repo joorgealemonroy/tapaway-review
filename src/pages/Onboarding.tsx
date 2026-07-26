@@ -154,7 +154,7 @@ const Onboarding = () => {
           setVerifyingCheckout(true);
           try {
             const { data, error } = await supabase.functions.invoke("verify-checkout", {
-              body: { sessionId, userId: session.user.id },
+              body: { sessionId },
             });
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);

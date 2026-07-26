@@ -56,7 +56,9 @@ const PersonalSignupComplete = () => {
       try {
         // Step 1: Load saved signup data FIRST (need email for verify call)
         const savedDataStr = localStorage.getItem("personal_signup_data") || sessionStorage.getItem("personal_signup_data");
-        const savedPassword = localStorage.getItem("signup_password") || sessionStorage.getItem("signup_password");
+        // SECURITY: passwords are no longer stored in browser storage across the Stripe redirect.
+        // After payment, we always send a magic link to complete sign-in.
+        const savedPassword: string | null = null;
         
         let savedData: SavedSignupData | null = null;
         if (savedDataStr) {

@@ -75,6 +75,11 @@ serve(async (req) => {
       }
 
       try {
+        // SSRF guard: only accept https URLs that resolve to Google's photo CDN.
+        const { isSafeExternalUrl } = await import("../_shared/security.ts");
+        if (!isSafeExternalUrl(googlePhotoUri, { allowHosts: ["googleusercontent.com", "google.com", "googleapis.com"] })) {
+          throw new Error("photo url not allowed");
+        }
         const imgResp = await fetch(googlePhotoUri);
         if (!imgResp.ok) throw new Error(`photo download ${imgResp.status}`);
         const contentType = imgResp.headers.get('content-type') || 'image/jpeg';

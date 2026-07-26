@@ -251,7 +251,7 @@ const CardResolver = () => {
         });
 
         sessionStorage.setItem("tapaway_card_email", email.trim().toLowerCase());
-        sessionStorage.setItem("tapaway_card_password", password);
+        // SECURITY: password is not stored across navigation — user re-enters or uses magic link.
         sessionStorage.setItem("tapaway_card_preauthed", "true");
         navigate(`/start?card=${publicCode}`);
       }
