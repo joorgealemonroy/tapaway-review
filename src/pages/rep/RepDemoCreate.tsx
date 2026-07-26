@@ -184,9 +184,11 @@ const RepDemoCreate = () => {
           label: 'Visit Our Website',
           url: place.website,
           link_type: 'custom',
-          sort_order: 0,
+          sort_order: 100,
           is_active: true,
           display_style: 'pill',
+          grid_size: null,
+          cover_image_url: null,
           thumbnail_url: favicon,
         });
       }
@@ -197,9 +199,11 @@ const RepDemoCreate = () => {
           label: 'Leave us a 5-Star Review',
           url: reviewUrl,
           link_type: 'google_review',
-          sort_order: seedLinks.length,
+          sort_order: 100 + seedLinks.length,
           is_active: true,
           display_style: 'pill',
+          grid_size: null,
+          cover_image_url: null,
         });
       }
       if (seedLinks.length > 0) {
