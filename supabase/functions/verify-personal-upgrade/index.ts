@@ -108,7 +108,24 @@ serve(async (req) => {
           persistSession: false,
         },
       }
-    );
+
+    // Enforce that the authenticated caller owns the profile bound to this Stripe session.
+    const { data: ownerRow } = await supabaseAdmin
+      .from("personal_profiles")
+      .select("user_id")
+      .eq("id", profileId)
+      .maybeSingle();
+    if (!ownerRow) {
+      return new Response(JSON.stringify({ error: "Profile not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (ownerRow.user_id !== authData.user.id) {
+      console.warn("[verify-personal-upgrade] Caller does not own bound profile — refusing");
+      return new Response(JSON.stringify({ error: "Session does not belong to caller" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if new username is available (if different from old)
     let finalUsername = oldUsername;
