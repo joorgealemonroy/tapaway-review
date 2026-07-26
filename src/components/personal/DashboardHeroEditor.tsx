@@ -172,7 +172,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [usernameInput, username, isFree, planType]);
+  }, [usernameInput, username, isFree, planType, usernameLocked]);
 
   const handleSave = useCallback(async () => {
     if (!hasChanges) return;
