@@ -183,11 +183,14 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         updated.deletedBlockIds.size > 0 ||
         updated.orderChanged;
       
-      setTimeout(() => onPendingChangesChange(hasChanges), 0);
+      setTimeout(() => {
+        onPendingChangesChange(hasChanges);
+        onEdit?.();
+      }, 0);
       
       return updated;
     });
-  }, [onPendingChangesChange]);
+  }, [onPendingChangesChange, onEdit]);
 
   // Combine and sort all items by sort_order
   const unifiedItems: UnifiedItem[] = [
