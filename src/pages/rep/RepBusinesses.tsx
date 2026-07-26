@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, ExternalLink, Pencil, FileText, Upload, Palette } from 'lucide-react';
+import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
@@ -121,6 +121,23 @@ const RepBusinesses = () => {
       toast.error('Upload failed');
     } finally {
       setUploadingId(null);
+    }
+  };
+
+  const deleteDraft = async (hub: Business) => {
+    if (hub.is_approved || hub.pipeline_status === 'ready_for_review') {
+      toast.error('Submitted or approved hubs cannot be deleted here');
+      return;
+    }
+    if (!window.confirm(`Delete draft "${hub.restaurant_name}"? This cannot be undone.`)) return;
+    const prev = hubs;
+    setHubs(prev.filter(h => h.id !== hub.id));
+    const { error } = await supabase.from('personal_profiles').delete().eq('id', hub.id);
+    if (error) {
+      setHubs(prev);
+      toast.error('Delete failed: ' + error.message);
+    } else {
+      toast.success('Draft deleted');
     }
   };
 
@@ -262,6 +279,14 @@ const RepBusinesses = () => {
                   >
                     <ExternalLink className="h-3.5 w-3.5" /> Open
                   </button>
+                  {!hub.is_approved && hub.pipeline_status !== 'ready_for_review' && (
+                    <button
+                      onClick={() => deleteDraft(hub)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-red-400/30 bg-red-400/10 text-red-200 hover:bg-red-400/20"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );

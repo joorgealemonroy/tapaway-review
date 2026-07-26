@@ -23,7 +23,7 @@ const PROFILE_COLUMNS = "id, user_id, username, full_name, profile_photo_url, su
 
 const AdminPreviewRibbon = () => (
   <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
-    Admin preview — this hub is not yet approved and not publicly visible.
+    Preview — this hub is not yet approved and not publicly visible.
   </div>
 );
 
@@ -106,21 +106,22 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      // Not publicly visible — if the viewer is a verified admin, auto-enter
-      // preview mode against the plain slug (no ?admin_preview=1 needed).
-      if (isAdmin) {
-        const { data: adminProfile } = await supabase
-          .from("personal_profiles")
-          .select(PROFILE_COLUMNS)
-          .eq("username", lowerSlug)
-          .maybeSingle();
-        if (adminProfile) {
-          setResolvedProfile(adminProfile as unknown as CachedProfile);
-          setResolvedType("personal");
-          setAdminPreviewActive(true);
-          setLoading(false);
-          return;
-        }
+      // Not publicly visible — if the viewer is a verified admin OR the
+      // rep who owns this demo, auto-enter preview mode against the plain
+      // slug. RLS on personal_profiles restricts this select to owner /
+      // admin / linked sales_rep_id, so a row only comes back for someone
+      // authorized to preview it.
+      const { data: adminProfile } = await supabase
+        .from("personal_profiles")
+        .select(PROFILE_COLUMNS)
+        .eq("username", lowerSlug)
+        .maybeSingle();
+      if (adminProfile) {
+        setResolvedProfile(adminProfile as unknown as CachedProfile);
+        setResolvedType("personal");
+        setAdminPreviewActive(true);
+        setLoading(false);
+        return;
       }
 
       const { data: restaurant } = await supabase
