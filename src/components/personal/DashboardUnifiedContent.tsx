@@ -1,4 +1,4 @@
-import { useState, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
+import { useState, useCallback, useImperativeHandle, forwardRef, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { Switch } from "@/components/ui/switch";
@@ -160,6 +160,18 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   // Track pending changes - these haven't been saved to DB yet
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
 
+  // Refs mirror latest values so async save closures never see stale data.
+  const pendingChangesRef = useRef<PendingChanges>(pendingChanges);
+  const linksRef = useRef<DbPersonalLink[]>(links);
+  const blocksRef = useRef<PersonalBlock[]>(blocks);
+  const profileIdRef = useRef<string>(profileId);
+  const usernameRef = useRef<string>(username);
+  useEffect(() => { pendingChangesRef.current = pendingChanges; }, [pendingChanges]);
+  useEffect(() => { linksRef.current = links; }, [links]);
+  useEffect(() => { blocksRef.current = blocks; }, [blocks]);
+  useEffect(() => { profileIdRef.current = profileId; }, [profileId]);
+  useEffect(() => { usernameRef.current = username; }, [username]);
+
   const hasPendingChanges = pendingChanges.addedLinks.length > 0 ||
     pendingChanges.updatedLinks.size > 0 ||
     pendingChanges.deletedLinkIds.size > 0 ||
@@ -234,16 +246,20 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     thumbnailUrl: dbLink.thumbnail_url,
   });
 
-  // Core save logic — returns array of error strings (empty = success)
-  const executeSave = async (): Promise<string[]> => {
+  // Core save logic — reads a snapshot of pending changes plus current items via refs.
+  // Returns array of error strings (empty = success).
+  const executeSave = async (pending: PendingChanges): Promise<string[]> => {
     const errors: string[] = [];
+    const pid = profileIdRef.current;
+    const currentLinks = linksRef.current;
+    const currentBlocks = blocksRef.current;
 
     // Save deleted items first
-    for (const id of pendingChanges.deletedLinkIds) {
+    for (const id of pending.deletedLinkIds) {
       const { error } = await supabase.from("personal_links").delete().eq("id", id);
       if (error) errors.push(`Delete link: ${error.message}`);
     }
-    for (const id of pendingChanges.deletedBlockIds) {
+    for (const id of pending.deletedBlockIds) {
       const { error } = await supabase.from("personal_blocks").delete().eq("id", id);
       if (error) errors.push(`Delete block: ${error.message}`);
     }
@@ -252,10 +268,10 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     if (errors.length > 0) return errors;
 
     // Save added items
-    for (const link of pendingChanges.addedLinks) {
+    for (const link of pending.addedLinks) {
       const { error } = await supabase.from("personal_links").insert({
         id: link.id,
-        profile_id: profileId,
+        profile_id: pid,
         link_type: link.link_type,
         label: link.label,
         url: link.url,
@@ -270,9 +286,9 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       });
       if (error) errors.push(`Add link "${link.label}": ${error.message}`);
     }
-    for (const block of pendingChanges.addedBlocks) {
+    for (const block of pending.addedBlocks) {
       const { error } = await supabase.from("personal_blocks").insert({
-        profile_id: profileId,
+        profile_id: pid,
         block_type: block.block_type,
         content: block.content as import("@/integrations/supabase/types").Json,
         sort_order: block.sort_order,
@@ -283,25 +299,25 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }
 
     // Save updated items
-    for (const [id, updates] of pendingChanges.updatedLinks) {
+    for (const [id, updates] of pending.updatedLinks) {
       const { error } = await supabase.from("personal_links").update(updates).eq("id", id);
       if (error) errors.push(`Update link: ${error.message}`);
     }
-    for (const [id, updates] of pendingChanges.updatedBlocks) {
+    for (const [id, updates] of pending.updatedBlocks) {
       const { error } = await supabase.from("personal_blocks").update(updates as Record<string, unknown>).eq("id", id);
       if (error) errors.push(`Update block: ${error.message}`);
     }
 
-    // Save order changes if any
-    if (pendingChanges.orderChanged) {
-      for (const link of links) {
+    // Save order changes if any — use latest links/blocks from refs
+    if (pending.orderChanged) {
+      for (const link of currentLinks) {
         const { error } = await supabase
           .from("personal_links")
           .update({ sort_order: link.sort_order })
           .eq("id", link.id);
         if (error) errors.push(`Reorder link: ${error.message}`);
       }
-      for (const block of blocks) {
+      for (const block of currentBlocks) {
         const { error } = await supabase
           .from("personal_blocks")
           .update({ sort_order: block.sort_order })
@@ -317,15 +333,27 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const saveAllChanges = async () => {
     setSaving(true);
 
+    // Snapshot the pending set at save-start. Anything that arrives during
+    // the async save is preserved as a new pending batch below.
+    const snapshot: PendingChanges = {
+      addedLinks: [...pendingChangesRef.current.addedLinks],
+      updatedLinks: new Map(pendingChangesRef.current.updatedLinks),
+      deletedLinkIds: new Set(pendingChangesRef.current.deletedLinkIds),
+      addedBlocks: [...pendingChangesRef.current.addedBlocks],
+      updatedBlocks: new Map(pendingChangesRef.current.updatedBlocks),
+      deletedBlockIds: new Set(pendingChangesRef.current.deletedBlockIds),
+      orderChanged: pendingChangesRef.current.orderChanged,
+    };
+
     try {
-      let errors = await executeSave();
+      let errors = await executeSave(snapshot);
 
       // Auto-retry once after 2 seconds if there were errors
       if (errors.length > 0) {
         console.warn("Save attempt 1 failed, retrying in 2s:", errors);
         toast.loading("Retrying save…", { id: "save-retry" });
         await new Promise(resolve => setTimeout(resolve, 2000));
-        errors = await executeSave();
+        errors = await executeSave(snapshot);
         toast.dismiss("save-retry");
       }
 
@@ -338,11 +366,40 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       }
 
       // Invalidate cache
-      invalidateProfileCache(username);
-      
-      // Clear pending changes
-      setPendingChanges(createEmptyPendingChanges());
-      onPendingChangesChange(false);
+      invalidateProfileCache(usernameRef.current);
+
+      // Subtract the applied snapshot from the CURRENT pending changes.
+      // Anything the user did while the save was in-flight stays pending.
+      setPendingChanges(prev => {
+        const savedAddedIds = new Set(snapshot.addedLinks.map(l => l.id));
+        const savedAddedBlockIds = new Set(snapshot.addedBlocks.map(b => b.id));
+        const next: PendingChanges = {
+          addedLinks: prev.addedLinks.filter(l => !savedAddedIds.has(l.id)),
+          addedBlocks: prev.addedBlocks.filter(b => !savedAddedBlockIds.has(b.id)),
+          updatedLinks: new Map(
+            [...prev.updatedLinks].filter(([id]) => !snapshot.updatedLinks.has(id))
+          ),
+          updatedBlocks: new Map(
+            [...prev.updatedBlocks].filter(([id]) => !snapshot.updatedBlocks.has(id))
+          ),
+          deletedLinkIds: new Set(
+            [...prev.deletedLinkIds].filter(id => !snapshot.deletedLinkIds.has(id))
+          ),
+          deletedBlockIds: new Set(
+            [...prev.deletedBlockIds].filter(id => !snapshot.deletedBlockIds.has(id))
+          ),
+          orderChanged: snapshot.orderChanged ? false : prev.orderChanged,
+        };
+        const stillHas = next.addedLinks.length > 0 ||
+          next.updatedLinks.size > 0 ||
+          next.deletedLinkIds.size > 0 ||
+          next.addedBlocks.length > 0 ||
+          next.updatedBlocks.size > 0 ||
+          next.deletedBlockIds.size > 0 ||
+          next.orderChanged;
+        setTimeout(() => onPendingChangesChange(stillHas), 0);
+        return next;
+      });
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save changes");
@@ -450,14 +507,15 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }, 0);
   }, [links, blocks, onLinksChange, onBlocksChange, onPendingChangesChange, onEdit]);
 
-  // Expose methods to parent via ref
+  // Expose methods to parent via ref. No deps — recreate the handle every render
+  // so parent always calls the freshest closures (avoids stale pendingChanges).
   useImperativeHandle(ref, () => ({
     saveAllChanges,
     discardChanges,
     hasPendingChanges,
     getSnapshot,
     restoreSnapshot,
-  }), [hasPendingChanges, getSnapshot, restoreSnapshot]);
+  }));
 
   // Drag handlers (update local state, mark order as changed)
   const handleDragStart = (index: number, item: UnifiedItem) => {

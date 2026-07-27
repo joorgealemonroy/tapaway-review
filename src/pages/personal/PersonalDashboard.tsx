@@ -171,6 +171,7 @@ const PersonalDashboard = () => {
 
   // Admin impersonation mode
   const adminViewId = searchParams.get("admin_view_personal") || searchParams.get("admin_view");
+  const requestedProfileId = searchParams.get("profile_id");
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
 
@@ -351,7 +352,7 @@ const PersonalDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, adminViewId, searchParams]);
+  }, [navigate, adminViewId, requestedProfileId]);
 
   useEffect(() => {
     loadData();

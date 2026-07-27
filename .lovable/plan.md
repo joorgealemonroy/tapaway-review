@@ -1,83 +1,67 @@
-# A2P 10DLC Compliance & TCR CTA Verification Overhaul
+## Problem
 
-Goal: resolve Twilio 30909 rejection by adding required TCR disclosures to legal pages, publishing a dedicated public `/sms-signup` verification landing page, and adding an unchecked consent checkbox + 4 required disclosures to every phone-number form.
+Reps report two related bugs when editing a demo hub (e.g. `elchilitosmexicanrestaurant`):
 
-## 1. Privacy Policy (`src/pages/Privacy.tsx`)
+1. **Deletes don't persist / live preview keeps the removed item.** They remove a link or block, autosave fires, but the deleted item is still on the public hub and reappears in the editor after a reload.
+2. **Adds get dropped and the page appears to "reset"**, forcing them to redo work they already did.
 
-Add a new top-level section **"SMS Communications & Mobile Information"** near the top (above the fold in the ToC) containing:
+Some links also occasionally seed as half-width tiles instead of full-width pills — that's a seeding side-effect of the drop above (freshly re-fetched state overwrites their in-progress cleanup).
 
-- The exact required clause, verbatim in a highlighted callout:
-  > "No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
-- Bullet list:
-  - Users opt in via web forms on TapAway hubs or via keyword (TAPVIP to 978-827-2929).
-  - Message frequency varies based on business updates.
-  - Message and data rates may apply.
-  - Reply STOP to cancel, HELP for assistance.
+## Root cause (confirmed by reading the code)
 
-Route is already public in `App.tsx` at `/privacy` — no routing change needed.
+`src/components/personal/DashboardUnifiedContent.tsx` exposes `saveAllChanges` to the parent via `useImperativeHandle`. The handle's dependency array is:
 
-## 2. Terms of Service (`src/pages/Terms.tsx`)
+```
+[hasPendingChanges, getSnapshot, restoreSnapshot]
+```
 
-Add a new **"SMS & Mobile Messaging Terms"** section covering:
+`hasPendingChanges` is a boolean — once the user makes the first edit it flips `false → true` and stays `true` until the debounced autosave completes and clears `pendingChanges`. Between those two moments, `useImperativeHandle` does **not** re-register, so the parent keeps calling the *first* `saveAllChanges` closure, which captured the *first* `pendingChanges` snapshot.
 
-- TapAway provides SMS loyalty updates, exclusive discounts, and review reminders on behalf of registered small business owners.
-- Opt-out: Reply STOP to any message to unsubscribe.
-- Support: Reply HELP or contact support@tapaway.co.
-- Disclaimer: "Carriers are not liable for delayed or undelivered messages. Message & data rates may apply. Message frequency varies."
+Concrete failure sequences that match the reports:
 
-Route already public at `/terms`.
+- **Delete → quick add** (within one 1.5s debounce window). Closure sees `{deletedLinkIds: {A}}` only. The delete runs; the newly added link is never persisted. The link vanishes on the next refetch → "page reset, redo the section".
+- **Add → delete of an existing item**. Closure sees `{addedLinks: [X]}` only. X is inserted; the deletion is silently skipped. The removed item stays live → "live preview thinks it's still there".
+- Same class of bug applies to updates/reorders that arrive after the first edit in a batch.
 
-## 3. New Public Landing Page `/sms-signup`
+After the stale closure runs, the child's `setPendingChanges(createEmptyPendingChanges())` clears the real pending set, so those dropped edits are lost forever with no visible error.
 
-Create `src/pages/SmsSignup.tsx` and register the route in `src/App.tsx` (lazy-loaded, above the `/:slug` catch-all). Fully public, no auth.
+Secondary contributor: in `src/pages/personal/PersonalDashboard.tsx`, `loadData` is memoized with `searchParams` in its dep array. Any code path that calls `setSearchParams(...)` (welcome flag, upgrade success handler, profile switcher) re-runs `loadData` and overwrites in-flight local `links`/`blocks`/`profile` state, which is another way an edit-in-progress can disappear.
 
-Sections:
-1. **H1:** "TapAway SMS Customer VIP Club Signup"
-2. **Business description** paragraph (exact copy from request).
-3. **Interactive form** (writes to a new `sms_signup_submissions` table, see technical section):
-   - Full Name input
-   - Phone Number input (tel, validated)
-   - **Unchecked-by-default** checkbox with the exact consent copy from the request rendered inline next to it.
-   - Submit button disabled until checkbox is checked and fields valid.
-   - Visible inline links to `/privacy` and `/terms` directly below the form.
-4. **Keyword opt-in section** below the form:
-   - "Alternative Opt-In Method: Text **TAPVIP** to **(978) 827-2929** to join our demo customer VIP list."
-5. SEO: title "SMS VIP Club Signup | TapAway", meta description, canonical, and a static `robots` allow (already default). Add `/sms-signup` to `public/sitemap.xml`.
+## Fix
 
-## 4. Audit Existing Phone Forms
+Change the child so `saveAllChanges` always reads the current `pendingChanges` and current `links`/`blocks`, and change the parent so ordinary URL cleanups don't wipe local state.
 
-Update every form that collects a phone number so it (a) includes an **unchecked** consent checkbox required before submit, and (b) shows the 4 required disclosures + links to `/privacy` and `/terms` directly under the phone field.
+### 1. `src/components/personal/DashboardUnifiedContent.tsx`
 
-Files to update:
+- Add refs that mirror the latest values:
+  - `pendingChangesRef` updated in a `useEffect` on every `pendingChanges` change.
+  - `linksRef` / `blocksRef` updated on every `links` / `blocks` change (needed by the reorder branch of `executeSave`).
+- Rewrite `executeSave` and `saveAllChanges` to read from those refs instead of the closure variables.
+- Change `useImperativeHandle` to expose stable methods that also read from refs. Either:
+  - drop the dep array (recreate the handle every render — cheap here), or
+  - keep deps but rely on the refs so a stale closure is still correct.
+- After a successful save, snapshot the ref values (not closure) before calling `setPendingChanges(createEmptyPendingChanges())`, so anything that landed between the save starting and the state clear is preserved as a fresh pending batch. Concretely: diff `pendingChangesRef.current` against the set we just persisted and re-seed the leftover into `pendingChanges`.
 
-- `src/components/personal/SmsOptInDrawer.tsx` — add unchecked checkbox, block submit until checked; current disclosure paragraph already has STOP/HELP + frequency/rates and links, so mainly add the checkbox gate.
-- `src/components/restaurant/RestaurantSmsOptInDrawer.tsx` — same treatment.
-- `src/components/personal/LeadFormSheet.tsx` — when the form contains a `phone` field, render the same unchecked SMS consent checkbox + 4 disclosures + `/privacy` `/terms` links above the submit button; block submit until checked. If no phone field is present, no change.
+### 2. `src/pages/personal/PersonalDashboard.tsx`
 
-Reuse a small shared component `src/components/compliance/SmsConsentBlock.tsx` (checkbox + disclosure paragraph + links) to keep copy identical everywhere.
+- Narrow `loadData`'s dependencies from the whole `searchParams` object to just the values it actually reads: `adminViewId` and `searchParams.get("profile_id")` (stored in a memoized primitive). This stops `setSearchParams({})` (welcome cleanup, upgrade cleanup) from re-running the full profile+links+blocks fetch mid-edit.
+- Before any `setSearchParams({...})` call that is *not* a profile switch (the welcome-cleanup on line ~364 and the upgrade-cleanup on line ~418), guard against clobbering unsaved work: if `unifiedContentRef.current?.hasPendingChanges || heroEditorRef.current?.hasPendingChanges`, flush autosave first (`await flushAutosave()`), then clear the param.
+- Profile switcher (`setSearchParams({ profile_id: ... })`) already intentionally reloads — keep that behavior but call `flushAutosave()` first so pending edits on the outgoing profile aren't lost.
 
-## Technical section
+### 3. Half-width vs pill seeding regression
 
-**New page route**
-- `src/App.tsx`: `const SmsSignup = lazy(() => import("./pages/SmsSignup"));` and `<Route path="/sms-signup" element={<SmsSignup />} />` placed above the `/:slug` dynamic route.
+Reps saw core links seed as half-width tiles again. That's the same class of issue: an in-progress save dropped their edits and the refetch showed the freshly seeded defaults. No seeding logic change is needed — once fix #1 lands, their manual pill choice will persist. Verify by opening `RepDemoCreate.tsx`'s seed for Website/Google Review and confirming they still write `display_style: 'pill'` and no `grid_size`/`cover_image_url` (they do today).
 
-**Submissions storage**
-- New Supabase migration adds `public.sms_signup_submissions` (name, phone, consent_at, consent_text, ip inferred client-side omitted, user_agent, source='/sms-signup'). Follows required 4-step pattern: CREATE TABLE → GRANT `INSERT` to `anon`/`authenticated` and `ALL` to `service_role` (no SELECT to anon) → ENABLE RLS → policies: `INSERT` allowed for `anon`+`authenticated` with `WITH CHECK (true)`; SELECT restricted to `service_role` only (admins can read via existing admin surfaces later if needed). Includes standard `id`, `created_at` defaults.
-- Client insert stores the exact consent text string shown to the user for audit.
+## Verification
 
-**Shared consent component**
-- `SmsConsentBlock.tsx` exports `{ checked, onChange }` controlled checkbox + fixed disclosure copy + `/privacy` and `/terms` anchor links. Used by all three existing forms and the new page.
+1. On a rep demo hub, add link A, immediately delete existing link B, wait 2s. Reload — A is present, B is gone.
+2. Delete a block, then within the debounce window add a YouTube block, wait 2s. Reload — both changes stuck.
+3. Add 6 links back-to-back, wait for autosave "Saved" toast, reload — all 6 present.
+4. Trigger the welcome banner flow (`?welcome=true`) while an unsaved edit is in flight; confirm the edit persists after the URL cleans up.
+5. Public hub (`/elchilitosmexicanrestaurant`) reflects deletions immediately after the "Saved" indicator, with no stale items.
 
-**Copy source of truth**
-- Consent paragraph string exported as a constant from `src/lib/smsConsent.ts` so the exact wording is identical across forms and stored with each submission.
+## Technical notes
 
-**Sitemap**
-- Append `<url><loc>https://tapaway.co/sms-signup</loc></url>` to `public/sitemap.xml`.
-
-**No changes** to `src/integrations/supabase/client.ts` or auto-generated files.
-
-## Out of scope
-
-- Wiring the Twilio inbound TAPVIP keyword handler (assumed already configured in Twilio console; page only documents the number).
-- Changing existing SMS sending logic or Twilio Edge Functions.
-- Admin UI to browse `sms_signup_submissions` (can be a follow-up).
+- No schema changes, no RLS changes.
+- No UI redesign — behavior fix only.
+- Files touched: `src/components/personal/DashboardUnifiedContent.tsx`, `src/pages/personal/PersonalDashboard.tsx`.
