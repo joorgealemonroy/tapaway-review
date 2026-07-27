@@ -507,14 +507,15 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }, 0);
   }, [links, blocks, onLinksChange, onBlocksChange, onPendingChangesChange, onEdit]);
 
-  // Expose methods to parent via ref
+  // Expose methods to parent via ref. No deps — recreate the handle every render
+  // so parent always calls the freshest closures (avoids stale pendingChanges).
   useImperativeHandle(ref, () => ({
     saveAllChanges,
     discardChanges,
     hasPendingChanges,
     getSnapshot,
     restoreSnapshot,
-  }), [hasPendingChanges, getSnapshot, restoreSnapshot]);
+  }));
 
   // Drag handlers (update local state, mark order as changed)
   const handleDragStart = (index: number, item: UnifiedItem) => {
