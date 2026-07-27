@@ -160,6 +160,18 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   // Track pending changes - these haven't been saved to DB yet
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
 
+  // Refs mirror latest values so async save closures never see stale data.
+  const pendingChangesRef = useRef<PendingChanges>(pendingChanges);
+  const linksRef = useRef<DbPersonalLink[]>(links);
+  const blocksRef = useRef<PersonalBlock[]>(blocks);
+  const profileIdRef = useRef<string>(profileId);
+  const usernameRef = useRef<string>(username);
+  useEffect(() => { pendingChangesRef.current = pendingChanges; }, [pendingChanges]);
+  useEffect(() => { linksRef.current = links; }, [links]);
+  useEffect(() => { blocksRef.current = blocks; }, [blocks]);
+  useEffect(() => { profileIdRef.current = profileId; }, [profileId]);
+  useEffect(() => { usernameRef.current = username; }, [username]);
+
   const hasPendingChanges = pendingChanges.addedLinks.length > 0 ||
     pendingChanges.updatedLinks.size > 0 ||
     pendingChanges.deletedLinkIds.size > 0 ||
