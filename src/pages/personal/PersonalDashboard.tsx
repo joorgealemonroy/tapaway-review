@@ -352,7 +352,7 @@ const PersonalDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, adminViewId, searchParams]);
+  }, [navigate, adminViewId, requestedProfileId]);
 
   useEffect(() => {
     loadData();
