@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2 } from 'lucide-react';
+import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
@@ -21,6 +21,8 @@ interface Business {
   pipeline_status: string | null;
   card_print_pdf_path: string | null;
   is_approved: boolean | null;
+  review_note: string | null;
+  review_note_at: string | null;
 }
 
 const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
@@ -48,7 +50,7 @@ const RepBusinesses = () => {
     (async () => {
       const { data, error } = await supabase
         .from('personal_profiles')
-        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved')
+        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved, review_note, review_note_at')
         .eq('sales_rep_id', salesRep.id)
         .order('created_at', { ascending: false });
       if (error) {
@@ -66,6 +68,8 @@ const RepBusinesses = () => {
             pipeline_status: d.pipeline_status,
             card_print_pdf_path: d.card_print_pdf_path,
             is_approved: d.is_approved ?? false,
+            review_note: d.review_note ?? null,
+            review_note_at: d.review_note_at ?? null,
           })),
         );
       }
@@ -150,13 +154,18 @@ const RepBusinesses = () => {
     );
   }
 
+  const changesRequestedHubs = hubs.filter(
+    h => !h.is_approved && h.pipeline_status === 'changes_requested' && h.review_note
+  );
+  const otherHubs = hubs.filter(h => !changesRequestedHubs.some(c => c.id === h.id));
+
   const q = search.trim().toLowerCase();
   const filteredHubs = q
-    ? hubs.filter(h =>
+    ? otherHubs.filter(h =>
         (h.restaurant_name || '').toLowerCase().includes(q) ||
         (h.custom_slug || '').toLowerCase().includes(q)
       )
-    : hubs;
+    : otherHubs;
 
   return (
     <RepShell
@@ -192,6 +201,49 @@ const RepBusinesses = () => {
           />
         </div>
       )}
+
+      {changesRequestedHubs.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-amber-400/30 bg-amber-500/[0.06] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/15 text-amber-100">
+              <MessageSquareWarning className="h-3 w-3" /> Changes Requested
+            </span>
+            <span className="text-xs text-amber-100/70">
+              {changesRequestedHubs.length} hub{changesRequestedHubs.length === 1 ? '' : 's'} need{changesRequestedHubs.length === 1 ? 's' : ''} your attention before approval.
+            </span>
+          </div>
+          <div className="space-y-2">
+            {changesRequestedHubs.map(hub => (
+              <div
+                key={hub.id}
+                className="rounded-xl border border-amber-400/20 bg-[#0a0e1a]/60 p-3.5"
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-medium text-white">{hub.restaurant_name}</p>
+                    {hub.custom_slug && (
+                      <p className="text-[11px] font-mono text-white/40">/{hub.custom_slug}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => navigate(`/dashboard?profile_id=${hub.id}`)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-[#0a0e1a] hover:bg-amber-400"
+                  >
+                    Fix & Resubmit <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="mt-2.5 rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2">
+                  <p className="text-[11px] uppercase tracking-widest text-amber-200/70 mb-1 font-semibold">
+                    Admin note{hub.review_note_at ? ` · ${formatDate(hub.review_note_at)}` : ''}
+                  </p>
+                  <p className="text-sm text-amber-50/95 whitespace-pre-wrap">{hub.review_note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {hubs.length === 0 ? (
         <RepCard className="text-center py-20">
           <p className="text-white/50 mb-4">No businesses yet. Start building your book.</p>
