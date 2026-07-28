@@ -972,32 +972,64 @@ const PersonalDashboard = () => {
               coachHighlight === "welcome" && "ring-2 ring-primary ring-offset-2"
             )}
           >
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
-            >
-              {profile.profile_photo_url ? (
-                <img
-                  src={profile.profile_photo_url}
-                  alt={profile.full_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
+            {profile.profile_photo_url ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={uploadingPhoto}
+                    className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
+                  >
+                    <img
+                      src={profile.profile_photo_url}
+                      alt={profile.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {uploadingPhoto ? (
+                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                      ) : (
+                        <Camera className="h-5 w-5 text-white" />
+                      )}
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (!profile.profile_photo_url) return;
+                      // Strip cache-buster to avoid CORS caching issues on re-decode
+                      const cleanUrl = profile.profile_photo_url.split("?")[0];
+                      setRawImageUrl(cleanUrl);
+                      setCropperOpen(true);
+                    }}
+                  >
+                    Crop current photo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    Replace photo
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="relative h-16 w-16 rounded-full overflow-hidden group flex-shrink-0"
+              >
                 <div className="w-full h-full bg-muted flex items-center justify-center">
                   <span className="text-xl font-bold text-muted-foreground">
                     {profile.full_name.charAt(0)}
                   </span>
                 </div>
-              )}
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                {uploadingPhoto ? (
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
-                ) : (
-                  <Camera className="h-5 w-5 text-white" />
-                )}
-              </div>
-            </button>
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploadingPhoto ? (
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-white" />
+                  )}
+                </div>
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -1005,6 +1037,7 @@ const PersonalDashboard = () => {
               onChange={handlePhotoSelect}
               className="hidden"
             />
+
             <div className="flex-1 min-w-0">
               <h1 className="font-bold text-lg text-foreground">{profile.full_name}</h1>
               <button

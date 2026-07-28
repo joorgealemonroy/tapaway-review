@@ -978,13 +978,21 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                         {/* Platform icon badge */}
-                        {Icon && (
-                          <div
-                            className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-primary"}`}
-                          >
-                            <Icon className={`h-3 w-3 ${config?.color || "text-white"}`} />
-                          </div>
-                        )}
+                        {Icon && (() => {
+                          const useWhiteBadge = link.link_type === "google_review" || link.link_type === "yelp";
+                          return (
+                            <div
+                              className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${
+                                useWhiteBadge
+                                  ? "bg-white border border-black/10 shadow-sm"
+                                  : (config?.gradient || config?.bgColor || "bg-primary")
+                              }`}
+                            >
+                              <Icon className={`h-3 w-3 ${useWhiteBadge ? "" : (config?.color || "text-white")}`} />
+                            </div>
+                          );
+                        })()}
+
 
                         {/* Red dot for placeholders */}
                         {link.url?.startsWith('#placeholder-') && (
@@ -1085,14 +1093,34 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                     <div className="h-9 w-9 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
                       <img src={link.thumbnail_url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     </div>
-                  ) : (
-                    <div 
-                      className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${!link.pill_color ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
-                      style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
-                    >
-                      {Icon && <Icon className={`h-4 w-4 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />}
-                    </div>
-                  )}
+                  ) : (() => {
+                    const useWhiteBadge = link.link_type === "google_review" || link.link_type === "yelp";
+                    return (
+                      <div
+                        className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          link.pill_color
+                            ? ""
+                            : useWhiteBadge
+                              ? "bg-white border border-black/10"
+                              : (config?.gradient || config?.bgColor || "bg-primary/10")
+                        }`}
+                        style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
+                      >
+                        {Icon && (
+                          <Icon
+                            className={`h-4 w-4 ${
+                              link.pill_color
+                                ? "text-white"
+                                : useWhiteBadge
+                                  ? ""
+                                  : (config?.color || "text-primary")
+                            }`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="flex-1 min-w-0 select-none pointer-events-none">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm text-foreground select-none truncate">{link.label}</p>

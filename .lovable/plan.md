@@ -1,29 +1,31 @@
-# Fix: reordered half-width tiles sometimes don't persist
+## 1. Re-crop the profile picture without re-uploading
 
-## What's actually happening
+**Where:** `src/pages/personal/PersonalDashboard.tsx` (profile-header avatar button around lines 975–1007).
 
-The editor tracks "you reordered something" as a single boolean flag (`orderChanged`). When autosave runs, it snapshots that flag, writes every item's new `sort_order` to the DB, and then clears the flag. If the user drags again while that save is still in flight (very easy with a 1.5s debounce + sequential Supabase updates), the second drag re-sets the flag — but the post-save cleanup unconditionally clears it back to `false`. Result: the second reorder is silently dropped, `hasPendingChanges` reports nothing to save, and the live page keeps serving the stale `sort_order`.
+Today the avatar button opens the file picker directly. We'll turn it into a small menu when a photo already exists:
 
-The editor still *looks* correct because it renders from local state. The live page renders from the DB, where the full-width row is still sitting between the two halves — so the "consecutive halves" grouping breaks and they render as two singletons instead of a paired row. Deleting + re-adding works around it because add/delete are tracked per-id and can't be clobbered the same way.
+- Wrap the avatar in a `DropdownMenu` (only when `profile.profile_photo_url` is set — otherwise keep single-click file picker).
+- Menu items:
+  - **Crop current photo** → sets `rawImageUrl` to the current `profile_photo_url` (with a cache-buster stripped) and opens the existing `ImageCropper` dialog. `handleCropComplete` already handles the upload/replace flow, so re-cropping just re-uploads the cropped output as `profile.jpg` — no user re-upload needed.
+  - **Replace photo** → triggers the existing `fileInputRef.current?.click()` flow.
+- The Camera hover overlay stays the same.
 
-Root cause pinpointed in `src/components/personal/DashboardUnifiedContent.tsx`:
-- `executeSave` captures `linksRef.current` / `blocksRef.current` once at entry (before any `await`), so mid-save reorders aren't written.
-- Post-save cleanup at the `orderChanged` reconciliation clears the flag whenever the snapshot had it set, regardless of whether a newer reorder arrived meanwhile.
+Small helper: the `ImageCropper` loads `imageSrc` via `new Image()` with `crossOrigin="anonymous"`. `personal-photos` is a public bucket already served with CORS, so cropping the live URL works. We'll strip the `?t=...` cache-buster before passing to the cropper to avoid CORS caching quirks.
 
-## The fix
+No changes to `ImageCropper.tsx` needed.
 
-Make reorder tracking identity-aware instead of a single boolean, in `src/components/personal/DashboardUnifiedContent.tsx`:
+## 2. Replace the ugly Google icon in the dashboard link list
 
-1. **Snapshot the actual order that was saved.** In `executeSave`, when writing `sort_order`s, build a map `{ linkId|blockId → sort_order }` of exactly what was persisted, and return it alongside the rest of the save result.
-2. **Re-read the latest order right before the write loop** (not at function entry), so any reorder that happened between save-scheduling and the loop is included in this pass.
-3. **Only clear `orderChanged` if the current live order still matches the saved snapshot.** In the post-save reconciliation, compare the saved id→order map to the current `linksRef.current` / `blocksRef.current` order. If they match, clear the flag. If a newer drag has changed anything, leave `orderChanged: true` so the debounced autosave fires again and persists the newer order.
-4. **Keep the existing field/add/delete reconciliation untouched** — those paths are already id-scoped and correct.
+**Symptom:** In the dashboard editor rows, the multicolor Google "G" (`GoogleIcon` in `src/lib/platformLinks.tsx`) sits inside a solid blue `bg-[#4285F4]` circle, so the colored G disappears into the background. On the live hub and the phone preview, Google Review renders as a white pill so the multicolor G looks correct (see `ProfilePreviewRenderer.tsx` `isWhitePill` branch).
 
-No schema changes, no changes to rendering or to the live page. This is a persistence-layer race fix scoped to one file.
+**Fix — in `src/components/personal/DashboardUnifiedContent.tsx`:** in the two icon badges (grid tile ~line 981–987 and list row ~line 1088–1095), special-case `link.link_type === "google_review"` (and, for consistency, `"yelp"`) so the icon container uses a **white background with a subtle border** instead of `config.bgColor`. That reuses the same treatment as the live view, where the multicolor Google logo is legible.
 
-## Verification
+We do NOT change `PLATFORM_CONFIGS.google_review.bgColor` — it's still used correctly on the public hub for other stylings. The override lives only in the dashboard editor rendering.
 
-- Typecheck.
-- Manual repro in the dashboard as the affected rep view: create `[half, full-row, half]`, drag the trailing half up so the layout becomes `[half, half, full-row]`, wait for the autosave toast, hard-refresh the live hub — the two halves should render as a paired grid row.
-- Repeat with a rapid double-drag (drag, then drag again within ~1s) to exercise the race path; confirm the second order still lands in the DB and the live page reflects it.
-- Confirm add/edit/delete flows still save correctly (no regression to the id-scoped paths).
+## Technical notes
+
+- Files touched:
+  - `src/pages/personal/PersonalDashboard.tsx` — dropdown on avatar, small helper to open cropper with the current photo URL.
+  - `src/components/personal/DashboardUnifiedContent.tsx` — white-badge override for `google_review` / `yelp` icons in both the grid tile and pill-row renders.
+- No DB, RLS, or edge-function changes.
+- No changes to how links render on the public hub or phone preview.
