@@ -617,12 +617,30 @@ export const BlockModal = ({
       toast.error("Failed to upload image");
     } finally {
       setUploadingCollageImage(false);
+      setEditingCollageIndex(null);
       if (collageRawImage) {
         URL.revokeObjectURL(collageRawImage);
         setCollageRawImage(null);
       }
     }
   };
+
+  const handleEditCollageImage = async (index: number) => {
+    const item = collageMedia[index];
+    if (!item || item.type !== "image") return;
+    try {
+      const res = await fetch(item.url, { mode: "cors" });
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setEditingCollageIndex(index);
+      setCollageRawImage(objectUrl);
+      setShowCollageCropper(true);
+    } catch (err) {
+      console.error("Load image for crop failed:", err);
+      toast.error("Couldn't load image to edit");
+    }
+  };
+
 
   const handleRemoveCollageMedia = (index: number) => {
     setCollageMedia(prev => prev.filter((_, i) => i !== index));
