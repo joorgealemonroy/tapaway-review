@@ -119,6 +119,8 @@ export const BlockModal = ({
   const [collageMedia, setCollageMedia] = useState<Array<{ url: string; type: "image" | "video"; poster?: string }>>([]);
   const [collageColumns, setCollageColumns] = useState<2 | 3>(3);
   const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
+  const [collageDragOver, setCollageDragOver] = useState(false);
+
   
   // Product block options
   const [selectedProductId, setSelectedProductId] = useState("");
