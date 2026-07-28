@@ -150,6 +150,7 @@ const RepCommissions = () => {
             const total = bonuses.reduce((s, c) => s + Number(c.amount), 0);
             return <p className="text-[11px] text-emerald-300/70 mt-2">Demo bonuses this month: {bonuses.length} × $5 = ${total.toFixed(2)}</p>;
           })()}
+        </RepCard>
         <RepCard className="p-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-400/20">
