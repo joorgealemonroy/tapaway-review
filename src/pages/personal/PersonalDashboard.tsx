@@ -175,9 +175,21 @@ const PersonalDashboard = () => {
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
 
+  // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
+  // unrelated URL params (tab=, welcome=, upgrade=) change.
+  const hasLoadedRef = useRef(false);
+  const profileRef = useRef<PersonalProfile | null>(null);
+  const searchParamsRef = useRef(searchParams);
+  useEffect(() => { searchParamsRef.current = searchParams; }, [searchParams]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
   // Load profile data - always fresh from DB, never cached
   const loadData = useCallback(async () => {
+    const sp = searchParamsRef.current;
+    const adminViewIdLocal = sp.get("admin_view_personal") || sp.get("admin_view");
+    const requestedProfileIdLocal = sp.get("profile_id");
     try {
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Not authenticated - redirect to auth page, NOT signup
@@ -189,10 +201,10 @@ const PersonalDashboard = () => {
       // If admin lands here without an explicit impersonation target, send them
       // to the account picker. If they arrived via a legacy ?profile_id=..., rewrite
       // it to ?admin_view_personal=... so the impersonation branch owns the session.
-      if (!adminViewId) {
+      if (!adminViewIdLocal) {
         const { data: isAdminEarly } = await supabase.rpc("is_admin");
         if (isAdminEarly) {
-          const legacyProfileId = searchParams.get("profile_id");
+          const legacyProfileId = requestedProfileIdLocal;
           if (legacyProfileId) {
             navigate(`/dashboard?admin_view_personal=${legacyProfileId}`, { replace: true });
             return;
@@ -203,21 +215,27 @@ const PersonalDashboard = () => {
       }
 
       // Admin impersonation: load a specific profile by ID
-      if (adminViewId) {
+      if (adminViewIdLocal) {
+
         const { data: isAdminData } = await supabase.rpc("is_admin");
         if (isAdminData) {
 
           const { data: profileData, error: profileError } = await supabase
             .from("personal_profiles")
             .select("*")
-            .eq("id", adminViewId)
+            .eq("id", adminViewIdLocal)
             .single();
 
           if (profileError || !profileData) {
-            toast.error("Profile not found");
-            navigate("/admin/personal-accounts");
+            if (!profileRef.current) {
+              toast.error("Profile not found");
+              navigate("/admin/personal-accounts");
+            } else {
+              console.warn("[dashboard] admin refetch returned empty; keeping current profile");
+            }
             return;
           }
+
 
           const normalizedProfile = {
             ...profileData,
@@ -277,6 +295,12 @@ const PersonalDashboard = () => {
         .order("created_at", { ascending: true });
 
       if (profileError || !allProfilesData || allProfilesData.length === 0) {
+        // Never eject a user who is already actively editing — a transient RLS/network
+        // hiccup or a re-fetch shouldn't kick a rep out of their draft.
+        if (profileRef.current) {
+          console.warn("[dashboard] refetch returned empty; keeping current profile", profileError);
+          return;
+        }
         // Sales reps without any demos yet should go back to the partner portal, not onboarding
         const { data: repRow } = await supabase
           .from("sales_reps")
@@ -293,9 +317,8 @@ const PersonalDashboard = () => {
       }
 
       // Select active profile: from URL param, or default to first
-      const requestedProfileId = searchParams.get("profile_id");
-      const selectedProfile = requestedProfileId
-        ? allProfilesData.find(p => p.id === requestedProfileId) || allProfilesData[0]
+      const selectedProfile = requestedProfileIdLocal
+        ? allProfilesData.find(p => p.id === requestedProfileIdLocal) || allProfilesData[0]
         : allProfilesData[0];
 
       const normalizedProfile = {
@@ -346,13 +369,20 @@ const PersonalDashboard = () => {
 
       setLinks(linksResult.data || []);
       setBlocks(blocksResult.data || []);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("Error loading data:", err);
-      toast.error("Failed to load your profile");
+      // Don't eject on transient errors — only surface a toast if we've never loaded.
+      if (!profileRef.current) {
+        toast.error("Failed to load your profile");
+      } else {
+        toast.error("Reconnecting…", { duration: 2000 });
+      }
     } finally {
       setLoading(false);
     }
-  }, [navigate, adminViewId, requestedProfileId]);
+  }, [navigate]);
+
 
   useEffect(() => {
     loadData();
@@ -362,10 +392,15 @@ const PersonalDashboard = () => {
   useEffect(() => {
     if (searchParams.get("welcome") === "true") {
       welcomeParamRef.current = true;
-      setSearchParams({}, { replace: true });
+      // Preserve every other param (profile_id, admin_view_*, tab) so we don't
+      // accidentally kick a rep out of the draft they were sent to edit.
+      const next = new URLSearchParams(searchParams);
+      next.delete("welcome");
+      setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - run once on mount
+
 
   // Show welcome tutorial + confetti after profile loads if we had the welcome param
   useEffect(() => {
