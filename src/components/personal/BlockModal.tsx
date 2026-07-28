@@ -1196,6 +1196,15 @@ export const BlockModal = ({
                       ) : (
                         <img src={item.url} alt="" className="w-full h-full object-cover" />
                       )}
+                      {item.type === "image" && (
+                        <button
+                          onClick={() => handleEditCollageImage(idx)}
+                          className="absolute top-1 left-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                          title="Crop image"
+                        >
+                          <Crop className="h-3 w-3 text-white" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleRemoveCollageMedia(idx)}
                         className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
@@ -1203,6 +1212,7 @@ export const BlockModal = ({
                         <X className="h-3 w-3 text-white" />
                       </button>
                     </div>
+
                   ))}
                   {collageMedia.length < 9 && (
                     <button
