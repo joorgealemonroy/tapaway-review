@@ -1132,15 +1132,30 @@ export const BlockModal = ({
             <>
               <div className="space-y-2">
               <Label>Photos & Videos (max 9)</Label>
-                <p className="text-xs text-muted-foreground">Images and videos up to 1 minute</p>
+                <p className="text-xs text-muted-foreground">Drag &amp; drop or click to add. Images and videos up to 1 minute.</p>
                 <input
                   ref={collageFileInputRef}
                   type="file"
                   accept="image/*,video/*"
+                  multiple
                   onChange={handleCollageMediaSelect}
                   className="hidden"
                 />
-                <div className="grid grid-cols-4 gap-2">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setCollageDragOver(true); }}
+                  onDragLeave={() => setCollageDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setCollageDragOver(false);
+                    const files = Array.from(e.dataTransfer.files || []).filter(
+                      f => f.type.startsWith("image/") || f.type.startsWith("video/")
+                    );
+                    if (files.length) handleCollageFiles(files);
+                  }}
+                  className={`relative grid grid-cols-4 gap-2 rounded-lg p-2 transition-colors ${
+                    collageDragOver ? "bg-primary/10 ring-2 ring-primary" : ""
+                  }`}
+                >
                   {collageMedia.map((item, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                       {item.type === "video" ? (
@@ -1179,7 +1194,13 @@ export const BlockModal = ({
                       )}
                     </button>
                   )}
+                  {collageDragOver && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-background/70 text-sm font-medium">
+                      Drop to upload
+                    </div>
+                  )}
                 </div>
+
               </div>
             </>
           )}
