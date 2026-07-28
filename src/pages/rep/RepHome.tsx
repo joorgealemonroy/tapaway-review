@@ -89,10 +89,24 @@ const RepHome = () => {
         .reduce((s, c) => s + Number(c.amount), 0);
       setMonthlyBounties(bounties);
 
-      // Count paid conversions this month (for Closer's Pool milestone progress)
+      // Available balance = every commission currently sitting in 'available' status.
+      const available = (commissions || [])
+        .filter(c => c.status === 'available')
+        .reduce((s, c) => s + Number(c.amount), 0);
+      setAvailableBalance(available);
+
+      // Month-to-date demo bonuses (dollars + count) so approved $5s are visible immediately.
       const monthStart = new Date();
       monthStart.setUTCDate(1);
       monthStart.setUTCHours(0, 0, 0, 0);
+      const monthStartISO = monthStart.toISOString();
+      const monthDemoBonuses = (commissions || []).filter(c =>
+        c.commission_type === 'demo_bonus' && c.created_at >= monthStartISO
+      );
+      setDemoBonusCount(monthDemoBonuses.length);
+      setDemoBonusMonth(monthDemoBonuses.reduce((s, c) => s + Number(c.amount), 0));
+
+      // Count paid conversions this month (for Closer's Pool milestone progress)
       const { count: convCount } = await supabase
         .from('personal_profiles')
         .select('id', { count: 'exact', head: true })
