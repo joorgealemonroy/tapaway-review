@@ -134,30 +134,43 @@ Deno.serve(async (req) => {
     }
 
     // --- Daily shift base (once/day when quota met) ---
+    // Count today's awarded demo_bonus rows (including the one we just inserted)
+    // as the true "approved today" tally — created_at on the profile can be days
+    // earlier if the rep built it in advance and admin approved it later today.
     const quota = Number(settings?.daily_shift_quota ?? 10);
     const baseAmount = Number(settings?.daily_shift_base_amount ?? 50);
     const { count: approvedToday } = await admin
-      .from('personal_profiles')
+      .from('commissions')
       .select('id', { count: 'exact', head: true })
-      .eq('sales_rep_id', repId)
-      .eq('is_approved', true)
+      .eq('rep_id', repId)
+      .eq('commission_type', 'demo_bonus')
       .gte('created_at', todayStart.toISOString());
 
     if ((approvedToday ?? 0) >= quota) {
-      const { error: baseErr } = await admin
+      // Idempotent: only insert if no shift_base row exists for today.
+      const { count: existingBase } = await admin
         .from('commissions')
-        .insert({
-          rep_id: repId,
-          type: 'shift_base',
-          commission_type: 'shift_base',
-          amount: baseAmount,
-          status: 'available',
-          period_label: periodLabel,
-          points_value: 0,
-          note: `Daily shift base — ${approvedToday} approved demos today`,
-        });
-      if (baseErr && !String(baseErr.message).includes('duplicate key')) {
-        console.error('shift_base insert failed', baseErr);
+        .select('id', { count: 'exact', head: true })
+        .eq('rep_id', repId)
+        .eq('commission_type', 'shift_base')
+        .gte('created_at', todayStart.toISOString());
+
+      if ((existingBase ?? 0) === 0) {
+        const { error: baseErr } = await admin
+          .from('commissions')
+          .insert({
+            rep_id: repId,
+            type: 'shift_base',
+            commission_type: 'shift_base',
+            amount: baseAmount,
+            status: 'available',
+            period_label: periodLabel,
+            points_value: 0,
+            note: `Daily shift base — ${approvedToday} approved demos today`,
+          });
+        if (baseErr && !String(baseErr.message).includes('duplicate key')) {
+          console.error('shift_base insert failed', baseErr);
+        }
       }
     }
 
