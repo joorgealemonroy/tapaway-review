@@ -104,6 +104,8 @@ interface PersonalProfile {
   is_approved?: boolean | null;
   pipeline_status?: string | null;
   submitted_for_review_at?: string | null;
+  review_note?: string | null;
+  review_note_at?: string | null;
 }
 
 interface DbPersonalLink {
@@ -916,6 +918,36 @@ const PersonalDashboard = () => {
                   </Button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin change-request banner (below the rep control strip) */}
+      {isRepDemo && pipelineStatus === "changes_requested" && profile.review_note && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide bg-amber-500/20 text-amber-700 dark:text-amber-300 mt-0.5 shrink-0">
+                Changes requested
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {profile.review_note}
+                </p>
+                {profile.review_note_at && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Admin note · {new Date(profile.review_note_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a] shrink-0"
+                onClick={handleSubmitForReview}
+              >
+                Resubmit
+              </Button>
             </div>
           </div>
         </div>
