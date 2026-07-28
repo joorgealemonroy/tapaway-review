@@ -26,9 +26,8 @@ const RepHome = () => {
   const [pendingToday, setPendingToday] = useState(0);
   const [monthlyBounties, setMonthlyBounties] = useState(0);
   const [monthlyConversions, setMonthlyConversions] = useState(0);
-  const [availableBalance, setAvailableBalance] = useState(0);
-  const [demoBonusMonth, setDemoBonusMonth] = useState(0);
-  const [demoBonusCount, setDemoBonusCount] = useState(0);
+  // Money state removed from Home — earnings live under /rep/commissions.
+
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -89,22 +88,11 @@ const RepHome = () => {
         .reduce((s, c) => s + Number(c.amount), 0);
       setMonthlyBounties(bounties);
 
-      // Available balance = every commission currently sitting in 'available' status.
-      const available = (commissions || [])
-        .filter(c => c.status === 'available')
-        .reduce((s, c) => s + Number(c.amount), 0);
-      setAvailableBalance(available);
-
-      // Month-to-date demo bonuses (dollars + count) so approved $5s are visible immediately.
+      // Month-start marker still needed for conversion count below.
       const monthStart = new Date();
       monthStart.setUTCDate(1);
       monthStart.setUTCHours(0, 0, 0, 0);
-      const monthStartISO = monthStart.toISOString();
-      const monthDemoBonuses = (commissions || []).filter(c =>
-        c.commission_type === 'demo_bonus' && c.created_at >= monthStartISO
-      );
-      setDemoBonusCount(monthDemoBonuses.length);
-      setDemoBonusMonth(monthDemoBonuses.reduce((s, c) => s + Number(c.amount), 0));
+
 
       // Count paid conversions this month (for Closer's Pool milestone progress)
       const { count: convCount } = await supabase
