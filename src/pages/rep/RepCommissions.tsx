@@ -221,25 +221,8 @@ const RepCommissions = () => {
           Payouts pause until both your W-9 and bank details are on file.
         </div>
       )}
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (salesRep) fetchCommissions();
-  }, [salesRep, statusFilter, typeFilter]);
 
-  if (authLoading || repLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0e1a]">
-        <div className="animate-pulse text-white/40">Loading…</div>
-      </div>
-    );
-  }
 
-  return (
-    <RepShell title="Commissions" subtitle="Track your earnings across base, bonus and recurring.">
       {/* Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <RepCard className="p-5">
