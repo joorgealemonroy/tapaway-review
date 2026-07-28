@@ -143,6 +143,13 @@ const RepCommissions = () => {
           </div>
           <p className="text-3xl font-semibold text-emerald-300">${stats.available.toFixed(2)}</p>
           <p className="text-xs text-white/40 mt-1">Ready for ACH transfer</p>
+          {(() => {
+            const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
+            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= monthStart);
+            if (bonuses.length === 0) return null;
+            const total = bonuses.reduce((s, c) => s + Number(c.amount), 0);
+            return <p className="text-[11px] text-emerald-300/70 mt-2">Demo bonuses this month: {bonuses.length} × $5 = ${total.toFixed(2)}</p>;
+          })()}
         </RepCard>
         <RepCard className="p-5">
           <div className="flex items-center gap-3 mb-2">

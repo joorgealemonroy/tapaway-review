@@ -1055,18 +1055,20 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                       </div>
                     );
                   })}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingLink(null);
-                      setLinkModalOpen(true);
-                    }}
-                    className="aspect-square rounded-xl border-2 border-dashed border-white/15 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/30 transition-colors flex flex-col items-center justify-center gap-1.5 text-white/40 hover:text-white/70"
-                    title="Add another half-width tile"
-                  >
-                    <Plus className="h-6 w-6" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Add Tile</span>
-                  </button>
+                  {groupedItem.links.length === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLink(null);
+                        setLinkModalOpen(true);
+                      }}
+                      className="aspect-square rounded-xl border-2 border-dashed border-border bg-muted/30 hover:bg-muted/60 hover:border-foreground/40 transition-colors flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground"
+                      title="Add another half-width tile"
+                    >
+                      <Plus className="h-6 w-6" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Add Tile</span>
+                    </button>
+                  )}
                 </div>
               );
             }
