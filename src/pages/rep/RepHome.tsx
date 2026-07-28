@@ -143,6 +143,22 @@ const RepHome = () => {
     >
       <RepTaxBanner status={taxStatus} />
 
+      {/* Available balance strip */}
+      <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-emerald-200/70 font-semibold">Available Balance</p>
+          <p className="text-3xl font-semibold text-white mt-0.5">${availableBalance.toFixed(2)}</p>
+          <p className="text-xs text-white/50 mt-1">Ready to be paid out next cycle — base pay, demo bonuses, annual bounties, and closer's pool combined.</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">Demo Bonuses This Month</p>
+          <p className="text-xl font-semibold text-emerald-300 mt-0.5">
+            {demoBonusCount} × $5 = ${demoBonusMonth.toFixed(2)}
+          </p>
+          <p className="text-[11px] text-white/40 mt-0.5">Auto-credited the moment admin approves each demo.</p>
+        </div>
+      </div>
+
       {/* Three metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <RepCard className="p-5">
