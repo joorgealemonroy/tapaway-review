@@ -436,86 +436,150 @@ export const BlockModal = ({
   };
 
   // Collage media handlers (images + videos)
-  const handleCollageMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = ""; // Clear input so the same file can be re-selected
+  // Auto-square center-crop an image file to at most 1200x1200 JPEG
+  const autoSquareImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const size = Math.min(img.width, img.height);
+        const target = Math.min(1200, size);
+        const canvas = document.createElement("canvas");
+        canvas.width = target;
+        canvas.height = target;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); reject(new Error("canvas")); return; }
+        const sx = (img.width - size) / 2;
+        const sy = (img.height - size) / 2;
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, target, target);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error("blob")), "image/jpeg", 0.9);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  };
 
-    if (file.type.startsWith("video/")) {
-      if (file.size > 20 * 1024 * 1024) {
-        toast.error("Video must be under 20 MB");
-        return;
-      }
-      // Validate duration
+  const uploadCollageImageBlob = async (blob: Blob, userId: string): Promise<string> => {
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    const filePath = `${userId}/collage/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("personal-photos")
+      .upload(filePath, blob, { contentType: blob.type });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(filePath);
+    return publicUrl;
+  };
+
+  const uploadCollageVideo = async (
+    file: File,
+    userId: string
+  ): Promise<{ url: string; poster?: string }> => {
+    // Validate duration
+    await new Promise<void>((resolve, reject) => {
       const video = document.createElement("video");
       video.preload = "metadata";
       const objectUrl = URL.createObjectURL(file);
       video.src = objectUrl;
-
-      video.onloadedmetadata = async () => {
+      video.onloadedmetadata = () => {
         URL.revokeObjectURL(objectUrl);
-        if (video.duration > 60) {
-          toast.error("Video must be under 1 minute");
-          return;
-        }
+        if (video.duration > 60) reject(new Error("Video must be under 1 minute"));
+        else resolve();
+      };
+      video.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Could not read video file")); };
+    });
 
-        // Upload directly (no cropping for video)
-        setUploadingCollageImage(true);
+    const timestamp = Date.now();
+    const ext = file.name.split(".").pop() || "mp4";
+    const filePath = `${userId}/collage/${timestamp}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("personal-photos")
+      .upload(filePath, file, { contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(filePath);
+
+    let posterUrl: string | undefined;
+    try {
+      const posterBlob = await extractVideoPoster(file);
+      const thumbPath = `${userId}/collage/${timestamp}_thumb.jpg`;
+      const { error: thumbErr } = await supabase.storage
+        .from("personal-photos")
+        .upload(thumbPath, posterBlob, { contentType: "image/jpeg" });
+      if (!thumbErr) {
+        const { data: { publicUrl: thumbPublicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(thumbPath);
+        posterUrl = thumbPublicUrl;
+      }
+    } catch (posterErr) {
+      console.warn("Poster generation failed:", posterErr);
+    }
+    return { url: publicUrl, poster: posterUrl };
+  };
+
+  const handleCollageFiles = async (files: File[]) => {
+    if (files.length === 0) return;
+    const remaining = 9 - collageMedia.length;
+    if (remaining <= 0) {
+      toast.error("Maximum 9 items in a collage");
+      return;
+    }
+    let batch = files;
+    if (files.length > remaining) {
+      toast.info(`Only adding ${remaining} of ${files.length} files (max 9)`);
+      batch = files.slice(0, remaining);
+    }
+
+    setUploadingCollageImage(true);
+    const toastId = toast.loading(`Uploading 0 of ${batch.length}…`);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      let done = 0;
+      for (const file of batch) {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error("Not authenticated");
-
-          const timestamp = Date.now();
-          const ext = file.name.split('.').pop() || 'mp4';
-          const filePath = `${user.id}/collage/${timestamp}.${ext}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("personal-photos")
-            .upload(filePath, file, { contentType: file.type });
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from("personal-photos")
-            .getPublicUrl(filePath);
-
-          // Generate and upload poster thumbnail
-          let posterUrl: string | undefined;
-          try {
-            const posterBlob = await extractVideoPoster(file);
-            const thumbPath = `${user.id}/collage/${timestamp}_thumb.jpg`;
-            const { error: thumbErr } = await supabase.storage
-              .from("personal-photos")
-              .upload(thumbPath, posterBlob, { contentType: "image/jpeg" });
-            if (!thumbErr) {
-              const { data: { publicUrl: thumbPublicUrl } } = supabase.storage
-                .from("personal-photos")
-                .getPublicUrl(thumbPath);
-              posterUrl = thumbPublicUrl;
+          if (file.type.startsWith("video/")) {
+            if (file.size > 20 * 1024 * 1024) {
+              toast.error(`${file.name}: video must be under 20 MB`);
+            } else {
+              const { url, poster } = await uploadCollageVideo(file, user.id);
+              setCollageMedia(prev => [...prev, { url, type: "video", poster }]);
             }
-          } catch (posterErr) {
-            console.warn("Poster generation failed, video will use legacy fallback:", posterErr);
+          } else if (file.type.startsWith("image/")) {
+            const squared = await autoSquareImage(file);
+            const url = await uploadCollageImageBlob(squared, user.id);
+            setCollageMedia(prev => [...prev, { url, type: "image" }]);
           }
-
-          setCollageMedia(prev => [...prev, { url: publicUrl, type: "video", poster: posterUrl }]);
         } catch (err) {
-          console.error("Upload error:", err);
-          toast.error("Failed to upload video");
-        } finally {
-          setUploadingCollageImage(false);
+          console.error("Upload failed for", file.name, err);
+          toast.error(`Failed: ${file.name}`);
         }
-      };
-
-      video.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        toast.error("Could not read video file");
-      };
-    } else {
-      // Image — use cropper flow
-      const objectUrl = URL.createObjectURL(file);
-      setCollageRawImage(objectUrl);
-      setShowCollageCropper(true);
+        done += 1;
+        toast.loading(`Uploading ${done} of ${batch.length}…`, { id: toastId });
+      }
+      toast.success(`Added ${done} item${done !== 1 ? "s" : ""}`, { id: toastId });
+    } catch (err) {
+      console.error("Batch upload error:", err);
+      toast.error("Upload failed", { id: toastId });
+    } finally {
+      setUploadingCollageImage(false);
     }
   };
+
+  const handleCollageMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    // Single image via "+ Add" → keep cropper flow
+    if (files.length === 1 && files[0].type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(files[0]);
+      setCollageRawImage(objectUrl);
+      setShowCollageCropper(true);
+      return;
+    }
+    await handleCollageFiles(files);
+  };
+
 
   const handleCollageCropComplete = async (croppedBlob: Blob) => {
     setShowCollageCropper(false);
