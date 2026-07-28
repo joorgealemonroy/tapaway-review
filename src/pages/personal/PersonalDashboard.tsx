@@ -223,14 +223,19 @@ const PersonalDashboard = () => {
           const { data: profileData, error: profileError } = await supabase
             .from("personal_profiles")
             .select("*")
-            .eq("id", adminViewId)
+            .eq("id", adminViewIdLocal)
             .single();
 
           if (profileError || !profileData) {
-            toast.error("Profile not found");
-            navigate("/admin/personal-accounts");
+            if (!profileRef.current) {
+              toast.error("Profile not found");
+              navigate("/admin/personal-accounts");
+            } else {
+              console.warn("[dashboard] admin refetch returned empty; keeping current profile");
+            }
             return;
           }
+
 
           const normalizedProfile = {
             ...profileData,
