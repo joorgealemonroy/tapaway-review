@@ -202,14 +202,35 @@ const RepHome = () => {
               <TrendingUp className="h-5 w-5 text-blue-300" />
             </div>
             <span className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border bg-blue-400/15 text-blue-200 border-blue-400/30">
-              10% Recurring
+              This Month
             </span>
           </div>
-          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Active Monthly Stream</p>
+          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Bounties Earned</p>
           <p className="text-3xl font-semibold text-white mt-1">
-            ${monthlyRecurring.toFixed(2)}<span className="text-white/30 text-lg"> /mo</span>
+            ${monthlyBounties.toFixed(2)}
           </p>
-          <p className="text-xs text-white/40 mt-1">Passive cut from all paying accounts you converted.</p>
+          {(() => {
+            const tiers = [
+              { count: 10, amount: 250 },
+              { count: 20, amount: 600 },
+              { count: 35, amount: 1200 },
+            ];
+            const next = tiers.find(t => monthlyConversions < t.count);
+            if (!next) {
+              return <p className="text-xs text-emerald-300/80 mt-1">Top tier unlocked — {monthlyConversions} conversions this month.</p>;
+            }
+            const pct = Math.min(100, (monthlyConversions / next.count) * 100);
+            return (
+              <>
+                <p className="text-xs text-white/40 mt-1">
+                  {monthlyConversions} / {next.count} conversions → unlock <span className="text-blue-300 font-semibold">+${next.amount}</span> Closer's Pool
+                </p>
+                <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full bg-blue-400 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </>
+            );
+          })()}
         </RepCard>
       </div>
 
