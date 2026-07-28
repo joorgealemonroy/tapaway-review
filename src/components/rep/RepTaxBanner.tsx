@@ -1,14 +1,31 @@
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useRepNavigate } from '@/hooks/useRepNavigate';
 
 interface RepTaxBannerProps {
   status: 'missing' | 'submitted' | 'approved' | 'rejected';
+  repId?: string;
 }
 
-export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
+const SNOOZE_MS = 24 * 60 * 60 * 1000;
+
+export const RepTaxBanner = ({ status, repId }: RepTaxBannerProps) => {
   const navigate = useRepNavigate();
+  const key = `rep_w9_snooze_${repId || 'anon'}`;
+  const [snoozed, setSnoozed] = useState(false);
+
+  useEffect(() => {
+    if (status === 'approved' || status === 'rejected') return;
+    try {
+      const ts = Number(localStorage.getItem(key) || 0);
+      if (ts && Date.now() - ts < SNOOZE_MS) setSnoozed(true);
+    } catch {
+      // ignore
+    }
+  }, [key, status]);
 
   if (status === 'approved') return null;
+  if (snoozed && status !== 'rejected') return null;
 
   const getMessage = () => {
     switch (status) {
@@ -32,6 +49,15 @@ export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
     : 'bg-amber-500/20 text-amber-100 border-amber-400/30';
   const iconClass = isRejected ? 'text-red-300' : 'text-amber-300';
 
+  const handleSnooze = () => {
+    try {
+      localStorage.setItem(key, String(Date.now()));
+    } catch {
+      // ignore
+    }
+    setSnoozed(true);
+  };
+
   return (
     <div className={`border rounded-2xl px-4 py-3 mb-5 ${container} backdrop-blur-md`}>
       <div className="flex items-start gap-3">
@@ -41,14 +67,25 @@ export const RepTaxBanner = ({ status }: RepTaxBannerProps) => {
             Action needed
           </span>
           <span className="opacity-90">{getMessage()}</span>
-          {status !== 'submitted' && (
-            <button
-              onClick={() => navigate('/rep/profile')}
-              className="ml-auto inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
-            >
-              Upload W-9 <ArrowRight className="h-3 w-3" />
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {status !== 'submitted' && (
+              <button
+                onClick={() => navigate('/rep/profile')}
+                className="inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
+              >
+                Upload W-9 <ArrowRight className="h-3 w-3" />
+              </button>
+            )}
+            {!isRejected && (
+              <button
+                onClick={handleSnooze}
+                title="Remind me tomorrow"
+                className="inline-flex items-center gap-1 text-[11px] opacity-70 hover:opacity-100 px-1.5 py-0.5 rounded-md hover:bg-white/5"
+              >
+                <X className="h-3 w-3" /> Later
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

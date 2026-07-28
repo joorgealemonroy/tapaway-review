@@ -36,6 +36,7 @@ const RepBusinesses = () => {
   const [hubs, setHubs] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -149,9 +150,17 @@ const RepBusinesses = () => {
     );
   }
 
+  const q = search.trim().toLowerCase();
+  const filteredHubs = q
+    ? hubs.filter(h =>
+        (h.restaurant_name || '').toLowerCase().includes(q) ||
+        (h.custom_slug || '').toLowerCase().includes(q)
+      )
+    : hubs;
+
   return (
     <RepShell
-      title="My Pipeline"
+      title="My Businesses"
       subtitle={`${hubs.length} business${hubs.length === 1 ? '' : 'es'} in your book`}
       right={
         <>
@@ -172,6 +181,17 @@ const RepBusinesses = () => {
         </>
       }
     >
+      {hubs.length > 0 && (
+        <div className="mb-4">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search businesses by name or slug…"
+            className="w-full md:max-w-sm rounded-xl bg-white/[0.03] border border-white/10 text-white/90 placeholder:text-white/30 px-3.5 py-2 text-sm focus:outline-none focus:border-emerald-400/40"
+          />
+        </div>
+      )}
       {hubs.length === 0 ? (
         <RepCard className="text-center py-20">
           <p className="text-white/50 mb-4">No businesses yet. Start building your book.</p>
@@ -192,7 +212,10 @@ const RepBusinesses = () => {
             <div className="text-right">Action</div>
           </div>
 
-          {hubs.map(hub => {
+          {filteredHubs.length === 0 && (
+            <div className="text-center py-10 text-sm text-white/40">No businesses match "{search}".</div>
+          )}
+          {filteredHubs.map(hub => {
             const currentStatus = hub.pipeline_status || 'draft';
             const opt = hub.is_approved
               ? { value: 'converted', label: 'Live · Approved', dot: 'bg-emerald-400' }
