@@ -24,7 +24,8 @@ const RepHome = () => {
   const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
   const [demosToday, setDemosToday] = useState(0);
   const [pendingToday, setPendingToday] = useState(0);
-  const [monthlyRecurring, setMonthlyRecurring] = useState(0);
+  const [monthlyBounties, setMonthlyBounties] = useState(0);
+  const [monthlyConversions, setMonthlyConversions] = useState(0);
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,10 +77,26 @@ const RepHome = () => {
         .eq('rep_id', salesRep.id);
 
       const currentPeriod = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      const recurring = (commissions || [])
-        .filter(c => c.commission_type === 'recurring' && ['available', 'pending'].includes(c.status) && c.period_label === currentPeriod)
+      const bounties = (commissions || [])
+        .filter(c =>
+          ['annual_bounty', 'closer_pool'].includes(c.commission_type || '') &&
+          ['available', 'pending', 'paid'].includes(c.status) &&
+          c.period_label === currentPeriod
+        )
         .reduce((s, c) => s + Number(c.amount), 0);
-      setMonthlyRecurring(recurring);
+      setMonthlyBounties(bounties);
+
+      // Count paid conversions this month (for Closer's Pool milestone progress)
+      const monthStart = new Date();
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const { count: convCount } = await supabase
+        .from('personal_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('sales_rep_id', salesRep.id)
+        .eq('subscription_status', 'active')
+        .gte('updated_at', monthStart.toISOString());
+      setMonthlyConversions(convCount ?? 0);
 
       const startISO = start.toISOString();
       const baseEarned = (commissions || []).some(c =>
@@ -185,14 +202,35 @@ const RepHome = () => {
               <TrendingUp className="h-5 w-5 text-blue-300" />
             </div>
             <span className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border bg-blue-400/15 text-blue-200 border-blue-400/30">
-              10% Recurring
+              This Month
             </span>
           </div>
-          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Active Monthly Stream</p>
+          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Bounties Earned</p>
           <p className="text-3xl font-semibold text-white mt-1">
-            ${monthlyRecurring.toFixed(2)}<span className="text-white/30 text-lg"> /mo</span>
+            ${monthlyBounties.toFixed(2)}
           </p>
-          <p className="text-xs text-white/40 mt-1">Passive cut from all paying accounts you converted.</p>
+          {(() => {
+            const tiers = [
+              { count: 10, amount: 250 },
+              { count: 20, amount: 600 },
+              { count: 35, amount: 1200 },
+            ];
+            const next = tiers.find(t => monthlyConversions < t.count);
+            if (!next) {
+              return <p className="text-xs text-emerald-300/80 mt-1">Top tier unlocked — {monthlyConversions} conversions this month.</p>;
+            }
+            const pct = Math.min(100, (monthlyConversions / next.count) * 100);
+            return (
+              <>
+                <p className="text-xs text-white/40 mt-1">
+                  {monthlyConversions} / {next.count} conversions → unlock <span className="text-blue-300 font-semibold">+${next.amount}</span> Closer's Pool
+                </p>
+                <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full bg-blue-400 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              </>
+            );
+          })()}
         </RepCard>
       </div>
 
@@ -254,12 +292,21 @@ const RepHome = () => {
             <div className="flex items-start gap-3">
               <div className="text-blue-300 font-mono text-xs mt-1">03</div>
               <div>
-                <p className="font-semibold text-white">10% Monthly Recurring</p>
+                <p className="font-semibold text-white">Annual Upsell Bounty</p>
                 <p className="text-white/50">
-                  Passive 10% of every subscriber's monthly plan for as long as they stay a customer.
+                  +$75 cash the moment a client you closed picks the annual plan. Paid instantly, no clawback.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-purple-300 font-mono text-xs mt-1">04</div>
+              <div>
+                <p className="font-semibold text-white">Monthly Closer's Pool</p>
+                <p className="text-white/50">
+                  Milestone cash on top of everything else — the more you convert, the bigger the check.
                 </p>
                 <p className="text-xs text-white/40 mt-1">
-                  Solo Pro → $1.50/mo · Venue Pack → $3.90/mo
+                  10 conversions → <span className="text-blue-300">$250</span> · 20 → <span className="text-blue-300">$600</span> · 35 → <span className="text-blue-300">$1,200</span>
                 </p>
               </div>
             </div>

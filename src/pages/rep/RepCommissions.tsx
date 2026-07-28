@@ -32,6 +32,7 @@ const STATUS_STYLES: Record<string, string> = {
   paid: 'bg-emerald-400/15 text-emerald-100 border-emerald-400/30',
   voided: 'bg-white/5 text-white/40 border-white/10',
   clawed_back: 'bg-red-400/10 text-red-200 border-red-400/20',
+  locked_quality_gate: 'bg-purple-400/10 text-purple-200 border-purple-400/20',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,15 +42,19 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Paid',
   voided: 'Voided',
   clawed_back: 'Clawed Back',
+  locked_quality_gate: 'Quality Gate',
 };
 
 const typeLabel = (c: Commission) => {
   const ct = c.commission_type || c.type;
   switch (ct) {
-    case 'shift_base': return 'Base Pay';
+    case 'shift_base': return 'Daily Base ($50)';
+    case 'demo_bonus': return 'Demo Bonus ($5)';
+    case 'annual_bounty': return 'Annual Bounty ($75)';
+    case 'closer_pool': return "Closer's Pool";
     case 'bonus': return 'Production Bonus';
-    case 'recurring': return '10% Recurring';
-    case 'upfront': return 'Upfront';
+    case 'recurring': return 'Recurring (legacy)';
+    case 'upfront': return 'Upfront (legacy)';
     default: return ct || '—';
   }
 };
@@ -77,13 +82,13 @@ const RepCommissions = () => {
       try {
         let query = supabase
           .from('commissions')
-          .select('*, rep_restaurants:rep_restaurant_id (name)')
+          .select('*, rep_restaurants:rep_restaurant_id (name), personal_profiles:personal_profile_id (full_name, username)')
           .eq('rep_id', salesRep.id)
           .order('created_at', { ascending: false });
 
         if (statusFilter !== 'all') query = query.eq('status', statusFilter);
         if (typeFilter !== 'all') {
-          if (['shift_base', 'bonus', 'recurring', 'upfront'].includes(typeFilter)) {
+          if (['shift_base', 'bonus', 'demo_bonus', 'annual_bounty', 'closer_pool', 'upfront', 'recurring'].includes(typeFilter)) {
             query = query.eq('commission_type', typeFilter);
           } else {
             query = query.eq('type', typeFilter);
@@ -92,7 +97,13 @@ const RepCommissions = () => {
 
         const { data, error } = await query;
         if (error) throw error;
-        const mapped = (data || []).map((c: any) => ({ ...c, restaurant_name: c.rep_restaurants?.name || null }));
+        const mapped = (data || []).map((c: any) => ({
+          ...c,
+          restaurant_name:
+            c.rep_restaurants?.name ||
+            c.personal_profiles?.full_name ||
+            (c.personal_profiles?.username ? '@' + c.personal_profiles.username : null),
+        }));
         setCommissions(mapped);
 
         const { data: allComm } = await supabase
@@ -169,6 +180,7 @@ const RepCommissions = () => {
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="voided">Voided</SelectItem>
             <SelectItem value="clawed_back">Clawed Back</SelectItem>
+            <SelectItem value="locked_quality_gate">Quality Gate</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -177,10 +189,12 @@ const RepCommissions = () => {
           </SelectTrigger>
           <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="shift_base">Base Pay</SelectItem>
-            <SelectItem value="bonus">Production Bonus</SelectItem>
-            <SelectItem value="recurring">10% Recurring</SelectItem>
+            <SelectItem value="shift_base">Daily Base ($50)</SelectItem>
+            <SelectItem value="demo_bonus">Demo Bonus ($5)</SelectItem>
+            <SelectItem value="annual_bounty">Annual Bounty ($75)</SelectItem>
+            <SelectItem value="closer_pool">Closer's Pool</SelectItem>
             <SelectItem value="upfront">Upfront (legacy)</SelectItem>
+            <SelectItem value="recurring">Recurring (legacy)</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -206,7 +220,7 @@ const RepCommissions = () => {
               className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-2 md:gap-4 px-5 py-3.5 border-b border-white/5 last:border-b-0 items-center text-sm"
             >
               <div className="text-white/60">{format(new Date(c.created_at), 'MMM d, yyyy')}</div>
-              <div className="text-white/90">{c.restaurant_name || (c.commission_type === 'shift_base' ? 'Daily Shift' : '—')}</div>
+              <div className="text-white/90">{c.restaurant_name || (c.commission_type === 'shift_base' ? 'Daily Shift' : c.commission_type === 'closer_pool' ? "Monthly Closer's Pool" : '—')}</div>
               <div>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-white/70 text-[11px] font-medium">
                   {typeLabel(c)}

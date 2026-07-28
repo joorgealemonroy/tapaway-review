@@ -15,7 +15,7 @@ const SETUP_STEPS = [
   { title: 'Scout & drop the card', body: 'Walk in casually with the branded envelope containing 5 sample cards and the printed demo hub QR. Ask for the owner, hand them the gift, drop the pitch script.' },
   { title: 'Send the demo hub link', body: 'While there, pull up their pre-built demo hub on your phone. Show the review flow — Google, Yelp, Instagram, menu — all in one tap. Text them the link before leaving.' },
   { title: 'Follow up in 24h', body: 'Text: "Any thoughts on the hub? Happy to activate at $15/mo Solo or $39/mo Venue Pack — 5-day free trial included."' },
-  { title: 'Activate & mark converted', body: 'Send them the Stripe checkout link. When they subscribe, mark the pipeline row as Paying Customer — you\'ll see the 10% recurring commission appear.' },
+  { title: 'Activate & mark converted', body: 'Send them the Stripe checkout link. When they subscribe, mark the pipeline row as Paying Customer — you earn a $75 Annual Upsell Bounty if they choose annual, plus every conversion counts toward your monthly Closer\'s Pool ($250 at 10, $600 at 20, $1,200 at 35).' },
   { title: 'Upload the print PDF', body: 'Design their permanent card in Canva using the template, export as PDF, and attach it to the business row so ops can ship the physical cards.' },
 ];
 
