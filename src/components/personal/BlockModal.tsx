@@ -136,6 +136,7 @@ export const BlockModal = ({
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
   const [collageRawImage, setCollageRawImage] = useState<string | null>(null);
   const [showCollageCropper, setShowCollageCropper] = useState(false);
+  const [editingCollageIndex, setEditingCollageIndex] = useState<number | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const collageFileInputRef = useRef<HTMLInputElement>(null);
