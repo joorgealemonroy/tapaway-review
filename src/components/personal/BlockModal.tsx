@@ -136,6 +136,7 @@ export const BlockModal = ({
   const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
   const [collageRawImage, setCollageRawImage] = useState<string | null>(null);
   const [showCollageCropper, setShowCollageCropper] = useState(false);
+  const [editingCollageIndex, setEditingCollageIndex] = useState<number | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const collageFileInputRef = useRef<HTMLInputElement>(null);
@@ -603,18 +604,43 @@ export const BlockModal = ({
         .from("personal-photos")
         .getPublicUrl(filePath);
 
-      setCollageMedia(prev => [...prev, { url: publicUrl, type: "image" }]);
+      setCollageMedia(prev => {
+        if (editingCollageIndex !== null && editingCollageIndex < prev.length) {
+          const next = [...prev];
+          next[editingCollageIndex] = { ...next[editingCollageIndex], url: publicUrl, type: "image" };
+          return next;
+        }
+        return [...prev, { url: publicUrl, type: "image" }];
+      });
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload image");
     } finally {
       setUploadingCollageImage(false);
+      setEditingCollageIndex(null);
       if (collageRawImage) {
         URL.revokeObjectURL(collageRawImage);
         setCollageRawImage(null);
       }
     }
   };
+
+  const handleEditCollageImage = async (index: number) => {
+    const item = collageMedia[index];
+    if (!item || item.type !== "image") return;
+    try {
+      const res = await fetch(item.url, { mode: "cors" });
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setEditingCollageIndex(index);
+      setCollageRawImage(objectUrl);
+      setShowCollageCropper(true);
+    } catch (err) {
+      console.error("Load image for crop failed:", err);
+      toast.error("Couldn't load image to edit");
+    }
+  };
+
 
   const handleRemoveCollageMedia = (index: number) => {
     setCollageMedia(prev => prev.filter((_, i) => i !== index));
@@ -1170,6 +1196,15 @@ export const BlockModal = ({
                       ) : (
                         <img src={item.url} alt="" className="w-full h-full object-cover" />
                       )}
+                      {item.type === "image" && (
+                        <button
+                          onClick={() => handleEditCollageImage(idx)}
+                          className="absolute top-1 left-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                          title="Crop image"
+                        >
+                          <Crop className="h-3 w-3 text-white" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleRemoveCollageMedia(idx)}
                         className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
@@ -1177,6 +1212,7 @@ export const BlockModal = ({
                         <X className="h-3 w-3 text-white" />
                       </button>
                     </div>
+
                   ))}
                   {collageMedia.length < 9 && (
                     <button
