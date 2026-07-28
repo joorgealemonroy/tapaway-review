@@ -997,14 +997,17 @@ const PersonalDashboard = () => {
                   <DropdownMenuItem
                     onClick={() => {
                       if (!profile.profile_photo_url) return;
-                      // Strip cache-buster to avoid CORS caching issues on re-decode
-                      const cleanUrl = profile.profile_photo_url.split("?")[0];
-                      setRawImageUrl(cleanUrl);
+                      // Keep any existing cache-buster so the cropper fetches the
+                      // freshly-replaced image; add one if missing.
+                      const url = profile.profile_photo_url;
+                      const busted = url.includes("?") ? url : `${url}?t=${Date.now()}`;
+                      setRawImageUrl(busted);
                       setCropperOpen(true);
                     }}
                   >
                     Crop current photo
                   </DropdownMenuItem>
+
                   <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
                     Replace photo
                   </DropdownMenuItem>
