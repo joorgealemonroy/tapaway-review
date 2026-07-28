@@ -4,16 +4,20 @@ import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Briefcase, DollarSign, Trophy, TrendingUp, ChevronDown, Zap } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Briefcase, Sparkles, Rocket, Palette } from 'lucide-react';
 import { RepTaxBanner } from '@/components/rep/RepTaxBanner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
 
-const DAILY_BASE = 50;
-const DEMO_QUOTA = 10;
-const DEMO_BONUS = 5;
-const DEMO_CAP = 50;
+const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
+
+const ENCOURAGEMENTS = [
+  'Every demo is a door opened.',
+  'One great hub can change a business owner\'s week.',
+  'Momentum beats perfection — ship the next demo.',
+  'You\'re building someone\'s digital storefront. That matters.',
+  'Consistency is the whole game. Keep going.',
+];
 
 const RepHome = () => {
   const navigate = useRepNavigate();
@@ -23,13 +27,9 @@ const RepHome = () => {
 
   const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
   const [demosToday, setDemosToday] = useState(0);
-  const [pendingToday, setPendingToday] = useState(0);
-  const [monthlyBounties, setMonthlyBounties] = useState(0);
-  const [monthlyConversions, setMonthlyConversions] = useState(0);
-  // Money state removed from Home — earnings live under /rep/commissions.
-
-  const [baseEarnedToday, setBaseEarnedToday] = useState(false);
-  const [compOpen, setCompOpen] = useState(false);
+  const [demosThisWeek, setDemosThisWeek] = useState(0);
+  const [pendingReview, setPendingReview] = useState(0);
+  const [totalBusinesses, setTotalBusinesses] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,68 +49,32 @@ const RepHome = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !salesRep) return;
+    if (!salesRep) return;
     (async () => {
       const start = new Date(); start.setHours(0, 0, 0, 0);
-      const end = new Date(); end.setHours(23, 59, 59, 999);
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7); weekStart.setHours(0, 0, 0, 0);
 
-      const { count: approvedCount } = await supabase
-        .from('personal_profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('sales_rep_id', salesRep.id)
-        .eq('is_approved', true)
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString());
-      setDemosToday(approvedCount ?? 0);
+      const [todayRes, weekRes, pendingRes, totalRes] = await Promise.all([
+        supabase.from('personal_profiles').select('id', { count: 'exact', head: true })
+          .eq('sales_rep_id', salesRep.id).eq('is_approved', true)
+          .gte('created_at', start.toISOString()),
+        supabase.from('personal_profiles').select('id', { count: 'exact', head: true })
+          .eq('sales_rep_id', salesRep.id)
+          .gte('created_at', weekStart.toISOString()),
+        supabase.from('personal_profiles').select('id', { count: 'exact', head: true })
+          .eq('sales_rep_id', salesRep.id).eq('is_approved', false)
+          .not('submitted_for_review_at', 'is', null),
+        supabase.from('personal_profiles').select('id', { count: 'exact', head: true })
+          .eq('sales_rep_id', salesRep.id),
+      ]);
 
-      const { count: pendingCount } = await supabase
-        .from('personal_profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('sales_rep_id', salesRep.id)
-        .eq('is_approved', false)
-        .gte('created_at', start.toISOString())
-        .lte('created_at', end.toISOString());
-      setPendingToday(pendingCount ?? 0);
-
-
-      const { data: commissions } = await supabase
-        .from('commissions')
-        .select('amount, status, commission_type, type, created_at, period_label')
-        .eq('rep_id', salesRep.id);
-
-      const currentPeriod = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      const bounties = (commissions || [])
-        .filter(c =>
-          ['annual_bounty', 'closer_pool'].includes(c.commission_type || '') &&
-          ['available', 'pending', 'paid'].includes(c.status) &&
-          c.period_label === currentPeriod
-        )
-        .reduce((s, c) => s + Number(c.amount), 0);
-      setMonthlyBounties(bounties);
-
-      // Month-start marker still needed for conversion count below.
-      const monthStart = new Date();
-      monthStart.setUTCDate(1);
-      monthStart.setUTCHours(0, 0, 0, 0);
-
-
-      // Count paid conversions this month (for Closer's Pool milestone progress)
-      const { count: convCount } = await supabase
-        .from('personal_profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('sales_rep_id', salesRep.id)
-        .eq('subscription_status', 'active')
-        .gte('updated_at', monthStart.toISOString());
-      setMonthlyConversions(convCount ?? 0);
-
-      const startISO = start.toISOString();
-      const baseEarned = (commissions || []).some(c =>
-        (c.type === 'shift_base' || c.commission_type === 'shift_base') && c.created_at >= startISO
-      );
-      setBaseEarnedToday(baseEarned);
+      setDemosToday(todayRes.count ?? 0);
+      setDemosThisWeek(weekRes.count ?? 0);
+      setPendingReview(pendingRes.count ?? 0);
+      setTotalBusinesses(totalRes.count ?? 0);
       setLoading(false);
     })();
-  }, [user, salesRep]);
+  }, [salesRep]);
 
   if (authLoading || repLoading || loading) {
     return (
@@ -120,220 +84,108 @@ const RepHome = () => {
     );
   }
 
-  const quotaMet = demosToday >= DEMO_QUOTA;
-  const capReached = demosToday >= DEMO_CAP;
-  const bonusesEarned = quotaMet ? Math.min(demosToday, DEMO_CAP) * DEMO_BONUS : 0;
+  const encouragement = ENCOURAGEMENTS[new Date().getDate() % ENCOURAGEMENTS.length];
+  const firstName = salesRep?.name?.split(' ')[0] || 'partner';
 
   return (
     <RepShell
-      title={`Welcome back${salesRep?.name ? `, ${salesRep.name.split(' ')[0]}` : ''}`}
-      subtitle="Your daily cockpit — base, bonus, and recurring at a glance."
+      title={`Welcome back, ${firstName}`}
+      subtitle="Your daily cockpit — stay focused on building great hubs."
     >
-      <RepTaxBanner status={taxStatus} />
+      <RepTaxBanner status={taxStatus} repId={salesRep?.id} />
 
-      {/* Focus banner — money lives in Commissions */}
-      <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">Today's Focus</p>
-          <p className="text-lg font-semibold text-white mt-0.5">Build great demos — the money follows.</p>
-          <p className="text-xs text-white/50 mt-1">Every approved demo credits your balance automatically. Track earnings anytime under Commissions.</p>
-        </div>
-        <button
-          onClick={() => navigate('/rep/commissions')}
-          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border border-emerald-400/30 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15 transition-colors"
-        >
-          View Commissions →
-        </button>
-      </div>
-
-
-      {/* Three metric cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <RepCard className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
-              <DollarSign className="h-5 w-5 text-emerald-300" />
-            </div>
-            <span className={`text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
-              baseEarnedToday
-                ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30'
-                : 'bg-white/5 text-white/50 border-white/10'
-            }`}>
-              {baseEarnedToday ? 'Earned' : 'Available'}
-            </span>
+      {/* Positive hero */}
+      <RepCard className="p-6 mb-5 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 80% at 100% 0%, rgba(16,185,129,0.14), transparent 60%)',
+          }}
+        />
+        <div className="relative flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+            <Sparkles className="h-5 w-5 text-emerald-300" />
           </div>
-          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Shift Base Pay</p>
-          <p className="text-3xl font-semibold text-white mt-1">${DAILY_BASE}</p>
-          <p className="text-xs text-white/40 mt-1">Flat daily base for hitting today's target.</p>
-        </RepCard>
-
-        <RepCard className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-400/20">
-              <Trophy className="h-5 w-5 text-amber-300" />
-            </div>
-            <span className={`text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
-              capReached
-                ? 'bg-rose-400/15 text-rose-200 border-rose-400/30'
-                : quotaMet
-                ? 'bg-emerald-400/15 text-emerald-200 border-emerald-400/30'
-                : 'bg-amber-400/15 text-amber-200 border-amber-400/30'
-            }`}>
-              {capReached ? 'Daily Cap Reached' : quotaMet ? 'Quota Met' : `${DEMO_QUOTA - demosToday} to go`}
-            </span>
-          </div>
-          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Completed Demos Today</p>
-          <p className="text-3xl font-semibold text-white mt-1">
-            {demosToday}
-            <span className="text-white/30 text-xl">
-              {quotaMet ? ` / ${DEMO_CAP}` : ` / ${DEMO_QUOTA}`}
-            </span>
-            {quotaMet && !capReached && (
-              <span className="text-white/30 text-xs ml-1">· Daily cap</span>
-            )}
-          </p>
-          <p className="text-xs text-white/40 mt-1">
-            {capReached
-              ? 'Daily 50-demo cap reached — resets at midnight.'
-              : quotaMet
-              ? `Bonus unlocked · +$${bonusesEarned} in production bonuses.`
-              : `${DEMO_QUOTA - demosToday} more to unlock $${DEMO_BONUS}/demo bonus.`}
-          </p>
-          <div className="mt-3 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-            <div
-              className={`h-full ${capReached ? 'bg-rose-400' : quotaMet ? 'bg-emerald-400' : 'bg-amber-400'} transition-all`}
-              style={{
-                width: `${Math.min(
-                  100,
-                  quotaMet ? (demosToday / DEMO_CAP) * 100 : (demosToday / DEMO_QUOTA) * 100
-                )}%`,
-              }}
-            />
-          </div>
-          {pendingToday > 0 && (
-            <p className="text-[11px] text-white/40 mt-2">
-              Pending admin review: <span className="text-amber-200 font-semibold">{pendingToday}</span> · counts once approved.
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">Today</p>
+            <p className="text-xl sm:text-2xl font-semibold text-white mt-1 leading-tight">
+              {encouragement}
             </p>
-          )}
-        </RepCard>
-
-        <RepCard className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-400/20">
-              <TrendingUp className="h-5 w-5 text-blue-300" />
-            </div>
-            <span className="text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border bg-blue-400/15 text-blue-200 border-blue-400/30">
-              This Month
-            </span>
+            <p className="text-sm text-white/50 mt-2">
+              {demosThisWeek === 0
+                ? 'Fresh week — your first demo is one click away.'
+                : `You've started ${demosThisWeek} ${demosThisWeek === 1 ? 'hub' : 'hubs'} in the last 7 days. Keep the streak alive.`}
+            </p>
           </div>
-          <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Bounties Earned</p>
-          <p className="text-3xl font-semibold text-white mt-1">
-            ${monthlyBounties.toFixed(2)}
-          </p>
-          {(() => {
-            const tiers = [
-              { count: 10, amount: 250 },
-              { count: 20, amount: 600 },
-              { count: 35, amount: 1200 },
-            ];
-            const next = tiers.find(t => monthlyConversions < t.count);
-            if (!next) {
-              return <p className="text-xs text-emerald-300/80 mt-1">Top tier unlocked — {monthlyConversions} conversions this month.</p>;
-            }
-            const pct = Math.min(100, (monthlyConversions / next.count) * 100);
-            return (
-              <>
-                <p className="text-xs text-white/40 mt-1">
-                  {monthlyConversions} / {next.count} conversions → unlock <span className="text-blue-300 font-semibold">+${next.amount}</span> Closer's Pool
-                </p>
-                <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className="h-full bg-blue-400 transition-all" style={{ width: `${pct}%` }} />
-                </div>
-              </>
-            );
-          })()}
+        </div>
+      </RepCard>
+
+      {/* Non-financial stat trio */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <RepCard className="p-4">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">Built Today</p>
+          <p className="text-3xl font-semibold text-white mt-1">{demosToday}</p>
+          <p className="text-[11px] text-white/40 mt-1">Approved demos</p>
+        </RepCard>
+        <RepCard className="p-4">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">This Week</p>
+          <p className="text-3xl font-semibold text-white mt-1">{demosThisWeek}</p>
+          <p className="text-[11px] text-white/40 mt-1">Hubs started</p>
+        </RepCard>
+        <RepCard className="p-4">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">In Review</p>
+          <p className="text-3xl font-semibold text-white mt-1">{pendingReview}</p>
+          <p className="text-[11px] text-white/40 mt-1">Awaiting admin</p>
         </RepCard>
       </div>
 
       {/* CTAs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         <button
-          onClick={() => !capReached && navigate('/rep/demo/new')}
-          disabled={capReached}
-          title={capReached ? 'Daily 50-demo cap reached — resets at midnight.' : undefined}
-          className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-colors ${
-            capReached
-              ? 'bg-emerald-500/30 text-[#0a0e1a]/60 cursor-not-allowed opacity-50'
-              : 'bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400 active:scale-[0.98]'
-          }`}
+          onClick={() => navigate('/rep/demo/new')}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold bg-emerald-500 text-[#0a0e1a] hover:bg-emerald-400 active:scale-[0.98] transition-colors"
         >
-          <Plus className="h-4 w-4" /> {capReached ? 'Daily Cap Reached' : 'Create New Demo'}
+          <Plus className="h-4 w-4" /> Create New Demo
         </button>
         <button
           onClick={() => navigate('/rep/restaurants')}
           className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] transition-colors active:scale-[0.98]"
         >
-          <Briefcase className="h-4 w-4" /> View My Pipeline
+          <Briefcase className="h-4 w-4" /> My Businesses{totalBusinesses ? ` · ${totalBusinesses}` : ''}
         </button>
       </div>
 
-      {/* How You Get Paid */}
-      <Collapsible open={compOpen} onOpenChange={setCompOpen}>
-        <CollapsibleTrigger asChild>
-          <button className="w-full">
-            <RepCard className="px-4 py-3.5 flex items-center justify-between text-left hover:bg-white/[0.03] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
-                  <Zap className="h-4 w-4 text-emerald-300" />
-                </div>
-                <span className="text-sm font-semibold text-white">How You Get Paid</span>
-              </div>
-              <ChevronDown className={`h-4 w-4 text-white/40 transition-transform ${compOpen ? 'rotate-180' : ''}`} />
-            </RepCard>
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <RepCard className="mt-2 p-5 space-y-4 text-sm text-white/70">
-            <div className="flex items-start gap-3">
-              <div className="text-emerald-300 font-mono text-xs mt-1">01</div>
-              <div>
-                <p className="font-semibold text-white">Daily Shift Base</p>
-                <p className="text-white/50">$50 flat pay for completing your daily target.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="text-amber-300 font-mono text-xs mt-1">02</div>
-              <div>
-                <p className="font-semibold text-white">Production Bonus</p>
-                <p className="text-white/50">
-                  +$5 for every complete demo package you finish · unlocks at {DEMO_QUOTA} completed demos.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="text-blue-300 font-mono text-xs mt-1">03</div>
-              <div>
-                <p className="font-semibold text-white">Annual Upsell Bounty</p>
-                <p className="text-white/50">
-                  +$75 cash the moment a client you closed picks the annual plan. Paid instantly, no clawback.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="text-purple-300 font-mono text-xs mt-1">04</div>
-              <div>
-                <p className="font-semibold text-white">Monthly Closer's Pool</p>
-                <p className="text-white/50">
-                  Milestone cash on top of everything else — the more you convert, the bigger the check.
-                </p>
-                <p className="text-xs text-white/40 mt-1">
-                  10 conversions → <span className="text-blue-300">$250</span> · 20 → <span className="text-blue-300">$600</span> · 35 → <span className="text-blue-300">$1,200</span>
-                </p>
-              </div>
-            </div>
-          </RepCard>
-        </CollapsibleContent>
-      </Collapsible>
+      {/* Helpers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a
+          href={CANVA_TEMPLATE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors flex items-start gap-3"
+        >
+          <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-400/20">
+            <Palette className="h-4 w-4 text-purple-300" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Canva Card Template</p>
+            <p className="text-xs text-white/50 mt-0.5">Drop the client's logo and export the print-ready PDF.</p>
+          </div>
+        </a>
+        <button
+          onClick={() => navigate('/rep/docs')}
+          className="text-left rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors flex items-start gap-3"
+        >
+          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-400/20">
+            <Rocket className="h-4 w-4 text-blue-300" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Pitch playbook</p>
+            <p className="text-xs text-white/50 mt-0.5">Scripts, objection handling, and the full close flow.</p>
+          </div>
+        </button>
+      </div>
     </RepShell>
   );
 };
