@@ -88,7 +88,7 @@ const RepCommissions = () => {
 
         if (statusFilter !== 'all') query = query.eq('status', statusFilter);
         if (typeFilter !== 'all') {
-          if (['shift_base', 'bonus', 'recurring', 'upfront'].includes(typeFilter)) {
+          if (['shift_base', 'bonus', 'demo_bonus', 'annual_bounty', 'closer_pool', 'upfront', 'recurring'].includes(typeFilter)) {
             query = query.eq('commission_type', typeFilter);
           } else {
             query = query.eq('type', typeFilter);
