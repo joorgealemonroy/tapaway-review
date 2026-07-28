@@ -32,6 +32,7 @@ const STATUS_STYLES: Record<string, string> = {
   paid: 'bg-emerald-400/15 text-emerald-100 border-emerald-400/30',
   voided: 'bg-white/5 text-white/40 border-white/10',
   clawed_back: 'bg-red-400/10 text-red-200 border-red-400/20',
+  locked_quality_gate: 'bg-purple-400/10 text-purple-200 border-purple-400/20',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -41,15 +42,19 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Paid',
   voided: 'Voided',
   clawed_back: 'Clawed Back',
+  locked_quality_gate: 'Quality Gate',
 };
 
 const typeLabel = (c: Commission) => {
   const ct = c.commission_type || c.type;
   switch (ct) {
-    case 'shift_base': return 'Base Pay';
+    case 'shift_base': return 'Daily Base ($50)';
+    case 'demo_bonus': return 'Demo Bonus ($5)';
+    case 'annual_bounty': return 'Annual Bounty ($75)';
+    case 'closer_pool': return "Closer's Pool";
     case 'bonus': return 'Production Bonus';
-    case 'recurring': return '10% Recurring';
-    case 'upfront': return 'Upfront';
+    case 'recurring': return 'Recurring (legacy)';
+    case 'upfront': return 'Upfront (legacy)';
     default: return ct || '—';
   }
 };
