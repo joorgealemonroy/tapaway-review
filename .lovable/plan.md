@@ -1,67 +1,40 @@
-## Problem
+# Kill the random "back to Google-search" bounce while editing a hub
 
-Reps report two related bugs when editing a demo hub (e.g. `elchilitosmexicanrestaurant`):
+## What's happening
 
-1. **Deletes don't persist / live preview keeps the removed item.** They remove a link or block, autosave fires, but the deleted item is still on the public hub and reappears in the editor after a reload.
-2. **Adds get dropped and the page appears to "reset"**, forcing them to redo work they already did.
+Reps report that mid-edit (during save, reorder, or seemingly at random) the dashboard sends them away from the hub they were customizing and they end up back at the "search for the business" screen (`/rep/demo/new`). Sometimes a browser Back gets them back in; other times they have to reopen the hub and redo work.
 
-Some links also occasionally seed as half-width tiles instead of full-width pills — that's a seeding side-effect of the drop above (freshly re-fetched state overwrites their in-progress cleanup).
+There is no code path that directly navigates from `/dashboard` to `/rep/demo/new`. The bounce is a two-hop side effect of `PersonalDashboard`:
 
-## Root cause (confirmed by reading the code)
+1. `loadData` re-runs (dependency on `requestedProfileId`/`adminViewId`, or a `setSearchParams({}, { replace: true })` in the welcome-param effect wipes `profile_id`).
+2. If the profile fetch returns `[]` (a transient RLS/network hiccup, or the `profile_id` was just stripped from the URL), the rep branch runs `navigate("/rep/restaurants")` at line 287.
+3. From the Businesses list they click the big "New Demo" CTA thinking it will reopen their draft — landing on `/rep/demo/new`.
 
-`src/components/personal/DashboardUnifiedContent.tsx` exposes `saveAllChanges` to the parent via `useImperativeHandle`. The handle's dependency array is:
+Once we stop the dashboard from ever ejecting a rep who is actively editing, the "goes to the Google-search page" symptom disappears.
 
-```
-[hasPendingChanges, getSnapshot, restoreSnapshot]
-```
+## Changes
 
-`hasPendingChanges` is a boolean — once the user makes the first edit it flips `false → true` and stays `true` until the debounced autosave completes and clears `pendingChanges`. Between those two moments, `useImperativeHandle` does **not** re-register, so the parent keeps calling the *first* `saveAllChanges` closure, which captured the *first* `pendingChanges` snapshot.
+### 1. `src/pages/personal/PersonalDashboard.tsx` — never eject on load hiccups
+- Only run the "no profile found → send rep to `/rep/restaurants`" fallback on the **initial** mount when there is no `profile` in state yet. If a profile is already loaded, log the empty result and keep the current state instead of navigating.
+- On any thrown/RLS error inside `loadData`, keep the existing `profile`/`links`/`blocks` in state, surface a small "Reconnecting…" toast, and schedule a silent retry — never `navigate()` away.
+- Preserve `profile_id` when the welcome-param effect calls `setSearchParams({}, { replace: true })` (merge, don't wipe).
+- Narrow `loadData`'s `useCallback` deps to `[navigate]` only, and read `adminViewId` / `requestedProfileId` from `searchParams` inside the function so incidental URL param changes (e.g. `tab=`, `upgrade=`, `welcome=`) can never re-trigger a full refetch.
 
-Concrete failure sequences that match the reports:
+### 2. `src/pages/personal/PersonalDashboard.tsx` — don't ejecting after a rep save
+- `handleSaveDraft` currently forces `navigate("/rep/restaurants")` after a manual "Save Draft" click. Autosave writes the same `pipeline_status` in some paths, so any incidental status write can look like an eject. Gate the redirect strictly to the explicit button press (already true for the click, but add a `keepOnPage?: boolean` option and pass `true` from any programmatic caller).
+- Confirm autosave (`executeSave` / `saveAllChanges`) never calls `handleSaveDraft` or `handleSubmitForReview`.
 
-- **Delete → quick add** (within one 1.5s debounce window). Closure sees `{deletedLinkIds: {A}}` only. The delete runs; the newly added link is never persisted. The link vanishes on the next refetch → "page reset, redo the section".
-- **Add → delete of an existing item**. Closure sees `{addedLinks: [X]}` only. X is inserted; the deletion is silently skipped. The removed item stays live → "live preview thinks it's still there".
-- Same class of bug applies to updates/reorders that arrive after the first edit in a batch.
-
-After the stale closure runs, the child's `setPendingChanges(createEmptyPendingChanges())` clears the real pending set, so those dropped edits are lost forever with no visible error.
-
-Secondary contributor: in `src/pages/personal/PersonalDashboard.tsx`, `loadData` is memoized with `searchParams` in its dep array. Any code path that calls `setSearchParams(...)` (welcome flag, upgrade success handler, profile switcher) re-runs `loadData` and overwrites in-flight local `links`/`blocks`/`profile` state, which is another way an edit-in-progress can disappear.
-
-## Fix
-
-Change the child so `saveAllChanges` always reads the current `pendingChanges` and current `links`/`blocks`, and change the parent so ordinary URL cleanups don't wipe local state.
-
-### 1. `src/components/personal/DashboardUnifiedContent.tsx`
-
-- Add refs that mirror the latest values:
-  - `pendingChangesRef` updated in a `useEffect` on every `pendingChanges` change.
-  - `linksRef` / `blocksRef` updated on every `links` / `blocks` change (needed by the reorder branch of `executeSave`).
-- Rewrite `executeSave` and `saveAllChanges` to read from those refs instead of the closure variables.
-- Change `useImperativeHandle` to expose stable methods that also read from refs. Either:
-  - drop the dep array (recreate the handle every render — cheap here), or
-  - keep deps but rely on the refs so a stale closure is still correct.
-- After a successful save, snapshot the ref values (not closure) before calling `setPendingChanges(createEmptyPendingChanges())`, so anything that landed between the save starting and the state clear is preserved as a fresh pending batch. Concretely: diff `pendingChangesRef.current` against the set we just persisted and re-seed the leftover into `pendingChanges`.
-
-### 2. `src/pages/personal/PersonalDashboard.tsx`
-
-- Narrow `loadData`'s dependencies from the whole `searchParams` object to just the values it actually reads: `adminViewId` and `searchParams.get("profile_id")` (stored in a memoized primitive). This stops `setSearchParams({})` (welcome cleanup, upgrade cleanup) from re-running the full profile+links+blocks fetch mid-edit.
-- Before any `setSearchParams({...})` call that is *not* a profile switch (the welcome-cleanup on line ~364 and the upgrade-cleanup on line ~418), guard against clobbering unsaved work: if `unifiedContentRef.current?.hasPendingChanges || heroEditorRef.current?.hasPendingChanges`, flush autosave first (`await flushAutosave()`), then clear the param.
-- Profile switcher (`setSearchParams({ profile_id: ... })`) already intentionally reloads — keep that behavior but call `flushAutosave()` first so pending edits on the outgoing profile aren't lost.
-
-### 3. Half-width vs pill seeding regression
-
-Reps saw core links seed as half-width tiles again. That's the same class of issue: an in-progress save dropped their edits and the refetch showed the freshly seeded defaults. No seeding logic change is needed — once fix #1 lands, their manual pill choice will persist. Verify by opening `RepDemoCreate.tsx`'s seed for Website/Google Review and confirming they still write `display_style: 'pill'` and no `grid_size`/`cover_image_url` (they do today).
+### 3. `src/pages/rep/RepBusinesses.tsx` — make "Edit" idempotent
+- If the rep is already on `/dashboard?profile_id=<same id>`, no-op instead of re-navigating (prevents a second `loadData` that could race an in-flight autosave).
+- Add a lightweight "Continue editing" button styled distinctly from "New Demo" so reps don't accidentally start a fresh Google-Places flow when they meant to reopen a draft.
 
 ## Verification
 
-1. On a rep demo hub, add link A, immediately delete existing link B, wait 2s. Reload — A is present, B is gone.
-2. Delete a block, then within the debounce window add a YouTube block, wait 2s. Reload — both changes stuck.
-3. Add 6 links back-to-back, wait for autosave "Saved" toast, reload — all 6 present.
-4. Trigger the welcome banner flow (`?welcome=true`) while an unsaved edit is in flight; confirm the edit persists after the URL cleans up.
-5. Public hub (`/elchilitosmexicanrestaurant`) reflects deletions immediately after the "Saved" indicator, with no stale items.
+- Manual: with a rep account, open a draft, reorder links quickly, add/remove blocks, wait for autosave — confirm the URL stays on `/dashboard?profile_id=…` and no toast ejects them.
+- Force a failure: temporarily block `personal_profiles` in devtools' network tab while editing → confirm we show the reconnect toast and keep the editor mounted (no `/rep/restaurants` bounce).
+- Refresh `/dashboard?profile_id=<id>&welcome=true` → confirm `profile_id` survives the welcome-param cleanup.
+- Click "Edit" twice in a row on the same hub in Businesses → confirm no reload flicker.
 
-## Technical notes
+## Out of scope
 
-- No schema changes, no RLS changes.
-- No UI redesign — behavior fix only.
-- Files touched: `src/components/personal/DashboardUnifiedContent.tsx`, `src/pages/personal/PersonalDashboard.tsx`.
+No DB migrations. No behavior changes for admin impersonation, personal (non-rep) users, or the public hub renderer.
