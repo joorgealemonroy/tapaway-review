@@ -236,10 +236,23 @@ const RepCommissions = () => {
           <p className="text-xs text-white/40 mt-1">Ready for ACH transfer</p>
           {(() => {
             const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
+            const todayStart = new Date(); todayStart.setUTCHours(0,0,0,0);
             const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= monthStart);
-            if (bonuses.length === 0) return null;
-            const total = bonuses.reduce((s, c) => s + Number(c.amount), 0);
-            return <p className="text-[11px] text-emerald-300/70 mt-2">Demo bonuses this month: {bonuses.length} × $5 = ${total.toFixed(2)}</p>;
+            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= todayStart).length;
+            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && new Date(c.created_at) >= todayStart);
+            const QUOTA = 10;
+            return (
+              <>
+                {bonuses.length > 0 && (
+                  <p className="text-[11px] text-emerald-300/70 mt-2">Demo bonuses this month: {bonuses.length} × $5 = ${bonuses.reduce((s, c) => s + Number(c.amount), 0).toFixed(2)}</p>
+                )}
+                <p className="text-[11px] mt-1 text-white/50">
+                  {baseToday
+                    ? <>Daily base earned today: <span className="text-emerald-300 font-semibold">+$50</span></>
+                    : <>Daily $50 base: <span className="text-white/80 font-semibold">{Math.min(demosToday, QUOTA)}/{QUOTA}</span> demos approved today</>}
+                </p>
+              </>
+            );
           })()}
         </RepCard>
         <RepCard className="p-5">
