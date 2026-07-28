@@ -295,6 +295,12 @@ const PersonalDashboard = () => {
         .order("created_at", { ascending: true });
 
       if (profileError || !allProfilesData || allProfilesData.length === 0) {
+        // Never eject a user who is already actively editing — a transient RLS/network
+        // hiccup or a re-fetch shouldn't kick a rep out of their draft.
+        if (profileRef.current) {
+          console.warn("[dashboard] refetch returned empty; keeping current profile", profileError);
+          return;
+        }
         // Sales reps without any demos yet should go back to the partner portal, not onboarding
         const { data: repRow } = await supabase
           .from("sales_reps")
@@ -311,9 +317,8 @@ const PersonalDashboard = () => {
       }
 
       // Select active profile: from URL param, or default to first
-      const requestedProfileId = searchParams.get("profile_id");
-      const selectedProfile = requestedProfileId
-        ? allProfilesData.find(p => p.id === requestedProfileId) || allProfilesData[0]
+      const selectedProfile = requestedProfileIdLocal
+        ? allProfilesData.find(p => p.id === requestedProfileIdLocal) || allProfilesData[0]
         : allProfilesData[0];
 
       const normalizedProfile = {
@@ -364,13 +369,20 @@ const PersonalDashboard = () => {
 
       setLinks(linksResult.data || []);
       setBlocks(blocksResult.data || []);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("Error loading data:", err);
-      toast.error("Failed to load your profile");
+      // Don't eject on transient errors — only surface a toast if we've never loaded.
+      if (!profileRef.current) {
+        toast.error("Failed to load your profile");
+      } else {
+        toast.error("Reconnecting…", { duration: 2000 });
+      }
     } finally {
       setLoading(false);
     }
-  }, [navigate, adminViewId, requestedProfileId]);
+  }, [navigate]);
+
 
   useEffect(() => {
     loadData();
