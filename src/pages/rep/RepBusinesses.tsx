@@ -154,13 +154,18 @@ const RepBusinesses = () => {
     );
   }
 
+  const changesRequestedHubs = hubs.filter(
+    h => !h.is_approved && h.pipeline_status === 'changes_requested' && h.review_note
+  );
+  const otherHubs = hubs.filter(h => !changesRequestedHubs.some(c => c.id === h.id));
+
   const q = search.trim().toLowerCase();
   const filteredHubs = q
-    ? hubs.filter(h =>
+    ? otherHubs.filter(h =>
         (h.restaurant_name || '').toLowerCase().includes(q) ||
         (h.custom_slug || '').toLowerCase().includes(q)
       )
-    : hubs;
+    : otherHubs;
 
   return (
     <RepShell
