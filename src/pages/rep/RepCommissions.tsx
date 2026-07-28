@@ -250,7 +250,11 @@ const RepCommissions = () => {
             <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Pending Validation</p>
           </div>
           <p className="text-3xl font-semibold text-amber-300">${stats.pending.toFixed(2)}</p>
-          <p className="text-xs text-white/40 mt-1">Earnings awaiting approval</p>
+          <p className="text-xs text-white/40 mt-1">
+            {stats.pendingDemoCount > 0
+              ? `${stats.pendingDemoCount} demo${stats.pendingDemoCount === 1 ? '' : 's'} awaiting admin review · $${stats.pendingDemoAmount.toFixed(2)}`
+              : 'Earnings awaiting approval'}
+          </p>
         </RepCard>
         <RepCard className="p-5">
           <div className="flex items-center gap-3 mb-2">
