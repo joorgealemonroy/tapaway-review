@@ -392,10 +392,15 @@ const PersonalDashboard = () => {
   useEffect(() => {
     if (searchParams.get("welcome") === "true") {
       welcomeParamRef.current = true;
-      setSearchParams({}, { replace: true });
+      // Preserve every other param (profile_id, admin_view_*, tab) so we don't
+      // accidentally kick a rep out of the draft they were sent to edit.
+      const next = new URLSearchParams(searchParams);
+      next.delete("welcome");
+      setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - run once on mount
+
 
   // Show welcome tutorial + confetti after profile loads if we had the welcome param
   useEffect(() => {
