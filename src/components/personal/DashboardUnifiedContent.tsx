@@ -247,12 +247,13 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   });
 
   // Core save logic — reads a snapshot of pending changes plus current items via refs.
-  // Returns array of error strings (empty = success).
-  const executeSave = async (pending: PendingChanges): Promise<string[]> => {
+  // Returns array of error strings (empty = success) plus the exact order that was persisted
+  // (null when no reorder was written this pass) so the reconciler can detect if a newer
+  // drag happened mid-save.
+  type SavedOrder = { links: Map<string, number>; blocks: Map<string, number> } | null;
+  const executeSave = async (pending: PendingChanges): Promise<{ errors: string[]; savedOrder: SavedOrder }> => {
     const errors: string[] = [];
     const pid = profileIdRef.current;
-    const currentLinks = linksRef.current;
-    const currentBlocks = blocksRef.current;
 
     // Save deleted items first
     for (const id of pending.deletedLinkIds) {
@@ -265,7 +266,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     }
 
     // Abort early if deletes failed — stale data would cause conflicts
-    if (errors.length > 0) return errors;
+    if (errors.length > 0) return { errors, savedOrder: null };
 
     // Save added items
     for (const link of pending.addedLinks) {
@@ -308,9 +309,16 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       if (error) errors.push(`Update block: ${error.message}`);
     }
 
-    // Save order changes if any — use latest links/blocks from refs
+    // Save order changes if any — re-read refs here (not at function entry) so any drag
+    // that happened between save-scheduling and this point is included in the write.
+    let savedOrder: SavedOrder = null;
     if (pending.orderChanged) {
+      const currentLinks = linksRef.current;
+      const currentBlocks = blocksRef.current;
+      const linkOrder = new Map<string, number>();
+      const blockOrder = new Map<string, number>();
       for (const link of currentLinks) {
+        linkOrder.set(link.id, link.sort_order);
         const { error } = await supabase
           .from("personal_links")
           .update({ sort_order: link.sort_order })
@@ -318,15 +326,17 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         if (error) errors.push(`Reorder link: ${error.message}`);
       }
       for (const block of currentBlocks) {
+        blockOrder.set(block.id, block.sort_order);
         const { error } = await supabase
           .from("personal_blocks")
           .update({ sort_order: block.sort_order })
           .eq("id", block.id);
         if (error) errors.push(`Reorder block: ${error.message}`);
       }
+      savedOrder = { links: linkOrder, blocks: blockOrder };
     }
 
-    return errors;
+    return { errors, savedOrder };
   };
 
   // Save all pending changes to DB with auto-retry on failure
@@ -346,27 +356,43 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     };
 
     try {
-      let errors = await executeSave(snapshot);
+      let result = await executeSave(snapshot);
 
       // Auto-retry once after 2 seconds if there were errors
-      if (errors.length > 0) {
-        console.warn("Save attempt 1 failed, retrying in 2s:", errors);
+      if (result.errors.length > 0) {
+        console.warn("Save attempt 1 failed, retrying in 2s:", result.errors);
         toast.loading("Retrying save…", { id: "save-retry" });
         await new Promise(resolve => setTimeout(resolve, 2000));
-        errors = await executeSave(snapshot);
+        result = await executeSave(snapshot);
         toast.dismiss("save-retry");
       }
 
-      if (errors.length > 0) {
-        console.error("Save errors after retry:", errors);
+      if (result.errors.length > 0) {
+        console.error("Save errors after retry:", result.errors);
         toast.error("Some changes failed to save", {
-          description: errors.join("; "),
+          description: result.errors.join("; "),
         });
         return; // Keep pendingChanges so Save bar stays visible
       }
 
       // Invalidate cache
       invalidateProfileCache(usernameRef.current);
+
+      // Determine whether the order that was actually persisted still matches the
+      // current live order. If the user dragged again during the in-flight save,
+      // savedOrder will not match linksRef/blocksRef and we must keep orderChanged
+      // set so the next autosave persists the newer order.
+      const savedOrder = result.savedOrder;
+      let orderStillDirty = pendingChangesRef.current.orderChanged;
+      if (snapshot.orderChanged && savedOrder) {
+        const liveLinks = linksRef.current;
+        const liveBlocks = blocksRef.current;
+        const linksMatch = liveLinks.every(l => savedOrder.links.get(l.id) === l.sort_order)
+          && savedOrder.links.size === liveLinks.length;
+        const blocksMatch = liveBlocks.every(b => savedOrder.blocks.get(b.id) === b.sort_order)
+          && savedOrder.blocks.size === liveBlocks.length;
+        orderStillDirty = !(linksMatch && blocksMatch);
+      }
 
       // Subtract the applied snapshot from the CURRENT pending changes.
       // Anything the user did while the save was in-flight stays pending.
@@ -388,7 +414,7 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           deletedBlockIds: new Set(
             [...prev.deletedBlockIds].filter(id => !snapshot.deletedBlockIds.has(id))
           ),
-          orderChanged: snapshot.orderChanged ? false : prev.orderChanged,
+          orderChanged: orderStillDirty,
         };
         const stillHas = next.addedLinks.length > 0 ||
           next.updatedLinks.size > 0 ||
@@ -407,6 +433,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
       setSaving(false);
     }
   };
+
+
 
   // Discard all pending changes - request parent to reload from DB
   const discardChanges = useCallback(() => {
