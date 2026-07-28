@@ -97,7 +97,13 @@ const RepCommissions = () => {
 
         const { data, error } = await query;
         if (error) throw error;
-        const mapped = (data || []).map((c: any) => ({ ...c, restaurant_name: c.rep_restaurants?.name || null }));
+        const mapped = (data || []).map((c: any) => ({
+          ...c,
+          restaurant_name:
+            c.rep_restaurants?.name ||
+            c.personal_profiles?.full_name ||
+            (c.personal_profiles?.username ? '@' + c.personal_profiles.username : null),
+        }));
         setCommissions(mapped);
 
         const { data: allComm } = await supabase
