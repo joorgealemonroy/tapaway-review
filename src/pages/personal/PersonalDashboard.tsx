@@ -845,6 +845,8 @@ const PersonalDashboard = () => {
     const updates: Record<string, unknown> = {
       pipeline_status: "ready_for_review",
       submitted_for_review_at: new Date().toISOString(),
+      review_note: null,
+      review_note_at: null,
     };
     if (nextUsername) updates.username = nextUsername;
 
