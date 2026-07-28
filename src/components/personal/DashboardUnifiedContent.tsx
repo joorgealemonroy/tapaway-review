@@ -978,13 +978,21 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                         {/* Platform icon badge */}
-                        {Icon && (
-                          <div
-                            className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-primary"}`}
-                          >
-                            <Icon className={`h-3 w-3 ${config?.color || "text-white"}`} />
-                          </div>
-                        )}
+                        {Icon && (() => {
+                          const useWhiteBadge = link.link_type === "google_review" || link.link_type === "yelp";
+                          return (
+                            <div
+                              className={`absolute top-2 left-2 h-6 w-6 rounded-full flex items-center justify-center ${
+                                useWhiteBadge
+                                  ? "bg-white border border-black/10 shadow-sm"
+                                  : (config?.gradient || config?.bgColor || "bg-primary")
+                              }`}
+                            >
+                              <Icon className={`h-3 w-3 ${useWhiteBadge ? "" : (config?.color || "text-white")}`} />
+                            </div>
+                          );
+                        })()}
+
 
                         {/* Red dot for placeholders */}
                         {link.url?.startsWith('#placeholder-') && (
