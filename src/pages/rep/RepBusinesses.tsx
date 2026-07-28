@@ -50,7 +50,7 @@ const RepBusinesses = () => {
     (async () => {
       const { data, error } = await supabase
         .from('personal_profiles')
-        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved')
+        .select('id, full_name, username, business_phone, contact_phone, created_at, pipeline_status, card_print_pdf_path, is_approved, review_note, review_note_at')
         .eq('sales_rep_id', salesRep.id)
         .order('created_at', { ascending: false });
       if (error) {
@@ -68,6 +68,8 @@ const RepBusinesses = () => {
             pipeline_status: d.pipeline_status,
             card_print_pdf_path: d.card_print_pdf_path,
             is_approved: d.is_approved ?? false,
+            review_note: d.review_note ?? null,
+            review_note_at: d.review_note_at ?? null,
           })),
         );
       }
