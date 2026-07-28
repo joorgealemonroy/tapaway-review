@@ -1183,7 +1183,35 @@ export const BlockModal = ({
                   }`}
                 >
                   {collageMedia.map((item, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    <div
+                      key={idx}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/collage-idx", String(idx));
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        if (e.dataTransfer.types.includes("text/collage-idx")) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                        }
+                      }}
+                      onDrop={(e) => {
+                        const raw = e.dataTransfer.getData("text/collage-idx");
+                        if (!raw) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const from = parseInt(raw, 10);
+                        if (Number.isNaN(from) || from === idx) return;
+                        setCollageMedia((prev) => {
+                          const next = [...prev];
+                          const [moved] = next.splice(from, 1);
+                          next.splice(idx, 0, moved);
+                          return next;
+                        });
+                      }}
+                      className="relative aspect-square rounded-lg overflow-hidden bg-muted cursor-move active:opacity-70"
+                    >
                       {item.type === "video" ? (
                         <div className="w-full h-full relative">
                           <video src={item.url} muted playsInline className="w-full h-full object-cover" />
@@ -1194,7 +1222,7 @@ export const BlockModal = ({
                           </div>
                         </div>
                       ) : (
-                        <img src={item.url} alt="" className="w-full h-full object-cover" />
+                        <img src={item.url} alt="" draggable={false} className="w-full h-full object-cover pointer-events-none" />
                       )}
                       {item.type === "image" && (
                         <button
