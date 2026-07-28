@@ -81,12 +81,32 @@ const AdminPendingHubApprovals = () => {
       .from("personal_profiles")
       .update({ is_approved: true, plan_type: "solo_pro" })
       .eq("id", row.id);
-    setApprovingId(null);
     if (error) {
+      setApprovingId(null);
       toast.error("Approval failed: " + error.message);
       return;
     }
-    toast.success("Demo Approved!");
+
+    // Award rep commission (demo bonus + shift base + closer pool refresh).
+    try {
+      const { data, error: awardErr } = await supabase.functions.invoke(
+        "award-demo-commission",
+        { body: { personal_profile_id: row.id } },
+      );
+      if (awardErr) throw awardErr;
+      if (data?.awarded === "locked_quality_gate") {
+        toast.success("Approved — bonus locked by Quality Gate (rep <5% conversion)");
+      } else if (data?.awarded === "voided") {
+        toast.success("Approved — daily cap reached, no bonus awarded");
+      } else {
+        toast.success("Demo approved — rep bonus awarded");
+      }
+    } catch (e) {
+      console.error("award-demo-commission failed", e);
+      toast.warning("Approved, but commission could not be awarded automatically");
+    }
+
+    setApprovingId(null);
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 
