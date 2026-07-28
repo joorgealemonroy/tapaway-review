@@ -1,37 +1,50 @@
-## Sales Partner Portal — UX polish pass
+## 1. Migration — reviewer notes + new pipeline status
 
-### 1. Dismissible W-9 banner (1-day snooze)
-- `RepTaxBanner.tsx`: add a small "Remind me later" close button. Persist dismissal in `localStorage` under `rep_w9_snooze_<repId>` with a timestamp; hide banner while `Date.now() - ts < 24h`. Re-appears after 24h automatically. Never snoozable when status is `rejected` (must act).
+`personal_profiles`:
+- Add `review_note text` and `review_note_at timestamptz`.
+- Drop and re-add `personal_profiles_pipeline_status_check` to include `'changes_requested'` alongside the existing statuses (`draft`, `ready_for_review`, `card_ready`, `delivered`, `converted`, `inactive`).
 
-### 2. Rep Home — remove all money/base-pay framing
-- `RepHome.tsx`:
-  - Delete the "Recurring at a glance" section entirely.
-  - Remove any base-pay / daily-quota / commission dollar references.
-  - Replace with a positive, non-financial hero: a "Today" card showing (a) demos built this week, (b) a rotating encouragement line ("Every demo is a door opened."), and (c) two primary CTAs: **+ New Demo** and **View Pipeline**.
-  - Keep the existing W-9 banner logic (now dismissible per #1).
+No GRANT/RLS changes — new columns inherit the table's existing policies.
 
-### 3. Move payout-readiness prompts to Commissions
-- `RepCommissions.tsx`: add a compact "Payout readiness" strip at the top with two checklist rows:
-  - **W-9 on file** — status pill (Missing / Pending / Approved / Rejected) + "Upload" link → `/rep/profile`.
-  - **Bank details for ACH** — read `sales_reps.payout_method` (already loaded). Show Missing/On file + "Add bank details" link → `/rep/profile`.
-- Remove the W-9 banner from Home only if user prefers — plan keeps it on Home too (dismissible) so it doesn't disappear silently. Confirm if you want it Commissions-only.
+## 2. Compact approvals queue with "Request Changes"
 
-### 4. Businesses page
-- `RepBusinesses.tsx`: rename header "My Pipeline" → **"My Businesses"** (subtitle keeps the count, e.g. "21 businesses in your book").
-- Add a search input above the list: filters client-side by business name and slug (case-insensitive `includes`). Reuses existing list; no backend change.
+`src/components/admin/AdminPendingHubApprovals.tsx`
 
-### 5. Fix "Pending Validation" metric on Commissions
-- Current logic sums commissions with status `pending` / `trial_pending`. Diego has submitted demos with no commission row yet (bonus is only written on approval), so nothing shows as pending.
-- New logic: "Pending Validation" = count + implied value of `personal_profiles` where `created_by_rep_id = rep.id` AND `submitted_for_review = true` AND `is_approved = false`, valued at $5/demo (demo bonus rate).
-- Display: `$X.00 pending — N demos awaiting admin review` on the middle stat card. Still merge in any true `pending` commission rows if present.
+- Replace the 6-column table with a stacked list of dense cards. Each card:
+  - Left: business name + `@username`, rep name, submitted date.
+  - Right (tight button row): **Preview**, **PDF** (if present), **Request Changes**, **Approve**.
+- "Request Changes" opens an inline textarea (shadcn Dialog). On Send:
+  - Update the profile: `review_note = <text>`, `review_note_at = now()`, `pipeline_status = 'changes_requested'`, `submitted_for_review_at = null`.
+  - Toast confirmation, remove row from queue.
+- Approve flow unchanged (award-demo-commission edge fn still fires).
 
-### Technical notes
-- No schema changes. All new data comes from existing tables (`personal_profiles`, `sales_reps`, `commissions`).
-- Snooze uses `localStorage` (per-browser, acceptable for a "remind me tomorrow" nudge).
-- Search is client-side over the already-fetched list.
+`src/pages/personal/PersonalDashboard.tsx`
 
-### Files touched
-- `src/components/rep/RepTaxBanner.tsx` — dismiss button + snooze.
-- `src/pages/rep/RepHome.tsx` — strip money content, add positive Today card, remove "Recurring at a glance".
-- `src/pages/rep/RepCommissions.tsx` — Payout readiness strip, corrected Pending Validation calc.
-- `src/pages/rep/RepBusinesses.tsx` — rename header, add search box.
+- When the active profile's `pipeline_status === 'changes_requested'`, render an amber banner above the existing draft/submit banner showing "Admin requested changes" and the `review_note`. Include a "Mark ready and resubmit" button that clears the note and sets `pipeline_status = 'ready_for_review'` + `submitted_for_review_at = now()` (mirrors current submit path).
+
+## 3. Unified Accounts table
+
+`src/pages/Admin.tsx` — replace the current `renderAccounts` split (Legacy table + Lite table stacked, plus a 3-way segment control) with a single unified table.
+
+- **Data union**: build one array of rows shaped as `{ id, name, kind: 'legacy' | 'lite', owner_email, plan, status, taps, created_at, slug }`.
+  - Legacy: from already-loaded `restaurants` (taps already aggregated).
+  - Lite: fetch `personal_profiles` **excluding** rows where `created_by_rep_id is not null AND is_approved = false` (rep demos live only in the pending queue).
+  - Lite taps: one batched `personal_analytics` query filtered by `event_type = 'tap'` and the loaded `profile_id` list; reduce client-side into a `Record<profileId, number>`.
+- **Columns**: Business · Kind (badge: Legacy / Lite) · Plan · Status · Taps · Created · Actions. Drops the broken Locations column and the Owner/Email/Slug columns get consolidated under Business.
+- **Sorting**: default Taps desc. Click Taps / Created / Name headers to toggle asc/desc.
+- **Filter row (single line)**: search (name + slug + email), Kind (All / Legacy / Lite), Plan, Status. Replaces the current segment tabs.
+- **Actions**: reuse existing per-kind actions (open hub, edit, delete) via a dropdown so the row height stays compact.
+- Delete `renderLegacyTable`'s standalone renders and inline the row rendering into the unified table. `AdminBusinessLiteTable` becomes unused inside Admin.tsx — leave the file in place (still linked from `/admin/personal-accounts` full manager button) but stop rendering it in the Accounts tab.
+
+## Technical notes
+
+- All work is admin-only pages; RLS on `personal_profiles` and `personal_analytics` already permits admin reads.
+- No changes to public hub routing, rep pricing, commission engine, or the `award-demo-commission` edge function.
+- Typecheck runs automatically after edits.
+
+## Files touched
+
+- Migration (new).
+- `src/components/admin/AdminPendingHubApprovals.tsx` — compact cards + Request Changes dialog.
+- `src/pages/personal/PersonalDashboard.tsx` — changes-requested banner + resubmit action.
+- `src/pages/Admin.tsx` — unified Accounts table (union, taps sort, filters, dropped Locations).

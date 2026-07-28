@@ -30,6 +30,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebugModal";
 import AdminBusinessLiteTable from "@/components/admin/AdminBusinessLiteTable";
 import AdminPendingHubApprovals from "@/components/admin/AdminPendingHubApprovals";
+import AdminUnifiedAccountsTable from "@/components/admin/AdminUnifiedAccountsTable";
 import { toast } from "sonner";
 import {
   Users,
@@ -603,101 +604,34 @@ const Admin = () => {
   const renderAccounts = () => (
     <div className="space-y-4">
       <AdminPendingHubApprovals />
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div className="inline-flex rounded-lg bg-white/[0.03] border border-white/5 p-1 w-fit">
-          {([
-            { id: "all", label: "All Accounts" },
-            { id: "legacy", label: "Business (Legacy)" },
-            { id: "lite", label: "Business Lite (Solo)" },
-          ] as const).map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSegment(s.id)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                segment === s.id
-                  ? "bg-white/10 text-white"
-                  : "text-white/50 hover:text-white/80"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {segment !== "lite" && (
-            <>
-              <Input
-                placeholder="Search name or slug"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 w-56 bg-white/[0.03] border-white/5 text-white placeholder:text-white/30"
-              />
-              <Select value={planFilter} onValueChange={setPlanFilter}>
-                <SelectTrigger className="h-9 w-[140px] bg-white/[0.03] border-white/5 text-white">
-                  <SelectValue placeholder="All plans" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All plans</SelectItem>
-                  <SelectItem value="standard">Standard</SelectItem>
-                  <SelectItem value="bundle">Bundle</SelectItem>
-                  <SelectItem value="lite">Lite</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 w-[140px] bg-white/[0.03] border-white/5 text-white">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                  <SelectItem value="canceled">Canceled</SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="h-9 bg-white text-[#0a0e1a] hover:bg-white/90">
-                <Plus className="h-4 w-4 mr-1" /> Add Account
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/onboarding")}>
-                New Business (Legacy)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/personal/signup")}>
-                New Business Lite
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">All Accounts</h3>
+          <p className="text-xs text-white/40">
+            Unified view — legacy businesses and Solo hubs together, sorted by engagement.
+          </p>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="h-9 bg-white text-[#0a0e1a] hover:bg-white/90">
+              <Plus className="h-4 w-4 mr-1" /> Add Account
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate("/onboarding")}>
+              New Business (Legacy)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/personal/signup")}>
+              New Solo Hub
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {error && <div className="text-red-400 text-sm">{error}</div>}
 
-      {segment === "legacy" && renderLegacyTable()}
-      {segment === "lite" && (
-        <Panel className="p-4 [&_table]:text-white/80">
-          <AdminBusinessLiteTable />
-        </Panel>
-      )}
-      {segment === "all" && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-xs uppercase tracking-widest text-white/40 mb-2">Business (Legacy)</h3>
-            {renderLegacyTable()}
-          </div>
-          <div>
-            <h3 className="text-xs uppercase tracking-widest text-white/40 mb-2">Business Lite (Solo)</h3>
-            <Panel className="p-4">
-              <AdminBusinessLiteTable />
-            </Panel>
-          </div>
-        </div>
-      )}
+      <AdminUnifiedAccountsTable />
     </div>
   );
 

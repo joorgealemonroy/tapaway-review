@@ -1866,6 +1866,8 @@ export type Database = {
           plan_type: string | null
           profile_photo_url: string | null
           referred_by: string | null
+          review_note: string | null
+          review_note_at: string | null
           sales_rep_id: string | null
           show_founding_badge: boolean
           show_shop_section: boolean | null
@@ -1928,6 +1930,8 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          review_note?: string | null
+          review_note_at?: string | null
           sales_rep_id?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
@@ -1990,6 +1994,8 @@ export type Database = {
           plan_type?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          review_note?: string | null
+          review_note_at?: string | null
           sales_rep_id?: string | null
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
