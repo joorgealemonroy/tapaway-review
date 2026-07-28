@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2 } from 'lucide-react';
+import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
@@ -21,6 +21,8 @@ interface Business {
   pipeline_status: string | null;
   card_print_pdf_path: string | null;
   is_approved: boolean | null;
+  review_note: string | null;
+  review_note_at: string | null;
 }
 
 const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
