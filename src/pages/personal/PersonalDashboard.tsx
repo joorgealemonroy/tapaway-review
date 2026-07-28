@@ -175,9 +175,21 @@ const PersonalDashboard = () => {
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
 
+  // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
+  // unrelated URL params (tab=, welcome=, upgrade=) change.
+  const hasLoadedRef = useRef(false);
+  const profileRef = useRef<PersonalProfile | null>(null);
+  const searchParamsRef = useRef(searchParams);
+  useEffect(() => { searchParamsRef.current = searchParams; }, [searchParams]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
   // Load profile data - always fresh from DB, never cached
   const loadData = useCallback(async () => {
+    const sp = searchParamsRef.current;
+    const adminViewIdLocal = sp.get("admin_view_personal") || sp.get("admin_view");
+    const requestedProfileIdLocal = sp.get("profile_id");
     try {
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Not authenticated - redirect to auth page, NOT signup
