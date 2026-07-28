@@ -292,12 +292,21 @@ const RepHome = () => {
             <div className="flex items-start gap-3">
               <div className="text-blue-300 font-mono text-xs mt-1">03</div>
               <div>
-                <p className="font-semibold text-white">10% Monthly Recurring</p>
+                <p className="font-semibold text-white">Annual Upsell Bounty</p>
                 <p className="text-white/50">
-                  Passive 10% of every subscriber's monthly plan for as long as they stay a customer.
+                  +$75 cash the moment a client you closed picks the annual plan. Paid instantly, no clawback.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="text-purple-300 font-mono text-xs mt-1">04</div>
+              <div>
+                <p className="font-semibold text-white">Monthly Closer's Pool</p>
+                <p className="text-white/50">
+                  Milestone cash on top of everything else — the more you convert, the bigger the check.
                 </p>
                 <p className="text-xs text-white/40 mt-1">
-                  Solo Pro → $1.50/mo · Venue Pack → $3.90/mo
+                  10 conversions → <span className="text-blue-300">$250</span> · 20 → <span className="text-blue-300">$600</span> · 35 → <span className="text-blue-300">$1,200</span>
                 </p>
               </div>
             </div>
