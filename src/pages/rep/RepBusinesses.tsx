@@ -194,9 +194,12 @@ const RepBusinesses = () => {
 
           {hubs.map(hub => {
             const currentStatus = hub.pipeline_status || 'draft';
-            const opt = PIPELINE_STATUSES.find(o => o.value === currentStatus) || PIPELINE_STATUSES[0];
+            const opt = hub.is_approved
+              ? { value: 'converted', label: 'Live · Approved', dot: 'bg-emerald-400' }
+              : PIPELINE_STATUSES.find(o => o.value === currentStatus) || PIPELINE_STATUSES[0];
             const liveUrl = hub.custom_slug ? `/${hub.custom_slug}` : `/hub/${hub.id}`;
             const uploading = uploadingId === hub.id;
+            const statusLocked = hub.is_approved || currentStatus === 'ready_for_review';
 
             return (
               <div
@@ -211,26 +214,33 @@ const RepBusinesses = () => {
                 </div>
                 <div className="text-sm text-white/50">{formatDate(hub.created_at)}</div>
                 <div>
-                  <Select value={currentStatus} onValueChange={(v) => updatePipeline(hub.id, v)}>
-                    <SelectTrigger className="h-9 w-full max-w-[220px] bg-white/[0.03] border-white/10 text-white/80 hover:bg-white/[0.06]">
-                      <SelectValue>
-                        <span className="inline-flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${opt.dot}`} />
-                          {opt.label}
-                        </span>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
-                      {PIPELINE_STATUSES.map(o => (
-                        <SelectItem key={o.value} value={o.value} className="focus:bg-white/10 focus:text-white">
+                  {statusLocked ? (
+                    <div className="h-9 inline-flex items-center gap-2 px-3 rounded-md border border-white/10 bg-white/[0.03] text-white/80 text-sm">
+                      <span className={`h-2 w-2 rounded-full ${opt.dot}`} />
+                      {opt.label}
+                    </div>
+                  ) : (
+                    <Select value={currentStatus} onValueChange={(v) => updatePipeline(hub.id, v)}>
+                      <SelectTrigger className="h-9 w-full max-w-[220px] bg-white/[0.03] border-white/10 text-white/80 hover:bg-white/[0.06]">
+                        <SelectValue>
                           <span className="inline-flex items-center gap-2">
-                            <span className={`h-2 w-2 rounded-full ${o.dot}`} />
-                            {o.label}
+                            <span className={`h-2 w-2 rounded-full ${opt.dot}`} />
+                            {opt.label}
                           </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
+                        {PIPELINE_STATUSES.filter(o => o.value !== 'ready_for_review').map(o => (
+                          <SelectItem key={o.value} value={o.value} className="focus:bg-white/10 focus:text-white">
+                            <span className="inline-flex items-center gap-2">
+                              <span className={`h-2 w-2 rounded-full ${o.dot}`} />
+                              {o.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {hub.card_print_pdf_path ? (

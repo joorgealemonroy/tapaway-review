@@ -26,6 +26,9 @@ const RepHome = () => {
   const [pendingToday, setPendingToday] = useState(0);
   const [monthlyBounties, setMonthlyBounties] = useState(0);
   const [monthlyConversions, setMonthlyConversions] = useState(0);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [demoBonusMonth, setDemoBonusMonth] = useState(0);
+  const [demoBonusCount, setDemoBonusCount] = useState(0);
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -86,10 +89,24 @@ const RepHome = () => {
         .reduce((s, c) => s + Number(c.amount), 0);
       setMonthlyBounties(bounties);
 
-      // Count paid conversions this month (for Closer's Pool milestone progress)
+      // Available balance = every commission currently sitting in 'available' status.
+      const available = (commissions || [])
+        .filter(c => c.status === 'available')
+        .reduce((s, c) => s + Number(c.amount), 0);
+      setAvailableBalance(available);
+
+      // Month-to-date demo bonuses (dollars + count) so approved $5s are visible immediately.
       const monthStart = new Date();
       monthStart.setUTCDate(1);
       monthStart.setUTCHours(0, 0, 0, 0);
+      const monthStartISO = monthStart.toISOString();
+      const monthDemoBonuses = (commissions || []).filter(c =>
+        c.commission_type === 'demo_bonus' && c.created_at >= monthStartISO
+      );
+      setDemoBonusCount(monthDemoBonuses.length);
+      setDemoBonusMonth(monthDemoBonuses.reduce((s, c) => s + Number(c.amount), 0));
+
+      // Count paid conversions this month (for Closer's Pool milestone progress)
       const { count: convCount } = await supabase
         .from('personal_profiles')
         .select('id', { count: 'exact', head: true })
@@ -125,6 +142,22 @@ const RepHome = () => {
       subtitle="Your daily cockpit — base, bonus, and recurring at a glance."
     >
       <RepTaxBanner status={taxStatus} />
+
+      {/* Available balance strip */}
+      <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-emerald-200/70 font-semibold">Available Balance</p>
+          <p className="text-3xl font-semibold text-white mt-0.5">${availableBalance.toFixed(2)}</p>
+          <p className="text-xs text-white/50 mt-1">Ready to be paid out next cycle — base pay, demo bonuses, annual bounties, and closer's pool combined.</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">Demo Bonuses This Month</p>
+          <p className="text-xl font-semibold text-emerald-300 mt-0.5">
+            {demoBonusCount} × $5 = ${demoBonusMonth.toFixed(2)}
+          </p>
+          <p className="text-[11px] text-white/40 mt-0.5">Auto-credited the moment admin approves each demo.</p>
+        </div>
+      </div>
 
       {/* Three metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
