@@ -77,10 +77,26 @@ const RepHome = () => {
         .eq('rep_id', salesRep.id);
 
       const currentPeriod = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      const recurring = (commissions || [])
-        .filter(c => c.commission_type === 'recurring' && ['available', 'pending'].includes(c.status) && c.period_label === currentPeriod)
+      const bounties = (commissions || [])
+        .filter(c =>
+          ['annual_bounty', 'closer_pool'].includes(c.commission_type || '') &&
+          ['available', 'pending', 'paid'].includes(c.status) &&
+          c.period_label === currentPeriod
+        )
         .reduce((s, c) => s + Number(c.amount), 0);
-      setMonthlyRecurring(recurring);
+      setMonthlyBounties(bounties);
+
+      // Count paid conversions this month (for Closer's Pool milestone progress)
+      const monthStart = new Date();
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const { count: convCount } = await supabase
+        .from('personal_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('sales_rep_id', salesRep.id)
+        .eq('subscription_status', 'active')
+        .gte('updated_at', monthStart.toISOString());
+      setMonthlyConversions(convCount ?? 0);
 
       const startISO = start.toISOString();
       const baseEarned = (commissions || []).some(c =>
