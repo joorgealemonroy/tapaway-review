@@ -1020,55 +1020,51 @@ if (event.type === 'checkout.session.completed') {
               console.log(`[stripe-webhook] Upgraded commission ${existingComm.id} to ${updateData.status} with ${pointsValue} pts`);
             }
           } else if (existingComm.status === 'available' || existingComm.status === 'pending') {
-            // SUBSEQUENT PAYMENT — create recurring commission
+            // Recurring % has been removed. On the FIRST paid invoice for an annual
+            // subscription, mint a one-time Annual Upsell Bounty. Then always refresh
+            // the rep's monthly Closer's Pool tier for this period.
             const { data: compSettings } = await supabaseAdmin
               .from('rep_compensation_settings')
-              .select('*')
+              .select('annual_bounty_amount')
               .limit(1)
               .single();
 
-            const isRestaurant = existingComm.plan_tier === 'restaurant';
             const isAnnual = existingComm.billing_cycle === 'annual';
-
-            let recurringAmount = 4; // fallback
-            if (compSettings) {
-              if (isRestaurant) {
-                recurringAmount = isAnnual
-                  ? Number(compSettings.restaurant_annual_recurring)
-                  : Number(compSettings.restaurant_monthly_recurring);
-              } else {
-                recurringAmount = isAnnual
-                  ? Number(compSettings.lite_annual_recurring)
-                  : Number(compSettings.lite_monthly_recurring);
-              }
-            }
-
             const now = new Date();
             const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-            const { error: recurErr } = await supabaseAdmin
-              .from('commissions')
-              .insert({
-                rep_id: existingComm.rep_id,
-                rep_restaurant_id: existingComm.rep_restaurant_id,
-                restaurant_id: existingComm.restaurant_id,
-                type: 'recurring',
-                commission_type: 'recurring',
-                plan_tier: existingComm.plan_tier,
-                billing_cycle: existingComm.billing_cycle,
-                amount: recurringAmount,
-                status: 'available',
-                points_value: 0,
-                period_label: periodLabel,
-                stripe_subscription_id: invoiceSubId,
-                note: `Recurring commission (${existingComm.plan_tier} ${existingComm.billing_cycle})`,
-              });
-
-            if (recurErr) {
-              console.error('[stripe-webhook] Failed to create recurring commission:', recurErr);
-            } else {
-              console.log(`[stripe-webhook] Created $${recurringAmount} recurring commission for rep ${existingComm.rep_id}`);
+            if (isAnnual) {
+              const bountyAmount = Number(compSettings?.annual_bounty_amount ?? 75);
+              const { error: bountyErr } = await supabaseAdmin
+                .from('commissions')
+                .insert({
+                  rep_id: existingComm.rep_id,
+                  rep_restaurant_id: existingComm.rep_restaurant_id,
+                  restaurant_id: existingComm.restaurant_id,
+                  type: 'bonus',
+                  commission_type: 'annual_bounty',
+                  plan_tier: existingComm.plan_tier,
+                  billing_cycle: 'annual',
+                  amount: bountyAmount,
+                  status: 'available',
+                  points_value: 0,
+                  period_label: periodLabel,
+                  stripe_subscription_id: invoiceSubId,
+                  note: `Annual Upsell Bounty (${existingComm.plan_tier})`,
+                });
+              if (bountyErr && !String(bountyErr.message).includes('duplicate key')) {
+                console.error('[stripe-webhook] Failed to create annual bounty:', bountyErr);
+              } else if (!bountyErr) {
+                console.log(`[stripe-webhook] Created $${bountyAmount} annual_bounty for rep ${existingComm.rep_id}`);
+              }
             }
+
+            // Refresh monthly Closer's Pool for this rep
+            const { error: poolErr } = await supabaseAdmin.rpc('recompute_closer_pool', {
+              _rep_id: existingComm.rep_id,
+              _period_label: periodLabel,
+            });
+            if (poolErr) console.error('[stripe-webhook] recompute_closer_pool failed:', poolErr);
           }
         } else {
           console.log('[stripe-webhook] invoice.paid: no rep commission found for this subscription, skipping');
