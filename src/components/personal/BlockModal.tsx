@@ -604,7 +604,14 @@ export const BlockModal = ({
         .from("personal-photos")
         .getPublicUrl(filePath);
 
-      setCollageMedia(prev => [...prev, { url: publicUrl, type: "image" }]);
+      setCollageMedia(prev => {
+        if (editingCollageIndex !== null && editingCollageIndex < prev.length) {
+          const next = [...prev];
+          next[editingCollageIndex] = { ...next[editingCollageIndex], url: publicUrl, type: "image" };
+          return next;
+        }
+        return [...prev, { url: publicUrl, type: "image" }];
+      });
     } catch (err) {
       console.error("Upload error:", err);
       toast.error("Failed to upload image");
