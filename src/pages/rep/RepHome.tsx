@@ -26,6 +26,9 @@ const RepHome = () => {
   const [pendingToday, setPendingToday] = useState(0);
   const [monthlyBounties, setMonthlyBounties] = useState(0);
   const [monthlyConversions, setMonthlyConversions] = useState(0);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [demoBonusMonth, setDemoBonusMonth] = useState(0);
+  const [demoBonusCount, setDemoBonusCount] = useState(0);
   const [baseEarnedToday, setBaseEarnedToday] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
   const [loading, setLoading] = useState(true);
