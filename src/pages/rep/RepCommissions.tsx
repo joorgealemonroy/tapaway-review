@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { DollarSign, Clock, TrendingUp } from 'lucide-react';
+import { DollarSign, Clock, TrendingUp, FileText, Landmark, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
+
+const DEMO_BONUS = 5;
 
 interface Commission {
   id: string;
@@ -69,7 +71,21 @@ const RepCommissions = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const [stats, setStats] = useState({ available: 0, pending: 0, lifetime: 0 });
+  const [stats, setStats] = useState({ available: 0, pending: 0, lifetime: 0, pendingDemoCount: 0, pendingDemoAmount: 0 });
+  const [taxStatus, setTaxStatus] = useState<'missing' | 'submitted' | 'approved' | 'rejected'>('missing');
+  const [hasBankDetails, setHasBankDetails] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [tax, bank] = await Promise.all([
+        supabase.from('rep_tax_profiles').select('status').eq('rep_user_id', user.id).maybeSingle(),
+        supabase.from('rep_payout_accounts').select('id').eq('rep_user_id', user.id).maybeSingle(),
+      ]);
+      if (tax.data?.status) setTaxStatus(tax.data.status as typeof taxStatus);
+      setHasBankDetails(!!bank.data);
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) { navigate('/auth'); return; }
@@ -108,10 +124,27 @@ const RepCommissions = () => {
 
         const { data: allComm } = await supabase
           .from('commissions').select('amount, status').eq('rep_id', salesRep.id);
+
+        // Count demos submitted for admin review but not yet approved — these
+        // will each earn a $5 demo_bonus on approval but have no commission row yet.
+        const { count: pendingDemoCount } = await supabase
+          .from('personal_profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('sales_rep_id', salesRep.id)
+          .eq('is_approved', false)
+          .not('submitted_for_review_at', 'is', null);
+
+        const pendingCommissionAmount =
+          allComm?.filter(c => ['pending', 'trial_pending'].includes(c.status))
+            .reduce((s, c) => s + Number(c.amount), 0) || 0;
+        const pendingDemoAmount = (pendingDemoCount ?? 0) * DEMO_BONUS;
+
         setStats({
           available: allComm?.filter(c => c.status === 'available').reduce((s, c) => s + Number(c.amount), 0) || 0,
-          pending: allComm?.filter(c => ['pending', 'trial_pending'].includes(c.status)).reduce((s, c) => s + Number(c.amount), 0) || 0,
+          pending: pendingCommissionAmount + pendingDemoAmount,
           lifetime: allComm?.filter(c => ['available', 'paid'].includes(c.status)).reduce((s, c) => s + Number(c.amount), 0) || 0,
+          pendingDemoCount: pendingDemoCount ?? 0,
+          pendingDemoAmount,
         });
       } catch (error) {
         console.error(error);
@@ -130,8 +163,66 @@ const RepCommissions = () => {
     );
   }
 
+  const w9Label =
+    taxStatus === 'approved' ? 'On file' :
+    taxStatus === 'submitted' ? 'Pending review' :
+    taxStatus === 'rejected' ? 'Rejected — re-upload' : 'Missing';
+  const w9Ok = taxStatus === 'approved';
+  const w9Warn = taxStatus === 'submitted';
+
   return (
-    <RepShell title="Commissions" subtitle="Track your earnings across base, bonus and recurring.">
+    <RepShell title="Commissions" subtitle="Track your earnings and payout readiness.">
+      {/* Payout readiness strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        <button
+          onClick={() => navigate('/rep/profile')}
+          className={`text-left rounded-2xl border p-4 flex items-center gap-3 transition-colors ${
+            w9Ok
+              ? 'bg-emerald-500/5 border-emerald-400/20 hover:bg-emerald-500/10'
+              : w9Warn
+              ? 'bg-amber-500/5 border-amber-400/20 hover:bg-amber-500/10'
+              : 'bg-red-500/5 border-red-400/20 hover:bg-red-500/10'
+          }`}
+        >
+          <div className={`p-2 rounded-xl border ${w9Ok ? 'bg-emerald-500/10 border-emerald-400/20' : w9Warn ? 'bg-amber-500/10 border-amber-400/20' : 'bg-red-500/10 border-red-400/20'}`}>
+            {w9Ok ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <FileText className={`h-4 w-4 ${w9Warn ? 'text-amber-300' : 'text-red-300'}`} />}
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">W-9 Tax Form</p>
+            <p className="text-sm font-semibold text-white mt-0.5">{w9Label}</p>
+            <p className="text-[11px] text-white/50 mt-0.5">Required before commissions can be paid out.</p>
+          </div>
+          {!w9Ok && <ArrowRight className="h-4 w-4 text-white/40" />}
+        </button>
+
+        <button
+          onClick={() => navigate('/rep/profile')}
+          className={`text-left rounded-2xl border p-4 flex items-center gap-3 transition-colors ${
+            hasBankDetails
+              ? 'bg-emerald-500/5 border-emerald-400/20 hover:bg-emerald-500/10'
+              : 'bg-red-500/5 border-red-400/20 hover:bg-red-500/10'
+          }`}
+        >
+          <div className={`p-2 rounded-xl border ${hasBankDetails ? 'bg-emerald-500/10 border-emerald-400/20' : 'bg-red-500/10 border-red-400/20'}`}>
+            {hasBankDetails ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <Landmark className="h-4 w-4 text-red-300" />}
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">Bank Details (ACH)</p>
+            <p className="text-sm font-semibold text-white mt-0.5">{hasBankDetails ? 'On file' : 'Missing'}</p>
+            <p className="text-[11px] text-white/50 mt-0.5">Where we send your payouts.</p>
+          </div>
+          {!hasBankDetails && <ArrowRight className="h-4 w-4 text-white/40" />}
+        </button>
+      </div>
+
+      {(!w9Ok || !hasBankDetails) && (
+        <div className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-2.5 text-xs text-amber-200/80 flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          Payouts pause until both your W-9 and bank details are on file.
+        </div>
+      )}
+
+
       {/* Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <RepCard className="p-5">
@@ -159,7 +250,11 @@ const RepCommissions = () => {
             <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Pending Validation</p>
           </div>
           <p className="text-3xl font-semibold text-amber-300">${stats.pending.toFixed(2)}</p>
-          <p className="text-xs text-white/40 mt-1">Earnings awaiting approval</p>
+          <p className="text-xs text-white/40 mt-1">
+            {stats.pendingDemoCount > 0
+              ? `${stats.pendingDemoCount} demo${stats.pendingDemoCount === 1 ? '' : 's'} awaiting admin review · $${stats.pendingDemoAmount.toFixed(2)}`
+              : 'Earnings awaiting approval'}
+          </p>
         </RepCard>
         <RepCard className="p-5">
           <div className="flex items-center gap-3 mb-2">

@@ -1,38 +1,37 @@
+## Sales Partner Portal — UX polish pass
 
-## 1. Profile photo cropper — zoom won't decrease after save
-**Problem:** `ImageCropper` keeps `zoom` and `crop` in local `useState` that persist across `open` toggles. Reopening the modal shows the last saved zoom and the slider min (1) is below the current value, so it feels like it only lets you zoom in.
+### 1. Dismissible W-9 banner (1-day snooze)
+- `RepTaxBanner.tsx`: add a small "Remind me later" close button. Persist dismissal in `localStorage` under `rep_w9_snooze_<repId>` with a timestamp; hide banner while `Date.now() - ts < 24h`. Re-appears after 24h automatically. Never snoozable when status is `rejected` (must act).
 
-**Fix:** In `src/components/personal/ImageCropper.tsx`, reset `crop`, `zoom`, and `croppedAreaPixels` whenever `open` flips to `true` (or when `imageSrc` changes) via a `useEffect`. This guarantees every crop session starts at zoom=1, centered.
+### 2. Rep Home — remove all money/base-pay framing
+- `RepHome.tsx`:
+  - Delete the "Recurring at a glance" section entirely.
+  - Remove any base-pay / daily-quota / commission dollar references.
+  - Replace with a positive, non-financial hero: a "Today" card showing (a) demos built this week, (b) a rotating encouragement line ("Every demo is a door opened."), and (c) two primary CTAs: **+ New Demo** and **View Pipeline**.
+  - Keep the existing W-9 banner logic (now dismissible per #1).
 
-## 2. "Add Tile" ghost button in the dashboard content grid
-Two issues in `src/components/personal/DashboardUnifiedContent.tsx`:
+### 3. Move payout-readiness prompts to Commissions
+- `RepCommissions.tsx`: add a compact "Payout readiness" strip at the top with two checklist rows:
+  - **W-9 on file** — status pill (Missing / Pending / Approved / Rejected) + "Upload" link → `/rep/profile`.
+  - **Bank details for ACH** — read `sales_reps.payout_method` (already loaded). Show Missing/On file + "Add bank details" link → `/rep/profile`.
+- Remove the W-9 banner from Home only if user prefers — plan keeps it on Home too (dismissible) so it doesn't disappear silently. Confirm if you want it Commissions-only.
 
-**a. Only show when tile is alone.** Currently the ghost tile is appended to every half-width grid group. Change the render so the "+ Add Tile" only appears when the group contains exactly one half-width link (i.e. the odd/lonely tile). Groups already containing 2 tiles get no ghost — the user adds more via the normal add flow below.
+### 4. Businesses page
+- `RepBusinesses.tsx`: rename header "My Pipeline" → **"My Businesses"** (subtitle keeps the count, e.g. "21 businesses in your book").
+- Add a search input above the list: filters client-side by business name and slug (case-insensitive `includes`). Reuses existing list; no backend change.
 
-**b. Invisible in light mode.** The button uses `border-white/20` and `text-white/40`, which disappear on light backgrounds. Replace with token-based classes: `border-dashed border-border text-muted-foreground hover:bg-muted/50` so it renders in both themes.
+### 5. Fix "Pending Validation" metric on Commissions
+- Current logic sums commissions with status `pending` / `trial_pending`. Diego has submitted demos with no commission row yet (bonus is only written on approval), so nothing shows as pending.
+- New logic: "Pending Validation" = count + implied value of `personal_profiles` where `created_by_rep_id = rep.id` AND `submitted_for_review = true` AND `is_approved = false`, valued at $5/demo (demo bonus rate).
+- Display: `$X.00 pending — N demos awaiting admin review` on the middle stat card. Still merge in any true `pending` commission rows if present.
 
-## 3. Rep money UI — move to Commissions, quiet Home
-Goal: reps should see building/pipeline progress on Home and only see earnings when they visit Commissions.
+### Technical notes
+- No schema changes. All new data comes from existing tables (`personal_profiles`, `sales_reps`, `commissions`).
+- Snooze uses `localStorage` (per-browser, acceptable for a "remind me tomorrow" nudge).
+- Search is client-side over the already-fetched list.
 
-**`src/pages/rep/RepHome.tsx`:**
-- Remove the emerald "Available Balance" strip and the "Demo Bonuses This Month $" tally.
-- Replace with build-focused stats: Demos Today (count vs 10 quota), Awaiting Approval count, Approved This Month count, Total Live Hubs.
-- Keep a single small link/button "View Commissions →" that routes to `/rep/commissions`.
-
-**`src/pages/rep/RepCommissions.tsx`:**
-- Keep and emphasize the three cards (Available / Pending / Lifetime).
-- Add a "Demo Bonuses This Month" subrow under Available: `N approved × $5 = $X`.
-- No other structural changes.
-
-## 4. Verify Diego's approved demos are credited
-Audit-only step (no schema changes unless we find a gap):
-1. Query `commissions` for `rep_id = Diego's sales_rep.id` grouped by `commission_type` and `status`.
-2. Cross-check against `personal_profiles` where `created_by_rep_id = Diego's id AND is_approved = true`: every approved profile should have exactly one `demo_bonus` row with `status = 'available'` and `amount = 5`.
-3. If any approved profile is missing a bonus row, backfill by calling `award-demo-commission` for each missing profile_id (idempotent per existing edge function logic).
-4. Report the counts to the user (approved hubs, bonus rows, backfilled rows, resulting available balance).
-
-## Technical notes
-- Cropper reset must key on `open` becoming `true` — resetting only on `imageSrc` change misses the case where the same photo is re-cropped.
-- Ghost-tile visibility rule: `groupedItem.links.length === 1 && groupedItem.links[0].grid_size === 'half'`.
-- Use semantic tokens (`border-border`, `text-muted-foreground`, `bg-muted`) — never `text-white/*` or `bg-black/*` on shared dashboard chrome.
-- Backfill script runs via `supabase.functions.invoke('award-demo-commission', { body: { profile_id } })` per missing hub; the function already dedupes.
+### Files touched
+- `src/components/rep/RepTaxBanner.tsx` — dismiss button + snooze.
+- `src/pages/rep/RepHome.tsx` — strip money content, add positive Today card, remove "Recurring at a glance".
+- `src/pages/rep/RepCommissions.tsx` — Payout readiness strip, corrected Pending Validation calc.
+- `src/pages/rep/RepBusinesses.tsx` — rename header, add search box.
