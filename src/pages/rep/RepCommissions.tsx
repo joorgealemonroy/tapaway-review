@@ -174,6 +174,7 @@ const RepCommissions = () => {
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="voided">Voided</SelectItem>
             <SelectItem value="clawed_back">Clawed Back</SelectItem>
+            <SelectItem value="locked_quality_gate">Quality Gate</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -182,10 +183,12 @@ const RepCommissions = () => {
           </SelectTrigger>
           <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="shift_base">Base Pay</SelectItem>
-            <SelectItem value="bonus">Production Bonus</SelectItem>
-            <SelectItem value="recurring">10% Recurring</SelectItem>
+            <SelectItem value="shift_base">Daily Base ($50)</SelectItem>
+            <SelectItem value="demo_bonus">Demo Bonus ($5)</SelectItem>
+            <SelectItem value="annual_bounty">Annual Bounty ($75)</SelectItem>
+            <SelectItem value="closer_pool">Closer's Pool</SelectItem>
             <SelectItem value="upfront">Upfront (legacy)</SelectItem>
+            <SelectItem value="recurring">Recurring (legacy)</SelectItem>
           </SelectContent>
         </Select>
       </div>
