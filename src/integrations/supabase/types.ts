@@ -606,6 +606,7 @@ export type Database = {
           note: string | null
           paid_at: string | null
           period_label: string
+          personal_profile_id: string | null
           plan_tier: string | null
           points_value: number
           rep_id: string
@@ -625,6 +626,7 @@ export type Database = {
           note?: string | null
           paid_at?: string | null
           period_label: string
+          personal_profile_id?: string | null
           plan_tier?: string | null
           points_value?: number
           rep_id: string
@@ -644,6 +646,7 @@ export type Database = {
           note?: string | null
           paid_at?: string | null
           period_label?: string
+          personal_profile_id?: string | null
           plan_tier?: string | null
           points_value?: number
           rep_id?: string
@@ -654,6 +657,20 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "commissions_personal_profile_id_fkey"
+            columns: ["personal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_personal_profile_id_fkey"
+            columns: ["personal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "commissions_rep_id_fkey"
             columns: ["rep_id"]
@@ -2063,64 +2080,94 @@ export type Database = {
       }
       rep_compensation_settings: {
         Row: {
+          annual_bounty_amount: number
           base_commission_per_close: number
           bonus_amount: number
           bonus_period: string
           bonus_point_threshold: number
           bonus_threshold_closes: number
           clawback_days: number
+          closer_pool_tier1_amount: number
+          closer_pool_tier1_count: number
+          closer_pool_tier2_amount: number
+          closer_pool_tier2_count: number
+          closer_pool_tier3_amount: number
+          closer_pool_tier3_count: number
           created_at: string
+          daily_demo_cap: number
+          daily_shift_base_amount: number
+          daily_shift_quota: number
+          demo_bonus_amount: number
           id: string
-          lite_annual_recurring: number
           lite_annual_upfront: number
-          lite_monthly_recurring: number
           lite_monthly_upfront: number
           lite_point_value: number
-          restaurant_annual_recurring: number
+          quality_gate_cap_demos: number
+          quality_gate_min_rate: number
+          quality_gate_probation_days: number
           restaurant_annual_upfront: number
-          restaurant_monthly_recurring: number
           restaurant_monthly_upfront: number
           restaurant_point_value: number
           updated_at: string
         }
         Insert: {
+          annual_bounty_amount?: number
           base_commission_per_close?: number
           bonus_amount?: number
           bonus_period?: string
           bonus_point_threshold?: number
           bonus_threshold_closes?: number
           clawback_days?: number
+          closer_pool_tier1_amount?: number
+          closer_pool_tier1_count?: number
+          closer_pool_tier2_amount?: number
+          closer_pool_tier2_count?: number
+          closer_pool_tier3_amount?: number
+          closer_pool_tier3_count?: number
           created_at?: string
+          daily_demo_cap?: number
+          daily_shift_base_amount?: number
+          daily_shift_quota?: number
+          demo_bonus_amount?: number
           id?: string
-          lite_annual_recurring?: number
           lite_annual_upfront?: number
-          lite_monthly_recurring?: number
           lite_monthly_upfront?: number
           lite_point_value?: number
-          restaurant_annual_recurring?: number
+          quality_gate_cap_demos?: number
+          quality_gate_min_rate?: number
+          quality_gate_probation_days?: number
           restaurant_annual_upfront?: number
-          restaurant_monthly_recurring?: number
           restaurant_monthly_upfront?: number
           restaurant_point_value?: number
           updated_at?: string
         }
         Update: {
+          annual_bounty_amount?: number
           base_commission_per_close?: number
           bonus_amount?: number
           bonus_period?: string
           bonus_point_threshold?: number
           bonus_threshold_closes?: number
           clawback_days?: number
+          closer_pool_tier1_amount?: number
+          closer_pool_tier1_count?: number
+          closer_pool_tier2_amount?: number
+          closer_pool_tier2_count?: number
+          closer_pool_tier3_amount?: number
+          closer_pool_tier3_count?: number
           created_at?: string
+          daily_demo_cap?: number
+          daily_shift_base_amount?: number
+          daily_shift_quota?: number
+          demo_bonus_amount?: number
           id?: string
-          lite_annual_recurring?: number
           lite_annual_upfront?: number
-          lite_monthly_recurring?: number
           lite_monthly_upfront?: number
           lite_point_value?: number
-          restaurant_annual_recurring?: number
+          quality_gate_cap_demos?: number
+          quality_gate_min_rate?: number
+          quality_gate_probation_days?: number
           restaurant_annual_upfront?: number
-          restaurant_monthly_recurring?: number
           restaurant_monthly_upfront?: number
           restaurant_point_value?: number
           updated_at?: string
@@ -3450,6 +3497,10 @@ export type Database = {
         Returns: boolean
       }
       profile_has_active_card: { Args: { _user_id: string }; Returns: boolean }
+      recompute_closer_pool: {
+        Args: { _period_label: string; _rep_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "sales_rep" | "affiliate"
