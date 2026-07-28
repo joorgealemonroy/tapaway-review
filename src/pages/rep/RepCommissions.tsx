@@ -82,7 +82,7 @@ const RepCommissions = () => {
       try {
         let query = supabase
           .from('commissions')
-          .select('*, rep_restaurants:rep_restaurant_id (name)')
+          .select('*, rep_restaurants:rep_restaurant_id (name), personal_profiles:personal_profile_id (full_name, username)')
           .eq('rep_id', salesRep.id)
           .order('created_at', { ascending: false });
 
