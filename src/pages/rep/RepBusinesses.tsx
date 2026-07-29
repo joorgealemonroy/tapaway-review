@@ -420,13 +420,14 @@ const RepBusinesses = () => {
                       <Upload className="h-3.5 w-3.5" />
                       {uploading ? 'Uploading…' : 'Upload PDF'}
                       <input
+                        key={`upload-${hub.id}-${uploadNonce[hub.id] ?? 0}`}
                         type="file"
                         accept="application/pdf"
                         className="hidden"
                         disabled={uploading}
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) uploadPdf(hub.id, f, e.currentTarget);
+                          if (f) uploadPdf(hub.id, f);
                         }}
                       />
                     </label>
