@@ -1703,8 +1703,12 @@ export type Database = {
           name: string | null
           phone: string | null
           profile_id: string
+          sms_marketing_opt_in: boolean
+          sms_marketing_opt_in_at: string | null
           sms_opt_in: boolean
           sms_opt_in_at: string | null
+          sms_transactional_opt_in: boolean
+          sms_transactional_opt_in_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1714,8 +1718,12 @@ export type Database = {
           name?: string | null
           phone?: string | null
           profile_id: string
+          sms_marketing_opt_in?: boolean
+          sms_marketing_opt_in_at?: string | null
           sms_opt_in?: boolean
           sms_opt_in_at?: string | null
+          sms_transactional_opt_in?: boolean
+          sms_transactional_opt_in_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1725,8 +1733,12 @@ export type Database = {
           name?: string | null
           phone?: string | null
           profile_id?: string
+          sms_marketing_opt_in?: boolean
+          sms_marketing_opt_in_at?: string | null
           sms_opt_in?: boolean
           sms_opt_in_at?: string | null
+          sms_transactional_opt_in?: boolean
+          sms_transactional_opt_in_at?: string | null
         }
         Relationships: [
           {
@@ -2533,8 +2545,12 @@ export type Database = {
           name: string | null
           phone: string
           restaurant_id: string
+          sms_marketing_opt_in: boolean
+          sms_marketing_opt_in_at: string | null
           sms_opt_in: boolean
           sms_opt_in_at: string | null
+          sms_transactional_opt_in: boolean
+          sms_transactional_opt_in_at: string | null
         }
         Insert: {
           created_at?: string
@@ -2542,8 +2558,12 @@ export type Database = {
           name?: string | null
           phone: string
           restaurant_id: string
+          sms_marketing_opt_in?: boolean
+          sms_marketing_opt_in_at?: string | null
           sms_opt_in?: boolean
           sms_opt_in_at?: string | null
+          sms_transactional_opt_in?: boolean
+          sms_transactional_opt_in_at?: string | null
         }
         Update: {
           created_at?: string
@@ -2551,8 +2571,12 @@ export type Database = {
           name?: string | null
           phone?: string
           restaurant_id?: string
+          sms_marketing_opt_in?: boolean
+          sms_marketing_opt_in_at?: string | null
           sms_opt_in?: boolean
           sms_opt_in_at?: string | null
+          sms_transactional_opt_in?: boolean
+          sms_transactional_opt_in_at?: string | null
         }
         Relationships: [
           {
@@ -2930,9 +2954,13 @@ export type Database = {
           consent_text: string
           created_at: string
           id: string
+          marketing_consent_at: string | null
+          marketing_consent_text: string | null
           name: string
           phone: string
           source: string
+          transactional_consent_at: string | null
+          transactional_consent_text: string | null
           user_agent: string | null
         }
         Insert: {
@@ -2940,9 +2968,13 @@ export type Database = {
           consent_text: string
           created_at?: string
           id?: string
+          marketing_consent_at?: string | null
+          marketing_consent_text?: string | null
           name: string
           phone: string
           source?: string
+          transactional_consent_at?: string | null
+          transactional_consent_text?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -2950,9 +2982,13 @@ export type Database = {
           consent_text?: string
           created_at?: string
           id?: string
+          marketing_consent_at?: string | null
+          marketing_consent_text?: string | null
           name?: string
           phone?: string
           source?: string
+          transactional_consent_at?: string | null
+          transactional_consent_text?: string | null
           user_agent?: string | null
         }
         Relationships: []
