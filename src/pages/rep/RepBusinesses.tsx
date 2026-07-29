@@ -348,7 +348,7 @@ const RepBusinesses = () => {
                   {hub.card_print_pdf_path ? (
                     <>
                       <button
-                        onClick={() => openPrintPdf(hub.card_print_pdf_path!, `${hub.username || 'hub'}-print`)}
+                        onClick={() => openPrintPdf(hub.card_print_pdf_path!, `${hub.custom_slug || 'hub'}-print`)}
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15"
                       >
                         <FileText className="h-3.5 w-3.5" /> Download PDF
