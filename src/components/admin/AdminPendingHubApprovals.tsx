@@ -240,10 +240,10 @@ const AdminPendingHubApprovals = () => {
                 </button>
                 {r.card_print_pdf_path && (
                   <button
-                    onClick={() => openPdf(r.card_print_pdf_path)}
+                    onClick={() => openPdf(r.card_print_pdf_path, `${r.username || 'hub'}-print`)}
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
-                    <FileText className="h-3 w-3" /> PDF
+                    <FileText className="h-3 w-3" /> Download PDF
                   </button>
                 )}
                 <button
