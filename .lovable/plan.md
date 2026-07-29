@@ -1,40 +1,30 @@
-# Fix Rep Demo Hub PDF Upload & Admin Download
+# Harden Rep PDF Upload Flow
 
 ## Root cause
 
-Reps upload the print PDF from **My Businesses** into `card-print-files/{personal_profiles.id}/…`, but the current storage RLS policy only allows access when the folder id matches a row in `public.restaurants`. Rep demo hubs live in `public.personal_profiles`, so every rep upload is blocked by RLS and the code shows a generic "Upload failed" toast. Admin `createSignedUrl` fails for the same reason, which is why there's no working download either.
+Two overlapping bugs on `src/pages/rep/RepBusinesses.tsx`:
 
-## Changes
+1. **Stale file input.** After `onChange` fires, React re-renders the row. By the time our `async uploadPdf` reaches its `finally` block, the `inputEl` we captured from `e.currentTarget` can be detached from the DOM (React unmounted the label subtree during the state update from `setUploadingId`). Clearing `.value` on the detached node has no effect, so re-selecting the same file (or any file, in some browsers) no longer fires `onChange` — reps see the picker close silently and think it's "upload failed." The only way out is a hard refresh, which matches the report.
+2. **Silent errors.** When the upload does throw, we surface `e.message`, but Supabase storage errors sometimes arrive as `{ error: { message } }` on the response rather than a thrown `Error`. Our current code only checks `upErr`, but for network / 5xx cases the SDK returns `data: null, error: { message: '' }`, so the toast reads "Upload failed:" with no detail.
 
-### 1. Migration — extend `card-print-files` storage policies
+## Changes (single file: `src/pages/rep/RepBusinesses.tsx`)
 
-Drop the four existing `card-print-files` policies on `storage.objects` and recreate SELECT / INSERT / UPDATE / DELETE so the folder id can match EITHER:
-- a `restaurants` row where `created_by = auth.uid()` (existing behavior), OR
-- a `personal_profiles` row where `user_id = auth.uid()` OR `created_by_rep_id = auth.uid()` (new — covers rep-created demos and hub owner), OR
-- `public.is_admin()` (admin universal access).
-
-### 2. `src/pages/rep/RepBusinesses.tsx` — upload/download UX
-
-- `uploadPdf`: surface real error (`e.message`) in toast + `console.error`; in `finally`, reset the `<input type="file">` value so re-selecting the same file re-triggers the change event.
-- Replace `openPrintPdf` (which does `window.open(signedUrl)`) with a blob download flow: `supabase.storage.from('card-print-files').download(path)` → object URL → hidden `<a download="print-{slug}.pdf">` → click → revoke.
-- Keep a small "Open in tab" secondary action using the signed URL for admins/reps who want an in-browser preview.
-
-### 3. `src/components/admin/AdminPendingHubApprovals.tsx`
-
-- Replace `openPdf` popup flow with the same blob download helper. The existing "PDF" button becomes "Download PDF".
-
-### 4. `src/components/admin/AdminUnifiedAccountsTable.tsx`
-
-- Extend the `personal_profiles` query to include `card_print_pdf_path`.
-- Add a "PDF" download button in the row action group (Solo rows only) that uses the blob download helper. Shown only when `card_print_pdf_path` is present.
-
-### 5. Verification
-
-- Typecheck (`tsgo`) passes cleanly.
-- Manually: as rep, upload a PDF on a demo hub, replace it, and re-select the same file twice; confirm success toast and real error surfacing.
-- As admin: from the Pending Approvals card and the Unified Accounts table, click Download PDF and confirm the file lands in Downloads.
+1. **Force-remount the file input after every attempt.** Track a per-hub `uploadNonce` (`Record<string, number>`) in state, use it as the `key` on each `<input type="file">`. Bump the nonce in `finally`. This guarantees a fresh input node, so the next click always fires `onChange` — no refresh needed.
+2. **Stop relying on `e.currentTarget`.** Drop the `inputEl` argument. Rely solely on the remount above.
+3. **Serialize per-hub uploads.** Guard `uploadPdf` with an early return if `uploadingId === hubId` so double-clicks can't race.
+4. **Better error surfacing.**
+   - Log the full error object (`console.error('[rep-upload]', { hubId, path, upErr, dbErr })`).
+   - Build the toast message from `upErr?.message || upErr?.error || (typeof upErr === 'string' ? upErr : JSON.stringify(upErr))`, falling back to `'unknown error'`.
+   - If `upErr?.statusCode === '409'` or message includes `already exists`, retry once with a fresh timestamp path (defensive — upsert should already handle this, but reps have seen it).
+5. **Confirm write.** After a successful upload + DB update, re-select the row from `personal_profiles` and only then update local `hubs` state with the returned `card_print_pdf_path`. This kills the "preview still shows old file" perception.
 
 ## Out of scope
 
-- W-9 flow (`rep-tax-docs` bucket) — separate bucket with different policies, not affected.
-- No changes to profile schema or upload paths.
+- Storage RLS (already fixed last turn — confirmed working since some uploads succeed).
+- Admin download surfaces.
+- W-9 / `rep-tax-docs` flow.
+
+## Verification
+
+- Typecheck clean.
+- Manually: upload a PDF, then immediately upload a second PDF to the same hub without refreshing — should succeed. Cancel a picker, reopen, pick same file — `onChange` still fires. Force an error (offline) — toast shows a real message and console has the full error object.
