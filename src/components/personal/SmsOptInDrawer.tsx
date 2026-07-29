@@ -10,7 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Smartphone } from "lucide-react";
 import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
-import { SMS_CONSENT_TEXT } from "@/lib/smsConsent";
+import {
+  SMS_MARKETING_CONSENT_TEXT,
+  SMS_TRANSACTIONAL_CONSENT_TEXT,
+} from "@/lib/smsConsent";
 
 interface Props {
   open: boolean;
@@ -42,14 +45,16 @@ export const SmsOptInDrawer = ({
   const isMobile = useIsMobile();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [transactionalConsent, setTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!consent) {
-      toast.error("Please check the consent box to continue.");
+    // VIP list is a MARKETING campaign — marketing consent is required.
+    if (!marketingConsent) {
+      toast.error("Please check the marketing consent box to join the VIP list.");
       return;
     }
 
@@ -67,18 +72,32 @@ export const SmsOptInDrawer = ({
         name: parsed.data.name,
         phone: parsed.data.phone,
         email: null,
-        sms_opt_in: true,
+        // Legacy field — true if the user opted into either program.
+        sms_opt_in: marketingConsent || transactionalConsent,
         sms_opt_in_at: optInAt,
+        sms_marketing_opt_in: marketingConsent,
+        sms_marketing_opt_in_at: marketingConsent ? optInAt : null,
+        sms_transactional_opt_in: transactionalConsent,
+        sms_transactional_opt_in_at: transactionalConsent ? optInAt : null,
       } as any);
 
       if (error) throw error;
 
-      // A2P 10DLC audit trail — store the exact consent copy shown at opt-in.
+      // A2P 10DLC audit trail — store the exact consent copy shown per campaign.
       await supabase.from("sms_signup_submissions" as any).insert({
         name: parsed.data.name,
         phone: parsed.data.phone,
-        consent_text: SMS_CONSENT_TEXT,
+        // Legacy field mirrors whichever campaign was chosen (marketing wins).
+        consent_text: marketingConsent
+          ? SMS_MARKETING_CONSENT_TEXT
+          : SMS_TRANSACTIONAL_CONSENT_TEXT,
         consent_at: optInAt,
+        marketing_consent_text: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
+        marketing_consent_at: marketingConsent ? optInAt : null,
+        transactional_consent_text: transactionalConsent
+          ? SMS_TRANSACTIONAL_CONSENT_TEXT
+          : null,
+        transactional_consent_at: transactionalConsent ? optInAt : null,
         user_agent: navigator.userAgent,
         source: `personal-hub:${profileId}`,
       } as any);
@@ -86,7 +105,8 @@ export const SmsOptInDrawer = ({
       toast.success("You're on the list! 🎉");
       setName("");
       setPhone("");
-      setConsent(false);
+      setMarketingConsent(false);
+      setTransactionalConsent(false);
       onOpenChange(false);
     } catch (err) {
       console.error("SMS opt-in error:", err);
@@ -127,10 +147,17 @@ export const SmsOptInDrawer = ({
           className="h-12"
         />
       </div>
-      <SmsConsentBlock id="personal-sms-consent" checked={consent} onChange={setConsent} />
+      <SmsConsentBlock
+        id="personal-sms-consent"
+        marketingChecked={marketingConsent}
+        onMarketingChange={setMarketingConsent}
+        transactionalChecked={transactionalConsent}
+        onTransactionalChange={setTransactionalConsent}
+        requireMarketing
+      />
       <Button
         type="submit"
-        disabled={submitting || !consent}
+        disabled={submitting || !marketingConsent}
         className="w-full h-12 text-base font-semibold"
       >
         {submitting ? (

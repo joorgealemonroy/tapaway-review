@@ -34,6 +34,24 @@ const Privacy = () => {
             promotional purposes. All the above categories exclude text messaging originator opt-in
             data and consent; this information will not be shared with any third parties.
           </p>
+          <p className="text-sm text-foreground mb-3">
+            TapAway operates <strong>two independent SMS programs</strong>, each with its own
+            unchecked-by-default opt-in:
+          </p>
+          <ul className="list-disc pl-5 text-sm text-foreground space-y-1 mb-3">
+            <li>
+              <strong>Marketing Texts</strong> — promotions, discount alerts, and loyalty rewards
+              from TapAway and participating merchants.
+            </li>
+            <li>
+              <strong>Review Reminders & Service Notifications</strong> — reminders to leave a
+              review after a visit and service-related notices.
+            </li>
+          </ul>
+          <p className="text-sm text-foreground mb-3">
+            Opting into one program does <strong>not</strong> enroll you in the other, and SMS
+            consent is <strong>never</strong> a condition of any purchase or account creation.
+          </p>
           <ul className="list-disc pl-5 text-sm text-foreground space-y-1">
             <li>
               Users opt in via web forms on TapAway hubs, our{" "}
