@@ -38,7 +38,20 @@ const RepBusinesses = () => {
   const [hubs, setHubs] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [uploadNonce, setUploadNonce] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
+
+  const bumpNonce = (hubId: string) =>
+    setUploadNonce((prev) => ({ ...prev, [hubId]: (prev[hubId] ?? 0) + 1 }));
+
+  const describeError = (err: unknown): string => {
+    if (!err) return 'unknown error';
+    if (typeof err === 'string') return err;
+    const anyErr = err as { message?: string; error?: string; statusCode?: string | number };
+    if (anyErr.message) return anyErr.message;
+    if (anyErr.error) return anyErr.error;
+    try { return JSON.stringify(err); } catch { return 'unknown error'; }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -118,41 +131,69 @@ const RepBusinesses = () => {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const uploadPdf = async (
-    hubId: string,
-    file: File,
-    inputEl?: HTMLInputElement | null,
-  ) => {
+  const uploadPdf = async (hubId: string, file: File) => {
+    if (uploadingId === hubId) return;
     if (!file || file.type !== 'application/pdf') {
       toast.error('Please upload a PDF file');
-      if (inputEl) inputEl.value = '';
+      bumpNonce(hubId);
       return;
     }
     if (file.size > 15 * 1024 * 1024) {
       toast.error('PDF must be under 15MB');
-      if (inputEl) inputEl.value = '';
+      bumpNonce(hubId);
       return;
     }
     setUploadingId(hubId);
+    const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+    let path = `${hubId}/${Date.now()}-${safeName}`;
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(0, 120);
-      const path = `${hubId}/${Date.now()}-${safeName}`;
-      const { error: upErr } = await supabase.storage.from('card-print-files').upload(path, file, {
-        upsert: true,
-        contentType: 'application/pdf',
-      });
-      if (upErr) throw upErr;
+      let { error: upErr } = await supabase.storage
+        .from('card-print-files')
+        .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+
+      // Defensive retry with a fresh path if we hit a conflict despite upsert
+      if (upErr) {
+        const msg = describeError(upErr).toLowerCase();
+        const statusCode = (upErr as { statusCode?: string | number }).statusCode;
+        if (statusCode === '409' || statusCode === 409 || msg.includes('already exists') || msg.includes('duplicate')) {
+          path = `${hubId}/${Date.now()}-retry-${safeName}`;
+          const retry = await supabase.storage
+            .from('card-print-files')
+            .upload(path, file, { upsert: true, contentType: 'application/pdf' });
+          upErr = retry.error;
+        }
+      }
+      if (upErr) {
+        console.error('[rep-upload] storage upload failed', { hubId, path, upErr });
+        throw upErr;
+      }
+
       const { error: dbErr } = await supabase
-        .from('personal_profiles').update({ card_print_pdf_path: path } as any).eq('id', hubId);
-      if (dbErr) throw dbErr;
-      setHubs(prev => prev.map(h => (h.id === hubId ? { ...h, card_print_pdf_path: path } : h)));
+        .from('personal_profiles')
+        .update({ card_print_pdf_path: path } as any)
+        .eq('id', hubId);
+      if (dbErr) {
+        console.error('[rep-upload] db update failed', { hubId, path, dbErr });
+        throw dbErr;
+      }
+
+      // Confirm the write landed
+      const { data: confirmed, error: readErr } = await supabase
+        .from('personal_profiles')
+        .select('card_print_pdf_path')
+        .eq('id', hubId)
+        .maybeSingle();
+      if (readErr) console.warn('[rep-upload] confirm read failed', readErr);
+      const savedPath = (confirmed?.card_print_pdf_path as string | null) ?? path;
+
+      setHubs((prev) => prev.map((h) => (h.id === hubId ? { ...h, card_print_pdf_path: savedPath } : h)));
       toast.success('Print file saved');
     } catch (e) {
-      console.error('Upload failed', e);
-      toast.error('Upload failed: ' + (e instanceof Error ? e.message : 'unknown'));
+      console.error('[rep-upload] failed', { hubId, path, error: e });
+      toast.error('Upload failed: ' + describeError(e));
     } finally {
       setUploadingId(null);
-      if (inputEl) inputEl.value = '';
+      bumpNonce(hubId);
     }
   };
 
@@ -362,13 +403,14 @@ const RepBusinesses = () => {
                       <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]">
                         <Upload className="h-3.5 w-3.5" /> Replace
                         <input
+                          key={`replace-${hub.id}-${uploadNonce[hub.id] ?? 0}`}
                           type="file"
                           accept="application/pdf"
                           className="hidden"
                           disabled={uploading}
                           onChange={(e) => {
                             const f = e.target.files?.[0];
-                            if (f) uploadPdf(hub.id, f, e.currentTarget);
+                            if (f) uploadPdf(hub.id, f);
                           }}
                         />
                       </label>
@@ -378,13 +420,14 @@ const RepBusinesses = () => {
                       <Upload className="h-3.5 w-3.5" />
                       {uploading ? 'Uploading…' : 'Upload PDF'}
                       <input
+                        key={`upload-${hub.id}-${uploadNonce[hub.id] ?? 0}`}
                         type="file"
                         accept="application/pdf"
                         className="hidden"
                         disabled={uploading}
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) uploadPdf(hub.id, f, e.currentTarget);
+                          if (f) uploadPdf(hub.id, f);
                         }}
                       />
                     </label>
