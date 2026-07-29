@@ -30,9 +30,23 @@ const Terms = () => {
         <section className="border border-primary/30 bg-primary/5 p-5 rounded-lg mb-8">
           <h2 className="text-2xl font-bold mb-3">SMS & Mobile Messaging Terms</h2>
           <p className="text-sm text-foreground mb-3">
-            TapAway provides SMS loyalty updates, exclusive discounts, and review reminders on
-            behalf of registered small business owners (restaurants, bakeries, salons, barbers, and
-            similar merchants). Recipients opt in via web forms on TapAway hubs, our{" "}
+            TapAway operates <strong>two independent SMS programs</strong> on behalf of registered
+            small business owners (restaurants, bakeries, salons, barbers, and similar merchants).
+            Each program uses its own unchecked-by-default opt-in checkbox:
+          </p>
+          <ul className="list-disc pl-5 text-sm text-foreground space-y-1 mb-3">
+            <li>
+              <strong>Marketing Texts:</strong> promotions, discount alerts, and loyalty rewards.
+            </li>
+            <li>
+              <strong>Review Reminders & Service Notifications:</strong> post-visit review
+              reminders and service-related notices.
+            </li>
+          </ul>
+          <p className="text-sm text-foreground mb-3">
+            Opting into one program does <strong>not</strong> opt you into the other. SMS consent
+            is <strong>never</strong> required to complete a purchase or create an account.
+            Recipients opt in via web forms on TapAway hubs, our{" "}
             <a href="/sms-signup" className="underline">SMS signup page</a>, or by texting the
             keyword <strong>TAPVIP</strong> to <strong>(978) 827-2929</strong>.
           </p>

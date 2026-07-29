@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
-import { SMS_CONSENT_TEXT, SMS_HELP_NUMBER, SMS_KEYWORD } from "@/lib/smsConsent";
+import {
+  SMS_MARKETING_CONSENT_TEXT,
+  SMS_TRANSACTIONAL_CONSENT_TEXT,
+  SMS_HELP_NUMBER,
+  SMS_KEYWORD,
+} from "@/lib/smsConsent";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, MessageSquare, CheckCircle2 } from "lucide-react";
@@ -25,14 +30,15 @@ const SmsSignup = () => {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [transactionalConsent, setTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!consent) {
-      toast.error("Please check the consent box to continue.");
+    if (!marketingConsent && !transactionalConsent) {
+      toast.error("Please check at least one consent box to continue.");
       return;
     }
     const parsed = schema.safeParse({ name, phone });
@@ -43,11 +49,21 @@ const SmsSignup = () => {
 
     setSubmitting(true);
     try {
+      const consentAt = new Date().toISOString();
       const { error } = await supabase.from("sms_signup_submissions" as any).insert({
         name: parsed.data.name,
         phone: parsed.data.phone,
-        consent_text: SMS_CONSENT_TEXT,
-        consent_at: new Date().toISOString(),
+        // Legacy — mirror whichever campaign was chosen (marketing wins).
+        consent_text: marketingConsent
+          ? SMS_MARKETING_CONSENT_TEXT
+          : SMS_TRANSACTIONAL_CONSENT_TEXT,
+        consent_at: consentAt,
+        marketing_consent_text: marketingConsent ? SMS_MARKETING_CONSENT_TEXT : null,
+        marketing_consent_at: marketingConsent ? consentAt : null,
+        transactional_consent_text: transactionalConsent
+          ? SMS_TRANSACTIONAL_CONSENT_TEXT
+          : null,
+        transactional_consent_at: transactionalConsent ? consentAt : null,
         user_agent: navigator.userAgent,
         source: "/sms-signup",
       } as any);
@@ -104,10 +120,28 @@ const SmsSignup = () => {
             TapAway SMS Customer VIP Club Signup
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            TapAway enables local small businesses (restaurants, bakeries, salons, barbers) to send
-            loyalty rewards, exclusive discount alerts, and automated review reminders to opted-in VIP
-            customers.
+            TapAway runs TWO independent SMS programs on behalf of participating local small
+            businesses (restaurants, bakeries, salons, barbers). Each program has its own opt-in
+            below — checking one does <strong>not</strong> enroll you in the other.
           </p>
+          <div className="mt-6 grid gap-3 text-left sm:grid-cols-2">
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold mb-1">Program 1 — Marketing Texts</h3>
+              <p className="text-xs text-muted-foreground">
+                Promotions, discount alerts, and loyalty rewards. Msg frequency varies. Msg & data
+                rates may apply. Reply STOP to cancel, HELP for help.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold mb-1">
+                Program 2 — Review Reminders & Service Notifications
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Reminders to leave a review after a visit and service-related notices. Msg frequency
+                varies. Msg & data rates may apply. Reply STOP to cancel, HELP for help.
+              </p>
+            </div>
+          </div>
         </header>
 
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -152,11 +186,23 @@ const SmsSignup = () => {
                 />
               </div>
 
-              <SmsConsentBlock id="signup-consent" checked={consent} onChange={setConsent} />
+              <SmsConsentBlock
+                id="signup-consent"
+                marketingChecked={marketingConsent}
+                onMarketingChange={setMarketingConsent}
+                transactionalChecked={transactionalConsent}
+                onTransactionalChange={setTransactionalConsent}
+                requireMarketing={false}
+                requireTransactional={false}
+              />
 
               <Button
                 type="submit"
-                disabled={submitting || !consent || !schema.safeParse({ name, phone }).success}
+                disabled={
+                  submitting ||
+                  (!marketingConsent && !transactionalConsent) ||
+                  !schema.safeParse({ name, phone }).success
+                }
                 className="w-full h-12 text-base font-semibold"
               >
                 {submitting ? (
@@ -165,7 +211,7 @@ const SmsSignup = () => {
                     Joining...
                   </>
                 ) : (
-                  "Join the VIP List"
+                  "Join Selected Program(s)"
                 )}
               </Button>
             </form>

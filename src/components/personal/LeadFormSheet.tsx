@@ -36,6 +36,7 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [smsConsent, setSmsConsent] = useState(false);
+  const [smsTransactionalConsent, setSmsTransactionalConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -230,8 +231,11 @@ const LeadFormSheet = ({ profileId, accentColor }: Props) => {
               {hasPhoneField && (
                 <SmsConsentBlock
                   id="lead-sms-consent"
-                  checked={smsConsent}
-                  onChange={setSmsConsent}
+                  marketingChecked={smsConsent}
+                  onMarketingChange={setSmsConsent}
+                  transactionalChecked={smsTransactionalConsent}
+                  onTransactionalChange={setSmsTransactionalConsent}
+                  requireMarketing
                 />
               )}
 

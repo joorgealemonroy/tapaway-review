@@ -1,50 +1,86 @@
-## 1. Migration — reviewer notes + new pipeline status
 
-`personal_profiles`:
-- Add `review_note text` and `review_note_at timestamptz`.
-- Drop and re-add `personal_profiles_pipeline_status_check` to include `'changes_requested'` alongside the existing statuses (`draft`, `ready_for_review`, `card_ready`, `delivered`, `converted`, `inactive`).
+# Fix A2P 10DLC Error 30913 — Unbundle Marketing vs Transactional SMS Consent
 
-No GRANT/RLS changes — new columns inherit the table's existing policies.
+Twilio rejected our campaign because our single checkbox bundles marketing (promos, discounts, loyalty rewards) with review reminders/service notifications. Carriers require each campaign to have its own unchecked-by-default opt-in with its own disclosures. We'll split the copy, the checkbox, the audit trail, and the subscriber columns.
 
-## 2. Compact approvals queue with "Request Changes"
+## 1. Database migration
 
-`src/components/admin/AdminPendingHubApprovals.tsx`
+Add dual-consent tracking columns (defaults `false`, backfills existing rows safely):
 
-- Replace the 6-column table with a stacked list of dense cards. Each card:
-  - Left: business name + `@username`, rep name, submitted date.
-  - Right (tight button row): **Preview**, **PDF** (if present), **Request Changes**, **Approve**.
-- "Request Changes" opens an inline textarea (shadcn Dialog). On Send:
-  - Update the profile: `review_note = <text>`, `review_note_at = now()`, `pipeline_status = 'changes_requested'`, `submitted_for_review_at = null`.
-  - Toast confirmation, remove row from queue.
-- Approve flow unchanged (award-demo-commission edge fn still fires).
+```sql
+ALTER TABLE public.personal_email_captures
+  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in_at timestamptz,
+  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in_at timestamptz;
 
-`src/pages/personal/PersonalDashboard.tsx`
+ALTER TABLE public.restaurant_sms_subscribers
+  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in_at timestamptz,
+  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in_at timestamptz;
 
-- When the active profile's `pipeline_status === 'changes_requested'`, render an amber banner above the existing draft/submit banner showing "Admin requested changes" and the `review_note`. Include a "Mark ready and resubmit" button that clears the note and sets `pipeline_status = 'ready_for_review'` + `submitted_for_review_at = now()` (mirrors current submit path).
+ALTER TABLE public.sms_signup_submissions
+  ADD COLUMN IF NOT EXISTS marketing_consent_text text,
+  ADD COLUMN IF NOT EXISTS marketing_consent_at timestamptz,
+  ADD COLUMN IF NOT EXISTS transactional_consent_text text,
+  ADD COLUMN IF NOT EXISTS transactional_consent_at timestamptz;
+```
 
-## 3. Unified Accounts table
+Existing legacy `sms_opt_in` / `consent_text` columns stay in place for backward compat — new writes populate both old and new fields (marketing wins for the legacy field when both are checked).
 
-`src/pages/Admin.tsx` — replace the current `renderAccounts` split (Legacy table + Lite table stacked, plus a 3-way segment control) with a single unified table.
+## 2. `src/lib/smsConsent.ts` — split consent copy
 
-- **Data union**: build one array of rows shaped as `{ id, name, kind: 'legacy' | 'lite', owner_email, plan, status, taps, created_at, slug }`.
-  - Legacy: from already-loaded `restaurants` (taps already aggregated).
-  - Lite: fetch `personal_profiles` **excluding** rows where `created_by_rep_id is not null AND is_approved = false` (rep demos live only in the pending queue).
-  - Lite taps: one batched `personal_analytics` query filtered by `event_type = 'tap'` and the loaded `profile_id` list; reduce client-side into a `Record<profileId, number>`.
-- **Columns**: Business · Kind (badge: Legacy / Lite) · Plan · Status · Taps · Created · Actions. Drops the broken Locations column and the Owner/Email/Slug columns get consolidated under Business.
-- **Sorting**: default Taps desc. Click Taps / Created / Name headers to toggle asc/desc.
-- **Filter row (single line)**: search (name + slug + email), Kind (All / Legacy / Lite), Plan, Status. Replaces the current segment tabs.
-- **Actions**: reuse existing per-kind actions (open hub, edit, delete) via a dropdown so the row height stays compact.
-- Delete `renderLegacyTable`'s standalone renders and inline the row rendering into the unified table. `AdminBusinessLiteTable` becomes unused inside Admin.tsx — leave the file in place (still linked from `/admin/personal-accounts` full manager button) but stop rendering it in the Accounts tab.
+Replace the single `SMS_CONSENT_TEXT` with two campaign-scoped constants, each with full disclosures (brand, "Msg & data rates may apply", "Msg frequency varies", STOP/HELP):
 
-## Technical notes
+- `SMS_MARKETING_CONSENT_TEXT` — marketing/promos/discounts/loyalty from TapAway + participating merchants.
+- `SMS_TRANSACTIONAL_CONSENT_TEXT` — review reminders and service notifications from TapAway + participating merchants.
 
-- All work is admin-only pages; RLS on `personal_profiles` and `personal_analytics` already permits admin reads.
-- No changes to public hub routing, rep pricing, commission engine, or the `award-demo-commission` edge function.
-- Typecheck runs automatically after edits.
+Keep `SMS_CONSENT_TEXT` exported as a legacy alias pointing to `SMS_MARKETING_CONSENT_TEXT`.
 
-## Files touched
+## 3. `src/components/compliance/SmsConsentBlock.tsx` — dual checkbox
 
-- Migration (new).
-- `src/components/admin/AdminPendingHubApprovals.tsx` — compact cards + Request Changes dialog.
-- `src/pages/personal/PersonalDashboard.tsx` — changes-requested banner + resubmit action.
-- `src/pages/Admin.tsx` — unified Accounts table (union, taps sort, filters, dropped Locations).
+Rework the component API:
+
+```ts
+interface Props {
+  marketingChecked: boolean;
+  onMarketingChange: (v: boolean) => void;
+  transactionalChecked: boolean;
+  onTransactionalChange: (v: boolean) => void;
+  requireMarketing?: boolean;
+  requireTransactional?: boolean;
+  compact?: boolean;
+}
+```
+
+Render TWO independent unchecked-by-default checkboxes, each with its own consent paragraph directly beside it. Privacy + Terms links appear once, below both blocks. No shared state — ticking one does NOT tick the other.
+
+## 4. Forms + audit trail
+
+**`src/components/personal/SmsOptInDrawer.tsx`** and **`src/components/restaurant/RestaurantSmsOptInDrawer.tsx`**
+- Track two independent state flags (`marketingConsent`, `transactionalConsent`).
+- VIP list is a marketing campaign → require `marketingConsent` to submit; `transactionalConsent` is optional additive.
+- On insert into `personal_email_captures` / `restaurant_sms_subscribers`, populate the four new columns plus the legacy `sms_opt_in` (true if either box is checked).
+- On insert into `sms_signup_submissions`, populate `marketing_consent_text` + `marketing_consent_at` and/or `transactional_consent_text` + `transactional_consent_at` based on which boxes the user ticked. Mirror the winning text into legacy `consent_text` for continuity.
+
+**`src/pages/SmsSignup.tsx`** (the TCR reviewer-facing proof page)
+- Render both checkboxes side-by-side using the new component.
+- Add explainer copy that names the two campaigns distinctly ("VIP Marketing Texts" vs "Review Reminders & Service Notifications"), each showing its own frequency + rates + STOP/HELP disclosure.
+- Log submissions to `sms_signup_submissions` per the rule above.
+
+Any other place that imports `SmsConsentBlock` gets updated to the new dual-prop API.
+
+## 5. Legal pages
+
+**`src/pages/Privacy.tsx`** and **`src/pages/Terms.tsx`**
+- Add short paragraphs describing the two independent SMS programs.
+- State plainly: opting into one program does NOT opt you into the other, consent is not required for any purchase, and mobile info + opt-in consent are never shared/sold to third parties for marketing (CTIA requirement).
+
+## 6. Verify
+
+Run `tsgo` (project typecheck) after edits. Fix any callsite of the old `SmsConsentBlock` API surfaced by the check.
+
+## Out of scope
+- Twilio campaign resubmission itself — done in the Twilio console after this ships.
+- Splitting sender-side logic into two Twilio campaigns (transactional sender not built yet); this plan only captures the split at opt-in so we have the data when we build it.
