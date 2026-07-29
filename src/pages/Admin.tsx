@@ -90,6 +90,7 @@ type Section = "overview" | "accounts" | "reps" | "promo" | "system";
 const NAV = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
   { id: "accounts" as const, label: "Accounts & Hubs", icon: Building2 },
+  { id: "print" as const, label: "Print & Ship Queue", icon: Printer, path: "/admin/print-queue" },
   { id: "reps" as const, label: "Sales Reps", icon: Users },
   { id: "promo" as const, label: "Promo Links", icon: LinkIcon },
   { id: "system" as const, label: "System & SMS", icon: Settings },
