@@ -403,6 +403,17 @@ const AdminUnifiedAccountsTable = () => {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      {r.kind === "lite" && r.card_print_pdf_path && (
+                        <Button
+                          onClick={() => downloadPdf(r)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          title="Download print PDF"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => openDashboard(r)}
                         size="sm"
