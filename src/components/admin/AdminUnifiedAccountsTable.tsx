@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   ArrowUpDown,
   ExternalLink,
+  FileText,
   Loader2,
   Search,
   Trash2,
@@ -36,6 +37,7 @@ type UnifiedRow = {
   user_id?: string | null;
   sales_rep_id?: string | null;
   created_by_rep_id?: string | null;
+  card_print_pdf_path?: string | null;
 };
 
 type SortKey = "taps" | "created_at" | "name";
@@ -73,7 +75,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, created_at, profile_photo_url, sales_rep_id, created_by_rep_id"
+            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -140,6 +142,7 @@ const AdminUnifiedAccountsTable = () => {
             user_id: p.user_id,
             sales_rep_id: p.sales_rep_id,
             created_by_rep_id: p.created_by_rep_id,
+            card_print_pdf_path: (p as any).card_print_pdf_path ?? null,
           }));
 
         setRows([...legacyRows, ...liteRows]);
@@ -194,6 +197,28 @@ const AdminUnifiedAccountsTable = () => {
       navigate(`/dashboard?admin_view=${r.id}`);
     } else {
       navigate(`/dashboard?admin_view_personal=${r.id}`);
+    }
+  };
+
+  const downloadPdf = async (r: UnifiedRow) => {
+    if (!r.card_print_pdf_path) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("card-print-files")
+        .download(r.card_print_pdf_path);
+      if (error || !data) throw error ?? new Error("Empty download");
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      const base = `${r.slug || r.id}-print`;
+      a.download = base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download failed", e);
+      toast.error("Download failed: " + (e instanceof Error ? e.message : "unknown"));
     }
   };
 
@@ -376,6 +401,17 @@ const AdminUnifiedAccountsTable = () => {
                           title="Open live hub"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {r.kind === "lite" && r.card_print_pdf_path && (
+                        <Button
+                          onClick={() => downloadPdf(r)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          title="Download print PDF"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       <Button

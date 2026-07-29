@@ -90,7 +90,26 @@ const RepBusinesses = () => {
     }
   };
 
-  const openPrintPdf = async (path: string) => {
+  const openPrintPdf = async (path: string, filenameHint?: string) => {
+    try {
+      const { data, error } = await supabase.storage.from('card-print-files').download(path);
+      if (error || !data) throw error ?? new Error('Empty download');
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      const base = filenameHint?.trim() || path.split('/').pop() || 'print-file';
+      a.download = base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error('Download failed', e);
+      toast.error('Download failed: ' + (e instanceof Error ? e.message : 'unknown'));
+    }
+  };
+
+  const openPrintPdfInTab = async (path: string) => {
     const { data, error } = await supabase.storage.from('card-print-files').createSignedUrl(path, 900);
     if (error || !data?.signedUrl) {
       toast.error('Could not open file');
@@ -99,18 +118,25 @@ const RepBusinesses = () => {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const uploadPdf = async (hubId: string, file: File) => {
+  const uploadPdf = async (
+    hubId: string,
+    file: File,
+    inputEl?: HTMLInputElement | null,
+  ) => {
     if (!file || file.type !== 'application/pdf') {
       toast.error('Please upload a PDF file');
+      if (inputEl) inputEl.value = '';
       return;
     }
     if (file.size > 15 * 1024 * 1024) {
       toast.error('PDF must be under 15MB');
+      if (inputEl) inputEl.value = '';
       return;
     }
     setUploadingId(hubId);
     try {
-      const path = `${hubId}/${Date.now()}-${file.name}`;
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+      const path = `${hubId}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from('card-print-files').upload(path, file, {
         upsert: true,
         contentType: 'application/pdf',
@@ -122,10 +148,11 @@ const RepBusinesses = () => {
       setHubs(prev => prev.map(h => (h.id === hubId ? { ...h, card_print_pdf_path: path } : h)));
       toast.success('Print file saved');
     } catch (e) {
-      console.error(e);
-      toast.error('Upload failed');
+      console.error('Upload failed', e);
+      toast.error('Upload failed: ' + (e instanceof Error ? e.message : 'unknown'));
     } finally {
       setUploadingId(null);
+      if (inputEl) inputEl.value = '';
     }
   };
 
@@ -317,14 +344,20 @@ const RepBusinesses = () => {
                     </Select>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {hub.card_print_pdf_path ? (
                     <>
                       <button
-                        onClick={() => openPrintPdf(hub.card_print_pdf_path!)}
+                        onClick={() => openPrintPdf(hub.card_print_pdf_path!, `${hub.custom_slug || 'hub'}-print`)}
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15"
                       >
-                        <FileText className="h-3.5 w-3.5" /> View
+                        <FileText className="h-3.5 w-3.5" /> Download PDF
+                      </button>
+                      <button
+                        onClick={() => openPrintPdfInTab(hub.card_print_pdf_path!)}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> Open
                       </button>
                       <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]">
                         <Upload className="h-3.5 w-3.5" /> Replace
@@ -333,7 +366,10 @@ const RepBusinesses = () => {
                           accept="application/pdf"
                           className="hidden"
                           disabled={uploading}
-                          onChange={(e) => e.target.files?.[0] && uploadPdf(hub.id, e.target.files[0])}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadPdf(hub.id, f, e.currentTarget);
+                          }}
                         />
                       </label>
                     </>
@@ -346,7 +382,10 @@ const RepBusinesses = () => {
                         accept="application/pdf"
                         className="hidden"
                         disabled={uploading}
-                        onChange={(e) => e.target.files?.[0] && uploadPdf(hub.id, e.target.files[0])}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadPdf(hub.id, f, e.currentTarget);
+                        }}
                       />
                     </label>
                   )}

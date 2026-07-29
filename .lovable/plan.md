@@ -1,86 +1,40 @@
+# Fix Rep Demo Hub PDF Upload & Admin Download
 
-# Fix A2P 10DLC Error 30913 — Unbundle Marketing vs Transactional SMS Consent
+## Root cause
 
-Twilio rejected our campaign because our single checkbox bundles marketing (promos, discounts, loyalty rewards) with review reminders/service notifications. Carriers require each campaign to have its own unchecked-by-default opt-in with its own disclosures. We'll split the copy, the checkbox, the audit trail, and the subscriber columns.
+Reps upload the print PDF from **My Businesses** into `card-print-files/{personal_profiles.id}/…`, but the current storage RLS policy only allows access when the folder id matches a row in `public.restaurants`. Rep demo hubs live in `public.personal_profiles`, so every rep upload is blocked by RLS and the code shows a generic "Upload failed" toast. Admin `createSignedUrl` fails for the same reason, which is why there's no working download either.
 
-## 1. Database migration
+## Changes
 
-Add dual-consent tracking columns (defaults `false`, backfills existing rows safely):
+### 1. Migration — extend `card-print-files` storage policies
 
-```sql
-ALTER TABLE public.personal_email_captures
-  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in_at timestamptz,
-  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in_at timestamptz;
+Drop the four existing `card-print-files` policies on `storage.objects` and recreate SELECT / INSERT / UPDATE / DELETE so the folder id can match EITHER:
+- a `restaurants` row where `created_by = auth.uid()` (existing behavior), OR
+- a `personal_profiles` row where `user_id = auth.uid()` OR `created_by_rep_id = auth.uid()` (new — covers rep-created demos and hub owner), OR
+- `public.is_admin()` (admin universal access).
 
-ALTER TABLE public.restaurant_sms_subscribers
-  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS sms_marketing_opt_in_at timestamptz,
-  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS sms_transactional_opt_in_at timestamptz;
+### 2. `src/pages/rep/RepBusinesses.tsx` — upload/download UX
 
-ALTER TABLE public.sms_signup_submissions
-  ADD COLUMN IF NOT EXISTS marketing_consent_text text,
-  ADD COLUMN IF NOT EXISTS marketing_consent_at timestamptz,
-  ADD COLUMN IF NOT EXISTS transactional_consent_text text,
-  ADD COLUMN IF NOT EXISTS transactional_consent_at timestamptz;
-```
+- `uploadPdf`: surface real error (`e.message`) in toast + `console.error`; in `finally`, reset the `<input type="file">` value so re-selecting the same file re-triggers the change event.
+- Replace `openPrintPdf` (which does `window.open(signedUrl)`) with a blob download flow: `supabase.storage.from('card-print-files').download(path)` → object URL → hidden `<a download="print-{slug}.pdf">` → click → revoke.
+- Keep a small "Open in tab" secondary action using the signed URL for admins/reps who want an in-browser preview.
 
-Existing legacy `sms_opt_in` / `consent_text` columns stay in place for backward compat — new writes populate both old and new fields (marketing wins for the legacy field when both are checked).
+### 3. `src/components/admin/AdminPendingHubApprovals.tsx`
 
-## 2. `src/lib/smsConsent.ts` — split consent copy
+- Replace `openPdf` popup flow with the same blob download helper. The existing "PDF" button becomes "Download PDF".
 
-Replace the single `SMS_CONSENT_TEXT` with two campaign-scoped constants, each with full disclosures (brand, "Msg & data rates may apply", "Msg frequency varies", STOP/HELP):
+### 4. `src/components/admin/AdminUnifiedAccountsTable.tsx`
 
-- `SMS_MARKETING_CONSENT_TEXT` — marketing/promos/discounts/loyalty from TapAway + participating merchants.
-- `SMS_TRANSACTIONAL_CONSENT_TEXT` — review reminders and service notifications from TapAway + participating merchants.
+- Extend the `personal_profiles` query to include `card_print_pdf_path`.
+- Add a "PDF" download button in the row action group (Solo rows only) that uses the blob download helper. Shown only when `card_print_pdf_path` is present.
 
-Keep `SMS_CONSENT_TEXT` exported as a legacy alias pointing to `SMS_MARKETING_CONSENT_TEXT`.
+### 5. Verification
 
-## 3. `src/components/compliance/SmsConsentBlock.tsx` — dual checkbox
-
-Rework the component API:
-
-```ts
-interface Props {
-  marketingChecked: boolean;
-  onMarketingChange: (v: boolean) => void;
-  transactionalChecked: boolean;
-  onTransactionalChange: (v: boolean) => void;
-  requireMarketing?: boolean;
-  requireTransactional?: boolean;
-  compact?: boolean;
-}
-```
-
-Render TWO independent unchecked-by-default checkboxes, each with its own consent paragraph directly beside it. Privacy + Terms links appear once, below both blocks. No shared state — ticking one does NOT tick the other.
-
-## 4. Forms + audit trail
-
-**`src/components/personal/SmsOptInDrawer.tsx`** and **`src/components/restaurant/RestaurantSmsOptInDrawer.tsx`**
-- Track two independent state flags (`marketingConsent`, `transactionalConsent`).
-- VIP list is a marketing campaign → require `marketingConsent` to submit; `transactionalConsent` is optional additive.
-- On insert into `personal_email_captures` / `restaurant_sms_subscribers`, populate the four new columns plus the legacy `sms_opt_in` (true if either box is checked).
-- On insert into `sms_signup_submissions`, populate `marketing_consent_text` + `marketing_consent_at` and/or `transactional_consent_text` + `transactional_consent_at` based on which boxes the user ticked. Mirror the winning text into legacy `consent_text` for continuity.
-
-**`src/pages/SmsSignup.tsx`** (the TCR reviewer-facing proof page)
-- Render both checkboxes side-by-side using the new component.
-- Add explainer copy that names the two campaigns distinctly ("VIP Marketing Texts" vs "Review Reminders & Service Notifications"), each showing its own frequency + rates + STOP/HELP disclosure.
-- Log submissions to `sms_signup_submissions` per the rule above.
-
-Any other place that imports `SmsConsentBlock` gets updated to the new dual-prop API.
-
-## 5. Legal pages
-
-**`src/pages/Privacy.tsx`** and **`src/pages/Terms.tsx`**
-- Add short paragraphs describing the two independent SMS programs.
-- State plainly: opting into one program does NOT opt you into the other, consent is not required for any purchase, and mobile info + opt-in consent are never shared/sold to third parties for marketing (CTIA requirement).
-
-## 6. Verify
-
-Run `tsgo` (project typecheck) after edits. Fix any callsite of the old `SmsConsentBlock` API surfaced by the check.
+- Typecheck (`tsgo`) passes cleanly.
+- Manually: as rep, upload a PDF on a demo hub, replace it, and re-select the same file twice; confirm success toast and real error surfacing.
+- As admin: from the Pending Approvals card and the Unified Accounts table, click Download PDF and confirm the file lands in Downloads.
 
 ## Out of scope
-- Twilio campaign resubmission itself — done in the Twilio console after this ships.
-- Splitting sender-side logic into two Twilio campaigns (transactional sender not built yet); this plan only captures the split at opt-in so we have the data when we build it.
+
+- W-9 flow (`rep-tax-docs` bucket) — separate bucket with different policies, not affected.
+- No changes to profile schema or upload paths.

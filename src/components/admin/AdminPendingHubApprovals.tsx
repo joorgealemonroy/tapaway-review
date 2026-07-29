@@ -82,19 +82,29 @@ const AdminPendingHubApprovals = () => {
     load();
   }, [load]);
 
-  const openPdf = async (path: string | null) => {
+  const openPdf = async (path: string | null, filenameHint?: string) => {
     if (!path) {
       toast.error("No print file uploaded");
       return;
     }
-    const { data, error } = await supabase.storage
-      .from("card-print-files")
-      .createSignedUrl(path, 900);
-    if (error || !data?.signedUrl) {
-      toast.error("Could not open print file");
-      return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("card-print-files")
+        .download(path);
+      if (error || !data) throw error ?? new Error("Empty download");
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      const base = filenameHint?.trim() || path.split("/").pop() || "print-file";
+      a.download = base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download failed", e);
+      toast.error("Download failed: " + (e instanceof Error ? e.message : "unknown"));
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const approve = async (row: PendingHub) => {
@@ -230,10 +240,10 @@ const AdminPendingHubApprovals = () => {
                 </button>
                 {r.card_print_pdf_path && (
                   <button
-                    onClick={() => openPdf(r.card_print_pdf_path)}
+                    onClick={() => openPdf(r.card_print_pdf_path, `${r.username || 'hub'}-print`)}
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
-                    <FileText className="h-3 w-3" /> PDF
+                    <FileText className="h-3 w-3" /> Download PDF
                   </button>
                 )}
                 <button
