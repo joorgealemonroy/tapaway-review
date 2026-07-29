@@ -54,6 +54,7 @@ import {
   ClipboardList,
   ChevronRight,
   Activity,
+  Printer,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
@@ -103,6 +104,7 @@ const REP_CARDS = [
 ];
 
 const SYSTEM_LINKS = [
+  { label: "Print Queue", desc: "Track & bulk download card PDFs", icon: Printer, path: "/admin/print-queue" },
   { label: "Hub Health", desc: "Verify every live hub is publicly reachable", icon: Activity, path: "/admin/hub-health" },
   { label: "VIP SMS Subscribers", desc: "Search & export VIP text lists", icon: MessageSquare, path: "/admin/sms-subscribers" },
   { label: "Comp Settings", desc: "Rates & bonus thresholds", icon: Settings, path: "/admin/settings/comp" },

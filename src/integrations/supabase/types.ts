@@ -1876,6 +1876,14 @@ export type Database = {
           pfp_position: string | null
           pipeline_status: string | null
           plan_type: string | null
+          print_delivered_at: string | null
+          print_delivered_by: string | null
+          print_downloaded_at: string | null
+          print_downloaded_by: string | null
+          print_notes: string | null
+          print_printed_at: string | null
+          print_printed_by: string | null
+          print_status: string | null
           profile_photo_url: string | null
           referred_by: string | null
           review_note: string | null
@@ -1892,6 +1900,7 @@ export type Database = {
           subscription_status: string | null
           text_color: string | null
           trial_ends_at: string | null
+          trial_extension_days: number
           updated_at: string | null
           user_id: string
           username: string
@@ -1940,6 +1949,14 @@ export type Database = {
           pfp_position?: string | null
           pipeline_status?: string | null
           plan_type?: string | null
+          print_delivered_at?: string | null
+          print_delivered_by?: string | null
+          print_downloaded_at?: string | null
+          print_downloaded_by?: string | null
+          print_notes?: string | null
+          print_printed_at?: string | null
+          print_printed_by?: string | null
+          print_status?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           review_note?: string | null
@@ -1956,6 +1973,7 @@ export type Database = {
           subscription_status?: string | null
           text_color?: string | null
           trial_ends_at?: string | null
+          trial_extension_days?: number
           updated_at?: string | null
           user_id: string
           username: string
@@ -2004,6 +2022,14 @@ export type Database = {
           pfp_position?: string | null
           pipeline_status?: string | null
           plan_type?: string | null
+          print_delivered_at?: string | null
+          print_delivered_by?: string | null
+          print_downloaded_at?: string | null
+          print_downloaded_by?: string | null
+          print_notes?: string | null
+          print_printed_at?: string | null
+          print_printed_by?: string | null
+          print_status?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           review_note?: string | null
@@ -2020,6 +2046,7 @@ export type Database = {
           subscription_status?: string | null
           text_color?: string | null
           trial_ends_at?: string | null
+          trial_extension_days?: number
           updated_at?: string | null
           user_id?: string
           username?: string
@@ -3389,6 +3416,14 @@ export type Database = {
       }
     }
     Functions: {
+      admin_extend_trial: {
+        Args: { _days: number; _profile_id: string; _reason: string }
+        Returns: undefined
+      }
+      admin_set_print_status: {
+        Args: { _notes: string; _profile_id: string; _status: string }
+        Returns: undefined
+      }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
