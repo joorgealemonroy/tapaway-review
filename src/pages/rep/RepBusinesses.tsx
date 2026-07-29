@@ -38,7 +38,20 @@ const RepBusinesses = () => {
   const [hubs, setHubs] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [uploadNonce, setUploadNonce] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
+
+  const bumpNonce = (hubId: string) =>
+    setUploadNonce((prev) => ({ ...prev, [hubId]: (prev[hubId] ?? 0) + 1 }));
+
+  const describeError = (err: unknown): string => {
+    if (!err) return 'unknown error';
+    if (typeof err === 'string') return err;
+    const anyErr = err as { message?: string; error?: string; statusCode?: string | number };
+    if (anyErr.message) return anyErr.message;
+    if (anyErr.error) return anyErr.error;
+    try { return JSON.stringify(err); } catch { return 'unknown error'; }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
