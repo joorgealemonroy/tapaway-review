@@ -75,7 +75,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, created_at, profile_photo_url, sales_rep_id, created_by_rep_id"
+            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
