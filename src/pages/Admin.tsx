@@ -90,6 +90,7 @@ type Section = "overview" | "accounts" | "reps" | "promo" | "system";
 const NAV = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
   { id: "accounts" as const, label: "Accounts & Hubs", icon: Building2 },
+  { id: "print" as const, label: "Print & Ship Queue", icon: Printer, path: "/admin/print-queue" },
   { id: "reps" as const, label: "Sales Reps", icon: Users },
   { id: "promo" as const, label: "Promo Links", icon: LinkIcon },
   { id: "system" as const, label: "System & SMS", icon: Settings },
@@ -405,7 +406,11 @@ const Admin = () => {
           <button
             key={item.id}
             onClick={() => {
-              setSection(item.id);
+              if ("path" in item && item.path) {
+                navigate(item.path);
+              } else {
+                setSection(item.id as Section);
+              }
               onNavigate?.();
             }}
             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-left transition-colors ${
@@ -665,7 +670,10 @@ const Admin = () => {
           {NAV.filter((n) => n.id !== "overview").map((n) => (
             <button
               key={n.id}
-              onClick={() => setSection(n.id)}
+              onClick={() => {
+                if ("path" in n && n.path) navigate(n.path);
+                else setSection(n.id as Section);
+              }}
               className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all text-left"
             >
               <n.icon className="h-4 w-4 text-white/50 group-hover:text-primary transition-colors" />
