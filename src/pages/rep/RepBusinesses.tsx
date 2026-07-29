@@ -90,7 +90,26 @@ const RepBusinesses = () => {
     }
   };
 
-  const openPrintPdf = async (path: string) => {
+  const openPrintPdf = async (path: string, filenameHint?: string) => {
+    try {
+      const { data, error } = await supabase.storage.from('card-print-files').download(path);
+      if (error || !data) throw error ?? new Error('Empty download');
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      const base = filenameHint?.trim() || path.split('/').pop() || 'print-file';
+      a.download = base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error('Download failed', e);
+      toast.error('Download failed: ' + (e instanceof Error ? e.message : 'unknown'));
+    }
+  };
+
+  const openPrintPdfInTab = async (path: string) => {
     const { data, error } = await supabase.storage.from('card-print-files').createSignedUrl(path, 900);
     if (error || !data?.signedUrl) {
       toast.error('Could not open file');
@@ -99,18 +118,25 @@ const RepBusinesses = () => {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const uploadPdf = async (hubId: string, file: File) => {
+  const uploadPdf = async (
+    hubId: string,
+    file: File,
+    inputEl?: HTMLInputElement | null,
+  ) => {
     if (!file || file.type !== 'application/pdf') {
       toast.error('Please upload a PDF file');
+      if (inputEl) inputEl.value = '';
       return;
     }
     if (file.size > 15 * 1024 * 1024) {
       toast.error('PDF must be under 15MB');
+      if (inputEl) inputEl.value = '';
       return;
     }
     setUploadingId(hubId);
     try {
-      const path = `${hubId}/${Date.now()}-${file.name}`;
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+      const path = `${hubId}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from('card-print-files').upload(path, file, {
         upsert: true,
         contentType: 'application/pdf',
@@ -122,10 +148,11 @@ const RepBusinesses = () => {
       setHubs(prev => prev.map(h => (h.id === hubId ? { ...h, card_print_pdf_path: path } : h)));
       toast.success('Print file saved');
     } catch (e) {
-      console.error(e);
-      toast.error('Upload failed');
+      console.error('Upload failed', e);
+      toast.error('Upload failed: ' + (e instanceof Error ? e.message : 'unknown'));
     } finally {
       setUploadingId(null);
+      if (inputEl) inputEl.value = '';
     }
   };
 
