@@ -200,6 +200,28 @@ const AdminUnifiedAccountsTable = () => {
     }
   };
 
+  const downloadPdf = async (r: UnifiedRow) => {
+    if (!r.card_print_pdf_path) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("card-print-files")
+        .download(r.card_print_pdf_path);
+      if (error || !data) throw error ?? new Error("Empty download");
+      const url = URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      const base = `${r.slug || r.id}-print`;
+      a.download = base.toLowerCase().endsWith(".pdf") ? base : `${base}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.error("Download failed", e);
+      toast.error("Download failed: " + (e instanceof Error ? e.message : "unknown"));
+    }
+  };
+
   const remove = async (r: UnifiedRow) => {
     if (!window.confirm(`Delete ${r.name}? This is permanent.`)) return;
     setDeleting(r.id);
