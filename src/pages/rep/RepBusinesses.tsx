@@ -403,13 +403,14 @@ const RepBusinesses = () => {
                       <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]">
                         <Upload className="h-3.5 w-3.5" /> Replace
                         <input
+                          key={`replace-${hub.id}-${uploadNonce[hub.id] ?? 0}`}
                           type="file"
                           accept="application/pdf"
                           className="hidden"
                           disabled={uploading}
                           onChange={(e) => {
                             const f = e.target.files?.[0];
-                            if (f) uploadPdf(hub.id, f, e.currentTarget);
+                            if (f) uploadPdf(hub.id, f);
                           }}
                         />
                       </label>
