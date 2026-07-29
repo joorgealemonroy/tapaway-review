@@ -344,14 +344,20 @@ const RepBusinesses = () => {
                     </Select>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {hub.card_print_pdf_path ? (
                     <>
                       <button
-                        onClick={() => openPrintPdf(hub.card_print_pdf_path!)}
+                        onClick={() => openPrintPdf(hub.card_print_pdf_path!, `${hub.username || 'hub'}-print`)}
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15"
                       >
-                        <FileText className="h-3.5 w-3.5" /> View
+                        <FileText className="h-3.5 w-3.5" /> Download PDF
+                      </button>
+                      <button
+                        onClick={() => openPrintPdfInTab(hub.card_print_pdf_path!)}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> Open
                       </button>
                       <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]">
                         <Upload className="h-3.5 w-3.5" /> Replace
@@ -360,7 +366,10 @@ const RepBusinesses = () => {
                           accept="application/pdf"
                           className="hidden"
                           disabled={uploading}
-                          onChange={(e) => e.target.files?.[0] && uploadPdf(hub.id, e.target.files[0])}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadPdf(hub.id, f, e.currentTarget);
+                          }}
                         />
                       </label>
                     </>
@@ -373,7 +382,10 @@ const RepBusinesses = () => {
                         accept="application/pdf"
                         className="hidden"
                         disabled={uploading}
-                        onChange={(e) => e.target.files?.[0] && uploadPdf(hub.id, e.target.files[0])}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadPdf(hub.id, f, e.currentTarget);
+                        }}
                       />
                     </label>
                   )}
