@@ -406,7 +406,11 @@ const Admin = () => {
           <button
             key={item.id}
             onClick={() => {
-              setSection(item.id);
+              if ("path" in item && item.path) {
+                navigate(item.path);
+              } else {
+                setSection(item.id as Section);
+              }
               onNavigate?.();
             }}
             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm text-left transition-colors ${
