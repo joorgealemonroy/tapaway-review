@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isBrokenPlatformUrl } from "@/lib/brokenLinks";
 import { Input } from "@/components/ui/input";
 import {
   Select,
