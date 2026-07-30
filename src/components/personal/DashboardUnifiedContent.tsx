@@ -1143,11 +1143,20 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                           FEATURED
                         </span>
                       )}
+                      {isBrokenPlatformUrl(link) && (
+                        <span
+                          title={BROKEN_LINK_TOOLTIP}
+                          className="text-[10px] font-medium text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/30 px-1.5 py-0.5 rounded select-none flex-shrink-0"
+                        >
+                          NEEDS FIXING
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground/70 truncate select-none">
+                    <p className={`text-[11px] truncate select-none ${isBrokenPlatformUrl(link) ? "text-rose-500 dark:text-rose-300" : "text-muted-foreground/70"}`}>
                       {link.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)}
                     </p>
                   </div>
+
                   
                   {/* Inline active toggle */}
                   <Switch
