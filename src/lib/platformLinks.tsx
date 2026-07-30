@@ -290,11 +290,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://tiktok.com/@${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^tiktok\.com/i), (h) => `https://tiktok.com/@${h}`),
+    extractValue: (url) => stripHost(url, /^tiktok\.com/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
