@@ -379,11 +379,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: TwitchIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0];
-      return `https://twitch.tv/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^twitch\.tv/i), (h) => `https://twitch.tv/${h}`),
+    extractValue: (url) => stripHost(url, /^twitch\.tv/i),
+
     color: "text-white",
     bgColor: "bg-[#9146FF]",
   },
