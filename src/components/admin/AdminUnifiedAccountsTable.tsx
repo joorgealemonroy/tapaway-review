@@ -38,6 +38,7 @@ type UnifiedRow = {
   sales_rep_id?: string | null;
   created_by_rep_id?: string | null;
   card_print_pdf_path?: string | null;
+  broken_links?: number;
 };
 
 type SortKey = "taps" | "created_at" | "name";
