@@ -403,11 +403,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: PinterestIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0];
-      return `https://pinterest.com/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^pinterest\.com/i), (h) => `https://pinterest.com/${h}`),
+    extractValue: (url) => stripHost(url, /^pinterest\.com/i),
+
     color: "text-white",
     bgColor: "bg-[#E60023]",
   },
