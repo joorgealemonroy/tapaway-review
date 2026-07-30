@@ -110,6 +110,20 @@ const AdminUnifiedAccountsTable = () => {
           });
         }
 
+        // Broken social links (legacy recursive-URL bug), per Solo profile
+        const brokenMap: Record<string, number> = {};
+        if (profileIds.length > 0) {
+          const { data: links } = await supabase
+            .from("personal_links")
+            .select("profile_id, link_type, url")
+            .in("profile_id", profileIds);
+          (links ?? []).forEach((l: any) => {
+            if (isBrokenPlatformUrl(l)) brokenMap[l.profile_id] = (brokenMap[l.profile_id] ?? 0) + 1;
+          });
+        }
+
+
+
         const legacyRows: UnifiedRow[] = (restaurants ?? []).map((r) => ({
           id: r.id,
           kind: "legacy",
