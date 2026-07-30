@@ -385,8 +385,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: FacebookIcon,
     inputType: "url",
     placeholder: "facebook.com/yourpage",
-    generateUrl: (v) => safeUrl(stripHost(v, /^(?:facebook\.com|fb\.com|m\.facebook\.com)/i, true), (h) => `https://facebook.com/${h}`),
-    extractValue: (url) => stripHost(url, /^(?:facebook\.com|fb\.com|m\.facebook\.com)/i, true),
+    generateUrl: (v) => safeUrl(facebookHandle(v), (h) => `https://facebook.com/${h}`),
+    extractValue: (url) => facebookHandle(url),
+
 
     color: "text-white",
     bgColor: "bg-[#1877F2]",
