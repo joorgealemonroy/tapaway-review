@@ -234,7 +234,7 @@ export const PLATFORM_COLORS = {
  * Handles scheme-less input ("facebook.com/mypage"), full URLs, bare handles
  * ("@mypage") and app schemes ("instagram://user?username=mypage").
  */
-export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false): string => {
+export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false, keepPath = false): string => {
   if (!raw) return "";
   let s = raw.trim();
   // App-scheme handles, e.g. instagram://user?username=foo
@@ -247,11 +247,40 @@ export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false): 
   s = s.replace(/^\/+/, "");
   const path = s.split(/[?#]/)[0];
   const query = s.split(/[?#]/)[1];
-  const seg = path.split("/").filter(Boolean)[0] || "";
+  const seg = keepPath
+    ? path.replace(/\/+$/, "")
+    : path.split("/").filter(Boolean)[0] || "";
   const clean = seg.replace(/^@/, "");
   if (keepQuery && query) return `${clean}?${query}`;
   return clean;
 };
+
+/**
+ * Handles for platforms whose profile URLs use multi-segment paths
+ * (facebook.com/people/Name/ID, linkedin.com/company/x, yelp.com/biz/x).
+ * Keeps the whole path when it starts with a known prefix, otherwise falls back
+ * to the single-segment handle so plain usernames keep working.
+ */
+const multiSegmentHandle = (
+  raw: string,
+  hostPattern: RegExp,
+  prefixRe: RegExp,
+  keepQuery = false,
+): string => {
+  const full = stripHost(raw, hostPattern, keepQuery, true);
+  if (prefixRe.test(full)) return full;
+  return stripHost(raw, hostPattern, keepQuery);
+};
+
+const FB_MULTI_PREFIX = /^(?:people|pages|p|groups|profile\.php)(?:\/|\?|$)/i;
+const LINKEDIN_PREFIX = /^(?:in|company|school|showcase)\//i;
+const YELP_PREFIX = /^biz\//i;
+
+const facebookHandle = (raw: string) =>
+  multiSegmentHandle(raw, /^(?:facebook\.com|fb\.com|m\.facebook\.com)/i, FB_MULTI_PREFIX, true);
+const linkedinHandle = (raw: string) =>
+  multiSegmentHandle(raw, /^linkedin\.com/i, LINKEDIN_PREFIX);
+const yelpHandle = (raw: string) => multiSegmentHandle(raw, /^yelp\.com/i, YELP_PREFIX, true);
 
 /** True when a "handle" is really just a bare domain (facebook.com, www.tiktok.com …). */
 export const isBareDomainHandle = (value: string): boolean => {
@@ -266,6 +295,7 @@ const safeUrl = (handle: string, build: (h: string) => string): string => {
   if (!h || isBareDomainHandle(h)) return "";
   return build(h);
 };
+
 
 export const PLATFORM_CONFIGS: PlatformConfig[] = [
 
