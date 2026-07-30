@@ -488,8 +488,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: YelpIcon,
     inputType: "url",
     placeholder: "https://www.yelp.com/biz/yourbusiness",
-    generateUrl: (v) => safeUrl(stripHost(v, /^yelp\.com(?:\/biz)?/i, true), (h) => `https://www.yelp.com/biz/${h}`),
-    extractValue: (url) => stripHost(url, /^yelp\.com(?:\/biz)?/i, true),
+    generateUrl: (v) => safeUrl(yelpHandle(v), (h) => (YELP_PREFIX.test(h) ? `https://www.yelp.com/${h}` : `https://www.yelp.com/biz/${h}`)),
+    extractValue: (url) => yelpHandle(url),
+
 
     color: "text-white",
     bgColor: "bg-[#D32323]",
