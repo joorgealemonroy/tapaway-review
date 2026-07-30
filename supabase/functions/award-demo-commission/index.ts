@@ -1,6 +1,6 @@
 // Award commissions when an admin approves a rep-created demo hub.
 // - Inserts one $5 demo_bonus row per approved personal_profile (idempotent).
-// - When the rep hits their daily quota, inserts one daily shift_base row.
+// - The daily $50 shift_base row is awarded by the trg_award_daily_base DB trigger.
 // - Applies a "Quality Gate": bonuses beyond the probation cap are locked
 //   until the rep proves a >= 5% conversion rate over the trailing 30 days.
 // - Recomputes the current month's Closer's Pool tier.
