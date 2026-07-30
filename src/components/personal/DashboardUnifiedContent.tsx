@@ -1,6 +1,7 @@
 import { useState, useCallback, useImperativeHandle, forwardRef, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { isBrokenPlatformUrl, BROKEN_LINK_TOOLTIP } from "@/lib/brokenLinks";
 import { Switch } from "@/components/ui/switch";
 import { 
   GripVertical, 
@@ -1011,10 +1012,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
 
                         {/* Label */}
                         <div className="absolute bottom-2 left-2 right-2 select-none pointer-events-none">
-                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2 select-none">
+                          {isBrokenPlatformUrl(link) && (
+                            <span
+                              title={BROKEN_LINK_TOOLTIP}
+                              className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-rose-500 text-white"
+                            >
+                              Needs fixing
+                            </span>
+                          )}
+                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2 select-none block">
                             {link.label}
                           </span>
                         </div>
+
 
                         {/* Actions overlay on hover */}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
@@ -1143,11 +1153,20 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                           FEATURED
                         </span>
                       )}
+                      {isBrokenPlatformUrl(link) && (
+                        <span
+                          title={BROKEN_LINK_TOOLTIP}
+                          className="text-[10px] font-medium text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/30 px-1.5 py-0.5 rounded select-none flex-shrink-0"
+                        >
+                          NEEDS FIXING
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground/70 truncate select-none">
+                    <p className={`text-[11px] truncate select-none ${isBrokenPlatformUrl(link) ? "text-rose-500 dark:text-rose-300" : "text-muted-foreground/70"}`}>
                       {link.url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)}
                     </p>
                   </div>
+
                   
                   {/* Inline active toggle */}
                   <Switch

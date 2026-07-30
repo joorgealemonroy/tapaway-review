@@ -1,46 +1,42 @@
-## 1. Migration & RPCs (`personal_profiles`)
+## Root cause (confirmed)
 
-Add columns: `print_status` (check: not_downloaded | downloaded | printed | delivered, default not_downloaded), `print_downloaded_at/_by`, `print_printed_at/_by`, `print_delivered_at/_by`, `print_notes`, `trial_extension_days int default 0`.
+`src/lib/platformLinks.tsx` Facebook config:
 
-Two SECURITY DEFINER RPCs, admin-only via `is_admin()`, both writing to `admin_audit_log`:
-- `admin_extend_trial(_profile_id, _days, _reason)` — adds days to `trial_ends_at` (from now() if null) and increments `trial_extension_days`.
-- `admin_set_print_status(_profile_id, _status, _notes)` — stamps the matching `_at`/`_by` fields on first transition, updates notes.
+```
+extractValue: (url) => url.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").split("/")[0] || url
+generateUrl:  (v)   => v.startsWith("http") ? v : `https://facebook.com/${v}`
+```
 
-## 2. Admin Print Queue — `src/pages/admin/AdminPrintQueue.tsx` at `/admin/print-queue`
+The strip regex only matches URLs that include a scheme. When a rep types `facebook.com/patradining` (exactly what the placeholder `facebook.com/yourpage` invites), nothing is stripped, `split("/")[0]` yields `facebook.com`, and the saved URL becomes `https://facebook.com/facebook.com`.
 
-- Add `jszip` dependency; register route + sidebar link in `src/pages/Admin.tsx`.
-- Query `personal_profiles` where `card_print_pdf_path IS NOT NULL`, joined with rep name.
-- Tabs: New / Downloaded / Printed / Delivered / All. Search by business name / slug / rep. Default sort `submitted_for_review_at ASC`.
-- Columns: Avatar · Business · Rep · Submitted · Days since submission · Trial ends (red if < 1 day) · Status chip · Notes preview.
-- Row actions: Download PDF (auto-calls `admin_set_print_status → 'downloaded'` if currently `not_downloaded`), Mark Printed, Mark Delivered, Extend Trial (opens dialog), overflow menu (Reset status, Edit note).
-- Bulk: Download selected as ZIP (JSZip, `{slug}.pdf`), Mark selected as Printed, Extend selected.
+Verified in the database: 14 `personal_links` rows are stored as exactly `https://facebook.com/facebook.com`, all from rep-created demos in the last week. Correctly entered ones (`https://facebook.com/GreensSleevesSteakhouse`) confirm the scheme-full path works.
 
-## 3. Shared Extend Trial dialog — `src/components/admin/ExtendTrialDialog.tsx`
+Same flaw affects LinkedIn, Instagram, TikTok, X, Threads, Discord, Twitch, Snapchat, Pinterest, Telegram, Venmo, and Yelp.
 
-Tuned for the 5-day trial model. Presets **+2 / +3 / +5**, custom days input, optional reason textarea. Shows current and computed new `trial_ends_at`. Calls `admin_extend_trial` and refetches. Reusable from Print Queue, Approvals, and Accounts table.
+## 1. Centralize link normalization — `src/lib/platformLinks.tsx`
 
-## 4. Existing admin surfaces
+- Add `stripHost(raw, hostPattern, keepQuery?)`: trims, resolves app schemes (`instagram://user?username=x`), strips optional `scheme://` and `www.`, strips the platform host, drops query/hash, returns the first path segment with a leading `@` removed. `keepQuery` preserves `profile.php?id=…` style Facebook URLs.
+- Add `isBareDomainHandle(value)` — true when a handle is really a bare domain.
+- Add an internal `safeUrl(handle, build)` used by `generateUrl` for the affected platforms: returns `""` when the handle is empty or a bare domain instead of building a self-referential URL.
+- Rewrite `extractValue` for Facebook, LinkedIn, Instagram, TikTok, X, Threads, Discord, Twitch, Snapchat, Pinterest, Telegram, Venmo, Yelp to use `stripHost`.
 
-- `AdminPendingHubApprovals.tsx`: show print status chip; on Approve, compute `delayDays = daysBetween(submitted_for_review_at, now())`; if `>= 1`, silently call `admin_extend_trial(id, delayDays, 'auto: approval delay')` before flipping `is_approved = true`. Toast: `Approved · trial extended by N days to compensate for 5-day trial review time.` Add inline Extend Trial action.
-- `AdminUnifiedAccountsTable.tsx`: SELECT the new fields; add a Print column with the status chip and an "Extend Trial" item in the row action menu.
+## 2. Save-time validation — `src/components/personal/LinkModal.tsx`
 
-## 5. Rep surface — `src/pages/rep/RepBusinesses.tsx`
+- In `handleSave`, compute the handle and block the save when it is empty or a bare domain; show an inline error + toast: "Enter your page name, e.g. facebook.com/yourpage".
+- The existing live preview (`→ {generateUrl(inputValue)}`) shows a "Enter your page name" hint instead of a broken URL while input is invalid, so users see exactly what will be saved.
 
-Under each hub row:
-- If `trial_extension_days > 0`: subtle chip "Trial extended +N days by admin."
-- If `print_status === 'delivered'`: prominent green badge "Card Delivered — Follow up now to close!"
+## 3. Broken-link detection — `src/lib/brokenLinks.ts` (new)
 
-Extend the fetch to include `trial_extension_days` and `print_status`.
+- `isBrokenPlatformUrl(link)`: returns true when the URL's single path segment equals the platform's own domain (e.g. ends in `/facebook.com`, `/instagram.com`), or when the URL is empty for a platform link.
+- `getBrokenLinks(links)` helper returning the offending rows for list views.
+- Pure client-side detection over existing `personal_links` data — no migration, no data modified or deleted.
 
-## 6. Verification
+## 4. Surface broken links in the UI
 
-- `tsgo` typecheck clean.
-- Manual: submit demo → open Print Queue → Download PDF (status flips to Downloaded, timestamp stamped) → Mark Printed → Mark Delivered → rep row shows green delivery chip.
-- Extend trial +3 from dialog → `trial_ends_at` moves, `trial_extension_days` = 3, `admin_audit_log` row present.
-- Approve a hub with `submitted_for_review_at` 2 days ago → trial auto-extends by 2 days with the toast copy above.
+- **Rep** (`src/pages/rep/RepBusinesses.tsx`): a "Needs Fixing" callout above the list, styled like the existing "Changes Requested" section, listing affected hubs with a "Fix Link" button routing to that hub's dashboard.
+- **Personal dashboard** (`src/components/personal/DashboardUnifiedContent.tsx`): amber warning badge on the offending link row, tooltip "This link is broken — re-enter your page name".
+- **Admin** (`src/components/admin/AdminUnifiedAccountsTable.tsx`): a "Broken Links" warning badge on affected (including approved) accounts, plus a "Show only broken links" filter toggle in the table controls.
 
-## Technical notes
+## Verification
 
-- All mutations go through the two RPCs so audit logging is guaranteed and RLS stays as-is (admin-only writes).
-- ZIP is built client-side from signed-URL downloads to avoid a new edge function.
-- Column defaults + backfill on the new columns via `DEFAULT` at `ADD COLUMN` — existing rows read as `not_downloaded` / `0`.
+Run a clean typecheck build; spot-check with the known bad profiles that the badge appears and that re-saving a Facebook link entered as `facebook.com/patradining` produces `https://facebook.com/patradining`.

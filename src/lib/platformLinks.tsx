@@ -227,7 +227,48 @@ export const PLATFORM_COLORS = {
   dribbble: "#EA4C89",
 } as const;
 
+/**
+ * Strip an optional scheme, `www.`, and the platform host from raw user input,
+ * returning the first meaningful path segment (handle / page name).
+ *
+ * Handles scheme-less input ("facebook.com/mypage"), full URLs, bare handles
+ * ("@mypage") and app schemes ("instagram://user?username=mypage").
+ */
+export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false): string => {
+  if (!raw) return "";
+  let s = raw.trim();
+  // App-scheme handles, e.g. instagram://user?username=foo
+  const appScheme = s.match(/^[a-z][a-z0-9+.-]*:\/\/[^?]*\?(?:username|user)=([^&]+)/i);
+  if (appScheme) return decodeURIComponent(appScheme[1]).replace(/^@/, "");
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+  s = s.replace(/^www\./i, "");
+  const m = s.match(hostPattern);
+  if (m) s = s.slice(m[0].length);
+  s = s.replace(/^\/+/, "");
+  const path = s.split(/[?#]/)[0];
+  const query = s.split(/[?#]/)[1];
+  const seg = path.split("/").filter(Boolean)[0] || "";
+  const clean = seg.replace(/^@/, "");
+  if (keepQuery && query) return `${clean}?${query}`;
+  return clean;
+};
+
+/** True when a "handle" is really just a bare domain (facebook.com, www.tiktok.com …). */
+export const isBareDomainHandle = (value: string): boolean => {
+  if (!value) return true;
+  const v = value.trim().replace(/^www\./i, "").toLowerCase();
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v);
+};
+
+/** Build a URL only when the handle is real — otherwise return "" so callers can reject it. */
+const safeUrl = (handle: string, build: (h: string) => string): string => {
+  const h = (handle || "").trim();
+  if (!h || isBareDomainHandle(h)) return "";
+  return build(h);
+};
+
 export const PLATFORM_CONFIGS: PlatformConfig[] = [
+
   {
     type: "instagram",
     label: "Instagram",
@@ -235,11 +276,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").replace(/^@/, "").split("/")[0];
-      return `instagram://user?username=${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^instagram\.com/i), (h) => `instagram://user?username=${h}`),
+    extractValue: (url) => stripHost(url, /^instagram\.com/i),
+
     color: "text-white",
     bgColor: "bg-[#E4405F]",
     gradient: "bg-gradient-to-br from-[#833AB4] via-[#E4405F] to-[#FCAF45]",
@@ -251,11 +290,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://tiktok.com/@${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^tiktok\.com/i), (h) => `https://tiktok.com/@${h}`),
+    extractValue: (url) => stripHost(url, /^tiktok\.com/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
@@ -280,11 +317,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://x.com/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:x|twitter)\.com/i), (h) => `https://x.com/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:x|twitter)\.com/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
@@ -295,11 +330,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://threads.net/@${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^threads\.(?:net|com)/i), (h) => `https://threads.net/@${h}`),
+    extractValue: (url) => stripHost(url, /^threads\.(?:net|com)/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
@@ -309,8 +342,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: LinkedInIcon,
     inputType: "url",
     placeholder: "linkedin.com/in/yourname",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://linkedin.com/in/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^linkedin\.com(?:\/(?:in|company))?/i), (h) => `https://linkedin.com/in/${h}`),
+    extractValue: (url) => stripHost(url, /^linkedin\.com(?:\/(?:in|company))?/i),
+
     color: "text-white",
     bgColor: "bg-[#0A66C2]",
   },
@@ -320,8 +354,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: FacebookIcon,
     inputType: "url",
     placeholder: "facebook.com/yourpage",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://facebook.com/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:facebook\.com|fb\.com|m\.facebook\.com)/i, true), (h) => `https://facebook.com/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:facebook\.com|fb\.com|m\.facebook\.com)/i, true),
+
     color: "text-white",
     bgColor: "bg-[#1877F2]",
   },
@@ -331,8 +366,10 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: DiscordIcon,
     inputType: "url",
     placeholder: "discord.gg/invite",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://discord.gg/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(discord\.gg|discord\.com\/invite)\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:discord\.gg|discord\.com(?:\/invite)?)/i), (h) => `https://discord.gg/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:discord\.gg|discord\.com(?:\/invite)?)/i),
+
+
     color: "text-white",
     bgColor: "bg-[#5865F2]",
   },
@@ -342,11 +379,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: TwitchIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0];
-      return `https://twitch.tv/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?twitch\.tv\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^twitch\.tv/i), (h) => `https://twitch.tv/${h}`),
+    extractValue: (url) => stripHost(url, /^twitch\.tv/i),
+
     color: "text-white",
     bgColor: "bg-[#9146FF]",
   },
@@ -356,11 +391,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: SnapchatIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0];
-      return `https://snapchat.com/add/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^snapchat\.com(?:\/add)?/i), (h) => `https://snapchat.com/add/${h}`),
+    extractValue: (url) => stripHost(url, /^snapchat\.com(?:\/add)?/i),
+
     color: "text-black",
     bgColor: "bg-[#FFFC00]",
   },
@@ -370,11 +403,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: PinterestIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0];
-      return `https://pinterest.com/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?pinterest\.com\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^pinterest\.com/i), (h) => `https://pinterest.com/${h}`),
+    extractValue: (url) => stripHost(url, /^pinterest\.com/i),
+
     color: "text-white",
     bgColor: "bg-[#E60023]",
   },
@@ -396,11 +427,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").replace(/^@/, "").split("/")[0];
-      return `https://t.me/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:t\.me|telegram\.me)/i), (h) => `https://t.me/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:t\.me|telegram\.me)/i),
+
     color: "text-white",
     bgColor: "bg-[#0088CC]",
   },
@@ -427,8 +456,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: YelpIcon,
     inputType: "url",
     placeholder: "https://www.yelp.com/biz/yourbusiness",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://www.yelp.com/biz/${v}`,
-    extractValue: (url) => url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^yelp\.com(?:\/biz)?/i, true), (h) => `https://www.yelp.com/biz/${h}`),
+    extractValue: (url) => stripHost(url, /^yelp\.com(?:\/biz)?/i, true),
+
     color: "text-white",
     bgColor: "bg-[#D32323]",
   },
@@ -482,8 +512,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://venmo.com/${v.replace(/^@/, "")}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?venmo\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^venmo\.com(?:\/u)?/i), (h) => `https://venmo.com/${h}`),
+    extractValue: (url) => stripHost(url, /^venmo\.com(?:\/u)?/i),
+
     color: "text-white",
     bgColor: "bg-[#008CFF]",
   },

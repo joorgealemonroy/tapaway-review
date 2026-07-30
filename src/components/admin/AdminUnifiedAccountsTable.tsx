@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isBrokenPlatformUrl } from "@/lib/brokenLinks";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -38,6 +39,7 @@ type UnifiedRow = {
   sales_rep_id?: string | null;
   created_by_rep_id?: string | null;
   card_print_pdf_path?: string | null;
+  broken_links?: number;
 };
 
 type SortKey = "taps" | "created_at" | "name";
@@ -55,6 +57,7 @@ const AdminUnifiedAccountsTable = () => {
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [brokenOnly, setBrokenOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("taps");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -108,6 +111,20 @@ const AdminUnifiedAccountsTable = () => {
           });
         }
 
+        // Broken social links (legacy recursive-URL bug), per Solo profile
+        const brokenMap: Record<string, number> = {};
+        if (profileIds.length > 0) {
+          const { data: links } = await supabase
+            .from("personal_links")
+            .select("profile_id, link_type, url")
+            .in("profile_id", profileIds);
+          (links ?? []).forEach((l: any) => {
+            if (isBrokenPlatformUrl(l)) brokenMap[l.profile_id] = (brokenMap[l.profile_id] ?? 0) + 1;
+          });
+        }
+
+
+
         const legacyRows: UnifiedRow[] = (restaurants ?? []).map((r) => ({
           id: r.id,
           kind: "legacy",
@@ -143,6 +160,8 @@ const AdminUnifiedAccountsTable = () => {
             sales_rep_id: p.sales_rep_id,
             created_by_rep_id: p.created_by_rep_id,
             card_print_pdf_path: (p as any).card_print_pdf_path ?? null,
+            broken_links: brokenMap[p.id] ?? 0,
+
           }));
 
         setRows([...legacyRows, ...liteRows]);
@@ -162,6 +181,7 @@ const AdminUnifiedAccountsTable = () => {
       .filter((r) => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
+        if (brokenOnly && !(r.broken_links && r.broken_links > 0)) return false;
         if (s) {
           const hay = `${r.name} ${r.slug ?? ""}`.toLowerCase();
           if (!hay.includes(s)) return false;
@@ -176,7 +196,8 @@ const AdminUnifiedAccountsTable = () => {
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, brokenOnly, sortKey, sortDir]);
+
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -307,9 +328,20 @@ const AdminUnifiedAccountsTable = () => {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
+        <button
+          onClick={() => setBrokenOnly((v) => !v)}
+          className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
+            brokenOnly
+              ? "bg-rose-500/15 border-rose-400/40 text-rose-200"
+              : "bg-white/[0.03] border-white/5 text-white/60 hover:text-white/90"
+          }`}
+        >
+          Broken links only
+        </button>
         <span className="text-[11px] text-white/40 ml-auto">
           {filtered.length} of {rows.length}
         </span>
+
       </div>
 
       {loading ? (
@@ -325,8 +357,10 @@ const AdminUnifiedAccountsTable = () => {
                 <HeaderCell label="Type" />
                 <HeaderCell label="Slug" />
                 <HeaderCell label="Taps" k="taps" className="text-right pr-4" />
+                <HeaderCell label="Links" />
                 <HeaderCell label="Plan" />
                 <HeaderCell label="Status" />
+
                 <HeaderCell label="Created" k="created_at" />
                 <th className="p-2.5 text-right font-medium">Actions</th>
               </tr>
@@ -370,7 +404,17 @@ const AdminUnifiedAccountsTable = () => {
                   <td className="p-2.5 text-right pr-4 text-white/90 font-medium tabular-nums">
                     {r.taps.toLocaleString()}
                   </td>
+                  <td className="p-2.5">
+                    {r.broken_links && r.broken_links > 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-rose-500/15 text-rose-300">
+                        {r.broken_links} broken
+                      </span>
+                    ) : (
+                      <span className="text-white/25 text-[11px]">—</span>
+                    )}
+                  </td>
                   <td className="p-2.5 text-white/60 text-xs">{r.plan_type ?? "—"}</td>
+
                   <td className="p-2.5">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] ${
@@ -442,7 +486,7 @@ const AdminUnifiedAccountsTable = () => {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-white/40">
+                  <td colSpan={9} className="p-8 text-center text-xs text-white/40">
                     No accounts match filters.
                   </td>
                 </tr>

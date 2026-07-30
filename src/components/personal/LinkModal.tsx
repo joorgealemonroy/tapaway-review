@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl } from "@/lib/platformLinks";
+import { PLATFORM_CONFIGS, getPlatformConfig, PlatformConfig, PLATFORM_COLORS, detectPlatformFromUrl, isBareDomainHandle } from "@/lib/platformLinks";
 import { PersonalLink } from "@/hooks/usePersonalOnboarding";
 import { ArrowLeft, Check, Sparkles, LayoutList, Circle, ImagePlus, X, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -314,6 +314,15 @@ export const LinkModal = ({
     const rawValue = inputValue.trim();
     const value = selectedPlatform.extractValue(rawValue) || rawValue;
     const url = selectedPlatform.generateUrl(value);
+
+    // Reject scheme-less domain-only input (e.g. "facebook.com/") which used to
+    // save as a recursive link like https://facebook.com/facebook.com
+    if (!url || isBareDomainHandle(value)) {
+      const example = selectedPlatform.placeholder || "yourpage";
+      toast.error(`Enter your page name, e.g. ${example}`);
+      return;
+    }
+
     const label = customLabel.trim() || selectedPlatform.label;
     // Only include gridSize if there's a cover image
     const finalGridSize = coverImageUrl ? gridSize : undefined;
@@ -685,12 +694,20 @@ export const LinkModal = ({
           </button>
         )}
 
-        {/* Preview URL */}
-        {inputValue && !detectedPlatform && (
-          <p className="text-xs text-muted-foreground truncate">
-            → {selectedPlatform.generateUrl(inputValue)}
-          </p>
-        )}
+        {/* Preview URL (exactly what will be saved) */}
+        {inputValue && !detectedPlatform && (() => {
+          const previewValue = selectedPlatform.extractValue(inputValue.trim()) || inputValue.trim();
+          const previewUrl = selectedPlatform.generateUrl(previewValue);
+          const invalid = !previewUrl || isBareDomainHandle(previewValue);
+          return (
+            <p className={`text-xs truncate ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+              {invalid
+                ? `Enter your page name, e.g. ${selectedPlatform.placeholder}`
+                : `→ ${previewUrl}`}
+            </p>
+          );
+        })()}
+
 
         <Button
           onClick={handleSave}
