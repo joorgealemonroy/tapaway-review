@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight } from 'lucide-react';
+import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight, Link2 as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
