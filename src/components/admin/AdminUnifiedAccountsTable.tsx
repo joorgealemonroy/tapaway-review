@@ -160,6 +160,8 @@ const AdminUnifiedAccountsTable = () => {
             sales_rep_id: p.sales_rep_id,
             created_by_rep_id: p.created_by_rep_id,
             card_print_pdf_path: (p as any).card_print_pdf_path ?? null,
+            broken_links: brokenMap[p.id] ?? 0,
+
           }));
 
         setRows([...legacyRows, ...liteRows]);
