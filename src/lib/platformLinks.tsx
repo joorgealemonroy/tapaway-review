@@ -330,11 +330,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://threads.net/@${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?threads\.net\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^threads\.(?:net|com)/i), (h) => `https://threads.net/@${h}`),
+    extractValue: (url) => stripHost(url, /^threads\.(?:net|com)/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
