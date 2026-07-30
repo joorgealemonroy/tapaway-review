@@ -1,6 +1,7 @@
 import { useState, useCallback, useImperativeHandle, forwardRef, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { isBrokenPlatformUrl, BROKEN_LINK_TOOLTIP } from "@/lib/brokenLinks";
 import { Switch } from "@/components/ui/switch";
 import { 
   GripVertical, 
