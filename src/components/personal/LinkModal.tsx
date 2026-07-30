@@ -694,12 +694,20 @@ export const LinkModal = ({
           </button>
         )}
 
-        {/* Preview URL */}
-        {inputValue && !detectedPlatform && (
-          <p className="text-xs text-muted-foreground truncate">
-            → {selectedPlatform.generateUrl(inputValue)}
-          </p>
-        )}
+        {/* Preview URL (exactly what will be saved) */}
+        {inputValue && !detectedPlatform && (() => {
+          const previewValue = selectedPlatform.extractValue(inputValue.trim()) || inputValue.trim();
+          const previewUrl = selectedPlatform.generateUrl(previewValue);
+          const invalid = !previewUrl || isBareDomainHandle(previewValue);
+          return (
+            <p className={`text-xs truncate ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+              {invalid
+                ? `Enter your page name, e.g. ${selectedPlatform.placeholder}`
+                : `→ ${previewUrl}`}
+            </p>
+          );
+        })()}
+
 
         <Button
           onClick={handleSave}
