@@ -276,11 +276,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").replace(/^@/, "").split("/")[0];
-      return `instagram://user?username=${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").replace(/^instagram:\/\/user\?username=/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^instagram\.com/i), (h) => `instagram://user?username=${h}`),
+    extractValue: (url) => stripHost(url, /^instagram\.com/i),
+
     color: "text-white",
     bgColor: "bg-[#E4405F]",
     gradient: "bg-gradient-to-br from-[#833AB4] via-[#E4405F] to-[#FCAF45]",
