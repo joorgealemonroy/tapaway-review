@@ -391,11 +391,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: SnapchatIcon,
     inputType: "handle",
     placeholder: "yourname",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0];
-      return `https://snapchat.com/add/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?snapchat\.com\/add\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^snapchat\.com(?:\/add)?/i), (h) => `https://snapchat.com/add/${h}`),
+    extractValue: (url) => stripHost(url, /^snapchat\.com(?:\/add)?/i),
+
     color: "text-black",
     bgColor: "bg-[#FFFC00]",
   },
