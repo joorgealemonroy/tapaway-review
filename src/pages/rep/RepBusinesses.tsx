@@ -40,6 +40,7 @@ const RepBusinesses = () => {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadNonce, setUploadNonce] = useState<Record<string, number>>({});
   const [search, setSearch] = useState('');
+  const [brokenByHub, setBrokenByHub] = useState<Record<string, { label: string; url: string }[]>>({});
 
   const bumpNonce = (hubId: string) =>
     setUploadNonce((prev) => ({ ...prev, [hubId]: (prev[hubId] ?? 0) + 1 }));
