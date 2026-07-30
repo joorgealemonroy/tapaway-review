@@ -37,16 +37,36 @@ const CHECKED_TYPES = new Set([
   "yelp",
 ]);
 
-const lastSegment = (url: string): string => {
+/**
+ * Path prefixes that were permanently truncated by the old single-segment
+ * parser (facebook.com/people/… → facebook.com/people). A URL whose whole path
+ * is just one of these is unusable and needs manual re-entry.
+ */
+const TRUNCATED_SEGMENTS = new Set([
+  "people",
+  "pages",
+  "p",
+  "profile.php",
+  "company",
+  "in",
+  "biz",
+]);
+
+const pathParts = (url: string): string[] => {
   const withoutScheme = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
   const path = withoutScheme.split(/[?#]/)[0];
-  const parts = path.split("/").filter(Boolean);
+  return path.split("/").filter(Boolean);
+};
+
+const lastSegment = (url: string): string => {
+  const parts = pathParts(url);
   return parts.length > 1 ? parts[parts.length - 1] : "";
 };
 
 /**
  * True when a platform link's path segment is the platform's own domain
- * (the `facebook.com/facebook.com` signature), or the URL is missing entirely.
+ * (the `facebook.com/facebook.com` signature), the path was truncated to a
+ * bare prefix like `/people`, or the URL is missing entirely.
  */
 export const isBrokenPlatformUrl = (link: BrokenLinkCandidate | null | undefined): boolean => {
   if (!link) return false;
@@ -56,8 +76,14 @@ export const isBrokenPlatformUrl = (link: BrokenLinkCandidate | null | undefined
   const url = (link.url || "").trim();
   if (!url) return true;
 
-  return PLATFORM_DOMAIN_RE.test(lastSegment(url));
+  if (PLATFORM_DOMAIN_RE.test(lastSegment(url))) return true;
+
+  // Host + exactly one path segment that is only a prefix keyword.
+  const parts = pathParts(url);
+  const handle = parts.length > 1 ? parts.slice(1).join("/") : "";
+  return TRUNCATED_SEGMENTS.has(handle.toLowerCase());
 };
+
 
 /** Returns only the broken links from a list. */
 export const getBrokenLinks = <T extends BrokenLinkCandidate>(links: T[] | null | undefined): T[] =>
