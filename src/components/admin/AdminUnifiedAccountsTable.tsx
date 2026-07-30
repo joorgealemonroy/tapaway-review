@@ -181,6 +181,7 @@ const AdminUnifiedAccountsTable = () => {
       .filter((r) => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
+        if (brokenOnly && !(r.broken_links && r.broken_links > 0)) return false;
         if (s) {
           const hay = `${r.name} ${r.slug ?? ""}`.toLowerCase();
           if (!hay.includes(s)) return false;
@@ -195,7 +196,8 @@ const AdminUnifiedAccountsTable = () => {
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, brokenOnly, sortKey, sortDir]);
+
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
