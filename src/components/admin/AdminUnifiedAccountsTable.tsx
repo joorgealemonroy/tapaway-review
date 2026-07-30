@@ -357,8 +357,10 @@ const AdminUnifiedAccountsTable = () => {
                 <HeaderCell label="Type" />
                 <HeaderCell label="Slug" />
                 <HeaderCell label="Taps" k="taps" className="text-right pr-4" />
+                <HeaderCell label="Links" />
                 <HeaderCell label="Plan" />
                 <HeaderCell label="Status" />
+
                 <HeaderCell label="Created" k="created_at" />
                 <th className="p-2.5 text-right font-medium">Actions</th>
               </tr>
