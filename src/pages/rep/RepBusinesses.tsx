@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
 import { PIPELINE_STATUSES } from '@/components/rep/StatusDot';
+import { isBrokenPlatformUrl } from '@/lib/brokenLinks';
 
 interface Business {
   id: string;
