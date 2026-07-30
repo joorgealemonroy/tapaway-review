@@ -512,8 +512,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => `https://venmo.com/${v.replace(/^@/, "")}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?venmo\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^venmo\.com(?:\/u)?/i), (h) => `https://venmo.com/${h}`),
+    extractValue: (url) => stripHost(url, /^venmo\.com(?:\/u)?/i),
+
     color: "text-white",
     bgColor: "bg-[#008CFF]",
   },
