@@ -1,27 +1,23 @@
-## Root cause (verified against the live database)
+## Goal
 
-The $50 daily base never lands because the insert is **rejected**, not missing:
+Stop Facebook / LinkedIn / Yelp links from collapsing to their first path segment (the `people` autofill bug), and flag links already damaged by the old behavior.
 
-- `commissions.type` has a CHECK allowing only `close` or `bonus`; the edge function inserts the base with `type: 'shift_base'` → constraint violation, logged with `console.error` and swallowed, so approval still "succeeds" and the rep silently loses $50.
-- Data confirms it: rep `05a4…5433` has **15 demo bonuses on 2026-07-28 and zero base rows**.
+## 1. Normalization logic — `src/lib/platformLinks.tsx`
 
-Two corrections to the SQL in the request (real schema differs):
-- Settings columns are `daily_shift_quota` (10) and `daily_shift_base_amount` (50) — not `daily_demo_quota` / `daily_base_amount`.
-- The commissions column is `note`, not `notes`; `type` and `period_label` are NOT NULL, so both must be supplied (`type = 'bonus'`).
-- The unique index already exists as `commissions_shift_base_daily_unique` on (`rep_id`, UTC day) where `commission_type = 'shift_base'` — that is what enforces exactly one base per day. I'll keep the `CREATE UNIQUE INDEX IF NOT EXISTS` as a no-op safety net.
+- Extend the `stripHost` helper with a `keepPath` option so it can return the full remaining path (and query string) instead of splitting on `/` and taking index 0.
+- Add a shared `multiSegmentHandle(raw, hostPattern, prefixRe, keepQuery)` helper: keeps the whole path when it begins with a known multi-segment prefix, otherwise falls back to the existing single-segment behavior so plain handles keep working.
+- **Facebook** — prefixes `people/`, `pages/`, `p/`, `groups/`, and `profile.php` (query `?id=...` preserved). `extractValue` and `generateUrl` both route through the new handle helper; `generateUrl` rebuilds `https://facebook.com/<handle>` with no double prefix.
+- **LinkedIn** — preserve full path for `in/`, `company/` (plus `school/`, `showcase/`). Bare handles still generate `https://linkedin.com/in/<handle>`; prefixed paths generate `https://linkedin.com/<path>`.
+- **Yelp** — preserve full path for `biz/`. Bare handles still generate `https://www.yelp.com/biz/<handle>`; prefixed paths generate `https://www.yelp.com/<path>`.
+- Bare domains (`facebook.com`, `yelp.com`) continue to be rejected by `isBareDomainHandle` / `safeUrl`, so the existing "Enter your page name" toast in `LinkModal` still fires.
 
-### 1. Migration: trigger + backfill
-- `award_daily_base_trigger()` — `SECURITY DEFINER`, `search_path = public`, `AFTER INSERT` on `commissions`, only acting on `commission_type = 'demo_bonus'`:
-  - reads `daily_shift_quota` / `daily_shift_base_amount` from `rep_compensation_settings`
-  - counts that rep's `demo_bonus` rows for the same UTC day
-  - once the count reaches the quota, inserts one base row: `type = 'bonus'`, `commission_type = 'shift_base'`, `amount = 50`, `status = 'available'`, `period_label` filled, `note = 'Earned Daily Base (Trigger)'`, `created_at` stamped at the crossing moment
-  - `ON CONFLICT DO NOTHING` → **exactly one $50 base per rep per day**, no matter how many demos (40 demos = $200 bonuses + $50 base = $250)
-- Backfill: every rep/day with quota-meeting demo bonuses and no base gets the missing $50 as `available`, noted as a historical backfill (credits the 2026-07-28 day).
+## 2. Flag legacy truncated links — `src/lib/brokenLinks.ts`
 
-### 2. Edge function cleanup
-`supabase/functions/award-demo-commission/index.ts` keeps the `demo_bonus` insert, the quality gate, and the Closer's Pool recompute. The entire shift-base counting/insert block is deleted so the trigger is the single owner.
+- Expand `isBrokenPlatformUrl` so, in addition to the recursive-domain check, it returns `true` when the parsed handle/last path segment is exactly one of: `people`, `pages`, `p`, `profile.php`, `company`, `in`, `biz`.
+- This feeds the existing "Needs Fixing" callouts on the rep, personal and admin dashboards, prompting manual re-entry for links the old bug permanently truncated. Detection only — no data is mutated.
 
-### 3. Verification
-- Audit query: rep/day groups with quota-meeting demo bonuses and 0 base rows must return zero rows; and no rep/day has more than one base row.
-- Typecheck.
-- `RepCommissions.tsx` already sums `status = 'available'` and labels `shift_base` as "Daily Base ($50)" — confirm Available Balance rises by the backfilled amount; no UI change expected.
+## Verification
+
+- Sanity-check parsing for: `facebook.com/people/Biz-Name/61551234567/`, `https://www.facebook.com/profile.php?id=6155…`, `facebook.com/mypage`, `@mypage`, `facebook.com` (rejected), `linkedin.com/company/acme`, `yelp.com/biz/some-place`.
+- Confirm edit → save → reopen round-trips the full value in the link editor.
+- Run a clean typecheck build.
