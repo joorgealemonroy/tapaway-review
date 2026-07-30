@@ -56,6 +56,7 @@ const AdminUnifiedAccountsTable = () => {
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [brokenOnly, setBrokenOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("taps");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [deleting, setDeleting] = useState<string | null>(null);
