@@ -342,8 +342,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: LinkedInIcon,
     inputType: "url",
     placeholder: "linkedin.com/in/yourname",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://linkedin.com/in/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^linkedin\.com(?:\/(?:in|company))?/i), (h) => `https://linkedin.com/in/${h}`),
+    extractValue: (url) => stripHost(url, /^linkedin\.com(?:\/(?:in|company))?/i),
+
     color: "text-white",
     bgColor: "bg-[#0A66C2]",
   },
