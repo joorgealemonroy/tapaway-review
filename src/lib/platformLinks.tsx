@@ -366,8 +366,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: DiscordIcon,
     inputType: "url",
     placeholder: "discord.gg/invite",
-    generateUrl: (v) => v.startsWith("http") ? v : `https://discord.gg/${v}`,
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(discord\.gg|discord\.com\/invite)\//, "").split("/")[0] || url,
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:discord\.gg|discord\.com(?:\/invite)?)/i), (h) => `https://discord.gg/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:discord\.gg|discord\.com(?:\/invite)?)/i),
+
     color: "text-white",
     bgColor: "bg-[#5865F2]",
   },
