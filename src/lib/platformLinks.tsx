@@ -427,11 +427,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").replace(/^@/, "").split("/")[0];
-      return `https://t.me/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(t\.me|telegram\.me)\//, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:t\.me|telegram\.me)/i), (h) => `https://t.me/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:t\.me|telegram\.me)/i),
+
     color: "text-white",
     bgColor: "bg-[#0088CC]",
   },
