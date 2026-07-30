@@ -334,6 +334,43 @@ const RepBusinesses = () => {
         </div>
       )}
 
+      {Object.keys(brokenByHub).length > 0 && (
+        <div className="mb-5 rounded-2xl border border-rose-400/30 bg-rose-500/[0.06] p-4">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-full border border-rose-400/40 bg-rose-500/15 text-rose-100">
+              <LinkIcon className="h-3 w-3" /> Needs Fixing
+            </span>
+            <span className="text-xs text-rose-100/70">
+              Some social links were saved incorrectly (e.g. facebook.com/facebook.com). Open the hub and re-enter the page name.
+            </span>
+          </div>
+          <div className="space-y-2">
+            {hubs
+              .filter(h => brokenByHub[h.id]?.length)
+              .map(hub => (
+                <div key={hub.id} className="rounded-xl border border-rose-400/20 bg-[#0a0e1a]/60 p-3.5">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="font-medium text-white">{hub.restaurant_name}</p>
+                      <p className="text-[11px] text-rose-100/70 mt-1 break-all">
+                        {brokenByHub[hub.id].map(l => `${l.label}: ${l.url}`).join(' · ')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/dashboard?profile_id=${hub.id}`)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-500 text-white hover:bg-rose-400"
+                    >
+                      Fix links <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+
+
       {hubs.length === 0 ? (
         <RepCard className="text-center py-20">
           <p className="text-white/50 mb-4">No businesses yet. Start building your book.</p>
