@@ -1011,10 +1011,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
 
                         {/* Label */}
                         <div className="absolute bottom-2 left-2 right-2 select-none pointer-events-none">
-                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2 select-none">
+                          {isBrokenPlatformUrl(link) && (
+                            <span
+                              title={BROKEN_LINK_TOOLTIP}
+                              className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-rose-500 text-white"
+                            >
+                              Needs fixing
+                            </span>
+                          )}
+                          <span className="text-white font-bold text-xs drop-shadow-lg uppercase tracking-wide line-clamp-2 select-none block">
                             {link.label}
                           </span>
                         </div>
+
 
                         {/* Actions overlay on hover */}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
