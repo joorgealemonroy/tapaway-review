@@ -486,7 +486,7 @@ const AdminUnifiedAccountsTable = () => {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-xs text-white/40">
+                  <td colSpan={9} className="p-8 text-center text-xs text-white/40">
                     No accounts match filters.
                   </td>
                 </tr>
