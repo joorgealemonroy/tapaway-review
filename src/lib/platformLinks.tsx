@@ -372,8 +372,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     icon: LinkedInIcon,
     inputType: "url",
     placeholder: "linkedin.com/in/yourname",
-    generateUrl: (v) => safeUrl(stripHost(v, /^linkedin\.com(?:\/(?:in|company))?/i), (h) => `https://linkedin.com/in/${h}`),
-    extractValue: (url) => stripHost(url, /^linkedin\.com(?:\/(?:in|company))?/i),
+    generateUrl: (v) => safeUrl(linkedinHandle(v), (h) => (LINKEDIN_PREFIX.test(h) ? `https://linkedin.com/${h}` : `https://linkedin.com/in/${h}`)),
+    extractValue: (url) => linkedinHandle(url),
+
 
     color: "text-white",
     bgColor: "bg-[#0A66C2]",
