@@ -317,11 +317,9 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     inputType: "handle",
     placeholder: "yourname",
     prefix: "@",
-    generateUrl: (v) => {
-      const clean = v.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").replace(/^@/, "").split("/")[0];
-      return `https://x.com/${clean}`;
-    },
-    extractValue: (url) => url.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\/@?/, "").split("/")[0] || "",
+    generateUrl: (v) => safeUrl(stripHost(v, /^(?:x|twitter)\.com/i), (h) => `https://x.com/${h}`),
+    extractValue: (url) => stripHost(url, /^(?:x|twitter)\.com/i),
+
     color: "text-white",
     bgColor: "bg-black",
   },
