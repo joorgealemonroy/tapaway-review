@@ -328,9 +328,20 @@ const AdminUnifiedAccountsTable = () => {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
+        <button
+          onClick={() => setBrokenOnly((v) => !v)}
+          className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
+            brokenOnly
+              ? "bg-rose-500/15 border-rose-400/40 text-rose-200"
+              : "bg-white/[0.03] border-white/5 text-white/60 hover:text-white/90"
+          }`}
+        >
+          Broken links only
+        </button>
         <span className="text-[11px] text-white/40 ml-auto">
           {filtered.length} of {rows.length}
         </span>
+
       </div>
 
       {loading ? (
