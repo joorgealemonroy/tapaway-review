@@ -1,42 +1,27 @@
-## Root cause (confirmed)
+## Root cause (verified against the live database)
 
-`src/lib/platformLinks.tsx` Facebook config:
+The $50 daily base never lands because the insert is **rejected**, not missing:
 
-```
-extractValue: (url) => url.replace(/^https?:\/\/(www\.)?facebook\.com\//, "").split("/")[0] || url
-generateUrl:  (v)   => v.startsWith("http") ? v : `https://facebook.com/${v}`
-```
+- `commissions.type` has a CHECK allowing only `close` or `bonus`; the edge function inserts the base with `type: 'shift_base'` → constraint violation, logged with `console.error` and swallowed, so approval still "succeeds" and the rep silently loses $50.
+- Data confirms it: rep `05a4…5433` has **15 demo bonuses on 2026-07-28 and zero base rows**.
 
-The strip regex only matches URLs that include a scheme. When a rep types `facebook.com/patradining` (exactly what the placeholder `facebook.com/yourpage` invites), nothing is stripped, `split("/")[0]` yields `facebook.com`, and the saved URL becomes `https://facebook.com/facebook.com`.
+Two corrections to the SQL in the request (real schema differs):
+- Settings columns are `daily_shift_quota` (10) and `daily_shift_base_amount` (50) — not `daily_demo_quota` / `daily_base_amount`.
+- The commissions column is `note`, not `notes`; `type` and `period_label` are NOT NULL, so both must be supplied (`type = 'bonus'`).
+- The unique index already exists as `commissions_shift_base_daily_unique` on (`rep_id`, UTC day) where `commission_type = 'shift_base'` — that is what enforces exactly one base per day. I'll keep the `CREATE UNIQUE INDEX IF NOT EXISTS` as a no-op safety net.
 
-Verified in the database: 14 `personal_links` rows are stored as exactly `https://facebook.com/facebook.com`, all from rep-created demos in the last week. Correctly entered ones (`https://facebook.com/GreensSleevesSteakhouse`) confirm the scheme-full path works.
+### 1. Migration: trigger + backfill
+- `award_daily_base_trigger()` — `SECURITY DEFINER`, `search_path = public`, `AFTER INSERT` on `commissions`, only acting on `commission_type = 'demo_bonus'`:
+  - reads `daily_shift_quota` / `daily_shift_base_amount` from `rep_compensation_settings`
+  - counts that rep's `demo_bonus` rows for the same UTC day
+  - once the count reaches the quota, inserts one base row: `type = 'bonus'`, `commission_type = 'shift_base'`, `amount = 50`, `status = 'available'`, `period_label` filled, `note = 'Earned Daily Base (Trigger)'`, `created_at` stamped at the crossing moment
+  - `ON CONFLICT DO NOTHING` → **exactly one $50 base per rep per day**, no matter how many demos (40 demos = $200 bonuses + $50 base = $250)
+- Backfill: every rep/day with quota-meeting demo bonuses and no base gets the missing $50 as `available`, noted as a historical backfill (credits the 2026-07-28 day).
 
-Same flaw affects LinkedIn, Instagram, TikTok, X, Threads, Discord, Twitch, Snapchat, Pinterest, Telegram, Venmo, and Yelp.
+### 2. Edge function cleanup
+`supabase/functions/award-demo-commission/index.ts` keeps the `demo_bonus` insert, the quality gate, and the Closer's Pool recompute. The entire shift-base counting/insert block is deleted so the trigger is the single owner.
 
-## 1. Centralize link normalization — `src/lib/platformLinks.tsx`
-
-- Add `stripHost(raw, hostPattern, keepQuery?)`: trims, resolves app schemes (`instagram://user?username=x`), strips optional `scheme://` and `www.`, strips the platform host, drops query/hash, returns the first path segment with a leading `@` removed. `keepQuery` preserves `profile.php?id=…` style Facebook URLs.
-- Add `isBareDomainHandle(value)` — true when a handle is really a bare domain.
-- Add an internal `safeUrl(handle, build)` used by `generateUrl` for the affected platforms: returns `""` when the handle is empty or a bare domain instead of building a self-referential URL.
-- Rewrite `extractValue` for Facebook, LinkedIn, Instagram, TikTok, X, Threads, Discord, Twitch, Snapchat, Pinterest, Telegram, Venmo, Yelp to use `stripHost`.
-
-## 2. Save-time validation — `src/components/personal/LinkModal.tsx`
-
-- In `handleSave`, compute the handle and block the save when it is empty or a bare domain; show an inline error + toast: "Enter your page name, e.g. facebook.com/yourpage".
-- The existing live preview (`→ {generateUrl(inputValue)}`) shows a "Enter your page name" hint instead of a broken URL while input is invalid, so users see exactly what will be saved.
-
-## 3. Broken-link detection — `src/lib/brokenLinks.ts` (new)
-
-- `isBrokenPlatformUrl(link)`: returns true when the URL's single path segment equals the platform's own domain (e.g. ends in `/facebook.com`, `/instagram.com`), or when the URL is empty for a platform link.
-- `getBrokenLinks(links)` helper returning the offending rows for list views.
-- Pure client-side detection over existing `personal_links` data — no migration, no data modified or deleted.
-
-## 4. Surface broken links in the UI
-
-- **Rep** (`src/pages/rep/RepBusinesses.tsx`): a "Needs Fixing" callout above the list, styled like the existing "Changes Requested" section, listing affected hubs with a "Fix Link" button routing to that hub's dashboard.
-- **Personal dashboard** (`src/components/personal/DashboardUnifiedContent.tsx`): amber warning badge on the offending link row, tooltip "This link is broken — re-enter your page name".
-- **Admin** (`src/components/admin/AdminUnifiedAccountsTable.tsx`): a "Broken Links" warning badge on affected (including approved) accounts, plus a "Show only broken links" filter toggle in the table controls.
-
-## Verification
-
-Run a clean typecheck build; spot-check with the known bad profiles that the badge appears and that re-saving a Facebook link entered as `facebook.com/patradining` produces `https://facebook.com/patradining`.
+### 3. Verification
+- Audit query: rep/day groups with quota-meeting demo bonuses and 0 base rows must return zero rows; and no rep/day has more than one base row.
+- Typecheck.
+- `RepCommissions.tsx` already sums `status = 'available'` and labels `shift_base` as "Daily Base ($50)" — confirm Available Balance rises by the backfilled amount; no UI change expected.

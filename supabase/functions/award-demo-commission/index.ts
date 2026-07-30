@@ -1,6 +1,6 @@
 // Award commissions when an admin approves a rep-created demo hub.
 // - Inserts one $5 demo_bonus row per approved personal_profile (idempotent).
-// - When the rep hits their daily quota, inserts one daily shift_base row.
+// - The daily $50 shift_base row is awarded by the trg_award_daily_base DB trigger.
 // - Applies a "Quality Gate": bonuses beyond the probation cap are locked
 //   until the rep proves a >= 5% conversion rate over the trailing 30 days.
 // - Recomputes the current month's Closer's Pool tier.
@@ -133,12 +133,10 @@ Deno.serve(async (req) => {
       console.error('demo_bonus insert failed', bonusErr);
     }
 
-    // --- Daily shift base (once/day when quota met) ---
-    // Count today's awarded demo_bonus rows (including the one we just inserted)
-    // as the true "approved today" tally — created_at on the profile can be days
-    // earlier if the rep built it in advance and admin approved it later today.
-    const quota = Number(settings?.daily_shift_quota ?? 10);
-    const baseAmount = Number(settings?.daily_shift_base_amount ?? 50);
+    // --- Daily shift base ---
+    // Awarded entirely by the `trg_award_daily_base` Postgres trigger, which fires
+    // on every demo_bonus insert and adds exactly one $50 base per rep per UTC day.
+    // We only read the tally here for the response payload.
     const { count: approvedToday } = await admin
       .from('commissions')
       .select('id', { count: 'exact', head: true })
@@ -146,33 +144,6 @@ Deno.serve(async (req) => {
       .eq('commission_type', 'demo_bonus')
       .gte('created_at', todayStart.toISOString());
 
-    if ((approvedToday ?? 0) >= quota) {
-      // Idempotent: only insert if no shift_base row exists for today.
-      const { count: existingBase } = await admin
-        .from('commissions')
-        .select('id', { count: 'exact', head: true })
-        .eq('rep_id', repId)
-        .eq('commission_type', 'shift_base')
-        .gte('created_at', todayStart.toISOString());
-
-      if ((existingBase ?? 0) === 0) {
-        const { error: baseErr } = await admin
-          .from('commissions')
-          .insert({
-            rep_id: repId,
-            type: 'shift_base',
-            commission_type: 'shift_base',
-            amount: baseAmount,
-            status: 'available',
-            period_label: periodLabel,
-            points_value: 0,
-            note: `Daily shift base — ${approvedToday} approved demos today`,
-          });
-        if (baseErr && !String(baseErr.message).includes('duplicate key')) {
-          console.error('shift_base insert failed', baseErr);
-        }
-      }
-    }
 
     // --- Refresh monthly Closer's Pool tier ---
     await admin.rpc('recompute_closer_pool', {
