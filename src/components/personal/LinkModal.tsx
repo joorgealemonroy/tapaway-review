@@ -314,6 +314,15 @@ export const LinkModal = ({
     const rawValue = inputValue.trim();
     const value = selectedPlatform.extractValue(rawValue) || rawValue;
     const url = selectedPlatform.generateUrl(value);
+
+    // Reject scheme-less domain-only input (e.g. "facebook.com/") which used to
+    // save as a recursive link like https://facebook.com/facebook.com
+    if (!url || isBareDomainHandle(value)) {
+      const example = selectedPlatform.placeholder || "yourpage";
+      toast.error(`Enter your page name, e.g. ${example}`);
+      return;
+    }
+
     const label = customLabel.trim() || selectedPlatform.label;
     // Only include gridSize if there's a cover image
     const finalGridSize = coverImageUrl ? gridSize : undefined;
