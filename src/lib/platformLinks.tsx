@@ -227,7 +227,48 @@ export const PLATFORM_COLORS = {
   dribbble: "#EA4C89",
 } as const;
 
+/**
+ * Strip an optional scheme, `www.`, and the platform host from raw user input,
+ * returning the first meaningful path segment (handle / page name).
+ *
+ * Handles scheme-less input ("facebook.com/mypage"), full URLs, bare handles
+ * ("@mypage") and app schemes ("instagram://user?username=mypage").
+ */
+export const stripHost = (raw: string, hostPattern: RegExp, keepQuery = false): string => {
+  if (!raw) return "";
+  let s = raw.trim();
+  // App-scheme handles, e.g. instagram://user?username=foo
+  const appScheme = s.match(/^[a-z][a-z0-9+.-]*:\/\/[^?]*\?(?:username|user)=([^&]+)/i);
+  if (appScheme) return decodeURIComponent(appScheme[1]).replace(/^@/, "");
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+  s = s.replace(/^www\./i, "");
+  const m = s.match(hostPattern);
+  if (m) s = s.slice(m[0].length);
+  s = s.replace(/^\/+/, "");
+  const path = s.split(/[?#]/)[0];
+  const query = s.split(/[?#]/)[1];
+  const seg = path.split("/").filter(Boolean)[0] || "";
+  const clean = seg.replace(/^@/, "");
+  if (keepQuery && query) return `${clean}?${query}`;
+  return clean;
+};
+
+/** True when a "handle" is really just a bare domain (facebook.com, www.tiktok.com …). */
+export const isBareDomainHandle = (value: string): boolean => {
+  if (!value) return true;
+  const v = value.trim().replace(/^www\./i, "").toLowerCase();
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v);
+};
+
+/** Build a URL only when the handle is real — otherwise return "" so callers can reject it. */
+const safeUrl = (handle: string, build: (h: string) => string): string => {
+  const h = (handle || "").trim();
+  if (!h || isBareDomainHandle(h)) return "";
+  return build(h);
+};
+
 export const PLATFORM_CONFIGS: PlatformConfig[] = [
+
   {
     type: "instagram",
     label: "Instagram",
