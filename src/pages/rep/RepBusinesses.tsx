@@ -90,6 +90,26 @@ const RepBusinesses = () => {
     })();
   }, [salesRep]);
 
+  // Detect legacy recursive social links (e.g. facebook.com/facebook.com) on this rep's hubs.
+  useEffect(() => {
+    if (hubs.length === 0) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from('personal_links')
+        .select('id, profile_id, link_type, label, url')
+        .in('profile_id', hubs.map(h => h.id));
+      if (error) { console.error(error); return; }
+      const map: Record<string, { label: string; url: string }[]> = {};
+      for (const l of (data || []) as any[]) {
+        if (isBrokenPlatformUrl(l)) {
+          (map[l.profile_id] ||= []).push({ label: l.label, url: l.url });
+        }
+      }
+      setBrokenByHub(map);
+    })();
+  }, [hubs]);
+
+
   const updatePipeline = async (hubId: string, value: string) => {
     const prev = hubs;
     setHubs(prev.map(h => (h.id === hubId ? { ...h, pipeline_status: value } : h)));
