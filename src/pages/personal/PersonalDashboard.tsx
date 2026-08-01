@@ -193,6 +193,8 @@ const PersonalDashboard = () => {
     const adminViewIdLocal = sp.get("admin_view_personal") || sp.get("admin_view");
     const requestedProfileIdLocal = sp.get("profile_id");
     try {
+      setLoadError(null);
+
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
