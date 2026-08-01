@@ -196,7 +196,7 @@ const RepDemoCreate = () => {
       if (reviewUrl) {
         seedLinks.push({
           profile_id: profileId,
-          label: 'Leave us a 5-Star Review',
+          label: 'Leave us a Review',
           url: reviewUrl,
           link_type: 'google_review',
           sort_order: 100 + seedLinks.length,

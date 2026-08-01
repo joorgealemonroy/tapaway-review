@@ -1286,6 +1286,9 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         </p>
       )}
 
+      <ReviewComplianceNotice className="mt-1" />
+
+
       {/* Link Modal */}
       <LinkModal
         open={linkModalOpen}
