@@ -211,7 +211,7 @@ const PersonalDashboard = () => {
             navigate(`/dashboard?admin_view_personal=${legacyProfileId}`, { replace: true });
             return;
           }
-          navigate("/admin/personal-accounts", { replace: true });
+          navigate("/admin", { replace: true });
           return;
         }
       }
