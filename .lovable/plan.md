@@ -1,42 +1,32 @@
 ## Goal
 
-Run a full audit of Admin, Rep, Personal/Business, and Public Hub surfaces; scan legal disclosures; probe access boundaries; then ship fixes for everything critical/warning found.
+Add two new Terms of Service clauses (public demo data / 14-day takedown, and subscriber logo + hardware marketing license) and show a subtle takedown note on public demo hubs that haven't converted to a paid plan.
 
-## Confirmed before planning
+## 1. Terms of Service (`src/pages/Terms.tsx`)
 
-- `src/components/rep/SalesPartnerAgreement.tsx` (the agreement reps e-sign) still states **"$50 per new restaurant signup"** and **"$500 bonus at 30 restaurants/month"**. That contradicts the compensation actually implemented (approved-demo bounties, $50 daily base at 10 approved demos, upsell bounty). This is a signed-contract mismatch and is the top legal finding.
-- Text search finds no FTC/review-policy disclaimer anywhere in the dashboard or hub-creation surfaces — it exists only on static legal pages (`Terms`, `Compliance`, `AcceptableUse`).
-- Legal routes exist and are registered in `App.tsx`: `/terms`, `/privacy`, `/support`, `/refund`, `/acceptable-use`, `/dmca`, `/cookie-policy`, `/dpa`, `/compliance`, `/ai-disclaimer`, `/nfc-disclaimer`, `/affiliate-terms`.
+The page currently runs sections 1–32, ending with "32. Contact". Insert two new sections and renumber the tail so numbering stays sequential:
 
-Everything below about *current* behavior (dead clicks, empty states, RLS leakage) is unverified and is what the audit phase will establish.
+- **Public Business Data & Demo Hubs (Takedown Policy)** — placed near the physical/product and IP sections. Copy states: demo hub content is sourced from publicly available internet resources; TapAway claims no affiliation, endorsement, or trademark ownership over prospective businesses during the demo/trial phase; an authorized representative may request removal in writing to support@tapaway.co; TapAway removes verified requests within 14 calendar days.
+- **Subscriber Logo & Promotional Media License** — active and former paid subscribers (software plan or hardware purchase) grant a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, display, and photograph their name, logo, trademarks, and TapAway-branded hardware across TapAway's site, marketing, social, and sales collateral; no approval right over finished assets; release of liability.
 
-## Phase 1 — Interactive audit (Playwright, admin session)
+Both rendered as normal JSX in the existing section/h2 pattern — no raw HTML. The "Last updated" date at the top gets bumped.
 
-Drive the real preview and walk: `/admin` + every `/admin/*` page, `/rep` + every `/rep/*` page (both directly and via `?admin_view_rep=`), `/dashboard` (own, `?profile_id=`, `?admin_view_personal=`), and a public hub. For each page record: console errors, failed network calls, buttons that do nothing, spinners that never resolve, and empty-state rendering. Also hard-refresh on each `admin_view` URL to confirm context survives.
+## 2. Unclaimed demo hub disclaimer
 
-Double-submit check: click Save / Approve / Request Payout / Submit for Review twice quickly and confirm the second click is blocked by a disabled/pending state.
+A hub counts as an unclaimed demo when it was created by a sales partner and has not converted to paid — i.e. `created_by_rep_id` is set and `subscription_status` is `trialing`. Today the public fetch (`src/pages/UsernameResolver.tsx` column list, plus the equivalent read in `src/hooks/useProfileData.ts` / the public hub RPC path) does not select `created_by_rep_id`, so that field must be added to the public column selection before the UI can branch on it. If the public path goes through a SECURITY DEFINER RPC that pins its own column list, that RPC gets a migration to return the extra field.
 
-## Phase 2 — Legal & compliance
+Then, in the public profile footer (`src/pages/personal/PersonalProfilePage.tsx`, the existing `<footer>` block) and the restaurant hub equivalent, render a small muted line only for those hubs:
 
-1. **Rewrite `SalesPartnerAgreement.tsx` section 2** to match the live comp plan (per-approved-demo bounty, $50 daily base on 10 approved demos, upsell bounty, admin approval as the earning trigger, TapAway's right to change rates). Bump the version line and note that reps who signed v1.0 will be asked to re-accept.
-2. **Add a shared `ReviewComplianceNotice` component** (FTC/no-gating wording) rendered on the hub editor and the rep demo builder.
-3. **Trial disclosure**: audit the trial/checkout modal for start date, end date, hardware-ownership statement, and expiry behavior; add whatever is missing.
-4. **Rep payout disclaimer**: 1099 independent-contractor + bonus-qualification text on the payouts/commissions surface, not only inside the agreement dialog.
-5. **Legal footer**: one shared footer (Terms · Privacy · Support) verified present on public pages, `/auth`, and all three dashboards; add where missing.
+> Demo profile built using publicly available business information. To claim or request removal within 14 days, contact support@tapaway.co.
 
-## Phase 3 — Security boundaries
+Styled with the existing `isDarkBg` muted-text pattern (`text-white/40` / `text-gray-400`), with support@tapaway.co as a `mailto:` link. Nothing shown for claimed/paid hubs.
 
-- Query the database for RLS policies on `sales_reps`, `commissions`, `payouts`, `personal_profiles`, `client_errors`, then test as a second rep identity that Rep A cannot read Rep B's rows.
-- Hit admin-only edge functions with a non-admin token and confirm 401/403.
-- Load `/admin/*` while signed in as a rep and confirm redirect, not render.
-- Inject `"><img onerror>` / emoji / RTL characters into business name, social URL, and admin note fields; confirm escaping on render and that URL normalization rejects junk.
+## 3. Verification
 
-## Phase 4 — Report + fixes
-
-Deliver a categorized report (🔴 / 🟡 / 🔵) in chat, then implement all 🔴 and 🟡 items in the same pass — code changes plus a migration only if RLS gaps are found. 🔵 items get listed for you to approve separately.
+- `tsgo` typecheck.
+- Playwright pass: load `/terms` and confirm both new sections render with correct numbering; load one paid hub (no note) and one rep-built trialing hub (note present); check console is clean.
 
 ## Technical notes
 
-- Audit scripts live under `/tmp/browser/`, nothing added to the repo.
-- Agreement change is copy-only; no change to the commission engine or the `award_daily_base_trigger` logic.
-- Any RLS fix ships as a single migration with explicit GRANTs.
+- Terms change is copy-only.
+- The only possible backend change is widening the public profile read to include `created_by_rep_id`; no RLS or policy changes, and no new tables.
