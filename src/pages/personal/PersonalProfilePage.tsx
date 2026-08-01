@@ -1646,7 +1646,23 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 Tap-enabled
               </p>
             )}
+
+            {/* Unclaimed demo hub takedown / claim notice */}
+            {isUnclaimedDemo && (
+              <p className={`text-[10px] leading-relaxed max-w-xs mx-auto px-4 ${isDarkBg ? 'text-white/35' : 'text-gray-400'}`}>
+                Demo profile built using publicly available business information. To claim or request removal within
+                14 days, contact{" "}
+                <a
+                  href="mailto:support@tapaway.co"
+                  className="underline decoration-dotted underline-offset-2"
+                >
+                  support@tapaway.co
+                </a>
+                .
+              </p>
+            )}
           </footer>
+
         </div>
       </div>
 
