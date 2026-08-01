@@ -14,6 +14,63 @@ interface SalesRep {
   created_at: string;
 }
 
+type RepResult = { rep: SalesRep | null };
+
+// Module-level caches so that multiple components mounting this hook at the same
+// time (nav + shell + page) share a single network request instead of firing
+// identical `sales_reps` queries three times per page load.
+const repCache = new Map<string, RepResult>();
+const inFlight = new Map<string, Promise<RepResult>>();
+
+export const clearSalesRepCache = () => {
+  repCache.clear();
+  inFlight.clear();
+};
+
+const fetchRep = async (key: string, userId: string, impersonateRepId: string | null): Promise<RepResult> => {
+  const cached = repCache.get(key);
+  if (cached) return cached;
+
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const promise = (async (): Promise<RepResult> => {
+    if (impersonateRepId) {
+      const { data, error } = await supabase
+        .from('sales_reps')
+        .select('*')
+        .eq('id', impersonateRepId)
+        .maybeSingle();
+      if (error) {
+        console.error('Error loading impersonated rep:', error);
+        return { rep: null };
+      }
+      return { rep: (data as SalesRep) ?? null };
+    }
+
+    const { data, error } = await supabase
+      .from('sales_reps')
+      .select('*')
+      .eq('id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error) {
+      console.error('Error checking sales rep status:', error);
+      return { rep: null };
+    }
+    return { rep: (data as SalesRep) ?? null };
+  })();
+
+  inFlight.set(key, promise);
+  try {
+    const result = await promise;
+    repCache.set(key, result);
+    return result;
+  } finally {
+    inFlight.delete(key);
+  }
+};
+
 export const useSalesRep = () => {
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
@@ -27,9 +84,11 @@ export const useSalesRep = () => {
   const userId = user?.id ?? null;
 
   useEffect(() => {
-    const checkSalesRep = async () => {
-      if (!userId) {
+    let cancelled = false;
 
+    const run = async () => {
+      if (!userId) {
+        clearSalesRepCache();
         setLoading(false);
         setIsSalesRep(false);
         setSalesRep(null);
@@ -39,56 +98,29 @@ export const useSalesRep = () => {
       // Wait for admin check to resolve before deciding whether to impersonate.
       if (impersonateRepId && adminLoading) return;
 
+      const target = impersonateRepId && isAdmin ? impersonateRepId : null;
+      const key = `${userId}|${target ?? 'self'}`;
+
       try {
-        // Admin impersonation: load the targeted rep row instead of caller's own.
-        if (impersonateRepId && isAdmin) {
-          const { data, error } = await supabase
-            .from('sales_reps')
-            .select('*')
-            .eq('id', impersonateRepId)
-            .maybeSingle();
-
-          if (error) {
-            console.error('Error loading impersonated rep:', error);
-            setIsSalesRep(false);
-            setSalesRep(null);
-          } else if (data) {
-            setSalesRep(data);
-            setIsSalesRep(true);
-          } else {
-            setIsSalesRep(false);
-            setSalesRep(null);
-          }
-          setLoading(false);
-          return;
-        }
-
-        // Default: caller's own rep row.
-        const { data, error } = await supabase
-          .from('sales_reps')
-          .select('*')
-          .eq('id', userId)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error checking sales rep status:', error);
-          setIsSalesRep(false);
-        } else if (data) {
-          setSalesRep(data);
-          setIsSalesRep(true);
-        } else {
-          setIsSalesRep(false);
-        }
+        const { rep } = await fetchRep(key, userId, target);
+        if (cancelled) return;
+        setSalesRep(rep);
+        setIsSalesRep(!!rep);
       } catch (err) {
         console.error('Error in useSalesRep:', err);
-        setIsSalesRep(false);
+        if (!cancelled) {
+          setSalesRep(null);
+          setIsSalesRep(false);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    checkSalesRep();
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [userId, impersonateRepId, isAdmin, adminLoading]);
 
   return { salesRep, loading, isSalesRep };
