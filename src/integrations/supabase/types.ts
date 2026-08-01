@@ -553,6 +553,39 @@ export type Database = {
           },
         ]
       }
+      client_errors: {
+        Row: {
+          component_stack: string | null
+          created_at: string
+          error_message: string
+          id: string
+          route: string | null
+          stack_trace: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          component_stack?: string | null
+          created_at?: string
+          error_message: string
+          id?: string
+          route?: string | null
+          stack_trace?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          component_stack?: string | null
+          created_at?: string
+          error_message?: string
+          id?: string
+          route?: string | null
+          stack_trace?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       coach_ignored: {
         Row: {
           category: string
