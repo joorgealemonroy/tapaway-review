@@ -24,9 +24,12 @@ export const useSalesRep = () => {
   const [loading, setLoading] = useState(true);
   const [isSalesRep, setIsSalesRep] = useState(false);
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
     const checkSalesRep = async () => {
-      if (!user) {
+      if (!userId) {
+
         setLoading(false);
         setIsSalesRep(false);
         setSalesRep(null);
