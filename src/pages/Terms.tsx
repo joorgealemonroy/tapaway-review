@@ -24,7 +24,7 @@ const Terms = () => {
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-        <p className="text-muted-foreground mb-8">Last Updated: February 21, 2026</p>
+        <p className="text-muted-foreground mb-8">Last Updated: August 1, 2026</p>
 
         {/* A2P 10DLC / TCR-required SMS terms block, placed above the fold so reviewers can find it immediately */}
         <section className="border border-primary/30 bg-primary/5 p-5 rounded-lg mb-8">
