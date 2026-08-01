@@ -761,8 +761,21 @@ const Onboarding = () => {
                 })}
               </div>
 
+              {/* Trial terms disclosure — required before any trial starts. */}
+              <p className="mt-4 text-[11px] leading-relaxed text-gray-500">
+                Trial terms: your free trial starts today and runs{" "}
+                {selectedPlan ? PLAN_DETAILS[selectedPlan].trialDays : 14} days. Unless you cancel before it ends,
+                your plan renews automatically at the listed monthly price and your card is charged. Cancel any time
+                from your dashboard. Smart Cards and stands shipped during the trial remain the property of TapAway
+                until a paid plan is active. If the trial ends without activation, your hub is deactivated and its
+                public link stops resolving. See our{" "}
+                <a href="/terms" className="underline">Terms</a> and{" "}
+                <a href="/refund" className="underline">Refund Policy</a>.
+              </p>
+
               {/* Spacer for fixed bottom button */}
               {selectedPlan && <div className="h-20" />}
+
             </motion.div>
           )}
 
