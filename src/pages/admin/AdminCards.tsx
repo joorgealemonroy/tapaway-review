@@ -42,11 +42,8 @@ const AdminCards = () => {
   const [loadingCards, setLoadingCards] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate("/");
-    }
-  }, [isAdmin, adminLoading, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     if (isAdmin) loadCards();

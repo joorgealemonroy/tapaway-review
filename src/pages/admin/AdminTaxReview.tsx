@@ -34,11 +34,10 @@ export default function AdminTaxReview() {
   const [actionNote, setActionNote] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  useAdminGuard();
+
   useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate('/');
-      return;
-    }
+
     if (isAdmin) {
       fetchProfiles();
     }

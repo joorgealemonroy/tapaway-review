@@ -51,9 +51,8 @@ const AdminCompSettings = () => {
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) { navigate('/'); return; }
-  }, [adminLoading, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     const fetchSettings = async () => {

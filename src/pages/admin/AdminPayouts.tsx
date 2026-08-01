@@ -34,17 +34,8 @@ const AdminPayouts = () => {
   const [sendingPayout, setSendingPayout] = useState<string | null>(null);
   const [payouts, setPayouts] = useState<RepPayout[]>([]);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
+  useAdminGuard();
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate('/');
-    }
-  }, [isAdmin, adminLoading, navigate]);
 
   useEffect(() => {
     if (isAdmin && !adminLoading) {

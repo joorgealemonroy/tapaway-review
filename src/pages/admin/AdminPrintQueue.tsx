@@ -117,10 +117,8 @@ const AdminPrintQueue = () => {
   const [noteTarget, setNoteTarget] = useState<Row | null>(null);
   const [noteText, setNoteText] = useState("");
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate("/auth");
-    else if (!adminLoading && !isAdmin) navigate("/");
-  }, [authLoading, adminLoading, user, isAdmin, navigate]);
+  useAdminGuard();
+
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -65,12 +65,8 @@ const AdminReps = () => {
   const [deletingPermanently, setDeletingPermanently] = useState(false);
 
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate('/');
-      return;
-    }
-  }, [adminLoading, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     const fetchData = async () => {

@@ -42,12 +42,8 @@ const AdminCommissions = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState(false);
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate('/');
-      return;
-    }
-  }, [adminLoading, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     const fetchData = async () => {

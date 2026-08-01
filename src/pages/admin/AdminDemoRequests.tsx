@@ -36,10 +36,8 @@ const AdminDemoRequests = () => {
   const [tracking, setTracking] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!adminLoading && !isAdmin) { navigate('/'); return; }
-  }, [authLoading, adminLoading, user, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     if (isAdmin) fetchRequests();
