@@ -24,7 +24,7 @@ const OBJECTIONS = [
   { q: 'My staff won\'t remember to use it.', a: 'They don\'t need to remember every table. Only after a positive moment. That single behavior converts 10x better than any script — and it\'s the only rule.' },
   { q: 'We already use QR codes.', a: 'Great — you\'re already thinking digitally. TapAway isn\'t competing with QR. NFC taps are instant, feel premium, and only activate after positive moments — which naturally protects your rating instead of exposing it to bad reviews from angry customers scanning a QR at the door.' },
   { q: 'Will this really move ranking?', a: 'Yes. Even 1 extra 5-star review per day compounds. Google surfaces businesses with fresh, consistent reviews above stale competitors — that\'s directly measurable in Maps ranking.' },
-  { q: 'What if customers leave a bad review?', a: 'TapAway doesn\'t filter or gate anything — that\'d violate Google\'s ToS. But because the card is deployed only after positive moments, the natural mix skews heavily 5-star. It\'s behavioral, not technical.' },
+  { q: 'What if customers leave a bad review?', a: 'TapAway never filters, gates or screens reviews — that would violate Google\'s policies and FTC rules, and you must never coach a business to hide the card from unhappy guests or offer anything in exchange for a review. The card stays out for every customer equally. Honest feedback is the product: businesses that respond well to it rank better over time.' },
   { q: 'How much does it cost the restaurant?', a: 'Solo Pro is $15/mo, Venue Pack is $39/mo. 5-day free trial. Cancel anytime. Physical cards, hub, AI review-reply coach, and analytics are all included.' },
 ];
 
