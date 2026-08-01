@@ -44,7 +44,12 @@ export interface CachedProfile {
   button_theme?: string | null;
   text_color?: string | null;
   show_username?: boolean;
+  // Provenance / status (used for the unclaimed demo hub disclaimer)
+  subscription_status?: string | null;
+  is_approved?: boolean | null;
+  created_by_rep_id?: string | null;
 }
+
 
 export interface CachedLink {
   id: string;
