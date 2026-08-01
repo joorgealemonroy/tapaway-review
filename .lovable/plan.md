@@ -1,28 +1,37 @@
-## What I checked
+## What I verified
 
-I reproduced your flow in the preview with your `tap@tapaway.co` session: `/` → Dashboard button → `/dashboard` → `/admin`, and it stayed on `/admin`. So the `/dashboard` routing itself is fine — the bounce comes from an admin page's own guard, not from the dashboard redirect.
+- `ErrorBoundary` posts to the `track-event` function with `restaurantId: "system"` + `eventType: "error"`. That function requires `restaurant_id`, only accepts a whitelist of event types (no `error`), and validates the id against `restaurants` — so every report is rejected and swallowed by `.catch(() => {})`. Nothing about your `err_1785569928974_ooskvw` was ever stored.
+- `PersonalDashboard` renders `if (!profile) return null;` — a dead blank page on any load hiccup on the admin/rep hub-preview path (I reproduced a blank render once on `/dashboard?admin_view_personal=…`, and a clean render on a retry).
+- `useSalesRep` fetches per hook instance with no shared cache, so every component mounting it (nav, shell, page) issues its own identical `sales_reps` query — that's the 3x storm in your network log.
 
-Eight admin pages share the same guard shape (verified in the code):
+## Plan
 
-```text
-useEffect(() => {
-  if (!adminLoading && !isAdmin) navigate('/');
-}, [adminLoading, isAdmin]);
-```
+### 1. `client_errors` table (migration)
+Columns: `id`, `error_message`, `stack_trace`, `component_stack`, `route`, `user_id` (nullable), `user_agent`, `created_at`.
+Access: anyone (signed-in or not) may write an error report; only admins can read. Grants for `anon`, `authenticated`, `service_role` included with the table.
 
-in `AdminReps`, `AdminCommissions`, `AdminCompSettings`, `AdminDemoRequests`, `AdminPayouts`, `AdminTaxReview`, `AdminCards`, `AdminPrintQueue`.
+Ownership rule: `user_id` is never taken from the request body. The client insert omits it and a `BEFORE INSERT` trigger stamps `auth.uid()` — signed-in reports are attributed to the real session, anonymous reports store `NULL`. Insert policy rejects rows whose `user_id` doesn't match `auth.uid()` (or is null for anon).
 
-`useAdminAccess` sets `isAdmin = false, loading = false` any time `user` is momentarily null — which happens on a session-restore ordering blip or an auth state change (token refresh / preview iframe reload). At that instant every one of those pages fires `navigate('/')` and drops you on the homepage while you're still signed in. That matches what you saw; the exact trigger event isn't confirmed yet, so step 1 below verifies it.
+### 2. `ErrorBoundary`
+- Drop the `track-event` call; insert into `client_errors` instead (message, truncated stack + component stack, `window.location.pathname + search`, user agent).
+- `console.error(error)` with the real Error object in every environment.
+- Fallback UI gains a "Show details" toggle (message + component stack) and a "Copy details" button alongside the existing error ID and Reload.
 
-I also noticed a secondary symptom in your network log: the same `sales_reps` lookup firing ~8 times in 2 seconds, which points at a re-render loop around `useSalesRep` (used by the landing nav).
+### 3. Blank-screen fix in `PersonalDashboard`
+- Track *why* the profile is missing (fetch/RLS error vs. empty result) in state.
+- Replace `return null` with a visible card: "Unable to load this hub", the specific reason, a **Retry** button (re-runs `loadData`), and a context-aware second button — Back to Admin for admins, Back to My Businesses for reps, Home otherwise.
 
-## Fix
+### 4. `sales_reps` request de-duplication
+Add a module-level cache + in-flight promise map in `useSalesRep`, keyed by `userId | impersonateRepId`, so concurrent hook instances share one request and remounts reuse the resolved row. Cache invalidates on user change / sign-out.
 
-1. **Confirm the trigger.** Add temporary logging in `useAdminAccess` for the `user → null` transition and reproduce with a token refresh / tab refocus on an admin page, so the fix targets the real event.
-2. **Make `useAdminAccess` non-flapping.** Keep `loading = true` while `authLoading` is true, and don't downgrade a previously-confirmed admin to `isAdmin = false` on a transient null user — only clear admin state on an explicit `SIGNED_OUT`.
-3. **Harden the eight guards.** Require `!authLoading && user` before redirecting, and send unauthenticated users to `/auth` (not `/`). Non-admin signed-in users keep going to `/` as today.
-4. **Fix the `useSalesRep` request loop** so the landing nav doesn't re-query `sales_reps` in a tight loop (stabilize the effect dependencies / guard on a resolved user).
+### 5. Verify
+- Typecheck clean.
+- Drive the preview with your admin session: load a rep hub via `/rep/restaurants?admin_view_rep=…` → Edit, confirm exactly **one** `sales_reps` request per load.
+- Trigger a deliberate render throw in a throwaway route to confirm a row lands in `client_errors` **with the correct `user_id` for a signed-in session** and that the details toggle shows the stack. If that signed-in insert check can't be run, I'll say so rather than call it verified.
+
+### Admin surface (optional, included)
+A "Recent errors" section on the admin side listing the latest `client_errors` rows (time, route, message, user) so you can hand me a real stack next time.
 
 ## Notes
 
-Frontend routing and hook logic only — no database, RLS, or business-logic changes. Admin permissions themselves are unchanged; this only stops a temporary auth blip from being treated as "not an admin".
+One new logging table plus frontend changes. No changes to hubs, approvals, commissions, or existing RLS. After it ships I'll tell you exactly how to reproduce and where to read the captured error.
