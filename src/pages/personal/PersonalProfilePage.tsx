@@ -1267,6 +1267,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const isDarkBg = hasBanner
     ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
     : (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
+
+  // Rep-built demo hub that has not converted to a paid plan yet
+  const isUnclaimedDemo =
+    Boolean((profile as any).created_by_rep_id) &&
+    (profile as any).subscription_status === "trialing";
+
+
   
   // Dynamic text classes based on background
   // Use explicit colors (not theme-aware tokens) so text is always readable
