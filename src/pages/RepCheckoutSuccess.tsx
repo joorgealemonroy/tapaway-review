@@ -41,8 +41,8 @@ const RepCheckoutSuccess = () => {
 
           <p className="text-gray-600 text-xs">
             Questions? Email us at{" "}
-            <a href="mailto:support@tapaway.co" className="text-blue-400 hover:underline">
-              support@tapaway.co
+            <a href="mailto:tap@tapaway.co" className="text-blue-400 hover:underline">
+              tap@tapaway.co
             </a>
           </p>
         </motion.div>

@@ -237,7 +237,7 @@ const SmsSignup = () => {
           <span>·</span>
           <a href="/terms" className="underline">Terms of Service</a>
           <span>·</span>
-          <a href="mailto:support@tapaway.co" className="underline">support@tapaway.co</a>
+          <a href="mailto:tap@tapaway.co" className="underline">tap@tapaway.co</a>
         </footer>
       </main>
     </div>

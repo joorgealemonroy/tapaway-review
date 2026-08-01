@@ -526,7 +526,7 @@ const Onboarding = () => {
                 Start New Trial
               </Button>
               <a 
-                href="mailto:support@tapaway.co" 
+                href="mailto:tap@tapaway.co" 
                 className="text-sm text-center text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Mail className="w-4 h-4 inline mr-1" />

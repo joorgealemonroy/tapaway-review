@@ -38,7 +38,7 @@ const Compliance = () => {
             actively submitted their phone number through an opt-in form on a TapAway business profile.
           </p>
           <p className="text-sm text-muted-foreground">
-            Compliance contact: <a href="mailto:support@tapaway.co" className="underline">support@tapaway.co</a>
+            Compliance contact: <a href="mailto:tap@tapaway.co" className="underline">tap@tapaway.co</a>
           </p>
         </section>
 
@@ -87,7 +87,7 @@ const Compliance = () => {
             {[
               { label: "Welcome (sent on opt-in)", body: "[Business Name]: You're in! Thanks for joining our VIP list. Expect ~2-4 msgs/mo with offers. Msg&data rates may apply. Reply HELP for help, STOP to cancel." },
               { label: "Marketing", body: "[Business Name]: Flash deal — 20% off today only. Show this text in store. Reply STOP to cancel." },
-              { label: "HELP reply", body: "[Business Name]: For help, email support@tapaway.co. Msg&data rates may apply. Msg frequency varies. Reply STOP to cancel." },
+              { label: "HELP reply", body: "[Business Name]: For help, email tap@tapaway.co. Msg&data rates may apply. Msg frequency varies. Reply STOP to cancel." },
               { label: "STOP reply", body: "You have been unsubscribed from [Business Name] and will not receive any more messages. Reply START to resubscribe." },
             ].map((m) => (
               <div key={m.label} className="border border-border rounded-lg p-4 bg-card">
