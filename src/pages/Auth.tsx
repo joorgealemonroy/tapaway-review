@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import PasswordChecklistSection from "@/components/PasswordChecklistSection";
 import { Loader2 } from "lucide-react";
+import { LegalFooter } from "@/components/compliance/LegalFooter";
+
 
 const PAYWALL_PATH = "/onboarding";
 
@@ -785,7 +787,10 @@ const Auth = () => {
           Having trouble?{" "}
           <a href="mailto:tap@tapaway.co" className="underline decoration-dotted">tap@tapaway.co</a>
         </p>
+
+        <LegalFooter className="pt-2 pb-0" />
       </div>
+
     </div>
   );
 };

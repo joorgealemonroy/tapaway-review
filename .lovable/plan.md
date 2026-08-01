@@ -1,37 +1,42 @@
-## What I verified
+## Goal
 
-- `ErrorBoundary` posts to the `track-event` function with `restaurantId: "system"` + `eventType: "error"`. That function requires `restaurant_id`, only accepts a whitelist of event types (no `error`), and validates the id against `restaurants` — so every report is rejected and swallowed by `.catch(() => {})`. Nothing about your `err_1785569928974_ooskvw` was ever stored.
-- `PersonalDashboard` renders `if (!profile) return null;` — a dead blank page on any load hiccup on the admin/rep hub-preview path (I reproduced a blank render once on `/dashboard?admin_view_personal=…`, and a clean render on a retry).
-- `useSalesRep` fetches per hook instance with no shared cache, so every component mounting it (nav, shell, page) issues its own identical `sales_reps` query — that's the 3x storm in your network log.
+Run a full audit of Admin, Rep, Personal/Business, and Public Hub surfaces; scan legal disclosures; probe access boundaries; then ship fixes for everything critical/warning found.
 
-## Plan
+## Confirmed before planning
 
-### 1. `client_errors` table (migration)
-Columns: `id`, `error_message`, `stack_trace`, `component_stack`, `route`, `user_id` (nullable), `user_agent`, `created_at`.
-Access: anyone (signed-in or not) may write an error report; only admins can read. Grants for `anon`, `authenticated`, `service_role` included with the table.
+- `src/components/rep/SalesPartnerAgreement.tsx` (the agreement reps e-sign) still states **"$50 per new restaurant signup"** and **"$500 bonus at 30 restaurants/month"**. That contradicts the compensation actually implemented (approved-demo bounties, $50 daily base at 10 approved demos, upsell bounty). This is a signed-contract mismatch and is the top legal finding.
+- Text search finds no FTC/review-policy disclaimer anywhere in the dashboard or hub-creation surfaces — it exists only on static legal pages (`Terms`, `Compliance`, `AcceptableUse`).
+- Legal routes exist and are registered in `App.tsx`: `/terms`, `/privacy`, `/support`, `/refund`, `/acceptable-use`, `/dmca`, `/cookie-policy`, `/dpa`, `/compliance`, `/ai-disclaimer`, `/nfc-disclaimer`, `/affiliate-terms`.
 
-Ownership rule: `user_id` is never taken from the request body. The client insert omits it and a `BEFORE INSERT` trigger stamps `auth.uid()` — signed-in reports are attributed to the real session, anonymous reports store `NULL`. Insert policy rejects rows whose `user_id` doesn't match `auth.uid()` (or is null for anon).
+Everything below about *current* behavior (dead clicks, empty states, RLS leakage) is unverified and is what the audit phase will establish.
 
-### 2. `ErrorBoundary`
-- Drop the `track-event` call; insert into `client_errors` instead (message, truncated stack + component stack, `window.location.pathname + search`, user agent).
-- `console.error(error)` with the real Error object in every environment.
-- Fallback UI gains a "Show details" toggle (message + component stack) and a "Copy details" button alongside the existing error ID and Reload.
+## Phase 1 — Interactive audit (Playwright, admin session)
 
-### 3. Blank-screen fix in `PersonalDashboard`
-- Track *why* the profile is missing (fetch/RLS error vs. empty result) in state.
-- Replace `return null` with a visible card: "Unable to load this hub", the specific reason, a **Retry** button (re-runs `loadData`), and a context-aware second button — Back to Admin for admins, Back to My Businesses for reps, Home otherwise.
+Drive the real preview and walk: `/admin` + every `/admin/*` page, `/rep` + every `/rep/*` page (both directly and via `?admin_view_rep=`), `/dashboard` (own, `?profile_id=`, `?admin_view_personal=`), and a public hub. For each page record: console errors, failed network calls, buttons that do nothing, spinners that never resolve, and empty-state rendering. Also hard-refresh on each `admin_view` URL to confirm context survives.
 
-### 4. `sales_reps` request de-duplication
-Add a module-level cache + in-flight promise map in `useSalesRep`, keyed by `userId | impersonateRepId`, so concurrent hook instances share one request and remounts reuse the resolved row. Cache invalidates on user change / sign-out.
+Double-submit check: click Save / Approve / Request Payout / Submit for Review twice quickly and confirm the second click is blocked by a disabled/pending state.
 
-### 5. Verify
-- Typecheck clean.
-- Drive the preview with your admin session: load a rep hub via `/rep/restaurants?admin_view_rep=…` → Edit, confirm exactly **one** `sales_reps` request per load.
-- Trigger a deliberate render throw in a throwaway route to confirm a row lands in `client_errors` **with the correct `user_id` for a signed-in session** and that the details toggle shows the stack. If that signed-in insert check can't be run, I'll say so rather than call it verified.
+## Phase 2 — Legal & compliance
 
-### Admin surface (optional, included)
-A "Recent errors" section on the admin side listing the latest `client_errors` rows (time, route, message, user) so you can hand me a real stack next time.
+1. **Rewrite `SalesPartnerAgreement.tsx` section 2** to match the live comp plan (per-approved-demo bounty, $50 daily base on 10 approved demos, upsell bounty, admin approval as the earning trigger, TapAway's right to change rates). Bump the version line and note that reps who signed v1.0 will be asked to re-accept.
+2. **Add a shared `ReviewComplianceNotice` component** (FTC/no-gating wording) rendered on the hub editor and the rep demo builder.
+3. **Trial disclosure**: audit the trial/checkout modal for start date, end date, hardware-ownership statement, and expiry behavior; add whatever is missing.
+4. **Rep payout disclaimer**: 1099 independent-contractor + bonus-qualification text on the payouts/commissions surface, not only inside the agreement dialog.
+5. **Legal footer**: one shared footer (Terms · Privacy · Support) verified present on public pages, `/auth`, and all three dashboards; add where missing.
 
-## Notes
+## Phase 3 — Security boundaries
 
-One new logging table plus frontend changes. No changes to hubs, approvals, commissions, or existing RLS. After it ships I'll tell you exactly how to reproduce and where to read the captured error.
+- Query the database for RLS policies on `sales_reps`, `commissions`, `payouts`, `personal_profiles`, `client_errors`, then test as a second rep identity that Rep A cannot read Rep B's rows.
+- Hit admin-only edge functions with a non-admin token and confirm 401/403.
+- Load `/admin/*` while signed in as a rep and confirm redirect, not render.
+- Inject `"><img onerror>` / emoji / RTL characters into business name, social URL, and admin note fields; confirm escaping on render and that URL normalization rejects junk.
+
+## Phase 4 — Report + fixes
+
+Deliver a categorized report (🔴 / 🟡 / 🔵) in chat, then implement all 🔴 and 🟡 items in the same pass — code changes plus a migration only if RLS gaps are found. 🔵 items get listed for you to approve separately.
+
+## Technical notes
+
+- Audit scripts live under `/tmp/browser/`, nothing added to the repo.
+- Agreement change is copy-only; no change to the commission engine or the `award_daily_base_trigger` logic.
+- Any RLS fix ships as a single migration with explicit GRANTs.

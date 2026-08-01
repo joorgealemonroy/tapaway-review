@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
 import { buildGoogleReviewUrl } from '@/lib/google';
+import { ReviewComplianceNotice } from '@/components/compliance/ReviewComplianceNotice';
+
 
 const DEMO_CAP = 50;
 const TRIAL_DAYS = 7;
@@ -196,7 +198,7 @@ const RepDemoCreate = () => {
       if (reviewUrl) {
         seedLinks.push({
           profile_id: profileId,
-          label: 'Leave us a 5-Star Review',
+          label: 'Leave us a Review',
           url: reviewUrl,
           link_type: 'google_review',
           sort_order: 100 + seedLinks.length,
@@ -266,6 +268,8 @@ const RepDemoCreate = () => {
                 Up to {DEMO_CAP} demos per day. Missing details are fine — you can fill them in
                 from the dashboard.
               </p>
+              <ReviewComplianceNotice tone="light" className="mt-4" />
+
             </>
           )}
         </div>

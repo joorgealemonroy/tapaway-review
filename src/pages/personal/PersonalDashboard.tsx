@@ -52,6 +52,8 @@ import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { cn } from "@/lib/utils";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
+import { LegalFooter } from "@/components/compliance/LegalFooter";
+
 import { AdminViewBanner } from "@/components/admin/AdminViewBanner";
 
 
@@ -1505,7 +1507,11 @@ const PersonalDashboard = () => {
         isTrialing={isTrialing}
       />
 
+      <div className="px-4 pb-24 md:pb-8">
+        <LegalFooter />
+      </div>
     </div>
+
   );
 };
 

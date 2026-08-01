@@ -1,6 +1,8 @@
 import { useState, useCallback, useImperativeHandle, forwardRef, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
+import { ReviewComplianceNotice } from "@/components/compliance/ReviewComplianceNotice";
+
 import { isBrokenPlatformUrl, BROKEN_LINK_TOOLTIP } from "@/lib/brokenLinks";
 import { Switch } from "@/components/ui/switch";
 import { 
@@ -1285,6 +1287,9 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           Add your first link or content block
         </p>
       )}
+
+      <ReviewComplianceNotice className="mt-1" />
+
 
       {/* Link Modal */}
       <LinkModal

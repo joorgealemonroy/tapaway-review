@@ -351,6 +351,30 @@ const RepCommissions = () => {
           ))
         )}
       </RepCard>
+
+      {/* 1099 / payout terms — must stay visible on the earnings surface. */}
+      <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-[11px] leading-relaxed text-white/45">
+        <p className="mb-2 font-semibold uppercase tracking-widest text-white/40">Independent contractor terms</p>
+        <p className="mb-2">
+          Sales Partners are independent 1099 contractors, not employees of TapAway. TapAway does not withhold taxes;
+          you are solely responsible for your own taxes and expenses. A Form 1099-NEC is issued for each applicable
+          tax year in which you are paid $600 or more.
+        </p>
+        <p className="mb-2">
+          Compensation is performance-based and nothing is earned until it qualifies: <strong className="text-white/60">$5</strong> per
+          demo hub <em>after an admin approves it</em> (max 50 approved hubs per day),
+          a <strong className="text-white/60">$50 daily base</strong> awarded once per calendar day only when 10 or more of your hubs
+          are approved that day, and a one-time <strong className="text-white/60">$75</strong> bounty when a business you built converts
+          to an annual plan. There is no recurring or lifetime percentage commission.
+        </p>
+        <p>
+          Only amounts marked <em>Available</em> or <em>Paid</em> are earned. Payouts run Tuesdays at 12:00 PM PT and
+          require a valid W-9 and ACH details on file. TapAway may void or claw back amounts awarded in error or tied
+          to fraudulent, duplicated or unauthorized hubs, and may change rates with notice. See the full{" "}
+          <a href="/rep/docs" className="underline decoration-dotted">Sales Partner Agreement</a> for details.
+        </p>
+      </div>
+
     </RepShell>
   );
 };

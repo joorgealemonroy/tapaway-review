@@ -8,8 +8,9 @@ export default function SalesPartnerAgreement() {
           TapAway Sales Partner Agreement
         </h2>
         <p className="text-xs text-muted-foreground text-center mb-6">
-          Version 1.0 — Effective Immediately
+          Version 2.0 — Effective Immediately (supersedes v1.0)
         </p>
+
 
         <p className="text-sm mb-4">
           This Sales Partner Agreement ("Agreement") is entered into between TapAway ("Company") and the individual 
@@ -31,29 +32,67 @@ export default function SalesPartnerAgreement() {
         <p className="text-sm mb-4">TapAway will issue a Form 1099-NEC each applicable tax year.</p>
 
         <h3 className="text-base font-semibold mt-6 mb-2">2. Compensation Structure</h3>
-        
-        <h4 className="text-sm font-medium mt-4 mb-1">2.1 Commission per Closed Restaurant</h4>
-        <p className="text-sm mb-2">Sales Partners earn $50 per new restaurant signup, regardless of whether the restaurant chooses:</p>
-        <ul className="text-sm list-disc pl-5 mb-2 space-y-1">
-          <li>A monthly plan, or</li>
-          <li>A yearly plan</li>
-        </ul>
-        <p className="text-sm mb-4">Commissions appear in the Sales Partner dashboard after the customer's payment has successfully cleared.</p>
-        
-        <h4 className="text-sm font-medium mt-4 mb-1">2.2 Monthly Bonus</h4>
-        <p className="text-sm mb-4">If the Sales Partner closes 30 new restaurants within a calendar month, they receive an additional $500 bonus.</p>
-        
-        <h4 className="text-sm font-medium mt-4 mb-1">2.3 Rate Changes</h4>
-        <p className="text-sm mb-4">TapAway may update commission rates, bonuses, or incentives at any time with notice.</p>
+        <p className="text-sm mb-4">
+          Compensation is performance-based. No compensation of any kind is earned, accrued, guaranteed or owed
+          unless and until the conditions below are met. Nothing in this Agreement constitutes a salary, wage,
+          minimum guarantee, draw, or promise of any level of earnings.
+        </p>
+
+        <h4 className="text-sm font-medium mt-4 mb-1">2.1 Demo Hub Bonus — $5 per approved hub</h4>
+        <p className="text-sm mb-2">
+          Sales Partners earn <strong>$5.00 for each demo hub they build that is reviewed and approved by a TapAway
+          administrator</strong>. Approval is the sole trigger for earning. Hubs that are submitted but rejected,
+          duplicated, abandoned, incomplete, fraudulent, or built for a business that did not consent are not eligible
+          and earn nothing.
+        </p>
+        <p className="text-sm mb-4">
+          A maximum of <strong>50 approved demo hubs per calendar day</strong> is eligible for this bonus.
+        </p>
+
+        <h4 className="text-sm font-medium mt-4 mb-1">2.2 Daily Base — $50 per qualifying day</h4>
+        <p className="text-sm mb-4">
+          If a Sales Partner reaches <strong>10 approved demo hubs within a single calendar day</strong>, they earn an
+          additional <strong>$50.00 daily base</strong> for that day. This base is awarded at most once per calendar
+          day, is not payable for days on which fewer than 10 hubs are approved, and is not an hourly wage or a
+          guaranteed shift payment.
+        </p>
+
+        <h4 className="text-sm font-medium mt-4 mb-1">2.3 Annual Conversion Bounty — $75</h4>
+        <p className="text-sm mb-4">
+          If a business whose hub the Sales Partner built converts to a paid annual plan and that payment clears,
+          the Sales Partner earns a one-time <strong>$75.00 bounty</strong>. There is no residual, recurring,
+          percentage-based, or lifetime commission of any kind under this Agreement.
+        </p>
+
+        <h4 className="text-sm font-medium mt-4 mb-1">2.4 Quality Gate & Clawbacks</h4>
+        <p className="text-sm mb-2">
+          TapAway may hold bonuses beyond a probation cap until the Sales Partner demonstrates a minimum conversion
+          rate over a trailing 30-day period. TapAway may void or claw back any amount that was awarded in error, or
+          that is tied to a hub later found to be fraudulent, duplicated, unauthorized by the business, or created in
+          violation of this Agreement.
+        </p>
+        <p className="text-sm mb-4">
+          Amounts appear in the Sales Partner dashboard with a status (In Trial, Available, Pending, Paid, Voided,
+          Clawed Back, Quality Gate). Only amounts marked <em>Available</em> or <em>Paid</em> represent earned
+          compensation.
+        </p>
+
+        <h4 className="text-sm font-medium mt-4 mb-1">2.5 Rate Changes</h4>
+        <p className="text-sm mb-4">
+          TapAway may update commission rates, bonuses, caps, quality gates, or incentives at any time with notice.
+          Changes apply prospectively to hubs approved after the change takes effect.
+        </p>
 
         <h3 className="text-base font-semibold mt-6 mb-2">3. Payouts</h3>
         <p className="text-sm mb-2">Payouts occur every Tuesday at 12:00 PM Pacific Time.</p>
         <p className="text-sm mb-2">Additional details:</p>
         <ul className="text-sm list-disc pl-5 mb-4 space-y-1">
-          <li>Reps must have valid ACH payout information on file</li>
+          <li>Reps must have valid ACH payout information and a completed W-9 on file</li>
           <li>Deposits may take 1–3 business days to arrive</li>
-          <li>New commissions may roll into the next payout cycle if received after the cutoff</li>
+          <li>Earnings received after the cutoff roll into the next payout cycle</li>
+          <li>TapAway does not withhold taxes; the Sales Partner is solely responsible for them</li>
         </ul>
+
 
         <h3 className="text-base font-semibold mt-6 mb-2">4. Responsibilities of the Sales Partner</h3>
         <p className="text-sm mb-2">The Sales Partner agrees to:</p>
