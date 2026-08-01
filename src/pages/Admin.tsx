@@ -54,6 +54,7 @@ import {
   ClipboardList,
   ChevronRight,
   Activity,
+  AlertTriangle,
   Printer,
 } from "lucide-react";
 
