@@ -25,6 +25,8 @@ import {
   Smartphone,
   CreditCard,
   MessageSquare,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
