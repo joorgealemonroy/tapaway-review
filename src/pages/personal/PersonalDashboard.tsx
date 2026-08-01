@@ -391,10 +391,12 @@ const PersonalDashboard = () => {
       console.error("Error loading data:", err);
       // Don't eject on transient errors — only surface a toast if we've never loaded.
       if (!profileRef.current) {
+        setLoadError(err instanceof Error ? err.message : "Unexpected error while loading this hub.");
         toast.error("Failed to load your profile");
       } else {
         toast.error("Reconnecting…", { duration: 2000 });
       }
+
     } finally {
       setLoading(false);
     }
