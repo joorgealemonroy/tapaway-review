@@ -3518,6 +3518,7 @@ export type Database = {
           contact_photo_url: string
           contact_title: string
           contact_website: string
+          created_by_rep_id: string
           founding_number: number
           full_name: string
           header_color: string

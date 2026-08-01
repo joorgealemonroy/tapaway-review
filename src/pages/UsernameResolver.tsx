@@ -19,7 +19,7 @@ const MinimalLoader = memo(() => (
   </div>
 ));
 
-const PROFILE_COLUMNS = "id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label, is_approved";
+const PROFILE_COLUMNS = "id, user_id, username, full_name, profile_photo_url, subscription_status, header_type, header_color, header_image_url, background_color, pfp_position, headline, bio, contact_enabled, contact_name, contact_email, contact_photo_url, contact_phone, contact_company, contact_title, contact_address, contact_website, banner_image_url, plan_type, show_shop_section, is_founding_user, founding_number, show_founding_badge, bg_style, vibe_id, button_theme, text_color, show_username, contact_display_style, contact_button_label, is_approved, created_by_rep_id";
 
 const AdminPreviewRibbon = () => (
   <div className="fixed top-0 inset-x-0 z-[9999] bg-amber-500 text-black text-center py-1.5 text-xs font-semibold shadow-md">
