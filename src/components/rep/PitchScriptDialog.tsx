@@ -4,7 +4,10 @@ import { Copy, Check, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SCRIPT = `Hey! I'm dropping off a small gift for the owner — a free demo of TapAway.
+
 We help local spots collect more Google reviews without ever pressuring customers. Your staff just leave this card out for every guest, people tap it out of curiosity, and honest reviews come in on their own — no filtering, no incentives, nothing that breaks Google's rules.
+
+
 
 
 I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $15–$39/mo. If not, keep the cards, no strings.

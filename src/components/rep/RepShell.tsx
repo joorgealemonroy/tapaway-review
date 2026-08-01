@@ -74,7 +74,10 @@ export const RepShell = ({ title, subtitle, right, children }: RepShellProps) =>
         </nav>
 
         {children}
+
+        <LegalFooter tone="light" className="mt-8" />
       </div>
+
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0a0e1a]/95 backdrop-blur sm:hidden">
