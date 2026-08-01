@@ -24,9 +24,12 @@ export const useSalesRep = () => {
   const [loading, setLoading] = useState(true);
   const [isSalesRep, setIsSalesRep] = useState(false);
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
     const checkSalesRep = async () => {
-      if (!user) {
+      if (!userId) {
+
         setLoading(false);
         setIsSalesRep(false);
         setSalesRep(null);
@@ -64,7 +67,7 @@ export const useSalesRep = () => {
         const { data, error } = await supabase
           .from('sales_reps')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', userId)
           .eq('is_active', true)
           .maybeSingle();
 
@@ -86,7 +89,7 @@ export const useSalesRep = () => {
     };
 
     checkSalesRep();
-  }, [user, impersonateRepId, isAdmin, adminLoading]);
+  }, [userId, impersonateRepId, isAdmin, adminLoading]);
 
   return { salesRep, loading, isSalesRep };
 };

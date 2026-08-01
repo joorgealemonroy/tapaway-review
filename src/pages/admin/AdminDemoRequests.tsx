@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ArrowLeft, Package, Truck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -36,10 +38,8 @@ const AdminDemoRequests = () => {
   const [tracking, setTracking] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) { navigate('/auth'); return; }
-    if (!adminLoading && !isAdmin) { navigate('/'); return; }
-  }, [authLoading, adminLoading, user, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     if (isAdmin) fetchRequests();

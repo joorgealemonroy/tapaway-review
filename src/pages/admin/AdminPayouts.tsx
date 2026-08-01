@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -34,17 +36,8 @@ const AdminPayouts = () => {
   const [sendingPayout, setSendingPayout] = useState<string | null>(null);
   const [payouts, setPayouts] = useState<RepPayout[]>([]);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
+  useAdminGuard();
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate('/');
-    }
-  }, [isAdmin, adminLoading, navigate]);
 
   useEffect(() => {
     if (isAdmin && !adminLoading) {

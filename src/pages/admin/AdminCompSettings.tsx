@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
+
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
@@ -51,9 +53,8 @@ const AdminCompSettings = () => {
   const [saving, setSaving] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) { navigate('/'); return; }
-  }, [adminLoading, isAdmin, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     const fetchSettings = async () => {

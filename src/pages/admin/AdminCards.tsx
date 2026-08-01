@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,11 +44,8 @@ const AdminCards = () => {
   const [loadingCards, setLoadingCards] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin) {
-      navigate("/");
-    }
-  }, [isAdmin, adminLoading, navigate]);
+  useAdminGuard();
+
 
   useEffect(() => {
     if (isAdmin) loadCards();

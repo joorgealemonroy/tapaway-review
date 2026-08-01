@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -117,10 +119,8 @@ const AdminPrintQueue = () => {
   const [noteTarget, setNoteTarget] = useState<Row | null>(null);
   const [noteText, setNoteText] = useState("");
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate("/auth");
-    else if (!adminLoading && !isAdmin) navigate("/");
-  }, [authLoading, adminLoading, user, isAdmin, navigate]);
+  useAdminGuard();
+
 
   const load = useCallback(async () => {
     setLoading(true);
