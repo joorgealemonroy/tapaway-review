@@ -1,23 +1,15 @@
-## Goal
+## Problem
 
-Stop Facebook / LinkedIn / Yelp links from collapsing to their first path segment (the `people` autofill bug), and flag links already damaged by the old behavior.
+When you open `/dashboard` as admin, you land on **Personal Accounts** (`/admin/personal-accounts`) instead of the **Admin Overview** (`/admin`).
 
-## 1. Normalization logic — `src/lib/platformLinks.tsx`
+Verified cause: `src/pages/Dashboard.tsx` renders the Business Lite dashboard for admins, and `src/pages/personal/PersonalDashboard.tsx` (line 214) explicitly redirects any admin arriving at `/dashboard` without an impersonation target to `/admin/personal-accounts`. That was the old admin entry point before the new Overview page existed.
 
-- Extend the `stripHost` helper with a `keepPath` option so it can return the full remaining path (and query string) instead of splitting on `/` and taking index 0.
-- Add a shared `multiSegmentHandle(raw, hostPattern, prefixRe, keepQuery)` helper: keeps the whole path when it begins with a known multi-segment prefix, otherwise falls back to the existing single-segment behavior so plain handles keep working.
-- **Facebook** — prefixes `people/`, `pages/`, `p/`, `groups/`, and `profile.php` (query `?id=...` preserved). `extractValue` and `generateUrl` both route through the new handle helper; `generateUrl` rebuilds `https://facebook.com/<handle>` with no double prefix.
-- **LinkedIn** — preserve full path for `in/`, `company/` (plus `school/`, `showcase/`). Bare handles still generate `https://linkedin.com/in/<handle>`; prefixed paths generate `https://linkedin.com/<path>`.
-- **Yelp** — preserve full path for `biz/`. Bare handles still generate `https://www.yelp.com/biz/<handle>`; prefixed paths generate `https://www.yelp.com/<path>`.
-- Bare domains (`facebook.com`, `yelp.com`) continue to be rejected by `isBareDomainHandle` / `safeUrl`, so the existing "Enter your page name" toast in `LinkModal` still fires.
+## Fix
 
-## 2. Flag legacy truncated links — `src/lib/brokenLinks.ts`
+1. In `src/pages/personal/PersonalDashboard.tsx`, change the no-impersonation admin redirect from `/admin/personal-accounts` to `/admin` (Overview), keeping the `?profile_id=` → `?admin_view_personal=` rewrite behavior unchanged so impersonation still works.
+2. Leave the "Profile not found" fallback (line 234) pointing at the accounts list — that one is correct, since it happens while browsing a specific hub.
+3. Leave `AdminViewBanner` "back" links pointing at `/admin/personal-accounts` so exiting an impersonated hub returns to the list you came from.
 
-- Expand `isBrokenPlatformUrl` so, in addition to the recursive-domain check, it returns `true` when the parsed handle/last path segment is exactly one of: `people`, `pages`, `p`, `profile.php`, `company`, `in`, `biz`.
-- This feeds the existing "Needs Fixing" callouts on the rep, personal and admin dashboards, prompting manual re-entry for links the old bug permanently truncated. Detection only — no data is mutated.
+## Notes
 
-## Verification
-
-- Sanity-check parsing for: `facebook.com/people/Biz-Name/61551234567/`, `https://www.facebook.com/profile.php?id=6155…`, `facebook.com/mypage`, `@mypage`, `facebook.com` (rejected), `linkedin.com/company/acme`, `yelp.com/biz/some-place`.
-- Confirm edit → save → reopen round-trips the full value in the link editor.
-- Run a clean typecheck build.
+No database or business-logic changes; this is routing only. After the change, `/dashboard` as admin lands on the Overview with the stats cards and Quick Access panel.
