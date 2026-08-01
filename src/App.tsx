@@ -177,6 +177,7 @@ const App = () => (
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />
                 <Route path="/admin/print-queue" element={<AdminPrintQueue />} />
+                <Route path="/admin/errors" element={<AdminErrors />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
