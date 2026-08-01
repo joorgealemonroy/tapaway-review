@@ -234,13 +234,17 @@ const PersonalDashboard = () => {
 
           if (profileError || !profileData) {
             if (!profileRef.current) {
-              toast.error("Profile not found");
-              navigate("/admin/personal-accounts");
+              setLoadError(
+                profileError
+                  ? `Couldn't fetch this hub: ${profileError.message}`
+                  : "This hub no longer exists, or your access to it was revoked.",
+              );
             } else {
               console.warn("[dashboard] admin refetch returned empty; keeping current profile");
             }
             return;
           }
+
 
 
           const normalizedProfile = {
