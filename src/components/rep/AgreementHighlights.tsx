@@ -1,13 +1,14 @@
-import { FileText, DollarSign, Calendar, Building2, AlertTriangle, Scale } from "lucide-react";
+import { FileText, DollarSign, Calendar, Gift, AlertTriangle, Scale } from "lucide-react";
 
 export default function AgreementHighlights() {
   const highlights = [
     { icon: Scale, text: "You are a 1099 independent contractor, not an employee" },
-    { icon: DollarSign, text: "You earn $50 per closed sale after customer payment clears" },
-    { icon: Building2, text: "30 closes in a month = $500 bonus" },
-    { icon: Calendar, text: "Payouts are sent every Tuesday at 12 PM PST" },
-    { icon: FileText, text: "You must provide valid ACH banking + W9" },
-    { icon: AlertTriangle, text: "TapAway may adjust commission rates in the future" },
+    { icon: DollarSign, text: "$5 per demo hub, earned only once an admin approves it" },
+    { icon: Gift, text: "10 approved demos in one calendar day = a $50 daily base, once per day" },
+    { icon: DollarSign, text: "$75 annual bounty when a business you built converts to an annual plan" },
+    { icon: Calendar, text: "Payouts are sent every Tuesday at 12 PM PT" },
+    { icon: FileText, text: "You must provide valid ACH banking details + a W-9" },
+    { icon: AlertTriangle, text: "TapAway may adjust rates, bonuses and caps at any time with notice" },
   ];
 
   return (
