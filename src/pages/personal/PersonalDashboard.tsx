@@ -176,6 +176,8 @@ const PersonalDashboard = () => {
   const requestedProfileId = searchParams.get("profile_id");
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
+  // Why the profile couldn't be loaded — surfaced instead of a blank screen.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
   // unrelated URL params (tab=, welcome=, upgrade=) change.
