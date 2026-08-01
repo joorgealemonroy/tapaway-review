@@ -23,24 +23,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Avoid re-setting identical session objects: every setState here creates a
+    // new `user` identity that re-triggers downstream effects (admin/rep checks),
+    // which caused repeated duplicate queries.
+    const applySession = (next: Session | null) => {
+      setSession((prev) => {
+        if (prev?.access_token === next?.access_token) return prev;
+        return next;
+      });
+      setUser((prev) => {
+        const nextUser = next?.user ?? null;
+        if (prev?.id === nextUser?.id && prev?.updated_at === nextUser?.updated_at) return prev;
+        return nextUser;
+      });
+      setLoading(false);
+    };
+
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        applySession(session);
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      applySession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const signUp = async (email: string, _password: string) => {
     // IMPORTANT: We do not use the default auth email pipeline for signups.
