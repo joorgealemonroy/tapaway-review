@@ -67,7 +67,7 @@ export const useSalesRep = () => {
         const { data, error } = await supabase
           .from('sales_reps')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', userId)
           .eq('is_active', true)
           .maybeSingle();
 
@@ -89,7 +89,7 @@ export const useSalesRep = () => {
     };
 
     checkSalesRep();
-  }, [user, impersonateRepId, isAdmin, adminLoading]);
+  }, [userId, impersonateRepId, isAdmin, adminLoading]);
 
   return { salesRep, loading, isSalesRep };
 };
