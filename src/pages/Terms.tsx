@@ -638,13 +638,61 @@ const Terms = () => {
             </p>
           </section>
 
-          {/* 32. CONTACT */}
+          {/* 32. PUBLIC BUSINESS DATA & DEMO HUBS */}
           <section>
-            <h2 className="text-2xl font-bold mb-4">32. Contact</h2>
+            <h2 className="text-2xl font-bold mb-4">32. Public Business Data & Demo Hub Takedown Policy</h2>
+            <p className="text-muted-foreground mb-4">
+              Information, business names, logos, and media used to generate prospective or unverified "Demo Hubs"
+              are sourced exclusively from publicly available internet resources. TapAway claims no affiliation,
+              endorsement, sponsorship, or trademark ownership over prospective businesses during the trial or demo
+              creation phase. A demo hub is a proposal of service and does not represent an existing business
+              relationship.
+            </p>
+            <p className="text-muted-foreground mb-4">
+              If an authorized business representative wishes to request the removal of an unclaimed demo hub or
+              public profile, written notice must be submitted to{" "}
+              <a href="mailto:support@tapaway.co" className="text-primary hover:underline">support@tapaway.co</a>.
+              TapAway will process and remove the requested content within fourteen (14) calendar days of verified
+              notice. Verification may include confirmation that the requester is an owner, officer, or authorized
+              agent of the business named on the hub.
+            </p>
+            <p className="text-muted-foreground">
+              Trademark or copyright complaints may alternatively be submitted under our{" "}
+              <a href="/dmca" className="text-primary hover:underline">DMCA Policy</a>.
+            </p>
+          </section>
+
+          {/* 33. SUBSCRIBER LOGO & PROMOTIONAL MEDIA LICENSE */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">33. Subscriber Logo & Promotional Media License</h2>
+            <p className="text-muted-foreground mb-4">
+              By subscribing to any paid TapAway software plan or purchasing physical TapAway hardware, Customer
+              grants TapAway a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, display,
+              print, and photograph Customer's name, logo, trade marks, and physical TapAway products (including
+              branded NFC cards and countertop stands) across TapAway's website, marketing materials, social media
+              platforms, portfolio and case-study materials, and sales collateral.
+            </p>
+            <p className="text-muted-foreground mb-4">
+              This license applies to active and former paid subscribers, survives cancellation of the subscription,
+              and requires no further consent, approval, notice, or compensation. Customer waives any right to
+              inspect or approve finished marketing assets and releases TapAway from any liability arising from the
+              display or promotion of Customer-branded hardware.
+            </p>
+            <p className="text-muted-foreground">
+              Customers who wish to opt out of future promotional use may email{" "}
+              <a href="mailto:support@tapaway.co" className="text-primary hover:underline">support@tapaway.co</a>;
+              opt-outs apply prospectively only and do not require removal of assets already published or printed.
+            </p>
+          </section>
+
+          {/* 34. CONTACT */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">34. Contact</h2>
             <p className="text-muted-foreground">
               For questions about these Terms, contact us at: <strong>tap@tapaway.co</strong>
             </p>
           </section>
+
         </div>
       </div>
     </div>
