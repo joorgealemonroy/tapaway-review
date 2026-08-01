@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useRepNavigate } from '@/hooks/useRepNavigate';
 import { Home, Briefcase, Wallet, BookOpen, User } from 'lucide-react';
+import { LegalFooter } from '@/components/compliance/LegalFooter';
+
 
 interface RepShellProps {
   title?: string;

@@ -266,6 +266,8 @@ const RepDemoCreate = () => {
                 Up to {DEMO_CAP} demos per day. Missing details are fine — you can fill them in
                 from the dashboard.
               </p>
+              <ReviewComplianceNotice tone="light" className="mt-4" />
+
             </>
           )}
         </div>
