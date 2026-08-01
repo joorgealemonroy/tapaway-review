@@ -311,6 +311,13 @@ const PersonalDashboard = () => {
           console.warn("[dashboard] refetch returned empty; keeping current profile", profileError);
           return;
         }
+        // A real fetch failure is not the same as "no profiles yet" — never send a
+        // user to onboarding because of a network/RLS hiccup.
+        if (profileError) {
+          setLoadError(`Couldn't load your profiles: ${profileError.message}`);
+          return;
+        }
+
         // Sales reps without any demos yet should go back to the partner portal, not onboarding
         const { data: repRow } = await supabase
           .from("sales_reps")
