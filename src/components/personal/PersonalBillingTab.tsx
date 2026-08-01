@@ -139,6 +139,37 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
           </CardContent>
         </Card>
       )}
+
+      {isTrialing && (
+        <Card className="border-border/60">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-foreground mb-2">Your trial terms</p>
+            <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
+              <li>
+                Your free trial ends on{" "}
+                <span className="font-medium text-foreground">
+                  {trialEndDate?.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+                </span>{" "}
+                ({trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left).
+              </li>
+              <li>
+                When the trial ends, your hub is billed <span className="font-medium text-foreground">$15/month</span>{" "}
+                unless you cancel first. You can cancel any time before the end date at no charge.
+              </li>
+              <li>
+                If no payment method is added, your hub is deactivated at the end of the trial and its public link
+                stops resolving. Your content is retained for 30 days so you can reactivate.
+              </li>
+              <li>
+                Any NFC cards, stands or other hardware provided during the trial{" "}
+                <span className="font-medium text-foreground">remain the property of TapAway</span> until a paid plan
+                is active, and must be returned or paid for on request if you do not activate.
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
