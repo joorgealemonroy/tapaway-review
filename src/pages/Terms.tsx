@@ -54,7 +54,7 @@ const Terms = () => {
             <li><strong>Opt-out:</strong> Reply <strong>STOP</strong> to any message to unsubscribe.</li>
             <li>
               <strong>Support:</strong> Reply <strong>HELP</strong> or contact{" "}
-              <a href="mailto:support@tapaway.co" className="underline">support@tapaway.co</a>.
+              <a href="mailto:tap@tapaway.co" className="underline">tap@tapaway.co</a>.
             </li>
             <li>Message frequency varies. Message & data rates may apply.</li>
           </ul>
@@ -651,7 +651,7 @@ const Terms = () => {
             <p className="text-muted-foreground mb-4">
               If an authorized business representative wishes to request the removal of an unclaimed demo hub or
               public profile, written notice must be submitted to{" "}
-              <a href="mailto:support@tapaway.co" className="text-primary hover:underline">support@tapaway.co</a>.
+              <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a>.
               TapAway will process and remove the requested content within fourteen (14) calendar days of verified
               notice. Verification may include confirmation that the requester is an owner, officer, or authorized
               agent of the business named on the hub.
@@ -680,7 +680,7 @@ const Terms = () => {
             </p>
             <p className="text-muted-foreground">
               Customers who wish to opt out of future promotional use may email{" "}
-              <a href="mailto:support@tapaway.co" className="text-primary hover:underline">support@tapaway.co</a>;
+              <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">tap@tapaway.co</a>;
               opt-outs apply prospectively only and do not require removal of assets already published or printed.
             </p>
           </section>

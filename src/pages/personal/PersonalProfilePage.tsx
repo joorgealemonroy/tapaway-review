@@ -1660,10 +1660,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 Demo profile built using publicly available business information. To claim or request removal within
                 14 days, contact{" "}
                 <a
-                  href="mailto:support@tapaway.co"
+                  href="mailto:tap@tapaway.co"
                   className="underline decoration-dotted underline-offset-2"
                 >
-                  support@tapaway.co
+                  tap@tapaway.co
                 </a>
                 .
               </p>
