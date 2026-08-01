@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Download, Check, X, FileText, Clock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
+
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 

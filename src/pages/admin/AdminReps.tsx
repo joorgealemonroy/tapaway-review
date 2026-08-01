@@ -18,6 +18,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
+
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, CheckCircle, XCircle, UserPlus, RotateCw, Eye, Ban, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
