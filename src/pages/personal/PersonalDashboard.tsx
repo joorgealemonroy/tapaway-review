@@ -25,6 +25,8 @@ import {
   Smartphone,
   CreditCard,
   MessageSquare,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
@@ -176,6 +178,8 @@ const PersonalDashboard = () => {
   const requestedProfileId = searchParams.get("profile_id");
   const [isAdminView, setIsAdminView] = useState(false);
   const [adminViewName, setAdminViewName] = useState("");
+  // Why the profile couldn't be loaded — surfaced instead of a blank screen.
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
   // unrelated URL params (tab=, welcome=, upgrade=) change.
@@ -191,6 +195,8 @@ const PersonalDashboard = () => {
     const adminViewIdLocal = sp.get("admin_view_personal") || sp.get("admin_view");
     const requestedProfileIdLocal = sp.get("profile_id");
     try {
+      setLoadError(null);
+
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -230,13 +236,17 @@ const PersonalDashboard = () => {
 
           if (profileError || !profileData) {
             if (!profileRef.current) {
-              toast.error("Profile not found");
-              navigate("/admin/personal-accounts");
+              setLoadError(
+                profileError
+                  ? `Couldn't fetch this hub: ${profileError.message}`
+                  : "This hub no longer exists, or your access to it was revoked.",
+              );
             } else {
               console.warn("[dashboard] admin refetch returned empty; keeping current profile");
             }
             return;
           }
+
 
 
           const normalizedProfile = {
@@ -303,6 +313,13 @@ const PersonalDashboard = () => {
           console.warn("[dashboard] refetch returned empty; keeping current profile", profileError);
           return;
         }
+        // A real fetch failure is not the same as "no profiles yet" — never send a
+        // user to onboarding because of a network/RLS hiccup.
+        if (profileError) {
+          setLoadError(`Couldn't load your profiles: ${profileError.message}`);
+          return;
+        }
+
         // Sales reps without any demos yet should go back to the partner portal, not onboarding
         const { data: repRow } = await supabase
           .from("sales_reps")
@@ -376,10 +393,12 @@ const PersonalDashboard = () => {
       console.error("Error loading data:", err);
       // Don't eject on transient errors — only surface a toast if we've never loaded.
       if (!profileRef.current) {
+        setLoadError(err instanceof Error ? err.message : "Unexpected error while loading this hub.");
         toast.error("Failed to load your profile");
       } else {
         toast.error("Reconnecting…", { duration: 2000 });
       }
+
     } finally {
       setLoading(false);
     }
@@ -787,8 +806,47 @@ const PersonalDashboard = () => {
   }
 
   if (!profile) {
-    return null;
+    // Never leave the user on a blank page — explain what failed and offer a way out.
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
+            <AlertTriangle className="h-7 w-7 text-destructive" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">Unable to load profile data</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {loadError ?? "The hub data came back empty. This is usually a temporary connection issue."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              onClick={() => {
+                setLoading(true);
+                loadData();
+              }}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+            {adminViewId ? (
+              <Button variant="outline" onClick={() => navigate("/admin/personal-accounts")}>
+                Back to Admin
+              </Button>
+            ) : isSalesRep ? (
+              <Button variant="outline" onClick={() => navigate("/rep/restaurants")}>
+                Back to My Businesses
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => navigate("/")}>
+                Go Home
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
+
 
   // Prepare blocks for preview with proper typing
   const previewBlocks = blocks.map(b => ({

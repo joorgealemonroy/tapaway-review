@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,49 +10,42 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  componentStack?: string;
   errorId?: string;
+  showDetails: boolean;
+  copied: boolean;
 }
 
-// Log errors to a backend for monitoring (non-blocking)
-const logErrorToBackend = async (error: Error, errorInfo: React.ErrorInfo) => {
+/**
+ * Persist a crash into public.client_errors.
+ * `user_id` is deliberately NOT sent — a BEFORE INSERT trigger stamps auth.uid()
+ * server-side so ownership can never be spoofed from the browser.
+ */
+const logErrorToBackend = async (
+  errorId: string,
+  error: Error,
+  errorInfo: React.ErrorInfo,
+) => {
   try {
-    // Generate a unique error ID for tracking
-    const errorId = `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    
-    // Log to console in development
-    if (import.meta.env.DEV) {
-      console.error(`[ErrorBoundary ${errorId}]`, error, errorInfo);
-    }
-
-    // In production, we could log to a monitoring service
-    // For now, log to analytics_events as a lightweight solution
-    await supabase.functions.invoke("track-event", {
-      body: {
-        restaurantId: "system",
-        eventType: "error",
-        eventData: {
-          errorId,
-          message: error.message,
-          stack: error.stack?.slice(0, 500), // Truncate stack trace
-          componentStack: errorInfo.componentStack?.slice(0, 500),
-          url: window.location.href,
-          timestamp: new Date().toISOString(),
-        },
-      },
-    }).catch(() => {
-      // Silently fail - don't cause more errors
+    const { error: insertError } = await supabase.from("client_errors").insert({
+      error_message: `[${errorId}] ${error.message || String(error)}`,
+      stack_trace: error.stack?.slice(0, 4000) ?? null,
+      component_stack: errorInfo.componentStack?.slice(0, 4000) ?? null,
+      route: `${window.location.pathname}${window.location.search}`,
+      user_agent: navigator.userAgent.slice(0, 500),
     });
-
-    return errorId;
-  } catch {
-    return undefined;
+    if (insertError) {
+      console.error("[ErrorBoundary] failed to persist error report", insertError);
+    }
+  } catch (e) {
+    console.error("[ErrorBoundary] failed to persist error report", e);
   }
 };
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, showDetails: false, copied: false };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -60,27 +53,53 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logErrorToBackend(error, errorInfo).then((errorId) => {
-      if (errorId) {
-        this.setState({ errorId });
-      }
-    });
+    const errorId = `err_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // Always log the real Error object (stack preserved) — every environment.
+    console.error(`[ErrorBoundary ${errorId}]`, error);
+    console.error(`[ErrorBoundary ${errorId}] component stack:`, errorInfo.componentStack);
+    this.setState({ errorId, componentStack: errorInfo.componentStack ?? undefined });
+    void logErrorToBackend(errorId, error, errorInfo);
   }
 
   handleReload = () => {
     window.location.reload();
   };
 
+  buildDetails = () => {
+    const { errorId, error, componentStack } = this.state;
+    return [
+      `Error ID: ${errorId ?? "unknown"}`,
+      `Route: ${window.location.pathname}${window.location.search}`,
+      `Message: ${error?.message ?? "Unknown error"}`,
+      "",
+      "Stack:",
+      error?.stack ?? "(no stack)",
+      "",
+      "Component stack:",
+      componentStack ?? "(no component stack)",
+    ].join("\n");
+  };
+
+  handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(this.buildDetails());
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    } catch {
+      /* clipboard unavailable — details are still visible on screen */
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="text-center max-w-md">
+          <div className="text-center max-w-xl w-full">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mb-4">
               <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-4">
               We encountered an unexpected error. Please try reloading the page.
             </p>
             {this.state.errorId && (
@@ -88,10 +107,35 @@ export class ErrorBoundary extends Component<Props, State> {
                 Error ID: {this.state.errorId}
               </p>
             )}
-            <Button onClick={this.handleReload} className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Reload Page
-            </Button>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+              <Button onClick={this.handleReload} className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Reload Page
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => this.setState((s) => ({ showDetails: !s.showDetails }))}
+              >
+                {this.state.showDetails ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                {this.state.showDetails ? "Hide details" : "Show details"}
+              </Button>
+              <Button variant="ghost" className="gap-2" onClick={this.handleCopy}>
+                <Copy className="h-4 w-4" />
+                {this.state.copied ? "Copied" : "Copy details"}
+              </Button>
+            </div>
+
+            {this.state.showDetails && (
+              <pre className="text-left text-xs font-mono bg-muted text-muted-foreground rounded-lg p-3 max-h-72 overflow-auto whitespace-pre-wrap break-words">
+                {this.buildDetails()}
+              </pre>
+            )}
           </div>
         </div>
       );
