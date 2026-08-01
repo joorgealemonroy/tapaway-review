@@ -804,8 +804,47 @@ const PersonalDashboard = () => {
   }
 
   if (!profile) {
-    return null;
+    // Never leave the user on a blank page — explain what failed and offer a way out.
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
+            <AlertTriangle className="h-7 w-7 text-destructive" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">Unable to load profile data</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {loadError ?? "The hub data came back empty. This is usually a temporary connection issue."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              onClick={() => {
+                setLoading(true);
+                loadData();
+              }}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+            {adminViewId ? (
+              <Button variant="outline" onClick={() => navigate("/admin/personal-accounts")}>
+                Back to Admin
+              </Button>
+            ) : isSalesRep ? (
+              <Button variant="outline" onClick={() => navigate("/rep/restaurants")}>
+                Back to My Businesses
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => navigate("/")}>
+                Go Home
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
+
 
   // Prepare blocks for preview with proper typing
   const previewBlocks = blocks.map(b => ({
