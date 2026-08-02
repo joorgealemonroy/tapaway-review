@@ -97,14 +97,9 @@ const SmsMarketingTab = ({ profileId }: Props) => {
     message.length <= MAX_LEN &&
     (subscriberCount ?? 0) > 0;
 
-  const SENDING_LOCKED = false;
-
   return (
     <div className="space-y-6">
-      {/* Pending carrier approval banner */}
-      <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-4 text-sm text-amber-900 dark:text-amber-200">
-        🚧 SMS Marketing is currently pending carrier approval. Will be unlocked very soon.
-      </div>
+
 
       {/* Audience */}
       <Card className="p-6">
@@ -122,10 +117,14 @@ const SmsMarketingTab = ({ profileId }: Props) => {
       </Card>
 
       {/* Composer */}
-      <Card className="p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
+      <Card className="p-4 sm:p-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-primary shrink-0" />
           <h3 className="font-semibold">Compose mass text</h3>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Live · Carrier Approved
+          </span>
         </div>
         <Textarea
           placeholder="Hey! Quick update from us…"
@@ -133,9 +132,9 @@ const SmsMarketingTab = ({ profileId }: Props) => {
           onChange={(e) => setMessage(e.target.value.slice(0, MAX_LEN))}
           maxLength={MAX_LEN}
           rows={4}
-          disabled={sending || SENDING_LOCKED}
+          disabled={sending}
         />
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground">
           <span>"Reply STOP to opt out." will be appended automatically.</span>
           <span className={message.length >= MAX_LEN ? "text-destructive font-medium" : ""}>
             {message.length}/{MAX_LEN}
@@ -143,13 +142,11 @@ const SmsMarketingTab = ({ profileId }: Props) => {
         </div>
         <Button
           onClick={() => setConfirmOpen(true)}
-          disabled={SENDING_LOCKED || !canSend}
+          disabled={!canSend}
           className="w-full"
           size="lg"
         >
-          {SENDING_LOCKED ? (
-            "Coming Soon"
-          ) : sending ? (
+          {sending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending…
             </>
@@ -159,11 +156,12 @@ const SmsMarketingTab = ({ profileId }: Props) => {
             </>
           )}
         </Button>
-        {!SENDING_LOCKED && (subscriberCount ?? 0) === 0 && !loading && (
+        {(subscriberCount ?? 0) === 0 && !loading && (
           <p className="text-xs text-muted-foreground text-center">
-            No SMS subscribers yet. Visitors who opt in via your contact form will appear here.
+            Start collecting subscribers when customers tap your TapAway cards!
           </p>
         )}
+
       </Card>
 
       {/* Recent campaigns */}

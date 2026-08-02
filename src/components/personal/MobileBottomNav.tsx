@@ -1,4 +1,4 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun, ArrowLeftRight } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, MessageSquare, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun, ArrowLeftRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
@@ -29,9 +29,11 @@ interface MobileBottomNavProps {
 const BASE_MORE_TABS = [
   { value: "shop", label: "Shop", icon: ShoppingBag, description: "Sell digital products" },
   { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
+  { value: "sms", label: "SMS", icon: MessageSquare, description: "Text your subscribers" },
   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
   { value: "cards", label: "Cards", icon: CreditCard, description: "Request NFC cards" },
 ];
+
  
 export const MobileBottomNav = ({ activeTab, onTabChange, isAffiliate, allProfiles = [], activeProfileId, onSwitchProfile, isTrialing = false }: MobileBottomNavProps) => {
   const [moreOpen, setMoreOpen] = useState(false);
