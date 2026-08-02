@@ -34,11 +34,26 @@ Deno.serve(async (req) => {
     const TWILIO_FROM_NUMBER = Deno.env.get("TWILIO_FROM_NUMBER");
 
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("send-mass-sms misconfigured: missing Supabase env", {
+        has_url: !!SUPABASE_URL,
+        has_anon_key: !!SUPABASE_ANON_KEY,
+        has_service_role_key: !!SUPABASE_SERVICE_ROLE_KEY,
+      });
       return json(500, { error: "Server configuration error (Supabase)" });
     }
-    if (!LOVABLE_API_KEY) return json(500, { error: "LOVABLE_API_KEY not configured" });
-    if (!TWILIO_API_KEY) return json(500, { error: "Twilio is not connected" });
-    if (!TWILIO_FROM_NUMBER) return json(500, { error: "TWILIO_FROM_NUMBER is not configured" });
+    if (!LOVABLE_API_KEY) {
+      console.error("send-mass-sms misconfigured: LOVABLE_API_KEY is not set");
+      return json(500, { error: "LOVABLE_API_KEY not configured" });
+    }
+    if (!TWILIO_API_KEY) {
+      console.error("send-mass-sms misconfigured: TWILIO_API_KEY is not set (Twilio not connected)");
+      return json(500, { error: "Twilio is not connected" });
+    }
+    if (!TWILIO_FROM_NUMBER) {
+      console.error("send-mass-sms misconfigured: TWILIO_FROM_NUMBER is not set");
+      return json(500, { error: "TWILIO_FROM_NUMBER is not configured" });
+    }
+
 
     // ---- Authn ----
     const authHeader = req.headers.get("Authorization");
