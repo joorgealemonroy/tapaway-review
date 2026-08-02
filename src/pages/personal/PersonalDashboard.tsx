@@ -902,11 +902,12 @@ const PersonalDashboard = () => {
       }
     }
 
+    // NOTE: never write review_note / review_note_at here — the
+    // `guard_profile_approval_fields` DB trigger rejects the whole update for
+    // non-admins, which silently kept hubs stuck in "changes_requested".
     const updates: Record<string, unknown> = {
       pipeline_status: "ready_for_review",
       submitted_for_review_at: new Date().toISOString(),
-      review_note: null,
-      review_note_at: null,
     };
     if (nextUsername) updates.username = nextUsername;
 
@@ -914,7 +915,7 @@ const PersonalDashboard = () => {
       .from("personal_profiles")
       .update(updates as any)
       .eq("id", profile.id);
-    if (error) { toast.error("Failed to submit"); return; }
+    if (error) { toast.error(`Failed to submit: ${error.message}`); return; }
 
     if (nextUsername) {
       setProfile(p => p ? { ...p, username: nextUsername! } : p);
