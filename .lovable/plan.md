@@ -1,25 +1,33 @@
-## Goal
+## Root cause (confirmed)
 
-Make `tap@tapaway.co` the only contact address shown anywhere in the app. A code search found `support@tapaway.co` in 8 places across 7 files; nothing else user-facing uses another address.
+The five hubs in the "Changes Requested" list were never actually resubmitted. In the database all five are still `pipeline_status = 'changes_requested'` with `submitted_for_review_at = NULL`, even though the reps did the work.
 
-## Changes (copy-only, no logic)
+Why: when a rep hits **Submit for review**, `handleSubmitForReview` in `src/pages/personal/PersonalDashboard.tsx` also writes `review_note: null` and `review_note_at: null`. The database trigger `guard_profile_approval_fields()` raises `Only an admin can edit the review note` for any non-admin who touches those columns, so the entire update is rejected and the rep sees only a generic "Failed to submit" toast.
 
-Replace `support@tapaway.co` with `tap@tapaway.co` in both the `mailto:` href and the visible label:
+The "Needs Fixing" links callout is separate and is real data: 4 hubs still store `https://facebook.com/facebook.com`. Left as-is for manual rep entry.
 
-1. `src/pages/Terms.tsx` — line 57 (intro contact), line 654 (Section 32 demo takedown notice), line 683 (Section 33 marketing-license opt-out). Section 34 already uses `tap@tapaway.co`, so the page becomes consistent.
-2. `src/pages/personal/PersonalProfilePage.tsx` — line ~1663, the unclaimed demo hub takedown footer.
-3. `src/pages/Compliance.tsx` — line 41 compliance contact, and line 90 sample "HELP reply" SMS body text.
-4. `src/pages/SmsSignup.tsx` — line 240 help contact.
-5. `src/pages/RepCheckoutSuccess.tsx` — lines 44–45 support link.
-6. `src/pages/OnboardingNew.tsx` — line 529 support mailto.
+## Changes
 
-## Left alone (per your answer)
-
-- Outbound sender identities in edge functions (`no-reply@`, `notifications@`, `hello@`, `cards@`) stay as-is — they are Resend "from" addresses, not inboxes, and changing them risks send failures if `tap@tapaway.co` isn't verified as a sender.
-- `alexis@tapaway.co` in `src/lib/grandfatheredUsers.ts` and the `test-*@tapaway.co` entries in test-account fixtures — these are account identifiers, not contact addresses.
+1. **Unblock rep resubmits** — `src/pages/personal/PersonalDashboard.tsx`: drop `review_note` / `review_note_at` from the `handleSubmitForReview` payload. Send only `pipeline_status: 'ready_for_review'`, `submitted_for_review_at`, and the auto-generated slug.
+2. **Stop silent failures** — same function: show the real Supabase `error.message` in the toast instead of "Failed to submit".
+3. **Clear notes on approval** — `src/components/admin/AdminPendingHubApprovals.tsx`: the `approve()` update also sets `review_note: null` and `review_note_at: null`, so an approved hub never carries a stale rejection note. (Admins pass the trigger guard.)
+4. **Hide resolved items** — `src/pages/rep/RepBusinesses.tsx`: the changes-requested filter already requires `!is_approved && pipeline_status === 'changes_requested'`; verify and keep it as the safety net.
+5. **Data cleanup migration** — move the stuck hubs back into the admin queue:
+   ```sql
+   UPDATE public.personal_profiles
+   SET pipeline_status = 'ready_for_review',
+       submitted_for_review_at = now()
+   WHERE pipeline_status = 'changes_requested'
+     AND is_approved = false;
+   ```
+   Existing `review_note` values are kept for admin reference.
 
 ## Verification
 
 - Full typecheck.
-- Grep to confirm zero `support@tapaway.co` occurrences remain in `src/`.
-- Playwright pass over `/terms`, `/compliance`, `/sms-signup` and one demo hub to confirm the visible address reads `tap@tapaway.co`.
+- Re-query `personal_profiles` to confirm the 5 hubs now read `ready_for_review`.
+
+## Technical notes
+
+- The `guard_profile_approval_fields()` trigger stays intact — it is a legitimate privilege guard; the client simply must not write those columns.
+- The cleanup runs as a migration (service role), which bypasses the guard cleanly.
