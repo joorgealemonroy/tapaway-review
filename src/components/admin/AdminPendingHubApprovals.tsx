@@ -111,7 +111,12 @@ const AdminPendingHubApprovals = () => {
     setApprovingId(row.id);
     const { error } = await supabase
       .from("personal_profiles")
-      .update({ is_approved: true, plan_type: "solo_pro" })
+      .update({
+        is_approved: true,
+        plan_type: "solo_pro",
+        review_note: null,
+        review_note_at: null,
+      } as never)
       .eq("id", row.id);
     if (error) {
       setApprovingId(null);
