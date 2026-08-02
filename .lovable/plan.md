@@ -1,33 +1,47 @@
-## Root cause (confirmed)
+## Goal
+SMS Marketing passed carrier approval. Remove the temporary lock UI, add live-status polish, verify the send function's secret handling, and make the feature reachable for mobile users.
 
-The five hubs in the "Changes Requested" list were never actually resubmitted. In the database all five are still `pipeline_status = 'changes_requested'` with `submitted_for_review_at = NULL`, even though the reps did the work.
+## Verified current state
+- Both `SmsMarketingTab.tsx` and `RestaurantSmsMarketingTab.tsx` render the amber "🚧 SMS Marketing is currently pending carrier approval. Will be unlocked very soon." banner.
+- `SENDING_LOCKED` is already hardcoded `false` in both files, so the lock branches are dead code.
+- `send-mass-sms/index.ts` already reads `TWILIO_API_KEY`, `TWILIO_FROM_NUMBER`, and `LOVABLE_API_KEY` and returns a 500 for each missing one — but it returns them without a `console.error`, so a misconfiguration is invisible in function logs.
+- **Mobile gap:** the personal dashboard's SMS `TabsTrigger` sits inside a `hidden md:grid` list. `MobileBottomNav`'s `PRIMARY_TABS` (Links, Design, Stats) and `BASE_MORE_TABS` (Shop, Leads, Plan, Cards) contain no `sms` entry, so mobile Solo users cannot open SMS Marketing at all.
+- The restaurant dashboard tab strip is `inline-flex min-w-full` horizontally scrollable, so its SMS tab is already reachable on mobile.
 
-Why: when a rep hits **Submit for review**, `handleSubmitForReview` in `src/pages/personal/PersonalDashboard.tsx` also writes `review_note: null` and `review_note_at: null`. The database trigger `guard_profile_approval_fields()` raises `Only an admin can edit the review note` for any non-admin who touches those columns, so the entire update is rejected and the rep sees only a generic "Failed to submit" toast.
+## 1. Clean up both SMS marketing tabs
+Applies identically to `src/components/personal/SmsMarketingTab.tsx` and `src/components/restaurant/RestaurantSmsMarketingTab.tsx`:
 
-The "Needs Fixing" links callout is separate and is real data: 4 hubs still store `https://facebook.com/facebook.com`. Left as-is for manual rep entry.
+- Delete the pending-carrier-approval banner block.
+- Delete the `SENDING_LOCKED` constant and every reference:
+  - `disabled={sending || SENDING_LOCKED}` on the `Textarea` becomes `disabled={sending}`.
+  - `disabled={SENDING_LOCKED || !canSend}` on the send button becomes `disabled={!canSend}`.
+  - Drop the `"Coming Soon"` branch of the button-label ternary, leaving the sending / idle states.
+  - Drop the `!SENDING_LOCKED &&` guard on the empty-state paragraph.
+- Keep `canSend` exactly as-is: still blocks on `sending`, empty/whitespace message, message over 160 chars, and zero subscribers.
 
-## Changes
+## 2. Visual polish and active copy
+- Add a clean green "Live · Carrier Approved" badge above the composer heading, styled with semantic tokens (emerald border/tint, small pill, dot indicator) so it reads correctly in both light and dark mode.
+- Update the zero-subscriber empty state:
+  - Personal: "Start collecting subscribers when customers tap your TapAway cards!"
+  - Restaurant: same action-oriented phrasing, worded for the review hub.
 
-1. **Unblock rep resubmits** — `src/pages/personal/PersonalDashboard.tsx`: drop `review_note` / `review_note_at` from the `handleSubmitForReview` payload. Send only `pipeline_status: 'ready_for_review'`, `submitted_for_review_at`, and the auto-generated slug.
-2. **Stop silent failures** — same function: show the real Supabase `error.message` in the toast instead of "Failed to submit".
-3. **Clear notes on approval** — `src/components/admin/AdminPendingHubApprovals.tsx`: the `approve()` update also sets `review_note: null` and `review_note_at: null`, so an approved hub never carries a stale rejection note. (Admins pass the trigger guard.)
-4. **Hide resolved items** — `src/pages/rep/RepBusinesses.tsx`: the changes-requested filter already requires `!is_approved && pipeline_status === 'changes_requested'`; verify and keep it as the safety net.
-5. **Data cleanup migration** — move the stuck hubs back into the admin queue:
-   ```sql
-   UPDATE public.personal_profiles
-   SET pipeline_status = 'ready_for_review',
-       submitted_for_review_at = now()
-   WHERE pipeline_status = 'changes_requested'
-     AND is_approved = false;
-   ```
-   Existing `review_note` values are kept for admin reference.
+## 3. Make SMS reachable on mobile
+- Add an `sms` entry to `BASE_MORE_TABS` in `src/components/personal/MobileBottomNav.tsx`:
+  - `{ value: "sms", label: "SMS", icon: MessageSquare, description: "Text your subscribers" }`
+  - Import `MessageSquare` from `lucide-react`.
+  - Place it next to Leads so the audience tools group together.
+- Verify the existing `onTabChange` wiring drives the same `sms` `TabsContent` in `PersonalDashboard.tsx` (it does — the mobile nav and desktop tabs share one `activeTab`), so no dashboard change is needed beyond confirming the tab renders.
+- Audit both marketing tabs for small-screen layout: the composer card, subscriber stat, campaign rows, and confirm dialog should stack cleanly at 375px width; adjust padding/wrapping only if the check shows overflow.
+
+## 4. Edge function secret logging
+In `supabase/functions/send-mass-sms/index.ts`, keep the existing guards but add an explicit `console.error` before each configuration-failure return (`LOVABLE_API_KEY`, `TWILIO_API_KEY`, `TWILIO_FROM_NUMBER`, and the Supabase env trio) so a missing secret is diagnosable from function logs instead of surfacing only as a generic toast. No behavior change to the send path itself.
 
 ## Verification
-
 - Full typecheck.
-- Re-query `personal_profiles` to confirm the 5 hubs now read `ready_for_review`.
+- Playwright pass on the personal dashboard at mobile viewport (375px): open the More sheet, tap SMS, confirm the tab renders, the pending banner is gone, the Live badge shows, and the composer is interactive.
+- Confirm at desktop width that both the personal and restaurant SMS tabs render without the banner and with the send button correctly gated by subscriber count.
+- No live text will be sent during verification.
 
 ## Technical notes
-
-- The `guard_profile_approval_fields()` trigger stays intact — it is a legitimate privilege guard; the client simply must not write those columns.
-- The cleanup runs as a migration (service role), which bypasses the guard cleanly.
+- All new colors use semantic/emerald Tailwind tokens consistent with the existing dark-mode-aware amber banner pattern being removed — no hardcoded `text-white`/`bg-black`.
+- The two marketing tab components remain intentionally near-duplicates (personal vs restaurant data sources); this plan does not refactor them into a shared component, to keep the change surface minimal.
