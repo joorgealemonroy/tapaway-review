@@ -14,7 +14,7 @@ const CANVA_TEMPLATE_URL = 'https://canva.link/tapaway-temp';
 const ENCOURAGEMENTS = [
   'Every demo is a door opened.',
   'One great hub can change a business owner\'s week.',
-  'Momentum beats perfection — ship the next demo.',
+  'Hard work beats talent when talent fails to work hard — ship the next demo.',
   'You\'re building someone\'s digital storefront. That matters.',
   'Consistency is the whole game. Keep going.',
 ];
