@@ -27,7 +27,12 @@ import ExtendTrialDialog, { ExtendTrialTarget } from "@/components/admin/ExtendT
 import EditHubDrawer, { EditHubTarget } from "@/components/admin/EditHubDrawer";
 import { resolveDisplayName } from "@/lib/displayName";
 import { resolveLocation } from "@/lib/resolveLocation";
-import { buildRoutePlan } from "@/lib/routeOptimizer";
+import {
+  buildRoutePlan,
+  MAX_STOPS_PER_LEG,
+  type RouteLeg,
+  type RoutePlan,
+} from "@/lib/routeOptimizer";
 import {
   ArrowLeft,
   Loader2,
