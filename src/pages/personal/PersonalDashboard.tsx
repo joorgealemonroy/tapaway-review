@@ -922,18 +922,25 @@ const PersonalDashboard = () => {
     // NOTE: never write review_note / review_note_at here — the
     // `guard_profile_approval_fields` DB trigger rejects the whole update for
     // non-admins, which silently kept hubs stuck in "changes_requested".
+    const note = submitNote.trim().slice(0, 600);
     const updates: Record<string, unknown> = {
       pipeline_status: "ready_for_review",
       submitted_for_review_at: new Date().toISOString(),
+      rep_note: note || null,
+      rep_note_at: note ? new Date().toISOString() : null,
     };
     if (nextUsername) updates.username = nextUsername;
 
+    setSubmitting(true);
     const { error } = await supabase
       .from("personal_profiles")
       .update(updates as any)
       .eq("id", profile.id);
+    setSubmitting(false);
     if (error) { toast.error(`Failed to submit: ${error.message}`); return; }
 
+    setSubmitOpen(false);
+    setSubmitNote("");
     if (nextUsername) {
       setProfile(p => p ? { ...p, username: nextUsername! } : p);
       toast.success(`Sent for approval — public URL will be /${nextUsername}`);
@@ -942,6 +949,7 @@ const PersonalDashboard = () => {
     }
     navigate("/rep/restaurants");
   };
+
 
   const handleRecallDraft = async () => {
     const { error } = await supabase
