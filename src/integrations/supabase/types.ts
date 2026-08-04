@@ -1911,6 +1911,8 @@ export type Database = {
           pfp_position: string | null
           pipeline_status: string | null
           place_city: string | null
+          place_lat: number | null
+          place_lng: number | null
           place_state: string | null
           place_zip: string | null
           plan_type: string | null
@@ -1991,6 +1993,8 @@ export type Database = {
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
+          place_lat?: number | null
+          place_lng?: number | null
           place_state?: string | null
           place_zip?: string | null
           plan_type?: string | null
@@ -2071,6 +2075,8 @@ export type Database = {
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
+          place_lat?: number | null
+          place_lng?: number | null
           place_state?: string | null
           place_zip?: string | null
           plan_type?: string | null
