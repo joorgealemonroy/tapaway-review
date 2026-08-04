@@ -25,7 +25,7 @@ export interface EditHubTarget {
 
 interface LinkRow {
   id: string;
-  title: string | null;
+  label: string | null;
   url: string | null;
 }
 
@@ -59,7 +59,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
       setLoadingLinks(true);
       const { data, error } = await supabase
         .from("personal_links")
-        .select("id, title, url")
+        .select("id, label, url")
         .eq("profile_id", target.id)
         .order("sort_order", { ascending: true });
       if (cancelled) return;
@@ -96,11 +96,12 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
       .from("personal_links")
       .insert({
         profile_id: target.id,
-        title: "New link",
+        link_type: "custom",
+        label: "New link",
         url: "https://",
         sort_order: links.length,
       })
-      .select("id, title, url")
+      .select("id, label, url")
       .single();
     if (error || !data) {
       toast.error("Could not add link: " + (error?.message ?? "unknown"));
@@ -135,7 +136,7 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
         links.map((l) =>
           supabase
             .from("personal_links")
-            .update({ title: l.title ?? "", url: l.url ?? "" })
+            .update({ label: l.label ?? "", url: l.url ?? "" })
             .eq("id", l.id)
         )
       );
@@ -243,8 +244,8 @@ const EditHubDrawer = ({ target, onClose, onSaved }: Props) => {
                 {links.map((l) => (
                   <div key={l.id} className="flex items-center gap-2">
                     <Input
-                      value={l.title ?? ""}
-                      onChange={(e) => updateLink(l.id, { title: e.target.value })}
+                      value={l.label ?? ""}
+                      onChange={(e) => updateLink(l.id, { label: e.target.value })}
                       placeholder="Label"
                       disabled={saving}
                       className="h-8 text-xs bg-white/[0.03] border-white/10 w-1/3"
