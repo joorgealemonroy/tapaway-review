@@ -3482,6 +3482,25 @@ export type Database = {
           id: string
         }[]
       }
+      get_claim_summary: {
+        Args: { _id?: string; _slug?: string }
+        Returns: {
+          contact_name: string
+          display_name: string
+          email: string
+          has_card_addon: boolean
+          header_image_url: string
+          id: string
+          plan_type: string
+          profile_photo_url: string
+          review_clicks: number
+          subscription_status: string
+          taps: number
+          trial_ends_at: string
+          username: string
+          vip_numbers: number
+        }[]
+      }
       get_founding_count: { Args: never; Returns: number }
       get_hub_health: {
         Args: never

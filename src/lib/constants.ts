@@ -11,3 +11,44 @@ export const CARD_ADDON_PRICE_ID = "price_1TMM0LDg8DaTuVNZUgZ4GtWJ";
 
 // One-Time Card Order ($10 — 3 NFC cards)
 export const CARD_ONETIME_PRICE_ID = "price_1TMM0LDg8DaTuVNZZ2EfLZrk";
+
+// ---------------------------------------------------------------------------
+// UNIVERSAL PRICING — single source of truth for every customer-facing price.
+// Base software $15/mo · Card Club add-on +$5/mo ($20/mo total) · $180/yr annual.
+// ---------------------------------------------------------------------------
+export const PRICING = {
+  base: {
+    id: "base" as const,
+    label: "Base Software",
+    amount: 15,
+    display: "$15",
+    interval: "/month",
+    blurb: "Full interactive hub, dashboard, analytics & SMS engine.",
+  },
+  cardClub: {
+    id: "card_club" as const,
+    label: "Card Club",
+    amount: 5,
+    display: "$5",
+    interval: "/month",
+    blurb: "Hardware replacements, physical refresh passes, priority stand support.",
+  },
+  bundle: {
+    id: "bundle" as const,
+    label: "Base + Card Club",
+    amount: 20,
+    display: "$20",
+    interval: "/month",
+    blurb: "Everything in Base plus ongoing card replacements.",
+  },
+  annual: {
+    id: "annual" as const,
+    label: "Annual Value Pass",
+    amount: 180,
+    display: "$180",
+    interval: "/year",
+    blurb: "Save 25% and Card Club membership is included free.",
+  },
+} as const;
+
+export type PricingPlanId = (typeof PRICING)[keyof typeof PRICING]["id"];

@@ -81,6 +81,7 @@ const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboa
 const Examples = lazy(() => import("./pages/Examples"));
 const Compliance = lazy(() => import("./pages/Compliance"));
 const SmsSignup = lazy(() => import("./pages/SmsSignup"));
+const ClaimHubPage = lazy(() => import("./pages/ClaimHubPage"));
 
 
 // Minimal loading spinner
@@ -136,6 +137,7 @@ const App = () => (
                 <Route path="/start" element={<Navigate to="/onboarding" replace />} />
                 <Route path="/paywall" element={<Navigate to="/onboarding" replace />} />
                 <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
+                <Route path="/claim" element={<ClaimHubPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/terms" element={<Terms />} />

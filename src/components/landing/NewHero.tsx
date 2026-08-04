@@ -76,7 +76,7 @@ export const NewHero = () => {
         duration: 0.4,
         delay: 0.5
       }} className="text-xs text-gray-500">
-          $150 first year · Normally <span className="line-through">$300/year</span> · December only
+          $15/month · or $180/year and Card Club is included free
         </motion.p>
         
         <motion.div initial={{

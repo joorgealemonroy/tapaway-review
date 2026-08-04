@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useSalesRep } from '@/hooks/useSalesRep';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight, Link2 as LinkIcon } from 'lucide-react';
+import { Plus, ExternalLink, Pencil, FileText, Upload, Palette, Trash2, MessageSquareWarning, ArrowRight, Link2 as LinkIcon, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
@@ -250,6 +250,35 @@ const RepBusinesses = () => {
   const otherHubs = hubs.filter(h => !changesRequestedHubs.some(c => c.id === h.id));
 
   const q = search.trim().toLowerCase();
+  const sendClaimLink = async (hub: Business) => {
+    const claimUrl = `${window.location.origin}/claim?id=${hub.id}`;
+    let vip = 0;
+    let owner = (hub.restaurant_name || 'there').split(' ')[0];
+    try {
+      const { data } = await supabase.rpc('get_claim_summary' as never, { _id: hub.id, _slug: null } as never);
+      const rows = (data ?? []) as unknown as { vip_numbers: number; contact_name: string | null }[];
+      const row = Array.isArray(rows) ? rows[0] : undefined;
+      if (row) {
+        vip = Number(row.vip_numbers || 0);
+        if (row.contact_name) owner = row.contact_name.split(' ')[0];
+      }
+    } catch {
+      /* stats are best-effort — the link still works */
+    }
+
+    const message = `Hey ${owner}! Your TapAway card captured ${vip} VIP numbers during your trial. Claim your card & keep full access here: ${claimUrl}`;
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success('Claim message copied — paste it into a text');
+    } catch {
+      toast.message(message);
+    }
+    if (hub.owner_phone) {
+      const digits = hub.owner_phone.replace(/[^0-9+]/g, '');
+      window.location.href = `sms:${digits}?&body=${encodeURIComponent(message)}`;
+    }
+  };
+
   const filteredHubs = q
     ? otherHubs.filter(h =>
         (h.restaurant_name || '').toLowerCase().includes(q) ||
@@ -504,6 +533,12 @@ const RepBusinesses = () => {
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
                   >
                     <ExternalLink className="h-3.5 w-3.5" /> Open
+                  </button>
+                  <button
+                    onClick={() => sendClaimLink(hub)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                  >
+                    <Smartphone className="h-3.5 w-3.5" /> Send Claim Link
                   </button>
                   {!hub.is_approved && hub.pipeline_status !== 'ready_for_review' && (
                     <button
