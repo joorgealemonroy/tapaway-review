@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveDisplayName } from "@/lib/displayName";
 import { isBrokenPlatformUrl } from "@/lib/brokenLinks";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   ExternalLink,
   FileText,
   Loader2,
@@ -43,6 +46,8 @@ type UnifiedRow = {
 };
 
 type SortKey = "taps" | "created_at" | "name";
+
+const SORT_STORAGE_KEY = "admin-accounts-sort";
 type SortDir = "asc" | "desc";
 
 const kindLabel: Record<Kind, string> = {
@@ -58,9 +63,34 @@ const AdminUnifiedAccountsTable = () => {
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [brokenOnly, setBrokenOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("taps");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // Sort preference persists across pagination, tab switches and reloads.
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    try {
+      const raw = localStorage.getItem(SORT_STORAGE_KEY);
+      const k = raw ? (JSON.parse(raw).key as SortKey) : null;
+      return k === "taps" || k === "created_at" || k === "name" ? k : "taps";
+    } catch {
+      return "taps";
+    }
+  });
+  const [sortDir, setSortDir] = useState<SortDir>(() => {
+    try {
+      const raw = localStorage.getItem(SORT_STORAGE_KEY);
+      const d = raw ? (JSON.parse(raw).dir as SortDir) : null;
+      return d === "asc" ? "asc" : "desc";
+    } catch {
+      return "desc";
+    }
+  });
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ key: sortKey, dir: sortDir }));
+    } catch {
+      /* storage unavailable — sorting still works, just not persisted */
+    }
+  }, [sortKey, sortDir]);
 
   useEffect(() => {
     const load = async () => {
@@ -128,7 +158,10 @@ const AdminUnifiedAccountsTable = () => {
         const legacyRows: UnifiedRow[] = (restaurants ?? []).map((r) => ({
           id: r.id,
           kind: "legacy",
-          name: r.restaurant_name ?? "(unnamed)",
+          name: resolveDisplayName({
+            business_name: r.restaurant_name,
+            slug: r.custom_slug,
+          }),
           slug: r.custom_slug ?? null,
           plan_type: r.plan_type ?? null,
           subscription_status: r.subscription_status ?? null,
@@ -148,7 +181,10 @@ const AdminUnifiedAccountsTable = () => {
           .map((p) => ({
             id: p.id,
             kind: "lite",
-            name: p.full_name ?? p.username ?? "(unnamed)",
+            name: resolveDisplayName({
+              full_name: p.full_name,
+              username: p.username,
+            }),
             slug: p.username ?? null,
             plan_type: p.plan_type ?? null,
             subscription_status: p.subscription_status ?? null,
@@ -277,21 +313,45 @@ const AdminUnifiedAccountsTable = () => {
     label: string;
     k?: SortKey;
     className?: string;
-  }) => (
-    <th className={`p-2.5 text-left font-medium ${className}`}>
-      {k ? (
-        <button
-          onClick={() => toggleSort(k)}
-          className="inline-flex items-center gap-1 hover:text-white transition-colors"
-        >
-          {label}
-          <ArrowUpDown className={`h-3 w-3 ${sortKey === k ? "text-white" : "text-white/30"}`} />
-        </button>
-      ) : (
-        label
-      )}
-    </th>
-  );
+  }) => {
+    const active = sortKey === k;
+    const hint =
+      k === "taps"
+        ? active && sortDir === "desc"
+          ? "Sort least taps first"
+          : "Sort most taps first"
+        : k === "created_at"
+        ? active && sortDir === "desc"
+          ? "Sort oldest first"
+          : "Sort newest first"
+        : active && sortDir === "asc"
+        ? "Sort Z to A"
+        : "Sort A to Z";
+    return (
+      <th className={`p-2.5 text-left font-medium ${className}`}>
+        {k ? (
+          <button
+            onClick={() => toggleSort(k)}
+            title={hint}
+            className="inline-flex items-center gap-1 hover:text-white transition-colors"
+          >
+            {label}
+            {active ? (
+              sortDir === "asc" ? (
+                <ArrowUp className="h-3 w-3 text-white" />
+              ) : (
+                <ArrowDown className="h-3 w-3 text-white" />
+              )
+            ) : (
+              <ArrowUpDown className="h-3 w-3 text-white/30" />
+            )}
+          </button>
+        ) : (
+          label
+        )}
+      </th>
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -384,7 +444,14 @@ const AdminUnifiedAccountsTable = () => {
                           {r.name.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <span className="font-medium text-white/90 truncate">{r.name}</span>
+                      <div className="min-w-0">
+                        <div className="font-medium text-white/90 truncate">{r.name}</div>
+                        {r.slug && (
+                          <div className="text-[10px] font-mono text-white/40 truncate">
+                            @{r.slug}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="p-2.5">
