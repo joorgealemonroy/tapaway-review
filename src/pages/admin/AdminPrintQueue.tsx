@@ -26,6 +26,8 @@ import {
 import ExtendTrialDialog, { ExtendTrialTarget } from "@/components/admin/ExtendTrialDialog";
 import EditHubDrawer, { EditHubTarget } from "@/components/admin/EditHubDrawer";
 import { resolveDisplayName } from "@/lib/displayName";
+import { resolveLocation } from "@/lib/resolveLocation";
+import { buildRoutePlan } from "@/lib/routeOptimizer";
 import {
   ArrowLeft,
   Loader2,
@@ -40,6 +42,10 @@ import {
   StickyNote,
   ExternalLink,
   Pencil,
+  Map as MapIcon,
+  ClipboardList,
+  MapPin,
+  AlertTriangle,
 } from "lucide-react";
 
 type PrintStatus = "not_downloaded" | "downloaded" | "printed" | "delivered";
@@ -59,6 +65,12 @@ interface Row {
   print_notes: string | null;
   sales_rep_id: string | null;
   is_approved: boolean | null;
+  google_place_id: string | null;
+  formatted_address: string | null;
+  contact_address: string | null;
+  place_city: string | null;
+  place_state: string | null;
+  place_zip: string | null;
   rep_name?: string | null;
 }
 
@@ -133,7 +145,7 @@ const AdminPrintQueue = () => {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved"
+          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved, google_place_id, formatted_address, contact_address, place_city, place_state, place_zip"
         )
         .not("card_print_pdf_path", "is", null)
         .order("submitted_for_review_at", { ascending: true, nullsFirst: false });
@@ -313,6 +325,89 @@ const AdminPrintQueue = () => {
     setExtendTarget(targets);
   };
 
+  // ---- Route / location tooling -------------------------------------------
+  const selectedRows = useMemo(
+    () => filtered.filter((r) => selected.has(r.id)),
+    [filtered, selected]
+  );
+
+  const openDrivingRoute = () => {
+    if (selectedRows.length === 0) return;
+    const plan = buildRoutePlan(selectedRows);
+    if (plan.legs.length === 0) {
+      toast.error("No usable addresses in the selection");
+      return;
+    }
+    window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
+    if (plan.chunked) {
+      toast.info(
+        `Route split into ${plan.legs.length} legs (Google caps stops per link). Opened leg 1 of ${plan.legs.length}.`,
+        {
+          action: {
+            label: "Open leg 2",
+            onClick: () => window.open(plan.legs[1].url, "_blank", "noopener,noreferrer"),
+          },
+        }
+      );
+    }
+  };
+
+  const downloadRouteCsv = () => {
+    if (selectedRows.length === 0) return;
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const header = [
+      "Stop #",
+      "Business Name",
+      "Display Handle",
+      "Address / Location",
+      "Google Place ID",
+      "Rep Name",
+      "Trial Ends",
+      "Google Maps Link",
+    ];
+    const lines = [header.map(esc).join(",")];
+    selectedRows.forEach((r, i) => {
+      const loc = resolveLocation(r);
+      lines.push(
+        [
+          String(i + 1),
+          resolveDisplayName({ full_name: r.full_name, username: r.username }),
+          r.username ? `@${r.username}` : "",
+          loc.query,
+          loc.placeId ?? "",
+          r.rep_name ?? "",
+          r.trial_ends_at ? new Date(r.trial_ends_at).toLocaleDateString() : "",
+          loc.mapsUrl,
+        ]
+          .map(esc)
+          .join(",")
+      );
+    });
+    const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8;" });
+    triggerBrowserDownload(blob, `tapaway-dropoff-route-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${selectedRows.length} stop${selectedRows.length === 1 ? "" : "s"}`);
+  };
+
+  const copyAddresses = async () => {
+    if (selectedRows.length === 0) return;
+    const text = selectedRows
+      .map((r) => resolveLocation(r).query)
+      .filter(Boolean)
+      .join("\n");
+    if (!text) {
+      toast.error("No addresses to copy");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Addresses copied — paste into Circuit or Roadwarrior");
+    } catch {
+      toast.error("Clipboard blocked by the browser");
+    }
+  };
+
+
+
   const openNoteDialog = (row: Row) => {
     setNoteTarget(row);
     setNoteText(row.print_notes || "");
@@ -437,6 +532,30 @@ const AdminPrintQueue = () => {
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              onClick={openDrivingRoute}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open Driving Route
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={downloadRouteCsv}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Route CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={copyAddresses}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> Copy Addresses
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               onClick={() => setSelected(new Set())}
               className="h-8 text-white/50 hover:text-white ml-auto"
@@ -514,6 +633,21 @@ const AdminPrintQueue = () => {
                             <div className="text-[11px] font-mono text-white/40 truncate">
                               @{r.username || "—"}
                             </div>
+                            {(() => {
+                              const loc = resolveLocation(r);
+                              return loc.quality === "exact" ? (
+                                <span
+                                  title={loc.query}
+                                  className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-200"
+                                >
+                                  <MapPin className="h-2.5 w-2.5" /> {loc.label}
+                                </span>
+                              ) : (
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-200/80">
+                                  <AlertTriangle className="h-2.5 w-2.5" /> Address needed
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </td>
