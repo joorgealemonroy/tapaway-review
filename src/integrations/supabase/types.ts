@@ -1895,8 +1895,10 @@ export type Database = {
           created_at: string | null
           created_by_rep_id: string | null
           email: string
+          formatted_address: string | null
           founding_number: number | null
           full_name: string
+          google_place_id: string | null
           has_card_addon: boolean
           header_color: string | null
           header_image_url: string | null
@@ -1908,6 +1910,9 @@ export type Database = {
           is_stripe_onboarded: boolean | null
           pfp_position: string | null
           pipeline_status: string | null
+          place_city: string | null
+          place_state: string | null
+          place_zip: string | null
           plan_type: string | null
           print_delivered_at: string | null
           print_delivered_by: string | null
@@ -1968,8 +1973,10 @@ export type Database = {
           created_at?: string | null
           created_by_rep_id?: string | null
           email: string
+          formatted_address?: string | null
           founding_number?: number | null
           full_name: string
+          google_place_id?: string | null
           has_card_addon?: boolean
           header_color?: string | null
           header_image_url?: string | null
@@ -1981,6 +1988,9 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           pipeline_status?: string | null
+          place_city?: string | null
+          place_state?: string | null
+          place_zip?: string | null
           plan_type?: string | null
           print_delivered_at?: string | null
           print_delivered_by?: string | null
@@ -2041,8 +2051,10 @@ export type Database = {
           created_at?: string | null
           created_by_rep_id?: string | null
           email?: string
+          formatted_address?: string | null
           founding_number?: number | null
           full_name?: string
+          google_place_id?: string | null
           has_card_addon?: boolean
           header_color?: string | null
           header_image_url?: string | null
@@ -2054,6 +2066,9 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           pfp_position?: string | null
           pipeline_status?: string | null
+          place_city?: string | null
+          place_state?: string | null
+          place_zip?: string | null
           plan_type?: string | null
           print_delivered_at?: string | null
           print_delivered_by?: string | null
