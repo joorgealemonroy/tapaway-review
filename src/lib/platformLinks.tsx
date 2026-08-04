@@ -282,12 +282,27 @@ const linkedinHandle = (raw: string) =>
   multiSegmentHandle(raw, /^linkedin\.com/i, LINKEDIN_PREFIX);
 const yelpHandle = (raw: string) => multiSegmentHandle(raw, /^yelp\.com/i, YELP_PREFIX, true);
 
+/**
+ * Domain suffixes that make a dotted string an actual domain rather than a
+ * handle. Social usernames legitimately contain dots (`el.chilitos`,
+ * `j.smith`), so only flag input that ends in a real TLD.
+ */
+const DOMAIN_SUFFIXES = [
+  "com", "net", "org", "io", "co", "me", "tv", "gg", "app", "dev", "xyz",
+  "info", "biz", "us", "uk", "ca", "mx", "es", "de", "fr", "it", "nl", "au",
+  "jp", "br", "in", "ru", "ch", "se", "no", "link", "site", "online", "shop",
+  "store", "live", "page", "bio", "gov", "edu",
+];
+
 /** True when a "handle" is really just a bare domain (facebook.com, www.tiktok.com …). */
 export const isBareDomainHandle = (value: string): boolean => {
   if (!value) return true;
   const v = value.trim().replace(/^www\./i, "").toLowerCase();
-  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v);
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v)) return false;
+  const tld = v.split(".").pop() || "";
+  return DOMAIN_SUFFIXES.includes(tld);
 };
+
 
 /** Build a URL only when the handle is real — otherwise return "" so callers can reject it. */
 const safeUrl = (handle: string, build: (h: string) => string): string => {
