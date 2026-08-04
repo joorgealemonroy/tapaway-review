@@ -45,7 +45,7 @@ const AdminPendingHubApprovals = () => {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, created_at, submitted_for_review_at, sales_rep_id, card_print_pdf_path"
+          "id, full_name, username, created_at, submitted_for_review_at, sales_rep_id, card_print_pdf_path, rep_note"
         )
         .not("sales_rep_id", "is", null)
         .eq("is_approved", false)
