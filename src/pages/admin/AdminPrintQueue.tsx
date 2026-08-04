@@ -76,6 +76,8 @@ interface Row {
   place_city: string | null;
   place_state: string | null;
   place_zip: string | null;
+  place_lat: number | null;
+  place_lng: number | null;
   rep_name?: string | null;
 }
 
@@ -150,7 +152,7 @@ const AdminPrintQueue = () => {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved, google_place_id, formatted_address, contact_address, place_city, place_state, place_zip"
+          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved, google_place_id, formatted_address, contact_address, place_city, place_state, place_zip, place_lat, place_lng"
         )
         .not("card_print_pdf_path", "is", null)
         .order("submitted_for_review_at", { ascending: true, nullsFirst: false });
@@ -388,10 +390,11 @@ const AdminPrintQueue = () => {
       "Google Place ID",
       "Rep Name",
       "Trial Ends",
-      "Google Maps Link",
+      "Apple Maps Link",
     ];
     const lines = [header.map(esc).join(",")];
-    selectedRows.forEach((r, i) => {
+    const orderedRows = buildRoutePlan(selectedRows).ordered;
+    orderedRows.forEach((r, i) => {
       const loc = resolveLocation(r);
       lines.push(
         [
@@ -411,7 +414,7 @@ const AdminPrintQueue = () => {
     });
     const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8;" });
     triggerBrowserDownload(blob, `tapaway-dropoff-route-${new Date().toISOString().slice(0, 10)}.csv`);
-    toast.success(`Exported ${selectedRows.length} stop${selectedRows.length === 1 ? "" : "s"}`);
+    toast.success(`Exported ${orderedRows.length} stop${orderedRows.length === 1 ? "" : "s"}`);
   };
 
   const copyAddresses = async () => {
@@ -568,7 +571,7 @@ const AdminPrintQueue = () => {
               onClick={openDrivingRoute}
               className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
             >
-              <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open Driving Route
+              <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open Route in Apple Maps
             </Button>
             <Button
               size="sm"
@@ -882,10 +885,18 @@ const AdminPrintQueue = () => {
           <DialogHeader>
             <DialogTitle className="text-white">
               {routePlan
-                ? `${routePlan.totalStops} Stops Split into ${routePlan.legs.length} Legs (${MAX_STOPS_PER_LEG} Stops/Leg)`
+                ? `${routePlan.totalStops} Stops · ${routePlan.legs.length} Legs (${MAX_STOPS_PER_LEG} stops/leg)`
                 : "Driving route"}
             </DialogTitle>
           </DialogHeader>
+
+          {!!routePlan?.unoptimizedCount && (
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+              {routePlan.unoptimizedCount} stop
+              {routePlan.unoptimizedCount === 1 ? " has" : "s have"} no coordinates and
+              {routePlan.unoptimizedCount === 1 ? " was" : " were"} added at the end of the route.
+            </p>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-[11px] text-white/40">
@@ -917,6 +928,7 @@ const AdminPrintQueue = () => {
                   )}
                 </div>
                 <div className="mt-0.5 text-[11px] text-white/45 truncate">
+                  {leg.originLabel ? `Departs ${leg.originLabel} ➔ ` : ""}
                   {leg.firstLabel} ➔ {leg.lastLabel}
                 </div>
                 <div className="mt-2 flex items-center gap-2">

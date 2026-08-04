@@ -12,14 +12,19 @@ export interface LocationSource {
   place_city?: string | null;
   place_state?: string | null;
   place_zip?: string | null;
+  place_lat?: number | null;
+  place_lng?: number | null;
 }
 
 export interface ResolvedLocation {
-  /** Best available search string for Google Maps. */
+  /** Best available search string for Apple/Google Maps. */
   query: string;
   /** Google Place ID when known. */
   placeId: string | null;
-  /** Direct Google Maps pin link. */
+  /** Latitude / longitude when known. */
+  lat: number | null;
+  lng: number | null;
+  /** Direct Apple Maps pin link. */
   mapsUrl: string;
   /** "exact" when a place id or street address is known, otherwise "fallback". */
   quality: "exact" | "fallback";
@@ -29,9 +34,14 @@ export interface ResolvedLocation {
 
 const clean = (v?: string | null) => (typeof v === "string" ? v.trim() : "");
 
+const num = (v?: number | null): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
+
 export const resolveLocation = (source: LocationSource): ResolvedLocation => {
   const placeId = clean(source.google_place_id) || null;
   const address = clean(source.formatted_address) || clean(source.contact_address);
+  const lat = num(source.place_lat);
+  const lng = num(source.place_lng);
 
   const nameParts = [
     clean(source.full_name) || clean(source.username),
@@ -41,16 +51,31 @@ export const resolveLocation = (source: LocationSource): ResolvedLocation => {
 
   const query = address || nameParts.join(" ") || clean(source.username) || "";
 
-  const params = new URLSearchParams({ api: "1", query });
-  if (placeId) params.set("query_place_id", placeId);
+  // Apple Maps pin: coordinates when we have them, otherwise a text query.
+  const mapsUrl =
+    lat !== null && lng !== null
+      ? `https://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(
+          clean(source.full_name) || clean(source.username) || query
+        )}`
+      : `https://maps.apple.com/?q=${encodeURIComponent(query)}`;
 
-  const quality: "exact" | "fallback" = placeId || address ? "exact" : "fallback";
+  const quality: "exact" | "fallback" =
+    (lat !== null && lng !== null) || placeId || address ? "exact" : "fallback";
 
   return {
     query,
     placeId,
-    mapsUrl: `https://www.google.com/maps/search/?${params.toString()}`,
+    lat,
+    lng,
+    mapsUrl,
     quality,
-    label: placeId ? "Place ID attached" : address ? "Address on file" : "Address needed",
+    label:
+      lat !== null && lng !== null
+        ? "Coordinates on file"
+        : placeId
+        ? "Place ID attached"
+        : address
+        ? "Address on file"
+        : "Address needed",
   };
 };

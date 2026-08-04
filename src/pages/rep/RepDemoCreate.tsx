@@ -24,6 +24,8 @@ type PickedPlace = {
   website?: string | null;
   googleMapsUri?: string | null;
   photoName?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 const slugify = (input: string): string => {
@@ -153,6 +155,8 @@ const RepDemoCreate = () => {
           business_phone: place.phone ?? null,
           google_place_id: place.placeId,
           formatted_address: place.address ?? null,
+          place_lat: place.lat ?? null,
+          place_lng: place.lng ?? null,
           contact_address: place.address ?? null,
           profile_photo_url: profilePhotoUrl,
           plan_type: 'solo_pro',
