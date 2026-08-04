@@ -98,8 +98,8 @@ Deno.serve(async (req) => {
       ...(profile.stripe_customer_id
         ? { customer: profile.stripe_customer_id }
         : { customer_email: profile.email || undefined }),
-      // Enables Apple Pay / Google Pay / link express wallets automatically.
-      automatic_payment_methods: { enabled: true },
+      // Apple Pay / Google Pay / Link wallets are surfaced automatically by
+      // Stripe Checkout based on the dashboard payment-method settings.
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       success_url: `${origin}/claim?id=${profileId}&success=true&session_id={CHECKOUT_SESSION_ID}`,
