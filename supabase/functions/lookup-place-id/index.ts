@@ -17,6 +17,7 @@ const FIELD_MASK = [
   'places.websiteUri',
   'places.googleMapsUri',
   'places.photos',
+  'places.location',
 ].join(',');
 
 serve(async (req) => {
@@ -185,6 +186,8 @@ serve(async (req) => {
       website: p.websiteUri || null,
       googleMapsUri: p.googleMapsUri || null,
       photoName: Array.isArray(p.photos) && p.photos[0]?.name ? p.photos[0].name : null,
+      lat: typeof p.location?.latitude === 'number' ? p.location.latitude : null,
+      lng: typeof p.location?.longitude === 'number' ? p.location.longitude : null,
     }));
 
     console.log('[lookup-place-id] Found', results.length, 'results');

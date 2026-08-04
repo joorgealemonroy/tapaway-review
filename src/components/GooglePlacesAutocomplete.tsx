@@ -11,6 +11,8 @@ interface PlaceResult {
   website?: string | null;
   googleMapsUri?: string | null;
   photoName?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 interface GooglePlacesAutocompleteProps {
@@ -22,6 +24,8 @@ interface GooglePlacesAutocompleteProps {
     website?: string | null;
     googleMapsUri?: string | null;
     photoName?: string | null;
+    lat?: number | null;
+    lng?: number | null;
   }) => void;
   defaultValue?: string;
   disabled?: boolean;
@@ -121,6 +125,8 @@ export const GooglePlacesAutocomplete = ({
       website: result.website ?? null,
       googleMapsUri: result.googleMapsUri ?? null,
       photoName: result.photoName ?? null,
+      lat: result.lat ?? null,
+      lng: result.lng ?? null,
     });
   };
 
