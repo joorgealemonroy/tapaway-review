@@ -338,17 +338,31 @@ const AdminPrintQueue = () => {
       toast.error("No usable addresses in the selection");
       return;
     }
-    window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
-    if (plan.chunked) {
-      toast.info(
-        `Route split into ${plan.legs.length} legs (Google caps stops per link). Opened leg 1 of ${plan.legs.length}.`,
-        {
-          action: {
-            label: "Open leg 2",
-            onClick: () => window.open(plan.legs[1].url, "_blank", "noopener,noreferrer"),
-          },
-        }
-      );
+    if (!plan.chunked) {
+      window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setOpenedLegs(new Set());
+    setRoutePlan(plan);
+  };
+
+  const openLeg = (leg: RouteLeg<Row>) => {
+    window.open(leg.url, "_blank", "noopener,noreferrer");
+    setOpenedLegs((prev) => new Set(prev).add(leg.legNumber));
+  };
+
+  const openAllLegs = () => {
+    if (!routePlan) return;
+    routePlan.legs.forEach((leg) => window.open(leg.url, "_blank", "noopener,noreferrer"));
+    setOpenedLegs(new Set(routePlan.legs.map((l) => l.legNumber)));
+  };
+
+  const copyLegLink = async (leg: RouteLeg<Row>) => {
+    try {
+      await navigator.clipboard.writeText(leg.url);
+      toast.success(`Leg ${leg.legNumber} link copied`);
+    } catch {
+      toast.error("Clipboard blocked by the browser");
     }
   };
 
@@ -356,6 +370,7 @@ const AdminPrintQueue = () => {
     if (selectedRows.length === 0) return;
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const header = [
+      "Leg #",
       "Stop #",
       "Business Name",
       "Display Handle",
@@ -370,6 +385,7 @@ const AdminPrintQueue = () => {
       const loc = resolveLocation(r);
       lines.push(
         [
+          String(Math.floor(i / MAX_STOPS_PER_LEG) + 1),
           String(i + 1),
           resolveDisplayName({ full_name: r.full_name, username: r.username }),
           r.username ? `@${r.username}` : "",
@@ -390,14 +406,19 @@ const AdminPrintQueue = () => {
 
   const copyAddresses = async () => {
     if (selectedRows.length === 0) return;
-    const text = selectedRows
-      .map((r) => resolveLocation(r).query)
-      .filter(Boolean)
-      .join("\n");
-    if (!text) {
+    const plan = buildRoutePlan(selectedRows);
+    if (plan.legs.length === 0) {
       toast.error("No addresses to copy");
       return;
     }
+    const text = plan.legs
+      .map((leg) =>
+        [
+          `--- LEG ${leg.legNumber} (Stops ${leg.startIndex}-${leg.endIndex}) ---`,
+          ...leg.stops.map((s) => resolveLocation(s).query).filter(Boolean),
+        ].join("\n")
+      )
+      .join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Addresses copied — paste into Circuit or Roadwarrior");
@@ -405,6 +426,7 @@ const AdminPrintQueue = () => {
       toast.error("Clipboard blocked by the browser");
     }
   };
+
 
 
 
