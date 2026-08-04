@@ -195,6 +195,10 @@ const PersonalDashboard = () => {
   const [adminViewName, setAdminViewName] = useState("");
   // Why the profile couldn't be loaded — surfaced instead of a blank screen.
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Optional note a rep can attach when submitting a demo for admin review.
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitNote, setSubmitNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
   // unrelated URL params (tab=, welcome=, upgrade=) change.
