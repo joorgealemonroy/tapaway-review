@@ -24,6 +24,8 @@ type PickedPlace = {
   website?: string | null;
   googleMapsUri?: string | null;
   photoName?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 const slugify = (input: string): string => {
