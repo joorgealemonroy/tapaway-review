@@ -201,7 +201,7 @@ const Paywall = () => {
               {/* Post-trial pricing */}
               <div className="text-center pt-4 border-t border-border/30">
                 <p className="text-sm text-muted-foreground">
-                  After the trial: <span className="font-semibold text-foreground">$30/month</span>. No contracts.
+                  After the trial: <span className="font-semibold text-foreground">$15/month</span>. No contracts.
                 </p>
               </div>
 

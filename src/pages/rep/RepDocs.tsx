@@ -14,7 +14,7 @@ const CANVA_URL = 'https://canva.link/tapaway-temp';
 const SETUP_STEPS = [
   { title: 'Scout & drop the card', body: 'Walk in casually with the branded envelope containing 5 sample cards and the printed demo hub QR. Ask for the owner, hand them the gift, drop the pitch script.' },
   { title: 'Send the demo hub link', body: 'While there, pull up their pre-built demo hub on your phone. Show the review flow — Google, Yelp, Instagram, menu — all in one tap. Text them the link before leaving.' },
-  { title: 'Follow up in 24h', body: 'Text: "Any thoughts on the hub? Happy to activate at $15/mo Solo or $39/mo Venue Pack — 5-day free trial included."' },
+  { title: 'Follow up in 24h', body: 'Text: "Any thoughts on the hub? Happy to activate at $15/mo, or $20/mo with the Card Club — 5-day free trial included."' },
   { title: 'Activate & mark converted', body: 'Send them the Stripe checkout link. When they subscribe, mark the pipeline row as Paying Customer — you earn a $75 Annual Upsell Bounty if they choose annual, plus every conversion counts toward your monthly Closer\'s Pool ($250 at 10, $600 at 20, $1,200 at 35).' },
   { title: 'Upload the print PDF', body: 'Design their permanent card in Canva using the template, export as PDF, and attach it to the business row so ops can ship the physical cards.' },
 ];
@@ -25,7 +25,7 @@ const OBJECTIONS = [
   { q: 'We already use QR codes.', a: 'Great — you\'re already thinking digitally. TapAway isn\'t competing with QR. NFC taps are instant, feel premium, and only activate after positive moments — which naturally protects your rating instead of exposing it to bad reviews from angry customers scanning a QR at the door.' },
   { q: 'Will this really move ranking?', a: 'Yes. Even 1 extra 5-star review per day compounds. Google surfaces businesses with fresh, consistent reviews above stale competitors — that\'s directly measurable in Maps ranking.' },
   { q: 'What if customers leave a bad review?', a: 'TapAway never filters, gates or screens reviews — that would violate Google\'s policies and FTC rules, and you must never coach a business to hide the card from unhappy guests or offer anything in exchange for a review. The card stays out for every customer equally. Honest feedback is the product: businesses that respond well to it rank better over time.' },
-  { q: 'How much does it cost the restaurant?', a: 'Solo Pro is $15/mo, Venue Pack is $39/mo. 5-day free trial. Cancel anytime. Physical cards, hub, AI review-reply coach, and analytics are all included.' },
+  { q: 'How much does it cost the restaurant?', a: '$15/mo for the software, or $20/mo with the Card Club add-on. Annual is $180/yr with Card Club included. 5-day free trial. Cancel anytime. Physical cards, hub, AI review-reply coach, and analytics are all included.' },
 ];
 
 const RepDocs = () => {
