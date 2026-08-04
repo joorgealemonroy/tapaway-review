@@ -1924,6 +1924,8 @@ export type Database = {
           print_status: string | null
           profile_photo_url: string | null
           referred_by: string | null
+          rep_note: string | null
+          rep_note_at: string | null
           review_note: string | null
           review_note_at: string | null
           sales_rep_id: string | null
@@ -2002,6 +2004,8 @@ export type Database = {
           print_status?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          rep_note?: string | null
+          rep_note_at?: string | null
           review_note?: string | null
           review_note_at?: string | null
           sales_rep_id?: string | null
@@ -2080,6 +2084,8 @@ export type Database = {
           print_status?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
+          rep_note?: string | null
+          rep_note_at?: string | null
           review_note?: string | null
           review_note_at?: string | null
           sales_rep_id?: string | null

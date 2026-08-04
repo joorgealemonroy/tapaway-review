@@ -27,6 +27,7 @@ type PendingHub = {
   submitted_for_review_at: string | null;
   sales_rep_id: string | null;
   card_print_pdf_path: string | null;
+  rep_note?: string | null;
   rep_name?: string | null;
 };
 
@@ -44,7 +45,7 @@ const AdminPendingHubApprovals = () => {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, created_at, submitted_for_review_at, sales_rep_id, card_print_pdf_path"
+          "id, full_name, username, created_at, submitted_for_review_at, sales_rep_id, card_print_pdf_path, rep_note"
         )
         .not("sales_rep_id", "is", null)
         .eq("is_approved", false)
@@ -116,6 +117,8 @@ const AdminPendingHubApprovals = () => {
         plan_type: "solo_pro",
         review_note: null,
         review_note_at: null,
+        rep_note: null,
+        rep_note_at: null,
       } as never)
       .eq("id", row.id);
     if (error) {
@@ -229,6 +232,12 @@ const AdminPendingHubApprovals = () => {
                   <span className="text-white/20">·</span>
                   <span>Submitted {submittedLabel(r)}</span>
                 </div>
+                {r.rep_note && (
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-sky-200/80 bg-sky-500/5 border border-sky-500/20 rounded-md px-2 py-1.5 whitespace-pre-wrap">
+                    <span className="font-semibold text-sky-300">Rep note: </span>
+                    {r.rep_note}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button

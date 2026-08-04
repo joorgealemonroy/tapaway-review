@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Link2, 
   BarChart3,
@@ -111,6 +113,8 @@ interface PersonalProfile {
   submitted_for_review_at?: string | null;
   review_note?: string | null;
   review_note_at?: string | null;
+  rep_note?: string | null;
+  rep_note_at?: string | null;
 }
 
 interface DbPersonalLink {
@@ -191,6 +195,10 @@ const PersonalDashboard = () => {
   const [adminViewName, setAdminViewName] = useState("");
   // Why the profile couldn't be loaded — surfaced instead of a blank screen.
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Optional note a rep can attach when submitting a demo for admin review.
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitNote, setSubmitNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Refs so loadData doesn't need to be re-created (and thus re-run) whenever
   // unrelated URL params (tab=, welcome=, upgrade=) change.
@@ -914,18 +922,25 @@ const PersonalDashboard = () => {
     // NOTE: never write review_note / review_note_at here — the
     // `guard_profile_approval_fields` DB trigger rejects the whole update for
     // non-admins, which silently kept hubs stuck in "changes_requested".
+    const note = submitNote.trim().slice(0, 600);
     const updates: Record<string, unknown> = {
       pipeline_status: "ready_for_review",
       submitted_for_review_at: new Date().toISOString(),
+      rep_note: note || null,
+      rep_note_at: note ? new Date().toISOString() : null,
     };
     if (nextUsername) updates.username = nextUsername;
 
+    setSubmitting(true);
     const { error } = await supabase
       .from("personal_profiles")
       .update(updates as any)
       .eq("id", profile.id);
+    setSubmitting(false);
     if (error) { toast.error(`Failed to submit: ${error.message}`); return; }
 
+    setSubmitOpen(false);
+    setSubmitNote("");
     if (nextUsername) {
       setProfile(p => p ? { ...p, username: nextUsername! } : p);
       toast.success(`Sent for approval — public URL will be /${nextUsername}`);
@@ -934,6 +949,7 @@ const PersonalDashboard = () => {
     }
     navigate("/rep/restaurants");
   };
+
 
   const handleRecallDraft = async () => {
     const { error } = await supabase
@@ -985,7 +1001,7 @@ const PersonalDashboard = () => {
                   <Button size="sm" variant="outline" onClick={handleSaveDraft}>
                     Save draft
                   </Button>
-                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]" onClick={handleSubmitForReview}>
+                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]" onClick={() => { setSubmitNote(profile.rep_note || ""); setSubmitOpen(true); }}>
                     Submit for review
                   </Button>
                 </>
@@ -994,6 +1010,40 @@ const PersonalDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Rep submit-for-review dialog with an optional note to the admin */}
+      <Dialog open={submitOpen} onOpenChange={(o) => { if (!submitting) setSubmitOpen(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Submit for review</DialogTitle>
+            <DialogDescription>
+              Add an optional note for the admin — anything they should know about this demo.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={submitNote}
+            onChange={(e) => setSubmitNote(e.target.value)}
+            placeholder="Optional — e.g. Owner wants the logo bigger; still waiting on their Yelp link."
+            rows={4}
+            maxLength={600}
+            disabled={submitting}
+          />
+          <div className="text-[11px] text-muted-foreground text-right">{submitNote.length}/600</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubmitOpen(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]"
+              onClick={handleSubmitForReview}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting…" : "Send to admin"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Admin change-request banner (below the rep control strip) */}
       {isRepDemo && pipelineStatus === "changes_requested" && profile.review_note && (
