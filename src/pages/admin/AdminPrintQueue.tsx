@@ -532,6 +532,30 @@ const AdminPrintQueue = () => {
             </Button>
             <Button
               size="sm"
+              variant="outline"
+              onClick={openDrivingRoute}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open Driving Route
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={downloadRouteCsv}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Route CSV
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={copyAddresses}
+              className="h-8 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+            >
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> Copy Addresses
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               onClick={() => setSelected(new Set())}
               className="h-8 text-white/50 hover:text-white ml-auto"
