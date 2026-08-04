@@ -117,6 +117,8 @@ const AdminPendingHubApprovals = () => {
         plan_type: "solo_pro",
         review_note: null,
         review_note_at: null,
+        rep_note: null,
+        rep_note_at: null,
       } as never)
       .eq("id", row.id);
     if (error) {
