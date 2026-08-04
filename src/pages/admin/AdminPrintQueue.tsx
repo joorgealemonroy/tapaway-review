@@ -325,6 +325,89 @@ const AdminPrintQueue = () => {
     setExtendTarget(targets);
   };
 
+  // ---- Route / location tooling -------------------------------------------
+  const selectedRows = useMemo(
+    () => filtered.filter((r) => selected.has(r.id)),
+    [filtered, selected]
+  );
+
+  const openDrivingRoute = () => {
+    if (selectedRows.length === 0) return;
+    const plan = buildRoutePlan(selectedRows);
+    if (plan.legs.length === 0) {
+      toast.error("No usable addresses in the selection");
+      return;
+    }
+    window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
+    if (plan.chunked) {
+      toast.info(
+        `Route split into ${plan.legs.length} legs (Google caps stops per link). Opened leg 1 of ${plan.legs.length}.`,
+        {
+          action: {
+            label: "Open leg 2",
+            onClick: () => window.open(plan.legs[1].url, "_blank", "noopener,noreferrer"),
+          },
+        }
+      );
+    }
+  };
+
+  const downloadRouteCsv = () => {
+    if (selectedRows.length === 0) return;
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const header = [
+      "Stop #",
+      "Business Name",
+      "Display Handle",
+      "Address / Location",
+      "Google Place ID",
+      "Rep Name",
+      "Trial Ends",
+      "Google Maps Link",
+    ];
+    const lines = [header.map(esc).join(",")];
+    selectedRows.forEach((r, i) => {
+      const loc = resolveLocation(r);
+      lines.push(
+        [
+          String(i + 1),
+          resolveDisplayName({ full_name: r.full_name, username: r.username }),
+          r.username ? `@${r.username}` : "",
+          loc.query,
+          loc.placeId ?? "",
+          r.rep_name ?? "",
+          r.trial_ends_at ? new Date(r.trial_ends_at).toLocaleDateString() : "",
+          loc.mapsUrl,
+        ]
+          .map(esc)
+          .join(",")
+      );
+    });
+    const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8;" });
+    triggerBrowserDownload(blob, `tapaway-dropoff-route-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${selectedRows.length} stop${selectedRows.length === 1 ? "" : "s"}`);
+  };
+
+  const copyAddresses = async () => {
+    if (selectedRows.length === 0) return;
+    const text = selectedRows
+      .map((r) => resolveLocation(r).query)
+      .filter(Boolean)
+      .join("\n");
+    if (!text) {
+      toast.error("No addresses to copy");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Addresses copied — paste into Circuit or Roadwarrior");
+    } catch {
+      toast.error("Clipboard blocked by the browser");
+    }
+  };
+
+
+
   const openNoteDialog = (row: Row) => {
     setNoteTarget(row);
     setNoteText(row.print_notes || "");
