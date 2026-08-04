@@ -64,7 +64,7 @@ const RepClose = () => {
   const [newRestaurantName, setNewRestaurantName] = useState('');
   const [newContactName, setNewContactName] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [planType, setPlanType] = useState<string>('venue_annual');
+  const [planType, setPlanType] = useState<string>('bundle_monthly');
   const [checkoutUrl, setCheckoutUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
