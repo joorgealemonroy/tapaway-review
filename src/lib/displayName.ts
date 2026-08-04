@@ -15,12 +15,18 @@ export interface DisplayNameSource {
   slug?: string | null;
 }
 
-const clean = (v?: string | null) => (typeof v === "string" ? v.trim() : "");
+const EMPTY_NAME_VALUES = new Set(["(unnamed)", "unnamed", "n/a", "null", "undefined"]);
+
+const clean = (v?: string | null) => {
+  const value = typeof v === "string" ? v.trim() : "";
+  return EMPTY_NAME_VALUES.has(value.toLowerCase()) ? "" : value;
+};
 
 export const humanizeSlug = (raw?: string | null): string => {
   const s = clean(raw).replace(/^@/, "");
   if (!s) return "";
   return s
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[-_.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
