@@ -171,6 +171,14 @@ const PersonalDashboard = () => {
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
+  // Set by the /claim success page so the welcome card only shows right after activation.
+  const [justClaimed] = useState(() => {
+    try {
+      return localStorage.getItem("tapaway_just_claimed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -1060,7 +1068,7 @@ const PersonalDashboard = () => {
       <div className="max-w-7xl mx-auto flex overflow-x-hidden">
         {/* Dashboard Content */}
         <main className="flex-1 max-w-2xl px-4 py-6 pb-24 md:pb-8 w-full overflow-x-hidden">
-          {profile.subscription_status === "active" && (
+          {profile.subscription_status === "active" && justClaimed && (
             <ActivationWelcomeCard
               profileId={profile.id}
               username={profile.username}

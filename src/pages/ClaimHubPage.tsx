@@ -118,6 +118,11 @@ export default function ClaimHubPage() {
     (async () => {
       try {
         await supabase.functions.invoke("verify-claim-checkout", { body: { sessionId } });
+        try {
+          localStorage.setItem("tapaway_just_claimed", "1");
+        } catch {
+          /* ignore */
+        }
       } catch (err) {
         console.error("[claim] activation error", err);
       } finally {
