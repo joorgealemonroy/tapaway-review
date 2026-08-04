@@ -875,7 +875,75 @@ const AdminPrintQueue = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Multi-leg driving route */}
+      <Dialog open={!!routePlan} onOpenChange={(o) => !o && setRoutePlan(null)}>
+        <DialogContent className="bg-[#0a0e1a] border-white/10 text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {routePlan
+                ? `${routePlan.totalStops} Stops Split into ${routePlan.legs.length} Legs (${MAX_STOPS_PER_LEG} Stops/Leg)`
+                : "Driving route"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] text-white/40">
+              Enable browser pop-ups if not all tabs open.
+            </p>
+            <Button
+              size="sm"
+              onClick={openAllLegs}
+              className="h-8 bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]"
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open All Legs
+            </Button>
+          </div>
+
+          <div className="mt-2 space-y-2 max-h-[50vh] overflow-y-auto">
+            {routePlan?.legs.map((leg) => (
+              <div
+                key={leg.legNumber}
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-white/90">
+                    Leg {leg.legNumber} · Stops {leg.startIndex}-{leg.endIndex}
+                  </span>
+                  {openedLegs.has(leg.legNumber) && (
+                    <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
+                      ✓ Opened
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[11px] text-white/45 truncate">
+                  {leg.firstLabel} ➔ {leg.lastLabel}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openLeg(leg)}
+                    className="h-7 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+                  >
+                    <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open in Maps
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => copyLegLink(leg)}
+                    className="h-7 text-white/50 hover:text-white"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> Copy Link
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 
