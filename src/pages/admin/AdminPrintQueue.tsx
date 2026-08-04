@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ExtendTrialDialog, { ExtendTrialTarget } from "@/components/admin/ExtendTrialDialog";
+import EditHubDrawer, { EditHubTarget } from "@/components/admin/EditHubDrawer";
+import { resolveDisplayName } from "@/lib/displayName";
 import {
   ArrowLeft,
   Loader2,
@@ -37,6 +39,7 @@ import {
   RefreshCw,
   StickyNote,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 
 type PrintStatus = "not_downloaded" | "downloaded" | "printed" | "delivered";
@@ -55,6 +58,7 @@ interface Row {
   print_status: PrintStatus;
   print_notes: string | null;
   sales_rep_id: string | null;
+  is_approved: boolean | null;
   rep_name?: string | null;
 }
 
@@ -116,6 +120,7 @@ const AdminPrintQueue = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [extendTarget, setExtendTarget] = useState<ExtendTrialTarget | ExtendTrialTarget[] | null>(null);
+  const [editTarget, setEditTarget] = useState<EditHubTarget | null>(null);
   const [noteTarget, setNoteTarget] = useState<Row | null>(null);
   const [noteText, setNoteText] = useState("");
 
@@ -128,7 +133,7 @@ const AdminPrintQueue = () => {
       const { data, error } = await supabase
         .from("personal_profiles")
         .select(
-          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id"
+          "id, full_name, username, profile_photo_url, submitted_for_review_at, created_at, trial_ends_at, trial_extension_days, card_print_pdf_path, print_status, print_notes, sales_rep_id, is_approved"
         )
         .not("card_print_pdf_path", "is", null)
         .order("submitted_for_review_at", { ascending: true, nullsFirst: false });
@@ -301,7 +306,7 @@ const AdminPrintQueue = () => {
       .filter((r) => selected.has(r.id))
       .map<ExtendTrialTarget>((r) => ({
         id: r.id,
-        label: r.full_name || r.username || r.id,
+        label: resolveDisplayName({ full_name: r.full_name, username: r.username }),
         trial_ends_at: r.trial_ends_at,
       }));
     if (targets.length === 0) return;
@@ -499,12 +504,12 @@ const AdminPrintQueue = () => {
                             />
                           ) : (
                             <div className="h-8 w-8 rounded-full bg-white/10 text-white/70 flex items-center justify-center text-xs shrink-0">
-                              {(r.full_name || r.username || "?").charAt(0).toUpperCase()}
+                              {resolveDisplayName({ full_name: r.full_name, username: r.username }).charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0">
                             <div className="font-medium text-white/90 truncate">
-                              {r.full_name || "(unnamed)"}
+                              {resolveDisplayName({ full_name: r.full_name, username: r.username })}
                             </div>
                             <div className="text-[11px] font-mono text-white/40 truncate">
                               @{r.username || "—"}
@@ -591,9 +596,27 @@ const AdminPrintQueue = () => {
                           )}
                           <Button
                             onClick={() =>
+                              setEditTarget({
+                                id: r.id,
+                                full_name: r.full_name,
+                                username: r.username,
+                                profile_photo_url: r.profile_photo_url,
+                                print_notes: r.print_notes,
+                                is_approved: r.is_approved,
+                              })
+                            }
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-sky-300/80 hover:text-sky-200 hover:bg-sky-500/10"
+                            title="Edit hub"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            onClick={() =>
                               setExtendTarget({
                                 id: r.id,
-                                label: r.full_name || r.username || r.id,
+                                label: resolveDisplayName({ full_name: r.full_name, username: r.username }),
                                 trial_ends_at: r.trial_ends_at,
                               })
                             }
@@ -643,6 +666,12 @@ const AdminPrintQueue = () => {
           </div>
         )}
       </div>
+
+      <EditHubDrawer
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => load()}
+      />
 
       <ExtendTrialDialog
         target={extendTarget}
