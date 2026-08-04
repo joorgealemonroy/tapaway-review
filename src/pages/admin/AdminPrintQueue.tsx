@@ -65,6 +65,12 @@ interface Row {
   print_notes: string | null;
   sales_rep_id: string | null;
   is_approved: boolean | null;
+  google_place_id: string | null;
+  formatted_address: string | null;
+  contact_address: string | null;
+  place_city: string | null;
+  place_state: string | null;
+  place_zip: string | null;
   rep_name?: string | null;
 }
 
