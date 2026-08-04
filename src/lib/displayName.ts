@@ -22,44 +22,10 @@ const clean = (v?: string | null) => {
   return EMPTY_NAME_VALUES.has(value.toLowerCase()) ? "" : value;
 };
 
-const BUSINESS_WORDS = [
-  "restaurant",
-  "collective",
-  "company",
-  "roasting",
-  "mediterranean",
-  "italian",
-  "mexican",
-  "peruvian",
-  "chophouse",
-  "kitchen",
-  "cantina",
-  "coffee",
-  "bakery",
-  "salon",
-  "spa",
-  "grill",
-  "cafe",
-  "house",
-  "arts",
-  "craft",
-  "ales",
-  "bar",
-  "co",
-];
-
-const splitCompactHandle = (value: string) => {
-  let result = value;
-  BUSINESS_WORDS.forEach((word) => {
-    result = result.replace(new RegExp(`(${word})`, "gi"), " $1 ");
-  });
-  return result;
-};
-
 export const humanizeSlug = (raw?: string | null): string => {
   const s = clean(raw).replace(/^@/, "");
   if (!s) return "";
-  return splitCompactHandle(s)
+  return s
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[-_.]+/g, " ")
     .replace(/\s+/g, " ")
