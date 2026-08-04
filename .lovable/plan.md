@@ -1,47 +1,48 @@
 ## Goal
-SMS Marketing passed carrier approval. Remove the temporary lock UI, add live-status polish, verify the send function's secret handling, and make the feature reachable for mobile users.
+Make the admin dashboard an effortless command center: fix "(unnamed)" names, allow editing hubs and setting exact trial dates from the print queue, add full sorting to All Accounts, and let every sales-rep row be permanently deleted.
 
 ## Verified current state
-- Both `SmsMarketingTab.tsx` and `RestaurantSmsMarketingTab.tsx` render the amber "🚧 SMS Marketing is currently pending carrier approval. Will be unlocked very soon." banner.
-- `SENDING_LOCKED` is already hardcoded `false` in both files, so the lock branches are dead code.
-- `send-mass-sms/index.ts` already reads `TWILIO_API_KEY`, `TWILIO_FROM_NUMBER`, and `LOVABLE_API_KEY` and returns a 500 for each missing one — but it returns them without a `console.error`, so a misconfiguration is invisible in function logs.
-- **Mobile gap:** the personal dashboard's SMS `TabsTrigger` sits inside a `hidden md:grid` list. `MobileBottomNav`'s `PRIMARY_TABS` (Links, Design, Stats) and `BASE_MORE_TABS` (Shop, Leads, Plan, Cards) contain no `sms` entry, so mobile Solo users cannot open SMS Marketing at all.
-- The restaurant dashboard tab strip is `inline-flex min-w-full` horizontally scrollable, so its SMS tab is already reachable on mobile.
+- Print queue lives at `src/pages/admin/AdminPrintQueue.tsx` (not `PrintQueue.tsx`); it renders `{r.full_name || "(unnamed)"}` and already has a calendar action wired to `ExtendTrialDialog`.
+- `ExtendTrialDialog.tsx` only offers +2/+3/+5 presets plus a numeric field — no calendar, and it calls the `admin_extend_trial` RPC (days-based).
+- The accounts table is `src/components/admin/AdminUnifiedAccountsTable.tsx`; it already has `sortKey` (`taps | created_at | name`) with asc/desc toggling and falls back to `"(unnamed)"` in two places.
+- Reps live in `src/pages/admin/AdminReps.tsx`, reading `rep_applications` and `sales_reps`. The "Delete permanently" button renders only inside `renderRepAccessActions(matchedRep)`, which is reached only for `status === 'approved'` rows with a matched rep, so pending/rejected/unprovisioned rows can't be purged.
+- `rep_applications` has SELECT/UPDATE/INSERT policies but **no DELETE policy**, so deleting application rows will fail until a migration adds one.
 
-## 1. Clean up both SMS marketing tabs
-Applies identically to `src/components/personal/SmsMarketingTab.tsx` and `src/components/restaurant/RestaurantSmsMarketingTab.tsx`:
+## 1. Shared display-name helper
+Add `src/lib/displayName.ts` exporting `resolveDisplayName({ business_name, full_name, display_name, title, username, slug })`:
+- chain: business/full/display name -> title -> humanized slug/username (strip `@`, split on `-`/`_`, title-case each word)
+- only returns `"(unnamed)"` when every field is empty.
+Use it in `AdminPrintQueue.tsx` and both `"(unnamed)"` sites in `AdminUnifiedAccountsTable.tsx`, and show `@username` as a secondary line under the primary name in the accounts table.
 
-- Delete the pending-carrier-approval banner block.
-- Delete the `SENDING_LOCKED` constant and every reference:
-  - `disabled={sending || SENDING_LOCKED}` on the `Textarea` becomes `disabled={sending}`.
-  - `disabled={SENDING_LOCKED || !canSend}` on the send button becomes `disabled={!canSend}`.
-  - Drop the `"Coming Soon"` branch of the button-label ternary, leaving the sending / idle states.
-  - Drop the `!SENDING_LOCKED &&` guard on the empty-state paragraph.
-- Keep `canSend` exactly as-is: still blocks on `sending`, empty/whitespace message, message over 160 chars, and zero subscribers.
+## 2. Print queue: edit hub in place
+- Add an "Edit Hub" action per row (pencil button next to the existing actions) opening a new `src/components/admin/EditHubDrawer.tsx` (shadcn `Sheet`).
+- Fields: business/full name, username (with the existing approved-username lock respected), profile photo URL upload, social links list, and print/admin notes.
+- Saves via `supabase.from('personal_profiles').update(...)` scoped to the row id, then refetches the queue and toasts. Print status is untouched.
 
-## 2. Visual polish and active copy
-- Add a clean green "Live · Carrier Approved" badge above the composer heading, styled with semantic tokens (emerald border/tint, small pill, dot indicator) so it reads correctly in both light and dark mode.
-- Update the zero-subscriber empty state:
-  - Personal: "Start collecting subscribers when customers tap your TapAway cards!"
-  - Restaurant: same action-oriented phrasing, worded for the review hub.
+## 3. Trial extension calendar
+Rework `ExtendTrialDialog.tsx`:
+- Two modes sharing one dialog: preset chips `+3 / +5 / +7 / +14` days, and a shadcn `Calendar` date picker for an exact `trial_ends_at` date (past dates disabled).
+- Presets compute a concrete target date so the preview always shows the resulting end date.
+- Keep the existing `admin_extend_trial` RPC for the preset/day path; for an explicitly picked date, compute the day delta from the current `trial_ends_at` and pass it to the same RPC so no new backend surface is needed.
+- Bulk mode keeps day-delta behavior only (a single absolute date across mixed trials would be misleading); the calendar is hidden when multiple targets are selected.
 
-## 3. Make SMS reachable on mobile
-- Add an `sms` entry to `BASE_MORE_TABS` in `src/components/personal/MobileBottomNav.tsx`:
-  - `{ value: "sms", label: "SMS", icon: MessageSquare, description: "Text your subscribers" }`
-  - Import `MessageSquare` from `lucide-react`.
-  - Place it next to Leads so the audience tools group together.
-- Verify the existing `onTabChange` wiring drives the same `sms` `TabsContent` in `PersonalDashboard.tsx` (it does — the mobile nav and desktop tabs share one `activeTab`), so no dashboard change is needed beyond confirming the tab renders.
-- Audit both marketing tabs for small-screen layout: the composer card, subscriber stat, campaign rows, and confirm dialog should stack cleanly at 375px width; adjust padding/wrapping only if the check shows overflow.
+## 4. Accounts table sorting polish
+- Keep the existing sort engine; make the three sortable headers (`Account`, `Taps`, `Created`) show an explicit up/down chevron for the active direction instead of the neutral icon, with tooltips ("Oldest first" / "Newest first", "Most taps" / "Least taps", "A-Z" / "Z-A").
+- Persist `sortKey`/`sortDir` to `localStorage` so they survive tab switches and reloads.
+- Confirm the existing "Dashboard" button opens the personal dashboard in admin view mode (it already passes the admin view param) — no change expected.
 
-## 4. Edge function secret logging
-In `supabase/functions/send-mass-sms/index.ts`, keep the existing guards but add an explicit `console.error` before each configuration-failure return (`LOVABLE_API_KEY`, `TWILIO_API_KEY`, `TWILIO_FROM_NUMBER`, and the Supabase env trio) so a missing secret is diagnosable from function logs instead of surfacing only as a generic toast. No behavior change to the send path itself.
+## 5. Universal rep deletion
+- In `AdminReps.tsx`, move the red "Delete permanently" button out of `renderRepAccessActions` so it renders on **every** application row and every rep row regardless of status.
+- Confirmation dialog names the rep/email; keep the typed `DELETE` confirmation for rows that own a real auth account, and use a simple confirm for application-only rows (nothing to cascade).
+- Delete path:
+  - row with a matched `sales_reps` record -> existing `delete-user-complete` edge function (`deleteSalesRepAccount: true`), then delete the `rep_applications` row.
+  - application-only row -> delete the `rep_applications` row directly.
+- **Database migration required:** add an admin-only DELETE policy on `public.rep_applications` (mirroring the existing admin update policy) since none exists today.
 
 ## Verification
 - Full typecheck.
-- Playwright pass on the personal dashboard at mobile viewport (375px): open the More sheet, tap SMS, confirm the tab renders, the pending banner is gone, the Live badge shows, and the composer is interactive.
-- Confirm at desktop width that both the personal and restaurant SMS tabs render without the banner and with the send button correctly gated by subscriber count.
-- No live text will be sent during verification.
+- Playwright pass as admin: print queue shows real names, edit drawer saves, calendar sets an exact trial date, accounts table sorts both directions on all three columns and survives a tab switch, and a rejected test application can be deleted — console clean throughout.
 
 ## Technical notes
-- All new colors use semantic/emerald Tailwind tokens consistent with the existing dark-mode-aware amber banner pattern being removed — no hardcoded `text-white`/`bg-black`.
-- The two marketing tab components remain intentionally near-duplicates (personal vs restaurant data sources); this plan does not refactor them into a shared component, to keep the change surface minimal.
+- All new UI uses the existing Obsidian-dark admin palette (`#0a0e1a` surfaces, `white/5` borders, emerald accents) — no new hardcoded theme colors outside that established admin pattern.
+- File paths in the request (`PrintQueue.tsx`, `AdminAccounts.tsx`, `AdminSalesReps.tsx`) don't exist; the real equivalents listed above are used.
