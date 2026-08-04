@@ -98,7 +98,8 @@ export default function ClaimHubPage() {
       if (error) {
         console.error("[claim] summary error", error);
       }
-      const row = Array.isArray(data) ? (data[0] as unknown as ClaimSummary) : null;
+      const rows = (data ?? []) as unknown as ClaimSummary[];
+      const row = Array.isArray(rows) ? rows[0] ?? null : null;
       setSummary(row ?? null);
       setLoading(false);
     })();
