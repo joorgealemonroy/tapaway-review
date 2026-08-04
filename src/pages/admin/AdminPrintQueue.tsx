@@ -336,6 +336,11 @@ const AdminPrintQueue = () => {
     [filtered, selected]
   );
 
+  const [routePlan, setRoutePlan] = useState<RoutePlan<Row> | null>(null);
+  const [openedLegs, setOpenedLegs] = useState<Set<number>>(new Set());
+
+
+
   const openDrivingRoute = () => {
     if (selectedRows.length === 0) return;
     const plan = buildRoutePlan(selectedRows);
