@@ -17,40 +17,31 @@ const PLAN_TIERS: Record<string, {
   productName: string;
   trialDays: number;
 }> = {
-  solo_monthly: {
-    label: 'Solo Pro Monthly',
+  base_monthly: {
+    label: 'Base Software',
     planTier: 'business_lite',
     billingCycle: 'monthly',
     priceAmount: 1500, // $15/mo
     interval: 'month',
-    productName: 'TapAway Solo Pro (Monthly)',
+    productName: 'TapAway Base Software (Monthly)',
     trialDays: 7,
   },
-  solo_annual: {
-    label: 'Solo Pro Annual',
+  bundle_monthly: {
+    label: 'Base + Card Club',
+    planTier: 'business_lite',
+    billingCycle: 'monthly',
+    priceAmount: 2000, // $20/mo ($15 base + $5 Card Club)
+    interval: 'month',
+    productName: 'TapAway Base + Card Club (Monthly)',
+    trialDays: 7,
+  },
+  annual: {
+    label: 'Annual Value Pass',
     planTier: 'business_lite',
     billingCycle: 'annual',
-    priceAmount: 15000, // $150/yr
+    priceAmount: 18000, // $180/yr, Card Club included
     interval: 'year',
-    productName: 'TapAway Solo Pro (Annual)',
-    trialDays: 7,
-  },
-  venue_monthly: {
-    label: 'Venue Pack Monthly',
-    planTier: 'restaurant',
-    billingCycle: 'monthly',
-    priceAmount: 3900, // $39/mo
-    interval: 'month',
-    productName: 'TapAway Venue Pack (Monthly)',
-    trialDays: 7,
-  },
-  venue_annual: {
-    label: 'Venue Pack Annual',
-    planTier: 'restaurant',
-    billingCycle: 'annual',
-    priceAmount: 39000, // $390/yr
-    interval: 'year',
-    productName: 'TapAway Venue Pack (Annual)',
+    productName: 'TapAway Annual Value Pass',
     trialDays: 7,
   },
 };
