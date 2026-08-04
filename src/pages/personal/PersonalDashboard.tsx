@@ -113,6 +113,8 @@ interface PersonalProfile {
   submitted_for_review_at?: string | null;
   review_note?: string | null;
   review_note_at?: string | null;
+  rep_note?: string | null;
+  rep_note_at?: string | null;
 }
 
 interface DbPersonalLink {
