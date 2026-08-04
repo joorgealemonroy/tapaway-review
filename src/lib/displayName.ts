@@ -15,12 +15,52 @@ export interface DisplayNameSource {
   slug?: string | null;
 }
 
-const clean = (v?: string | null) => (typeof v === "string" ? v.trim() : "");
+const EMPTY_NAME_VALUES = new Set(["(unnamed)", "unnamed", "n/a", "null", "undefined"]);
+
+const clean = (v?: string | null) => {
+  const value = typeof v === "string" ? v.trim() : "";
+  return EMPTY_NAME_VALUES.has(value.toLowerCase()) ? "" : value;
+};
+
+const BUSINESS_WORDS = [
+  "restaurant",
+  "collective",
+  "company",
+  "roasting",
+  "mediterranean",
+  "italian",
+  "mexican",
+  "peruvian",
+  "chophouse",
+  "kitchen",
+  "cantina",
+  "coffee",
+  "bakery",
+  "salon",
+  "spa",
+  "grill",
+  "cafe",
+  "house",
+  "arts",
+  "craft",
+  "ales",
+  "bar",
+  "co",
+];
+
+const splitCompactHandle = (value: string) => {
+  let result = value;
+  BUSINESS_WORDS.forEach((word) => {
+    result = result.replace(new RegExp(`(${word})`, "gi"), " $1 ");
+  });
+  return result;
+};
 
 export const humanizeSlug = (raw?: string | null): string => {
   const s = clean(raw).replace(/^@/, "");
   if (!s) return "";
-  return s
+  return splitCompactHandle(s)
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[-_.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
