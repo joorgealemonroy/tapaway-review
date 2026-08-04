@@ -232,6 +232,12 @@ const AdminPendingHubApprovals = () => {
                   <span className="text-white/20">·</span>
                   <span>Submitted {submittedLabel(r)}</span>
                 </div>
+                {r.rep_note && (
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-sky-200/80 bg-sky-500/5 border border-sky-500/20 rounded-md px-2 py-1.5 whitespace-pre-wrap">
+                    <span className="font-semibold text-sky-300">Rep note: </span>
+                    {r.rep_note}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
