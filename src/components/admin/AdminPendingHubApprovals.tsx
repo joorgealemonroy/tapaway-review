@@ -27,6 +27,7 @@ type PendingHub = {
   submitted_for_review_at: string | null;
   sales_rep_id: string | null;
   card_print_pdf_path: string | null;
+  rep_note?: string | null;
   rep_name?: string | null;
 };
 
