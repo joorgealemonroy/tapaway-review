@@ -63,6 +63,8 @@ const AdminReps = () => {
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
   const [confirmToggle, setConfirmToggle] = useState<{ rep: SalesRep; next: boolean } | null>(null);
   const [deletingRep, setDeletingRep] = useState<SalesRep | null>(null);
+  const [deletingApp, setDeletingApp] = useState<RepApplication | null>(null);
+  const [deletingAppBusy, setDeletingAppBusy] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletingPermanently, setDeletingPermanently] = useState(false);
 
@@ -241,8 +243,11 @@ const AdminReps = () => {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
+      // Purge the originating application row too so the queue stays clean.
+      await supabase.from('rep_applications').delete().eq('email', deletingRep.email);
       toast.success(`Rep ${deletingRep.email} deleted permanently`);
       setReps((prev) => prev.filter((r) => r.id !== deletingRep.id));
+      setApplications((prev) => prev.filter((a) => a.email !== deletingRep.email));
       setDeletingRep(null);
       setDeleteConfirmText('');
     } catch (err) {
@@ -267,6 +272,22 @@ const AdminReps = () => {
   const repByEmail = new Map(
     reps.map(r => [r.email.trim().toLowerCase(), r] as const)
   );
+
+  const handleDeleteApplication = async () => {
+    if (!deletingApp) return;
+    setDeletingAppBusy(true);
+    try {
+      const { error } = await supabase.from('rep_applications').delete().eq('id', deletingApp.id);
+      if (error) throw error;
+      setApplications((prev) => prev.filter((a) => a.id !== deletingApp.id));
+      toast.success(`Application for ${deletingApp.email} deleted`);
+      setDeletingApp(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete application');
+    } finally {
+      setDeletingAppBusy(false);
+    }
+  };
 
   const renderRepAccessActions = (rep: SalesRep) => (
     <div className="flex flex-wrap gap-2">
@@ -429,6 +450,18 @@ const AdminReps = () => {
                                 Provision account
                               </Button>
                             )}
+                            {/* Universal purge — available on every row regardless of status */}
+                            {!(app.status === 'approved' && matchedRep) && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="mt-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeletingApp(app)}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Delete permanently
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                         );
@@ -543,6 +576,28 @@ const AdminReps = () => {
               }}
             >
               {confirmToggle?.next ? 'Reactivate' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Application purge dialog (pending / rejected / unprovisioned rows) */}
+      <AlertDialog open={!!deletingApp} onOpenChange={(open) => { if (!open && !deletingAppBusy) setDeletingApp(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete application permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete {deletingApp?.name} ({deletingApp?.email})? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAppBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingAppBusy}
+              onClick={async (e) => { e.preventDefault(); await handleDeleteApplication(); }}
+            >
+              {deletingAppBusy ? 'Deleting...' : 'Delete permanently'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
