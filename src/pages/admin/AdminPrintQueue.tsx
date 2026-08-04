@@ -26,6 +26,8 @@ import {
 import ExtendTrialDialog, { ExtendTrialTarget } from "@/components/admin/ExtendTrialDialog";
 import EditHubDrawer, { EditHubTarget } from "@/components/admin/EditHubDrawer";
 import { resolveDisplayName } from "@/lib/displayName";
+import { resolveLocation } from "@/lib/resolveLocation";
+import { buildRoutePlan } from "@/lib/routeOptimizer";
 import {
   ArrowLeft,
   Loader2,
@@ -40,6 +42,10 @@ import {
   StickyNote,
   ExternalLink,
   Pencil,
+  Map as MapIcon,
+  ClipboardList,
+  MapPin,
+  AlertTriangle,
 } from "lucide-react";
 
 type PrintStatus = "not_downloaded" | "downloaded" | "printed" | "delivered";
