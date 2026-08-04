@@ -633,6 +633,21 @@ const AdminPrintQueue = () => {
                             <div className="text-[11px] font-mono text-white/40 truncate">
                               @{r.username || "—"}
                             </div>
+                            {(() => {
+                              const loc = resolveLocation(r);
+                              return loc.quality === "exact" ? (
+                                <span
+                                  title={loc.query}
+                                  className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-200"
+                                >
+                                  <MapPin className="h-2.5 w-2.5" /> {loc.label}
+                                </span>
+                              ) : (
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-200/80">
+                                  <AlertTriangle className="h-2.5 w-2.5" /> Address needed
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </td>
