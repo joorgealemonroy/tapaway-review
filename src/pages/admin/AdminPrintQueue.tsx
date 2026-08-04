@@ -27,7 +27,12 @@ import ExtendTrialDialog, { ExtendTrialTarget } from "@/components/admin/ExtendT
 import EditHubDrawer, { EditHubTarget } from "@/components/admin/EditHubDrawer";
 import { resolveDisplayName } from "@/lib/displayName";
 import { resolveLocation } from "@/lib/resolveLocation";
-import { buildRoutePlan } from "@/lib/routeOptimizer";
+import {
+  buildRoutePlan,
+  MAX_STOPS_PER_LEG,
+  type RouteLeg,
+  type RoutePlan,
+} from "@/lib/routeOptimizer";
 import {
   ArrowLeft,
   Loader2,
@@ -331,6 +336,11 @@ const AdminPrintQueue = () => {
     [filtered, selected]
   );
 
+  const [routePlan, setRoutePlan] = useState<RoutePlan<Row> | null>(null);
+  const [openedLegs, setOpenedLegs] = useState<Set<number>>(new Set());
+
+
+
   const openDrivingRoute = () => {
     if (selectedRows.length === 0) return;
     const plan = buildRoutePlan(selectedRows);
@@ -338,17 +348,31 @@ const AdminPrintQueue = () => {
       toast.error("No usable addresses in the selection");
       return;
     }
-    window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
-    if (plan.chunked) {
-      toast.info(
-        `Route split into ${plan.legs.length} legs (Google caps stops per link). Opened leg 1 of ${plan.legs.length}.`,
-        {
-          action: {
-            label: "Open leg 2",
-            onClick: () => window.open(plan.legs[1].url, "_blank", "noopener,noreferrer"),
-          },
-        }
-      );
+    if (!plan.chunked) {
+      window.open(plan.legs[0].url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setOpenedLegs(new Set());
+    setRoutePlan(plan);
+  };
+
+  const openLeg = (leg: RouteLeg<Row>) => {
+    window.open(leg.url, "_blank", "noopener,noreferrer");
+    setOpenedLegs((prev) => new Set(prev).add(leg.legNumber));
+  };
+
+  const openAllLegs = () => {
+    if (!routePlan) return;
+    routePlan.legs.forEach((leg) => window.open(leg.url, "_blank", "noopener,noreferrer"));
+    setOpenedLegs(new Set(routePlan.legs.map((l) => l.legNumber)));
+  };
+
+  const copyLegLink = async (leg: RouteLeg<Row>) => {
+    try {
+      await navigator.clipboard.writeText(leg.url);
+      toast.success(`Leg ${leg.legNumber} link copied`);
+    } catch {
+      toast.error("Clipboard blocked by the browser");
     }
   };
 
@@ -356,6 +380,7 @@ const AdminPrintQueue = () => {
     if (selectedRows.length === 0) return;
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const header = [
+      "Leg #",
       "Stop #",
       "Business Name",
       "Display Handle",
@@ -370,6 +395,7 @@ const AdminPrintQueue = () => {
       const loc = resolveLocation(r);
       lines.push(
         [
+          String(Math.floor(i / MAX_STOPS_PER_LEG) + 1),
           String(i + 1),
           resolveDisplayName({ full_name: r.full_name, username: r.username }),
           r.username ? `@${r.username}` : "",
@@ -390,14 +416,19 @@ const AdminPrintQueue = () => {
 
   const copyAddresses = async () => {
     if (selectedRows.length === 0) return;
-    const text = selectedRows
-      .map((r) => resolveLocation(r).query)
-      .filter(Boolean)
-      .join("\n");
-    if (!text) {
+    const plan = buildRoutePlan(selectedRows);
+    if (plan.legs.length === 0) {
       toast.error("No addresses to copy");
       return;
     }
+    const text = plan.legs
+      .map((leg) =>
+        [
+          `--- LEG ${leg.legNumber} (Stops ${leg.startIndex}-${leg.endIndex}) ---`,
+          ...leg.stops.map((s) => resolveLocation(s).query).filter(Boolean),
+        ].join("\n")
+      )
+      .join("\n\n");
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Addresses copied — paste into Circuit or Roadwarrior");
@@ -405,6 +436,7 @@ const AdminPrintQueue = () => {
       toast.error("Clipboard blocked by the browser");
     }
   };
+
 
 
 
@@ -843,7 +875,75 @@ const AdminPrintQueue = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Multi-leg driving route */}
+      <Dialog open={!!routePlan} onOpenChange={(o) => !o && setRoutePlan(null)}>
+        <DialogContent className="bg-[#0a0e1a] border-white/10 text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {routePlan
+                ? `${routePlan.totalStops} Stops Split into ${routePlan.legs.length} Legs (${MAX_STOPS_PER_LEG} Stops/Leg)`
+                : "Driving route"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] text-white/40">
+              Enable browser pop-ups if not all tabs open.
+            </p>
+            <Button
+              size="sm"
+              onClick={openAllLegs}
+              className="h-8 bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]"
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open All Legs
+            </Button>
+          </div>
+
+          <div className="mt-2 space-y-2 max-h-[50vh] overflow-y-auto">
+            {routePlan?.legs.map((leg) => (
+              <div
+                key={leg.legNumber}
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-white/90">
+                    Leg {leg.legNumber} · Stops {leg.startIndex}-{leg.endIndex}
+                  </span>
+                  {openedLegs.has(leg.legNumber) && (
+                    <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
+                      ✓ Opened
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[11px] text-white/45 truncate">
+                  {leg.firstLabel} ➔ {leg.lastLabel}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openLeg(leg)}
+                    className="h-7 border-white/10 bg-white/[0.03] text-white/80 hover:bg-white/[0.06]"
+                  >
+                    <MapIcon className="h-3.5 w-3.5 mr-1.5" /> Open in Maps
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => copyLegLink(leg)}
+                    className="h-7 text-white/50 hover:text-white"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> Copy Link
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 };
 
