@@ -10,7 +10,7 @@ const corsHeaders = {
 
 // Pricing matrix
 const PLAN_CONFIG: Record<string, { name: string; amount: number; trialDays: number; productName: string }> = {
-  solo: { name: 'Solo Pro', amount: 1500, trialDays: 14, productName: 'TapAway Solo Pro' },
+  solo: { name: 'Solo Pro', amount: 2000, trialDays: 14, productName: 'TapAway Solo Pro' },
   venue: { name: 'Venue Pack', amount: 3900, trialDays: 14, productName: 'TapAway Venue Pack' },
 };
 
