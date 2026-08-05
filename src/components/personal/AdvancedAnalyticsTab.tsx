@@ -335,7 +335,7 @@ export const AdvancedAnalyticsTab = ({ profileId, planType, subscriptionStatus, 
               <Lock className="h-4 w-4" />
               Unlock Advanced Analytics
             </button>
-            <p className="text-xs text-muted-foreground mt-2">Upgrade to Pro — $15/month</p>
+            <p className="text-xs text-muted-foreground mt-2">Upgrade to Pro — $20/month</p>
           </div>
         </div>
       )}

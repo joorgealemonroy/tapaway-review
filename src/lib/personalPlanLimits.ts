@@ -2,7 +2,7 @@ export const PERSONAL_PLANS = {
   paid: {
     name: 'Business',
     maxLinks: -1, // unlimited
-    price: '$15',
+    price: '$20',
     priceSubtext: '/month',
     features: {
       customHeader: true,

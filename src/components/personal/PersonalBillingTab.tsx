@@ -79,7 +79,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 <span className="text-3xl font-bold">Free Trial</span>
               </div>
               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
-                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $15/month.
+                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $20/month.
               </p>
             </div>
           ) : (
@@ -153,7 +153,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 ({trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left).
               </li>
               <li>
-                When the trial ends, your hub is billed <span className="font-medium text-foreground">$15/month</span>{" "}
+                When the trial ends, your hub is billed <span className="font-medium text-foreground">$20/month</span>{" "}
                 unless you cancel first. You can cancel any time before the end date at no charge.
               </li>
               <li>
