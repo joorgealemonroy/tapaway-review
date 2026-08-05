@@ -1,5 +1,5 @@
 // Creates a Stripe Checkout session for the public /claim page.
-// Plans: base ($15/mo), bundle ($15 + $5 Card Club = $20/mo), annual ($180/yr).
+// Plans: base ($20/mo), bundle ($20 + $5 Card Club = $25/mo), annual ($199/yr).
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from '../_shared/rateLimit.ts';
@@ -75,11 +75,11 @@ Deno.serve(async (req) => {
 
     if (selectedPlan === 'annual') {
       const prod = await findOrCreateProduct(stripe, 'tapaway_plan', 'annual_value_pass', 'TapAway Annual Value Pass');
-      const price = await findOrCreatePrice(stripe, prod, 18000, 'year');
+      const price = await findOrCreatePrice(stripe, prod, 19900, 'year');
       lineItems.push({ price, quantity: 1 });
     } else {
       const baseProd = await findOrCreateProduct(stripe, 'tapaway_plan', 'base_software', 'TapAway Base Software');
-      const basePrice = await findOrCreatePrice(stripe, baseProd, 1500, 'month');
+      const basePrice = await findOrCreatePrice(stripe, baseProd, 2000, 'month');
       lineItems.push({ price: basePrice, quantity: 1 });
 
       if (selectedPlan === 'bundle') {

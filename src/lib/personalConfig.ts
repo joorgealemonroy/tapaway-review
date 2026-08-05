@@ -27,8 +27,8 @@ export const PERSONAL_TRIAL_CONFIG = {
 
 // Plan prices (used for display even when payments disabled)
 export const PERSONAL_PRICING = {
-  monthly: 15,
-  yearly: 75,
+  monthly: 20,
+  yearly: 199,
   extraCard: 10,
 };
 

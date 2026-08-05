@@ -21,7 +21,7 @@ const PLAN_TIERS: Record<string, {
     label: 'Base Software',
     planTier: 'business_lite',
     billingCycle: 'monthly',
-    priceAmount: 1500, // $15/mo
+    priceAmount: 2000, // $20/mo
     interval: 'month',
     productName: 'TapAway Base Software (Monthly)',
     trialDays: 7,
@@ -30,7 +30,7 @@ const PLAN_TIERS: Record<string, {
     label: 'Base + Card Club',
     planTier: 'business_lite',
     billingCycle: 'monthly',
-    priceAmount: 2000, // $20/mo ($15 base + $5 Card Club)
+    priceAmount: 2500, // $25/mo ($20 base + $5 Card Club)
     interval: 'month',
     productName: 'TapAway Base + Card Club (Monthly)',
     trialDays: 7,
@@ -39,7 +39,7 @@ const PLAN_TIERS: Record<string, {
     label: 'Annual Value Pass',
     planTier: 'business_lite',
     billingCycle: 'annual',
-    priceAmount: 18000, // $180/yr, Card Club included
+    priceAmount: 19900, // $199/yr, Card Club included
     interval: 'year',
     productName: 'TapAway Annual Value Pass',
     trialDays: 7,

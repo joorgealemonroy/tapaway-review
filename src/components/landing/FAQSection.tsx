@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "What happens after 30 days?",
     answer:
-      "After your 30-day free trial, TapAway is just $15/month (add the $5/mo Card Club any time). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 31, no action needed.",
+      "After your 30-day free trial, TapAway is just $20/month (add the $5/mo Card Club any time, or go annual at $199/yr with Card Club included). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 31, no action needed.",
   },
   {
     question: "Can I add more locations later?",

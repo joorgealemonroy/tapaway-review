@@ -245,7 +245,7 @@ export default function ClaimHubPage() {
         <title>{`Claim your TapAway hub | ${summary.display_name ?? "TapAway"}`}</title>
         <meta
           name="description"
-          content="Keep your TapAway hub, countertop card and customer insights active — $15/month."
+          content="Keep your TapAway hub, countertop card and customer insights active — $20/month."
         />
         <meta name="robots" content="noindex" />
       </Helmet>

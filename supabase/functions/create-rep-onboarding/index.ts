@@ -17,7 +17,7 @@ function json(body: Record<string, unknown>, status = 200) {
 
 // ── Pricing (mirrors create-checkout-session) ──
 const PLAN_CONFIG: Record<string, { name: string; amount: number; trialDays: number; productName: string }> = {
-  solo: { name: "Solo Pro", amount: 1500, trialDays: 7, productName: "TapAway Solo Pro" },
+  solo: { name: "Solo Pro", amount: 2000, trialDays: 7, productName: "TapAway Solo Pro" },
   venue: { name: "Venue Pack", amount: 3900, trialDays: 7, productName: "TapAway Venue Pack" },
 };
 const PROTECTION_AMOUNT = 500;

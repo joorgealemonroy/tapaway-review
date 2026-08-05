@@ -26,7 +26,7 @@ const PLAN_OPTIONS = [
   {
     id: 'annual',
     name: 'Annual Value Pass',
-    price: '$180/yr',
+    price: '$199/yr',
     commission: '$25 upfront + $75 annual bounty',
     points: '1 pt',
     tag: 'Best Value',
@@ -34,7 +34,7 @@ const PLAN_OPTIONS = [
   {
     id: 'bundle_monthly',
     name: 'Base + Card Club',
-    price: '$20/mo',
+    price: '$25/mo',
     commission: '$15 upfront',
     points: '0.5 pts',
     tag: 'Most popular',
@@ -42,7 +42,7 @@ const PLAN_OPTIONS = [
   {
     id: 'base_monthly',
     name: 'Base Software',
-    price: '$15/mo',
+    price: '$20/mo',
     commission: '$15 upfront',
     points: '0.5 pts',
     tag: null,

@@ -36,7 +36,7 @@ export const ProUpgradeDialog = ({
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-sm text-muted-foreground pt-2">
-            Upgrade to Pro for $15/month to get unlimited links, custom headers, photo collages, and more.
+            Upgrade to Pro for $20/month to get unlimited links, custom headers, photo collages, and more.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2">

@@ -10,7 +10,7 @@ We help local spots collect more Google reviews without ever pressuring customer
 
 
 
-I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $15/mo, or $20/mo with the Card Club. If not, keep the cards, no strings.
+I've already built you a custom review hub — no signup needed to try it. Take a look and if it's a fit, we can activate for $20/mo, or $25/mo with the Card Club (annual is $199/yr and saves $101). If not, keep the cards, no strings.
 
 Tap here to see your hub: {{hub_url}}
 
