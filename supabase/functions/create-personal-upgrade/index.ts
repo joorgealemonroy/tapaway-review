@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import { resolvePersonalPriceId } from "../_shared/stripePricing.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { requireUser, adminClient, isAdmin, jsonResponse } from "../_shared/security.ts";
 
@@ -8,11 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Hardcoded Stripe Price IDs
-const PERSONAL_PRICES = {
-  monthly: 'price_1SnMxKDg8DaTuVNZsc6KH8pw',  // $15/month
-  yearly: 'price_1SnMz2Dg8DaTuVNZM7QjRAET',   // $99/year
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,9 +57,7 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    const selectedPriceId = planType === 'yearly' 
-      ? PERSONAL_PRICES.yearly 
-      : PERSONAL_PRICES.monthly;
+    const selectedPriceId = await resolvePersonalPriceId(stripe, planType);
 
     console.log("[create-personal-upgrade] Using price:", selectedPriceId);
 
