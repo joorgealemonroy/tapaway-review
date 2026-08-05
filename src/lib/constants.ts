@@ -14,14 +14,14 @@ export const CARD_ONETIME_PRICE_ID = "price_1TMM0LDg8DaTuVNZZ2EfLZrk";
 
 // ---------------------------------------------------------------------------
 // UNIVERSAL PRICING — single source of truth for every customer-facing price.
-// Base software $15/mo · Card Club add-on +$5/mo ($20/mo total) · $180/yr annual.
+// Base software $20/mo · Card Club add-on +$5/mo ($25/mo total) · $199/yr annual.
 // ---------------------------------------------------------------------------
 export const PRICING = {
   base: {
     id: "base" as const,
     label: "Base Software",
-    amount: 15,
-    display: "$15",
+    amount: 20,
+    display: "$20",
     interval: "/month",
     blurb: "Full interactive hub, dashboard, analytics & SMS engine.",
   },
@@ -36,18 +36,18 @@ export const PRICING = {
   bundle: {
     id: "bundle" as const,
     label: "Base + Card Club",
-    amount: 20,
-    display: "$20",
+    amount: 25,
+    display: "$25",
     interval: "/month",
     blurb: "Everything in Base plus ongoing card replacements.",
   },
   annual: {
     id: "annual" as const,
     label: "Annual Value Pass",
-    amount: 180,
-    display: "$180",
+    amount: 199,
+    display: "$199",
     interval: "/year",
-    blurb: "Save 25% and Card Club membership is included free.",
+    blurb: "Save $101 a year and Card Club membership is included free.",
   },
 } as const;
 
