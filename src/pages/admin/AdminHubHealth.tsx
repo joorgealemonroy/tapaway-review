@@ -34,24 +34,18 @@ export default function AdminHubHealth() {
 
   const runAll = async (list: HubRow[]) => {
     setRunning(true);
-    const expected = list.filter((r) => r.expected_status === "live" && !!r.slug);
+    const expected = liveHubs(list);
     setProbes((prev) => {
       const next = { ...prev };
-      for (const r of expected) next[`${r.kind}:${r.slug}`] = { status: "pending" };
+      for (const r of expected) next[hubKey(r)] = { status: "pending" };
       return next;
     });
-    // Small concurrency
-    const queue = [...expected];
-    const workers = Array.from({ length: 6 }, async () => {
-      while (queue.length) {
-        const r = queue.shift()!;
-        const p = await probeHub(r);
-        setProbes((prev) => ({ ...prev, [`${r.kind}:${r.slug}`]: p }));
-      }
+    await runHealthSweep(expected, (row, state) => {
+      setProbes((prev) => ({ ...prev, [hubKey(row)]: state }));
     });
-    await Promise.all(workers);
     setRunning(false);
   };
+
 
   const retest = async (r: HubRow) => {
     setProbes((prev) => ({ ...prev, [`${r.kind}:${r.slug}`]: { status: "pending" } }));
