@@ -663,6 +663,26 @@ const AdminUnifiedAccountsTable = () => {
                   </td>
                   <td className="p-2.5">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        onClick={() =>
+                          setAnalyticsTarget({
+                            id: r.id,
+                            kind: r.kind,
+                            name: r.name,
+                            slug: r.slug,
+                            photo_url: r.photo_url,
+                            plan_type: r.plan_type,
+                            subscription_status: r.subscription_status,
+                            created_at: r.created_at,
+                          })
+                        }
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-sky-300/80 hover:text-sky-300 hover:bg-sky-500/10"
+                        title="View analytics"
+                      >
+                        <BarChart3 className="h-3.5 w-3.5" />
+                      </Button>
                       {r.slug && (
                         <Button
                           onClick={() => openHub(r)}
@@ -674,6 +694,7 @@ const AdminUnifiedAccountsTable = () => {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}
+
                       {r.kind === "lite" && r.card_print_pdf_path && (
                         <Button
                           onClick={() => downloadPdf(r)}
