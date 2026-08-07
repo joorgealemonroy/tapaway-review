@@ -3476,6 +3476,17 @@ export type Database = {
       }
     }
     Functions: {
+      admin_account_engagement: {
+        Args: { _since?: string }
+        Returns: {
+          contact_saves: number
+          hub_id: string
+          kind: string
+          last_active_at: string
+          link_clicks: number
+          taps: number
+        }[]
+      }
       admin_extend_trial: {
         Args: { _days: number; _profile_id: string; _reason: string }
         Returns: undefined
