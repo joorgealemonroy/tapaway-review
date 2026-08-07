@@ -442,9 +442,57 @@ const AdminUnifiedAccountsTable = () => {
     );
   };
 
+  const rangeLabel = RANGES.find((r) => r.key === range)?.label ?? "";
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-white/5 bg-white/[0.03] p-0.5">
+          {RANGES.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setRange(r.key)}
+              className={`px-3 h-8 rounded-md text-xs font-medium transition-colors ${
+                range === r.key ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11px] text-white/35">Usage shown for: {rangeLabel}</span>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {[
+          { label: `Taps · ${rangeLabel}`, value: summary.taps },
+          { label: `Clicks · ${rangeLabel}`, value: summary.clicks },
+          { label: `Hubs active · ${rangeLabel}`, value: summary.activeHubs },
+        ].map((tile) => (
+          <div key={tile.label} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+            <div className="text-[10px] uppercase tracking-wide text-white/40">{tile.label}</div>
+            <div className="text-xl font-semibold text-white tabular-nums">
+              {tile.value.toLocaleString()}
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => setZeroTapsOnly((v) => !v)}
+          className={`text-left rounded-xl border p-3 transition-colors ${
+            zeroTapsOnly
+              ? "bg-rose-500/15 border-rose-400/40"
+              : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+          }`}
+        >
+          <div className="text-[10px] uppercase tracking-wide text-white/40">Never tapped</div>
+          <div className="text-xl font-semibold text-white tabular-nums">
+            {summary.neverTapped.toLocaleString()}
+          </div>
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+
         <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
           <Input
