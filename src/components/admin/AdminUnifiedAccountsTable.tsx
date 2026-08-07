@@ -289,6 +289,7 @@ const AdminUnifiedAccountsTable = () => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
         if (brokenOnly && !(r.broken_links && r.broken_links > 0)) return false;
+        if (zeroTapsOnly && r.lifetimeTaps > 0) return false;
         if (s) {
           const hay = `${r.name} ${r.slug ?? ""}`.toLowerCase();
           if (!hay.includes(s)) return false;
@@ -298,12 +299,29 @@ const AdminUnifiedAccountsTable = () => {
       .sort((a, b) => {
         const dir = sortDir === "asc" ? 1 : -1;
         if (sortKey === "taps") return (a.taps - b.taps) * dir;
+        if (sortKey === "clicks") return (a.clicks - b.clicks) * dir;
+        if (sortKey === "last_active") {
+          const at = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
+          const bt = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+          return (at - bt) * dir;
+        }
         if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
         const at = a.created_at ? new Date(a.created_at).getTime() : 0;
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, brokenOnly, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir]);
+
+  const summary = useMemo(() => {
+    const scoped = rows.filter((r) => (kindFilter === "all" ? true : r.kind === kindFilter));
+    return {
+      taps: scoped.reduce((n, r) => n + r.taps, 0),
+      clicks: scoped.reduce((n, r) => n + r.clicks, 0),
+      activeHubs: scoped.filter((r) => r.taps > 0).length,
+      neverTapped: scoped.filter((r) => r.lifetimeTaps === 0).length,
+    };
+  }, [rows, kindFilter]);
+
 
 
   const toggleSort = (key: SortKey) => {
