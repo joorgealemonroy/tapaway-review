@@ -31,6 +31,8 @@ import YelpDebugModal, { YelpDebugRestaurant } from "@/components/admin/YelpDebu
 import AdminBusinessLiteTable from "@/components/admin/AdminBusinessLiteTable";
 import AdminPendingHubApprovals from "@/components/admin/AdminPendingHubApprovals";
 import AdminUnifiedAccountsTable from "@/components/admin/AdminUnifiedAccountsTable";
+import AdminOverview from "@/components/admin/AdminOverview";
+
 import { toast } from "sonner";
 import {
   Users,
