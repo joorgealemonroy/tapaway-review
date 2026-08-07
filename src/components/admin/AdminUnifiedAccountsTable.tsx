@@ -12,17 +12,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import { toast } from "sonner";
 import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  BarChart3,
   ExternalLink,
   FileText,
   Loader2,
   Search,
   Trash2,
 } from "lucide-react";
+
 
 type Kind = "legacy" | "lite";
 
