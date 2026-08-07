@@ -222,14 +222,6 @@ const Admin = () => {
     });
   }, [restaurants, search, planFilter, statusFilter]);
 
-  const totalTaps = useMemo(
-    () => restaurants.reduce((s, r) => s + (r.total_taps ?? 0), 0),
-    [restaurants]
-  );
-  const activeSubs = useMemo(
-    () => restaurants.filter((r) => r.subscription_status === "active").length,
-    [restaurants]
-  );
 
   const openEdit = (r: Restaurant) => setEditingRestaurant(r);
 
