@@ -644,48 +644,8 @@ const Admin = () => {
     </div>
   );
 
-  const renderOverview = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Panel className="p-5">
-          <div className="text-xs uppercase tracking-widest text-white/40">Total Accounts</div>
-          <div className="text-3xl font-semibold text-white mt-2">{restaurants.length}</div>
-        </Panel>
-        <Panel className="p-5">
-          <div className="text-xs uppercase tracking-widest text-white/40">Active Subscriptions</div>
-          <div className="text-3xl font-semibold text-white mt-2">{activeSubs}</div>
-        </Panel>
-        <Panel className="p-5">
-          <div className="text-xs uppercase tracking-widest text-white/40">Total Taps</div>
-          <div className="text-3xl font-semibold text-white mt-2">{totalTaps.toLocaleString()}</div>
-        </Panel>
-      </div>
+  const renderOverview = () => <AdminOverview onOpenAccounts={() => setSection("accounts")} />;
 
-      <Panel className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-white font-medium">Quick Access</h3>
-            <p className="text-sm text-white/40">Jump directly into a section.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {NAV.filter((n) => n.id !== "overview").map((n) => (
-            <button
-              key={n.id}
-              onClick={() => {
-                if ("path" in n && n.path) navigate(n.path);
-                else setSection(n.id as Section);
-              }}
-              className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all text-left"
-            >
-              <n.icon className="h-4 w-4 text-white/50 group-hover:text-primary transition-colors" />
-              <span className="text-sm text-white/80 group-hover:text-white">{n.label}</span>
-            </button>
-          ))}
-        </div>
-      </Panel>
-    </div>
-  );
 
   const renderReps = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
