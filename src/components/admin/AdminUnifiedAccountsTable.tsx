@@ -116,12 +116,23 @@ const AdminUnifiedAccountsTable = () => {
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [brokenOnly, setBrokenOnly] = useState(false);
+  const [zeroTapsOnly, setZeroTapsOnly] = useState(false);
+  const [range, setRange] = useState<RangeKey>(() => {
+    try {
+      const raw = localStorage.getItem(RANGE_STORAGE_KEY) as RangeKey | null;
+      return raw === "today" || raw === "30d" || raw === "all" ? raw : "30d";
+    } catch {
+      return "30d";
+    }
+  });
   // Sort preference persists across pagination, tab switches and reloads.
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     try {
       const raw = localStorage.getItem(SORT_STORAGE_KEY);
       const k = raw ? (JSON.parse(raw).key as SortKey) : null;
-      return k === "taps" || k === "created_at" || k === "name" ? k : "taps";
+      return k === "taps" || k === "clicks" || k === "last_active" || k === "created_at" || k === "name"
+        ? k
+        : "taps";
     } catch {
       return "taps";
     }
@@ -146,6 +157,14 @@ const AdminUnifiedAccountsTable = () => {
   }, [sortKey, sortDir]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(RANGE_STORAGE_KEY, range);
+    } catch {
+      /* storage unavailable — range still works, just not persisted */
+    }
+  }, [range]);
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
@@ -165,34 +184,29 @@ const AdminUnifiedAccountsTable = () => {
           );
         if (pErr) throw pErr;
 
-        const restaurantIds = (restaurants ?? []).map((r) => r.id);
         const profileIds = (profiles ?? []).map((p) => p.id);
 
-        // Legacy taps (analytics_events by restaurant_id)
-        const tapsMapR: Record<string, number> = {};
-        if (restaurantIds.length > 0) {
-          const { data: taps } = await supabase
-            .from("analytics_events")
-            .select("restaurant_id")
-            .eq("event_type", "tap")
-            .in("restaurant_id", restaurantIds);
-          (taps ?? []).forEach((t) => {
-            tapsMapR[t.restaurant_id] = (tapsMapR[t.restaurant_id] ?? 0) + 1;
-          });
-        }
+        // Engagement is aggregated server-side: avoids the 1k row cap and makes
+        // the range switch cheap. Lifetime is fetched alongside so the
+        // "never tapped" churn tile stays lifetime-accurate whatever the range.
+        const since = sinceForRange(range);
+        const [rangeRes, lifetimeRes] = await Promise.all([
+          supabase.rpc("admin_account_engagement", { _since: since }),
+          since === null
+            ? Promise.resolve({ data: null, error: null } as const)
+            : supabase.rpc("admin_account_engagement", { _since: null }),
+        ]);
+        if (rangeRes.error) throw rangeRes.error;
+        if (lifetimeRes.error) throw lifetimeRes.error;
 
-        // Personal taps
-        const tapsMapP: Record<string, number> = {};
-        if (profileIds.length > 0) {
-          const { data: taps } = await supabase
-            .from("personal_analytics")
-            .select("profile_id")
-            .eq("event_type", "tap")
-            .in("profile_id", profileIds);
-          (taps ?? []).forEach((t) => {
-            tapsMapP[t.profile_id] = (tapsMapP[t.profile_id] ?? 0) + 1;
-          });
-        }
+        const rangeStats: Record<string, EngagementRow> = {};
+        ((rangeRes.data ?? []) as EngagementRow[]).forEach((e) => {
+          rangeStats[e.hub_id] = e;
+        });
+        const lifetimeStats: Record<string, EngagementRow> = {};
+        ((lifetimeRes.data ?? (rangeRes.data as unknown) ?? []) as EngagementRow[]).forEach((e) => {
+          lifetimeStats[e.hub_id] = e;
+        });
 
         // Broken social links (legacy recursive-URL bug), per Solo profile
         const brokenMap: Record<string, number> = {};
@@ -205,8 +219,6 @@ const AdminUnifiedAccountsTable = () => {
             if (isBrokenPlatformUrl(l)) brokenMap[l.profile_id] = (brokenMap[l.profile_id] ?? 0) + 1;
           });
         }
-
-
 
         const legacyRows: UnifiedRow[] = (restaurants ?? []).map((r) => ({
           id: r.id,
@@ -221,7 +233,10 @@ const AdminUnifiedAccountsTable = () => {
           is_approved: r.is_approved ?? null,
           created_at: r.created_at ?? null,
           photo_url: r.logo_url ?? null,
-          taps: tapsMapR[r.id] ?? 0,
+          taps: rangeStats[r.id]?.taps ?? 0,
+          clicks: rangeStats[r.id]?.link_clicks ?? 0,
+          lifetimeTaps: lifetimeStats[r.id]?.taps ?? 0,
+          lastActiveAt: rangeStats[r.id]?.last_active_at ?? null,
         }));
 
         const liteRows: UnifiedRow[] = (profiles ?? [])
@@ -244,13 +259,15 @@ const AdminUnifiedAccountsTable = () => {
             is_approved: p.is_approved ?? null,
             created_at: p.created_at ?? null,
             photo_url: p.profile_photo_url ?? null,
-            taps: tapsMapP[p.id] ?? 0,
+            taps: rangeStats[p.id]?.taps ?? 0,
+            clicks: rangeStats[p.id]?.link_clicks ?? 0,
+            lifetimeTaps: lifetimeStats[p.id]?.taps ?? 0,
+            lastActiveAt: rangeStats[p.id]?.last_active_at ?? null,
             user_id: p.user_id,
             sales_rep_id: p.sales_rep_id,
             created_by_rep_id: p.created_by_rep_id,
             card_print_pdf_path: (p as any).card_print_pdf_path ?? null,
             broken_links: brokenMap[p.id] ?? 0,
-
           }));
 
         setRows([...legacyRows, ...liteRows]);
@@ -262,7 +279,8 @@ const AdminUnifiedAccountsTable = () => {
       }
     };
     load();
-  }, []);
+  }, [range]);
+
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
