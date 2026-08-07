@@ -743,8 +743,11 @@ const AdminUnifiedAccountsTable = () => {
           </table>
         </div>
       )}
+
+      <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
     </div>
   );
+
 };
 
 export default AdminUnifiedAccountsTable;
