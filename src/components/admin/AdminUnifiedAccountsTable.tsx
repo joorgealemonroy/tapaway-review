@@ -547,7 +547,7 @@ const AdminUnifiedAccountsTable = () => {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/5">
-          <table className="min-w-[900px] w-full text-sm">
+          <table className="min-w-[1080px] w-full text-sm">
             <thead>
               <tr className="bg-white/[0.02] text-white/50 uppercase tracking-wide text-[11px]">
                 <HeaderCell label="Account" k="name" />
