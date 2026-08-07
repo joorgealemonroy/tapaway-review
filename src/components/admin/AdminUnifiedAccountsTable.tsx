@@ -560,6 +560,21 @@ const AdminUnifiedAccountsTable = () => {
                   <td className="p-2.5 text-right pr-4 text-white/90 font-medium tabular-nums">
                     {r.taps.toLocaleString()}
                   </td>
+                  <td className="p-2.5 text-right pr-4 text-white/70 tabular-nums">
+                    {r.clicks.toLocaleString()}
+                  </td>
+                  <td className="p-2.5 text-xs text-white/60 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isRecentlyActive(r.lastActiveAt) ? "bg-emerald-400" : "bg-white/20"
+                        }`}
+                        title={isRecentlyActive(r.lastActiveAt) ? "Active (tapped in last 7 days)" : "Idle"}
+                      />
+                      {relativeTime(r.lastActiveAt)}
+                    </span>
+                  </td>
+
                   <td className="p-2.5">
                     {r.broken_links && r.broken_links > 0 ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-rose-500/15 text-rose-300">
