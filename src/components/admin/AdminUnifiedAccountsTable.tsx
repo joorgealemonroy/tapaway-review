@@ -37,6 +37,9 @@ type UnifiedRow = {
   created_at: string | null;
   photo_url: string | null;
   taps: number;
+  clicks: number;
+  lifetimeTaps: number;
+  lastActiveAt: string | null;
   // For actions
   user_id?: string | null;
   sales_rep_id?: string | null;
@@ -45,15 +48,65 @@ type UnifiedRow = {
   broken_links?: number;
 };
 
-type SortKey = "taps" | "created_at" | "name";
+type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name";
 
 const SORT_STORAGE_KEY = "admin-accounts-sort";
+const RANGE_STORAGE_KEY = "admin-accounts-range";
 type SortDir = "asc" | "desc";
+type RangeKey = "today" | "30d" | "all";
+
+const RANGES: { key: RangeKey; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "30d", label: "30 days" },
+  { key: "all", label: "All time" },
+];
+
+/**
+ * "Today" is the start of the current UTC day (not a rolling 24h window) so the
+ * daily view lines up with daily usage cycles. "30 days" stays rolling.
+ */
+const sinceForRange = (range: RangeKey): string | null => {
+  if (range === "all") return null;
+  if (range === "today") {
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+  return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+};
+
+const relativeTime = (iso: string | null) => {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+};
+
+const ACTIVE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const isRecentlyActive = (iso: string | null) =>
+  Boolean(iso && Date.now() - new Date(iso).getTime() <= ACTIVE_WINDOW_MS);
+
+type EngagementRow = {
+  hub_id: string;
+  kind: string;
+  taps: number;
+  link_clicks: number;
+  contact_saves: number;
+  last_active_at: string | null;
+};
 
 const kindLabel: Record<Kind, string> = {
   legacy: "Business",
   lite: "Solo",
 };
+
 
 const AdminUnifiedAccountsTable = () => {
   const navigate = useNavigate();
