@@ -45,3 +45,11 @@ Above the table, four small stat tiles for the selected range: total taps, total
 - `src/components/admin/AdminUnifiedAccountsTable.tsx` swaps its two raw analytics selects for one RPC call keyed on the selected range; the existing broken-link, kind, status and search filters stay as-is.
 - Existing Obsidian-dark admin palette only — no new color values.
 - Verification: typecheck, then a Playwright pass as admin confirming non-zero Solo taps, correct range switching, and a clean console.
+
+## Execution guardrails (locked in)
+
+- **LEFT JOIN, not aggregate-first.** The function builds a unified event set (`personal_analytics.profile_id` and `analytics_events.restaurant_id` — note the legacy column is `restaurant_id`, there is no `business_id`) and LEFT JOINs hubs to it, so hubs with zero events still return a row with `0`. This keeps the total hub count and the "zero taps ever" tile correct.
+- **Tap semantics per kind:** `profile_visit` counts as a tap for Solo hubs, `tap` for Business hubs; `link_click` and `contact_save` counted for both where present.
+- **Indexes:** the migration adds composite indexes `personal_analytics(profile_id, event_type, created_at)` and `analytics_events(restaurant_id, event_type, created_at)` if not already present.
+- **"Today" boundary:** the client passes UTC start-of-day (`setUTCHours(0,0,0,0)`), not a rolling 24-hour window. "30 days" stays a rolling 30-day window.
+- **Zero-taps filter:** the churn tile always evaluates lifetime taps (`_since = null`) regardless of the active range, so the list strictly reflects hubs that have never been tapped. A separate all-time aggregate is fetched alongside the range aggregate to back this.
