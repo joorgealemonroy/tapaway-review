@@ -31,7 +31,8 @@ What gets added:
 
 ## Technical notes
 
-- Migration: `admin_engagement_daily(_days int, _tz text)` SECURITY DEFINER, guarded by `is_admin()`, EXECUTE granted to `authenticated`; new `hub_link_checks` table (hub id, kind, url, label, status, http_status, checked_at) with GRANTs, RLS admin-read-only and service-role write.
-- Edge function `check-hub-links`: verifies an admin JWT in code, fetches links with a concurrency pool and ~8s timeout, HEAD with GET fallback, writes results with the service role. Scheduled nightly via pg_cron + pg_net.
-- Frontend: `useAdminOverview.ts` gains the daily series and link-health summary; `AdminOverview.tsx` gets the chart (Recharts, already in the project) and the broken-link band; `src/pages/admin/AdminHubHealth.tsx` gets the Links column. Obsidian-dark palette only.
+- Migration: `admin_engagement_daily(_days int, _tz text)` SECURITY DEFINER, guarded by `is_admin()`, EXECUTE granted to `authenticated`. It builds the date axis with `generate_series` over the requested window and LEFT JOINs event counts onto it, so days with zero events still return a row and the chart shows gaps instead of collapsing them.
+- New `hub_link_checks` table (hub id, kind, url, label, status, http_status, checked_at) with `UNIQUE (hub_id, url)` so re-checks upsert cleanly instead of piling up duplicates; GRANTs included, RLS admin-read-only and service-role write.
+- Edge function `check-hub-links`: verifies an admin JWT in code, processes links in batches with a concurrency pool and ~8s timeout, HEAD with GET fallback, sends a realistic desktop Chrome `User-Agent` (plus `Accept`/`Accept-Language`) so sites like Instagram and Facebook don't return bot-blocking 4xx, and writes results with the service role. Scheduled nightly via pg_cron + pg_net.
+- Frontend: `useAdminOverview.ts` gains the daily series and link-health summary, passing `_tz` from `Intl.DateTimeFormat().resolvedOptions().timeZone` so day buckets match the admin's own clock; `AdminOverview.tsx` gets the chart (Recharts, already in the project) and the broken-link band; `src/pages/admin/AdminHubHealth.tsx` gets the Links column. Obsidian-dark palette only.
 - Verification: typecheck, then a Playwright pass as admin confirming the daily chart renders with today's bar, the link sweep completes, and the console is clean.
