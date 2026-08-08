@@ -1,22 +1,35 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { HubRow, ProbeState, hubKey, liveHubs, probeHub, runHealthSweep } from "@/lib/hubHealthProbe";
 
 const PROD_ORIGIN = "https://tapaway.co";
 
-
+interface LinkCheck {
+  hub_id: string;
+  slug: string | null;
+  label: string | null;
+  url: string;
+  status: string;
+  http_status: number | null;
+  detail: string | null;
+  checked_at: string;
+}
 
 export default function AdminHubHealth() {
   const [rows, setRows] = useState<HubRow[]>([]);
   const [probes, setProbes] = useState<Record<string, ProbeState>>({});
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [linkChecks, setLinkChecks] = useState<LinkCheck[]>([]);
+  const [linksRunning, setLinksRunning] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
 
   const load = useCallback(async () => {
     setLoading(true);
