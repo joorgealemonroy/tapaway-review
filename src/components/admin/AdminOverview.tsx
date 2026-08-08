@@ -363,6 +363,86 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
             </div>
           ))}
         </div>
+
+        {/* Day-by-day activity */}
+        <div className="mt-6 pt-5 border-t border-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h4 className="text-white text-sm font-medium">Daily taps &amp; clicks</h4>
+              <p className="text-xs text-white/40">
+                {lastEventAt ? `Last event received ${relative(lastEventAt)}` : "No events recorded yet"} · your local
+                timezone
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-widest text-white/40">Today so far</div>
+                <div className="text-lg font-semibold text-white tabular-nums">
+                  {(today?.taps ?? 0).toLocaleString()}
+                  <span className="text-xs text-white/40 font-normal"> taps</span>
+                  {deltaPct !== null && (
+                    <span className={`ml-2 text-xs ${deltaPct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {deltaPct >= 0 ? "+" : ""}
+                      {deltaPct}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex rounded-lg border border-white/5 bg-white/[0.02] p-0.5">
+                {DAY_RANGES.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDailyDays(d)}
+                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                      dailyDays === d ? "bg-white/[0.08] text-white" : "text-white/50 hover:text-white/80"
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="h-56">
+            {dailyLoading ? (
+              <div className="h-full rounded-lg bg-white/[0.03] animate-pulse" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={dayLabel}
+                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                    contentStyle={{
+                      background: "#0a0e1a",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                  />
+                  <Bar dataKey="taps" name="Taps" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="clicks" name="Clicks" fill="rgba(255,255,255,0.28)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
       </Panel>
 
       {/* Row 3 — action queues */}
