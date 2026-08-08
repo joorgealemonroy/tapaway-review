@@ -221,6 +221,7 @@ export default function AdminHubHealth() {
                       <TableHead className="text-white/70">Owner</TableHead>
                       <TableHead className="text-white/70">Expected</TableHead>
                       <TableHead className="text-white/70">Anon probe</TableHead>
+                      <TableHead className="text-white/70">Links</TableHead>
                       <TableHead className="text-white/70 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -228,8 +229,12 @@ export default function AdminHubHealth() {
                     {rows.map((r) => {
                       const key = `${r.kind}:${r.slug}`;
                       const p = probes[key];
+                      const checks = linksBySlug.get((r.slug ?? "").toLowerCase()) ?? [];
+                      const badLinks = checks.filter((c) => c.status !== "ok");
                       return (
-                        <TableRow key={key} className="border-white/5 hover:bg-white/[0.03]">
+                        <Fragment key={key}>
+                        <TableRow className="border-white/5 hover:bg-white/[0.03]">
+
                           <TableCell className="font-mono text-sm">/{r.slug}</TableCell>
                           <TableCell className="text-sm capitalize">{r.kind}</TableCell>
                           <TableCell className="text-sm text-white/70">{r.owner_label ?? "—"}</TableCell>
