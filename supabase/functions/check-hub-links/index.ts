@@ -180,7 +180,7 @@ serve(async (req) => {
         const slice = profileIds.slice(i, i + 50);
         const { data: links } = await supabase
           .from("personal_links")
-          .select("profile_id, url, title, link_type, is_active, is_archived")
+          .select("profile_id, url, label, link_type, is_active, is_archived")
           .in("profile_id", slice);
         for (const l of links || []) {
           if (l.is_active === false || l.is_archived === true) continue;
@@ -190,7 +190,7 @@ serve(async (req) => {
             hub_id: l.profile_id as string,
             kind: "personal",
             slug: slugById.get(l.profile_id as string) ?? null,
-            label: (l.title as string) || (l.link_type as string) || "Link",
+            label: (l.label as string) || (l.link_type as string) || "Link",
             url,
           });
         }
