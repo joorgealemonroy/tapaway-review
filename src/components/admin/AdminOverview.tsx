@@ -228,6 +228,79 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </button>
       </div>
 
+      {/* Link health band */}
+      <div
+        className={`rounded-xl border p-5 ${
+          linkHealth.brokenLinks > 0
+            ? "border-amber-500/30 bg-amber-500/[0.06]"
+            : "border-white/5 bg-white/[0.02]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <Link2
+              className={`h-5 w-5 mt-0.5 ${linkHealth.brokenLinks > 0 ? "text-amber-400" : "text-emerald-400"}`}
+            />
+            <div className="min-w-0">
+              <div className="text-white font-medium">
+                {linkHealth.totalLinks === 0
+                  ? "Links have not been checked yet"
+                  : linkHealth.brokenLinks > 0
+                    ? `${linkHealth.hubsWithBroken} hub${linkHealth.hubsWithBroken === 1 ? "" : "s"} have a broken link (${linkHealth.brokenLinks} of ${linkHealth.totalLinks})`
+                    : `All ${linkHealth.totalLinks} links on live hubs work`}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                Every outbound link opened server-side ·{" "}
+                {linkHealth.lastCheckedAt
+                  ? `checked ${relative(linkHealth.lastCheckedAt.toISOString())}`
+                  : "never run"}
+              </div>
+              {linkHealth.worst.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {linkHealth.worst.slice(0, 5).map((b) => (
+                    <div key={`${b.hub_id}-${b.url}`} className="text-xs flex gap-2 min-w-0">
+                      <span className="font-mono text-amber-200 shrink-0">/{b.slug ?? "?"}</span>
+                      <span className="text-white/50 shrink-0">{b.label}</span>
+                      <span className="text-amber-200/70 truncate">{b.detail ?? b.status}</span>
+                    </div>
+                  ))}
+                  {linkHealth.worst.length > 5 && (
+                    <div className="text-xs text-amber-200/60">+{linkHealth.worst.length - 5} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => void runLinkCheck()}
+              disabled={linkHealth.running}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              {linkHealth.running ? (
+                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              ) : (
+                <Link2 className="h-3.5 w-3.5 mr-2" />
+              )}
+              Check links
+            </Button>
+            <Button
+              onClick={() => navigate("/admin/hub-health")}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              Details
+              <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+
+
       {/* Row 2 — business KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Metric
