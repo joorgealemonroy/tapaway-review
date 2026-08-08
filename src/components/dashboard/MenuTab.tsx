@@ -116,71 +116,82 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
   };
 
   const saveMenu = async () => {
+    // Non-destructive: write the new menu first, only remove the old rows
+    // once every insert succeeded. A failure leaves the existing menu intact.
+    const previousSectionIds = sections
+      .map((s) => s.id)
+      .filter((id): id is string => !!id);
+
+    const insertedSectionIds: string[] = [];
+
     try {
-      const { error: deleteError } = await supabase
-        .from("menu_sections")
-        .delete()
-        .eq("restaurant_id", restaurantId);
+      for (const [sIdx, section] of sections.entries()) {
+        if (!section.name.trim()) continue;
 
-      if (deleteError) {
-        console.error('❌ DELETE Error on menu_sections:', JSON.stringify(deleteError, null, 2));
-        throw deleteError;
-      }
-
-      for (const section of sections) {
         const { data: sectionData, error: sectionError } = await supabase
           .from("menu_sections")
-          .insert({ 
-            restaurant_id: restaurantId, 
-            name: section.name, 
-            sort_order: section.sort_order 
+          .insert({
+            restaurant_id: restaurantId,
+            name: section.name,
+            sort_order: section.sort_order ?? sIdx,
           })
           .select()
           .single();
 
-        if (sectionError) {
-          console.error('❌ RLS ERROR on menu_sections INSERT', {
-            table: 'menu_sections',
-            restaurantId: restaurantId,
-            sectionName: section.name,
-            error: JSON.stringify(sectionError, null, 2)
-          });
-          // RLS currently blocking inserts on public.menu_sections
-          throw sectionError;
+        if (sectionError || !sectionData) {
+          throw sectionError || new Error("Could not create menu section");
         }
 
-        if (sectionData) {
-          for (const item of section.items) {
-            const { error: itemError } = await supabase
-              .from("menu_items")
-              .insert({
-                section_id: sectionData.id,
-                name: item.name,
-                description: item.description,
-                price: item.price,
-                sort_order: item.sort_order
-              });
+        insertedSectionIds.push(sectionData.id);
 
-            if (itemError) {
-              console.error('❌ RLS ERROR on menu_items INSERT', {
-                table: 'menu_items',
-                sectionId: sectionData.id,
-                itemName: item.name,
-                error: JSON.stringify(itemError, null, 2)
-              });
-              // RLS currently blocking inserts on public.menu_items
-              throw itemError;
-            }
-          }
+        const itemRows = section.items
+          .filter((item) => item.name.trim())
+          .map((item, iIdx) => ({
+            section_id: sectionData.id,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            sort_order: item.sort_order ?? iIdx,
+          }));
+
+        if (itemRows.length > 0) {
+          const { error: itemError } = await supabase
+            .from("menu_items")
+            .insert(itemRows);
+
+          if (itemError) throw itemError;
         }
       }
 
+      if (previousSectionIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("menu_sections")
+          .delete()
+          .in("id", previousSectionIds);
+
+        if (deleteError) throw deleteError;
+      }
+
+      await fetchMenu();
       toast({ title: "Success", description: "Menu saved successfully!" });
     } catch (error: any) {
       console.error("❌ MENU SAVE FAILED:", error);
-      toast({ title: "Error", description: error.message || "Failed to save menu.", variant: "destructive" });
+
+      // Roll back anything we just wrote so the menu isn't duplicated.
+      if (insertedSectionIds.length > 0) {
+        await supabase.from("menu_sections").delete().in("id", insertedSectionIds);
+      }
+
+      toast({
+        title: "Menu not saved",
+        description:
+          error?.message ||
+          "We couldn't save your menu. Your previous menu is unchanged — please try again.",
+        variant: "destructive",
+      });
     }
   };
+
 
   if (loading) {
     return (
