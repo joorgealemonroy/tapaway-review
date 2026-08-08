@@ -66,9 +66,49 @@ export default function AdminHubHealth() {
     setProbes((prev) => ({ ...prev, [`${r.kind}:${r.slug}`]: p }));
   };
 
+  const loadLinkChecks = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("hub_link_checks")
+      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+    if (error) return;
+    setLinkChecks((data ?? []) as LinkCheck[]);
+  }, []);
+
+  const runLinkCheck = async () => {
+    setLinksRunning(true);
+    const { error } = await supabase.functions.invoke("check-hub-links", { body: {} });
+    if (error) toast.error(error.message);
+    else toast.success("Link check complete");
+    await loadLinkChecks();
+    setLinksRunning(false);
+  };
+
   useEffect(() => {
     load();
-  }, [load]);
+    void loadLinkChecks();
+  }, [load, loadLinkChecks]);
+
+  /** Link results grouped by hub slug (the key the health table uses). */
+  const linksBySlug = useMemo(() => {
+    const map = new Map<string, LinkCheck[]>();
+    for (const c of linkChecks) {
+      const key = (c.slug ?? "").toLowerCase();
+      if (!key) continue;
+      const arr = map.get(key) ?? [];
+      arr.push(c);
+      map.set(key, arr);
+    }
+    return map;
+  }, [linkChecks]);
+
+  const linkTotals = useMemo(() => {
+    const brokenLinks = linkChecks.filter((c) => c.status !== "ok");
+    return {
+      total: linkChecks.length,
+      broken: brokenLinks.length,
+      hubs: new Set(brokenLinks.map((b) => b.hub_id)).size,
+    };
+  }, [linkChecks]);
 
   const { totals, broken } = useMemo(() => {
     const t = { live: 0, ok: 0, empty: 0, error: 0, pending: 0 };
@@ -83,6 +123,7 @@ export default function AdminHubHealth() {
     }
     return { totals: t, broken: b };
   }, [rows, probes]);
+
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white p-6">
