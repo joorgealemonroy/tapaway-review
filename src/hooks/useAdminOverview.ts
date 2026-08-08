@@ -294,6 +294,69 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
     setEngagementLoading(false);
   }, [range]);
 
+  /* ---------------- daily series ---------------- */
+  const loadDaily = useCallback(async () => {
+    setDailyLoading(true);
+    const { data, error } = await supabase.rpc("admin_engagement_daily", {
+      _days: dailyDays,
+      _tz: browserTz(),
+    } as never);
+    if (!error) {
+      const rows = (data ?? []) as { day: string; taps: number | null; clicks: number | null; contact_saves: number | null }[];
+      setDaily(
+        rows.map((r) => ({
+          day: r.day,
+          taps: Number(r.taps ?? 0),
+          clicks: Number(r.clicks ?? 0),
+          saves: Number(r.contact_saves ?? 0),
+        })),
+      );
+    }
+    // Freshness signal: newest event across both analytics tables.
+    const [pa, ae] = await Promise.allSettled([
+      supabase.from("personal_analytics").select("created_at").order("created_at", { ascending: false }).limit(1),
+      supabase.from("analytics_events").select("created_at").order("created_at", { ascending: false }).limit(1),
+    ]);
+    const stamps: string[] = [];
+    if (pa.status === "fulfilled" && pa.value.data?.[0]) stamps.push(pa.value.data[0].created_at as string);
+    if (ae.status === "fulfilled" && ae.value.data?.[0]) stamps.push(ae.value.data[0].created_at as string);
+    stamps.sort();
+    setLastEventAt(stamps.length ? stamps[stamps.length - 1] : null);
+    setDailyLoading(false);
+  }, [dailyDays]);
+
+  /* ---------------- link health ---------------- */
+  const loadLinkHealth = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("hub_link_checks")
+      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+    if (error) return;
+    const rows = (data ?? []) as (BrokenLinkRow & { checked_at: string })[];
+    const broken = rows.filter((r) => r.status !== "ok");
+    const newest = rows.reduce<string | null>(
+      (acc, r) => (!acc || r.checked_at > acc ? r.checked_at : acc),
+      null,
+    );
+    setLinkHealth((s) => ({
+      ...s,
+      totalLinks: rows.length,
+      brokenLinks: broken.length,
+      hubsWithBroken: new Set(broken.map((b) => b.hub_id)).size,
+      worst: broken.slice(0, 25),
+      lastCheckedAt: newest ? new Date(newest) : null,
+    }));
+  }, []);
+
+  const runLinkCheck = useCallback(async () => {
+    setLinkHealth((s) => ({ ...s, running: true }));
+    try {
+      await supabase.functions.invoke("check-hub-links", { body: {} });
+      await loadLinkHealth();
+    } finally {
+      setLinkHealth((s) => ({ ...s, running: false }));
+    }
+  }, [loadLinkHealth]);
+
   /* ---------------- health sweep ---------------- */
   const runHealth = useCallback(async () => {
     if (healthRunning.current) return;
