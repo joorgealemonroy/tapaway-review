@@ -163,20 +163,23 @@ const ReviewHub = () => {
   };
 
   const fetchMenu = async (restId: string) => {
-    const { data: sections } = await supabase
-      .from("menu_sections")
-      .select(`
-        *,
-        menu_items (*)
-      `)
-      .eq("restaurant_id", restId)
-      .order("sort_order");
+    // Public visitors cannot read menu tables directly (RLS depends on a
+    // restaurants read they don't have), so go through the secure RPC.
+    const { data: sections, error } = await supabase
+      .rpc("get_public_restaurant_menu", { _restaurant_id: restId });
+
+    if (error) {
+      console.error("Failed to load menu", error);
+      return;
+    }
 
     if (sections) {
-      setMenuSections(sections.map(s => ({
-        ...s,
-        items: s.menu_items || []
-      })));
+      setMenuSections(
+        (sections as any[]).map((s) => ({
+          ...s,
+          items: Array.isArray(s.items) ? s.items : [],
+        }))
+      );
     }
   };
 
@@ -190,14 +193,30 @@ const ReviewHub = () => {
     }
   };
 
+  /** Always return a URL that works: web URL on desktop, app deep link on mobile. */
+  const getInstagramWebUrl = (url: string): string => {
+    const raw = (url || "").trim();
+    const deepMatch = raw.match(/^instagram:\/\/user\?username=(.+)$/i);
+    if (deepMatch) return `https://instagram.com/${deepMatch[1]}`;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return `https://instagram.com/${raw.replace(/^@/, "")}`;
+  };
+
   const getInstagramDeepLink = (url: string): string => {
+    const webUrl = getInstagramWebUrl(url);
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "");
+    if (!isMobile) return webUrl;
     try {
-      if (url.startsWith('instagram://')) return url;
-      const username = url.replace(/^https?:\/\/(www\.)?instagram\.com\/@?/, "").split("/")[0];
+      const username = webUrl
+        .replace(/^https?:\/\/(www\.)?instagram\.com\/@?/i, "")
+        .split(/[/?#]/)[0];
       if (username) return `instagram://user?username=${username}`;
     } catch {}
-    return url;
+    return webUrl;
   };
+
 
   const trackEvent = async (eventName: string) => {
     if (!restaurant) return;
