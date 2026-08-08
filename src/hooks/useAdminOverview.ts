@@ -116,13 +116,25 @@ type CountQuery = { count: number | null };
 const num = (r: PromiseSettledResult<CountQuery>) =>
   r.status === "fulfilled" ? r.value.count ?? 0 : 0;
 
-export function useAdminOverview(enabled: boolean, range: EngagementRange) {
+/** The admin's own timezone, so "today" means today on their clock. */
+const browserTz = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+};
+
+export function useAdminOverview(enabled: boolean, range: EngagementRange, dailyDays = 30) {
   const [counts, setCounts] = useState<OverviewCounts>(EMPTY_COUNTS);
   const [engagement, setEngagement] = useState<OverviewEngagement | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [engagementLoading, setEngagementLoading] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [daily, setDaily] = useState<DailyPoint[]>([]);
+  const [dailyLoading, setDailyLoading] = useState(true);
+  const [lastEventAt, setLastEventAt] = useState<string | null>(null);
 
   const [health, setHealth] = useState<HealthSummary>({
     total: 0,
@@ -134,6 +146,16 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
     lastCheckedAt: null,
   });
   const healthRunning = useRef(false);
+
+  const [linkHealth, setLinkHealth] = useState<LinkHealth>({
+    totalLinks: 0,
+    brokenLinks: 0,
+    hubsWithBroken: 0,
+    worst: [],
+    lastCheckedAt: null,
+    running: false,
+  });
+
 
   /* ---------------- counts + activity ---------------- */
   const loadCounts = useCallback(async () => {
