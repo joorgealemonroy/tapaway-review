@@ -61,13 +61,42 @@ const RANGES: { id: EngagementRange; label: string }[] = [
   { id: "all", label: "All time" },
 ];
 
+const DAY_RANGES = [7, 30, 90];
+
+const dayLabel = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
+};
+
 const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
   const navigate = useNavigate();
   const [range, setRange] = useState<EngagementRange>("30d");
-  const { counts, engagement, engagementLoading, activity, loading, lastUpdatedAt, health, refresh, runHealth } =
-    useAdminOverview(true, range);
+  const [dailyDays, setDailyDays] = useState(30);
+  const {
+    counts,
+    engagement,
+    engagementLoading,
+    daily,
+    dailyLoading,
+    lastEventAt,
+    linkHealth,
+    runLinkCheck,
+    activity,
+    loading,
+    lastUpdatedAt,
+    health,
+    refresh,
+    runHealth,
+  } = useAdminOverview(true, range, dailyDays);
 
   const totalHubs = counts.personalTotal + counts.restaurantTotal;
+  const today = daily.length ? daily[daily.length - 1] : null;
+  const yesterday = daily.length > 1 ? daily[daily.length - 2] : null;
+  const deltaPct =
+    today && yesterday && yesterday.taps > 0
+      ? Math.round(((today.taps - yesterday.taps) / yesterday.taps) * 100)
+      : null;
+
 
   const healthTone =
     health.broken > 0 ? "err" : health.running || health.pending > 0 ? "warn" : "ok";
