@@ -47,6 +47,33 @@ export interface HealthSummary {
   lastCheckedAt: Date | null;
 }
 
+export interface DailyPoint {
+  day: string;
+  taps: number;
+  clicks: number;
+  saves: number;
+}
+
+export interface BrokenLinkRow {
+  hub_id: string;
+  slug: string | null;
+  label: string | null;
+  url: string;
+  status: string;
+  http_status: number | null;
+  detail: string | null;
+}
+
+export interface LinkHealth {
+  totalLinks: number;
+  brokenLinks: number;
+  hubsWithBroken: number;
+  worst: BrokenLinkRow[];
+  lastCheckedAt: Date | null;
+  running: boolean;
+}
+
+
 const EMPTY_COUNTS: OverviewCounts = {
   personalTotal: 0,
   restaurantTotal: 0,
