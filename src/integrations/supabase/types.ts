@@ -3642,6 +3642,16 @@ export type Database = {
           yelp_review_url: string
         }[]
       }
+      get_public_restaurant_menu: {
+        Args: { _restaurant_id: string }
+        Returns: {
+          id: string
+          items: Json
+          name: string
+          restaurant_id: string
+          sort_order: number
+        }[]
+      }
       get_signup_dropoff_stats: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {

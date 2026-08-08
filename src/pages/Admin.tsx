@@ -240,6 +240,16 @@ const Admin = () => {
       fields.forEach((f) => {
         if (f in updates) validUpdates[f] = (updates as Record<string, unknown>)[f];
       });
+      // Instagram must be stored as a normal web URL so it works on desktop too.
+      if (typeof validUpdates.instagram_url === "string") {
+        const raw = (validUpdates.instagram_url as string).trim();
+        const deep = raw.match(/^instagram:\/\/user\?username=(.+)$/i);
+        if (deep) validUpdates.instagram_url = `https://instagram.com/${deep[1]}`;
+        else if (raw.startsWith("@")) validUpdates.instagram_url = `https://instagram.com/${raw.slice(1)}`;
+        else if (raw && !/^https?:\/\//i.test(raw)) validUpdates.instagram_url = `https://instagram.com/${raw.replace(/^(www\.)?instagram\.com\//i, "")}`;
+        else validUpdates.instagram_url = raw || null;
+      }
+
       const { data, error: updateError } = await supabase
         .from("restaurants")
         .update(validUpdates)

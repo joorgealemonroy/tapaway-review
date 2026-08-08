@@ -438,13 +438,17 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 value={restaurant.instagram_url || ""}
                 onChange={(e) => {
                   let val = e.target.value.trim();
-                  if (val.startsWith('@')) {
+                  const deep = val.match(/^instagram:\/\/user\?username=(.+)$/i);
+                  if (deep) {
+                    val = `https://instagram.com/${deep[1]}`;
+                  } else if (val.startsWith('@')) {
                     val = `https://instagram.com/${val.slice(1)}`;
                   } else if (val && !val.startsWith('http')) {
-                    val = `https://instagram.com/${val}`;
+                    val = `https://instagram.com/${val.replace(/^(www\.)?instagram\.com\//i, '')}`;
                   }
                   setRestaurant({ ...restaurant, instagram_url: val });
                 }}
+
                 placeholder="https://instagram.com/yourbusiness"
               />
               {restaurant.instagram_url && (
