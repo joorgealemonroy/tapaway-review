@@ -135,11 +135,36 @@ export default function AdminHubHealth() {
               Verifies that every hub the platform expects to be publicly live is actually reachable by a logged-out visitor.
             </p>
           </div>
-          <Button onClick={() => runAll(rows)} disabled={running || loading} variant="secondary">
-            <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
-            Retest all
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => void runLinkCheck()} disabled={linksRunning} variant="secondary">
+              {linksRunning ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Link2 className="h-4 w-4 mr-2" />
+              )}
+              Check all links
+            </Button>
+            <Button onClick={() => runAll(rows)} disabled={running || loading} variant="secondary">
+              <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
+              Retest all
+            </Button>
+          </div>
         </div>
+
+        <Card className="bg-white/5 border-white/10 text-white">
+          <CardHeader>
+            <CardTitle className="text-white text-base">Outbound links</CardTitle>
+            <CardDescription className="text-white/60">
+              Every link on a live hub is opened server-side to confirm it still resolves.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-4">
+            <Stat label="Links checked" value={linkTotals.total} />
+            <Stat label="Broken" value={linkTotals.broken} tone={linkTotals.broken ? "err" : "ok"} />
+            <Stat label="Hubs affected" value={linkTotals.hubs} tone={linkTotals.hubs ? "warn" : undefined} />
+          </CardContent>
+        </Card>
+
 
         <Card className="bg-white/5 border-white/10 text-white">
           <CardHeader>
