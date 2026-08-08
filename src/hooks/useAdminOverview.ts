@@ -47,6 +47,33 @@ export interface HealthSummary {
   lastCheckedAt: Date | null;
 }
 
+export interface DailyPoint {
+  day: string;
+  taps: number;
+  clicks: number;
+  saves: number;
+}
+
+export interface BrokenLinkRow {
+  hub_id: string;
+  slug: string | null;
+  label: string | null;
+  url: string;
+  status: string;
+  http_status: number | null;
+  detail: string | null;
+}
+
+export interface LinkHealth {
+  totalLinks: number;
+  brokenLinks: number;
+  hubsWithBroken: number;
+  worst: BrokenLinkRow[];
+  lastCheckedAt: Date | null;
+  running: boolean;
+}
+
+
 const EMPTY_COUNTS: OverviewCounts = {
   personalTotal: 0,
   restaurantTotal: 0,
@@ -89,13 +116,25 @@ type CountQuery = { count: number | null };
 const num = (r: PromiseSettledResult<CountQuery>) =>
   r.status === "fulfilled" ? r.value.count ?? 0 : 0;
 
-export function useAdminOverview(enabled: boolean, range: EngagementRange) {
+/** The admin's own timezone, so "today" means today on their clock. */
+const browserTz = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+};
+
+export function useAdminOverview(enabled: boolean, range: EngagementRange, dailyDays = 30) {
   const [counts, setCounts] = useState<OverviewCounts>(EMPTY_COUNTS);
   const [engagement, setEngagement] = useState<OverviewEngagement | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [engagementLoading, setEngagementLoading] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [daily, setDaily] = useState<DailyPoint[]>([]);
+  const [dailyLoading, setDailyLoading] = useState(true);
+  const [lastEventAt, setLastEventAt] = useState<string | null>(null);
 
   const [health, setHealth] = useState<HealthSummary>({
     total: 0,
@@ -107,6 +146,16 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
     lastCheckedAt: null,
   });
   const healthRunning = useRef(false);
+
+  const [linkHealth, setLinkHealth] = useState<LinkHealth>({
+    totalLinks: 0,
+    brokenLinks: 0,
+    hubsWithBroken: 0,
+    worst: [],
+    lastCheckedAt: null,
+    running: false,
+  });
+
 
   /* ---------------- counts + activity ---------------- */
   const loadCounts = useCallback(async () => {
@@ -245,6 +294,69 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
     setEngagementLoading(false);
   }, [range]);
 
+  /* ---------------- daily series ---------------- */
+  const loadDaily = useCallback(async () => {
+    setDailyLoading(true);
+    const { data, error } = await supabase.rpc("admin_engagement_daily", {
+      _days: dailyDays,
+      _tz: browserTz(),
+    } as never);
+    if (!error) {
+      const rows = (data ?? []) as { day: string; taps: number | null; clicks: number | null; contact_saves: number | null }[];
+      setDaily(
+        rows.map((r) => ({
+          day: r.day,
+          taps: Number(r.taps ?? 0),
+          clicks: Number(r.clicks ?? 0),
+          saves: Number(r.contact_saves ?? 0),
+        })),
+      );
+    }
+    // Freshness signal: newest event across both analytics tables.
+    const [pa, ae] = await Promise.allSettled([
+      supabase.from("personal_analytics").select("created_at").order("created_at", { ascending: false }).limit(1),
+      supabase.from("analytics_events").select("created_at").order("created_at", { ascending: false }).limit(1),
+    ]);
+    const stamps: string[] = [];
+    if (pa.status === "fulfilled" && pa.value.data?.[0]) stamps.push(pa.value.data[0].created_at as string);
+    if (ae.status === "fulfilled" && ae.value.data?.[0]) stamps.push(ae.value.data[0].created_at as string);
+    stamps.sort();
+    setLastEventAt(stamps.length ? stamps[stamps.length - 1] : null);
+    setDailyLoading(false);
+  }, [dailyDays]);
+
+  /* ---------------- link health ---------------- */
+  const loadLinkHealth = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("hub_link_checks")
+      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+    if (error) return;
+    const rows = (data ?? []) as (BrokenLinkRow & { checked_at: string })[];
+    const broken = rows.filter((r) => r.status !== "ok");
+    const newest = rows.reduce<string | null>(
+      (acc, r) => (!acc || r.checked_at > acc ? r.checked_at : acc),
+      null,
+    );
+    setLinkHealth((s) => ({
+      ...s,
+      totalLinks: rows.length,
+      brokenLinks: broken.length,
+      hubsWithBroken: new Set(broken.map((b) => b.hub_id)).size,
+      worst: broken.slice(0, 25),
+      lastCheckedAt: newest ? new Date(newest) : null,
+    }));
+  }, []);
+
+  const runLinkCheck = useCallback(async () => {
+    setLinkHealth((s) => ({ ...s, running: true }));
+    try {
+      await supabase.functions.invoke("check-hub-links", { body: {} });
+      await loadLinkHealth();
+    } finally {
+      setLinkHealth((s) => ({ ...s, running: false }));
+    }
+  }, [loadLinkHealth]);
+
   /* ---------------- health sweep ---------------- */
   const runHealth = useCallback(async () => {
     if (healthRunning.current) return;
@@ -278,8 +390,8 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
   }, []);
 
   const refresh = useCallback(async () => {
-    await Promise.all([loadCounts(), loadEngagement()]);
-  }, [loadCounts, loadEngagement]);
+    await Promise.all([loadCounts(), loadEngagement(), loadDaily(), loadLinkHealth()]);
+  }, [loadCounts, loadEngagement, loadDaily, loadLinkHealth]);
 
   /* ---------------- lifecycle ---------------- */
   useEffect(() => {
@@ -291,6 +403,16 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
     if (!enabled) return;
     void loadEngagement();
   }, [enabled, loadEngagement]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    void loadDaily();
+  }, [enabled, loadDaily]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    void loadLinkHealth();
+  }, [enabled, loadLinkHealth]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -320,6 +442,11 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange) {
     counts,
     engagement,
     engagementLoading,
+    daily,
+    dailyLoading,
+    lastEventAt,
+    linkHealth,
+    runLinkCheck,
     activity,
     loading,
     lastUpdatedAt,

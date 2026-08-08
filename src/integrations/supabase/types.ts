@@ -1123,6 +1123,51 @@ export type Database = {
           },
         ]
       }
+      hub_link_checks: {
+        Row: {
+          checked_at: string
+          created_at: string
+          detail: string | null
+          http_status: number | null
+          hub_id: string
+          id: string
+          kind: string
+          label: string | null
+          slug: string | null
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          detail?: string | null
+          http_status?: number | null
+          hub_id: string
+          id?: string
+          kind: string
+          label?: string | null
+          slug?: string | null
+          status: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          detail?: string | null
+          http_status?: number | null
+          hub_id?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          slug?: string | null
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       lead_forms: {
         Row: {
           button_title: string
@@ -3484,6 +3529,15 @@ export type Database = {
           kind: string
           last_active_at: string
           link_clicks: number
+          taps: number
+        }[]
+      }
+      admin_engagement_daily: {
+        Args: { _days?: number; _tz?: string }
+        Returns: {
+          clicks: number
+          contact_saves: number
+          day: string
           taps: number
         }[]
       }

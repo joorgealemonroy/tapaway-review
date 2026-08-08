@@ -1,22 +1,35 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { HubRow, ProbeState, hubKey, liveHubs, probeHub, runHealthSweep } from "@/lib/hubHealthProbe";
 
 const PROD_ORIGIN = "https://tapaway.co";
 
-
+interface LinkCheck {
+  hub_id: string;
+  slug: string | null;
+  label: string | null;
+  url: string;
+  status: string;
+  http_status: number | null;
+  detail: string | null;
+  checked_at: string;
+}
 
 export default function AdminHubHealth() {
   const [rows, setRows] = useState<HubRow[]>([]);
   const [probes, setProbes] = useState<Record<string, ProbeState>>({});
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [linkChecks, setLinkChecks] = useState<LinkCheck[]>([]);
+  const [linksRunning, setLinksRunning] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,9 +66,49 @@ export default function AdminHubHealth() {
     setProbes((prev) => ({ ...prev, [`${r.kind}:${r.slug}`]: p }));
   };
 
+  const loadLinkChecks = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("hub_link_checks")
+      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+    if (error) return;
+    setLinkChecks((data ?? []) as LinkCheck[]);
+  }, []);
+
+  const runLinkCheck = async () => {
+    setLinksRunning(true);
+    const { error } = await supabase.functions.invoke("check-hub-links", { body: {} });
+    if (error) toast.error(error.message);
+    else toast.success("Link check complete");
+    await loadLinkChecks();
+    setLinksRunning(false);
+  };
+
   useEffect(() => {
     load();
-  }, [load]);
+    void loadLinkChecks();
+  }, [load, loadLinkChecks]);
+
+  /** Link results grouped by hub slug (the key the health table uses). */
+  const linksBySlug = useMemo(() => {
+    const map = new Map<string, LinkCheck[]>();
+    for (const c of linkChecks) {
+      const key = (c.slug ?? "").toLowerCase();
+      if (!key) continue;
+      const arr = map.get(key) ?? [];
+      arr.push(c);
+      map.set(key, arr);
+    }
+    return map;
+  }, [linkChecks]);
+
+  const linkTotals = useMemo(() => {
+    const brokenLinks = linkChecks.filter((c) => c.status !== "ok");
+    return {
+      total: linkChecks.length,
+      broken: brokenLinks.length,
+      hubs: new Set(brokenLinks.map((b) => b.hub_id)).size,
+    };
+  }, [linkChecks]);
 
   const { totals, broken } = useMemo(() => {
     const t = { live: 0, ok: 0, empty: 0, error: 0, pending: 0 };
@@ -71,6 +124,7 @@ export default function AdminHubHealth() {
     return { totals: t, broken: b };
   }, [rows, probes]);
 
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -81,11 +135,36 @@ export default function AdminHubHealth() {
               Verifies that every hub the platform expects to be publicly live is actually reachable by a logged-out visitor.
             </p>
           </div>
-          <Button onClick={() => runAll(rows)} disabled={running || loading} variant="secondary">
-            <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
-            Retest all
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => void runLinkCheck()} disabled={linksRunning} variant="secondary">
+              {linksRunning ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Link2 className="h-4 w-4 mr-2" />
+              )}
+              Check all links
+            </Button>
+            <Button onClick={() => runAll(rows)} disabled={running || loading} variant="secondary">
+              <RefreshCw className={`h-4 w-4 mr-2 ${running ? "animate-spin" : ""}`} />
+              Retest all
+            </Button>
+          </div>
         </div>
+
+        <Card className="bg-white/5 border-white/10 text-white">
+          <CardHeader>
+            <CardTitle className="text-white text-base">Outbound links</CardTitle>
+            <CardDescription className="text-white/60">
+              Every link on a live hub is opened server-side to confirm it still resolves.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-4">
+            <Stat label="Links checked" value={linkTotals.total} />
+            <Stat label="Broken" value={linkTotals.broken} tone={linkTotals.broken ? "err" : "ok"} />
+            <Stat label="Hubs affected" value={linkTotals.hubs} tone={linkTotals.hubs ? "warn" : undefined} />
+          </CardContent>
+        </Card>
+
 
         <Card className="bg-white/5 border-white/10 text-white">
           <CardHeader>
@@ -142,6 +221,7 @@ export default function AdminHubHealth() {
                       <TableHead className="text-white/70">Owner</TableHead>
                       <TableHead className="text-white/70">Expected</TableHead>
                       <TableHead className="text-white/70">Anon probe</TableHead>
+                      <TableHead className="text-white/70">Links</TableHead>
                       <TableHead className="text-white/70 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -149,8 +229,12 @@ export default function AdminHubHealth() {
                     {rows.map((r) => {
                       const key = `${r.kind}:${r.slug}`;
                       const p = probes[key];
+                      const checks = linksBySlug.get((r.slug ?? "").toLowerCase()) ?? [];
+                      const badLinks = checks.filter((c) => c.status !== "ok");
                       return (
-                        <TableRow key={key} className="border-white/5 hover:bg-white/[0.03]">
+                        <Fragment key={key}>
+                        <TableRow className="border-white/5 hover:bg-white/[0.03]">
+
                           <TableCell className="font-mono text-sm">/{r.slug}</TableCell>
                           <TableCell className="text-sm capitalize">{r.kind}</TableCell>
                           <TableCell className="text-sm text-white/70">{r.owner_label ?? "—"}</TableCell>
@@ -174,6 +258,22 @@ export default function AdminHubHealth() {
                               </span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {checks.length === 0 ? (
+                              <span className="text-xs text-white/40">not checked</span>
+                            ) : badLinks.length === 0 ? (
+                              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> {checks.length} ok
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setExpanded(expanded === key ? null : key)}
+                                className="text-xs text-amber-400 flex items-center gap-1 hover:underline"
+                              >
+                                <AlertCircle className="h-3 w-3" /> {badLinks.length} broken
+                              </button>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right space-x-1">
                             <Button
                               variant="ghost"
@@ -193,7 +293,26 @@ export default function AdminHubHealth() {
                             </Button>
                           </TableCell>
                         </TableRow>
+                        {expanded === key && badLinks.length > 0 && (
+                          <TableRow className="border-white/5 hover:bg-transparent">
+                            <TableCell colSpan={7} className="bg-white/[0.02]">
+                              <div className="space-y-1 py-1">
+                                {badLinks.map((b) => (
+                                  <div key={b.url} className="text-xs flex flex-wrap gap-2">
+                                    <span className="text-white/60 w-28 shrink-0">{b.label ?? "Link"}</span>
+                                    <span className="font-mono text-white/50 truncate max-w-md">{b.url}</span>
+                                    <span className="text-amber-300">
+                                      {b.detail ?? `${b.status}${b.http_status ? ` (${b.http_status})` : ""}`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </Fragment>
                       );
+
                     })}
                   </TableBody>
                 </Table>

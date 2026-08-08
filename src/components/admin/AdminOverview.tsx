@@ -8,6 +8,7 @@ import {
   ClipboardList,
   DollarSign,
   FileText,
+  Link2,
   Loader2,
   Printer,
   RefreshCw,
@@ -15,8 +16,10 @@ import {
   Timer,
   Users,
 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { useAdminOverview, EngagementRange } from "@/hooks/useAdminOverview";
+
 
 const Panel = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-xl border border-white/5 bg-white/[0.02] ${className}`}>{children}</div>
@@ -58,13 +61,42 @@ const RANGES: { id: EngagementRange; label: string }[] = [
   { id: "all", label: "All time" },
 ];
 
+const DAY_RANGES = [7, 30, 90];
+
+const dayLabel = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
+};
+
 const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
   const navigate = useNavigate();
   const [range, setRange] = useState<EngagementRange>("30d");
-  const { counts, engagement, engagementLoading, activity, loading, lastUpdatedAt, health, refresh, runHealth } =
-    useAdminOverview(true, range);
+  const [dailyDays, setDailyDays] = useState(30);
+  const {
+    counts,
+    engagement,
+    engagementLoading,
+    daily,
+    dailyLoading,
+    lastEventAt,
+    linkHealth,
+    runLinkCheck,
+    activity,
+    loading,
+    lastUpdatedAt,
+    health,
+    refresh,
+    runHealth,
+  } = useAdminOverview(true, range, dailyDays);
 
   const totalHubs = counts.personalTotal + counts.restaurantTotal;
+  const today = daily.length ? daily[daily.length - 1] : null;
+  const yesterday = daily.length > 1 ? daily[daily.length - 2] : null;
+  const deltaPct =
+    today && yesterday && yesterday.taps > 0
+      ? Math.round(((today.taps - yesterday.taps) / yesterday.taps) * 100)
+      : null;
+
 
   const healthTone =
     health.broken > 0 ? "err" : health.running || health.pending > 0 ? "warn" : "ok";
@@ -196,6 +228,79 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </button>
       </div>
 
+      {/* Link health band */}
+      <div
+        className={`rounded-xl border p-5 ${
+          linkHealth.brokenLinks > 0
+            ? "border-amber-500/30 bg-amber-500/[0.06]"
+            : "border-white/5 bg-white/[0.02]"
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <Link2
+              className={`h-5 w-5 mt-0.5 ${linkHealth.brokenLinks > 0 ? "text-amber-400" : "text-emerald-400"}`}
+            />
+            <div className="min-w-0">
+              <div className="text-white font-medium">
+                {linkHealth.totalLinks === 0
+                  ? "Links have not been checked yet"
+                  : linkHealth.brokenLinks > 0
+                    ? `${linkHealth.hubsWithBroken} hub${linkHealth.hubsWithBroken === 1 ? "" : "s"} have a broken link (${linkHealth.brokenLinks} of ${linkHealth.totalLinks})`
+                    : `All ${linkHealth.totalLinks} links on live hubs work`}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                Every outbound link opened server-side ·{" "}
+                {linkHealth.lastCheckedAt
+                  ? `checked ${relative(linkHealth.lastCheckedAt.toISOString())}`
+                  : "never run"}
+              </div>
+              {linkHealth.worst.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {linkHealth.worst.slice(0, 5).map((b) => (
+                    <div key={`${b.hub_id}-${b.url}`} className="text-xs flex gap-2 min-w-0">
+                      <span className="font-mono text-amber-200 shrink-0">/{b.slug ?? "?"}</span>
+                      <span className="text-white/50 shrink-0">{b.label}</span>
+                      <span className="text-amber-200/70 truncate">{b.detail ?? b.status}</span>
+                    </div>
+                  ))}
+                  {linkHealth.worst.length > 5 && (
+                    <div className="text-xs text-amber-200/60">+{linkHealth.worst.length - 5} more</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => void runLinkCheck()}
+              disabled={linkHealth.running}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              {linkHealth.running ? (
+                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              ) : (
+                <Link2 className="h-3.5 w-3.5 mr-2" />
+              )}
+              Check links
+            </Button>
+            <Button
+              onClick={() => navigate("/admin/hub-health")}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              Details
+              <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+
+
       {/* Row 2 — business KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Metric
@@ -258,6 +363,86 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
             </div>
           ))}
         </div>
+
+        {/* Day-by-day activity */}
+        <div className="mt-6 pt-5 border-t border-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h4 className="text-white text-sm font-medium">Daily taps &amp; clicks</h4>
+              <p className="text-xs text-white/40">
+                {lastEventAt ? `Last event received ${relative(lastEventAt)}` : "No events recorded yet"} · your local
+                timezone
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-widest text-white/40">Today so far</div>
+                <div className="text-lg font-semibold text-white tabular-nums">
+                  {(today?.taps ?? 0).toLocaleString()}
+                  <span className="text-xs text-white/40 font-normal"> taps</span>
+                  {deltaPct !== null && (
+                    <span className={`ml-2 text-xs ${deltaPct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {deltaPct >= 0 ? "+" : ""}
+                      {deltaPct}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex rounded-lg border border-white/5 bg-white/[0.02] p-0.5">
+                {DAY_RANGES.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDailyDays(d)}
+                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                      dailyDays === d ? "bg-white/[0.08] text-white" : "text-white/50 hover:text-white/80"
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="h-56">
+            {dailyLoading ? (
+              <div className="h-full rounded-lg bg-white/[0.03] animate-pulse" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis
+                    dataKey="day"
+                    tickFormatter={dayLabel}
+                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                    contentStyle={{
+                      background: "#0a0e1a",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "rgba(255,255,255,0.6)" }}
+                  />
+                  <Bar dataKey="taps" name="Taps" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="clicks" name="Clicks" fill="rgba(255,255,255,0.28)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
       </Panel>
 
       {/* Row 3 — action queues */}
