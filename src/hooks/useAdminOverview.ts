@@ -390,8 +390,8 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
   }, []);
 
   const refresh = useCallback(async () => {
-    await Promise.all([loadCounts(), loadEngagement()]);
-  }, [loadCounts, loadEngagement]);
+    await Promise.all([loadCounts(), loadEngagement(), loadDaily(), loadLinkHealth()]);
+  }, [loadCounts, loadEngagement, loadDaily, loadLinkHealth]);
 
   /* ---------------- lifecycle ---------------- */
   useEffect(() => {
@@ -403,6 +403,16 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
     if (!enabled) return;
     void loadEngagement();
   }, [enabled, loadEngagement]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    void loadDaily();
+  }, [enabled, loadDaily]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    void loadLinkHealth();
+  }, [enabled, loadLinkHealth]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -432,6 +442,11 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
     counts,
     engagement,
     engagementLoading,
+    daily,
+    dailyLoading,
+    lastEventAt,
+    linkHealth,
+    runLinkCheck,
     activity,
     loading,
     lastUpdatedAt,
