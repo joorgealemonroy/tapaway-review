@@ -258,6 +258,22 @@ export default function AdminHubHealth() {
                               </span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {checks.length === 0 ? (
+                              <span className="text-xs text-white/40">not checked</span>
+                            ) : badLinks.length === 0 ? (
+                              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> {checks.length} ok
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setExpanded(expanded === key ? null : key)}
+                                className="text-xs text-amber-400 flex items-center gap-1 hover:underline"
+                              >
+                                <AlertCircle className="h-3 w-3" /> {badLinks.length} broken
+                              </button>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right space-x-1">
                             <Button
                               variant="ghost"
@@ -277,7 +293,26 @@ export default function AdminHubHealth() {
                             </Button>
                           </TableCell>
                         </TableRow>
+                        {expanded === key && badLinks.length > 0 && (
+                          <TableRow className="border-white/5 hover:bg-transparent">
+                            <TableCell colSpan={7} className="bg-white/[0.02]">
+                              <div className="space-y-1 py-1">
+                                {badLinks.map((b) => (
+                                  <div key={b.url} className="text-xs flex flex-wrap gap-2">
+                                    <span className="text-white/60 w-28 shrink-0">{b.label ?? "Link"}</span>
+                                    <span className="font-mono text-white/50 truncate max-w-md">{b.url}</span>
+                                    <span className="text-amber-300">
+                                      {b.detail ?? `${b.status}${b.http_status ? ` (${b.http_status})` : ""}`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </Fragment>
                       );
+
                     })}
                   </TableBody>
                 </Table>
