@@ -8,6 +8,7 @@ import {
   ClipboardList,
   DollarSign,
   FileText,
+  Link2,
   Loader2,
   Printer,
   RefreshCw,
@@ -15,8 +16,10 @@ import {
   Timer,
   Users,
 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { useAdminOverview, EngagementRange } from "@/hooks/useAdminOverview";
+
 
 const Panel = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-xl border border-white/5 bg-white/[0.02] ${className}`}>{children}</div>
