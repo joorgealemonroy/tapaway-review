@@ -722,23 +722,27 @@ const Admin = () => {
   );
 
   const renderSystem = () => (
-    <Panel className="divide-y divide-white/5">
-      {SYSTEM_LINKS.map((l) => (
-        <button
-          key={l.path}
-          onClick={() => navigate(l.path)}
-          className="group flex items-center gap-4 w-full p-4 hover:bg-white/[0.02] transition-colors text-left"
-        >
-          <l.icon className="h-4 w-4 text-white/50 group-hover:text-primary transition-colors" />
-          <div className="flex-1">
-            <div className="text-sm font-medium text-white/90">{l.label}</div>
-            <div className="text-xs text-white/40">{l.desc}</div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-white/30 group-hover:text-white/60" />
-        </button>
-      ))}
-    </Panel>
+    <div className="space-y-4">
+      <Panel className="divide-y divide-white/5">
+        {SYSTEM_LINKS.map((l) => (
+          <button
+            key={l.path}
+            onClick={() => navigate(l.path)}
+            className="group flex items-center gap-4 w-full p-4 hover:bg-white/[0.02] transition-colors text-left"
+          >
+            <l.icon className="h-4 w-4 text-white/50 group-hover:text-primary transition-colors" />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-white/90">{l.label}</div>
+              <div className="text-xs text-white/40">{l.desc}</div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-white/30 group-hover:text-white/60" />
+          </button>
+        ))}
+      </Panel>
+      <ChangePasswordCard />
+    </div>
   );
+
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white flex">
