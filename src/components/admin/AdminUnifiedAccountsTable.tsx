@@ -150,6 +150,8 @@ const AdminUnifiedAccountsTable = () => {
     }
   });
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState<string | null>(null);
+
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
 
 
