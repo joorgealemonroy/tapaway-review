@@ -3549,6 +3549,10 @@ export type Database = {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
       }
+      admin_swap_hub_slug: {
+        Args: { _personal_id: string; _restaurant_id: string }
+        Returns: string
+      }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }

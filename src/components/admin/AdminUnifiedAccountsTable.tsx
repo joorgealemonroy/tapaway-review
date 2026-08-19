@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import { toast } from "sonner";
 import {
+  ArrowLeftRight,
   ArrowUpDown,
+
   ArrowUp,
   ArrowDown,
   BarChart3,
@@ -150,6 +152,8 @@ const AdminUnifiedAccountsTable = () => {
     }
   });
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [swapping, setSwapping] = useState<string | null>(null);
+
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
 
 
@@ -373,6 +377,54 @@ const AdminUnifiedAccountsTable = () => {
     }
   };
 
+  /**
+   * A Solo hub can take over a Business hub's public slug when it is either an
+   * exact slug collision or the "-new" staging variant we create while a rep
+   * rebuilds a live business on the new dashboard.
+   */
+  const swapCandidate = (r: UnifiedRow): UnifiedRow | null => {
+    if (r.kind !== "lite" || !r.slug) return null;
+    const slug = r.slug.toLowerCase();
+    const target = slug.endsWith("-new") ? slug.slice(0, -4) : slug;
+    return (
+      rows.find(
+        (x) => x.kind === "legacy" && (x.slug ?? "").toLowerCase() === target && x.id !== r.id,
+      ) ?? null
+    );
+  };
+
+  const swapSlug = async (r: UnifiedRow, business: UnifiedRow) => {
+    if (
+      !window.confirm(
+        `Give /${business.slug} to "${r.name}" (new dashboard)?\n\n"${business.name}" keeps all its data and moves to /${business.slug}-legacy. Existing cards pointing at /${business.slug} will land on the new hub.`,
+      )
+    )
+      return;
+    setSwapping(r.id);
+    try {
+      const { data, error } = await supabase.rpc("admin_swap_hub_slug", {
+        _personal_id: r.id,
+        _restaurant_id: business.id,
+      });
+      if (error) throw error;
+      const newSlug = (data as string) ?? business.slug;
+      setRows((prev) =>
+        prev.map((x) =>
+          x.id === r.id
+            ? { ...x, slug: newSlug }
+            : x.id === business.id
+            ? { ...x, slug: `${business.slug}-legacy` }
+            : x,
+        ),
+      );
+      toast.success(`/${newSlug} now points at the new hub`);
+    } catch (e) {
+      toast.error("Swap failed: " + (e instanceof Error ? e.message : "unknown"));
+    } finally {
+      setSwapping(null);
+    }
+  };
+
   const remove = async (r: UnifiedRow) => {
     if (!window.confirm(`Delete ${r.name}? This is permanent.`)) return;
     setDeleting(r.id);
@@ -398,6 +450,7 @@ const AdminUnifiedAccountsTable = () => {
       setDeleting(null);
     }
   };
+
 
   const HeaderCell = ({
     label,
@@ -694,6 +747,27 @@ const AdminUnifiedAccountsTable = () => {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}
+
+                      {(() => {
+                        const business = swapCandidate(r);
+                        if (!business) return null;
+                        return (
+                          <Button
+                            onClick={() => swapSlug(r, business)}
+                            disabled={swapping === r.id}
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10"
+                            title={`Swap slug with business hub "${business.name}" (/${business.slug})`}
+                          >
+                            {swapping === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ArrowLeftRight className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        );
+                      })()}
 
                       {r.kind === "lite" && r.card_print_pdf_path && (
                         <Button
