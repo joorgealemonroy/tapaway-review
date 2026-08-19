@@ -746,6 +746,27 @@ const AdminUnifiedAccountsTable = () => {
                         </Button>
                       )}
 
+                      {(() => {
+                        const business = swapCandidate(r);
+                        if (!business) return null;
+                        return (
+                          <Button
+                            onClick={() => swapSlug(r, business)}
+                            disabled={swapping === r.id}
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10"
+                            title={`Swap slug with business hub "${business.name}" (/${business.slug})`}
+                          >
+                            {swapping === r.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ArrowLeftRight className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        );
+                      })()}
+
                       {r.kind === "lite" && r.card_print_pdf_path && (
                         <Button
                           onClick={() => downloadPdf(r)}
