@@ -238,6 +238,11 @@ export const BlockModal = ({
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         } else if (editingBlock.block_type === "product") {
           setSelectedProductId(content.product_id || "");
+        } else if (editingBlock.block_type === "menu") {
+          const parsedMenu = parseMenuContent(editingBlock.content);
+          setMenuTitle(parsedMenu.title);
+          setMenuButtonLabel(parsedMenu.buttonLabel);
+          setMenuSections(parsedMenu.sections);
         } else if (editingBlock.block_type === "sms_subscribe") {
           setSmsHeadline(content.headline || "");
           setSmsDescription(content.description || "");
