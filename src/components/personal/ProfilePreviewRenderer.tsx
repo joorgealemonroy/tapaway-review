@@ -684,6 +684,21 @@ function ProfilePreviewRendererComponent({
           </div>
         );
       }
+      case "menu": {
+        const menu = parseMenuContent(content);
+        if (menu.sections.length === 0) return null;
+        return (
+          <div
+            key={block.id}
+            className={`w-full rounded-xl border px-3 py-2.5 text-center text-xs font-semibold ${
+              isDarkBg ? "bg-white/10 border-white/20 text-white" : "bg-white/80 text-foreground"
+            }`}
+            style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
+          >
+            🍽 {menu.buttonLabel}
+          </div>
+        );
+      }
       case "photo_collage": {
         // Parse mixed media (new format) or legacy images
         let media: Array<{ url: string; type: "image" | "video"; poster?: string }> = [];
