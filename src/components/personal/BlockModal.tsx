@@ -33,6 +33,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
+import { parseMenuContent, serializeMenuContent, type MenuSection } from "@/lib/menuBlock";
+
 
 interface PersonalBlock {
   id: string;
