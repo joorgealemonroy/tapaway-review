@@ -1331,6 +1331,30 @@ export const BlockModal = ({
             </div>
           )}
 
+          {selectedType === "menu" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Menu title</Label>
+                <Input
+                  value={menuTitle}
+                  onChange={(e) => setMenuTitle(e.target.value)}
+                  placeholder="Our Menu"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button label</Label>
+                <Input
+                  value={menuButtonLabel}
+                  onChange={(e) => setMenuButtonLabel(e.target.value)}
+                  placeholder="View Menu"
+                  className="h-11"
+                />
+              </div>
+              <MenuBlockEditor sections={menuSections} onSectionsChange={setMenuSections} />
+            </div>
+          )}
+
           {selectedType === "sms_subscribe" && (
             <>
               <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
