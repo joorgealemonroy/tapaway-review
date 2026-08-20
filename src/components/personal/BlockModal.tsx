@@ -767,6 +767,24 @@ export const BlockModal = ({
         };
         break;
       }
+      case "menu": {
+        const cleaned = menuSections
+          .map((section) => ({
+            name: section.name.trim(),
+            items: section.items.filter((item) => item.name.trim().length > 0),
+          }))
+          .filter((section) => section.items.length > 0);
+        if (cleaned.length === 0) {
+          toast.error("Add at least one menu item");
+          return;
+        }
+        content = serializeMenuContent({
+          title: menuTitle,
+          buttonLabel: menuButtonLabel,
+          sections: cleaned,
+        });
+        break;
+      }
     }
 
     // If deferSave is true, just return the block data without saving to DB
