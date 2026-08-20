@@ -293,6 +293,11 @@ export const BlockModal = ({
     setSmsHeadline("");
     setSmsDescription("");
     setSmsButtonText("");
+    // Menu
+    setMenuTitle("Our Menu");
+    setMenuButtonLabel("View Menu");
+    setMenuSections([]);
+
   };
 
   const handleClose = () => {
