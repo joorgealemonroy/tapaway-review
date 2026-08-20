@@ -756,6 +756,11 @@ const ProfileBlock = memo(function ProfileBlock({
         </>
       );
     }
+    case "menu": {
+      const menu = parseMenuContent(content);
+      if (menu.sections.length === 0) return null;
+      return <MenuDisplay menu={menu} isDarkBg={isDarkBg} textColor={textColor} />;
+    }
     case "photo_collage": {
       // Parse mixed media (new format) or legacy images
       let media: Array<{ url: string; type: "image" | "video"; poster?: string }> = [];
