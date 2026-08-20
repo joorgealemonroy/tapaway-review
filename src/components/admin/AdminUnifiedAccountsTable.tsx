@@ -138,6 +138,7 @@ const AdminUnifiedAccountsTable = () => {
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [brokenOnly, setBrokenOnly] = useState(false);
+  const [pipelineFilter, setPipelineFilter] = useState<"all" | PipelineKey>("live");
   const [zeroTapsOnly, setZeroTapsOnly] = useState(false);
   const [range, setRange] = useState<RangeKey>(() => {
     try {
@@ -206,7 +207,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
+            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -263,15 +264,12 @@ const AdminUnifiedAccountsTable = () => {
           clicks: rangeStats[r.id]?.link_clicks ?? 0,
           lifetimeTaps: lifetimeStats[r.id]?.taps ?? 0,
           lastActiveAt: rangeStats[r.id]?.last_active_at ?? null,
+          pipeline: (r.is_approved === false ? "review" : "live") as PipelineKey,
         }));
 
+        // Every Solo hub is listed — drafts and in-review demos included — and
+        // labelled with its pipeline stage instead of being hidden.
         const liteRows: UnifiedRow[] = (profiles ?? [])
-          // Quarantine unapproved rep-built demos to the approval queue only
-          .filter((p) => {
-            const isRepDemo = Boolean(p.sales_rep_id || p.created_by_rep_id);
-            if (isRepDemo && p.is_approved !== true) return false;
-            return true;
-          })
           .map((p) => ({
             id: p.id,
             kind: "lite",
@@ -294,6 +292,7 @@ const AdminUnifiedAccountsTable = () => {
             created_by_rep_id: p.created_by_rep_id,
             card_print_pdf_path: (p as any).card_print_pdf_path ?? null,
             broken_links: brokenMap[p.id] ?? 0,
+            pipeline: pipelineOf(p),
           }));
 
         setRows([...legacyRows, ...liteRows]);
@@ -314,6 +313,7 @@ const AdminUnifiedAccountsTable = () => {
       .filter((r) => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
+        if (pipelineFilter !== "all" && (r.pipeline ?? "live") !== pipelineFilter) return false;
         if (brokenOnly && !(r.broken_links && r.broken_links > 0)) return false;
         if (zeroTapsOnly && r.lifetimeTaps > 0) return false;
         if (s) {
@@ -336,7 +336,7 @@ const AdminUnifiedAccountsTable = () => {
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, pipelineFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir]);
 
   const summary = useMemo(() => {
     const scoped = rows.filter((r) => (kindFilter === "all" ? true : r.kind === kindFilter));
@@ -600,6 +600,18 @@ const AdminUnifiedAccountsTable = () => {
             <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={pipelineFilter} onValueChange={(v) => setPipelineFilter(v as "all" | PipelineKey)}>
+          <SelectTrigger className="h-9 w-[170px] bg-white/[0.03] border-white/5 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="live">Live only</SelectItem>
+            <SelectItem value="draft">Drafts</SelectItem>
+            <SelectItem value="review">In review</SelectItem>
+            <SelectItem value="changes">Changes requested</SelectItem>
+            <SelectItem value="all">All stages</SelectItem>
+          </SelectContent>
+        </Select>
         <button
           onClick={() => setBrokenOnly((v) => !v)}
           className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
@@ -679,6 +691,13 @@ const AdminUnifiedAccountsTable = () => {
                     >
                       {kindLabel[r.kind]}
                     </span>
+                    {(r.pipeline ?? "live") !== "live" && (
+                      <span
+                        className={`ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] ${PIPELINE_META[r.pipeline ?? "live"].cls}`}
+                      >
+                        {PIPELINE_META[r.pipeline ?? "live"].label}
+                      </span>
+                    )}
                   </td>
                   <td className="p-2.5 text-[11px] font-mono text-white/60">
                     {r.slug ?? "—"}
