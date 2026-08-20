@@ -18,6 +18,8 @@ import {
   Type,
   MousePointerClick,
   ShoppingBag,
+  UtensilsCrossed,
+
   MoreHorizontal,
   ExternalLink,
 } from "lucide-react";
