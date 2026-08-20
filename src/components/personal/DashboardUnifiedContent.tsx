@@ -898,6 +898,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return content.label || "Button";
       case "product":
         return "Product block";
+      case "menu":
+        return (content.title as string) || "Menu";
       case "marketing_cta":
         return "Marketing CTA";
       case "marketing_examples":
