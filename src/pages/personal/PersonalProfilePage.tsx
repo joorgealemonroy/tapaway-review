@@ -28,6 +28,9 @@ import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
+import { MenuDisplay } from "@/components/personal/MenuDisplay";
+import { parseMenuContent } from "@/lib/menuBlock";
+
 
 
 // Helper to extract a base color from a gradient for fade effect
