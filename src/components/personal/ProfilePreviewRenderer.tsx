@@ -8,6 +8,8 @@ import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
+import { parseMenuContent } from "@/lib/menuBlock";
+
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
