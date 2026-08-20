@@ -51,6 +51,23 @@ type UnifiedRow = {
   created_by_rep_id?: string | null;
   card_print_pdf_path?: string | null;
   broken_links?: number;
+  pipeline?: PipelineKey;
+};
+
+type PipelineKey = "live" | "draft" | "review" | "changes";
+
+const PIPELINE_META: Record<PipelineKey, { label: string; cls: string }> = {
+  live: { label: "Live", cls: "bg-emerald-500/10 text-emerald-300" },
+  draft: { label: "Draft", cls: "bg-white/10 text-white/60" },
+  review: { label: "In review", cls: "bg-amber-500/10 text-amber-300" },
+  changes: { label: "Changes requested", cls: "bg-rose-500/10 text-rose-300" },
+};
+
+const pipelineOf = (p: { is_approved: boolean | null; pipeline_status?: string | null }): PipelineKey => {
+  if (p.is_approved === true) return "live";
+  if (p.pipeline_status === "ready_for_review") return "review";
+  if (p.pipeline_status === "changes_requested") return "changes";
+  return "draft";
 };
 
 type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name";
