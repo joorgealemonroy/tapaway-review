@@ -28,6 +28,9 @@ import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
+import { MenuDisplay } from "@/components/personal/MenuDisplay";
+import { parseMenuContent } from "@/lib/menuBlock";
+
 
 
 // Helper to extract a base color from a gradient for fade effect
@@ -752,6 +755,11 @@ const ProfileBlock = memo(function ProfileBlock({
           )}
         </>
       );
+    }
+    case "menu": {
+      const menu = parseMenuContent(content);
+      if (menu.sections.length === 0) return null;
+      return <MenuDisplay menu={menu} isDarkBg={isDarkBg} textColor={textColor} />;
     }
     case "photo_collage": {
       // Parse mixed media (new format) or legacy images

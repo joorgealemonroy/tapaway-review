@@ -18,6 +18,8 @@ import {
   Type,
   MousePointerClick,
   ShoppingBag,
+  UtensilsCrossed,
+
   MoreHorizontal,
   ExternalLink,
 } from "lucide-react";
@@ -870,6 +872,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return <MousePointerClick className="h-5 w-5 text-primary" />;
       case "product":
         return <ShoppingBag className="h-5 w-5 text-emerald-500" />;
+      case "menu":
+        return <UtensilsCrossed className="h-5 w-5 text-amber-500" />;
       case "marketing_cta":
         return <MousePointerClick className="h-5 w-5 text-primary" />;
       case "marketing_examples":
@@ -894,6 +898,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return content.label || "Button";
       case "product":
         return "Product block";
+      case "menu":
+        return (content.title as string) || "Menu";
       case "marketing_cta":
         return "Marketing CTA";
       case "marketing_examples":

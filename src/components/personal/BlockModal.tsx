@@ -26,11 +26,16 @@ import {
   Grid,
   X,
   Plus,
-  ShoppingBag
+  ShoppingBag,
+  UtensilsCrossed
+
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
+import { parseMenuContent, serializeMenuContent, type MenuSection } from "@/lib/menuBlock";
+
 
 interface PersonalBlock {
   id: string;
@@ -62,6 +67,7 @@ const BLOCK_TYPES = [
   { type: "email_capture", label: "Email Capture", icon: Mail, description: "Collect visitor emails" },
   { type: "sms_subscribe", label: "SMS VIP List", icon: Smartphone, description: "Let visitors join your text list" },
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
+  { type: "menu", label: "Menu", icon: UtensilsCrossed, description: "Sections, items and prices" },
   { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
 
@@ -130,6 +136,12 @@ export const BlockModal = ({
   const [smsHeadline, setSmsHeadline] = useState("");
   const [smsDescription, setSmsDescription] = useState("");
   const [smsButtonText, setSmsButtonText] = useState("");
+
+  // Menu block options
+  const [menuTitle, setMenuTitle] = useState("Our Menu");
+  const [menuButtonLabel, setMenuButtonLabel] = useState("View Menu");
+  const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
+
   
   // Cropper state
   const [showCropper, setShowCropper] = useState(false);
@@ -226,6 +238,11 @@ export const BlockModal = ({
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
         } else if (editingBlock.block_type === "product") {
           setSelectedProductId(content.product_id || "");
+        } else if (editingBlock.block_type === "menu") {
+          const parsedMenu = parseMenuContent(editingBlock.content);
+          setMenuTitle(parsedMenu.title);
+          setMenuButtonLabel(parsedMenu.buttonLabel);
+          setMenuSections(parsedMenu.sections);
         } else if (editingBlock.block_type === "sms_subscribe") {
           setSmsHeadline(content.headline || "");
           setSmsDescription(content.description || "");
@@ -276,6 +293,11 @@ export const BlockModal = ({
     setSmsHeadline("");
     setSmsDescription("");
     setSmsButtonText("");
+    // Menu
+    setMenuTitle("Our Menu");
+    setMenuButtonLabel("View Menu");
+    setMenuSections([]);
+
   };
 
   const handleClose = () => {
@@ -743,6 +765,24 @@ export const BlockModal = ({
           description: smsDescription.trim() || "Get exclusive updates and offers via text.",
           buttonText: smsButtonText.trim() || "Join the VIP List",
         };
+        break;
+      }
+      case "menu": {
+        const cleaned = menuSections
+          .map((section) => ({
+            name: section.name.trim(),
+            items: section.items.filter((item) => item.name.trim().length > 0),
+          }))
+          .filter((section) => section.items.length > 0);
+        if (cleaned.length === 0) {
+          toast.error("Add at least one menu item");
+          return;
+        }
+        content = serializeMenuContent({
+          title: menuTitle,
+          buttonLabel: menuButtonLabel,
+          sections: cleaned,
+        });
         break;
       }
     }
@@ -1288,6 +1328,30 @@ export const BlockModal = ({
                   </SelectContent>
                 </Select>
               )}
+            </div>
+          )}
+
+          {selectedType === "menu" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Menu title</Label>
+                <Input
+                  value={menuTitle}
+                  onChange={(e) => setMenuTitle(e.target.value)}
+                  placeholder="Our Menu"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button label</Label>
+                <Input
+                  value={menuButtonLabel}
+                  onChange={(e) => setMenuButtonLabel(e.target.value)}
+                  placeholder="View Menu"
+                  className="h-11"
+                />
+              </div>
+              <MenuBlockEditor sections={menuSections} onSectionsChange={setMenuSections} />
             </div>
           )}
 

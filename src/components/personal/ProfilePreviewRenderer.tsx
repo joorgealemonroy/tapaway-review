@@ -8,6 +8,8 @@ import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
+import { parseMenuContent } from "@/lib/menuBlock";
+
 
 // Helper to extract a base color from a gradient for fade effect
 function getBaseColorFromGradient(gradient: string): string {
@@ -681,6 +683,21 @@ function ProfilePreviewRendererComponent({
             >
               {buttonText}
             </button>
+          </div>
+        );
+      }
+      case "menu": {
+        const menu = parseMenuContent(content);
+        if (menu.sections.length === 0) return null;
+        return (
+          <div
+            key={block.id}
+            className={`w-full rounded-xl border px-3 py-2.5 text-center text-xs font-semibold ${
+              isDarkBg ? "bg-white/10 border-white/20 text-white" : "bg-white/80 text-foreground"
+            }`}
+            style={!isDarkBg ? { borderColor: `${headerColor}30` } : undefined}
+          >
+            🍽 {menu.buttonLabel}
           </div>
         );
       }
