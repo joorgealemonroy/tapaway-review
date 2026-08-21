@@ -1334,7 +1334,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             {/* Banner image - fully visible */}
             <div 
               className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
-              style={{ willChange: 'transform' }}
+              style={{ 
+                willChange: 'transform', 
+                backgroundColor: extractedBannerColor || profile.header_color || undefined,
+              }}
             >
               <img
                 src={bannerUrl}
@@ -1342,22 +1345,24 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                className="w-full h-full object-cover object-top"
-                style={{
+                className={`w-full h-full ${profile.banner_fit === 'contain' ? 'object-contain object-center' : 'object-cover object-top'}`}
+                style={profile.banner_fit === 'contain' ? undefined : {
                   WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                   maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                 }}
               />
             </div>
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
-            <div 
-              className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
-              style={{
-                background: isLightBanner
-                  ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
-                  : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
-              }}
-            />
+            {profile.banner_fit !== 'contain' && (
+              <div 
+                className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
+                style={{
+                  background: isLightBanner
+                    ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
+                    : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
+                }}
+              />
+            )}
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (

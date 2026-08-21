@@ -96,6 +96,7 @@ interface PersonalProfile {
   contact_button_label?: string | null;
   // Premium feature
   banner_image_url: string | null;
+  banner_fit: string | null;
   // Affiliate referral
   referred_by: string | null;
   trial_ends_at: string | null;
@@ -154,6 +155,8 @@ const PersonalDashboard = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
+  const [bannerAspectRatio, setBannerAspectRatio] = useState(16 / 5);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -525,11 +528,28 @@ const PersonalDashboard = () => {
       }
     }
 
-    setRawImageUrl(URL.createObjectURL(processedFile));
+    const objectUrl = URL.createObjectURL(processedFile);
+    setRawImageUrl(objectUrl);
+
+    // For banner-style hubs, pre-sample a background-fill color from the image
+    // so the cropper can paint the empty canvas area when the user zooms out.
+    if (profile?.header_type === "banner") {
+      try {
+        const fill = await sampleBottomEdgeColor(objectUrl);
+        setBannerFillColor(fill);
+      } catch {
+        setBannerFillColor(null);
+      }
+      setBannerAspectRatio(16 / 5);
+    } else {
+      setBannerFillColor(null);
+      setBannerAspectRatio(1);
+    }
+
     setCropperOpen(true);
   };
 
-  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+  const handleCropComplete = useCallback(async (croppedBlob: Blob, previewDataUrl?: string) => {
     if (!profile) return;
 
     setUploadingPhoto(true);
@@ -656,6 +676,7 @@ const PersonalDashboard = () => {
     backgroundColor?: string | null;
     pfpPosition?: string;
     bannerImageUrl?: string | null;
+    bannerFit?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -666,6 +687,7 @@ const PersonalDashboard = () => {
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
         banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
+        banner_fit: updates.bannerFit !== undefined ? updates.bannerFit : profile.banner_fit,
       };
       setProfile(updatedProfile);
       
@@ -1387,6 +1409,7 @@ const PersonalDashboard = () => {
               headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
+              bannerFit={profile.banner_fit}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
@@ -1537,9 +1560,20 @@ const PersonalDashboard = () => {
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
-          onOpenChange={setCropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open);
+            if (!open) {
+              setRawImageUrl(null);
+              setBannerFillColor(null);
+            }
+          }}
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
+          aspectRatio={bannerAspectRatio}
+          cropShape={profile?.header_type === "banner" ? "rect" : "round"}
+          minZoom={profile?.header_type === "banner" ? 0.4 : 1}
+          restrictPosition={profile?.header_type !== "banner"}
+          fillColor={bannerFillColor}
         />
       )}
 

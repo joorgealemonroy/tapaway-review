@@ -29,6 +29,7 @@ interface Props {
   headerImageUrl: string | null;
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
+  bannerFit: string | null;
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
@@ -39,6 +40,7 @@ interface Props {
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
+    bannerFit?: string | null;
   }) => void;
 }
 
@@ -81,6 +83,7 @@ export const DashboardDesignTab = ({
   headerImageUrl,
   backgroundColor,
   profilePhotoUrl,
+  bannerFit,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -103,6 +106,7 @@ export const DashboardDesignTab = ({
   const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
+  const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "cover");
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -128,17 +132,19 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(isRepDemo ? "banner" : headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingBannerFit(bannerFit || "cover");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor
+      pendingBgColor !== backgroundColor ||
+      pendingBannerFit !== (bannerFit || "cover")
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -147,6 +153,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
+      if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -161,6 +168,7 @@ export const DashboardDesignTab = ({
         headerType: pendingHeaderType,
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
+        bannerFit: pendingBannerFit,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -177,6 +185,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingBannerFit(bannerFit || "cover");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -184,6 +193,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
+      bannerFit: bannerFit || "cover",
     });
   };
 
@@ -301,7 +311,7 @@ export const DashboardDesignTab = ({
     setCropperOpen(true);
   };
 
-  const handleCropComplete = async (croppedBlob: Blob) => {
+  const handleCropComplete = async (croppedBlob: Blob, _previewDataUrl?: string) => {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -422,14 +432,43 @@ export const DashboardDesignTab = ({
         />
 
         {pendingHeaderType === "banner" ? (
-          <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-            <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+          <div className="space-y-3">
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your profile photo displays as a stunning full-screen banner with ambient color matching.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
               <div>
-                <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your profile photo displays as a stunning full-screen banner with ambient color matching.
+                <p className="text-sm font-medium text-foreground">Banner fit</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pendingBannerFit === "cover" ? "Fill banner — crop edges to cover" : "Fit inside banner — show full logo"}
                 </p>
+              </div>
+              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setPendingBannerFit("cover")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    pendingBannerFit === "cover" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Fill
+                </button>
+                <button
+                  onClick={() => setPendingBannerFit("contain")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    pendingBannerFit === "contain" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Fit
+                </button>
               </div>
             </div>
           </div>
