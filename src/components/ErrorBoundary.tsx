@@ -2,6 +2,7 @@ import { Component, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { isChunkLoadError } from "@/lib/lazyWithRetry";
 
 interface Props {
   children: ReactNode;
