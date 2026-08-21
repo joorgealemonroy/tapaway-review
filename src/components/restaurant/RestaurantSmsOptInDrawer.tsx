@@ -38,9 +38,10 @@ export const RestaurantSmsOptInDrawer = ({
   open,
   onOpenChange,
   restaurantId,
-  headline = "Join our VIP Text List",
-  description = "Get exclusive updates and offers via text.",
+  headline = "Get VIP text perks",
+  description = "Be first to know about specials, events and members-only deals.",
   buttonText = "Join the VIP List",
+
 }: Props) => {
   const isMobile = useIsMobile();
   const [name, setName] = useState("");
