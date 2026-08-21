@@ -632,6 +632,7 @@ const PersonalDashboard = () => {
       if (sampledBg) updates.background_color = sampledBg;
       // The image was cropped to the exact banner frame, so render it edge-to-edge.
       if (profile.header_type === "banner") updates.banner_fit = "cover";
+      if (originalUrl) updates.banner_original_url = originalUrl;
 
       const { data: updatedRow, error: updateError } = await supabase
         .from("personal_profiles")
