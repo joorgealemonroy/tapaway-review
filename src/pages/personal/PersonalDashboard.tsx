@@ -528,7 +528,24 @@ const PersonalDashboard = () => {
       }
     }
 
-    setRawImageUrl(URL.createObjectURL(processedFile));
+    const objectUrl = URL.createObjectURL(processedFile);
+    setRawImageUrl(objectUrl);
+
+    // For banner-style hubs, pre-sample a background-fill color from the image
+    // so the cropper can paint the empty canvas area when the user zooms out.
+    if (profile?.header_type === "banner") {
+      try {
+        const fill = await sampleBottomEdgeColor(objectUrl);
+        setBannerFillColor(fill);
+      } catch {
+        setBannerFillColor(null);
+      }
+      setBannerAspectRatio(16 / 5);
+    } else {
+      setBannerFillColor(null);
+      setBannerAspectRatio(1);
+    }
+
     setCropperOpen(true);
   };
 
