@@ -894,11 +894,12 @@ function ProfilePreviewRendererComponent({
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
         className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
-          pfpPosition === "left" ? "flex items-start gap-4" : ""
+          pfpPosition === "left" && !isLogoHeader ? "flex items-start gap-4" : ""
         }`}
       >
-        {/* Avatar - hidden when using full banner */}
-        {!hasBanner && (
+        {/* Avatar - hidden when the logo/banner is the header */}
+        {!hasBanner && !isLogoHeader && (
+
           <div
             className={`relative ${
               pfpPosition === "left"
