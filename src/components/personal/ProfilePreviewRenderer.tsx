@@ -798,13 +798,18 @@ function ProfilePreviewRendererComponent({
         {hasBanner ? (
           <>
             {/* Banner mode - fully visible with fade at bottom using extracted color */}
-            <div className="h-52 overflow-hidden relative">
+            <div 
+              className="h-52 overflow-hidden relative"
+              style={{
+                backgroundColor: extractedBannerColor || headerColor,
+              }}
+            >
               {bannerUrl ? (
                 <img
                   src={bannerUrl}
                   alt="Banner"
-                  className="h-full w-full object-cover object-top"
-                  style={{
+                  className={`h-full w-full ${profile.banner_fit === 'contain' ? 'object-contain object-center' : 'object-cover object-top'}`}
+                  style={profile.banner_fit === 'contain' ? undefined : {
                     WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                     maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                   }}
@@ -818,16 +823,18 @@ function ProfilePreviewRendererComponent({
                 </div>
               )}
               {/* Gradient fade using extracted color from image - taller for text overlap */}
-              <div 
-                className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-                style={{
-                  background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
-                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                  }40 60%, ${
-                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                  } 100%)`
-                }}
-              />
+              {profile.banner_fit !== 'contain' && (
+                <div 
+                  className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+                  style={{
+                    background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
+                      extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
+                    }40 60%, ${
+                      extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
+                    } 100%)`
+                  }}
+                />
+              )}
             </div>
           </>
         ) : (
