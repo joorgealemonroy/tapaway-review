@@ -1352,7 +1352,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         )}
         {isLogoHeader ? (
           <div
-            className="relative w-full flex items-center justify-center pt-8 pb-4 px-5"
+            className="relative w-full flex items-center justify-center pt-8 pb-12 px-5"
             style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
           >
             {logoUrl ? (

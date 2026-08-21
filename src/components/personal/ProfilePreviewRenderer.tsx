@@ -814,7 +814,7 @@ function ProfilePreviewRendererComponent({
       <div className="relative w-full">
         {isLogoHeader ? (
           <div
-            className="relative w-full flex items-center justify-center pt-6 pb-2 px-4"
+            className="relative w-full flex items-center justify-center pt-6 pb-8 px-4"
             style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
           >
             {profile.profile_photo_url ? (
