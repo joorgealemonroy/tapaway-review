@@ -568,13 +568,11 @@ export const DashboardDesignTab = ({
         <div>
           <h3 className="text-base font-semibold text-foreground">Header Style</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isRepDemo
-              ? "Your uploaded logo appears as a full-width banner."
-              : "Choose how your profile header appears"}
+            Choose how your profile header appears
           </p>
         </div>
 
-        {!isRepDemo && (
+
         <>
         <RadioGroup 
           value={pendingHeaderType} 
