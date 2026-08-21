@@ -523,7 +523,7 @@ export const DashboardDesignTab = ({
       {/* Sticky save bar */}
       <UnsavedChangesBar
         hasPendingChanges={hasChanges}
-        onSave={handleSave}
+        onSave={() => handleSave()}
         onDiscard={handleDiscard}
         saving={saving}
       />
