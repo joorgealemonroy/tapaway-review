@@ -30,6 +30,8 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   bannerFit: string | null;
+  bannerAspect?: string | null;
+  bannerOriginalUrl?: string | null;
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
@@ -41,8 +43,12 @@ interface Props {
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
     bannerFit?: string | null;
+    bannerAspect?: string | null;
+    bannerOriginalUrl?: string | null;
+    profilePhotoUrl?: string | null;
   }) => void;
 }
+
 
 const COLOR_PRESETS = [
   "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
