@@ -102,7 +102,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+const App = () => {
+  // A successful boot means the current bundle loaded — release the one-shot
+  // reload guard so a future deploy can reload again if needed.
+  useEffect(() => {
+    clearChunkReloadGuard();
+  }, []);
+
+  return (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
