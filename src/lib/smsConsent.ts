@@ -15,6 +15,18 @@ export const SMS_TRANSACTIONAL_CONSENT_TEXT =
  */
 export const SMS_CONSENT_TEXT = SMS_MARKETING_CONSENT_TEXT;
 
+/**
+ * Short, friendly summaries shown next to each checkbox. The FULL text above is
+ * always available one tap away ("Full terms") and remains what we persist for
+ * the A2P 10DLC audit trail.
+ */
+export const SMS_MARKETING_SHORT_LABEL = "Text me deals & VIP perks";
+export const SMS_TRANSACTIONAL_SHORT_LABEL =
+  "Text me review reminders & service updates";
+export const SMS_SHORT_RATES_NOTE =
+  "Recurring automated texts. Msg & data rates may apply. Msg frequency varies. Reply STOP to cancel, HELP for help.";
+
+
 export const SMS_DISCLOSURE_SHORT =
   "By submitting, you agree to receive the SMS program(s) you selected above from TapAway and its participating merchant partners at the number provided. Consent is not a condition of any purchase. Msg & data rates may apply. Msg frequency varies. Reply STOP to cancel, HELP for help.";
 
