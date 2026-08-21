@@ -7,6 +7,7 @@ import PersonalProfilePage from "./personal/PersonalProfilePage";
 import { lazy, Suspense } from "react";
 import type { CachedProfile } from "@/hooks/useProfileCache";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { HUB_PROFILE_COLUMNS } from "@/lib/hubProfileColumns";
 
 // Lazy load ReviewHub since it's less common and heavier
 const ReviewHub = lazy(() => import("./ReviewHub"));
