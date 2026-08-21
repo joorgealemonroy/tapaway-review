@@ -179,6 +179,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
       if (pendingBannerFit !== (bannerFit || "contain")) updates.banner_fit = pendingBannerFit;
+      if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -194,6 +195,7 @@ export const DashboardDesignTab = ({
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
         bannerFit: pendingBannerFit,
+        bannerAspect: pendingBannerAspect,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -211,6 +213,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "contain");
+    setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -219,8 +222,74 @@ export const DashboardDesignTab = ({
       headerColor,
       backgroundColor,
       bannerFit: bannerFit || "contain",
+      bannerAspect: normalizeBannerAspect(bannerAspect),
     });
   };
+
+  // --- Manual banner crop ---
+  const openBannerCropper = async () => {
+    const source = bannerOriginalUrl || profilePhotoUrl;
+    if (!source) {
+      toast.error("Upload a logo or photo first");
+      return;
+    }
+    try {
+      const sampled = await sampleBottomEdgeColor(source);
+      setBannerFillColor(sampled || pendingBgColor || "#ffffff");
+    } catch {
+      setBannerFillColor(pendingBgColor || "#ffffff");
+    }
+    setBannerCropSrc(source);
+    setBannerCropOpen(true);
+  };
+
+  const handleBannerCropComplete = async (croppedBlob: Blob) => {
+    setBannerSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const filePath = `${user.id}/${profileId}/banner.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+
+      // Keep the pre-crop image around so the banner can be re-cropped later
+      const originalUrl = bannerOriginalUrl || profilePhotoUrl;
+
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({
+          profile_photo_url: urlWithBust,
+          banner_original_url: originalUrl,
+          banner_fit: "cover",
+          banner_aspect: pendingBannerAspect,
+        })
+        .eq("id", profileId);
+      if (error) throw error;
+
+      setPendingBannerFit("cover");
+      onUpdate({
+        profilePhotoUrl: urlWithBust,
+        bannerOriginalUrl: originalUrl,
+        bannerFit: "cover",
+        bannerAspect: pendingBannerAspect,
+      });
+      toast.success("Banner updated!");
+    } catch (err) {
+      console.error("Banner crop error:", err);
+      toast.error("Failed to save banner");
+    } finally {
+      setBannerSaving(false);
+    }
+  };
+
 
   // Local-only setters (update preview + pending state, no DB write)
   const handleColorChange = (color: string) => {
