@@ -72,10 +72,13 @@ export function resolveHubContrast(
   return {
     isDark,
     baseColor,
+    // Solid, opaque chips: these float over the logo artwork, so anything
+    // translucent disappears against a busy or light background.
     chipClass: isDark
-      ? "bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm"
-      : "bg-black/[0.06] hover:bg-black/[0.12] border border-black/10 backdrop-blur-sm",
-    chipIconClass: isDark ? "text-white" : "text-gray-900",
+      ? "bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-black/10 hover:bg-white/90"
+      : "bg-gray-900 shadow-[0_2px_10px_rgba(0,0,0,0.25)] ring-1 ring-white/20 hover:bg-gray-800",
+    chipIconClass: isDark ? "text-gray-900" : "text-white",
+
     textColor: isDark ? "#FFFFFF" : "#111827",
     mutedTextColor: isDark ? "rgba(255,255,255,0.7)" : "rgba(17,24,39,0.65)",
   };
