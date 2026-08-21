@@ -3,7 +3,6 @@ import { memo, useMemo, useState, useEffect } from "react";
 import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
-import { bannerAspectCss } from "@/lib/bannerAspect";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";

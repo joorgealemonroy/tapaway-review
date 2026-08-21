@@ -66,7 +66,6 @@ export const LivePhonePreview = ({
   businessPhone,
   headerStyle = 'solid',
   bannerUrl,
-  bannerFit = 'cover',
   socials = {},
   socialImages = {},
   blocks = [],
