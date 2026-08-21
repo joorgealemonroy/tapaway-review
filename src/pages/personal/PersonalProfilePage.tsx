@@ -1608,7 +1608,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           >
             {/* Lead Form CTA */}
             <div className="mb-4">
-              <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} contrast={hubContrast} />
+              <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} />
             </div>
 
             {/* Featured link - rendered prominently at top */}
