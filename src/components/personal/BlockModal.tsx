@@ -248,6 +248,7 @@ export const BlockModal = ({
           setSmsHeadline(content.headline || "");
           setSmsDescription(content.description || "");
           setSmsButtonText(content.buttonText || "");
+          setSmsStyle(content.style === "button" ? "button" : "card");
         }
       } else {
         resetForm();
