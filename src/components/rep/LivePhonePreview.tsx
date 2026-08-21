@@ -10,6 +10,7 @@ import {
 } from '@/lib/hubThemes';
 import { toSocialDeepLink } from '@/lib/deepLinks';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
+import { bannerAspectCss } from "@/lib/bannerAspect";
 
 export type HeaderStyle = 'solid' | 'image' | 'full_banner';
 
@@ -66,6 +67,7 @@ export const LivePhonePreview = ({
   headerStyle = 'solid',
   bannerUrl,
   bannerFit = 'cover',
+  bannerAspect,
   socials = {},
   socialImages = {},
   blocks = [],
