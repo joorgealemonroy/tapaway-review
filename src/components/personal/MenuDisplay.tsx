@@ -16,7 +16,6 @@ interface Props {
 export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeSection, setActiveSection] = useState(0);
   const [openSections, setOpenSections] = useState<Set<number>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -48,26 +47,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
       .filter((section) => section.items.length > 0);
   }, [visibleSections, q]);
 
-  // Highlight the section chip currently in view.
-  useEffect(() => {
-    if (!open || q) return;
-    const root = scrollRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) {
-          const index = sectionRefs.current.indexOf(visible.target as HTMLDivElement);
-          if (index >= 0) setActiveSection(index);
-        }
-      },
-      { root, rootMargin: "-45% 0px -50% 0px", threshold: 0 }
-    );
-    sectionRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, [open, q, filteredSections.length]);
 
   if (visibleSections.length === 0) return null;
 
@@ -81,7 +60,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     setOpen(next);
     if (!next) {
       setQuery("");
-      setActiveSection(0);
       setOpenSections(new Set());
     }
   };
@@ -98,13 +76,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     });
   };
 
-  const jumpTo = (index: number) => {
-    setActiveSection(index);
-    setOpenSections((prev) => new Set(prev).add(index));
-    requestAnimationFrame(() => {
-      sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
 
   const totalItems = filteredSections.reduce((sum, s) => sum + s.items.length, 0);
 
