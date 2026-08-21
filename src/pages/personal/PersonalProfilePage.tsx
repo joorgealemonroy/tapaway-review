@@ -1345,7 +1345,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
         {isLogoHeader ? (
-          <div className="relative w-full flex items-center justify-center pt-8 pb-4 px-5">
+          <div
+            className="relative w-full flex items-center justify-center pt-8 pb-4 px-5"
+            style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
+          >
             {logoUrl ? (
               <img
                 src={logoUrl}
