@@ -99,6 +99,8 @@ interface PersonalProfile {
   banner_image_url: string | null;
   banner_fit: string | null;
   banner_aspect: string | null;
+  logo_scale: string | null;
+
   banner_original_url: string | null;
   // Affiliate referral
   referred_by: string | null;
