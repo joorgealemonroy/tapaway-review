@@ -122,7 +122,7 @@ export const DashboardDesignTab = ({
   isPremium,
   isFoundingUser,
   showFoundingBadge,
-  isRepDemo,
+  
   onUpgrade,
   onUpdate,
 }: Props) => {
