@@ -23,7 +23,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
-import { LOGO_SCALE_LABELS, normalizeLogoScale } from "@/lib/logoHeader";
+import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale } from "@/lib/logoHeader";
+import { colorLuminance } from "@/lib/hubContrast";
 import {
   BANNER_ASPECT_LABELS,
   bannerAspectRatio,
