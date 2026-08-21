@@ -21,6 +21,12 @@ import { ProUpgradeDialog } from "./ProUpgradeDialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
+import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
+import {
+  BANNER_ASPECT_LABELS,
+  bannerAspectRatio,
+  normalizeBannerAspect,
+} from "@/lib/bannerAspect";
 
 interface Props {
   profileId: string;
