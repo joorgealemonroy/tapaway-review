@@ -800,7 +800,23 @@ function ProfilePreviewRendererComponent({
       )}
       {/* Header or Banner */}
       <div className="relative w-full">
-        {hasBanner ? (
+        {isLogoHeader ? (
+          <div className="w-full flex items-center justify-center pt-6 pb-2 px-4">
+            {profile.profile_photo_url ? (
+              <img
+                src={getOptimizedImageUrl(profile.profile_photo_url, 800, 90)}
+                alt={profile.full_name}
+                className="mx-auto"
+                style={logoPreviewStyle(profile.logo_scale, 320)}
+              />
+            ) : (
+              <div className="h-20 flex items-center">
+                <span className="text-xs text-muted-foreground">Add a logo</span>
+              </div>
+            )}
+          </div>
+        ) : hasBanner ? (
+
           <>
             {/* Banner mode - preserve the original dashboard preview dimensions. */}
             <div 
