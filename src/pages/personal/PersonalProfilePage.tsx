@@ -229,7 +229,7 @@ const ProfileLink = memo(function ProfileLink({
     );
   }
    
-   // Featured links — glassmorphism style
+   // Featured links — surface adapts to the page background
   if (isFeatured) {
     return (
       <a
@@ -237,29 +237,29 @@ const ProfileLink = memo(function ProfileLink({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
-        className="block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg bg-white/10 backdrop-blur-md border border-white/10"
+        className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${contrast.blockClass}`}
       >
         <div className="flex items-center gap-4">
           <div className={`h-14 w-14 rounded-full flex items-center justify-center ${
-            config?.gradient || config?.bgColor || "bg-white/20"
+            config?.gradient || config?.bgColor || (contrast.isDark ? "bg-white/20" : "bg-gray-100")
           }`}>
-            {Icon && <Icon className={`h-7 w-7 ${config?.color || "text-white"}`} />}
+            {Icon && <Icon className={`h-7 w-7 ${config?.color || (contrast.isDark ? "text-white" : "text-gray-700")}`} />}
           </div>
           <div className="flex-1">
-            <span className="text-lg font-semibold truncate text-white">
+            <span className={`text-lg font-semibold truncate ${contrast.blockTextClass}`}>
               {link.label}
             </span>
-            <p className="text-sm text-white/60">
+            <p className={`text-sm ${contrast.isDark ? "text-white/60" : "text-gray-500"}`}>
               Tap to open
             </p>
           </div>
-          <ExternalLink className="h-5 w-5 text-white/50" />
+          <ExternalLink className={`h-5 w-5 ${contrast.blockMutedClass}`} />
         </div>
       </a>
     );
   }
    
-    // Regular links — glassmorphism style (Google Review & Yelp get white pill)
+    // Regular links (Google Review & Yelp get the white pill treatment)
     const isGoogleReview = link.link_type === 'google_review';
     const isYelp = link.link_type === 'yelp';
     const isWhitePill = isGoogleReview || isYelp;
@@ -270,9 +270,7 @@ const ProfileLink = memo(function ProfileLink({
         rel="noopener noreferrer"
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
-        isWhitePill
-          ? 'bg-white hover:bg-gray-100 border border-white/20 shadow-sm'
-          : 'bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15'
+        isWhitePill ? contrast.pillClass : contrast.blockClass
       }`}
     >
       {link.thumbnail_url ? (
@@ -282,16 +280,17 @@ const ProfileLink = memo(function ProfileLink({
       ) : isWhitePill && Icon ? (
         <Icon className="h-8 w-8 flex-shrink-0" />
       ) : (
-        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || "bg-white/20"}`}>
-          {Icon && <Icon className={`h-6 w-6 ${config?.color || "text-white"}`} />}
+        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${config?.gradient || config?.bgColor || (contrast.isDark ? "bg-white/20" : "bg-gray-100")}`}>
+          {Icon && <Icon className={`h-6 w-6 ${config?.color || (contrast.isDark ? "text-white" : "text-gray-700")}`} />}
         </div>
       )}
-      <span className={`flex-1 font-medium truncate ${isWhitePill ? 'text-gray-900' : 'text-white'}`}>
+      <span className={`flex-1 font-medium truncate ${isWhitePill ? 'text-gray-900' : contrast.blockTextClass}`}>
         {link.label}
       </span>
-      <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : 'text-white/50'}`} />
+      <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : contrast.blockMutedClass}`} />
     </a>
   );
+
 });
 
 // Generates a poster frame from video metadata without downloading the full file
