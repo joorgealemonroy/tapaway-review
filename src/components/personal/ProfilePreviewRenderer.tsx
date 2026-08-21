@@ -807,7 +807,10 @@ function ProfilePreviewRendererComponent({
       {/* Header or Banner */}
       <div className="relative w-full">
         {isLogoHeader ? (
-          <div className="relative w-full flex items-center justify-center pt-6 pb-2 px-4">
+          <div
+            className="relative w-full flex items-center justify-center pt-6 pb-2 px-4"
+            style={profile.header_color ? { backgroundColor: profile.header_color } : undefined}
+          >
             {profile.profile_photo_url ? (
               <img
                 src={getOptimizedImageUrl(profile.profile_photo_url, 800, 90)}

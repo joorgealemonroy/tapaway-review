@@ -1284,8 +1284,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
     : undefined;
   const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
+  // Logo header: the band behind the logo can carry its own (sampled) color so
+  // it reads as a separate section from the content below it.
+  const logoBandColor = isLogoHeader ? (profile.header_color || null) : null;
   // Shared readability rules derived from the actual page background.
   const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
+  const bandContrast = logoBandColor ? resolveHubContrast(logoBandColor) : hubContrast;
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
     ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
@@ -1345,7 +1349,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
         {isLogoHeader ? (
-          <div className="relative w-full flex items-center justify-center pt-8 pb-4 px-5">
+          <div
+            className="relative w-full flex items-center justify-center pt-8 pb-4 px-5"
+            style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
+          >
             {logoUrl ? (
               <img
                 src={logoUrl}
@@ -1369,10 +1376,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
-                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
                     aria-label="Save contact"
                   >
-                    <UserPlus className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+                    <UserPlus className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
                   </button>
                   {showContactTooltip && (
                     <div
@@ -1387,10 +1394,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               )}
               <button
                 onClick={handleShare}
-                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
                 aria-label="Share profile"
               >
-                <Share2 className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+                <Share2 className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
               </button>
             </div>
           </div>

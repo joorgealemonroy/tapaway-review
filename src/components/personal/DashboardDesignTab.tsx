@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
-import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale } from "@/lib/logoHeader";
+import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale, deriveCompanionColor } from "@/lib/logoHeader";
 import { colorLuminance } from "@/lib/hubContrast";
 import {
   BANNER_ASPECT_LABELS,
@@ -191,7 +191,7 @@ export const DashboardDesignTab = ({
 
 
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     setSaving(true);
     try {
       const updates: Record<string, string | null> = {};
@@ -220,7 +220,7 @@ export const DashboardDesignTab = ({
         logoScale: pendingLogoScale,
       });
       userPickedBg.current = false;
-      toast.success("Design saved!");
+      if (!silent) toast.success("Design saved!");
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save changes");
@@ -228,6 +228,15 @@ export const DashboardDesignTab = ({
       setSaving(false);
     }
   };
+
+  // The logo section saves itself — no Save bar tapping required on mobile.
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    if (pendingHeaderType !== "logo" || !hasChanges || saving) return;
+    const t = setTimeout(() => { void saveRef.current(true); }, 700);
+    return () => clearTimeout(t);
+  }, [pendingHeaderType, hasChanges, saving, pendingBgColor, pendingHeaderColor, pendingLogoScale]);
 
   const handleDiscard = () => {
     userPickedBg.current = false;
@@ -332,6 +341,18 @@ export const DashboardDesignTab = ({
     onUpdate({ headerType: pendingHeaderType, backgroundColor: color });
   };
 
+  // Logo band takes the logo's own color; the content section below gets a
+  // related-but-distinct shade so the hub reads as two sections.
+  const applySampledLogoColors = (sampled: string) => {
+    const companion = deriveCompanionColor(sampled);
+    userPickedBg.current = true;
+    setPendingHeaderColor(sampled);
+    setCustomColorInput(sampled);
+    setPendingBgColor(companion);
+    setBgColorInput(companion);
+    onUpdate({ headerType: "logo", headerColor: sampled, backgroundColor: companion });
+  };
+
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
     onUpdate({ headerType: type });
@@ -339,11 +360,7 @@ export const DashboardDesignTab = ({
     // background automatically, no extra taps required.
     if (type === "logo" && profilePhotoUrl) {
       sampleBottomEdgeColor(profilePhotoUrl).then((sampled) => {
-        if (!sampled) return;
-        userPickedBg.current = true;
-        setPendingBgColor(sampled);
-        setBgColorInput(sampled);
-        onUpdate({ headerType: "logo", backgroundColor: sampled });
+        if (sampled) applySampledLogoColors(sampled);
       });
     }
   };
@@ -366,7 +383,7 @@ export const DashboardDesignTab = ({
       toast.error("Could not read the logo color");
       return;
     }
-    handleBgColorChange(sampled);
+    applySampledLogoColors(sampled);
     toast.success("Background matched to your logo");
   };
 
@@ -506,7 +523,7 @@ export const DashboardDesignTab = ({
       {/* Sticky save bar */}
       <UnsavedChangesBar
         hasPendingChanges={hasChanges}
-        onSave={handleSave}
+        onSave={() => handleSave()}
         onDiscard={handleDiscard}
         saving={saving}
       />
