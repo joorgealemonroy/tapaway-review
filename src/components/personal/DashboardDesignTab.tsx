@@ -191,7 +191,7 @@ export const DashboardDesignTab = ({
 
 
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     setSaving(true);
     try {
       const updates: Record<string, string | null> = {};
@@ -220,7 +220,7 @@ export const DashboardDesignTab = ({
         logoScale: pendingLogoScale,
       });
       userPickedBg.current = false;
-      toast.success("Design saved!");
+      if (!silent) toast.success("Design saved!");
     } catch (err) {
       console.error("Save error:", err);
       toast.error("Failed to save changes");
@@ -234,7 +234,7 @@ export const DashboardDesignTab = ({
   saveRef.current = handleSave;
   useEffect(() => {
     if (pendingHeaderType !== "logo" || !hasChanges || saving) return;
-    const t = setTimeout(() => { void saveRef.current(); }, 700);
+    const t = setTimeout(() => { void saveRef.current(true); }, 700);
     return () => clearTimeout(t);
   }, [pendingHeaderType, hasChanges, saving, pendingBgColor, pendingHeaderColor, pendingLogoScale]);
 
