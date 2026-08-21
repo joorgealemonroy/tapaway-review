@@ -650,8 +650,7 @@ export const DashboardDesignTab = ({
             </div>
           )}
         </RadioGroup>
-        </>
-        )}
+
 
         {/* Pro upgrade dialog */}
         <ProUpgradeDialog
