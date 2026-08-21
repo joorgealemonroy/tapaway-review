@@ -147,6 +147,8 @@ function ProfilePreviewRendererComponent({
   }, [hasBanner, profile.profile_photo_url]);
   
   const isDarkBg = useMemo(() => hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg, hasBanner]);
+  // Same readability rules the live hub uses.
+  const previewContrast = useMemo(() => resolveHubContrast(backgroundColor), [backgroundColor]);
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
