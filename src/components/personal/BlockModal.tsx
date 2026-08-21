@@ -136,6 +136,7 @@ export const BlockModal = ({
   const [smsHeadline, setSmsHeadline] = useState("");
   const [smsDescription, setSmsDescription] = useState("");
   const [smsButtonText, setSmsButtonText] = useState("");
+  const [smsStyle, setSmsStyle] = useState<"card" | "button">("card");
 
   // Menu block options
   const [menuTitle, setMenuTitle] = useState("Our Menu");
