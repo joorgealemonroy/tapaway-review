@@ -114,7 +114,8 @@ const ProfileLink = memo(function ProfileLink({
   isGrid = false,
   index = 99,
   profilePhotoUrl,
-  accentColor
+  accentColor,
+  contrast
 }: { 
   link: { id: string; link_type: string; label: string; url: string; pill_color: string | null; display_style?: string | null; cover_image_url?: string | null; grid_size?: string | null; thumbnail_url?: string | null };
   profileId?: string;
@@ -123,7 +124,9 @@ const ProfileLink = memo(function ProfileLink({
   index?: number;
   profilePhotoUrl?: string | null;
   accentColor?: string | null;
+  contrast: HubContrast;
 }) {
+
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
   // Only treat accentColor as a custom color if it's a valid hex value (not "glass", etc.)
