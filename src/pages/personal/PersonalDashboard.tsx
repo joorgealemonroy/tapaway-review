@@ -677,6 +677,9 @@ const PersonalDashboard = () => {
     pfpPosition?: string;
     bannerImageUrl?: string | null;
     bannerFit?: string | null;
+    bannerAspect?: string | null;
+    bannerOriginalUrl?: string | null;
+    profilePhotoUrl?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -688,7 +691,11 @@ const PersonalDashboard = () => {
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
         banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
         banner_fit: updates.bannerFit !== undefined ? updates.bannerFit : profile.banner_fit,
+        banner_aspect: updates.bannerAspect !== undefined ? updates.bannerAspect : profile.banner_aspect,
+        banner_original_url: updates.bannerOriginalUrl !== undefined ? updates.bannerOriginalUrl : profile.banner_original_url,
+        profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
       };
+
       setProfile(updatedProfile);
       
       // Invalidate public profile cache
