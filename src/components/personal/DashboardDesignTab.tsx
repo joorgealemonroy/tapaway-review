@@ -364,7 +364,7 @@ export const DashboardDesignTab = ({
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxDim = 1200;
+        const maxDim = 2400;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
           if (width > height) {
