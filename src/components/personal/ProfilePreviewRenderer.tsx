@@ -487,7 +487,7 @@ function ProfilePreviewRendererComponent({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => handleLinkClick(e, link.url)}
-          className="block w-full rounded-xl px-5 py-4 text-center font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] bg-white/10 backdrop-blur-md border border-white/10"
+          className={`block w-full rounded-xl px-5 py-4 text-center font-semibold shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] ${previewContrast.blockClass} ${previewContrast.blockTextClass}`}
         >
           <span className="flex items-center justify-center gap-2">
             {Icon && <Icon className="h-5 w-5" />}
@@ -509,10 +509,10 @@ function ProfilePreviewRendererComponent({
         target="_blank"
         rel="noopener noreferrer"
         onClick={(e) => handleLinkClick(e, link.url)}
-        className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm transition-all hover:shadow-md hover:scale-[1.01] ${
+        className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all hover:shadow-md hover:scale-[1.01] ${
           isWhitePill
-            ? 'bg-white hover:bg-gray-100 border-white/20 text-gray-900'
-            : 'bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/15'
+            ? `${previewContrast.pillClass} text-gray-900`
+            : previewContrast.blockClass
         }`}
       >
         {link.thumbnail_url ? (
@@ -523,13 +523,14 @@ function ProfilePreviewRendererComponent({
           <Icon className="h-7 w-7 flex-shrink-0" />
         ) : Icon && (
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform?.gradient || platform?.bgColor || 'bg-white/20'}`}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform?.gradient || platform?.bgColor || (previewContrast.isDark ? 'bg-white/20' : 'bg-gray-100')}`}
           >
-            <Icon className={`h-5 w-5 ${platform?.color || 'text-white'}`} />
+            <Icon className={`h-5 w-5 ${platform?.color || (previewContrast.isDark ? 'text-white' : 'text-gray-700')}`} />
           </div>
         )}
-        <span className={`flex-1 font-medium ${isWhitePill ? 'text-gray-900' : 'text-white'}`}>{link.label}</span>
-        <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : 'text-white/50'}`} />
+        <span className={`flex-1 font-medium ${isWhitePill ? 'text-gray-900' : previewContrast.blockTextClass}`}>{link.label}</span>
+        <ExternalLink className={`h-4 w-4 ${isWhitePill ? 'text-gray-400' : previewContrast.blockMutedClass}`} />
+
       </a>
     );
   };
