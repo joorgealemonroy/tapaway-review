@@ -1337,7 +1337,23 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         {brandGlowStyle && (
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
-        {hasBanner ? (
+        {isLogoHeader ? (
+          <div className="relative w-full flex items-center justify-center pt-8 pb-4 px-5">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={profile.full_name}
+                loading="eager"
+                decoding="async"
+                className="mx-auto"
+                style={logoImageStyle((profile as any).logo_scale)}
+              />
+            ) : (
+              <div className="h-24" />
+            )}
+          </div>
+        ) : hasBanner ? (
+
           <div className="relative">
             {/* Existing banners retain their original full-height presentation. */}
             <div 
