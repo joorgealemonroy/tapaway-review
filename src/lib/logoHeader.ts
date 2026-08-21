@@ -63,25 +63,3 @@ export function logoPreviewStyle(
     objectFit: "contain",
   };
 }
-
-/**
- * Derive a companion page color for a logo band color: similar in family but
- * clearly distinct, so the logo band and the content section below it read as
- * two separate sections (the Reborn Wraps look) instead of one flat wall.
- */
-export function deriveCompanionColor(hex: string): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return hex;
-  const int = parseInt(m[1], 16);
-  const r = (int >> 16) & 255;
-  const g = (int >> 8) & 255;
-  const b = int & 255;
-  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  // Light band -> slightly deeper page. Dark band -> slightly lifted page.
-  const shift = lum > 0.5 ? -0.09 : 0.12;
-  const adjust = (c: number) =>
-    Math.max(0, Math.min(255, Math.round(shift > 0 ? c + (255 - c) * shift : c * (1 + shift))));
-  return `#${[adjust(r), adjust(g), adjust(b)]
-    .map((n) => n.toString(16).padStart(2, "0"))
-    .join("")}`;
-}

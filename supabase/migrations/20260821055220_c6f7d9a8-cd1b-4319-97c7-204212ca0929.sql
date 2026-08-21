@@ -1,0 +1,2 @@
+alter table public.personal_profiles add column if not exists logo_bg_color text;
+update public.personal_profiles set logo_bg_color = '#ffffff' where username = 'lasnuevasislas' and header_type = 'logo' and logo_bg_color is null;
