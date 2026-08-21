@@ -31,6 +31,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
+import { bannerAspectRatio } from "@/lib/bannerAspect";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor, DashboardHeroEditorHandle, HeroSnapshot } from "@/components/personal/DashboardHeroEditor";
@@ -97,6 +98,8 @@ interface PersonalProfile {
   // Premium feature
   banner_image_url: string | null;
   banner_fit: string | null;
+  banner_aspect: string | null;
+  banner_original_url: string | null;
   // Affiliate referral
   referred_by: string | null;
   trial_ends_at: string | null;
@@ -156,7 +159,7 @@ const PersonalDashboard = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
-  const [bannerAspectRatio, setBannerAspectRatio] = useState(16 / 5);
+  const [cropAspectRatio, setBannerAspectRatio] = useState(16 / 9);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -540,7 +543,7 @@ const PersonalDashboard = () => {
       } catch {
         setBannerFillColor(null);
       }
-      setBannerAspectRatio(16 / 5);
+      setBannerAspectRatio(bannerAspectRatio(profile?.banner_aspect));
     } else {
       setBannerFillColor(null);
       setBannerAspectRatio(1);
@@ -596,6 +599,8 @@ const PersonalDashboard = () => {
       // can't be lost to a partial failure or later refetch.
       const updates: Record<string, string> = { profile_photo_url: urlWithCacheBust };
       if (sampledBg) updates.background_color = sampledBg;
+      // The image was cropped to the exact banner frame, so render it edge-to-edge.
+      if (profile.header_type === "banner") updates.banner_fit = "cover";
 
       const { data: updatedRow, error: updateError } = await supabase
         .from("personal_profiles")
@@ -677,6 +682,9 @@ const PersonalDashboard = () => {
     pfpPosition?: string;
     bannerImageUrl?: string | null;
     bannerFit?: string | null;
+    bannerAspect?: string | null;
+    bannerOriginalUrl?: string | null;
+    profilePhotoUrl?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -688,7 +696,11 @@ const PersonalDashboard = () => {
         pfp_position: updates.pfpPosition ?? profile.pfp_position,
         banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
         banner_fit: updates.bannerFit !== undefined ? updates.bannerFit : profile.banner_fit,
+        banner_aspect: updates.bannerAspect !== undefined ? updates.bannerAspect : profile.banner_aspect,
+        banner_original_url: updates.bannerOriginalUrl !== undefined ? updates.bannerOriginalUrl : profile.banner_original_url,
+        profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
       };
+
       setProfile(updatedProfile);
       
       // Invalidate public profile cache
@@ -1410,6 +1422,8 @@ const PersonalDashboard = () => {
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
               bannerFit={profile.banner_fit}
+              bannerAspect={profile.banner_aspect}
+              bannerOriginalUrl={profile.banner_original_url}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
@@ -1569,11 +1583,12 @@ const PersonalDashboard = () => {
           }}
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
-          aspectRatio={bannerAspectRatio}
+          aspectRatio={cropAspectRatio}
           cropShape={profile?.header_type === "banner" ? "rect" : "round"}
-          minZoom={profile?.header_type === "banner" ? 0.4 : 1}
+          minZoom={profile?.header_type === "banner" ? 0.25 : 1}
           restrictPosition={profile?.header_type !== "banner"}
           fillColor={bannerFillColor}
+          editableFill={profile?.header_type === "banner"}
         />
       )}
 

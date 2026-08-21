@@ -15,6 +15,7 @@ interface ProfileData {
   background_color?: string | null;
   pfp_position?: string | null;
   banner_fit?: string | null;
+  banner_aspect?: string | null;
   contact_enabled?: boolean | null;
   contact_display_style?: string | null;
   contact_name?: string | null;

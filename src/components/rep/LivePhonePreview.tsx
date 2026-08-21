@@ -10,6 +10,7 @@ import {
 } from '@/lib/hubThemes';
 import { toSocialDeepLink } from '@/lib/deepLinks';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
+import { bannerAspectCss } from "@/lib/bannerAspect";
 
 export type HeaderStyle = 'solid' | 'image' | 'full_banner';
 
@@ -44,6 +45,7 @@ interface Props {
   headerStyle?: HeaderStyle;
   bannerUrl?: string | null;
   bannerFit?: 'cover' | 'contain';
+  bannerAspect?: string | null;
   socials?: Socials;
   socialImages?: SocialImages;
   blocks?: LinkBlock[];
@@ -66,6 +68,7 @@ export const LivePhonePreview = ({
   headerStyle = 'solid',
   bannerUrl,
   bannerFit = 'cover',
+  bannerAspect,
   socials = {},
   socialImages = {},
   blocks = [],
@@ -184,13 +187,32 @@ export const LivePhonePreview = ({
         style={{ width: 360 }}
       >
         <div className="w-full h-full overflow-y-auto" style={containerStyle}>
-          {/* Banner — in Fit mode the height follows the image's own aspect ratio */}
-          {headerStyle === 'full_banner' && bannerFit === 'contain' && bannerUrl ? (
-            <div style={{ backgroundColor: bannerBg, position: 'relative' }}>
+          {/* Banner — uses the hub's chosen banner shape so the preview matches the live hub */}
+          {headerStyle === 'full_banner' && bannerUrl ? (
+            <div
+              style={{
+                backgroundColor: bannerBg,
+                position: 'relative',
+                aspectRatio: bannerAspectCss(bannerAspect),
+                overflow: 'hidden',
+              }}
+            >
               <img
                 src={bannerUrl}
                 alt="Banner"
-                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 260, objectFit: 'contain' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: bannerFit === 'cover' ? 'cover' : 'contain',
+                  objectPosition: 'center',
+                  ...(useMask
+                    ? {
+                        WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                        maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                      }
+                    : {}),
+                }}
               />
             </div>
           ) : (
@@ -211,6 +233,7 @@ export const LivePhonePreview = ({
               }}
             />
           )}
+
 
 
           {/* Content below banner */}

@@ -30,6 +30,7 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { bannerAspectCss } from "@/lib/bannerAspect";
 
 
 
@@ -1331,14 +1332,15 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         )}
         {hasBanner ? (
           <div className="relative">
-            {/* Banner image — in Fit mode the panel height follows the image's own
-                aspect ratio so the full logo is always readable (no crop/zoom). */}
+            {/* Banner image — the panel uses the shape the owner picked
+                (Short / Standard / Tall) so a manual crop renders exactly as
+                cropped. Un-cropped legacy images letterbox inside the panel. */}
             <div
               className="w-full overflow-hidden"
               style={{
                 willChange: 'transform',
                 backgroundColor: extractedBannerColor || profile.header_color || undefined,
-                ...(profile.banner_fit === 'cover' ? { height: '55vh' } : {}),
+                aspectRatio: bannerAspectCss(profile.banner_aspect),
               }}
             >
               <img
@@ -1349,8 +1351,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 fetchPriority="high"
                 className={
                   profile.banner_fit === 'cover'
-                    ? 'w-full h-full object-cover object-top'
-                    : 'w-full h-auto max-h-[60vh] object-contain object-center block'
+                    ? 'w-full h-full object-cover object-center'
+                    : 'w-full h-full object-contain object-center block'
                 }
                 style={profile.banner_fit === 'cover' ? {
                   WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
@@ -1358,6 +1360,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 } : undefined}
               />
             </div>
+
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
             {profile.banner_fit === 'cover' && (
               <div 

@@ -15,7 +15,11 @@ interface Props {
   minZoom?: number;
   restrictPosition?: boolean;
   fillColor?: string | null;
+  /** Show a background-fill color picker (banner crops only). */
+  editableFill?: boolean;
+  title?: string;
 }
+
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -142,10 +146,13 @@ export const ImageCropper = ({
   minZoom = 1,
   restrictPosition,
   fillColor,
+  editableFill,
+  title,
 }: Props) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [fill, setFill] = useState<string>(fillColor || "#ffffff");
 
   // Reset crop/zoom every time the modal opens or the source image changes,
   // so a previously-saved zoom-in doesn't lock the slider above 1.
@@ -154,8 +161,10 @@ export const ImageCropper = ({
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setCroppedAreaPixels(null);
+      setFill(fillColor || "#ffffff");
     }
-  }, [open, imageSrc]);
+  }, [open, imageSrc, fillColor]);
+
 
   const onCropChange = useCallback((location: { x: number; y: number }) => {
     setCrop(location);
@@ -173,7 +182,11 @@ export const ImageCropper = ({
     if (!croppedAreaPixels) return;
 
     try {
-      const { blob, dataUrl } = await getCroppedImg(imageSrc, croppedAreaPixels, fillColor);
+      const { blob, dataUrl } = await getCroppedImg(
+        imageSrc,
+        croppedAreaPixels,
+        editableFill ? fill : fillColor,
+      );
       // Return data URL for localStorage persistence instead of blob URL
       onCropComplete(blob, dataUrl);
       onOpenChange(false);
@@ -191,16 +204,20 @@ export const ImageCropper = ({
   // Rectangular banner crops allow free zoom-out and off-center positioning so logos
   // can be fit to the frame.
   const effectiveRestrictPosition = restrictPosition ?? cropShape === "round";
+  const activeFill = editableFill ? fill : fillColor;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md mx-4 p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-0">
-          <DialogTitle>Crop your photo</DialogTitle>
+          <DialogTitle>{title || "Crop your photo"}</DialogTitle>
         </DialogHeader>
 
-        {/* Cropper area */}
-        <div className="relative h-72 bg-black">
+        {/* Cropper area — the frame matches the real banner shape */}
+        <div
+          className="relative h-72"
+          style={{ backgroundColor: activeFill || "#000000" }}
+        >
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -226,12 +243,32 @@ export const ImageCropper = ({
               value={[zoom]}
               min={minZoom}
               max={3}
-              step={0.1}
+              step={0.05}
               onValueChange={(value) => setZoom(value[0])}
               className="flex-1"
             />
             <ZoomIn className="h-4 w-4 text-muted-foreground" />
           </div>
+
+          {editableFill && (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Background</p>
+                <p className="text-xs text-muted-foreground">
+                  Fills any empty space around your logo
+                </p>
+              </div>
+              <input
+                type="color"
+                value={/^#[0-9a-fA-F]{6}$/.test(fill) ? fill : "#ffffff"}
+                onChange={(e) => setFill(e.target.value)}
+                className="h-9 w-12 rounded-md border border-border bg-transparent cursor-pointer"
+                aria-label="Banner background color"
+              />
+            </div>
+          )}
+
+
 
           {/* Buttons */}
           <div className="flex gap-2">

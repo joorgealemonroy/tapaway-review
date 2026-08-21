@@ -32,6 +32,7 @@ export interface CachedProfile {
   // Premium feature
   banner_image_url: string | null;
   banner_fit: string | null;
+  banner_aspect?: string | null;
   plan_type: string | null;
   show_shop_section: boolean | null;
   user_id?: string;

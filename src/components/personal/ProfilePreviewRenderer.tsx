@@ -3,6 +3,7 @@ import { memo, useMemo, useState, useEffect } from "react";
 import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
+import { bannerAspectCss } from "@/lib/bannerAspect";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
@@ -58,6 +59,7 @@ interface ProfileData {
   pfp_position?: string | null;
   banner_image_url?: string | null;
   banner_fit?: string | null;
+  banner_aspect?: string | null;
   plan_type?: string | null;
   show_username?: boolean;
   contact_enabled?: boolean | null;
@@ -799,9 +801,10 @@ function ProfilePreviewRendererComponent({
           <>
             {/* Banner mode - fully visible with fade at bottom using extracted color */}
             <div 
-              className={`overflow-hidden relative ${profile.banner_fit === 'cover' ? 'h-52' : ''}`}
+              className="overflow-hidden relative"
               style={{
                 backgroundColor: extractedBannerColor || headerColor,
+                aspectRatio: bannerAspectCss(profile.banner_aspect),
               }}
             >
               {bannerUrl ? (
@@ -810,8 +813,8 @@ function ProfilePreviewRendererComponent({
                   alt="Banner"
                   className={
                     profile.banner_fit === 'cover'
-                      ? 'h-full w-full object-cover object-top'
-                      : 'w-full h-auto max-h-60 object-contain object-center block'
+                      ? 'h-full w-full object-cover object-center'
+                      : 'w-full h-full object-contain object-center block'
                   }
                   style={profile.banner_fit === 'cover' ? {
                     WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
@@ -820,12 +823,13 @@ function ProfilePreviewRendererComponent({
                 />
               ) : (
                 <div 
-                  className="h-52 w-full flex items-center justify-center"
+                  className="h-full w-full flex items-center justify-center"
                   style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}88)` }}
                 >
                   <span className="text-white/60 text-xs">Add a photo for your banner</span>
                 </div>
               )}
+
               {/* Gradient fade using extracted color from image - taller for text overlap */}
               {profile.banner_fit === 'cover' && (
                 <div 

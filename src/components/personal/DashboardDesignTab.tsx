@@ -21,6 +21,12 @@ import { ProUpgradeDialog } from "./ProUpgradeDialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
+import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
+import {
+  BANNER_ASPECT_LABELS,
+  bannerAspectRatio,
+  normalizeBannerAspect,
+} from "@/lib/bannerAspect";
 
 interface Props {
   profileId: string;
@@ -30,6 +36,8 @@ interface Props {
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
   bannerFit: string | null;
+  bannerAspect?: string | null;
+  bannerOriginalUrl?: string | null;
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
@@ -41,8 +49,12 @@ interface Props {
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
     bannerFit?: string | null;
+    bannerAspect?: string | null;
+    bannerOriginalUrl?: string | null;
+    profilePhotoUrl?: string | null;
   }) => void;
 }
+
 
 const COLOR_PRESETS = [
   "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
@@ -84,6 +96,8 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   bannerFit,
+  bannerAspect,
+  bannerOriginalUrl,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -102,13 +116,21 @@ export const DashboardDesignTab = ({
   const userPickedBg = useRef(false);
   const hasInitialized = useRef(false);
 
+  // --- Manual banner cropping ---
+  const [bannerCropOpen, setBannerCropOpen] = useState(false);
+  const [bannerCropSrc, setBannerCropSrc] = useState<string | null>(null);
+  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
+  const [bannerSaving, setBannerSaving] = useState(false);
+
   // --- Pending (buffered) state for deferred save ---
   const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
+  const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
+
 
   // Force banner mode on rep-created demo hubs and persist it once
   useEffect(() => {
@@ -133,18 +155,21 @@ export const DashboardDesignTab = ({
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "contain");
+    setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
       pendingBgColor !== backgroundColor ||
-      pendingBannerFit !== (bannerFit || "contain")
+      pendingBannerFit !== (bannerFit || "contain") ||
+      pendingBannerAspect !== normalizeBannerAspect(bannerAspect)
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect]);
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -154,6 +179,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
       if (pendingBannerFit !== (bannerFit || "contain")) updates.banner_fit = pendingBannerFit;
+      if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -169,6 +195,7 @@ export const DashboardDesignTab = ({
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
         bannerFit: pendingBannerFit,
+        bannerAspect: pendingBannerAspect,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -186,6 +213,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "contain");
+    setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -194,8 +222,74 @@ export const DashboardDesignTab = ({
       headerColor,
       backgroundColor,
       bannerFit: bannerFit || "contain",
+      bannerAspect: normalizeBannerAspect(bannerAspect),
     });
   };
+
+  // --- Manual banner crop ---
+  const openBannerCropper = async () => {
+    const source = bannerOriginalUrl || profilePhotoUrl;
+    if (!source) {
+      toast.error("Upload a logo or photo first");
+      return;
+    }
+    try {
+      const sampled = await sampleBottomEdgeColor(source);
+      setBannerFillColor(sampled || pendingBgColor || "#ffffff");
+    } catch {
+      setBannerFillColor(pendingBgColor || "#ffffff");
+    }
+    setBannerCropSrc(source);
+    setBannerCropOpen(true);
+  };
+
+  const handleBannerCropComplete = async (croppedBlob: Blob) => {
+    setBannerSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const filePath = `${user.id}/${profileId}/banner.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+
+      // Keep the pre-crop image around so the banner can be re-cropped later
+      const originalUrl = bannerOriginalUrl || profilePhotoUrl;
+
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({
+          profile_photo_url: urlWithBust,
+          banner_original_url: originalUrl,
+          banner_fit: "cover",
+          banner_aspect: pendingBannerAspect,
+        })
+        .eq("id", profileId);
+      if (error) throw error;
+
+      setPendingBannerFit("cover");
+      onUpdate({
+        profilePhotoUrl: urlWithBust,
+        bannerOriginalUrl: originalUrl,
+        bannerFit: "cover",
+        bannerAspect: pendingBannerAspect,
+      });
+      toast.success("Banner updated!");
+    } catch (err) {
+      console.error("Banner crop error:", err);
+      toast.error("Failed to save banner");
+    } finally {
+      setBannerSaving(false);
+    }
+  };
+
 
   // Local-only setters (update preview + pending state, no DB write)
   const handleColorChange = (color: string) => {
@@ -445,32 +539,73 @@ export const DashboardDesignTab = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+            {/* Banner shape */}
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
               <div>
-                <p className="text-sm font-medium text-foreground">Banner fit</p>
+                <p className="text-sm font-medium text-foreground">Banner shape</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {pendingBannerFit === "cover" ? "Fill banner — crop edges to cover" : "Fit inside banner — show full logo"}
+                  Pick the height of your banner, then crop your image to fit it exactly.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => setPendingBannerFit("cover")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    pendingBannerFit === "cover" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Fill
-                </button>
-                <button
-                  onClick={() => setPendingBannerFit("contain")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    pendingBannerFit === "contain" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Fit
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {BANNER_ASPECT_LABELS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setPendingBannerAspect(opt.value)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      pendingBannerAspect === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:bg-muted/50"
+                    }`}
+                  >
+                    <span
+                      className="w-full rounded bg-muted-foreground/20"
+                      style={{ aspectRatio: `${bannerAspectRatio(opt.value)} / 1` }}
+                    />
+                    <span className="text-xs font-medium">{opt.label}</span>
+                  </button>
+                ))}
               </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={openBannerCropper}
+                disabled={bannerSaving || (!profilePhotoUrl && !bannerOriginalUrl)}
+              >
+                {bannerSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                )}
+                Adjust banner
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Zoom out to show your whole logo — empty space is filled with the background
+                color you choose.
+              </p>
             </div>
+
+            {/* Banner cropper */}
+            {bannerCropSrc && (
+              <ImageCropper
+                open={bannerCropOpen}
+                onOpenChange={(open) => {
+                  setBannerCropOpen(open);
+                  if (!open) setBannerCropSrc(null);
+                }}
+                imageSrc={bannerCropSrc}
+                onCropComplete={handleBannerCropComplete}
+                aspectRatio={bannerAspectRatio(pendingBannerAspect)}
+                cropShape="rect"
+                minZoom={0.25}
+                restrictPosition={false}
+                fillColor={bannerFillColor}
+                editableFill
+                title="Adjust your banner"
+              />
+            )}
+
           </div>
         ) : pendingHeaderType === "color" ? (
           <div className="space-y-4">
