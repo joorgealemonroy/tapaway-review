@@ -1246,6 +1246,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
     : null;
   const hasBanner = !!bannerUrl;
+
+  // "Logo header" — the whole logo is shown uncropped at the top, then the page
+  // flows straight into the standard Solo Pro layout.
+  const isLogoHeader = profile.header_type === "logo";
+  const logoUrl = (isLogoHeader && profile.profile_photo_url)
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 92)
+    : null;
+
   
   const headerStyle = optimizedHeaderUrl
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
