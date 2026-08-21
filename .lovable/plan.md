@@ -1,43 +1,45 @@
-# Fix the shrunken banner band (Fit mode) across all hubs
+# Manual banner cropping so every hub looks perfect
 
-## What's wrong now
+## The idea
 
-The last change made the banner take the image's own height. For a wide logo on a white plate (Las Nuevas Islas, Xol Coffee, and every other banner hub) that produces a thin, small strip that reads as an accident rather than a header. The bulk data update also flipped **every** banner hub to Fit — including hubs whose banner is a photo, which should still bleed edge-to-edge.
+Instead of the app guessing (Fill vs Fit vs auto-detect), the person building the hub crops the banner themselves in a banner-shaped editor and what they see is exactly what ships. No shrunken white strips, no zoomed-in logos.
 
-Confirmed in the database: 39+ banner hubs are currently set to `banner_fit = 'contain'`, including `xolcoffee`; `lasnuevasislas` uses `header_type = 'image'` and is still `cover`.
+## How it works
 
-## The fix
+**1. "Adjust banner" editor**
+In the Design tab, next to the banner image, an **Adjust banner** button opens a cropper:
+- The crop frame is the real banner shape used on the live hub, so the frame *is* the preview.
+- Drag to reposition, pinch or slider to zoom — including zooming out below 100% so a wide logo fits entirely inside the frame.
+- Any empty space around the image is filled with a background color: auto-sampled from the image by default, with a small color picker to override (useful for logos on white or colored plates).
+- Buttons: **Fit whole image** (one tap to zoom out until nothing is cut) and **Fill frame** (one tap to cover edge to edge).
 
-**1. A real banner panel, not a strip**
-In Fit mode the banner gets a proper minimum height (roughly 30% of screen height on the live hub, with matching proportions in the dashboard and rep previews). The panel is filled with the color sampled from the image, and the logo is centered inside it at a comfortable size with a little breathing room on all sides. Result: the full logo stays readable but sits in a header-sized area instead of a squished band.
+**2. Banner shape control**
+A short row of banner heights — **Short**, **Standard**, **Tall** — changes the crop frame and the live banner together, so a wide logo can use a Short band while a photo can use a Tall hero. The chosen shape is saved with the hub.
 
-**2. Stop guessing — let the image decide**
-Instead of relying on a stored setting that was mass-applied, the renderer measures the image once it loads:
-- Wide, logo-shaped images (aspect ratio wider than about 2:1) get the Fit panel.
-- Photo-shaped images (closer to square or tall) get the classic edge-to-edge Fill banner with the soft fade.
-The manual Fill/Fit toggle in Design still wins when the owner has explicitly set it; the automatic choice only applies where nothing was deliberately chosen.
+**3. One saved image, rendered identically everywhere**
+Saving the crop writes a finished banner image at the chosen shape. The live hub, dashboard preview, and sales rep phone preview all render that image edge-to-edge at the saved aspect ratio — no `object-cover` re-crop, no per-view differences. What the rep crops is what the customer sees.
 
-**3. Undo the blanket data change**
-The rows that were flipped to `contain` in bulk are reset so behavior comes from the automatic rule above, which fixes Xol Coffee and the other affected hubs in one pass without hand-tuning each one.
+**4. Fixing the hubs already affected**
+The recent bulk change flipped every banner hub (including Xol Coffee, Las Nuevas Islas, Islas Marias, and ~35 others) to Fit, which is what created the tiny strips. Those hubs fall back to a sensible Standard banner rendered from their existing image with the sampled background, so nothing looks broken before anyone re-crops; each can then be perfected in one pass with the new editor.
 
-**4. Same rules for the `image` header type**
-The photo-header path (`header_type = 'image'`, e.g. Las Nuevas Islas) currently ignores fit entirely. It gets the same panel/measure logic so both header styles behave identically.
-
-**5. Blending**
-The sampled banner color continues into the page background under the panel, so there is no hard seam or white cutoff, and the floating Save-contact / Share icons keep contrast against light logo plates.
+**5. Same tool for the photo header**
+Hubs using the photo header (`header_type = 'image'`, e.g. Las Nuevas Islas) get the same editor and rendering rules so both header styles behave the same.
 
 ## Technical notes
 
-- Add a small shared helper (e.g. `src/lib/bannerFit.ts`) exporting the effective-fit decision: explicit `banner_fit` wins, otherwise derive from the loaded image's `naturalWidth / naturalHeight` (>= 2.0 → contain, else cover).
-- `src/pages/personal/PersonalProfilePage.tsx` (~1332-1371): Fit branch becomes a `min-h-[30vh]` flex-centered wrapper painted with `extractedBannerColor`, image `max-h-full w-auto max-w-[88%] object-contain` plus vertical padding. Keep the existing Fill branch untouched. Adjust the `-mt-32` / `mt-6` content offset at ~1422 accordingly.
-- `src/components/personal/ProfilePreviewRenderer.tsx` (~800-840): same structure at preview scale (`min-h-[150px]`).
-- `src/components/rep/LivePhonePreview.tsx` (~188-213): same structure at 170px min height so the rep preview stays pixel-faithful.
-- Header-image path: apply the same wrapper where `header_type === 'image'` renders `optimizedHeaderUrl`.
-- One migration/data update resetting `banner_fit` to null for the rows set by the previous bulk update, and treating null as "auto".
+- Extend `src/components/personal/ImageCropper.tsx`: accept a variable `aspect` (short 16:5, standard 16:7, tall 4:3), `minZoom` ~0.3, `restrictPosition={false}`, and a `backgroundColor` painted onto the canvas before `drawImage` so letterboxed areas export as solid color rather than transparent. Add "Fit whole image" / "Fill frame" presets that set zoom from the image's natural ratio vs the frame ratio.
+- Default background color comes from the existing `sampleBannerColor` helper; expose a compact color input to override.
+- Persist `banner_aspect` ('short' | 'standard' | 'tall') on `personal_profiles`; the exported image already encodes the crop, so `banner_fit` is retired from rendering and only kept as a legacy fallback for hubs that have not been re-cropped.
+- Rendering (all three surfaces) becomes: wrapper with `aspect-ratio` from `banner_aspect`, background = sampled color, `<img className="w-full h-full object-cover">` — safe because the stored image already matches the ratio.
+  - `src/pages/personal/PersonalProfilePage.tsx` (~1332-1371), and the content offset at ~1422.
+  - `src/components/personal/ProfilePreviewRenderer.tsx` (~800-840).
+  - `src/components/rep/LivePhonePreview.tsx` (~188-213).
+- `src/components/personal/DashboardDesignTab.tsx`: replace the Fill/Fit toggle with the Adjust banner button plus the Short/Standard/Tall selector.
+- Data update: reset the bulk-applied `banner_fit` values and set `banner_aspect = 'standard'` for existing banner hubs.
 
 ## Verification
 
-- Las Nuevas Islas and Xol Coffee: logo appears centered in a full-size colored header panel, fully readable, no thin white strip.
-- A photo-banner hub still renders edge-to-edge with the bottom fade.
+- Crop the Las Nuevas Islas logo: the frame shows the whole sign on the sampled color, and the saved live hub matches the editor pixel for pixel.
+- Xol Coffee and the other bulk-flipped hubs render a normal Standard banner immediately, with no thin white strip.
 - Dashboard preview and rep phone preview match the live hub.
-- Manually flipping Fill/Fit in Design still overrides the automatic choice.
+- Re-cropping an already-cropped banner reopens from the original upload, not the flattened export.
