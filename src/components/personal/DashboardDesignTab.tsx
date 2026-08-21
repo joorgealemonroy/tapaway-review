@@ -245,6 +245,7 @@ export const DashboardDesignTab = ({
   }, [hasChanges, saving, pendingHeaderType, pendingBgColor, pendingHeaderColor, pendingBannerFit, pendingBannerAspect, pendingLogoScale, pendingLogoBgColor]);
 
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDiscard = () => {
     userPickedBg.current = false;
     setPendingHeaderType(headerType);
