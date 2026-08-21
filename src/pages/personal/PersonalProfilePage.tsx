@@ -1419,7 +1419,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto px-4 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-32' : 'mt-6') : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
