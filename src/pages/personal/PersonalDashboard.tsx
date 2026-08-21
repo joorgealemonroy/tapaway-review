@@ -1409,6 +1409,7 @@ const PersonalDashboard = () => {
               headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
+              bannerFit={profile.banner_fit}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
