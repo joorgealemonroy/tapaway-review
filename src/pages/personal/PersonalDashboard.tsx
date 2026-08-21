@@ -520,11 +520,15 @@ const PersonalDashboard = () => {
       return;
     }
 
-    // Compress if > 2MB
+    // Compress if > 2MB. Banner crops keep much more resolution so the exported
+    // header stays sharp on high-DPI phones even when the logo is letterboxed.
+    const isBanner = profile?.header_type === "banner";
     let processedFile: Blob = file;
     if (file.size > 2 * 1024 * 1024) {
       try {
-        processedFile = await compressImage(file);
+        processedFile = isBanner
+          ? await compressImage(file, 2560, 0.92)
+          : await compressImage(file);
       } catch {
         toast.error("Failed to process image");
         return;
