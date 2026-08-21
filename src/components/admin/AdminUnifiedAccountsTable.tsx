@@ -200,7 +200,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: restaurants, error: rErr } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, custom_slug, plan_type, subscription_status, is_approved, created_at, logo_url"
+            "id, restaurant_name, custom_slug, plan_type, subscription_status, is_approved, created_at, updated_at, logo_url"
           );
         if (rErr) throw rErr;
 
@@ -208,7 +208,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
+            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -260,6 +260,7 @@ const AdminUnifiedAccountsTable = () => {
           subscription_status: r.subscription_status ?? null,
           is_approved: r.is_approved ?? null,
           created_at: r.created_at ?? null,
+          updated_at: (r as { updated_at?: string | null }).updated_at ?? null,
           photo_url: r.logo_url ?? null,
           taps: rangeStats[r.id]?.taps ?? 0,
           clicks: rangeStats[r.id]?.link_clicks ?? 0,
