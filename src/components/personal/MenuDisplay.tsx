@@ -82,15 +82,32 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     if (!next) {
       setQuery("");
       setActiveSection(0);
+      setOpenSections(new Set([0]));
     }
+  };
+
+  const isOpenSection = (index: number) => !!q || openSections.has(index);
+
+  const toggleSection = (index: number) => {
+    if (q) return;
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
   };
 
   const jumpTo = (index: number) => {
     setActiveSection(index);
-    sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setOpenSections((prev) => new Set(prev).add(index));
+    requestAnimationFrame(() => {
+      sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const totalItems = filteredSections.reduce((sum, s) => sum + s.items.length, 0);
+
 
   return (
     <>
