@@ -1375,25 +1375,52 @@ export const BlockModal = ({
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Headline</Label>
-                <Input
-                  placeholder="Join our VIP Text List"
-                  value={smsHeadline}
-                  onChange={(e) => setSmsHeadline(e.target.value)}
-                  className="h-12"
-                  maxLength={60}
-                />
+                <Label>Style</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "card", label: "Card", hint: "Headline + text" },
+                    { value: "button", label: "Button only", hint: "Just one button" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSmsStyle(opt.value)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        smsStyle === opt.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground">{opt.hint}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  placeholder="Get exclusive updates and offers via text."
-                  value={smsDescription}
-                  onChange={(e) => setSmsDescription(e.target.value)}
-                  rows={2}
-                  maxLength={140}
-                />
-              </div>
+              {smsStyle === "card" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Headline <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input
+                      placeholder="Join our VIP Text List"
+                      value={smsHeadline}
+                      onChange={(e) => setSmsHeadline(e.target.value)}
+                      className="h-12"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                    <Textarea
+                      placeholder="Get exclusive updates and offers via text."
+                      value={smsDescription}
+                      onChange={(e) => setSmsDescription(e.target.value)}
+                      rows={2}
+                      maxLength={140}
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label>Button Text</Label>
                 <Input
