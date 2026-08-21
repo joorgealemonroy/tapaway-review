@@ -311,7 +311,7 @@ export const DashboardDesignTab = ({
     setCropperOpen(true);
   };
 
-  const handleCropComplete = async (croppedBlob: Blob) => {
+  const handleCropComplete = async (croppedBlob: Blob, _previewDataUrl?: string) => {
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
