@@ -539,6 +539,7 @@ const PersonalDashboard = () => {
 
     const objectUrl = URL.createObjectURL(processedFile);
     setRawImageUrl(objectUrl);
+    bannerOriginalBlobRef.current = isBanner ? processedFile : null;
 
     // For banner-style hubs, pre-sample a background-fill color from the image
     // so the cropper can paint the empty canvas area when the user zooms out.
