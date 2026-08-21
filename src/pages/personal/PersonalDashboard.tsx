@@ -31,6 +31,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
+import { bannerAspectRatio } from "@/lib/bannerAspect";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor, DashboardHeroEditorHandle, HeroSnapshot } from "@/components/personal/DashboardHeroEditor";
@@ -158,7 +159,7 @@ const PersonalDashboard = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
-  const [bannerAspectRatio, setBannerAspectRatio] = useState(16 / 5);
+  const [cropAspectRatio, setBannerAspectRatio] = useState(16 / 9);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -542,7 +543,7 @@ const PersonalDashboard = () => {
       } catch {
         setBannerFillColor(null);
       }
-      setBannerAspectRatio(16 / 5);
+      setBannerAspectRatio(bannerAspectRatio(profile?.banner_aspect));
     } else {
       setBannerFillColor(null);
       setBannerAspectRatio(1);
@@ -1580,11 +1581,12 @@ const PersonalDashboard = () => {
           }}
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
-          aspectRatio={bannerAspectRatio}
+          aspectRatio={cropAspectRatio}
           cropShape={profile?.header_type === "banner" ? "rect" : "round"}
-          minZoom={profile?.header_type === "banner" ? 0.4 : 1}
+          minZoom={profile?.header_type === "banner" ? 0.25 : 1}
           restrictPosition={profile?.header_type !== "banner"}
           fillColor={bannerFillColor}
+          editableFill={profile?.header_type === "banner"}
         />
       )}
 
