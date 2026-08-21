@@ -1,0 +1,50 @@
+/**
+ * Single source of truth for the personal-profile columns a public hub page
+ * needs to render. Used by the pre-approval preview path so a draft hub looks
+ * exactly like the public page it becomes on approval.
+ *
+ * Keep this in sync with the public `get_public_personal_profile` function.
+ */
+export const HUB_PROFILE_COLUMNS = [
+  "id",
+  "user_id",
+  "username",
+  "full_name",
+  "profile_photo_url",
+  "subscription_status",
+  "header_type",
+  "header_color",
+  "header_image_url",
+  "background_color",
+  "pfp_position",
+  "headline",
+  "bio",
+  "contact_enabled",
+  "contact_name",
+  "contact_email",
+  "contact_photo_url",
+  "contact_phone",
+  "contact_company",
+  "contact_title",
+  "contact_address",
+  "contact_website",
+  "banner_image_url",
+  "banner_fit",
+  "banner_aspect",
+  "logo_scale",
+  "logo_bg_color",
+  "plan_type",
+  "show_shop_section",
+  "is_founding_user",
+  "founding_number",
+  "show_founding_badge",
+  "bg_style",
+  "vibe_id",
+  "button_theme",
+  "text_color",
+  "show_username",
+  "contact_display_style",
+  "contact_button_label",
+  "is_approved",
+  "created_by_rep_id",
+].join(", ");
