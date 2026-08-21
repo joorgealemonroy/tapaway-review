@@ -70,7 +70,7 @@ const pipelineOf = (p: { is_approved: boolean | null; pipeline_status?: string |
   return "draft";
 };
 
-type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name";
+type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name" | "recent";
 
 const SORT_STORAGE_KEY = "admin-accounts-sort";
 const RANGE_STORAGE_KEY = "admin-accounts-range";
@@ -309,6 +309,9 @@ const AdminUnifiedAccountsTable = () => {
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
+    // "las islas marias gardena" must find the hub whose slug is
+    // "islasmariasgardena" — compare with separators stripped too.
+    const squashed = s.replace(/[^a-z0-9]/g, "");
     return rows
       .filter((r) => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
@@ -318,7 +321,8 @@ const AdminUnifiedAccountsTable = () => {
         if (zeroTapsOnly && r.lifetimeTaps > 0) return false;
         if (s) {
           const hay = `${r.name} ${r.slug ?? ""}`.toLowerCase();
-          if (!hay.includes(s)) return false;
+          const haySquashed = hay.replace(/[^a-z0-9]/g, "");
+          if (!hay.includes(s) && !(squashed && haySquashed.includes(squashed))) return false;
         }
         return true;
       })
@@ -329,6 +333,11 @@ const AdminUnifiedAccountsTable = () => {
         if (sortKey === "last_active") {
           const at = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
           const bt = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+          return (at - bt) * dir;
+        }
+        if (sortKey === "recent") {
+          const at = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0;
           return (at - bt) * dir;
         }
         if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
