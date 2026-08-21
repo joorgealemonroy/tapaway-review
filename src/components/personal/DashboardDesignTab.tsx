@@ -90,6 +90,8 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   bannerFit,
+  bannerAspect,
+  bannerOriginalUrl,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -108,13 +110,21 @@ export const DashboardDesignTab = ({
   const userPickedBg = useRef(false);
   const hasInitialized = useRef(false);
 
+  // --- Manual banner cropping ---
+  const [bannerCropOpen, setBannerCropOpen] = useState(false);
+  const [bannerCropSrc, setBannerCropSrc] = useState<string | null>(null);
+  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
+  const [bannerSaving, setBannerSaving] = useState(false);
+
   // --- Pending (buffered) state for deferred save ---
   const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
+  const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
+
 
   // Force banner mode on rep-created demo hubs and persist it once
   useEffect(() => {
