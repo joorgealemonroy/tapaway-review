@@ -1469,8 +1469,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </div>
           )}
 
-          {/* Avatar - priority loaded, hidden when using full banner */}
-          {!hasBanner && (
+          {/* Avatar - priority loaded, hidden when the logo/banner is the header */}
+          {!hasBanner && !isLogoHeader && (
+
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
               <OptimizedAvatar
                 src={profile.profile_photo_url}
