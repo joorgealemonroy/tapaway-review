@@ -897,17 +897,20 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
           action: {
             label: "Undo",
             onClick: () => {
-              if (isPendingAdd) {
-                markPendingChange(prev => ({
-                  addedBlocks: [...prev.addedBlocks, removed],
-                }));
-              } else {
+              const stillPending = pendingChangesRef.current.deletedBlockIds.has(id);
+              if (!isPendingAdd && stillPending) {
                 markPendingChange(prev => {
                   const newDeletedIds = new Set(prev.deletedBlockIds);
                   newDeletedIds.delete(id);
                   return { deletedBlockIds: newDeletedIds };
                 });
+              } else {
+                // Already written to the database (or was never saved) — re-insert it
+                markPendingChange(prev => ({
+                  addedBlocks: [...prev.addedBlocks, removed],
+                }));
               }
+
               onBlocksChange(
                 [...blocksRef.current.filter(b => b.id !== id), removed]
                   .sort((a, b) => a.sort_order - b.sort_order)
