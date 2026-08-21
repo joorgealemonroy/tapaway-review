@@ -96,6 +96,7 @@ interface PersonalProfile {
   contact_button_label?: string | null;
   // Premium feature
   banner_image_url: string | null;
+  banner_fit: string | null;
   // Affiliate referral
   referred_by: string | null;
   trial_ends_at: string | null;
