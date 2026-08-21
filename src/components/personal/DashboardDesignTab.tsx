@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,18 @@ interface Props {
   }) => void;
 }
 
+type DesignDatabaseUpdates = Partial<{
+  header_type: string;
+  header_color: string | null;
+  background_color: string | null;
+  banner_fit: string | null;
+  banner_aspect: string | null;
+  logo_scale: string | null;
+  logo_bg_color: string | null;
+}>;
+
+type DesignPreviewUpdates = Parameters<Props["onUpdate"]>[0];
+
 
 const COLOR_PRESETS = [
   "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
@@ -121,9 +133,14 @@ export const DashboardDesignTab = ({
   const [imageBasedColor, setImageBasedColor] = useState<string | null>(null);
   const [extractingColor, setExtractingColor] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const userPickedBg = useRef(false);
   const hasInitialized = useRef(false);
+  const queuedUpdatesRef = useRef<DesignDatabaseUpdates>({});
+  const saveInFlightRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- Manual banner cropping ---
   const [bannerCropOpen, setBannerCropOpen] = useState(false);
@@ -173,18 +190,6 @@ export const DashboardDesignTab = ({
     setBgColorInput(backgroundColor || "#ffffff");
   }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, logoBgColor, isRepDemo]);
 
-  const hasChanges = useMemo(() => {
-    return (
-      pendingHeaderType !== headerType ||
-      pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor ||
-      pendingBannerFit !== (bannerFit || "cover") ||
-      pendingBannerAspect !== normalizeBannerAspect(bannerAspect) ||
-      pendingLogoScale !== normalizeLogoScale(logoScale) ||
-      (pendingLogoBgColor ?? null) !== (logoBgColor ?? null)
-    );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale, pendingLogoBgColor, logoBgColor]);
-
   // Mid-luminance backgrounds are the ones where neither dark nor light text
   // reads well — warn the owner instead of letting the hub ship unreadable.
   const logoContrastOk = useMemo(() => {
@@ -195,54 +200,61 @@ export const DashboardDesignTab = ({
 
 
 
-  const handleSave = async (silent = false) => {
+  const flushDesignSave = useCallback(async () => {
+    if (saveInFlightRef.current || Object.keys(queuedUpdatesRef.current).length === 0) return;
+
+    const updates = queuedUpdatesRef.current;
+    queuedUpdatesRef.current = {};
+    saveInFlightRef.current = true;
     setSaving(true);
+    setSaveStatus("saving");
+
     try {
-      const updates: Record<string, string | null> = {};
-      if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
-      if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
-      if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
-      if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
-      if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
-      if (pendingLogoScale !== normalizeLogoScale(logoScale)) updates.logo_scale = pendingLogoScale;
-      if ((pendingLogoBgColor ?? null) !== (logoBgColor ?? null)) updates.logo_bg_color = pendingLogoBgColor;
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update(updates)
+        .eq("id", profileId);
+      if (error) throw error;
 
-      if (Object.keys(updates).length > 0) {
-        const { error } = await supabase
-          .from("personal_profiles")
-          .update(updates)
-          .eq("id", profileId);
-        if (error) throw error;
-      }
-
-      // Push to parent so preview updates with saved values
-      onUpdate({
-        headerType: pendingHeaderType,
-        headerColor: pendingHeaderColor,
-        backgroundColor: pendingBgColor,
-        bannerFit: pendingBannerFit,
-        bannerAspect: pendingBannerAspect,
-        logoScale: pendingLogoScale,
-        logoBgColor: pendingLogoBgColor,
-      });
       userPickedBg.current = false;
-      if (!silent) toast.success("Design saved!");
+      setSaveStatus("saved");
+      if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
+      savedStatusTimerRef.current = setTimeout(() => setSaveStatus("idle"), 1600);
     } catch (err) {
+      // Preserve newer queued values while restoring only fields that were not
+      // changed again during this request.
+      queuedUpdatesRef.current = { ...updates, ...queuedUpdatesRef.current };
       console.error("Save error:", err);
-      toast.error("Failed to save changes");
+      setSaveStatus("error");
+      toast.error("Design could not be saved. Please try again.");
     } finally {
+      saveInFlightRef.current = false;
       setSaving(false);
+      if (Object.keys(queuedUpdatesRef.current).length > 0) {
+        setTimeout(() => { void flushDesignSave(); }, 0);
+      }
     }
-  };
+  }, [profileId]);
 
-  // Design changes save themselves — no Save bar tapping required on mobile.
-  const saveRef = useRef(handleSave);
-  saveRef.current = handleSave;
-  useEffect(() => {
-    if (!hasChanges || saving) return;
-    const t = setTimeout(() => { void saveRef.current(true); }, 500);
-    return () => clearTimeout(t);
-  }, [hasChanges, saving, pendingHeaderType, pendingBgColor, pendingHeaderColor, pendingBannerFit, pendingBannerAspect, pendingLogoScale, pendingLogoBgColor]);
+  const queueDesignSave = useCallback((
+    databaseUpdates: DesignDatabaseUpdates,
+    previewUpdates: DesignPreviewUpdates,
+  ) => {
+    queuedUpdatesRef.current = { ...queuedUpdatesRef.current, ...databaseUpdates };
+    onUpdate(previewUpdates);
+    setSaveStatus("saving");
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      void flushDesignSave();
+    }, 250);
+  }, [flushDesignSave, onUpdate]);
+
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
+    if (Object.keys(queuedUpdatesRef.current).length > 0) void flushDesignSave();
+  }, [flushDesignSave]);
 
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -341,6 +353,7 @@ export const DashboardDesignTab = ({
   const handleColorChange = (color: string) => {
     setPendingHeaderColor(color);
     setCustomColorInput(color);
+    queueDesignSave({ header_color: color }, { headerColor: color });
   };
 
   const handleBgColorChange = (color: string) => {
@@ -348,7 +361,10 @@ export const DashboardDesignTab = ({
     setPendingBgColor(color);
     setBgColorInput(color);
     // Keep the live preview in step with the picker.
-    onUpdate({ headerType: pendingHeaderType, backgroundColor: color });
+    queueDesignSave(
+      { background_color: color },
+      { headerType: pendingHeaderType, backgroundColor: color },
+    );
   };
 
   // The logo band takes the logo's own color. The page color below is never
@@ -356,12 +372,15 @@ export const DashboardDesignTab = ({
   const applyLogoBandColor = (color: string) => {
     userPickedBg.current = true;
     setPendingLogoBgColor(color);
-    onUpdate({ headerType: "logo", logoBgColor: color });
+    queueDesignSave(
+      { header_type: "logo", logo_bg_color: color },
+      { headerType: "logo", logoBgColor: color },
+    );
   };
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
-    onUpdate({ headerType: type });
+    queueDesignSave({ header_type: type }, { headerType: type });
     // Picking "Logo" should just work: blend the page into the logo's own
     // background automatically, no extra taps required.
     if (type === "logo" && profilePhotoUrl) {
@@ -374,7 +393,10 @@ export const DashboardDesignTab = ({
   // Push logo sizing to the live preview as it is adjusted
   const handleLogoScaleChange = (value: string) => {
     setPendingLogoScale(normalizeLogoScale(value));
-    onUpdate({ headerType: pendingHeaderType, logoScale: value });
+    queueDesignSave(
+      { logo_scale: normalizeLogoScale(value) },
+      { headerType: pendingHeaderType, logoScale: normalizeLogoScale(value) },
+    );
   };
 
   // Match the page background to the logo's own edge color so wide logos with
@@ -432,6 +454,10 @@ export const DashboardDesignTab = ({
         if (shouldAutoApply) {
           setPendingBgColor(ambientGradient);
           setBgColorInput(ambientGradient);
+          queueDesignSave(
+            { background_color: ambientGradient },
+            { headerType: pendingHeaderType, backgroundColor: ambientGradient },
+          );
           toast.success("Background auto-matched to your profile photo");
         }
       })
@@ -442,7 +468,7 @@ export const DashboardDesignTab = ({
         setExtractingColor(false);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingHeaderType, bannerImageSource]);
+  }, [pendingHeaderType, bannerImageSource, queueDesignSave]);
 
   // --- Image upload stays immediate ---
   const compressImage = (file: File): Promise<Blob> => {
@@ -527,10 +553,12 @@ export const DashboardDesignTab = ({
   return (
     <div className="space-y-8">
       {/* Sticky save bar */}
-      {(saving || hasChanges) && (
+      {(saving || saveStatus !== "idle") && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Saving…
+          {saveStatus === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          <span className={saveStatus === "error" ? "text-destructive" : undefined}>
+            {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Save failed" : "Saving…"}
+          </span>
         </div>
       )}
 
@@ -780,7 +808,13 @@ export const DashboardDesignTab = ({
                 {BANNER_ASPECT_LABELS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setPendingBannerAspect(opt.value)}
+                    onClick={() => {
+                      setPendingBannerAspect(opt.value);
+                      queueDesignSave(
+                        { banner_aspect: opt.value },
+                        { bannerAspect: opt.value },
+                      );
+                    }}
                     className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                       pendingBannerAspect === opt.value
                         ? "border-primary bg-primary/5"
