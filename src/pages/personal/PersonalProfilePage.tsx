@@ -32,7 +32,7 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
-import { resolveHubContrast } from "@/lib/hubContrast";
+import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 
 
 
@@ -1608,13 +1608,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           >
             {/* Lead Form CTA */}
             <div className="mb-4">
-              <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} />
+              <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} contrast={hubContrast} />
             </div>
 
             {/* Featured link - rendered prominently at top */}
             {featuredLink && (
               <div className="mb-4">
-                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
+                <ProfileLink link={featuredLink} profileId={profile.id} isFeatured index={0} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />
               </div>
             )}
 
@@ -1631,14 +1631,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                     <div key={`grid-group-${idx}`} className="grid grid-cols-2 gap-3">
                       {item.links.map((link: any, i: number) => (
                         <div key={`grid-${link.id}`} className={item.links.length === 1 ? 'col-span-2' : ''}>
-                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />
+                          <ProfileLink link={link} profileId={profile.id} isGrid index={startIndex + i} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />
                         </div>
                       ))}
                     </div>
                   );
                 } else if (item.kind === "link") {
                   const currentIndex = linkIndex++;
-                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} />;
+                  return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />;
                 } else {
                   // Check if it's a product block
                   const blockData = item.data;
