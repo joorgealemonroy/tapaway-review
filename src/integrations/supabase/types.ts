@@ -1916,6 +1916,7 @@ export type Database = {
           archived_header_image_url: string | null
           archived_header_type: string | null
           background_color: string | null
+          banner_fit: string
           banner_image_url: string | null
           bg_style: string | null
           bio: string | null
@@ -1998,6 +1999,7 @@ export type Database = {
           archived_header_image_url?: string | null
           archived_header_type?: string | null
           background_color?: string | null
+          banner_fit?: string
           banner_image_url?: string | null
           bg_style?: string | null
           bio?: string | null
@@ -2080,6 +2082,7 @@ export type Database = {
           archived_header_image_url?: string | null
           archived_header_type?: string | null
           background_color?: string | null
+          banner_fit?: string
           banner_image_url?: string | null
           bg_style?: string | null
           bio?: string | null
