@@ -10,7 +10,6 @@ import {
 } from '@/lib/hubThemes';
 import { toSocialDeepLink } from '@/lib/deepLinks';
 import { sampleBottomEdgeColor } from '@/lib/sampleBannerColor';
-import { bannerAspectCss } from "@/lib/bannerAspect";
 
 export type HeaderStyle = 'solid' | 'image' | 'full_banner';
 
@@ -67,8 +66,6 @@ export const LivePhonePreview = ({
   businessPhone,
   headerStyle = 'solid',
   bannerUrl,
-  bannerFit = 'cover',
-  bannerAspect,
   socials = {},
   socialImages = {},
   blocks = [],
@@ -187,52 +184,22 @@ export const LivePhonePreview = ({
         style={{ width: 360 }}
       >
         <div className="w-full h-full overflow-y-auto" style={containerStyle}>
-          {/* Banner — uses the hub's chosen banner shape so the preview matches the live hub */}
-          {headerStyle === 'full_banner' && bannerUrl ? (
-            <div
-              style={{
-                backgroundColor: bannerBg,
-                position: 'relative',
-                aspectRatio: bannerAspectCss(bannerAspect),
-                overflow: 'hidden',
-              }}
-            >
-              <img
-                src={bannerUrl}
-                alt="Banner"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  height: '100%',
-                  objectFit: bannerFit === 'cover' ? 'cover' : 'contain',
-                  objectPosition: 'center',
-                  ...(useMask
-                    ? {
-                        WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                        maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                      }
-                    : {}),
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                height: bannerHeight,
-                backgroundColor: bannerBg,
-                backgroundImage: bannerUrl && headerStyle !== 'solid' ? `url(${bannerUrl})` : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                position: 'relative',
-                ...(useMask
-                  ? {
-                      WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                      maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                    }
-                  : {}),
-              }}
-            />
-          )}
+          <div
+            style={{
+              height: bannerHeight,
+              backgroundColor: bannerBg,
+              backgroundImage: bannerUrl && headerStyle !== 'solid' ? `url(${bannerUrl})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: headerStyle === 'full_banner' ? 'center top' : 'center',
+              position: 'relative',
+              ...(useMask
+                ? {
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                    maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                  }
+                : {}),
+            }}
+          />
 
 
 

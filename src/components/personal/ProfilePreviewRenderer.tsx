@@ -3,7 +3,6 @@ import { memo, useMemo, useState, useEffect } from "react";
 import { ExternalLink, Mail, UserPlus } from "lucide-react";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
-import { bannerAspectCss } from "@/lib/bannerAspect";
 import { ImageLightbox } from "./ImageLightbox";
 import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
@@ -799,27 +798,19 @@ function ProfilePreviewRendererComponent({
       <div className="relative w-full">
         {hasBanner ? (
           <>
-            {/* Banner mode - fully visible with fade at bottom using extracted color */}
+            {/* Banner mode - preserve the original dashboard preview dimensions. */}
             <div 
-              className="overflow-hidden relative"
-              style={{
-                backgroundColor: extractedBannerColor || headerColor,
-                aspectRatio: bannerAspectCss(profile.banner_aspect),
-              }}
+              className="h-64 overflow-hidden relative"
             >
               {bannerUrl ? (
                 <img
                   src={bannerUrl}
                   alt="Banner"
-                  className={
-                    profile.banner_fit === 'cover'
-                      ? 'h-full w-full object-cover object-center'
-                      : 'w-full h-full object-contain object-center block'
-                  }
-                  style={profile.banner_fit === 'cover' ? {
+                  className="h-full w-full object-cover object-top"
+                  style={{
                     WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                     maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  } : undefined}
+                  }}
                 />
               ) : (
                 <div 
@@ -831,18 +822,16 @@ function ProfilePreviewRendererComponent({
               )}
 
               {/* Gradient fade using extracted color from image - taller for text overlap */}
-              {profile.banner_fit === 'cover' && (
-                <div 
-                  className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-                  style={{
-                    background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
-                      extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                    }40 60%, ${
-                      extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                    } 100%)`
-                  }}
-                />
-              )}
+              <div 
+                className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
+                style={{
+                  background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
+                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
+                  }40 60%, ${
+                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
+                  } 100%)`
+                }}
+              />
             </div>
 
           </>
@@ -882,7 +871,7 @@ function ProfilePreviewRendererComponent({
 
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
-        className={`px-6 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-16' : 'mt-4') : ''} ${
+        className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >

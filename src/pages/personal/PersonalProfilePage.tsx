@@ -30,7 +30,6 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
-import { bannerAspectCss } from "@/lib/bannerAspect";
 
 
 
@@ -1332,46 +1331,33 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         )}
         {hasBanner ? (
           <div className="relative">
-            {/* Banner image — the panel uses the shape the owner picked
-                (Short / Standard / Tall) so a manual crop renders exactly as
-                cropped. Un-cropped legacy images letterbox inside the panel. */}
-            <div
-              className="w-full overflow-hidden"
-              style={{
-                willChange: 'transform',
-                backgroundColor: extractedBannerColor || profile.header_color || undefined,
-                aspectRatio: bannerAspectCss(profile.banner_aspect),
-              }}
+            {/* Existing banners retain their original full-height presentation. */}
+            <div 
+              className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
+              style={{ willChange: 'transform' }}
             >
               <img
                 src={bannerUrl}
                 alt="Banner"
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
-                className={
-                  profile.banner_fit === 'cover'
-                    ? 'w-full h-full object-cover object-center'
-                    : 'w-full h-full object-contain object-center block'
-                }
-                style={profile.banner_fit === 'cover' ? {
+                className="w-full h-full object-cover object-top"
+                style={{
                   WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                   maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                } : undefined}
+                }}
               />
             </div>
 
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
-            {profile.banner_fit === 'cover' && (
-              <div 
-                className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
-                style={{
-                  background: isLightBanner
-                    ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
-                    : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
-                }}
-              />
-            )}
+            <div 
+              className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
+              style={{
+                background: isLightBanner
+                  ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
+                  : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
+              }}
+            />
 
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
@@ -1422,7 +1408,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-32' : 'mt-6') : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
