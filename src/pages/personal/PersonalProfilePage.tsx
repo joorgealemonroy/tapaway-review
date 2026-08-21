@@ -25,6 +25,8 @@ import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
+import { logoImageStyle } from "@/lib/logoHeader";
+
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
