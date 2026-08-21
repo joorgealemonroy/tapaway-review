@@ -29,7 +29,7 @@ The same rendering rules go into the dashboard preview, the public hub page, and
 
 ## Technical notes
 
-- `src/components/personal/ImageCropper.tsx`: add `minZoom` prop (default 1, banner mode ~0.4), pass `restrictPosition={false}`, and change `getCroppedImg` to paint a background fill color before `drawImage` so out-of-bounds areas are colored instead of transparent.
+- `src/components/personal/ImageCropper.tsx`: add `minZoom` prop (default 1, banner mode ~0.4). Pass `restrictPosition={false}` **only when the cropper is opened for a banner image**; for circular personal avatar photos keep `restrictPosition={true}` so the avatar stays centered. Change `getCroppedImg` to paint a background fill color before `drawImage` so out-of-bounds areas are colored instead of transparent.
 - `src/pages/personal/PersonalDashboard.tsx`: pass `aspectRatio` / `cropShape` / `minZoom` based on `profile.header_type === "banner"` (currently uses defaults). `HeaderCustomizer.tsx` already passes `16/5` rect and gets the same `minZoom` treatment.
 - New persisted setting `banner_fit: "cover" | "contain"` on the personal profile (stored in the existing profile settings JSON, no new column needed).
 - Rendering updates:
