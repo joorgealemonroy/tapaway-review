@@ -717,6 +717,7 @@ const PersonalDashboard = () => {
     bannerAspect?: string | null;
     bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
+    logoScale?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -731,6 +732,7 @@ const PersonalDashboard = () => {
         banner_aspect: updates.bannerAspect !== undefined ? updates.bannerAspect : profile.banner_aspect,
         banner_original_url: updates.bannerOriginalUrl !== undefined ? updates.bannerOriginalUrl : profile.banner_original_url,
         profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
+        logo_scale: updates.logoScale !== undefined ? updates.logoScale : profile.logo_scale,
       };
 
       setProfile(updatedProfile);
@@ -1456,6 +1458,7 @@ const PersonalDashboard = () => {
               bannerFit={profile.banner_fit}
               bannerAspect={profile.banner_aspect}
               bannerOriginalUrl={profile.banner_original_url}
+              logoScale={profile.logo_scale}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
