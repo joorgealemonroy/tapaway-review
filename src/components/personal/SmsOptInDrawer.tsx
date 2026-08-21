@@ -117,8 +117,33 @@ export const SmsOptInDrawer = ({
     }
   };
 
+  const trustChips = (
+    <div className="flex flex-wrap justify-center gap-1.5">
+      {[
+        { icon: BellOff, label: "No spam" },
+        { icon: ShieldCheck, label: "Text STOP anytime" },
+        { icon: Ban, label: "We never sell your info" },
+      ].map(({ icon: Icon, label }) => (
+        <span
+          key={label}
+          className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground"
+        >
+          <Icon className="h-3 w-3" />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+
+  const headerMark = (
+    <div className="mx-auto h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+      <MessageSquareHeart className="h-4.5 w-4.5 text-primary" strokeWidth={1.75} />
+    </div>
+  );
+
   const formContent = (
     <form onSubmit={handleSubmit} className="space-y-4 px-4 pb-6">
+      {trustChips}
       <div className="space-y-2">
         <Label htmlFor="sms-name">Full Name</Label>
         <Input
@@ -156,35 +181,38 @@ export const SmsOptInDrawer = ({
         onTransactionalChange={setTransactionalConsent}
         requireMarketing
       />
-      <Button
-        type="submit"
-        disabled={submitting || !marketingConsent}
-        className="w-full h-12 text-base font-semibold"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Joining...
-          </>
-        ) : (
-          buttonText
-        )}
-      </Button>
+      <div className="space-y-1.5">
+        <Button
+          type="submit"
+          disabled={submitting || !marketingConsent}
+          className="w-full h-12 text-base font-semibold"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Joining...
+            </>
+          ) : (
+            buttonText
+          )}
+        </Button>
+        <p className="text-center text-[11px] text-muted-foreground">Takes 5 seconds</p>
+      </div>
     </form>
   );
 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent>
-          <DrawerHeader className="text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Smartphone className="h-6 w-6 text-primary" />
-            </div>
-            <DrawerTitle>{headline}</DrawerTitle>
-            <DrawerDescription>{description}</DrawerDescription>
-          </DrawerHeader>
-          {formContent}
+        <DrawerContent className="max-h-[88dvh]">
+          <div className="overflow-y-auto overscroll-contain">
+            <DrawerHeader className="text-center pb-2">
+              {headerMark}
+              <DrawerTitle>{headline}</DrawerTitle>
+              <DrawerDescription>{description}</DrawerDescription>
+            </DrawerHeader>
+            {formContent}
+          </div>
         </DrawerContent>
       </Drawer>
     );
@@ -192,11 +220,9 @@ export const SmsOptInDrawer = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-            <Smartphone className="h-6 w-6 text-primary" />
-          </div>
+      <DialogContent className="max-w-sm max-h-[88vh] overflow-y-auto">
+        <DialogHeader className="text-center pb-1">
+          {headerMark}
           <DialogTitle>{headline}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
@@ -205,3 +231,4 @@ export const SmsOptInDrawer = ({
     </Dialog>
   );
 };
+
