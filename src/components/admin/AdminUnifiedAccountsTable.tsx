@@ -634,6 +634,23 @@ const AdminUnifiedAccountsTable = () => {
         >
           Broken links only
         </button>
+        <button
+          onClick={() => {
+            setSortKey("recent");
+            setSortDir("desc");
+            setPipelineFilter("live");
+            setZeroTapsOnly(false);
+            setBrokenOnly(false);
+          }}
+          title="Show live hubs, newest changes first — a just-approved hub lands at the top"
+          className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
+            sortKey === "recent"
+              ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
+              : "bg-white/[0.03] border-white/5 text-white/60 hover:text-white/90"
+          }`}
+        >
+          Recently approved
+        </button>
         <span className="text-[11px] text-white/40 ml-auto">
           {filtered.length} of {rows.length}
         </span>
