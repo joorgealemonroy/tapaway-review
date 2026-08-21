@@ -17,14 +17,15 @@ The logo band is currently painted with `header_color`, an old field that most h
 4. If `logo_bg_color` is empty, the band simply uses the page background (one clean tone), never a legacy color.
 5. Design tab shows two clear controls for Logo style: "Logo background" (with Match to logo / White / Black chips) and "Page background", each with its own swatch. Both keep auto-saving.
 6. Save contact / Share chips pick their contrast from the band color; the blocks below keep picking theirs from the page color.
-7. One-time cleanup for Mariscos Las Nuevas Islas: set its `logo_bg_color` to the logo's own white so it reads as one clean top band instead of the navy slab.
+7. Curved seam, like Reborn Wraps: the content section below the logo band gets rounded top corners and overlaps the band slightly, so the two colors meet on a soft curve instead of a hard straight edge.
+8. One-time cleanup for Mariscos Las Nuevas Islas: set its `logo_bg_color` to the logo's own white so it reads as one clean top band instead of the navy slab.
 
 ## Technical notes
 
 - Migration: `alter table public.personal_profiles add column logo_bg_color text;` (nullable, no backfill of other rows). Existing GRANTs/RLS on the table already cover it.
 - `src/components/personal/DashboardDesignTab.tsx`: drop `deriveCompanionColor` usage; `applySampledLogoColors` becomes `applyLogoBandColor` writing only `logo_bg_color`; add the second swatch row; keep the existing debounced auto-save.
 - `src/lib/logoHeader.ts`: remove `deriveCompanionColor`.
-- `src/pages/personal/PersonalProfilePage.tsx`: band style reads `profile.logo_bg_color ?? page background`; `bandContrast` derives from that; page background logic untouched.
+- `src/pages/personal/PersonalProfilePage.tsx`: band style reads `profile.logo_bg_color ?? page background`; `bandContrast` derives from that; page background logic untouched. The content wrapper below the band gets `rounded-t-[28px]`, the page background painted on it, and a small negative top margin so it curves over the band (matching the banner hubs' seam).
 - `src/components/personal/ProfilePreviewRenderer.tsx` and `src/components/rep/LivePhonePreview.tsx`: mirror the same band color.
 - Non-logo hubs (banner, photo, solid) are untouched; `header_color` keeps its current meaning everywhere else.
 
