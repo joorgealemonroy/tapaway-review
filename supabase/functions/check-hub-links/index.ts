@@ -292,7 +292,8 @@ serve(async (req) => {
       await supabase.from("hub_link_checks").delete().in("id", stale.slice(i, i + 200));
     }
 
-    const broken = rows.filter((r) => r.status !== "ok");
+    // "unverified" means the check was blocked, not that the link is broken.
+    const broken = rows.filter((r) => r.status !== "ok" && r.status !== "unverified");
     return new Response(
       JSON.stringify({
         success: true,
