@@ -97,6 +97,8 @@ interface PersonalProfile {
   // Premium feature
   banner_image_url: string | null;
   banner_fit: string | null;
+  banner_aspect: string | null;
+  banner_original_url: string | null;
   // Affiliate referral
   referred_by: string | null;
   trial_ends_at: string | null;
