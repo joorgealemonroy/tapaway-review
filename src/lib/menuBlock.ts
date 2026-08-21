@@ -145,3 +145,58 @@ export function parseMenuText(text: string): MenuSection[] {
 
   return sections.filter((section) => section.items.length > 0 || section.name.length > 0);
 }
+
+/** Merge menu sections, combining sections with the same name and dropping duplicate items. */
+export function mergeMenuSections(groups: MenuSection[][]): MenuSection[] {
+  const merged: MenuSection[] = [];
+  const byName = new Map<string, MenuSection>();
+
+  for (const group of groups) {
+    for (const section of group || []) {
+      const name = String(section?.name ?? "").trim();
+      const key = name.toLowerCase();
+      let target = byName.get(key);
+      if (!target) {
+        target = { name: name || "Menu", items: [] };
+        byName.set(key, target);
+        merged.push(target);
+      }
+      for (const item of section?.items || []) {
+        const itemName = String(item?.name ?? "").trim();
+        if (!itemName) continue;
+        const price = (item.price || "").trim();
+        const duplicate = target.items.some(
+          (existing) =>
+            existing.name.toLowerCase() === itemName.toLowerCase() &&
+            (existing.price || "").trim() === price
+        );
+        if (duplicate) continue;
+        target.items.push({
+          name: itemName,
+          description: (item.description || "").trim(),
+          price,
+          hidden: false,
+        });
+      }
+    }
+  }
+
+  return merged.filter((section) => section.items.length > 0);
+}
+
+/** Render sections back into the plain-text format the paste box understands. */
+export function menuSectionsToText(sections: MenuSection[]): string {
+  return sections
+    .map((section) => {
+      const lines = [section.name.trim().toUpperCase()];
+      for (const item of section.items) {
+        const desc = (item.description || "").trim();
+        const price = (item.price || "").trim();
+        lines.push(
+          [item.name.trim(), desc ? `- ${desc}` : "", price].filter(Boolean).join(" ").trim()
+        );
+      }
+      return lines.join("\n");
+    })
+    .join("\n\n");
+}
