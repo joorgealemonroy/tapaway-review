@@ -1,25 +1,57 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, ChevronUp, ChevronDown, Wand2, Download, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Wand2,
+  Download,
+  Loader2,
+  Camera,
+  X,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { countMenuItems, parseMenuText, type MenuSection } from "@/lib/menuBlock";
+import { compressImage } from "@/lib/imageOptimization";
+import {
+  countMenuItems,
+  parseMenuText,
+  mergeMenuSections,
+  menuSectionsToText,
+  type MenuSection,
+} from "@/lib/menuBlock";
 
 interface Props {
   sections: MenuSection[];
   onSectionsChange: (sections: MenuSection[]) => void;
 }
 
+const MAX_PHOTOS = 15;
+const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
+
+interface MenuPhoto {
+  id: string;
+  file: File;
+  preview: string;
+}
+
 export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
   const [pasteText, setPasteText] = useState("");
   const [importSlug, setImportSlug] = useState("");
   const [importing, setImporting] = useState(false);
+  const [photos, setPhotos] = useState<MenuPhoto[]>([]);
+  const [reading, setReading] = useState(false);
+  const [progress, setProgress] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const update = (next: MenuSection[]) => onSectionsChange(next);
+
 
   const updateSection = (index: number, patch: Partial<MenuSection>) => {
     update(sections.map((section, i) => (i === index ? { ...section, ...patch } : section)));
