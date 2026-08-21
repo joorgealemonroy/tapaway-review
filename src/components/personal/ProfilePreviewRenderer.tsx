@@ -63,6 +63,7 @@ interface ProfileData {
   banner_fit?: string | null;
   banner_aspect?: string | null;
   logo_scale?: string | null;
+  logo_bg_color?: string | null;
 
   plan_type?: string | null;
   show_username?: boolean;
@@ -150,6 +151,11 @@ function ProfilePreviewRendererComponent({
   const isDarkBg = useMemo(() => hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg, hasBanner]);
   // Same readability rules the live hub uses.
   const previewContrast = useMemo(() => resolveHubContrast(backgroundColor), [backgroundColor]);
+  const logoBandColor = profile.logo_bg_color || profile.header_color || null;
+  const bandContrast = useMemo(
+    () => (logoBandColor ? resolveHubContrast(logoBandColor) : previewContrast),
+    [logoBandColor, previewContrast]
+  );
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
@@ -809,7 +815,7 @@ function ProfilePreviewRendererComponent({
         {isLogoHeader ? (
           <div
             className="relative w-full flex items-center justify-center pt-6 pb-2 px-4"
-            style={profile.header_color ? { backgroundColor: profile.header_color } : undefined}
+            style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
           >
             {profile.profile_photo_url ? (
               <img
@@ -826,14 +832,14 @@ function ProfilePreviewRendererComponent({
             {/* Matches the floating Save contact / Share cluster on the live hub */}
             <div className="absolute top-3 right-3 flex gap-1.5 z-20">
               <span
-                className={`h-8 w-8 rounded-full flex items-center justify-center ${previewContrast.chipClass}`}
+                className={`h-8 w-8 rounded-full flex items-center justify-center ${bandContrast.chipClass}`}
               >
-                <UserPlus className={`h-3.5 w-3.5 ${previewContrast.chipIconClass}`} />
+                <UserPlus className={`h-3.5 w-3.5 ${bandContrast.chipIconClass}`} />
               </span>
               <span
-                className={`h-8 w-8 rounded-full flex items-center justify-center ${previewContrast.chipClass}`}
+                className={`h-8 w-8 rounded-full flex items-center justify-center ${bandContrast.chipClass}`}
               >
-                <Share2 className={`h-3.5 w-3.5 ${previewContrast.chipIconClass}`} />
+                <Share2 className={`h-3.5 w-3.5 ${bandContrast.chipIconClass}`} />
               </span>
             </div>
           </div>
@@ -910,6 +916,14 @@ function ProfilePreviewRendererComponent({
           </>
         )}
       </div>
+
+      {/* Curved seam between the logo band and the content sheet */}
+      {isLogoHeader && (
+        <div
+          className="relative z-[5] -mt-5 h-5 rounded-t-[22px] w-full"
+          style={isGradientBg ? { background: backgroundColor } : { backgroundColor: effectiveBgColor }}
+        />
+      )}
 
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div

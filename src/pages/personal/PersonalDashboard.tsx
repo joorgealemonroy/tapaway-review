@@ -100,6 +100,7 @@ interface PersonalProfile {
   banner_fit: string | null;
   banner_aspect: string | null;
   logo_scale: string | null;
+  logo_bg_color: string | null;
 
   banner_original_url: string | null;
   // Affiliate referral
@@ -720,6 +721,7 @@ const PersonalDashboard = () => {
     bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
     logoScale?: string | null;
+    logoBgColor?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = { 
@@ -735,6 +737,7 @@ const PersonalDashboard = () => {
         banner_original_url: updates.bannerOriginalUrl !== undefined ? updates.bannerOriginalUrl : profile.banner_original_url,
         profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
         logo_scale: updates.logoScale !== undefined ? updates.logoScale : profile.logo_scale,
+        logo_bg_color: updates.logoBgColor !== undefined ? updates.logoBgColor : profile.logo_bg_color,
       };
 
       setProfile(updatedProfile);
@@ -1461,6 +1464,7 @@ const PersonalDashboard = () => {
               bannerAspect={profile.banner_aspect}
               bannerOriginalUrl={profile.banner_original_url}
               logoScale={profile.logo_scale}
+              logoBgColor={profile.logo_bg_color}
               isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
