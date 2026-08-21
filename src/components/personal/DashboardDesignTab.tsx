@@ -432,14 +432,43 @@ export const DashboardDesignTab = ({
         />
 
         {pendingHeaderType === "banner" ? (
-          <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-            <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+          <div className="space-y-3">
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your profile photo displays as a stunning full-screen banner with ambient color matching.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
               <div>
-                <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your profile photo displays as a stunning full-screen banner with ambient color matching.
+                <p className="text-sm font-medium text-foreground">Banner fit</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pendingBannerFit === "cover" ? "Fill banner — crop edges to cover" : "Fit inside banner — show full logo"}
                 </p>
+              </div>
+              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setPendingBannerFit("cover")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    pendingBannerFit === "cover" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Fill
+                </button>
+                <button
+                  onClick={() => setPendingBannerFit("contain")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    pendingBannerFit === "contain" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Fit
+                </button>
               </div>
             </div>
           </div>
