@@ -54,6 +54,8 @@ interface Props {
     bannerAspect?: string | null;
     bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
+    logoScale?: string | null;
+
   }) => void;
 }
 
