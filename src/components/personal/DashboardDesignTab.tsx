@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
-import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale, deriveCompanionColor } from "@/lib/logoHeader";
+import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale } from "@/lib/logoHeader";
 import { colorLuminance } from "@/lib/hubContrast";
 import {
   BANNER_ASPECT_LABELS,
@@ -42,6 +42,7 @@ interface Props {
   bannerAspect?: string | null;
   bannerOriginalUrl?: string | null;
   logoScale?: string | null;
+  logoBgColor?: string | null;
 
   isPremium: boolean;
   isFoundingUser?: boolean;
@@ -58,7 +59,7 @@ interface Props {
     bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
     logoScale?: string | null;
-
+    logoBgColor?: string | null;
   }) => void;
 }
 
@@ -106,6 +107,7 @@ export const DashboardDesignTab = ({
   bannerAspect,
   bannerOriginalUrl,
   logoScale,
+  logoBgColor,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -137,6 +139,7 @@ export const DashboardDesignTab = ({
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
   const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
   const [pendingLogoScale, setPendingLogoScale] = useState(normalizeLogoScale(logoScale));
+  const [pendingLogoBgColor, setPendingLogoBgColor] = useState<string | null>(logoBgColor ?? null);
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -166,9 +169,10 @@ export const DashboardDesignTab = ({
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setPendingLogoScale(normalizeLogoScale(logoScale));
+    setPendingLogoBgColor(logoBgColor ?? null);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, logoBgColor, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
@@ -177,9 +181,10 @@ export const DashboardDesignTab = ({
       pendingBgColor !== backgroundColor ||
       pendingBannerFit !== (bannerFit || "cover") ||
       pendingBannerAspect !== normalizeBannerAspect(bannerAspect) ||
-      pendingLogoScale !== normalizeLogoScale(logoScale)
+      pendingLogoScale !== normalizeLogoScale(logoScale) ||
+      (pendingLogoBgColor ?? null) !== (logoBgColor ?? null)
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale, pendingLogoBgColor, logoBgColor]);
 
   // Mid-luminance backgrounds are the ones where neither dark nor light text
   // reads well — warn the owner instead of letting the hub ship unreadable.
@@ -201,6 +206,7 @@ export const DashboardDesignTab = ({
       if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
       if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
       if (pendingLogoScale !== normalizeLogoScale(logoScale)) updates.logo_scale = pendingLogoScale;
+      if ((pendingLogoBgColor ?? null) !== (logoBgColor ?? null)) updates.logo_bg_color = pendingLogoBgColor;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -218,6 +224,7 @@ export const DashboardDesignTab = ({
         bannerFit: pendingBannerFit,
         bannerAspect: pendingBannerAspect,
         logoScale: pendingLogoScale,
+        logoBgColor: pendingLogoBgColor,
       });
       userPickedBg.current = false;
       if (!silent) toast.success("Design saved!");
@@ -236,7 +243,7 @@ export const DashboardDesignTab = ({
     if (pendingHeaderType !== "logo" || !hasChanges || saving) return;
     const t = setTimeout(() => { void saveRef.current(true); }, 700);
     return () => clearTimeout(t);
-  }, [pendingHeaderType, hasChanges, saving, pendingBgColor, pendingHeaderColor, pendingLogoScale]);
+  }, [pendingHeaderType, hasChanges, saving, pendingBgColor, pendingHeaderColor, pendingLogoScale, pendingLogoBgColor]);
 
   const handleDiscard = () => {
     userPickedBg.current = false;
@@ -246,6 +253,7 @@ export const DashboardDesignTab = ({
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setPendingLogoScale(normalizeLogoScale(logoScale));
+    setPendingLogoBgColor(logoBgColor ?? null);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -256,6 +264,7 @@ export const DashboardDesignTab = ({
       bannerFit: bannerFit || "cover",
       bannerAspect: normalizeBannerAspect(bannerAspect),
       logoScale: normalizeLogoScale(logoScale),
+      logoBgColor: logoBgColor ?? null,
     });
   };
 
@@ -341,16 +350,12 @@ export const DashboardDesignTab = ({
     onUpdate({ headerType: pendingHeaderType, backgroundColor: color });
   };
 
-  // Logo band takes the logo's own color; the content section below gets a
-  // related-but-distinct shade so the hub reads as two sections.
-  const applySampledLogoColors = (sampled: string) => {
-    const companion = deriveCompanionColor(sampled);
+  // The logo band takes the logo's own color. The page color below is never
+  // touched — that stays whatever the owner picked.
+  const applyLogoBandColor = (color: string) => {
     userPickedBg.current = true;
-    setPendingHeaderColor(sampled);
-    setCustomColorInput(sampled);
-    setPendingBgColor(companion);
-    setBgColorInput(companion);
-    onUpdate({ headerType: "logo", headerColor: sampled, backgroundColor: companion });
+    setPendingLogoBgColor(color);
+    onUpdate({ headerType: "logo", logoBgColor: color });
   };
 
   const handleTypeChange = (type: string) => {
@@ -360,7 +365,7 @@ export const DashboardDesignTab = ({
     // background automatically, no extra taps required.
     if (type === "logo" && profilePhotoUrl) {
       sampleBottomEdgeColor(profilePhotoUrl).then((sampled) => {
-        if (sampled) applySampledLogoColors(sampled);
+        if (sampled) applyLogoBandColor(sampled);
       });
     }
   };
@@ -383,8 +388,8 @@ export const DashboardDesignTab = ({
       toast.error("Could not read the logo color");
       return;
     }
-    applySampledLogoColors(sampled);
-    toast.success("Background matched to your logo");
+    applyLogoBandColor(sampled);
+    toast.success("Logo background matched to your logo");
   };
 
   // For banner mode, we use the profile photo as the banner (no separate upload)
@@ -691,20 +696,35 @@ export const DashboardDesignTab = ({
               </div>
 
               <div className="pt-1 space-y-2">
+                <p className="text-sm font-medium text-foreground">Logo background</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-11 w-11 shrink-0 rounded-lg border border-border"
+                    style={{ background: pendingLogoBgColor || pendingBgColor || "#ffffff" }}
+                  />
+                  <Button variant="outline" className="flex-1 h-11" onClick={matchBackgroundToLogo}>
+                    <Paintbrush className="h-4 w-4 mr-2" />
+                    Match to logo
+                  </Button>
+                  <Button variant="outline" className="h-11 px-3" onClick={() => applyLogoBandColor("#ffffff")}>
+                    White
+                  </Button>
+                  <Button variant="outline" className="h-11 px-3" onClick={() => applyLogoBandColor("#000000")}>
+                    Black
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-1 space-y-2">
                 <p className="text-sm font-medium text-foreground">Page color</p>
                 <div className="flex items-center gap-2">
                   <span
                     className="h-11 w-11 shrink-0 rounded-lg border border-border"
                     style={{ background: pendingBgColor || "#ffffff" }}
                   />
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-11"
-                    onClick={matchBackgroundToLogo}
-                  >
-                    <Paintbrush className="h-4 w-4 mr-2" />
-                    Match to logo
-                  </Button>
+                  <div className="flex-1 text-xs text-muted-foreground">
+                    The section below your logo.
+                  </div>
                   <Button
                     variant="outline"
                     className="h-11 px-3"
@@ -727,7 +747,7 @@ export const DashboardDesignTab = ({
                 >
                   {logoContrastOk
                     ? "Buttons and text will read clearly on this background."
-                    : "This color may wash out your buttons — try Match to logo, White or Black."}
+                    : "This color may wash out your buttons — try White or Black."}
                 </p>
               </div>
             </div>
