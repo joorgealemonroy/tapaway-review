@@ -43,6 +43,7 @@ interface Props {
   businessPhone: string;
   headerStyle?: HeaderStyle;
   bannerUrl?: string | null;
+  bannerFit?: 'cover' | 'contain';
   socials?: Socials;
   socialImages?: SocialImages;
   blocks?: LinkBlock[];
