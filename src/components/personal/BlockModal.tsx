@@ -136,6 +136,7 @@ export const BlockModal = ({
   const [smsHeadline, setSmsHeadline] = useState("");
   const [smsDescription, setSmsDescription] = useState("");
   const [smsButtonText, setSmsButtonText] = useState("");
+  const [smsStyle, setSmsStyle] = useState<"card" | "button">("card");
 
   // Menu block options
   const [menuTitle, setMenuTitle] = useState("Our Menu");
@@ -247,6 +248,7 @@ export const BlockModal = ({
           setSmsHeadline(content.headline || "");
           setSmsDescription(content.description || "");
           setSmsButtonText(content.buttonText || "");
+          setSmsStyle(content.style === "button" ? "button" : "card");
         }
       } else {
         resetForm();
@@ -293,6 +295,7 @@ export const BlockModal = ({
     setSmsHeadline("");
     setSmsDescription("");
     setSmsButtonText("");
+    setSmsStyle("card");
     // Menu
     setMenuTitle("Our Menu");
     setMenuButtonLabel("View Menu");
@@ -760,11 +763,19 @@ export const BlockModal = ({
         break;
       }
       case "sms_subscribe": {
-        content = {
-          headline: smsHeadline.trim() || "Join our VIP Text List",
-          description: smsDescription.trim() || "Get exclusive updates and offers via text.",
-          buttonText: smsButtonText.trim() || "Join the VIP List",
-        };
+        content = smsStyle === "button"
+          ? {
+              style: "button",
+              headline: "",
+              description: "",
+              buttonText: smsButtonText.trim() || "Join the VIP List",
+            }
+          : {
+              style: "card",
+              headline: smsHeadline.trim(),
+              description: smsDescription.trim(),
+              buttonText: smsButtonText.trim() || "Join the VIP List",
+            };
         break;
       }
       case "menu": {
@@ -1364,25 +1375,52 @@ export const BlockModal = ({
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Headline</Label>
-                <Input
-                  placeholder="Join our VIP Text List"
-                  value={smsHeadline}
-                  onChange={(e) => setSmsHeadline(e.target.value)}
-                  className="h-12"
-                  maxLength={60}
-                />
+                <Label>Style</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "card", label: "Card", hint: "Headline + text" },
+                    { value: "button", label: "Button only", hint: "Just one button" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSmsStyle(opt.value)}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        smsStyle === opt.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground">{opt.hint}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  placeholder="Get exclusive updates and offers via text."
-                  value={smsDescription}
-                  onChange={(e) => setSmsDescription(e.target.value)}
-                  rows={2}
-                  maxLength={140}
-                />
-              </div>
+              {smsStyle === "card" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Headline <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input
+                      placeholder="Join our VIP Text List"
+                      value={smsHeadline}
+                      onChange={(e) => setSmsHeadline(e.target.value)}
+                      className="h-12"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                    <Textarea
+                      placeholder="Get exclusive updates and offers via text."
+                      value={smsDescription}
+                      onChange={(e) => setSmsDescription(e.target.value)}
+                      rows={2}
+                      maxLength={140}
+                    />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label>Button Text</Label>
                 <Input

@@ -726,33 +726,51 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     case "sms_subscribe": {
-      const headline = (content.headline as string) || "Join our VIP Text List";
-      const description = (content.description as string) || "Get exclusive updates and offers via text.";
+      const isLegacy = content.style === undefined;
+      const buttonOnly = content.style === "button";
+      const headline = ((content.headline as string) ?? "").trim() || (isLegacy ? "Join our VIP Text List" : "");
+      const description = ((content.description as string) ?? "").trim() || (isLegacy ? "Get exclusive updates and offers via text." : "");
       const buttonText = (content.buttonText as string) || "Join the VIP List";
       return (
         <>
-          <div
-            className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}
-          >
-            <div className="text-center">
-              <h3 className={`font-semibold text-base ${textClass}`} style={textStyleObj}>{headline}</h3>
-              <p className={`text-sm ${mutedClass} mt-1`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{description}</p>
-            </div>
+          {buttonOnly ? (
             <button
               type="button"
               onClick={() => setSmsDrawerOpen(true)}
-              className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity"
             >
               {buttonText}
             </button>
-          </div>
+          ) : (
+            <div
+              className={`w-full p-5 rounded-xl border space-y-3 ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}
+            >
+              {(headline || description) && (
+                <div className="text-center">
+                  {headline && (
+                    <h3 className={`font-semibold text-base ${textClass}`} style={textStyleObj}>{headline}</h3>
+                  )}
+                  {description && (
+                    <p className={`text-sm ${mutedClass} ${headline ? "mt-1" : ""}`} style={textStyleObj ? { color: textStyleObj.color, opacity: 0.7 } : undefined}>{description}</p>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setSmsDrawerOpen(true)}
+                className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              >
+                {buttonText}
+              </button>
+            </div>
+          )}
           {profileId && (
             <SmsOptInDrawer
               open={smsDrawerOpen}
               onOpenChange={setSmsDrawerOpen}
               profileId={profileId}
-              headline={headline}
-              description={description}
+              headline={headline || "Join our VIP Text List"}
+              description={description || "Get exclusive updates and offers via text."}
               buttonText={buttonText}
             />
           )}
