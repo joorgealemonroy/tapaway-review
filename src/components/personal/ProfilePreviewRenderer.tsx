@@ -59,6 +59,8 @@ interface ProfileData {
   banner_image_url?: string | null;
   banner_fit?: string | null;
   banner_aspect?: string | null;
+  logo_scale?: string | null;
+
   plan_type?: string | null;
   show_username?: boolean;
   contact_enabled?: boolean | null;
