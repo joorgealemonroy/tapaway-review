@@ -163,6 +163,8 @@ const PersonalDashboard = () => {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Pre-crop banner upload, kept so we can store a re-croppable original.
+  const bannerOriginalBlobRef = useRef<Blob | null>(null);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
   const [heroHasPending, setHeroHasPending] = useState(false);
