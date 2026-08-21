@@ -83,6 +83,7 @@ export const DashboardDesignTab = ({
   headerImageUrl,
   backgroundColor,
   profilePhotoUrl,
+  bannerFit,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
