@@ -878,7 +878,7 @@ function ProfilePreviewRendererComponent({
 
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
-        className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
+        className={`px-6 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-16' : 'mt-4') : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >
