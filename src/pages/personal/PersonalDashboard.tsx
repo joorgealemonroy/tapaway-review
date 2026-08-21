@@ -569,9 +569,33 @@ const PersonalDashboard = () => {
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: croppedBlob.type || "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
+
+      // Keep the pre-crop upload so the banner can be re-cropped later at full
+      // resolution instead of re-cropping the already-flattened export.
+      let originalUrl: string | null = null;
+      if (profile.header_type === "banner" && bannerOriginalBlobRef.current) {
+        const original = bannerOriginalBlobRef.current;
+        const originalPath = `${user.id}/${profile.id}/banner-original`;
+        const { error: origError } = await supabase.storage
+          .from("personal-photos")
+          .upload(originalPath, original, {
+            upsert: true,
+            contentType: original.type || "image/jpeg",
+          });
+        if (!origError) {
+          const { data: { publicUrl: origPublic } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(originalPath);
+          originalUrl = `${origPublic}?t=${Date.now()}`;
+        }
+        bannerOriginalBlobRef.current = null;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from("personal-photos")
