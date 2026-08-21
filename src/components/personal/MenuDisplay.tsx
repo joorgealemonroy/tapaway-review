@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, Search, X } from "lucide-react";
-import type { MenuContent } from "@/lib/menuBlock";
+import { UtensilsCrossed, Search, X, ChevronDown } from "lucide-react";
+import { sectionEmoji, type MenuContent } from "@/lib/menuBlock";
+
 
 interface Props {
   menu: MenuContent;
