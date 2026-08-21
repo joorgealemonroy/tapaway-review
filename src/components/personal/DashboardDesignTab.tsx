@@ -850,6 +850,9 @@ export const DashboardDesignTab = ({
           onCropComplete={handleCropComplete}
           aspectRatio={16 / 5}
           cropShape="rect"
+          fullFrameOutput
+          maxOutputDimension={2048}
+          outputQuality={0.92}
         />
       )}
     </div>
