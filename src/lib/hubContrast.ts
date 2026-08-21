@@ -57,6 +57,14 @@ export interface HubContrast {
   chipClass: string;
   /** Tailwind class for the icon inside those chips. */
   chipIconClass: string;
+  /** Surface classes for link/content blocks so they read against the page. */
+  blockClass: string;
+  /** Surface classes for the white Google/Yelp pill. */
+  pillClass: string;
+  /** Label text class inside a block. */
+  blockTextClass: string;
+  /** Secondary/icon text class inside a block. */
+  blockMutedClass: string;
   /** Explicit text colors, safe against system light/dark mode. */
   textColor: string;
   mutedTextColor: string;
@@ -72,17 +80,25 @@ export function resolveHubContrast(
   return {
     isDark,
     baseColor,
-    // Solid, opaque chips: these float over the logo artwork, so anything
-    // translucent disappears against a busy or light background.
     chipClass: isDark
-      ? "bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-black/10 hover:bg-white/90"
-      : "bg-gray-900 shadow-[0_2px_10px_rgba(0,0,0,0.25)] ring-1 ring-white/20 hover:bg-gray-800",
-    chipIconClass: isDark ? "text-gray-900" : "text-white",
-
+      ? "bg-white/15 hover:bg-white/25 border border-white/25 backdrop-blur-sm"
+      : "bg-black/[0.06] hover:bg-black/[0.12] border border-black/10 backdrop-blur-sm",
+    chipIconClass: isDark ? "text-white" : "text-gray-900",
+    // On a light page the dark-hub glass style disappears, so blocks get an
+    // opaque surface with a real hairline and shadow instead.
+    blockClass: isDark
+      ? "bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15"
+      : "bg-white border border-gray-200 shadow-sm hover:bg-gray-50",
+    pillClass: isDark
+      ? "bg-white hover:bg-gray-100 border border-white/20 shadow-sm"
+      : "bg-white hover:bg-gray-50 border border-gray-200 shadow-sm",
+    blockTextClass: isDark ? "text-white" : "text-gray-900",
+    blockMutedClass: isDark ? "text-white/50" : "text-gray-400",
     textColor: isDark ? "#FFFFFF" : "#111827",
     mutedTextColor: isDark ? "rgba(255,255,255,0.7)" : "rgba(17,24,39,0.65)",
   };
 }
+
 
 /**
  * Nudge an owner-picked color so it stays visible on the given background.
