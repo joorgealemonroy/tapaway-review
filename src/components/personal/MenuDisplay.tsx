@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { UtensilsCrossed, Search, X, ChevronDown } from "lucide-react";
@@ -17,8 +17,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [openSections, setOpenSections] = useState<Set<number>>(() => new Set());
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
 
   const visibleSections = useMemo(
@@ -142,7 +140,7 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
           </div>
 
           {/* Scrollable body */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-16">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-16">
             {filteredSections.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -163,7 +161,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
                   return (
                     <div
                       key={`${section.name}-${sectionIndex}`}
-                      ref={(el) => (sectionRefs.current[sectionIndex] = el)}
                       className="scroll-mt-2 rounded-2xl border border-border bg-card/60 overflow-hidden"
                     >
                       <button
