@@ -549,7 +549,7 @@ const PersonalDashboard = () => {
     setCropperOpen(true);
   };
 
-  const handleCropComplete = useCallback(async (croppedBlob: Blob) => {
+  const handleCropComplete = useCallback(async (croppedBlob: Blob, previewDataUrl?: string) => {
     if (!profile) return;
 
     setUploadingPhoto(true);
