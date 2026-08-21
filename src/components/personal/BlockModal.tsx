@@ -763,11 +763,19 @@ export const BlockModal = ({
         break;
       }
       case "sms_subscribe": {
-        content = {
-          headline: smsHeadline.trim() || "Join our VIP Text List",
-          description: smsDescription.trim() || "Get exclusive updates and offers via text.",
-          buttonText: smsButtonText.trim() || "Join the VIP List",
-        };
+        content = smsStyle === "button"
+          ? {
+              style: "button",
+              headline: "",
+              description: "",
+              buttonText: smsButtonText.trim() || "Join the VIP List",
+            }
+          : {
+              style: "card",
+              headline: smsHeadline.trim(),
+              description: smsDescription.trim(),
+              buttonText: smsButtonText.trim() || "Join the VIP List",
+            };
         break;
       }
       case "menu": {
