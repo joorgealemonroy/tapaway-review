@@ -31,6 +31,7 @@ export interface CachedProfile {
   contact_button_label?: string | null;
   // Premium feature
   banner_image_url: string | null;
+  banner_fit: string | null;
   plan_type: string | null;
   show_shop_section: boolean | null;
   user_id?: string;
