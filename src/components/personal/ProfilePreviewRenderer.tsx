@@ -127,6 +127,8 @@ function ProfilePreviewRendererComponent({
   // Banner for premium users (header_type === "banner")
   // Uses profile_photo_url as the banner (no separate upload)
   const hasBanner = headerType === "banner";
+  const isLogoHeader = headerType === "logo";
+
   const bannerUrl = (hasBanner && profile.profile_photo_url) 
     ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
     : null;
