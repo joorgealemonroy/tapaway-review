@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, Search, X } from "lucide-react";
-import type { MenuContent } from "@/lib/menuBlock";
+import { UtensilsCrossed, Search, X, ChevronDown } from "lucide-react";
+import { sectionEmoji, type MenuContent } from "@/lib/menuBlock";
+
 
 interface Props {
   menu: MenuContent;
@@ -16,8 +17,10 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState(0);
+  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set([0]));
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
 
   const visibleSections = useMemo(
     () =>
@@ -79,15 +82,32 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     if (!next) {
       setQuery("");
       setActiveSection(0);
+      setOpenSections(new Set([0]));
     }
+  };
+
+  const isOpenSection = (index: number) => !!q || openSections.has(index);
+
+  const toggleSection = (index: number) => {
+    if (q) return;
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
   };
 
   const jumpTo = (index: number) => {
     setActiveSection(index);
-    sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setOpenSections((prev) => new Set(prev).add(index));
+    requestAnimationFrame(() => {
+      sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const totalItems = filteredSections.reduce((sum, s) => sum + s.items.length, 0);
+
 
   return (
     <>
@@ -186,48 +206,73 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
                 </button>
               </div>
             ) : (
-              <div className="space-y-7">
-                {filteredSections.map((section, sectionIndex) => (
-                  <div
-                    key={`${section.name}-${sectionIndex}`}
-                    ref={(el) => (sectionRefs.current[sectionIndex] = el)}
-                    className="scroll-mt-2 space-y-3"
-                  >
-                    {section.name && (
-                      <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="text-sm font-bold uppercase tracking-wide text-primary">
-                          {section.name}
-                        </h3>
-                        <span className="text-[11px] text-muted-foreground tabular-nums">
-                          {section.items.length}
+              <div className="space-y-3">
+                {filteredSections.map((section, sectionIndex) => {
+                  const expanded = isOpenSection(sectionIndex);
+                  return (
+                    <div
+                      key={`${section.name}-${sectionIndex}`}
+                      ref={(el) => (sectionRefs.current[sectionIndex] = el)}
+                      className="scroll-mt-2 rounded-2xl border border-border bg-card/60 overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(sectionIndex)}
+                        aria-expanded={expanded}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 min-h-[52px] text-left active:scale-[0.995] transition-transform"
+                      >
+                        <span className="text-xl leading-none" aria-hidden>
+                          {sectionEmoji(section.name)}
                         </span>
-                      </div>
-                    )}
-                    <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                      {section.items.map((item, itemIndex) => (
-                        <div
-                          key={`${item.name}-${itemIndex}`}
-                          className="flex items-start justify-between gap-4 px-3.5 py-3"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-medium leading-snug">{item.name}</p>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
-                                {item.description}
-                              </p>
-                            )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-bold tracking-wide truncate">
+                            {section.name || "Menu"}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground tabular-nums">
+                            {section.items.length} item{section.items.length === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                            expanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+
+                      <div
+                        className="grid transition-all duration-300 ease-out"
+                        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="divide-y divide-border border-t border-border">
+                            {section.items.map((item, itemIndex) => (
+                              <div
+                                key={`${item.name}-${itemIndex}`}
+                                className="flex items-start justify-between gap-4 px-4 py-3"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-medium leading-snug">{item.name}</p>
+                                  {item.description && (
+                                    <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
+                                      {item.description}
+                                    </p>
+                                  )}
+                                </div>
+                                {item.price && (
+                                  <span className="shrink-0 text-sm font-semibold tabular-nums">
+                                    {item.price}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                          {item.price && (
-                            <span className="shrink-0 text-sm font-semibold tabular-nums">
-                              {item.price}
-                            </span>
-                          )}
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
             )}
           </div>
         </DialogContent>
