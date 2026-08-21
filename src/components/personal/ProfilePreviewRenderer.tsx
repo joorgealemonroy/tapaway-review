@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, useEffect } from "react";
 
-import { ExternalLink, Mail, UserPlus } from "lucide-react";
+import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
+import { resolveHubContrast } from "@/lib/hubContrast";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
