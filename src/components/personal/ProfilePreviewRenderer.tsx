@@ -799,7 +799,7 @@ function ProfilePreviewRendererComponent({
           <>
             {/* Banner mode - fully visible with fade at bottom using extracted color */}
             <div 
-              className="h-52 overflow-hidden relative"
+              className={`overflow-hidden relative ${profile.banner_fit === 'cover' ? 'h-52' : ''}`}
               style={{
                 backgroundColor: extractedBannerColor || headerColor,
               }}
@@ -808,22 +808,26 @@ function ProfilePreviewRendererComponent({
                 <img
                   src={bannerUrl}
                   alt="Banner"
-                  className={`h-full w-full ${profile.banner_fit === 'contain' ? 'object-contain object-center' : 'object-cover object-top'}`}
-                  style={profile.banner_fit === 'contain' ? undefined : {
+                  className={
+                    profile.banner_fit === 'cover'
+                      ? 'h-full w-full object-cover object-top'
+                      : 'w-full h-auto max-h-60 object-contain object-center block'
+                  }
+                  style={profile.banner_fit === 'cover' ? {
                     WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                     maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  }}
+                  } : undefined}
                 />
               ) : (
                 <div 
-                  className="h-full w-full flex items-center justify-center"
+                  className="h-52 w-full flex items-center justify-center"
                   style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}88)` }}
                 >
                   <span className="text-white/60 text-xs">Add a photo for your banner</span>
                 </div>
               )}
               {/* Gradient fade using extracted color from image - taller for text overlap */}
-              {profile.banner_fit !== 'contain' && (
+              {profile.banner_fit === 'cover' && (
                 <div 
                   className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
                   style={{
@@ -836,6 +840,7 @@ function ProfilePreviewRendererComponent({
                 />
               )}
             </div>
+
           </>
         ) : (
           <>
@@ -873,7 +878,7 @@ function ProfilePreviewRendererComponent({
 
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
-        className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
+        className={`px-6 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-16' : 'mt-4') : ''} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >

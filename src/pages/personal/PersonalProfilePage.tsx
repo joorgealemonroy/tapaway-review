@@ -1331,12 +1331,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         )}
         {hasBanner ? (
           <div className="relative">
-            {/* Banner image - fully visible */}
-            <div 
-              className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
-              style={{ 
-                willChange: 'transform', 
+            {/* Banner image — in Fit mode the panel height follows the image's own
+                aspect ratio so the full logo is always readable (no crop/zoom). */}
+            <div
+              className="w-full overflow-hidden"
+              style={{
+                willChange: 'transform',
                 backgroundColor: extractedBannerColor || profile.header_color || undefined,
+                ...(profile.banner_fit === 'cover' ? { height: '55vh' } : {}),
               }}
             >
               <img
@@ -1345,15 +1347,19 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
-                className={`w-full h-full ${profile.banner_fit === 'contain' ? 'object-contain object-center' : 'object-cover object-top'}`}
-                style={profile.banner_fit === 'contain' ? undefined : {
+                className={
+                  profile.banner_fit === 'cover'
+                    ? 'w-full h-full object-cover object-top'
+                    : 'w-full h-auto max-h-[60vh] object-contain object-center block'
+                }
+                style={profile.banner_fit === 'cover' ? {
                   WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                   maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                }}
+                } : undefined}
               />
             </div>
             {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
-            {profile.banner_fit !== 'contain' && (
+            {profile.banner_fit === 'cover' && (
               <div 
                 className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
                 style={{
@@ -1363,6 +1369,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 }}
               />
             )}
+
             {/* Action buttons - top right for banner profiles */}
             <div className="absolute top-4 right-4 flex gap-2 z-20">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (
@@ -1412,7 +1419,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto px-4 ${hasBanner ? (profile.banner_fit === 'cover' ? '-mt-32' : 'mt-6') : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
