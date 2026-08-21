@@ -234,8 +234,95 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
 
   return (
     <div className="space-y-5">
+      {/* Snap the menu */}
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Snap the menu
+          </Label>
+          {photos.length > 0 && (
+            <span className="text-[11px] text-muted-foreground">
+              {photos.length} / {MAX_PHOTOS}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Take or upload up to {MAX_PHOTOS} photos of the printed menu — AI reads every page and
+          builds the sections for you.
+        </p>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            addPhotos(e.target.files);
+            e.target.value = "";
+          }}
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full h-11"
+          disabled={reading || photos.length >= MAX_PHOTOS}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Camera className="h-4 w-4 mr-2" />
+          Add menu photos
+        </Button>
+
+        {photos.length > 0 && (
+          <div className="grid grid-cols-4 gap-2">
+            {photos.map((photo, index) => (
+              <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                <img src={photo.preview} alt={`Menu page ${index + 1}`} className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(photo.id)}
+                  disabled={reading}
+                  aria-label={`Remove page ${index + 1}`}
+                  className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/90 border border-border flex items-center justify-center"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <span className="absolute bottom-0 left-0 px-1.5 py-0.5 text-[10px] bg-background/80 rounded-tr">
+                  {index + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {photos.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="flex-1 h-11"
+              onClick={handleReadPhotos}
+              disabled={reading}
+            >
+              {reading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              {reading ? progress || "Reading…" : "Read menu from photos"}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={clearPhotos} disabled={reading}>
+              Clear
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Fast entry */}
       <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-3">
+
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Add the whole menu at once
         </Label>
