@@ -2,6 +2,7 @@ import { Component, ReactNode } from "react";
 import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { isChunkLoadError } from "@/lib/lazyWithRetry";
 
 interface Props {
   children: ReactNode;
@@ -58,6 +59,9 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error(`[ErrorBoundary ${errorId}]`, error);
     console.error(`[ErrorBoundary ${errorId}] component stack:`, errorInfo.componentStack);
     this.setState({ errorId, componentStack: errorInfo.componentStack ?? undefined });
+    // Stale-bundle chunk failures are handled by lazyWithRetry (retry + one
+    // reload). They are not app crashes, so they must not pollute the log.
+    if (isChunkLoadError(error.message || String(error))) return;
     void logErrorToBackend(errorId, error, errorInfo);
   }
 

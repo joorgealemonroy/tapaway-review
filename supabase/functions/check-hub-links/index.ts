@@ -36,11 +36,47 @@ interface LinkTarget {
 }
 
 interface CheckRow extends LinkTarget {
-  status: "ok" | "broken" | "malformed" | "unknown";
+  status: "ok" | "broken" | "malformed" | "unknown" | "unverified";
   http_status: number | null;
   detail: string | null;
   checked_at: string;
 }
+
+/**
+ * These hosts serve a 403/429 to any server-side request (bot protection) even
+ * though the link works perfectly for a real visitor. Reporting them as broken
+ * drowned the real failures in noise, so they get their own "unverified" state.
+ */
+const BOT_PROTECTED_HOSTS = [
+  "yelp.com",
+  "booksy.com",
+  "instagram.com",
+  "facebook.com",
+  "fb.com",
+  "linkedin.com",
+  "tiktok.com",
+  "opentable.com",
+  "doordash.com",
+  "ubereats.com",
+  "grubhub.com",
+  "toasttab.com",
+  "square.site",
+  "squareup.com",
+  "clover.com",
+  "vagaro.com",
+  "resy.com",
+  "eventbrite.com",
+  "amazon.com",
+];
+
+const isBotProtected = (url: string): boolean => {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    return BOT_PROTECTED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+  } catch {
+    return false;
+  }
+};
 
 /** Mirrors src/lib/brokenLinks.ts — malformed legacy social URLs. */
 const PLATFORM_DOMAIN_RE =
@@ -100,6 +136,14 @@ async function probe(url: string): Promise<{ status: CheckRow["status"]; http_st
     }
     if (res.status >= 200 && res.status < 400) {
       return { status: "ok", http_status: res.status, detail: null };
+    }
+    // 403/429 from a known bot-protected host says nothing about the link.
+    if ((res.status === 403 || res.status === 429) && isBotProtected(url)) {
+      return {
+        status: "unverified",
+        http_status: res.status,
+        detail: "Blocked automated checks — verify manually",
+      };
     }
     return { status: "broken", http_status: res.status, detail: `HTTP ${res.status}` };
   } catch (e) {
@@ -248,7 +292,8 @@ serve(async (req) => {
       await supabase.from("hub_link_checks").delete().in("id", stale.slice(i, i + 200));
     }
 
-    const broken = rows.filter((r) => r.status !== "ok");
+    // "unverified" means the check was blocked, not that the link is broken.
+    const broken = rows.filter((r) => r.status !== "ok" && r.status !== "unverified");
     return new Response(
       JSON.stringify({
         success: true,

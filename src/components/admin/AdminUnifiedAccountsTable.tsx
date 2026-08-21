@@ -40,6 +40,7 @@ type UnifiedRow = {
   subscription_status: string | null;
   is_approved: boolean | null;
   created_at: string | null;
+  updated_at?: string | null;
   photo_url: string | null;
   taps: number;
   clicks: number;
@@ -70,7 +71,7 @@ const pipelineOf = (p: { is_approved: boolean | null; pipeline_status?: string |
   return "draft";
 };
 
-type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name";
+type SortKey = "taps" | "clicks" | "last_active" | "created_at" | "name" | "recent";
 
 const SORT_STORAGE_KEY = "admin-accounts-sort";
 const RANGE_STORAGE_KEY = "admin-accounts-range";
@@ -199,7 +200,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: restaurants, error: rErr } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, custom_slug, plan_type, subscription_status, is_approved, created_at, logo_url"
+            "id, restaurant_name, custom_slug, plan_type, subscription_status, is_approved, created_at, updated_at, logo_url"
           );
         if (rErr) throw rErr;
 
@@ -207,7 +208,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
+            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -259,6 +260,7 @@ const AdminUnifiedAccountsTable = () => {
           subscription_status: r.subscription_status ?? null,
           is_approved: r.is_approved ?? null,
           created_at: r.created_at ?? null,
+          updated_at: (r as { updated_at?: string | null }).updated_at ?? null,
           photo_url: r.logo_url ?? null,
           taps: rangeStats[r.id]?.taps ?? 0,
           clicks: rangeStats[r.id]?.link_clicks ?? 0,
@@ -282,6 +284,7 @@ const AdminUnifiedAccountsTable = () => {
             subscription_status: p.subscription_status ?? null,
             is_approved: p.is_approved ?? null,
             created_at: p.created_at ?? null,
+            updated_at: (p as { updated_at?: string | null }).updated_at ?? null,
             photo_url: p.profile_photo_url ?? null,
             taps: rangeStats[p.id]?.taps ?? 0,
             clicks: rangeStats[p.id]?.link_clicks ?? 0,
@@ -309,6 +312,9 @@ const AdminUnifiedAccountsTable = () => {
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
+    // "las islas marias gardena" must find the hub whose slug is
+    // "islasmariasgardena" — compare with separators stripped too.
+    const squashed = s.replace(/[^a-z0-9]/g, "");
     return rows
       .filter((r) => {
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
@@ -318,7 +324,8 @@ const AdminUnifiedAccountsTable = () => {
         if (zeroTapsOnly && r.lifetimeTaps > 0) return false;
         if (s) {
           const hay = `${r.name} ${r.slug ?? ""}`.toLowerCase();
-          if (!hay.includes(s)) return false;
+          const haySquashed = hay.replace(/[^a-z0-9]/g, "");
+          if (!hay.includes(s) && !(squashed && haySquashed.includes(squashed))) return false;
         }
         return true;
       })
@@ -329,6 +336,11 @@ const AdminUnifiedAccountsTable = () => {
         if (sortKey === "last_active") {
           const at = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
           const bt = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+          return (at - bt) * dir;
+        }
+        if (sortKey === "recent") {
+          const at = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0;
           return (at - bt) * dir;
         }
         if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
@@ -621,6 +633,23 @@ const AdminUnifiedAccountsTable = () => {
           }`}
         >
           Broken links only
+        </button>
+        <button
+          onClick={() => {
+            setSortKey("recent");
+            setSortDir("desc");
+            setPipelineFilter("live");
+            setZeroTapsOnly(false);
+            setBrokenOnly(false);
+          }}
+          title="Show live hubs, newest changes first — a just-approved hub lands at the top"
+          className={`h-9 px-3 rounded-md text-xs font-medium border transition-colors ${
+            sortKey === "recent"
+              ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
+              : "bg-white/[0.03] border-white/5 text-white/60 hover:text-white/90"
+          }`}
+        >
+          Recently approved
         </button>
         <span className="text-[11px] text-white/40 ml-auto">
           {filtered.length} of {rows.length}

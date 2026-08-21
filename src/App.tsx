@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
-import { lazy, Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { lazyWithRetry as lazy, clearChunkReloadGuard } from "@/lib/lazyWithRetry";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
@@ -101,7 +102,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+const App = () => {
+  // A successful boot means the current bundle loaded — release the one-shot
+  // reload guard so a future deploy can reload again if needed.
+  useEffect(() => {
+    clearChunkReloadGuard();
+  }, []);
+
+  return (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -208,6 +216,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
   </HelmetProvider>
-);
+  );
+};
 
 export default App;
