@@ -573,7 +573,6 @@ export const DashboardDesignTab = ({
         </div>
 
 
-        <>
         <RadioGroup 
           value={pendingHeaderType} 
           onValueChange={handleTypeChange}
