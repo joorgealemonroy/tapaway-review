@@ -1376,10 +1376,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
-                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
                     aria-label="Save contact"
                   >
-                    <UserPlus className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+                    <UserPlus className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
                   </button>
                   {showContactTooltip && (
                     <div
@@ -1394,10 +1394,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               )}
               <button
                 onClick={handleShare}
-                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
                 aria-label="Share profile"
               >
-                <Share2 className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+                <Share2 className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
               </button>
             </div>
           </div>
