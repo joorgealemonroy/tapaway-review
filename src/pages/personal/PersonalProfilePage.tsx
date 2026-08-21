@@ -1336,7 +1336,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
               style={{ 
                 willChange: 'transform', 
-                backgroundColor: extractedBannerColor || headerColor,
+                backgroundColor: extractedBannerColor || profile.header_color || undefined,
               }}
             >
               <img
