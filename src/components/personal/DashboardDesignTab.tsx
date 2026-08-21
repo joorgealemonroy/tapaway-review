@@ -132,17 +132,19 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(isRepDemo ? "banner" : headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingBannerFit(bannerFit || "cover");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
-      pendingBgColor !== backgroundColor
+      pendingBgColor !== backgroundColor ||
+      pendingBannerFit !== (bannerFit || "cover")
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit]);
 
   const handleSave = async () => {
     setSaving(true);
