@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
+import { LOGO_SCALE_LABELS, normalizeLogoScale } from "@/lib/logoHeader";
 import {
   BANNER_ASPECT_LABELS,
   bannerAspectRatio,
@@ -102,6 +103,7 @@ export const DashboardDesignTab = ({
   bannerFit,
   bannerAspect,
   bannerOriginalUrl,
+  logoScale,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -132,6 +134,7 @@ export const DashboardDesignTab = ({
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
   const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
+  const [pendingLogoScale, setPendingLogoScale] = useState(normalizeLogoScale(logoScale));
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -160,9 +163,10 @@ export const DashboardDesignTab = ({
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
+    setPendingLogoScale(normalizeLogoScale(logoScale));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
@@ -170,9 +174,10 @@ export const DashboardDesignTab = ({
       pendingHeaderColor !== headerColor ||
       pendingBgColor !== backgroundColor ||
       pendingBannerFit !== (bannerFit || "cover") ||
-      pendingBannerAspect !== normalizeBannerAspect(bannerAspect)
+      pendingBannerAspect !== normalizeBannerAspect(bannerAspect) ||
+      pendingLogoScale !== normalizeLogoScale(logoScale)
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale]);
 
 
   const handleSave = async () => {
@@ -184,6 +189,7 @@ export const DashboardDesignTab = ({
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
       if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
       if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
+      if (pendingLogoScale !== normalizeLogoScale(logoScale)) updates.logo_scale = pendingLogoScale;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -200,6 +206,7 @@ export const DashboardDesignTab = ({
         backgroundColor: pendingBgColor,
         bannerFit: pendingBannerFit,
         bannerAspect: pendingBannerAspect,
+        logoScale: pendingLogoScale,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -218,6 +225,7 @@ export const DashboardDesignTab = ({
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
+    setPendingLogoScale(normalizeLogoScale(logoScale));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -227,6 +235,7 @@ export const DashboardDesignTab = ({
       backgroundColor,
       bannerFit: bannerFit || "cover",
       bannerAspect: normalizeBannerAspect(bannerAspect),
+      logoScale: normalizeLogoScale(logoScale),
     });
   };
 
@@ -312,6 +321,28 @@ export const DashboardDesignTab = ({
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
+  };
+
+  // Push logo sizing to the live preview as it is adjusted
+  const handleLogoScaleChange = (value: string) => {
+    setPendingLogoScale(normalizeLogoScale(value));
+    onUpdate({ headerType: pendingHeaderType, logoScale: value });
+  };
+
+  // Match the page background to the logo's own edge color so wide logos with
+  // white/colored margins blend seamlessly into the page.
+  const matchBackgroundToLogo = async () => {
+    if (!profilePhotoUrl) {
+      toast.error("Upload a logo first");
+      return;
+    }
+    const sampled = await sampleBottomEdgeColor(profilePhotoUrl);
+    if (!sampled) {
+      toast.error("Could not read the logo color");
+      return;
+    }
+    handleBgColorChange(sampled);
+    toast.success("Background matched to your logo");
   };
 
   // For banner mode, we use the profile photo as the banner (no separate upload)
