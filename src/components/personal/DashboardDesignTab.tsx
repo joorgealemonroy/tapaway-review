@@ -154,7 +154,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(isRepDemo ? "banner" : headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "contain");
+    setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
@@ -165,7 +165,7 @@ export const DashboardDesignTab = ({
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
       pendingBgColor !== backgroundColor ||
-      pendingBannerFit !== (bannerFit || "contain") ||
+      pendingBannerFit !== (bannerFit || "cover") ||
       pendingBannerAspect !== normalizeBannerAspect(bannerAspect)
     );
   }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect]);
@@ -178,7 +178,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
-      if (pendingBannerFit !== (bannerFit || "contain")) updates.banner_fit = pendingBannerFit;
+      if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
       if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
 
       if (Object.keys(updates).length > 0) {
@@ -212,7 +212,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "contain");
+    setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
@@ -221,7 +221,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
-      bannerFit: bannerFit || "contain",
+      bannerFit: bannerFit || "cover",
       bannerAspect: normalizeBannerAspect(bannerAspect),
     });
   };
