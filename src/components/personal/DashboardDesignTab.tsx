@@ -153,6 +153,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
+      if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -167,6 +168,7 @@ export const DashboardDesignTab = ({
         headerType: pendingHeaderType,
         headerColor: pendingHeaderColor,
         backgroundColor: pendingBgColor,
+        bannerFit: pendingBannerFit,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -183,6 +185,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
+    setPendingBannerFit(bannerFit || "cover");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -190,6 +193,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
+      bannerFit: bannerFit || "cover",
     });
   };
 
