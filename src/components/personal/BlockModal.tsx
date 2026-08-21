@@ -295,6 +295,7 @@ export const BlockModal = ({
     setSmsHeadline("");
     setSmsDescription("");
     setSmsButtonText("");
+    setSmsStyle("card");
     // Menu
     setMenuTitle("Our Menu");
     setMenuButtonLabel("View Menu");
