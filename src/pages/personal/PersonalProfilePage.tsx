@@ -32,6 +32,7 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { resolveHubContrast } from "@/lib/hubContrast";
 
 
 
@@ -1281,6 +1282,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
     : undefined;
   const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
+  // Shared readability rules derived from the actual page background.
+  const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
     ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
@@ -1353,6 +1356,41 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             ) : (
               <div className="h-24" />
             )}
+
+            {/* Save contact / Share float over the logo band so they stay
+                visible on light and dark pages alike. */}
+            <div
+              className="absolute right-4 flex gap-2 z-20"
+              style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+            >
+              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
+                <span className="relative">
+                  <button
+                    onClick={handleSaveContact}
+                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                    aria-label="Save contact"
+                  >
+                    <UserPlus className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+                  </button>
+                  {showContactTooltip && (
+                    <div
+                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                      style={{ animationDuration: '0.3s' }}
+                    >
+                      Save my contact!
+                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
+                    </div>
+                  )}
+                </span>
+              )}
+              <button
+                onClick={handleShare}
+                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${hubContrast.chipClass}`}
+                aria-label="Share profile"
+              >
+                <Share2 className={`h-4 w-4 ${hubContrast.chipIconClass}`} />
+              </button>
+            </div>
           </div>
         ) : hasBanner ? (
 
@@ -1436,8 +1474,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         <div 
           className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-2' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
-          {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
-          {!hasBanner && (
+          {/* Action buttons - Share and Save Contact (non-banner, non-logo profiles) */}
+          {!hasBanner && !isLogoHeader && (
             <div className="absolute top-0 right-4 flex gap-2">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">

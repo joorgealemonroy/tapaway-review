@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, useEffect } from "react";
 
-import { ExternalLink, Mail, UserPlus } from "lucide-react";
+import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
+import { resolveHubContrast } from "@/lib/hubContrast";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
@@ -147,6 +148,8 @@ function ProfilePreviewRendererComponent({
   }, [hasBanner, profile.profile_photo_url]);
   
   const isDarkBg = useMemo(() => hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg, hasBanner]);
+  // Same readability rules the live hub uses.
+  const previewContrast = useMemo(() => resolveHubContrast(backgroundColor), [backgroundColor]);
   
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
@@ -803,7 +806,7 @@ function ProfilePreviewRendererComponent({
       {/* Header or Banner */}
       <div className="relative w-full">
         {isLogoHeader ? (
-          <div className="w-full flex items-center justify-center pt-6 pb-2 px-4">
+          <div className="relative w-full flex items-center justify-center pt-6 pb-2 px-4">
             {profile.profile_photo_url ? (
               <img
                 src={getOptimizedImageUrl(profile.profile_photo_url, 800, 90)}
@@ -816,6 +819,19 @@ function ProfilePreviewRendererComponent({
                 <span className="text-xs text-muted-foreground">Add a logo</span>
               </div>
             )}
+            {/* Matches the floating Save contact / Share cluster on the live hub */}
+            <div className="absolute top-3 right-3 flex gap-1.5 z-20">
+              <span
+                className={`h-8 w-8 rounded-full flex items-center justify-center ${previewContrast.chipClass}`}
+              >
+                <UserPlus className={`h-3.5 w-3.5 ${previewContrast.chipIconClass}`} />
+              </span>
+              <span
+                className={`h-8 w-8 rounded-full flex items-center justify-center ${previewContrast.chipClass}`}
+              >
+                <Share2 className={`h-3.5 w-3.5 ${previewContrast.chipIconClass}`} />
+              </span>
+            </div>
           </div>
         ) : hasBanner ? (
 

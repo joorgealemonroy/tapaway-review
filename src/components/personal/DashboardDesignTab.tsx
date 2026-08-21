@@ -23,7 +23,8 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
-import { LOGO_SCALE_LABELS, normalizeLogoScale } from "@/lib/logoHeader";
+import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale } from "@/lib/logoHeader";
+import { colorLuminance } from "@/lib/hubContrast";
 import {
   BANNER_ASPECT_LABELS,
   bannerAspectRatio,
@@ -180,6 +181,15 @@ export const DashboardDesignTab = ({
     );
   }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale]);
 
+  // Mid-luminance backgrounds are the ones where neither dark nor light text
+  // reads well — warn the owner instead of letting the hub ship unreadable.
+  const logoContrastOk = useMemo(() => {
+    const lum = colorLuminance(pendingBgColor || "#ffffff");
+    if (lum === null) return true;
+    return lum <= 0.42 || lum >= 0.58;
+  }, [pendingBgColor]);
+
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -318,10 +328,24 @@ export const DashboardDesignTab = ({
     userPickedBg.current = true;
     setPendingBgColor(color);
     setBgColorInput(color);
+    // Keep the live preview in step with the picker.
+    onUpdate({ headerType: pendingHeaderType, backgroundColor: color });
   };
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
+    onUpdate({ headerType: type });
+    // Picking "Logo" should just work: blend the page into the logo's own
+    // background automatically, no extra taps required.
+    if (type === "logo" && profilePhotoUrl) {
+      sampleBottomEdgeColor(profilePhotoUrl).then((sampled) => {
+        if (!sampled) return;
+        userPickedBg.current = true;
+        setPendingBgColor(sampled);
+        setBgColorInput(sampled);
+        onUpdate({ headerType: "logo", backgroundColor: sampled });
+      });
+    }
   };
 
   // Push logo sizing to the live preview as it is adjusted
@@ -607,7 +631,7 @@ export const DashboardDesignTab = ({
               <div>
                 <p className="text-sm font-medium text-foreground">Logo size</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  How much room the logo takes up on a phone.
+                  Tap a size — this is how it looks on a phone.
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -615,24 +639,80 @@ export const DashboardDesignTab = ({
                   <button
                     key={opt.value}
                     onClick={() => handleLogoScaleChange(opt.value)}
-                    className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                    className={`flex flex-col items-center justify-end gap-2 p-3 min-h-[92px] rounded-lg border-2 text-xs font-medium transition-all ${
                       pendingLogoScale === opt.value
                         ? "border-primary bg-primary/5"
                         : "border-muted hover:bg-muted/50"
                     }`}
                   >
+                    <span
+                      className="flex items-center justify-center w-full rounded"
+                      style={{
+                        height: 44,
+                        backgroundColor: pendingBgColor && !pendingBgColor.includes("gradient")
+                          ? pendingBgColor
+                          : "transparent",
+                      }}
+                    >
+                      {profilePhotoUrl ? (
+                        <img
+                          src={profilePhotoUrl}
+                          alt=""
+                          className="object-contain"
+                          style={{
+                            width: LOGO_SCALES[opt.value].width,
+                            maxHeight: 40,
+                          }}
+                        />
+                      ) : (
+                        <span className="block w-2/3 h-2 rounded bg-muted-foreground/30" />
+                      )}
+                    </span>
                     {opt.label}
                   </button>
                 ))}
               </div>
 
-              <Button variant="outline" className="w-full" onClick={matchBackgroundToLogo}>
-                <Paintbrush className="h-4 w-4 mr-2" />
-                Match background to logo
-              </Button>
-              <p className="text-[11px] text-muted-foreground">
-                Best when your logo has a solid background — the page color will blend right into it.
-              </p>
+              <div className="pt-1 space-y-2">
+                <p className="text-sm font-medium text-foreground">Page color</p>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-11 w-11 shrink-0 rounded-lg border border-border"
+                    style={{ background: pendingBgColor || "#ffffff" }}
+                  />
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11"
+                    onClick={matchBackgroundToLogo}
+                  >
+                    <Paintbrush className="h-4 w-4 mr-2" />
+                    Match to logo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 px-3"
+                    onClick={() => handleBgColorChange("#ffffff")}
+                  >
+                    White
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 px-3"
+                    onClick={() => handleBgColorChange("#000000")}
+                  >
+                    Black
+                  </Button>
+                </div>
+                <p
+                  className={`text-[11px] ${
+                    logoContrastOk ? "text-muted-foreground" : "text-amber-600"
+                  }`}
+                >
+                  {logoContrastOk
+                    ? "Buttons and text will read clearly on this background."
+                    : "This color may wash out your buttons — try Match to logo, White or Black."}
+                </p>
+              </div>
             </div>
           </div>
         ) : pendingHeaderType === "banner" ? (
