@@ -163,6 +163,8 @@ const PersonalDashboard = () => {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Pre-crop banner upload, kept so we can store a re-croppable original.
+  const bannerOriginalBlobRef = useRef<Blob | null>(null);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
   const [heroHasPending, setHeroHasPending] = useState(false);
@@ -520,11 +522,15 @@ const PersonalDashboard = () => {
       return;
     }
 
-    // Compress if > 2MB
+    // Compress if > 2MB. Banner crops keep much more resolution so the exported
+    // header stays sharp on high-DPI phones even when the logo is letterboxed.
+    const isBanner = profile?.header_type === "banner";
     let processedFile: Blob = file;
     if (file.size > 2 * 1024 * 1024) {
       try {
-        processedFile = await compressImage(file);
+        processedFile = isBanner
+          ? await compressImage(file, 2560, 0.92)
+          : await compressImage(file);
       } catch {
         toast.error("Failed to process image");
         return;
@@ -533,6 +539,7 @@ const PersonalDashboard = () => {
 
     const objectUrl = URL.createObjectURL(processedFile);
     setRawImageUrl(objectUrl);
+    bannerOriginalBlobRef.current = isBanner ? processedFile : null;
 
     // For banner-style hubs, pre-sample a background-fill color from the image
     // so the cropper can paint the empty canvas area when the user zooms out.
@@ -565,9 +572,33 @@ const PersonalDashboard = () => {
 
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: croppedBlob.type || "image/jpeg",
+        });
 
       if (uploadError) throw uploadError;
+
+      // Keep the pre-crop upload so the banner can be re-cropped later at full
+      // resolution instead of re-cropping the already-flattened export.
+      let originalUrl: string | null = null;
+      if (profile.header_type === "banner" && bannerOriginalBlobRef.current) {
+        const original = bannerOriginalBlobRef.current;
+        const originalPath = `${user.id}/${profile.id}/banner-original`;
+        const { error: origError } = await supabase.storage
+          .from("personal-photos")
+          .upload(originalPath, original, {
+            upsert: true,
+            contentType: original.type || "image/jpeg",
+          });
+        if (!origError) {
+          const { data: { publicUrl: origPublic } } = supabase.storage
+            .from("personal-photos")
+            .getPublicUrl(originalPath);
+          originalUrl = `${origPublic}?t=${Date.now()}`;
+        }
+        bannerOriginalBlobRef.current = null;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from("personal-photos")
@@ -601,6 +632,7 @@ const PersonalDashboard = () => {
       if (sampledBg) updates.background_color = sampledBg;
       // The image was cropped to the exact banner frame, so render it edge-to-edge.
       if (profile.header_type === "banner") updates.banner_fit = "cover";
+      if (originalUrl) updates.banner_original_url = originalUrl;
 
       const { data: updatedRow, error: updateError } = await supabase
         .from("personal_profiles")
@@ -1589,6 +1621,10 @@ const PersonalDashboard = () => {
           restrictPosition={profile?.header_type !== "banner"}
           fillColor={bannerFillColor}
           editableFill={profile?.header_type === "banner"}
+          autoTrim={profile?.header_type === "banner"}
+          fullFrameOutput={profile?.header_type === "banner"}
+          maxOutputDimension={profile?.header_type === "banner" ? 2048 : 1024}
+          outputQuality={profile?.header_type === "banner" ? 0.92 : 0.8}
         />
       )}
 

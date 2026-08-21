@@ -252,7 +252,10 @@ export const DashboardDesignTab = ({
       const filePath = `${user.id}/${profileId}/banner.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: croppedBlob.type || "image/jpeg",
+        });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
@@ -364,7 +367,7 @@ export const DashboardDesignTab = ({
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxDim = 1200;
+        const maxDim = 2400;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
           if (width > height) {
@@ -602,6 +605,10 @@ export const DashboardDesignTab = ({
                 restrictPosition={false}
                 fillColor={bannerFillColor}
                 editableFill
+                autoTrim
+                fullFrameOutput
+                maxOutputDimension={2048}
+                outputQuality={0.92}
                 title="Adjust your banner"
               />
             )}
@@ -846,6 +853,9 @@ export const DashboardDesignTab = ({
           onCropComplete={handleCropComplete}
           aspectRatio={16 / 5}
           cropShape="rect"
+          fullFrameOutput
+          maxOutputDimension={2048}
+          outputQuality={0.92}
         />
       )}
     </div>
