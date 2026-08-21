@@ -146,10 +146,13 @@ export const ImageCropper = ({
   minZoom = 1,
   restrictPosition,
   fillColor,
+  editableFill,
+  title,
 }: Props) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [fill, setFill] = useState<string>(fillColor || "#ffffff");
 
   // Reset crop/zoom every time the modal opens or the source image changes,
   // so a previously-saved zoom-in doesn't lock the slider above 1.
@@ -158,8 +161,10 @@ export const ImageCropper = ({
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setCroppedAreaPixels(null);
+      setFill(fillColor || "#ffffff");
     }
-  }, [open, imageSrc]);
+  }, [open, imageSrc, fillColor]);
+
 
   const onCropChange = useCallback((location: { x: number; y: number }) => {
     setCrop(location);
