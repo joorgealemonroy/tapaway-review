@@ -527,12 +527,13 @@ export const DashboardDesignTab = ({
   return (
     <div className="space-y-8">
       {/* Sticky save bar */}
-      <UnsavedChangesBar
-        hasPendingChanges={hasChanges}
-        onSave={() => handleSave()}
-        onDiscard={handleDiscard}
-        saving={saving}
-      />
+      {(saving || hasChanges) && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Saving…
+        </div>
+      )}
+
 
       {/* Header Style Section */}
       <div className="space-y-4">
