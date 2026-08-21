@@ -155,6 +155,8 @@ const PersonalDashboard = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
+  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
+  const [bannerAspectRatio, setBannerAspectRatio] = useState(16 / 5);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
