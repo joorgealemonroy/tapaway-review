@@ -200,3 +200,43 @@ export function menuSectionsToText(sections: MenuSection[]): string {
     })
     .join("\n\n");
 }
+
+const SECTION_EMOJI_RULES: [RegExp, string][] = [
+  [/\b(taco|taqueria)/, "🌮"],
+  [/\b(burrito|burritos)\b/, "🌯"],
+  [/(quesadilla|nacho|totopo)/, "🧀"],
+  [/(mariscos|seafood|pescado|fish|ceviche|camaron|shrimp|ostion|oyster)/, "🦐"],
+  [/(sushi|roll|sashimi)/, "🍣"],
+  [/(cerveza|beer|michelada|chelada|draft)/, "🍺"],
+  [/(cocktail|coctel|margarita|tequila|mezcal|liquor|bar|vino|wine|mixed drink)/, "🍹"],
+  [/(bebida|drink|refresco|soda|agua|juice|jugo|smoothie|licuado)/, "🥤"],
+  [/(coffee|cafe|espresso|latte|te\b|tea)/, "☕"],
+  [/(postre|dessert|dulce|sweet|cheesecake|flan|helado|ice cream|pastel|cake)/, "🍰"],
+  [/(kid|nino|nino|children|infantil)/, "🧒"],
+  [/(desayuno|breakfast|brunch|huevo|egg|pancake|waffle)/, "🍳"],
+  [/(sopa|soup|caldo|menudo|pozole|birria|ramen)/, "🍲"],
+  [/(ensalada|salad|verdura|veggie|vegetarian)/, "🥗"],
+  [/(burger|hamburguesa|sandwich|torta|hoagie|sub)/, "🍔"],
+  [/(pizza|calzone)/, "🍕"],
+  [/(pasta|spaghetti|noodle)/, "🍝"],
+  [/(pollo|chicken|wing|alitas)/, "🍗"],
+  [/(carne|steak|beef|asada|bbq|barbacoa|parrilla|grill)/, "🥩"],
+  [/(taco de|tostada|sope|gordita|antojito)/, "🫓"],
+  [/(extra|side|acompanamiento|orden|add|topping|salsa)/, "🧂"],
+  [/(appetizer|entrada|starter|botana|snack)/, "🍤"],
+  [/(especial|special|favorite|popular|signature|combo|platillo|plate)/, "⭐"],
+  [/(rice|arroz|frijol|bean)/, "🍚"],
+];
+
+/** Pick a friendly emoji for a menu section based on its name. */
+export function sectionEmoji(name: string): string {
+  const normalized = (name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (!normalized) return "🍽️";
+  for (const [pattern, emoji] of SECTION_EMOJI_RULES) {
+    if (pattern.test(normalized)) return emoji;
+  }
+  return "🍽️";
+}
