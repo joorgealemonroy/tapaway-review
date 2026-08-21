@@ -149,7 +149,7 @@ export const DashboardDesignTab = ({
   const [bannerSaving, setBannerSaving] = useState(false);
 
   // --- Pending (buffered) state for deferred save ---
-  const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
+  const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
@@ -159,27 +159,13 @@ export const DashboardDesignTab = ({
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
-
-  // Force banner mode on rep-created demo hubs and persist it once
-  useEffect(() => {
-    if (!isRepDemo) return;
-    if (headerType !== "banner") {
-      setPendingHeaderType("banner");
-      supabase
-        .from("personal_profiles")
-        .update({ header_type: "banner" })
-        .eq("id", profileId)
-        .then(() => onUpdate({ headerType: "banner" }));
-    }
-  }, [isRepDemo, headerType, profileId, onUpdate]);
-
   // Re-sync pending state when props change externally (e.g. photo upload
   // auto-matches background_color). Without this, pendingBgColor stays stale
   // and the Unsaved-Changes bar can overwrite the freshly-sampled color
   // back to the previous value.
   useEffect(() => {
     if (userPickedBg.current) return;
-    setPendingHeaderType(isRepDemo ? "banner" : headerType);
+    setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "cover");
@@ -188,7 +174,8 @@ export const DashboardDesignTab = ({
     setPendingLogoBgColor(logoBgColor ?? null);
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, logoBgColor, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, logoBgColor]);
+
 
   // Mid-luminance backgrounds are the ones where neither dark nor light text
   // reads well — warn the owner instead of letting the hub ship unreadable.
