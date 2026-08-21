@@ -1,0 +1,2 @@
+ALTER TABLE public.personal_profiles ALTER COLUMN banner_fit SET DEFAULT 'contain';
+UPDATE public.personal_profiles SET banner_fit = 'contain' WHERE header_type = 'banner' AND (banner_fit IS NULL OR banner_fit = 'cover');
