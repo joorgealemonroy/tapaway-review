@@ -40,6 +40,7 @@ type UnifiedRow = {
   subscription_status: string | null;
   is_approved: boolean | null;
   created_at: string | null;
+  updated_at?: string | null;
   photo_url: string | null;
   taps: number;
   clicks: number;
