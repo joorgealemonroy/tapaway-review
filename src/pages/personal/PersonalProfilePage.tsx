@@ -1284,8 +1284,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
     : undefined;
   const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
+  // Logo header: the band behind the logo can carry its own (sampled) color so
+  // it reads as a separate section from the content below it.
+  const logoBandColor = isLogoHeader ? (profile.header_color || null) : null;
   // Shared readability rules derived from the actual page background.
   const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
+  const bandContrast = logoBandColor ? resolveHubContrast(logoBandColor) : hubContrast;
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
     ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
