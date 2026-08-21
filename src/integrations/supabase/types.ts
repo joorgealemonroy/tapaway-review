@@ -3658,6 +3658,7 @@ export type Database = {
           id: string
           is_approved: boolean
           is_founding_user: boolean
+          logo_bg_color: string
           logo_scale: string
           pfp_position: string
           plan_type: string

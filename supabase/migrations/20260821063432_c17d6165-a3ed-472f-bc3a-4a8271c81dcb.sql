@@ -1,0 +1,1 @@
+ALTER FUNCTION public.get_public_personal_profile(text) SECURITY INVOKER;
