@@ -137,7 +137,7 @@ export const SmsOptInDrawer = ({
 
   const headerMark = (
     <div className="mx-auto h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-      <MessageSquareHeart className="h-4.5 w-4.5 text-primary" strokeWidth={1.75} />
+      <MessageSquareHeart className="h-5 w-5 text-primary" strokeWidth={1.75} />
     </div>
   );
 
