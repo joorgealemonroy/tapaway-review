@@ -14,6 +14,7 @@ import {
   Loader2,
   Sparkles,
   Lock,
+  Maximize2,
   ChevronDown
 } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -502,7 +503,7 @@ export const DashboardDesignTab = ({
         <RadioGroup 
           value={pendingHeaderType} 
           onValueChange={handleTypeChange}
-          className="grid grid-cols-3 gap-3"
+          className="grid grid-cols-2 gap-3"
         >
           <div>
             <RadioGroupItem value="color" id="header-color" className="peer sr-only" />
@@ -548,6 +549,30 @@ export const DashboardDesignTab = ({
               </span>
             </div>
           )}
+          {isPremium ? (
+            <div>
+              <RadioGroupItem value="logo" id="header-logo" className="peer sr-only" />
+              <Label
+                htmlFor="header-logo"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
+              >
+                <Maximize2 className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Logo</span>
+              </Label>
+            </div>
+          ) : (
+            <div
+              onClick={() => setUpgradeFeature("Logo Header")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all hover:bg-muted/50 relative"
+            >
+              <Maximize2 className="h-5 w-5 text-primary" />
+              <span className="text-xs font-medium">Logo</span>
+              <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                <Lock className="h-2.5 w-2.5" />
+                Pro
+              </span>
+            </div>
+          )}
         </RadioGroup>
         </>
         )}
@@ -563,7 +588,54 @@ export const DashboardDesignTab = ({
           }}
         />
 
-        {pendingHeaderType === "banner" ? (
+        {pendingHeaderType === "logo" ? (
+          <div className="space-y-3">
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Maximize2 className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Logo header</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your logo is shown whole at the top — never cropped or zoomed — and the page
+                    flows straight into your buttons and tiles below.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Logo size</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  How much room the logo takes up on a phone.
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {LOGO_SCALE_LABELS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleLogoScaleChange(opt.value)}
+                    className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                      pendingLogoScale === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={matchBackgroundToLogo}>
+                <Paintbrush className="h-4 w-4 mr-2" />
+                Match background to logo
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Best when your logo has a solid background — the page color will blend right into it.
+              </p>
+            </div>
+          </div>
+        ) : pendingHeaderType === "banner" ? (
           <div className="space-y-3">
             <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
               <div className="flex items-start gap-3">
