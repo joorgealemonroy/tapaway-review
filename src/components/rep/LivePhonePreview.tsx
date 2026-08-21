@@ -190,10 +190,11 @@ export const LivePhonePreview = ({
               height: bannerHeight,
               backgroundColor: bannerBg,
               backgroundImage: bannerUrl && headerStyle !== 'solid' ? `url(${bannerUrl})` : undefined,
-              backgroundSize: 'cover',
+              backgroundSize: headerStyle === 'full_banner' && bannerFit === 'contain' ? 'contain' : 'cover',
+              backgroundRepeat: headerStyle === 'full_banner' && bannerFit === 'contain' ? 'no-repeat' : undefined,
               backgroundPosition: 'center',
               position: 'relative',
-              ...(useMask
+              ...(useMask && bannerFit !== 'contain'
                 ? {
                     WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
                     maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
