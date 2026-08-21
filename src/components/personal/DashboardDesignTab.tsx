@@ -38,6 +38,8 @@ interface Props {
   bannerFit: string | null;
   bannerAspect?: string | null;
   bannerOriginalUrl?: string | null;
+  logoScale?: string | null;
+
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
