@@ -216,6 +216,7 @@ const App = () => {
     </TooltipProvider>
   </QueryClientProvider>
   </HelmetProvider>
-);
+  );
+};
 
 export default App;
