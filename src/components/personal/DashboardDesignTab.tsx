@@ -29,6 +29,7 @@ interface Props {
   headerImageUrl: string | null;
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
+  bannerFit: string | null;
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
@@ -39,6 +40,7 @@ interface Props {
     headerColor?: string | null;
     headerImageUrl?: string | null;
     backgroundColor?: string | null;
+    bannerFit?: string | null;
   }) => void;
 }
 
