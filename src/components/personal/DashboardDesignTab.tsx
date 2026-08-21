@@ -106,7 +106,7 @@ export const DashboardDesignTab = ({
   const [pendingHeaderType, setPendingHeaderType] = useState(isRepDemo ? "banner" : headerType);
   const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
-  const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "cover");
+  const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -132,7 +132,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(isRepDemo ? "banner" : headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "cover");
+    setPendingBannerFit(bannerFit || "contain");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
   }, [headerType, headerColor, backgroundColor, bannerFit, isRepDemo]);
@@ -142,7 +142,7 @@ export const DashboardDesignTab = ({
       pendingHeaderType !== headerType ||
       pendingHeaderColor !== headerColor ||
       pendingBgColor !== backgroundColor ||
-      pendingBannerFit !== (bannerFit || "cover")
+      pendingBannerFit !== (bannerFit || "contain")
     );
   }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit]);
 
@@ -153,7 +153,7 @@ export const DashboardDesignTab = ({
       if (pendingHeaderType !== headerType) updates.header_type = pendingHeaderType;
       if (pendingHeaderColor !== headerColor) updates.header_color = pendingHeaderColor;
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
-      if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
+      if (pendingBannerFit !== (bannerFit || "contain")) updates.banner_fit = pendingBannerFit;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -185,7 +185,7 @@ export const DashboardDesignTab = ({
     setPendingHeaderType(headerType);
     setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "cover");
+    setPendingBannerFit(bannerFit || "contain");
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -193,7 +193,7 @@ export const DashboardDesignTab = ({
       headerType,
       headerColor,
       backgroundColor,
-      bannerFit: bannerFit || "cover",
+      bannerFit: bannerFit || "contain",
     });
   };
 
