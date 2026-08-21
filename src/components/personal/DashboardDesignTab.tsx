@@ -318,10 +318,24 @@ export const DashboardDesignTab = ({
     userPickedBg.current = true;
     setPendingBgColor(color);
     setBgColorInput(color);
+    // Keep the live preview in step with the picker.
+    onUpdate({ headerType: pendingHeaderType, backgroundColor: color });
   };
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
+    onUpdate({ headerType: type });
+    // Picking "Logo" should just work: blend the page into the logo's own
+    // background automatically, no extra taps required.
+    if (type === "logo" && profilePhotoUrl) {
+      sampleBottomEdgeColor(profilePhotoUrl).then((sampled) => {
+        if (!sampled) return;
+        userPickedBg.current = true;
+        setPendingBgColor(sampled);
+        setBgColorInput(sampled);
+        onUpdate({ headerType: "logo", backgroundColor: sampled });
+      });
+    }
   };
 
   // Push logo sizing to the live preview as it is adjusted
