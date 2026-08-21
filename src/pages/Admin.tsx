@@ -636,7 +636,7 @@ const Admin = () => {
             <DropdownMenuItem onClick={() => navigate("/onboarding")}>
               New Business (Legacy)
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/personal/signup")}>
+            <DropdownMenuItem onClick={() => navigate("/admin/personal-accounts")}>
               New Solo Hub
             </DropdownMenuItem>
           </DropdownMenuContent>
