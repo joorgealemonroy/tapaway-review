@@ -9,6 +9,8 @@ import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { logoPreviewStyle } from "@/lib/logoHeader";
+
 
 
 // Helper to extract a base color from a gradient for fade effect
@@ -59,6 +61,8 @@ interface ProfileData {
   banner_image_url?: string | null;
   banner_fit?: string | null;
   banner_aspect?: string | null;
+  logo_scale?: string | null;
+
   plan_type?: string | null;
   show_username?: boolean;
   contact_enabled?: boolean | null;
@@ -125,6 +129,8 @@ function ProfilePreviewRendererComponent({
   // Banner for premium users (header_type === "banner")
   // Uses profile_photo_url as the banner (no separate upload)
   const hasBanner = headerType === "banner";
+  const isLogoHeader = headerType === "logo";
+
   const bannerUrl = (hasBanner && profile.profile_photo_url) 
     ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
     : null;
@@ -146,7 +152,7 @@ function ProfilePreviewRendererComponent({
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
   const textClass = isDarkBg ? "text-white/80" : "text-gray-600";
   const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
-  const pfpPosition = profile.header_type === "banner" ? "center" : (profile.pfp_position || "center");
+  const pfpPosition = (profile.header_type === "banner" || profile.header_type === "logo") ? "center" : (profile.pfp_position || "center");
 
   const activeLinks = useMemo(
     () => links.filter((l) => l.is_active !== false),
@@ -796,7 +802,23 @@ function ProfilePreviewRendererComponent({
       )}
       {/* Header or Banner */}
       <div className="relative w-full">
-        {hasBanner ? (
+        {isLogoHeader ? (
+          <div className="w-full flex items-center justify-center pt-6 pb-2 px-4">
+            {profile.profile_photo_url ? (
+              <img
+                src={getOptimizedImageUrl(profile.profile_photo_url, 800, 90)}
+                alt={profile.full_name}
+                className="mx-auto"
+                style={logoPreviewStyle(profile.logo_scale, 320)}
+              />
+            ) : (
+              <div className="h-20 flex items-center">
+                <span className="text-xs text-muted-foreground">Add a logo</span>
+              </div>
+            )}
+          </div>
+        ) : hasBanner ? (
+
           <>
             {/* Banner mode - preserve the original dashboard preview dimensions. */}
             <div 
@@ -872,11 +894,12 @@ function ProfilePreviewRendererComponent({
       {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
       <div
         className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
-          pfpPosition === "left" ? "flex items-start gap-4" : ""
+          pfpPosition === "left" && !isLogoHeader ? "flex items-start gap-4" : ""
         }`}
       >
-        {/* Avatar - hidden when using full banner */}
-        {!hasBanner && (
+        {/* Avatar - hidden when the logo/banner is the header */}
+        {!hasBanner && !isLogoHeader && (
+
           <div
             className={`relative ${
               pfpPosition === "left"

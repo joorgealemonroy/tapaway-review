@@ -1956,6 +1956,7 @@ export type Database = {
           is_approved: boolean
           is_founding_user: boolean
           is_stripe_onboarded: boolean | null
+          logo_scale: string
           pfp_position: string | null
           pipeline_status: string | null
           place_city: string | null
@@ -2041,6 +2042,7 @@ export type Database = {
           is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
+          logo_scale?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
@@ -2126,6 +2128,7 @@ export type Database = {
           is_approved?: boolean
           is_founding_user?: boolean
           is_stripe_onboarded?: boolean | null
+          logo_scale?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
@@ -3652,6 +3655,7 @@ export type Database = {
           id: string
           is_approved: boolean
           is_founding_user: boolean
+          logo_scale: string
           pfp_position: string
           plan_type: string
           profile_photo_url: string

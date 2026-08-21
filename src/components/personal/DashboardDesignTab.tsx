@@ -14,6 +14,7 @@ import {
   Loader2,
   Sparkles,
   Lock,
+  Maximize2,
   ChevronDown
 } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -22,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
+import { LOGO_SCALE_LABELS, normalizeLogoScale } from "@/lib/logoHeader";
 import {
   BANNER_ASPECT_LABELS,
   bannerAspectRatio,
@@ -38,6 +40,8 @@ interface Props {
   bannerFit: string | null;
   bannerAspect?: string | null;
   bannerOriginalUrl?: string | null;
+  logoScale?: string | null;
+
   isPremium: boolean;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
@@ -52,6 +56,8 @@ interface Props {
     bannerAspect?: string | null;
     bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
+    logoScale?: string | null;
+
   }) => void;
 }
 
@@ -98,6 +104,7 @@ export const DashboardDesignTab = ({
   bannerFit,
   bannerAspect,
   bannerOriginalUrl,
+  logoScale,
   isPremium,
   isFoundingUser,
   showFoundingBadge,
@@ -128,6 +135,7 @@ export const DashboardDesignTab = ({
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
   const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
+  const [pendingLogoScale, setPendingLogoScale] = useState(normalizeLogoScale(logoScale));
   const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
 
@@ -156,9 +164,10 @@ export const DashboardDesignTab = ({
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
+    setPendingLogoScale(normalizeLogoScale(logoScale));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, isRepDemo]);
+  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, isRepDemo]);
 
   const hasChanges = useMemo(() => {
     return (
@@ -166,9 +175,10 @@ export const DashboardDesignTab = ({
       pendingHeaderColor !== headerColor ||
       pendingBgColor !== backgroundColor ||
       pendingBannerFit !== (bannerFit || "cover") ||
-      pendingBannerAspect !== normalizeBannerAspect(bannerAspect)
+      pendingBannerAspect !== normalizeBannerAspect(bannerAspect) ||
+      pendingLogoScale !== normalizeLogoScale(logoScale)
     );
-  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect]);
+  }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale]);
 
 
   const handleSave = async () => {
@@ -180,6 +190,7 @@ export const DashboardDesignTab = ({
       if (pendingBgColor !== backgroundColor) updates.background_color = pendingBgColor;
       if (pendingBannerFit !== (bannerFit || "cover")) updates.banner_fit = pendingBannerFit;
       if (pendingBannerAspect !== normalizeBannerAspect(bannerAspect)) updates.banner_aspect = pendingBannerAspect;
+      if (pendingLogoScale !== normalizeLogoScale(logoScale)) updates.logo_scale = pendingLogoScale;
 
       if (Object.keys(updates).length > 0) {
         const { error } = await supabase
@@ -196,6 +207,7 @@ export const DashboardDesignTab = ({
         backgroundColor: pendingBgColor,
         bannerFit: pendingBannerFit,
         bannerAspect: pendingBannerAspect,
+        logoScale: pendingLogoScale,
       });
       userPickedBg.current = false;
       toast.success("Design saved!");
@@ -214,6 +226,7 @@ export const DashboardDesignTab = ({
     setPendingBgColor(backgroundColor);
     setPendingBannerFit(bannerFit || "cover");
     setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
+    setPendingLogoScale(normalizeLogoScale(logoScale));
     setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
     // Reset preview back to saved values
@@ -223,6 +236,7 @@ export const DashboardDesignTab = ({
       backgroundColor,
       bannerFit: bannerFit || "cover",
       bannerAspect: normalizeBannerAspect(bannerAspect),
+      logoScale: normalizeLogoScale(logoScale),
     });
   };
 
@@ -308,6 +322,28 @@ export const DashboardDesignTab = ({
 
   const handleTypeChange = (type: string) => {
     setPendingHeaderType(type);
+  };
+
+  // Push logo sizing to the live preview as it is adjusted
+  const handleLogoScaleChange = (value: string) => {
+    setPendingLogoScale(normalizeLogoScale(value));
+    onUpdate({ headerType: pendingHeaderType, logoScale: value });
+  };
+
+  // Match the page background to the logo's own edge color so wide logos with
+  // white/colored margins blend seamlessly into the page.
+  const matchBackgroundToLogo = async () => {
+    if (!profilePhotoUrl) {
+      toast.error("Upload a logo first");
+      return;
+    }
+    const sampled = await sampleBottomEdgeColor(profilePhotoUrl);
+    if (!sampled) {
+      toast.error("Could not read the logo color");
+      return;
+    }
+    handleBgColorChange(sampled);
+    toast.success("Background matched to your logo");
   };
 
   // For banner mode, we use the profile photo as the banner (no separate upload)
@@ -467,7 +503,7 @@ export const DashboardDesignTab = ({
         <RadioGroup 
           value={pendingHeaderType} 
           onValueChange={handleTypeChange}
-          className="grid grid-cols-3 gap-3"
+          className="grid grid-cols-2 gap-3"
         >
           <div>
             <RadioGroupItem value="color" id="header-color" className="peer sr-only" />
@@ -513,6 +549,30 @@ export const DashboardDesignTab = ({
               </span>
             </div>
           )}
+          {isPremium ? (
+            <div>
+              <RadioGroupItem value="logo" id="header-logo" className="peer sr-only" />
+              <Label
+                htmlFor="header-logo"
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
+              >
+                <Maximize2 className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium">Logo</span>
+              </Label>
+            </div>
+          ) : (
+            <div
+              onClick={() => setUpgradeFeature("Logo Header")}
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all hover:bg-muted/50 relative"
+            >
+              <Maximize2 className="h-5 w-5 text-primary" />
+              <span className="text-xs font-medium">Logo</span>
+              <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                <Lock className="h-2.5 w-2.5" />
+                Pro
+              </span>
+            </div>
+          )}
         </RadioGroup>
         </>
         )}
@@ -528,7 +588,54 @@ export const DashboardDesignTab = ({
           }}
         />
 
-        {pendingHeaderType === "banner" ? (
+        {pendingHeaderType === "logo" ? (
+          <div className="space-y-3">
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Maximize2 className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Logo header</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your logo is shown whole at the top — never cropped or zoomed — and the page
+                    flows straight into your buttons and tiles below.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Logo size</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  How much room the logo takes up on a phone.
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {LOGO_SCALE_LABELS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleLogoScaleChange(opt.value)}
+                    className={`p-3 rounded-lg border-2 text-xs font-medium transition-all ${
+                      pendingLogoScale === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={matchBackgroundToLogo}>
+                <Paintbrush className="h-4 w-4 mr-2" />
+                Match background to logo
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Best when your logo has a solid background — the page color will blend right into it.
+              </p>
+            </div>
+          </div>
+        ) : pendingHeaderType === "banner" ? (
           <div className="space-y-3">
             <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
               <div className="flex items-start gap-3">

@@ -25,6 +25,8 @@ import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
+import { logoImageStyle } from "@/lib/logoHeader";
+
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
@@ -1246,6 +1248,14 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
     : null;
   const hasBanner = !!bannerUrl;
+
+  // "Logo header" — the whole logo is shown uncropped at the top, then the page
+  // flows straight into the standard Solo Pro layout.
+  const isLogoHeader = profile.header_type === "logo";
+  const logoUrl = (isLogoHeader && profile.profile_photo_url)
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 92)
+    : null;
+
   
   const headerStyle = optimizedHeaderUrl
     ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
@@ -1270,7 +1280,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const brandGlowStyle = isDefaultDarkBg && bgColor !== '#020617'
     ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
     : undefined;
-  const pfpCentered = profile.header_type === "banner" || profile.pfp_position === "center";
+  const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
   // For banners, use the extracted bottom color luminance instead of blindly assuming dark
   const isDarkBg = hasBanner
     ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
@@ -1329,7 +1339,23 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         {brandGlowStyle && (
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
-        {hasBanner ? (
+        {isLogoHeader ? (
+          <div className="relative w-full flex items-center justify-center pt-8 pb-4 px-5">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={profile.full_name}
+                loading="eager"
+                decoding="async"
+                className="mx-auto"
+                style={logoImageStyle((profile as any).logo_scale)}
+              />
+            ) : (
+              <div className="h-24" />
+            )}
+          </div>
+        ) : hasBanner ? (
+
           <div className="relative">
             {/* Existing banners retain their original full-height presentation. */}
             <div 
@@ -1408,7 +1434,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-2' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
           {!hasBanner && (
@@ -1443,8 +1469,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
             </div>
           )}
 
-          {/* Avatar - priority loaded, hidden when using full banner */}
-          {!hasBanner && (
+          {/* Avatar - priority loaded, hidden when the logo/banner is the header */}
+          {!hasBanner && !isLogoHeader && (
+
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
               <OptimizedAvatar
                 src={profile.profile_photo_url}
