@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
-import Cropper, { Area } from "react-easy-crop";
+import { useState, useCallback, useEffect, useRef } from "react";
+import Cropper, { Area, MediaSize, Size } from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -17,6 +17,14 @@ interface Props {
   fillColor?: string | null;
   /** Show a background-fill color picker (banner crops only). */
   editableFill?: boolean;
+  /** Trim uniform empty borders (e.g. white space around a logo) before cropping. */
+  autoTrim?: boolean;
+  /** Longest edge of the exported image (defaults to 1024). */
+  maxOutputDimension?: number;
+  /** Export quality 0-1 (defaults to 0.8). */
+  outputQuality?: number;
+  /** Always render the export at the full frame size, even when zoomed out. */
+  fullFrameOutput?: boolean;
   title?: string;
 }
 
@@ -30,8 +38,8 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-const MAX_IMAGE_DIMENSION = 1024;
-const IMAGE_QUALITY = 0.8;
+const DEFAULT_MAX_DIMENSION = 1024;
+const DEFAULT_QUALITY = 0.8;
 
 // Check WebP support once
 const supportsWebP = (() => {
@@ -71,10 +79,107 @@ function parseColor(input: string): { r: number; g: number; b: number } | null {
   return null;
 }
 
+/**
+ * Detect and remove uniform (or transparent) borders around an image so a logo
+ * with a big empty margin fills the crop frame instead of forcing a zoom-out.
+ * Returns null when there is nothing meaningful to trim.
+ */
+async function trimUniformBorders(imageSrc: string): Promise<string | null> {
+  try {
+    const image = await createImage(imageSrc);
+    const w = image.naturalWidth;
+    const h = image.naturalHeight;
+    if (!w || !h) return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0);
+
+    let data: Uint8ClampedArray;
+    try {
+      data = ctx.getImageData(0, 0, w, h).data;
+    } catch {
+      // Tainted canvas (cross-origin without CORS) — skip trimming.
+      return null;
+    }
+
+    const at = (x: number, y: number) => {
+      const i = (y * w + x) * 4;
+      return { r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3] };
+    };
+
+    // Reference = top-left corner pixel (the background of most logo exports).
+    const ref = at(0, 0);
+    const TOL = 18;
+    const isBg = (x: number, y: number) => {
+      const p = at(x, y);
+      if (p.a < 16) return true; // transparent counts as empty
+      if (ref.a < 16) return false;
+      return (
+        Math.abs(p.r - ref.r) <= TOL &&
+        Math.abs(p.g - ref.g) <= TOL &&
+        Math.abs(p.b - ref.b) <= TOL
+      );
+    };
+
+    let top = 0;
+    let bottom = h - 1;
+    let left = 0;
+    let right = w - 1;
+
+    const rowEmpty = (y: number) => {
+      for (let x = 0; x < w; x += 2) if (!isBg(x, y)) return false;
+      return true;
+    };
+    const colEmpty = (x: number) => {
+      for (let y = top; y <= bottom; y += 2) if (!isBg(x, y)) return false;
+      return true;
+    };
+
+    while (top < bottom && rowEmpty(top)) top++;
+    while (bottom > top && rowEmpty(bottom)) bottom--;
+    while (left < right && colEmpty(left)) left++;
+    while (right > left && colEmpty(right)) right--;
+
+    const cropW = right - left + 1;
+    const cropH = bottom - top + 1;
+    if (cropW < 24 || cropH < 24) return null;
+
+    // Only bother when the trim removes a meaningful amount of empty space.
+    const removed = 1 - (cropW * cropH) / (w * h);
+    if (removed < 0.08) return null;
+
+    // Keep a small breathing margin so the artwork isn't flush to the edge.
+    const pad = Math.round(Math.max(cropW, cropH) * 0.02);
+    const sx = Math.max(0, left - pad);
+    const sy = Math.max(0, top - pad);
+    const sw = Math.min(w - sx, cropW + pad * 2);
+    const sh = Math.min(h - sy, cropH + pad * 2);
+
+    const out = document.createElement("canvas");
+    out.width = sw;
+    out.height = sh;
+    const octx = out.getContext("2d");
+    if (!octx) return null;
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = "high";
+    octx.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+    return out.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
-  fillColor?: string | null
+  fillColor?: string | null,
+  maxDimension: number = DEFAULT_MAX_DIMENSION,
+  quality: number = DEFAULT_QUALITY,
+  fullFrameOutput = false,
 ): Promise<{ blob: Blob; dataUrl: string }> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -84,18 +189,29 @@ async function getCroppedImg(
     throw new Error("No 2d context");
   }
 
-  // Calculate output dimensions - resize if too large
+  // Calculate output dimensions.
   let outputWidth = pixelCrop.width;
   let outputHeight = pixelCrop.height;
-  
-  if (outputWidth > MAX_IMAGE_DIMENSION || outputHeight > MAX_IMAGE_DIMENSION) {
-    const scale = MAX_IMAGE_DIMENSION / Math.max(outputWidth, outputHeight);
+
+  if (fullFrameOutput) {
+    // Always render the banner frame at display resolution, even when the user
+    // zoomed out so far that the crop rect is small in source pixels.
+    const frameAspect = pixelCrop.width / pixelCrop.height;
+    if (frameAspect >= 1) {
+      outputWidth = maxDimension;
+      outputHeight = Math.round(maxDimension / frameAspect);
+    } else {
+      outputHeight = maxDimension;
+      outputWidth = Math.round(maxDimension * frameAspect);
+    }
+  } else if (outputWidth > maxDimension || outputHeight > maxDimension) {
+    const scale = maxDimension / Math.max(outputWidth, outputHeight);
     outputWidth = Math.round(outputWidth * scale);
     outputHeight = Math.round(outputHeight * scale);
   }
 
-  canvas.width = outputWidth;
-  canvas.height = outputHeight;
+  canvas.width = Math.max(1, outputWidth);
+  canvas.height = Math.max(1, outputHeight);
 
   // Paint a seamless background fill color when the crop is zoomed out
   // past the image bounds (only used for rectangular banner crops).
@@ -108,22 +224,35 @@ async function getCroppedImg(
   // Draw with high quality scaling
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  
-  ctx.drawImage(
-    image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    outputWidth,
-    outputHeight
-  );
+
+  // Clamp the source rect to the image bounds and map it onto the matching
+  // destination area, so letterboxed regions keep the fill color.
+  const scaleX = canvas.width / pixelCrop.width;
+  const scaleY = canvas.height / pixelCrop.height;
+  const sx = Math.max(0, pixelCrop.x);
+  const sy = Math.max(0, pixelCrop.y);
+  const sRight = Math.min(image.naturalWidth, pixelCrop.x + pixelCrop.width);
+  const sBottom = Math.min(image.naturalHeight, pixelCrop.y + pixelCrop.height);
+  const sw = sRight - sx;
+  const sh = sBottom - sy;
+
+  if (sw > 0 && sh > 0) {
+    ctx.drawImage(
+      image,
+      sx,
+      sy,
+      sw,
+      sh,
+      (sx - pixelCrop.x) * scaleX,
+      (sy - pixelCrop.y) * scaleY,
+      sw * scaleX,
+      sh * scaleY
+    );
+  }
 
   // Use WebP if supported (30% smaller), fallback to JPEG
   const mimeType = supportsWebP ? 'image/webp' : 'image/jpeg';
-  const dataUrl = canvas.toDataURL(mimeType, IMAGE_QUALITY);
+  const dataUrl = canvas.toDataURL(mimeType, quality);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -132,7 +261,7 @@ async function getCroppedImg(
       } else {
         reject(new Error("Canvas is empty"));
       }
-    }, mimeType, IMAGE_QUALITY);
+    }, mimeType, quality);
   });
 }
 
@@ -147,23 +276,41 @@ export const ImageCropper = ({
   restrictPosition,
   fillColor,
   editableFill,
+  autoTrim,
+  maxOutputDimension = DEFAULT_MAX_DIMENSION,
+  outputQuality = DEFAULT_QUALITY,
+  fullFrameOutput,
   title,
 }: Props) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [fill, setFill] = useState<string>(fillColor || "#ffffff");
+  const [activeSrc, setActiveSrc] = useState<string>(imageSrc);
+  const mediaSizeRef = useRef<MediaSize | null>(null);
+  const cropSizeRef = useRef<Size | null>(null);
 
   // Reset crop/zoom every time the modal opens or the source image changes,
   // so a previously-saved zoom-in doesn't lock the slider above 1.
   useEffect(() => {
-    if (open) {
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
-      setFill(fillColor || "#ffffff");
-    }
-  }, [open, imageSrc, fillColor]);
+    if (!open) return;
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setFill(fillColor || "#ffffff");
+    setActiveSrc(imageSrc);
+    mediaSizeRef.current = null;
+    cropSizeRef.current = null;
+
+    if (!autoTrim) return;
+    let cancelled = false;
+    trimUniformBorders(imageSrc).then((trimmed) => {
+      if (!cancelled && trimmed) setActiveSrc(trimmed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, imageSrc, fillColor, autoTrim]);
 
 
   const onCropChange = useCallback((location: { x: number; y: number }) => {
@@ -178,14 +325,30 @@ export const ImageCropper = ({
     setCroppedAreaPixels(areaPixels);
   }, []);
 
+  /** Zoom out just enough that the whole image sits inside the crop frame. */
+  const fitWholeImage = useCallback(() => {
+    const media = mediaSizeRef.current;
+    const cropSize = cropSizeRef.current;
+    if (!media || !cropSize) return;
+    const fit = Math.min(
+      cropSize.width / media.width,
+      cropSize.height / media.height
+    );
+    setCrop({ x: 0, y: 0 });
+    setZoom(Math.max(minZoom, Math.min(3, fit)));
+  }, [minZoom]);
+
   const handleSave = async () => {
     if (!croppedAreaPixels) return;
 
     try {
       const { blob, dataUrl } = await getCroppedImg(
-        imageSrc,
+        activeSrc,
         croppedAreaPixels,
         editableFill ? fill : fillColor,
+        maxOutputDimension,
+        outputQuality,
+        fullFrameOutput,
       );
       // Return data URL for localStorage persistence instead of blob URL
       onCropComplete(blob, dataUrl);
@@ -219,7 +382,7 @@ export const ImageCropper = ({
           style={{ backgroundColor: activeFill || "#000000" }}
         >
           <Cropper
-            image={imageSrc}
+            image={activeSrc}
             crop={crop}
             zoom={zoom}
             minZoom={minZoom}
@@ -231,6 +394,8 @@ export const ImageCropper = ({
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
             onCropComplete={onCropAreaComplete}
+            onMediaLoaded={(size) => { mediaSizeRef.current = size; }}
+            onCropSizeChange={(size) => { cropSizeRef.current = size; }}
           />
         </div>
 
@@ -272,6 +437,12 @@ export const ImageCropper = ({
 
           {/* Buttons */}
           <div className="flex gap-2">
+            {cropShape === "rect" && (
+              <Button variant="outline" onClick={fitWholeImage} className="flex-1">
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Fit whole logo
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleReset}
