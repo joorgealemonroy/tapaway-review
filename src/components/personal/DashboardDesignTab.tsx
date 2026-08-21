@@ -236,14 +236,15 @@ export const DashboardDesignTab = ({
     }
   };
 
-  // The logo section saves itself — no Save bar tapping required on mobile.
+  // Design changes save themselves — no Save bar tapping required on mobile.
   const saveRef = useRef(handleSave);
   saveRef.current = handleSave;
   useEffect(() => {
-    if (pendingHeaderType !== "logo" || !hasChanges || saving) return;
-    const t = setTimeout(() => { void saveRef.current(true); }, 700);
+    if (!hasChanges || saving) return;
+    const t = setTimeout(() => { void saveRef.current(true); }, 500);
     return () => clearTimeout(t);
-  }, [pendingHeaderType, hasChanges, saving, pendingBgColor, pendingHeaderColor, pendingLogoScale, pendingLogoBgColor]);
+  }, [hasChanges, saving, pendingHeaderType, pendingBgColor, pendingHeaderColor, pendingBannerFit, pendingBannerAspect, pendingLogoScale, pendingLogoBgColor]);
+
 
   const handleDiscard = () => {
     userPickedBg.current = false;
