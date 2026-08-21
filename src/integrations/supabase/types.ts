@@ -3633,6 +3633,8 @@ export type Database = {
         Args: { _slug: string }
         Returns: {
           background_color: string
+          banner_aspect: string
+          banner_fit: string
           banner_image_url: string
           bg_style: string
           bio: string
