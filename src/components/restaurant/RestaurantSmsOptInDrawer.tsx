@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquareHeart, ShieldCheck, BellOff, Ban } from "lucide-react";
 import { SmsConsentBlock } from "@/components/compliance/SmsConsentBlock";
 import {
   SMS_MARKETING_CONSENT_TEXT,
