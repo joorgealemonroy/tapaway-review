@@ -284,6 +284,7 @@ const AdminUnifiedAccountsTable = () => {
             subscription_status: p.subscription_status ?? null,
             is_approved: p.is_approved ?? null,
             created_at: p.created_at ?? null,
+            updated_at: (p as { updated_at?: string | null }).updated_at ?? null,
             photo_url: p.profile_photo_url ?? null,
             taps: rangeStats[p.id]?.taps ?? 0,
             clicks: rangeStats[p.id]?.link_clicks ?? 0,
