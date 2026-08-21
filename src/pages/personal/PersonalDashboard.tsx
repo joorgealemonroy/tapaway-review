@@ -599,6 +599,8 @@ const PersonalDashboard = () => {
       // can't be lost to a partial failure or later refetch.
       const updates: Record<string, string> = { profile_photo_url: urlWithCacheBust };
       if (sampledBg) updates.background_color = sampledBg;
+      // The image was cropped to the exact banner frame, so render it edge-to-edge.
+      if (profile.header_type === "banner") updates.banner_fit = "cover";
 
       const { data: updatedRow, error: updateError } = await supabase
         .from("personal_profiles")
