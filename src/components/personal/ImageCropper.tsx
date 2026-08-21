@@ -15,7 +15,11 @@ interface Props {
   minZoom?: number;
   restrictPosition?: boolean;
   fillColor?: string | null;
+  /** Show a background-fill color picker (banner crops only). */
+  editableFill?: boolean;
+  title?: string;
 }
+
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
