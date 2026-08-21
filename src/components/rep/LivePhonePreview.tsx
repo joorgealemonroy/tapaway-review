@@ -45,6 +45,7 @@ interface Props {
   headerStyle?: HeaderStyle;
   bannerUrl?: string | null;
   bannerFit?: 'cover' | 'contain';
+  bannerAspect?: string | null;
   socials?: Socials;
   socialImages?: SocialImages;
   blocks?: LinkBlock[];
