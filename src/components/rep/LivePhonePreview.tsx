@@ -184,24 +184,34 @@ export const LivePhonePreview = ({
         style={{ width: 360 }}
       >
         <div className="w-full h-full overflow-y-auto" style={containerStyle}>
-          {/* Banner */}
-          <div
-            style={{
-              height: bannerHeight,
-              backgroundColor: bannerBg,
-              backgroundImage: bannerUrl && headerStyle !== 'solid' ? `url(${bannerUrl})` : undefined,
-              backgroundSize: headerStyle === 'full_banner' && bannerFit === 'contain' ? 'contain' : 'cover',
-              backgroundRepeat: headerStyle === 'full_banner' && bannerFit === 'contain' ? 'no-repeat' : undefined,
-              backgroundPosition: 'center',
-              position: 'relative',
-              ...(useMask && bannerFit !== 'contain'
-                ? {
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                    maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  }
-                : {}),
-            }}
-          />
+          {/* Banner — in Fit mode the height follows the image's own aspect ratio */}
+          {headerStyle === 'full_banner' && bannerFit === 'contain' && bannerUrl ? (
+            <div style={{ backgroundColor: bannerBg, position: 'relative' }}>
+              <img
+                src={bannerUrl}
+                alt="Banner"
+                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: 260, objectFit: 'contain' }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                height: bannerHeight,
+                backgroundColor: bannerBg,
+                backgroundImage: bannerUrl && headerStyle !== 'solid' ? `url(${bannerUrl})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                position: 'relative',
+                ...(useMask
+                  ? {
+                      WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                      maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+                    }
+                  : {}),
+              }}
+            />
+          )}
+
 
           {/* Content below banner */}
           <div className="flex flex-col items-center px-5 pt-4 text-center">
