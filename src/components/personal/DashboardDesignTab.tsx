@@ -181,6 +181,15 @@ export const DashboardDesignTab = ({
     );
   }, [pendingHeaderType, headerType, pendingHeaderColor, headerColor, pendingBgColor, backgroundColor, pendingBannerFit, bannerFit, pendingBannerAspect, bannerAspect, pendingLogoScale, logoScale]);
 
+  // Mid-luminance backgrounds are the ones where neither dark nor light text
+  // reads well — warn the owner instead of letting the hub ship unreadable.
+  const logoContrastOk = useMemo(() => {
+    const lum = colorLuminance(pendingBgColor || "#ffffff");
+    if (lum === null) return true;
+    return lum <= 0.42 || lum >= 0.58;
+  }, [pendingBgColor]);
+
+
 
   const handleSave = async () => {
     setSaving(true);
