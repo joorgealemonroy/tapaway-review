@@ -17,7 +17,8 @@ The logo band is currently painted with `header_color`, an old field that most h
 4. If `logo_bg_color` is empty, the band simply uses the page background (one clean tone), never a legacy color.
 5. Design tab shows two clear controls for Logo style: "Logo background" (with Match to logo / White / Black chips) and "Page background", each with its own swatch. Both keep auto-saving.
 6. Save contact / Share chips pick their contrast from the band color; the blocks below keep picking theirs from the page color.
-7. One-time cleanup for Mariscos Las Nuevas Islas: set its `logo_bg_color` to the logo's own white so it reads as one clean top band instead of the navy slab.
+7. Curved seam, like Reborn Wraps: the content section below the logo band gets rounded top corners and overlaps the band slightly, so the two colors meet on a soft curve instead of a hard straight edge.
+8. One-time cleanup for Mariscos Las Nuevas Islas: set its `logo_bg_color` to the logo's own white so it reads as one clean top band instead of the navy slab.
 
 ## Technical notes
 
