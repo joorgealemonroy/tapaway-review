@@ -137,6 +137,14 @@ async function probe(url: string): Promise<{ status: CheckRow["status"]; http_st
     if (res.status >= 200 && res.status < 400) {
       return { status: "ok", http_status: res.status, detail: null };
     }
+    // 403/429 from a known bot-protected host says nothing about the link.
+    if ((res.status === 403 || res.status === 429) && isBotProtected(url)) {
+      return {
+        status: "unverified",
+        http_status: res.status,
+        detail: "Blocked automated checks — verify manually",
+      };
+    }
     return { status: "broken", http_status: res.status, detail: `HTTP ${res.status}` };
   } catch (e) {
     const message = e instanceof Error ? e.message : "request failed";
