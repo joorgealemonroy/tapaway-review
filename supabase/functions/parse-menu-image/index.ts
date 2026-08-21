@@ -19,14 +19,22 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-const SYSTEM_PROMPT = `You are a menu OCR engine. Read every menu photo provided and extract the menu exactly as printed.
+const SYSTEM_PROMPT = `You are a menu OCR engine. Read every menu photo provided, extract the menu, then sanity-check the result so it reads like a real, clean menu.
 
-Rules:
-- Preserve the exact wording, spelling and prices as printed. Never invent, translate or "improve" items.
+Transcription rules:
+- Never invent items, sections or prices, and never translate items into another language.
 - Keep sections in the printed order. If a section continues onto another photo, keep it as ONE section, do not duplicate it.
-- Ignore anything that is not menu content: hours, addresses, phone numbers, social handles, taglines, legal notices.
+- Ignore anything that is not menu content: hours, addresses, phone numbers, social handles, taglines, legal notices, page numbers, "continued", decorative text.
 - If a price is missing, use an empty string. Same for descriptions.
-- Format prices as they appear, prefixed with $ (e.g. "$3.50").`;
+- Format prices prefixed with $ (e.g. "$3.50").
+
+Clean-up rules (use context clues from the rest of the menu):
+- Repair obvious OCR damage: broken or split words, l/1 and O/0 confusion, stray punctuation.
+- Repair clearly mangled prices, e.g. "350" becomes "$3.50" when neighbouring items are priced like "$3.25". If a price is genuinely printed that way, keep it.
+- Casing: item and section names in Title Case, descriptions in sentence case. Never output ALL CAPS walls of text.
+- If the item line also carries what is clearly a description (ingredients, preparation), split it: short name in "name", the rest in "description".
+- Do not add descriptions that are not printed on the menu.`;
+
 
 const TOOL = {
   type: "function",
