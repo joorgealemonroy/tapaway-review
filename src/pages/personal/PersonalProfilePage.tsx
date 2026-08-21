@@ -32,6 +32,7 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { resolveHubContrast } from "@/lib/hubContrast";
 
 
 
