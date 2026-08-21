@@ -25,7 +25,7 @@ The logo band is currently painted with `header_color`, an old field that most h
 - Migration: `alter table public.personal_profiles add column logo_bg_color text;` (nullable, no backfill of other rows). Existing GRANTs/RLS on the table already cover it.
 - `src/components/personal/DashboardDesignTab.tsx`: drop `deriveCompanionColor` usage; `applySampledLogoColors` becomes `applyLogoBandColor` writing only `logo_bg_color`; add the second swatch row; keep the existing debounced auto-save.
 - `src/lib/logoHeader.ts`: remove `deriveCompanionColor`.
-- `src/pages/personal/PersonalProfilePage.tsx`: band style reads `profile.logo_bg_color ?? page background`; `bandContrast` derives from that; page background logic untouched.
+- `src/pages/personal/PersonalProfilePage.tsx`: band style reads `profile.logo_bg_color ?? page background`; `bandContrast` derives from that; page background logic untouched. The content wrapper below the band gets `rounded-t-[28px]`, the page background painted on it, and a small negative top margin so it curves over the band (matching the banner hubs' seam).
 - `src/components/personal/ProfilePreviewRenderer.tsx` and `src/components/rep/LivePhonePreview.tsx`: mirror the same band color.
 - Non-logo hubs (banner, photo, solid) are untouched; `header_color` keeps its current meaning everywhere else.
 
