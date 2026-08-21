@@ -1286,7 +1286,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
   // Logo header: the band behind the logo can carry its own (sampled) color so
   // it reads as a separate section from the content below it.
-  const logoBandColor = isLogoHeader ? (profile.header_color || null) : null;
+  const logoBandColor = isLogoHeader
+    ? ((profile as any).logo_bg_color || profile.header_color || null)
+    : null;
   // Shared readability rules derived from the actual page background.
   const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
   const bandContrast = logoBandColor ? resolveHubContrast(logoBandColor) : hubContrast;
@@ -1479,9 +1481,18 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           </div>
         )}
         
+        {/* Curved seam: the content sheet overlaps the logo band with rounded
+            top corners, like the banner hubs. */}
+        {isLogoHeader && (
+          <div
+            className="relative z-[5] -mt-7 h-7 rounded-t-[28px] w-full"
+            style={bgStyle}
+          />
+        )}
+
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-2' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-0' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner, non-logo profiles) */}
           {!hasBanner && !isLogoHeader && (
