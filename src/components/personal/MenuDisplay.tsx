@@ -17,8 +17,10 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState(0);
+  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set([0]));
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
 
   const visibleSections = useMemo(
     () =>
