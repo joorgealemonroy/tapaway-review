@@ -52,6 +52,110 @@ export const MenuBlockEditor = ({ sections, onSectionsChange }: Props) => {
 
   const update = (next: MenuSection[]) => onSectionsChange(next);
 
+  const addPhotos = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming: MenuPhoto[] = [];
+    let rejected = 0;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      if (file.size > MAX_PHOTO_BYTES) {
+        rejected++;
+        continue;
+      }
+      incoming.push({
+        id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`,
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    }
+    if (rejected > 0) toast.error(`${rejected} photo(s) over 20MB were skipped`);
+    setPhotos((prev) => {
+      const room = MAX_PHOTOS - prev.length;
+      if (room <= 0) {
+        toast.error(`You can read up to ${MAX_PHOTOS} photos at a time`);
+        return prev;
+      }
+      if (incoming.length > room) toast.error(`Only the first ${room} photo(s) were added`);
+      return [...prev, ...incoming.slice(0, room)];
+    });
+  };
+
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((p) => p.id !== id);
+    });
+  };
+
+  const clearPhotos = () => {
+    setPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.preview));
+      return [];
+    });
+  };
+
+  const toDataUrl = (blob: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Could not read that photo"));
+      reader.readAsDataURL(blob);
+    });
+
+  const handleReadPhotos = async () => {
+    if (photos.length === 0 || reading) return;
+    setReading(true);
+    try {
+      const images: string[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        setProgress(`Preparing page ${i + 1} of ${photos.length}…`);
+        // JPEG keeps OCR detail while staying small enough to send inline.
+        const blob = await compressImage(photos[i].file, 1600, 0.9);
+        const jpeg = blob.type === "image/jpeg" ? blob : new Blob([blob], { type: blob.type });
+        images.push(await toDataUrl(jpeg));
+      }
+
+      setProgress(`Reading ${photos.length} page${photos.length === 1 ? "" : "s"}…`);
+      const { data, error } = await supabase.functions.invoke("parse-menu-image", {
+        body: { images },
+      });
+
+      const payload = (data ?? {}) as {
+        success?: boolean;
+        error?: string;
+        skipped?: number[];
+        menu?: { sections?: MenuSection[] };
+      };
+
+      if (error && !payload.success) {
+        throw new Error(payload.error || error.message);
+      }
+      if (!payload.success) {
+        throw new Error(payload.error || "Couldn't read that menu");
+      }
+
+      const read = mergeMenuSections([payload.menu?.sections ?? []]);
+      if (read.length === 0) throw new Error("No menu items were found in those photos");
+
+      const next = mergeMenuSections([sections, read]);
+      update(next);
+      setPasteText(menuSectionsToText(next));
+      clearPhotos();
+
+      const skipped = payload.skipped?.length ?? 0;
+      toast.success(
+        `Added ${read.length} sections (${countMenuItems(read)} items)` +
+          (skipped > 0 ? ` — ${skipped} page(s) couldn't be read` : "")
+      );
+    } catch (err) {
+      console.error("Menu photo read error:", err);
+      toast.error(err instanceof Error ? err.message : "Couldn't read those photos");
+    } finally {
+      setProgress("");
+      setReading(false);
+    }
+  };
 
   const updateSection = (index: number, patch: Partial<MenuSection>) => {
     update(sections.map((section, i) => (i === index ? { ...section, ...patch } : section)));
