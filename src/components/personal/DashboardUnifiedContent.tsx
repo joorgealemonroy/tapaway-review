@@ -823,42 +823,101 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const handleDelete = () => {
     if (!deleteItem) return;
 
-    if (deleteItem.kind === "link") {
-      const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === deleteItem.id);
-      
+    const { kind, id } = deleteItem;
+
+    if (kind === "link") {
+      const removed = links.find(l => l.id === id);
+      const isPendingAdd = pendingChanges.addedLinks.find(l => l.id === id);
+
       if (isPendingAdd) {
         markPendingChange(prev => ({
-          addedLinks: prev.addedLinks.filter(l => l.id !== deleteItem.id),
+          addedLinks: prev.addedLinks.filter(l => l.id !== id),
         }));
       } else {
         markPendingChange(prev => {
           const newDeletedIds = new Set(prev.deletedLinkIds);
-          newDeletedIds.add(deleteItem.id);
+          newDeletedIds.add(id);
           return { deletedLinkIds: newDeletedIds };
         });
       }
-      
-      onLinksChange(links.filter(l => l.id !== deleteItem.id));
+
+      onLinksChange(links.filter(l => l.id !== id));
+
+      if (removed) {
+        toast("Removed", {
+          description: removed.label || "Link",
+          duration: 8000,
+          action: {
+            label: "Undo",
+            onClick: () => {
+              if (isPendingAdd) {
+                markPendingChange(prev => ({
+                  addedLinks: [...prev.addedLinks, removed],
+                }));
+              } else {
+                markPendingChange(prev => {
+                  const newDeletedIds = new Set(prev.deletedLinkIds);
+                  newDeletedIds.delete(id);
+                  return { deletedLinkIds: newDeletedIds };
+                });
+              }
+              onLinksChange(
+                [...linksRef.current.filter(l => l.id !== id), removed]
+                  .sort((a, b) => a.sort_order - b.sort_order)
+              );
+            },
+          },
+        });
+      }
     } else {
-      const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === deleteItem.id);
-      
+      const removed = blocks.find(b => b.id === id);
+      const isPendingAdd = pendingChanges.addedBlocks.find(b => b.id === id);
+
       if (isPendingAdd) {
         markPendingChange(prev => ({
-          addedBlocks: prev.addedBlocks.filter(b => b.id !== deleteItem.id),
+          addedBlocks: prev.addedBlocks.filter(b => b.id !== id),
         }));
       } else {
         markPendingChange(prev => {
           const newDeletedIds = new Set(prev.deletedBlockIds);
-          newDeletedIds.add(deleteItem.id);
+          newDeletedIds.add(id);
           return { deletedBlockIds: newDeletedIds };
         });
       }
-      
-      onBlocksChange(blocks.filter(b => b.id !== deleteItem.id));
+
+      onBlocksChange(blocks.filter(b => b.id !== id));
+
+      if (removed) {
+        toast("Removed", {
+          description: removed.block_type.replace(/_/g, " "),
+          duration: 8000,
+          action: {
+            label: "Undo",
+            onClick: () => {
+              if (isPendingAdd) {
+                markPendingChange(prev => ({
+                  addedBlocks: [...prev.addedBlocks, removed],
+                }));
+              } else {
+                markPendingChange(prev => {
+                  const newDeletedIds = new Set(prev.deletedBlockIds);
+                  newDeletedIds.delete(id);
+                  return { deletedBlockIds: newDeletedIds };
+                });
+              }
+              onBlocksChange(
+                [...blocksRef.current.filter(b => b.id !== id), removed]
+                  .sort((a, b) => a.sort_order - b.sort_order)
+              );
+            },
+          },
+        });
+      }
     }
-    
+
     setDeleteItem(null);
   };
+
 
   const renderBlockIcon = (blockType: string) => {
     switch (blockType) {
