@@ -17,7 +17,7 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState(0);
-  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set([0]));
+  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -82,7 +82,7 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     if (!next) {
       setQuery("");
       setActiveSection(0);
-      setOpenSections(new Set([0]));
+      setOpenSections(new Set());
     }
   };
 
@@ -168,26 +168,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
               )}
             </div>
 
-            {!q && filteredSections.length > 1 && (
-              <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
-                <div className="flex gap-2 w-max pb-0.5">
-                  {filteredSections.map((section, index) => (
-                    <button
-                      key={`chip-${section.name}-${index}`}
-                      type="button"
-                      onClick={() => jumpTo(index)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                        activeSection === index
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {section.name || "Menu"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Scrollable body */}
