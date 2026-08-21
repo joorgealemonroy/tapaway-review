@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { UtensilsCrossed, Search, X, ChevronDown } from "lucide-react";
@@ -16,10 +16,7 @@ interface Props {
 export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [activeSection, setActiveSection] = useState(0);
-  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set([0]));
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [openSections, setOpenSections] = useState<Set<number>>(() => new Set());
 
 
   const visibleSections = useMemo(
@@ -48,26 +45,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
       .filter((section) => section.items.length > 0);
   }, [visibleSections, q]);
 
-  // Highlight the section chip currently in view.
-  useEffect(() => {
-    if (!open || q) return;
-    const root = scrollRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (visible) {
-          const index = sectionRefs.current.indexOf(visible.target as HTMLDivElement);
-          if (index >= 0) setActiveSection(index);
-        }
-      },
-      { root, rootMargin: "-45% 0px -50% 0px", threshold: 0 }
-    );
-    sectionRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, [open, q, filteredSections.length]);
 
   if (visibleSections.length === 0) return null;
 
@@ -81,8 +58,7 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     setOpen(next);
     if (!next) {
       setQuery("");
-      setActiveSection(0);
-      setOpenSections(new Set([0]));
+      setOpenSections(new Set());
     }
   };
 
@@ -98,13 +74,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
     });
   };
 
-  const jumpTo = (index: number) => {
-    setActiveSection(index);
-    setOpenSections((prev) => new Set(prev).add(index));
-    requestAnimationFrame(() => {
-      sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  };
 
   const totalItems = filteredSections.reduce((sum, s) => sum + s.items.length, 0);
 
@@ -168,30 +137,10 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
               )}
             </div>
 
-            {!q && filteredSections.length > 1 && (
-              <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
-                <div className="flex gap-2 w-max pb-0.5">
-                  {filteredSections.map((section, index) => (
-                    <button
-                      key={`chip-${section.name}-${index}`}
-                      type="button"
-                      onClick={() => jumpTo(index)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                        activeSection === index
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {section.name || "Menu"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Scrollable body */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-16">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-16">
             {filteredSections.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -212,7 +161,6 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
                   return (
                     <div
                       key={`${section.name}-${sectionIndex}`}
-                      ref={(el) => (sectionRefs.current[sectionIndex] = el)}
                       className="scroll-mt-2 rounded-2xl border border-border bg-card/60 overflow-hidden"
                     >
                       <button
