@@ -602,6 +602,10 @@ export const DashboardDesignTab = ({
                 restrictPosition={false}
                 fillColor={bannerFillColor}
                 editableFill
+                autoTrim
+                fullFrameOutput
+                maxOutputDimension={2048}
+                outputQuality={0.92}
                 title="Adjust your banner"
               />
             )}
