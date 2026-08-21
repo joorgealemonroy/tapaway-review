@@ -539,32 +539,73 @@ export const DashboardDesignTab = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+            {/* Banner shape */}
+            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
               <div>
-                <p className="text-sm font-medium text-foreground">Banner fit</p>
+                <p className="text-sm font-medium text-foreground">Banner shape</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {pendingBannerFit === "cover" ? "Fill banner — crop edges to cover" : "Fit inside banner — show full logo"}
+                  Pick the height of your banner, then crop your image to fit it exactly.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => setPendingBannerFit("cover")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    pendingBannerFit === "cover" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Fill
-                </button>
-                <button
-                  onClick={() => setPendingBannerFit("contain")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    pendingBannerFit === "contain" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Fit
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {BANNER_ASPECT_LABELS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setPendingBannerAspect(opt.value)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      pendingBannerAspect === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:bg-muted/50"
+                    }`}
+                  >
+                    <span
+                      className="w-full rounded bg-muted-foreground/20"
+                      style={{ aspectRatio: `${bannerAspectRatio(opt.value)} / 1` }}
+                    />
+                    <span className="text-xs font-medium">{opt.label}</span>
+                  </button>
+                ))}
               </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={openBannerCropper}
+                disabled={bannerSaving || (!profilePhotoUrl && !bannerOriginalUrl)}
+              >
+                {bannerSaving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                )}
+                Adjust banner
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Zoom out to show your whole logo — empty space is filled with the background
+                color you choose.
+              </p>
             </div>
+
+            {/* Banner cropper */}
+            {bannerCropSrc && (
+              <ImageCropper
+                open={bannerCropOpen}
+                onOpenChange={(open) => {
+                  setBannerCropOpen(open);
+                  if (!open) setBannerCropSrc(null);
+                }}
+                imageSrc={bannerCropSrc}
+                onCropComplete={handleBannerCropComplete}
+                aspectRatio={bannerAspectRatio(pendingBannerAspect)}
+                cropShape="rect"
+                minZoom={0.25}
+                restrictPosition={false}
+                fillColor={bannerFillColor}
+                editableFill
+                title="Adjust your banner"
+              />
+            )}
+
           </div>
         ) : pendingHeaderType === "color" ? (
           <div className="space-y-4">
