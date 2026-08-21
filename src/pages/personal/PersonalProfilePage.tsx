@@ -1474,8 +1474,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         <div 
           className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-2' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
-          {/* Action buttons - Share and Save Contact (non-banner profiles only) */}
-          {!hasBanner && (
+          {/* Action buttons - Share and Save Contact (non-banner, non-logo profiles) */}
+          {!hasBanner && !isLogoHeader && (
             <div className="absolute top-0 right-4 flex gap-2">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
