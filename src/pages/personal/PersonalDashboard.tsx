@@ -1557,9 +1557,20 @@ const PersonalDashboard = () => {
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
-          onOpenChange={setCropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open);
+            if (!open) {
+              setRawImageUrl(null);
+              setBannerFillColor(null);
+            }
+          }}
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
+          aspectRatio={bannerAspectRatio}
+          cropShape={profile?.header_type === "banner" ? "rect" : "round"}
+          minZoom={profile?.header_type === "banner" ? 0.4 : 1}
+          restrictPosition={profile?.header_type !== "banner"}
+          fillColor={bannerFillColor}
         />
       )}
 
