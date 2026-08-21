@@ -1593,6 +1593,10 @@ const PersonalDashboard = () => {
           restrictPosition={profile?.header_type !== "banner"}
           fillColor={bannerFillColor}
           editableFill={profile?.header_type === "banner"}
+          autoTrim={profile?.header_type === "banner"}
+          fullFrameOutput={profile?.header_type === "banner"}
+          maxOutputDimension={profile?.header_type === "banner" ? 2048 : 1024}
+          outputQuality={profile?.header_type === "banner" ? 0.92 : 0.8}
         />
       )}
 
