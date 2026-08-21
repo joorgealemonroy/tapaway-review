@@ -252,7 +252,10 @@ export const DashboardDesignTab = ({
       const filePath = `${user.id}/${profileId}/banner.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: croppedBlob.type || "image/jpeg",
+        });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
