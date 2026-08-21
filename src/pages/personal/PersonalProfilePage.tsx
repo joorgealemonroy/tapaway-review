@@ -1341,7 +1341,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 alt="Banner"
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
                 className="w-full h-full object-cover object-top"
                 style={{
                   WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
