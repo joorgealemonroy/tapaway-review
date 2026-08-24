@@ -535,7 +535,7 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
   },
   {
     type: "phone",
-    label: "Call / Order by Phone",
+    label: "Call to Order",
     icon: Phone,
     inputType: "tel",
     placeholder: "(555) 123-4567",
