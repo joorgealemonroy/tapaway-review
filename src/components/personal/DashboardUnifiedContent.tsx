@@ -21,7 +21,8 @@ import {
   UtensilsCrossed,
 
   MoreHorizontal,
-  ExternalLink,
+  ExternalLink,,
+  MapPin,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -967,6 +968,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return "Product block";
       case "menu":
         return (content.title as string) || "Menu";
+      case "locations":
+        return (content.title as string) || "Locations";
       case "marketing_cta":
         return "Marketing CTA";
       case "marketing_examples":
