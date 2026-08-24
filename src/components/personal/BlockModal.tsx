@@ -267,6 +267,12 @@ export const BlockModal = ({
           setSmsDescription(content.description || "");
           setSmsButtonText(content.buttonText || "");
           setSmsStyle(content.style === "button" ? "button" : "card");
+        } else if (editingBlock.block_type === "locations") {
+          const parsedLocations = parseLocationsContent(editingBlock.content);
+          setLocationsTitle(parsedLocations.title);
+          setLocationsSubtitle(parsedLocations.subtitle);
+          setLocationsCta(parsedLocations.ctaLabel);
+          setLocations(parsedLocations.locations);
         }
       } else {
         resetForm();
@@ -798,6 +804,35 @@ export const BlockModal = ({
               description: smsDescription.trim(),
               buttonText: smsButtonText.trim() || "Join the VIP List",
             };
+        break;
+      }
+      case "locations": {
+        const cleanedLocations = locations
+          .map((l) => ({
+            name: (l.name ?? "").trim(),
+            city: (l.city ?? "").trim(),
+            subtitle: (l.subtitle ?? "").trim(),
+            imageUrl: (l.imageUrl ?? "").trim(),
+            destination: (l.destination ?? "").trim(),
+          }))
+          .filter((l) => l.name.length > 0 && l.destination.length > 0);
+        if (cleanedLocations.length === 0) {
+          toast.error("Add at least one location with a name and destination");
+          return;
+        }
+        const invalid = cleanedLocations.find(
+          (l) => resolveLocationDestination(l.destination).kind === "none"
+        );
+        if (invalid) {
+          toast.error(`"${invalid.name}" has an invalid destination`);
+          return;
+        }
+        content = serializeLocationsContent({
+          title: locationsTitle,
+          subtitle: locationsSubtitle,
+          ctaLabel: locationsCta,
+          locations: cleanedLocations,
+        });
         break;
       }
       case "menu": {
