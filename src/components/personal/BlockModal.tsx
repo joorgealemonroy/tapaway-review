@@ -300,7 +300,11 @@ export const BlockModal = ({
     setMenuTitle("Our Menu");
     setMenuButtonLabel("View Menu");
     setMenuSections([]);
-
+    // Locations
+    setLocationsTitle("Our Locations");
+    setLocationsSubtitle("Choose a location to view their menu, directions, socials & more.");
+    setLocationsCta(DEFAULT_LOCATIONS_CTA);
+    setLocations([]);
   };
 
   const handleClose = () => {
