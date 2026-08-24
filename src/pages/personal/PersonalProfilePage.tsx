@@ -130,6 +130,10 @@ const ProfileLink = memo(function ProfileLink({
 
   const config = getPlatformConfig(link.link_type);
   const Icon = config?.icon;
+  // tel:/mailto:/sms: links must not open a blank tab
+  const isSelfNav = /^(tel:|mailto:|sms:)/i.test(link.url || "");
+  const linkTarget = isSelfNav ? undefined : "_blank";
+  const linkRel = isSelfNav ? undefined : "noopener noreferrer";
   // Only treat accentColor as a custom color if it's a valid hex value (not "glass", etc.)
   const isValidHex = (c: string | null | undefined): c is string => c ? /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(c) : false;
   const validAccent = isValidHex(accentColor) ? accentColor : null;
@@ -169,8 +173,8 @@ const ProfileLink = memo(function ProfileLink({
     return (
       <a
         href={sanitizeUrl(link.url)}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={linkTarget}
+        rel={linkRel}
         onClick={() => profileId && trackLinkClick(profileId, link)}
         className="block relative rounded-2xl overflow-hidden aspect-square shadow-lg group active:scale-[0.98] transition-transform"
       >
@@ -201,8 +205,8 @@ const ProfileLink = memo(function ProfileLink({
     return (
       <a
         href={sanitizeUrl(link.url)}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={linkTarget}
+        rel={linkRel}
         onClick={() => profileId && trackLinkClick(profileId, link)}
         className="block relative rounded-2xl overflow-hidden aspect-[4/3] shadow-lg group active:scale-[0.98] transition-transform"
       >
@@ -233,8 +237,8 @@ const ProfileLink = memo(function ProfileLink({
     return (
       <a
         href={sanitizeUrl(link.url)}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={linkTarget}
+        rel={linkRel}
         onClick={() => profileId && trackLinkClick(profileId, link)}
         className={`block p-5 rounded-2xl transition-transform active:scale-[0.98] shadow-lg ${contrast.blockClass}`}
       >
@@ -265,8 +269,8 @@ const ProfileLink = memo(function ProfileLink({
   return (
       <a
         href={sanitizeUrl(link.url)}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={linkTarget}
+        rel={linkRel}
         onClick={() => profileId && trackLinkClick(profileId, link)}
       className={`flex items-center gap-4 p-4 rounded-xl transition-transform active:scale-[0.98] ${
         isWhitePill ? contrast.pillClass : contrast.blockClass
@@ -414,13 +418,14 @@ const SocialIconBar = memo(function SocialIconBar({
         
         // Get the platform's background styling
         const bgStyle = config?.gradient || config?.bgColor;
+        const selfNav = /^(tel:|mailto:|sms:)/i.test(link.url || "");
         
         return (
           <a
             key={link.id}
             href={sanitizeUrl(link.url)}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={selfNav ? undefined : "_blank"}
+            rel={selfNav ? undefined : "noopener noreferrer"}
             onClick={() => profileId && trackLinkClick(profileId, { id: link.id, label: link.label || config?.label || link.link_type, url: link.url })}
             className={`h-11 w-11 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md ${bgStyle}`}
             title={config?.label}

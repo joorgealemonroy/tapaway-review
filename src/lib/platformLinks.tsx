@@ -7,6 +7,7 @@ import {
   Music,
   Star,
   MapPin,
+  Phone,
   LucideIcon
 } from "lucide-react";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
@@ -180,7 +181,7 @@ export interface PlatformConfig {
   type: string;
   label: string;
   icon: LucideIcon | React.FC<{ className?: string }>;
-  inputType: "handle" | "email" | "url" | "options" | "cashtag";
+  inputType: "handle" | "email" | "url" | "options" | "cashtag" | "tel";
   placeholder: string;
   prefix?: string;
   generateUrl: (value: string) => string;
@@ -208,6 +209,7 @@ export const PLATFORM_COLORS = {
   google_review: "#4285F4",
   yelp: "#D32323",
   directions: "#2563eb",
+  phone: "#16a34a",
   telegram: "#0088CC",
   linkedin: "#0A66C2",
   facebook: "#1877F2",
@@ -532,6 +534,21 @@ export const PLATFORM_CONFIGS: PlatformConfig[] = [
     bgColor: "bg-[#2563eb]",
   },
   {
+    type: "phone",
+    label: "Call to Order",
+    icon: Phone,
+    inputType: "tel",
+    placeholder: "(555) 123-4567",
+    generateUrl: (v) => {
+      const raw = v.replace(/^tel:/i, "").trim();
+      const digits = raw.replace(/[^\d+]/g, "");
+      return `tel:${digits}`;
+    },
+    extractValue: (url) => url.replace(/^tel:/i, ""),
+    color: "text-white",
+    bgColor: "bg-[#16a34a]",
+  },
+  {
     type: "website",
     label: "Website",
     icon: Globe,
@@ -710,6 +727,7 @@ export const detectPlatformFromUrl = (url: string): string | null => {
   if (urlLower.includes("search.google.com/local/writereview")) return "google_review";
   if (urlLower.includes("yelp.com") || urlLower.includes("yelp.ca")) return "yelp";
   if (urlLower.includes("maps.apple.com")) return "directions";
+  if (urlLower.startsWith("tel:")) return "phone";
   if (urlLower.includes("venmo.com")) return "venmo";
   if (urlLower.includes("cash.app")) return "cashapp";
   if (urlLower.includes("paypal.me") || urlLower.includes("paypal.com")) return "paypal";
