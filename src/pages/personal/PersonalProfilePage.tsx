@@ -1219,6 +1219,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   const { profile, links, blocks } = data;
 
+  // Master "locations" hubs (multi-location selectors) stay 100% client-branded
+  const isMasterLocationsHub = blocks.some((b: any) => b.block_type === "locations");
+
   // Combine links and blocks into unified sorted list
   type UnifiedItem = 
     | { kind: "link"; data: typeof links[0] }
@@ -1514,7 +1517,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
         {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
         <div 
-          className={`max-w-md mx-auto px-4 ${isLogoHeader ? 'mt-0' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${isLogoHeader ? 'mt-0' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact (non-banner, non-logo profiles) */}
           {!hasBanner && !isLogoHeader && (
@@ -1742,7 +1745,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
-            {/* Glass Pill CTA */}
+            {/* Glass Pill CTA — hidden on client-branded master location hubs */}
+            {!isMasterLocationsHub && (
             <motion.div 
               className="flex justify-center"
               initial={{ opacity: 0, y: 20 }}
@@ -1761,6 +1765,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 </span>
               </a>
             </motion.div>
+            )}
             
             {/* Subtle tap-enabled indicator — only for users with active NFC cards */}
             {data?.hasActiveCard && (
