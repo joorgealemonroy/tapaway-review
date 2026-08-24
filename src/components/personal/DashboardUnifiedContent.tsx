@@ -21,7 +21,7 @@ import {
   UtensilsCrossed,
 
   MoreHorizontal,
-  ExternalLink,,
+  ExternalLink,
   MapPin,
 } from "lucide-react";
 import {
