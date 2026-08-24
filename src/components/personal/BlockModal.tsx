@@ -1463,6 +1463,169 @@ export const BlockModal = ({
             </div>
           )}
 
+          {selectedType === "locations" && (
+            <div className="space-y-4">
+              <input
+                ref={locationFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLocationImageSelect}
+                className="hidden"
+              />
+              <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
+                  jump straight to that hub, or paste a full web address for an outside link.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Section title <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={locationsTitle}
+                  onChange={(e) => setLocationsTitle(e.target.value)}
+                  placeholder="Our Locations"
+                  className="h-11"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtitle <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea
+                  value={locationsSubtitle}
+                  onChange={(e) => setLocationsSubtitle(e.target.value)}
+                  placeholder="Choose a location to view their menu, directions, socials & more."
+                  rows={2}
+                  maxLength={160}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button label</Label>
+                <Input
+                  value={locationsCta}
+                  onChange={(e) => setLocationsCta(e.target.value)}
+                  placeholder={DEFAULT_LOCATIONS_CTA}
+                  className="h-11"
+                  maxLength={30}
+                />
+              </div>
+
+              <div className="space-y-3">
+                {locations.map((loc, index) => {
+                  const dest = resolveLocationDestination(loc.destination);
+                  return (
+                    <div key={index} className="rounded-xl border border-border p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Location {index + 1}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={index === 0}
+                            onClick={() => moveLocation(index, -1)}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={index === locations.length - 1}
+                            onClick={() => moveLocation(index, 1)}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => removeLocation(index)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pendingLocationIndexRef.current = index;
+                          locationFileInputRef.current?.click();
+                        }}
+                        className="relative w-full h-28 rounded-lg overflow-hidden border-2 border-dashed border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                      >
+                        {uploadingLocationIndex === index ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        ) : loc.imageUrl ? (
+                          <>
+                            <img src={loc.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            <span className="relative z-10 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
+                              Change photo
+                            </span>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <ImageIcon className="h-4 w-4" /> Add photo
+                          </span>
+                        )}
+                      </button>
+
+                      <Input
+                        value={loc.name}
+                        onChange={(e) => updateLocation(index, { name: e.target.value })}
+                        placeholder="Location name"
+                        className="h-10"
+                        maxLength={60}
+                      />
+                      <Input
+                        value={loc.city ?? ""}
+                        onChange={(e) => updateLocation(index, { city: e.target.value })}
+                        placeholder="City (e.g. Los Angeles, CA)"
+                        className="h-10"
+                        maxLength={60}
+                      />
+                      <Input
+                        value={loc.subtitle ?? ""}
+                        onChange={(e) => updateLocation(index, { subtitle: e.target.value })}
+                        placeholder="Short subtitle (optional)"
+                        className="h-10"
+                        maxLength={80}
+                      />
+                      <div className="space-y-1">
+                        <Input
+                          value={loc.destination}
+                          onChange={(e) => updateLocation(index, { destination: e.target.value })}
+                          placeholder="islasmarias  or  https://example.com"
+                          className="h-10"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {loc.destination.trim() === ""
+                            ? "Enter a TapAway slug or a full web address."
+                            : dest.kind === "internal"
+                              ? `Opens ${dest.path} inside TapAway (instant, no reload).`
+                              : dest.kind === "external"
+                                ? "Opens as an external link in a new tab."
+                                : "This destination isn't valid."}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button type="button" variant="outline" className="w-full" onClick={addLocation}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add location
+              </Button>
+            </div>
+          )}
+
           {selectedType === "menu" && (
             <div className="space-y-4">
               <div className="space-y-2">
