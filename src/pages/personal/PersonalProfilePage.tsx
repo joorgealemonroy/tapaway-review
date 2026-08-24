@@ -418,13 +418,14 @@ const SocialIconBar = memo(function SocialIconBar({
         
         // Get the platform's background styling
         const bgStyle = config?.gradient || config?.bgColor;
+        const selfNav = /^(tel:|mailto:|sms:)/i.test(link.url || "");
         
         return (
           <a
             key={link.id}
             href={sanitizeUrl(link.url)}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={selfNav ? undefined : "_blank"}
+            rel={selfNav ? undefined : "noopener noreferrer"}
             onClick={() => profileId && trackLinkClick(profileId, { id: link.id, label: link.label || config?.label || link.link_type, url: link.url })}
             className={`h-11 w-11 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md ${bgStyle}`}
             title={config?.label}
