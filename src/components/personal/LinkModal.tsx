@@ -393,7 +393,7 @@ export const LinkModal = ({
               </span>
             )}
             <Input
-              type={config.inputType === "email" ? "email" : "text"}
+              type={config.inputType === "email" ? "email" : config.inputType === "tel" ? "tel" : "text"}
               placeholder={config.type === "youtube" 
                 ? (youtubeType === "handle" ? "yourchannel" : "UCxxxxxxxxx")
                 : config.placeholder

@@ -181,7 +181,7 @@ export interface PlatformConfig {
   type: string;
   label: string;
   icon: LucideIcon | React.FC<{ className?: string }>;
-  inputType: "handle" | "email" | "url" | "options" | "cashtag";
+  inputType: "handle" | "email" | "url" | "options" | "cashtag" | "tel";
   placeholder: string;
   prefix?: string;
   generateUrl: (value: string) => string;
