@@ -61,7 +61,7 @@ const LocationCardInner = ({
         )}
       </div>
 
-      <div className="space-y-1 p-4">
+      <div className="space-y-1 p-4 text-left">
         <h3
           className={`text-[17px] font-bold leading-tight ${
             textColor ? "" : isDarkBg ? "text-white" : "text-foreground"
