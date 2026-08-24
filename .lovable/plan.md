@@ -5,8 +5,10 @@ The Locations block is fully built: renderer, live preview, and the dashboard ed
 
 ## What's left
 
-### 1. Safety fix found during verification
-`islasmariasog` has a trial end date of Aug 20, 2026 — already in the past. The dashboard auto-expires any hub whose trial date has passed the moment it's opened. Once alexis@tapaway.co opens the dashboard, that hub would be marked expired and could drop off the public web. Before transferring, both hubs get their trial window extended (12 months) so nothing goes dark. No Stripe subscription exists on either hub, so this has no billing effect.
+### 1. Make both existing hubs permanently active
+`islasmariasog` has a trial end date of Aug 20, 2026 — already in the past. The dashboard auto-expires any hub whose trial date has passed the moment it's opened, so that hub could drop off the public web once alexis@tapaway.co signs in.
+
+These are established client hubs, not trials, so instead of extending a trial they are set to a permanent active state and the stale trial end date is cleared entirely. With no trial date and an active status, the dashboard's expiration logic can never touch them again. Neither hub has a Stripe customer or subscription, so nothing is created, charged, or changed in billing.
 
 ### 2. Transfer ownership
 Move `islasmarias` and `islasmariasog` to alexis@tapaway.co (`ac342a0b-...`) in a single transaction. Verified beforehand:
