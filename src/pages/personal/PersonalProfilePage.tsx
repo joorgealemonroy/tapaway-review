@@ -32,6 +32,7 @@ import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
 import { SmsOptInDrawer } from "@/components/personal/SmsOptInDrawer";
 import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 
 
@@ -781,6 +782,11 @@ const ProfileBlock = memo(function ProfileBlock({
       const menu = parseMenuContent(content);
       if (menu.sections.length === 0) return null;
       return <MenuDisplay menu={menu} isDarkBg={isDarkBg} textColor={textColor} />;
+    }
+    case "locations": {
+      return (
+        <LocationsBlock content={content} isDarkBg={isDarkBg} textColor={textColor} />
+      );
     }
     case "photo_collage": {
       // Parse mixed media (new format) or legacy images

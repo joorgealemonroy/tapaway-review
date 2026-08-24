@@ -16,7 +16,8 @@ import {
   Mail,
   Grid,
   Loader2,
-  ShoppingBag
+  ShoppingBag,
+  MapPin,
 } from "lucide-react";
 import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
@@ -42,6 +43,7 @@ const BLOCK_TYPE_INFO: Record<string, { label: string; icon: React.ElementType }
   button: { label: "Featured Button", icon: MousePointerClick },
   email_capture: { label: "Email Capture", icon: Mail },
   photo_collage: { label: "Photo Collage", icon: Grid },
+  locations: { label: "Locations", icon: MapPin },
   product: { label: "Product", icon: ShoppingBag },
 };
 

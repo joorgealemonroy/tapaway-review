@@ -10,6 +10,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
 import { parseMenuContent } from "@/lib/menuBlock";
+import { LocationsBlock } from "./LocationsBlock";
 import { logoPreviewStyle } from "@/lib/logoHeader";
 
 
@@ -718,6 +719,18 @@ function ProfilePreviewRendererComponent({
             >
               {buttonText}
             </button>
+          </div>
+        );
+      }
+      case "locations": {
+        return (
+          <div key={block.id}>
+            <LocationsBlock
+              content={content}
+              isDarkBg={isDarkBg}
+              isPreview
+              onSelect={(dest) => onLinkClick?.(dest)}
+            />
           </div>
         );
       }

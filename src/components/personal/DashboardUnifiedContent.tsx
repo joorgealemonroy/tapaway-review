@@ -22,6 +22,7 @@ import {
 
   MoreHorizontal,
   ExternalLink,
+  MapPin,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -939,6 +940,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return <ShoppingBag className="h-5 w-5 text-emerald-500" />;
       case "menu":
         return <UtensilsCrossed className="h-5 w-5 text-amber-500" />;
+      case "locations":
+        return <MapPin className="h-5 w-5 text-sky-500" />;
       case "marketing_cta":
         return <MousePointerClick className="h-5 w-5 text-primary" />;
       case "marketing_examples":
@@ -965,6 +968,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
         return "Product block";
       case "menu":
         return (content.title as string) || "Menu";
+      case "locations":
+        return (content.title as string) || "Locations";
       case "marketing_cta":
         return "Marketing CTA";
       case "marketing_examples":

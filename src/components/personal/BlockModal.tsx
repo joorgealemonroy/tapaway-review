@@ -27,7 +27,11 @@ import {
   X,
   Plus,
   ShoppingBag,
-  UtensilsCrossed
+  UtensilsCrossed,
+  MapPin,
+  Trash2,
+  ArrowUp,
+  ArrowDown
 
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,6 +39,13 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
 import { parseMenuContent, serializeMenuContent, type MenuSection } from "@/lib/menuBlock";
+import {
+  parseLocationsContent,
+  serializeLocationsContent,
+  resolveLocationDestination,
+  DEFAULT_LOCATIONS_CTA,
+  type LocationEntry,
+} from "@/lib/locationsBlock";
 
 
 interface PersonalBlock {
@@ -68,6 +79,7 @@ const BLOCK_TYPES = [
   { type: "sms_subscribe", label: "SMS VIP List", icon: Smartphone, description: "Let visitors join your text list" },
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
   { type: "menu", label: "Menu", icon: UtensilsCrossed, description: "Sections, items and prices" },
+  { type: "locations", label: "Locations", icon: MapPin, description: "Let visitors pick a location or hub" },
   { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
 
@@ -142,6 +154,17 @@ export const BlockModal = ({
   const [menuTitle, setMenuTitle] = useState("Our Menu");
   const [menuButtonLabel, setMenuButtonLabel] = useState("View Menu");
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
+
+  // Locations block
+  const [locationsTitle, setLocationsTitle] = useState("Our Locations");
+  const [locationsSubtitle, setLocationsSubtitle] = useState(
+    "Choose a location to view their menu, directions, socials & more."
+  );
+  const [locationsCta, setLocationsCta] = useState(DEFAULT_LOCATIONS_CTA);
+  const [locations, setLocations] = useState<LocationEntry[]>([]);
+  const [uploadingLocationIndex, setUploadingLocationIndex] = useState<number | null>(null);
+  const locationFileInputRef = useRef<HTMLInputElement>(null);
+  const pendingLocationIndexRef = useRef<number | null>(null);
 
   
   // Cropper state
@@ -249,6 +272,12 @@ export const BlockModal = ({
           setSmsDescription(content.description || "");
           setSmsButtonText(content.buttonText || "");
           setSmsStyle(content.style === "button" ? "button" : "card");
+        } else if (editingBlock.block_type === "locations") {
+          const parsedLocations = parseLocationsContent(editingBlock.content);
+          setLocationsTitle(parsedLocations.title);
+          setLocationsSubtitle(parsedLocations.subtitle);
+          setLocationsCta(parsedLocations.ctaLabel);
+          setLocations(parsedLocations.locations);
         }
       } else {
         resetForm();
@@ -300,7 +329,11 @@ export const BlockModal = ({
     setMenuTitle("Our Menu");
     setMenuButtonLabel("View Menu");
     setMenuSections([]);
-
+    // Locations
+    setLocationsTitle("Our Locations");
+    setLocationsSubtitle("Choose a location to view their menu, directions, socials & more.");
+    setLocationsCta(DEFAULT_LOCATIONS_CTA);
+    setLocations([]);
   };
 
   const handleClose = () => {
@@ -671,6 +704,65 @@ export const BlockModal = ({
     setCollageMedia(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ---- Locations block helpers ----
+  const updateLocation = (index: number, patch: Partial<LocationEntry>) => {
+    setLocations((prev) => prev.map((l, i) => (i === index ? { ...l, ...patch } : l)));
+  };
+
+  const addLocation = () => {
+    setLocations((prev) => [
+      ...prev,
+      { name: "", city: "", subtitle: "", imageUrl: "", destination: "" },
+    ]);
+  };
+
+  const removeLocation = (index: number) => {
+    setLocations((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveLocation = (index: number, direction: -1 | 1) => {
+    setLocations((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const handleLocationImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const index = pendingLocationIndexRef.current;
+    e.target.value = "";
+    if (!file || index === null) return;
+
+    setUploadingLocationIndex(index);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const filePath = `${user.id}/locations/${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+
+      updateLocation(index, { imageUrl: publicUrl });
+    } catch (err) {
+      console.error("Location image upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingLocationIndex(null);
+      pendingLocationIndexRef.current = null;
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedType) return;
 
@@ -776,6 +868,35 @@ export const BlockModal = ({
               description: smsDescription.trim(),
               buttonText: smsButtonText.trim() || "Join the VIP List",
             };
+        break;
+      }
+      case "locations": {
+        const cleanedLocations = locations
+          .map((l) => ({
+            name: (l.name ?? "").trim(),
+            city: (l.city ?? "").trim(),
+            subtitle: (l.subtitle ?? "").trim(),
+            imageUrl: (l.imageUrl ?? "").trim(),
+            destination: (l.destination ?? "").trim(),
+          }))
+          .filter((l) => l.name.length > 0 && l.destination.length > 0);
+        if (cleanedLocations.length === 0) {
+          toast.error("Add at least one location with a name and destination");
+          return;
+        }
+        const invalid = cleanedLocations.find(
+          (l) => resolveLocationDestination(l.destination).kind === "none"
+        );
+        if (invalid) {
+          toast.error(`"${invalid.name}" has an invalid destination`);
+          return;
+        }
+        content = serializeLocationsContent({
+          title: locationsTitle,
+          subtitle: locationsSubtitle,
+          ctaLabel: locationsCta,
+          locations: cleanedLocations,
+        });
         break;
       }
       case "menu": {
@@ -1339,6 +1460,169 @@ export const BlockModal = ({
                   </SelectContent>
                 </Select>
               )}
+            </div>
+          )}
+
+          {selectedType === "locations" && (
+            <div className="space-y-4">
+              <input
+                ref={locationFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLocationImageSelect}
+                className="hidden"
+              />
+              <div className="rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Great for multi-location owners. Enter a TapAway slug (like <span className="font-medium">islasmarias</span>) to
+                  jump straight to that hub, or paste a full web address for an outside link.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Section title <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  value={locationsTitle}
+                  onChange={(e) => setLocationsTitle(e.target.value)}
+                  placeholder="Our Locations"
+                  className="h-11"
+                  maxLength={60}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtitle <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea
+                  value={locationsSubtitle}
+                  onChange={(e) => setLocationsSubtitle(e.target.value)}
+                  placeholder="Choose a location to view their menu, directions, socials & more."
+                  rows={2}
+                  maxLength={160}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Button label</Label>
+                <Input
+                  value={locationsCta}
+                  onChange={(e) => setLocationsCta(e.target.value)}
+                  placeholder={DEFAULT_LOCATIONS_CTA}
+                  className="h-11"
+                  maxLength={30}
+                />
+              </div>
+
+              <div className="space-y-3">
+                {locations.map((loc, index) => {
+                  const dest = resolveLocationDestination(loc.destination);
+                  return (
+                    <div key={index} className="rounded-xl border border-border p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Location {index + 1}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={index === 0}
+                            onClick={() => moveLocation(index, -1)}
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            disabled={index === locations.length - 1}
+                            onClick={() => moveLocation(index, 1)}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => removeLocation(index)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pendingLocationIndexRef.current = index;
+                          locationFileInputRef.current?.click();
+                        }}
+                        className="relative w-full h-28 rounded-lg overflow-hidden border-2 border-dashed border-border flex items-center justify-center hover:bg-muted/50 transition-colors"
+                      >
+                        {uploadingLocationIndex === index ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        ) : loc.imageUrl ? (
+                          <>
+                            <img src={loc.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            <span className="relative z-10 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white">
+                              Change photo
+                            </span>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <ImageIcon className="h-4 w-4" /> Add photo
+                          </span>
+                        )}
+                      </button>
+
+                      <Input
+                        value={loc.name}
+                        onChange={(e) => updateLocation(index, { name: e.target.value })}
+                        placeholder="Location name"
+                        className="h-10"
+                        maxLength={60}
+                      />
+                      <Input
+                        value={loc.city ?? ""}
+                        onChange={(e) => updateLocation(index, { city: e.target.value })}
+                        placeholder="City (e.g. Los Angeles, CA)"
+                        className="h-10"
+                        maxLength={60}
+                      />
+                      <Input
+                        value={loc.subtitle ?? ""}
+                        onChange={(e) => updateLocation(index, { subtitle: e.target.value })}
+                        placeholder="Short subtitle (optional)"
+                        className="h-10"
+                        maxLength={80}
+                      />
+                      <div className="space-y-1">
+                        <Input
+                          value={loc.destination}
+                          onChange={(e) => updateLocation(index, { destination: e.target.value })}
+                          placeholder="islasmarias  or  https://example.com"
+                          className="h-10"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {loc.destination.trim() === ""
+                            ? "Enter a TapAway slug or a full web address."
+                            : dest.kind === "internal"
+                              ? `Opens ${dest.path} inside TapAway (instant, no reload).`
+                              : dest.kind === "external"
+                                ? "Opens as an external link in a new tab."
+                                : "This destination isn't valid."}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button type="button" variant="outline" className="w-full" onClick={addLocation}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add location
+              </Button>
             </div>
           )}
 
