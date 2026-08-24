@@ -704,6 +704,65 @@ export const BlockModal = ({
     setCollageMedia(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ---- Locations block helpers ----
+  const updateLocation = (index: number, patch: Partial<LocationEntry>) => {
+    setLocations((prev) => prev.map((l, i) => (i === index ? { ...l, ...patch } : l)));
+  };
+
+  const addLocation = () => {
+    setLocations((prev) => [
+      ...prev,
+      { name: "", city: "", subtitle: "", imageUrl: "", destination: "" },
+    ]);
+  };
+
+  const removeLocation = (index: number) => {
+    setLocations((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveLocation = (index: number, direction: -1 | 1) => {
+    setLocations((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const handleLocationImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const index = pendingLocationIndexRef.current;
+    e.target.value = "";
+    if (!file || index === null) return;
+
+    setUploadingLocationIndex(index);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const filePath = `${user.id}/locations/${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("personal-photos")
+        .upload(filePath, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("personal-photos")
+        .getPublicUrl(filePath);
+
+      updateLocation(index, { imageUrl: publicUrl });
+    } catch (err) {
+      console.error("Location image upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingLocationIndex(null);
+      pendingLocationIndexRef.current = null;
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedType) return;
 
