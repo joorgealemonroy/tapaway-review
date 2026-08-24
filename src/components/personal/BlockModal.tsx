@@ -35,6 +35,13 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
 import { parseMenuContent, serializeMenuContent, type MenuSection } from "@/lib/menuBlock";
+import {
+  parseLocationsContent,
+  serializeLocationsContent,
+  resolveLocationDestination,
+  DEFAULT_LOCATIONS_CTA,
+  type LocationEntry,
+} from "@/lib/locationsBlock";
 
 
 interface PersonalBlock {
@@ -142,6 +149,17 @@ export const BlockModal = ({
   const [menuTitle, setMenuTitle] = useState("Our Menu");
   const [menuButtonLabel, setMenuButtonLabel] = useState("View Menu");
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
+
+  // Locations block
+  const [locationsTitle, setLocationsTitle] = useState("Our Locations");
+  const [locationsSubtitle, setLocationsSubtitle] = useState(
+    "Choose a location to view their menu, directions, socials & more."
+  );
+  const [locationsCta, setLocationsCta] = useState(DEFAULT_LOCATIONS_CTA);
+  const [locations, setLocations] = useState<LocationEntry[]>([]);
+  const [uploadingLocationIndex, setUploadingLocationIndex] = useState<number | null>(null);
+  const locationFileInputRef = useRef<HTMLInputElement>(null);
+  const pendingLocationIndexRef = useRef<number | null>(null);
 
   
   // Cropper state
