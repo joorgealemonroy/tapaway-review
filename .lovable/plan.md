@@ -22,7 +22,7 @@ A third hub owned by the same account:
 - Slug `islas`, name "Las Islas Marias", approved and active so it's publicly live immediately.
 - Not attached to any Stripe subscription — it's an included master hub, not a new paid plan.
 - Header: the Las Islas Marias logo in the existing logo-band style, dark page body to match the family look.
-- One Locations block with two premium cards: "Gardena" → `/islasmariasog` and "South LA" → `/islasmarias`, each with a photo and city line.
+- One Locations block with two premium cards: "South LA — 6401 San Pedro St" → `/islasmarias` and "Gardena — 444 W Gardena Blvd" → `/islasmariasog`, each with a photo and city line.
 - No menu, directions, or location-specific actions on the master hub — one tap, pick a location, done.
 
 ### 4. Verification pass
