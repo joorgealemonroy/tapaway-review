@@ -40,7 +40,7 @@ const LocationCardInner = ({
       }`}
     >
       <div
-        className={`relative aspect-[16/10] w-full overflow-hidden ${
+        className={`relative aspect-[4/3] w-full overflow-hidden ${
           isDarkBg ? "bg-white/5" : "bg-muted"
         }`}
       >
@@ -63,7 +63,7 @@ const LocationCardInner = ({
 
       <div className="space-y-1 p-4">
         <h3
-          className={`text-base font-bold leading-tight ${
+          className={`text-[17px] font-bold leading-tight ${
             textColor ? "" : isDarkBg ? "text-white" : "text-foreground"
           }`}
           style={titleStyle}
@@ -115,7 +115,7 @@ export const LocationsBlock = memo(
     if (locations.length === 0) return null;
 
     const headingStyle = textColor ? { color: textColor } : undefined;
-    const subtitleStyle = textColor ? { color: textColor, opacity: 0.7 } : undefined;
+    const subtitleStyle = textColor ? { color: textColor, opacity: 0.6 } : undefined;
 
     return (
       <section className="w-full space-y-4">
@@ -123,7 +123,7 @@ export const LocationsBlock = memo(
           <div className="space-y-1 text-center">
             {parsed.title && (
               <h2
-                className={`text-lg font-bold tracking-tight ${
+                className={`text-2xl font-extrabold tracking-tight ${
                   textColor ? "" : isDarkBg ? "text-white" : "text-foreground"
                 }`}
                 style={headingStyle}
@@ -133,8 +133,8 @@ export const LocationsBlock = memo(
             )}
             {parsed.subtitle && (
               <p
-                className={`text-sm ${
-                  textColor ? "" : isDarkBg ? "text-white/70" : "text-muted-foreground"
+                className={`mx-auto max-w-[34ch] text-[13px] leading-relaxed ${
+                  textColor ? "" : isDarkBg ? "text-white/60" : "text-muted-foreground"
                 }`}
                 style={subtitleStyle}
               >
