@@ -27,7 +27,7 @@ A third hub owned by the same account:
 
 ### 4. Verification pass
 - Confirm all three hubs appear in the same dashboard account switcher for alexis@tapaway.co.
-- Re-read both existing hubs' full records and content counts before/after to prove nothing changed except the owner and trial date.
+- Re-read both existing hubs' full records and content counts before/after to prove nothing changed except ownership, the permanent active status, and the cleared trial date.
 - Load `/islas` publicly (signed out) at mobile and desktop widths, screenshot both, and confirm each card routes instantly to the right hub with no page reload.
 - Load `/islasmarias` and `/islasmariasog` signed out to confirm they still render identically.
 
