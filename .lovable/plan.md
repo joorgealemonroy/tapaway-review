@@ -32,7 +32,7 @@ A third hub owned by the same account:
 - Load `/islasmarias` and `/islasmariasog` signed out to confirm they still render identically.
 
 ## Technical notes
-- Ownership transfer + trial extension + `/islas` insert run as one data migration; alexis's UUID is resolved from `auth.users` at runtime rather than hardcoded.
+- Ownership transfer, the permanent-active update, clearing the stale trial date, and the `/islas` insert all run as one transactional data change; alexis's UUID is resolved from `auth.users` at runtime rather than hardcoded.
 - `/islas` is inserted with `sales_rep_id`/`created_by_rep_id` left null so it does not enter the rep demo pipeline or trigger founding-status assignment side effects; `pipeline_status` set to `approved`.
 - Public visibility relies on `get_public_personal_profile`, which requires `active`, or `trialing` + approved — the seeded record satisfies this.
 - Browser verification uses Playwright against the running preview at 390px and 1440px viewports.
