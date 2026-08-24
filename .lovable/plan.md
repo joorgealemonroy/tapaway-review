@@ -11,7 +11,7 @@ The Locations block is fully built: renderer, live preview, and the dashboard ed
 These are established client hubs, not trials, so instead of extending a trial they are set to a permanent active state and the stale trial end date is cleared entirely. With no trial date and an active status, the dashboard's expiration logic can never touch them again. Neither hub has a Stripe customer or subscription, so nothing is created, charged, or changed in billing.
 
 ### 2. Transfer ownership
-Move `islasmarias` and `islasmariasog` to alexis@tapaway.co (`ac342a0b-...`) in a single transaction. Verified beforehand:
+Move `islasmarias` and `islasmariasog` to the existing alexis@tapaway.co account, in the same transaction. The account is looked up by email at run time rather than hardcoded. Verified beforehand:
 - No Stripe customer or subscription on either hub — zero billing impact.
 - Links, blocks, menu, analytics, and uploaded images are all keyed to the hub, not the owner — nothing moves or breaks.
 - Approval state, slugs, design, and content stay exactly as they are.
