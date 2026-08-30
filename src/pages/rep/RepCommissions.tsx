@@ -348,7 +348,7 @@ const RepCommissions = () => {
               key={c.id}
               className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-2 md:gap-4 px-5 py-3.5 border-b border-white/5 last:border-b-0 items-center text-sm"
             >
-              <div className="text-white/60">{format(new Date(c.created_at), 'MMM d, yyyy')}</div>
+              <div className="text-white/60">{format(new Date(`${earnedDay(c)}T12:00:00`), 'MMM d, yyyy')}</div>
               <div className="text-white/90">{c.restaurant_name || (c.commission_type === 'shift_base' ? 'Daily Shift' : c.commission_type === 'closer_pool' ? "Monthly Closer's Pool" : '—')}</div>
               <div>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-white/70 text-[11px] font-medium">
