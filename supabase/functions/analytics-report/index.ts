@@ -84,8 +84,22 @@ Deno.serve(async (req) => {
 
   const meta = { cutoverAt, sessionLabel, methodology };
 
+  const isAdminCaller = async () => {
+    const { data: roleAdmin } = await admin.rpc("has_role", {
+      _user_id: callerUserId,
+      _role: "admin",
+    });
+    if (roleAdmin) return true;
+    const { data: u } = await admin.auth.admin.getUserById(callerUserId);
+    const email = u?.user?.email ?? "";
+    const metaRole = (u?.user?.app_metadata as Record<string, unknown> | undefined)?.role;
+    return email === "tap@tapaway.co" || metaRole === "admin";
+  };
+
   try {
     if (action === "overview") {
+      if (!(await isAdminCaller())) return json({ error: "Forbidden" }, 403);
+
       const { data, error } = await admin.rpc("rpt_admin_overview", {
         _caller_user_id: callerUserId,
         _since: since,
