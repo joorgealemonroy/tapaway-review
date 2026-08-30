@@ -757,6 +757,9 @@ export type Database = {
           google_place_id: string | null
           hub_kind: string
           hub_slug: string | null
+          hydration_attempted_at: string | null
+          hydration_error: string | null
+          hydration_status: string | null
           id: string
           internal_notes: string | null
           last_payment_at: string | null
@@ -815,6 +818,9 @@ export type Database = {
           google_place_id?: string | null
           hub_kind: string
           hub_slug?: string | null
+          hydration_attempted_at?: string | null
+          hydration_error?: string | null
+          hydration_status?: string | null
           id?: string
           internal_notes?: string | null
           last_payment_at?: string | null
@@ -873,6 +879,9 @@ export type Database = {
           google_place_id?: string | null
           hub_kind?: string
           hub_slug?: string | null
+          hydration_attempted_at?: string | null
+          hydration_error?: string | null
+          hydration_status?: string | null
           id?: string
           internal_notes?: string | null
           last_payment_at?: string | null
@@ -1241,6 +1250,48 @@ export type Database = {
           },
         ]
       }
+      consent_records: {
+        Row: {
+          action: string
+          advertising: boolean
+          analytics: boolean
+          created_at: string
+          essential: boolean
+          gpc_detected: boolean
+          id: string
+          policy_version: string
+          user_agent: string | null
+          user_id: string | null
+          visitor_key: string | null
+        }
+        Insert: {
+          action?: string
+          advertising?: boolean
+          analytics?: boolean
+          created_at?: string
+          essential?: boolean
+          gpc_detected?: boolean
+          id?: string
+          policy_version: string
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_key?: string | null
+        }
+        Update: {
+          action?: string
+          advertising?: boolean
+          analytics?: boolean
+          created_at?: string
+          essential?: boolean
+          gpc_detected?: boolean
+          id?: string
+          policy_version?: string
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_key?: string | null
+        }
+        Relationships: []
+      }
       creator_availability: {
         Row: {
           created_at: string | null
@@ -1585,8 +1636,11 @@ export type Database = {
       hub_link_checks: {
         Row: {
           checked_at: string
+          classification: string | null
           created_at: string
           detail: string | null
+          false_positive: boolean
+          false_positive_note: string | null
           http_status: number | null
           hub_id: string
           id: string
@@ -1599,8 +1653,11 @@ export type Database = {
         }
         Insert: {
           checked_at?: string
+          classification?: string | null
           created_at?: string
           detail?: string | null
+          false_positive?: boolean
+          false_positive_note?: string | null
           http_status?: number | null
           hub_id: string
           id?: string
@@ -1613,8 +1670,11 @@ export type Database = {
         }
         Update: {
           checked_at?: string
+          classification?: string | null
           created_at?: string
           detail?: string | null
+          false_positive?: boolean
+          false_positive_note?: string | null
           http_status?: number | null
           hub_id?: string
           id?: string
