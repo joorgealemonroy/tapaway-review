@@ -586,9 +586,30 @@ export default function AdminLocations() {
                         <td className="py-2.5 pr-3 text-xs text-white/50">
                           {l.google_place_id ? "Place ID" : "no place id"}
                           {l.lat ? " · coords" : " · no coords"}
+                          <div className="text-[11px] text-white/35">
+                            {LOCATION_STATE_LABELS[l.location_state]}
+                            {l.location_state_source === "admin" && (
+                              <span className="text-emerald-400"> · admin set</span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2.5 text-right">
-                          <Button size="sm" variant="ghost" onClick={() => setClassifying(l)}>Classify</Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Select
+                              value={l.location_state}
+                              onValueChange={(v) => void resolveState(l, v as LocationState)}
+                            >
+                              <SelectTrigger className="h-8 w-[168px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {LOCATION_STATES.map((s) => (
+                                  <SelectItem key={s} value={s}>{LOCATION_STATE_LABELS[s]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" onClick={() => setClassifying(l)}>Classify</Button>
+                          </div>
                         </td>
                       </tr>
                     );
