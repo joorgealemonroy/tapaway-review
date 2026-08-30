@@ -1,42 +1,75 @@
-# Pay demo bonuses by submission date, not approval date
+# Pay demo bonuses by submission day (Pacific), atomically and reversibly
 
 ## The problem (confirmed in the data)
 
-Today you approved a batch of demos submitted on Aug 5, Aug 27 and Aug 30. Because both the daily cap and the daily shift base are keyed off the moment the commission row is created (approval time), all of them landed on the same day, blew past the daily cap of 50, and 11 bonuses were written as `voided` with the note "Skipped: daily cap of 50 demos reached". Every one of those 11 belongs to a different, much earlier submission day.
+Today's approval batch covered demos submitted Aug 5, Aug 26/27 and Aug 29/30. Both the daily cap and the daily shift base are keyed to the moment the commission row is created (approval time), so all of them landed on one day, exceeded the cap of 50, and 11 bonuses were written as `voided` with the note "Skipped: daily cap of 50 demos reached". None of the 11 is paid.
 
-Correct behavior: a demo earns for the day the rep submitted it. Approving a week later must not change what it pays.
+A demo must earn for the workday the rep submitted it. Approving a week later cannot change what it pays.
 
-## What changes
+## 1. The earned workday is the California business day
 
-1. **Earned-on date on every commission**
-   Add an additive `earned_on` date column to `commissions`. For demo bonuses it is the demo's submission timestamp (`personal_profiles.created_at`) in UTC, not the approval timestamp. `created_at` stays exactly as it is, so audit trails and payout history are untouched.
+Earned day = `(personal_profiles.created_at AT TIME ZONE 'America/Los_Angeles')::date`. The same Pacific day drives the cap, the quality-gate position, the daily base and the `Mon YYYY` period label. The original UTC timestamp is preserved untouched in `created_at`.
 
-2. **Daily cap counted per earned day**
-   `award-demo-commission` counts existing demo bonuses for the rep on the demo's *earned* day, and compares that against the daily cap. Approving 40 old demos today no longer consumes today's allowance.
+There is no per-rep timezone column today (checked `sales_reps` and `rep_compensation_settings`), so `America/Los_Angeles` is the documented fallback and the only value used. If a rep timezone column is added later, the derivation reads it and falls back to Pacific.
 
-3. **Daily shift base keyed to the earned day**
-   The `award_daily_base_trigger` function groups by `earned_on` instead of `created_at`, and stamps the shift-base row with the same `earned_on` and the matching `Mon YYYY` period label. This means a rep who hit quota on Aug 27 gets Aug 27's $50 base, credited to Aug 27's period, even when you approve on Aug 30.
+### Pacific vs UTC for the 11 affected rows (reported before any update)
 
-4. **Quality-gate cap uses the earned day too**
-   The probation cap (first N demos per day) is likewise evaluated per earned day, for the same reason.
+Five of the 11 shift to an earlier day under Pacific time:
 
-5. **Repair the 11 wrongly voided bonuses**
-   Recompute each of the 11 `voided` demo bonuses against its true submission day. Any that fit within that day's cap is set back to `available` (or `locked_quality_gate` if the rep's gate genuinely applies), with the cap note cleared and `earned_on` backfilled. Anything that still legitimately exceeds its own day's cap stays voided with an accurate note. Then re-run the shift-base check per affected rep/day so missed $50 bases are created, and recompute the affected months' Closer's Pool.
+```text
+slug                          submitted (UTC)        UTC day     Pacific day
+nosyneighborscoffee           2026-08-05 07:36:52    2026-08-05  2026-08-05
+dumontcreamerycafe            2026-08-27 05:48:08    2026-08-27  2026-08-26  *
+thealley                      2026-08-27 06:14:41    2026-08-27  2026-08-26  *
+stateracafe                   2026-08-27 06:26:01    2026-08-27  2026-08-26  *
+bubblicityboba                2026-08-27 06:30:28    2026-08-27  2026-08-26  *
+teaspoonrc                    2026-08-27 06:34:14    2026-08-27  2026-08-26  *
+moon-coffee-and-tea           2026-08-27 06:41:46    2026-08-27  2026-08-26  *
+canvascoffee                  2026-08-27 06:50:28    2026-08-27  2026-08-26  *
+dailybrewcoffeehousebakery    2026-08-27 06:55:24    2026-08-27  2026-08-26  *
+liftcoffeeroasters            2026-08-27 19:28:41    2026-08-27  2026-08-27
+poorhousebistro               2026-08-30 06:11:23    2026-08-30  2026-08-29  *
+```
 
-6. **Backfill existing rows**
-   All existing demo bonuses get `earned_on` set from their linked profile's submission date; other commission types fall back to their own `created_at`. Nothing is deleted and no amounts are reduced.
+Under Pacific the Aug-27 cluster becomes an Aug-26 evening shift, which matches when the rep actually worked.
 
-## Reporting
+## 2. Awarding becomes atomic and idempotent
 
-Rep commission views group by earned day so a rep's daily $50 base and demo bonuses line up with the day they actually worked, not the day you got around to approving.
+No more "count, then insert" from the edge function — two simultaneous approvals could both pass the cap. Instead a single service-role-only database function does everything in one transaction:
+
+1. Take an advisory lock on (rep, earned_on).
+2. Return early if a demo commission already exists for that source profile.
+3. Compute the deterministic position within the earned day, ordered by submission timestamp then profile ID — never by which approval request arrived first.
+4. Apply the cap and the quality gate to that position.
+5. Insert the demo commission.
+6. Check and create the daily base for that rep/earned day.
+7. Return the resulting status and human-readable reason.
+
+Uniqueness is enforced in the database: one demo commission per source profile, and one daily-base commission per rep per earned day. The edge function keeps the admin authorization check and simply calls the RPC.
+
+## 3. The 11-row repair is frozen and guarded
+
+The exact 11 commission IDs are frozen up front and a dry run is shown before anything changes. A row is repaired only if it is still voided, still carries the exact daily-cap reason, is not paid / not in a payout / not reversed / not manually adjusted, and is still linked to the expected profile and rep. Anything failing a check is left alone and reported.
+
+The dry run and the final report both list, per row: rep, slug, submission timestamp, Pacific earned day, previous status, new status, reason.
+
+After the repair, the result is verified through the affected rep's own authenticated view — not just the service-role client — to confirm eligible bonuses read as available for payout and are counted in the available total. The commission queries are invalidated after approval so the UI cannot keep showing a stale voided row.
+
+## 4. Payouts and the Closer's Pool are protected
+
+The Closer's Pool recomputation is previewed before it is applied. Paid or closed payout periods are never rewritten; if a closed period needs correction, an auditable adjustment entry is created instead. A before/after check confirms no rep's paid or available total decreases as a side effect.
+
+## 5. Backfill validation
+
+`earned_on` is backfilled for existing demo commissions from their linked profile's submission timestamp. Any demo commission that cannot be linked to a profile submission timestamp is reported explicitly rather than being given a guessed date. Other commission types fall back to their existing `created_at`.
 
 ## Technical notes
 
-- Migration: `ALTER TABLE public.commissions ADD COLUMN earned_on date`, an index on `(rep_id, commission_type, earned_on)`, a backfill `UPDATE`, and a replacement `award_daily_base_trigger()` body. No drops, no destructive changes.
-- Edge function `supabase/functions/award-demo-commission/index.ts`: read `personal_profiles.created_at`, derive `earnedOn`, count by `earned_on`, insert with `earned_on`.
-- Repair runs as an explicit one-off SQL statement over exactly the 11 known voided IDs, reported back to you individually with rep, slug, submission date and new status.
-- Frontend: `src/pages/rep/RepCommissions.tsx` date grouping switched to `earned_on` with a `created_at` fallback.
+- Migration (additive only): `commissions.earned_on date`, index on `(rep_id, commission_type, earned_on)`, partial unique index on `(personal_profile_id)` for demo bonuses and on `(rep_id, earned_on)` for shift bases, a validated backfill, the new `private.award_demo_commission(...)` RPC granted to `service_role` only, and a rewritten `award_daily_base_trigger()` that groups by `earned_on`.
+- Edge function `supabase/functions/award-demo-commission/index.ts`: keeps the admin check, then calls the RPC and returns its status/reason.
+- Repair runs as an explicit one-off statement over the frozen 11 IDs, dry run first.
+- Frontend `src/pages/rep/RepCommissions.tsx`: group by `earned_on` with a `created_at` fallback, and invalidate the commissions query after an approval.
 
 ## Not touched
 
-Payout history, paid commissions, subscription/billing data, hub access, and the amounts themselves.
+Paid commissions, payout history, subscriptions and billing, hub access, historical analytics, and the bonus amounts themselves.
