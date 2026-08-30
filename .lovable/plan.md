@@ -63,7 +63,7 @@ Public hub loading while signed out; login; logout; signup; customer dashboard; 
 - `/admin/analytics` with tabs: Overview, Hub Analytics, Traffic Quality, Acquisition, Engagement, Conversions, plus disabled Meta Tracking and Privacy & Consent placeholders (master switch stays off).
 - **Session labelling is strict:** legacy period → "Estimated sessions"; post-cutover → "Verified sessions"; a range spanning `cutover_at` → "Estimated total sessions" with the methodology shown inline. Never presented as one exact number.
 - Post-cutover session counts are `count(distinct session_id)` computed across the whole requested range. Daily uniques are never summed into a range total.
-- Per-hub table: raw events, validated events, verified sessions, returning visitors, suspected bot events, internal/preview events, CTA interactions, sources, conversion rate, date-range comparison. Anything that counts events is labelled "events".
+- Per-hub table: raw events, validated events, verified sessions, **known returning visitors** (labelled that way everywhere, since persistent visitor IDs exist only when the visitor's consent state permits them), suspected bot events, internal/preview events, CTA interactions, sources, conversion rate, date-range comparison. Anything that counts events is labelled "events".
 - `/rebornwraps` drill-down: the audit figures (569 raw `profile_visit`, 53 crawler-UA, 22 preview/localhost, 28 same-device-within-a-minute, ~470–490 legitimate, ~358 sessions) shown as a **frozen legacy estimate** with its own header and date range, and validated post-cutover traffic displayed separately from 2026-08-30 07:19:04 UTC onward.
 - Mobile-responsive pass on the whole section.
 
