@@ -409,6 +409,10 @@ export default function AdminLocations() {
                 {auditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Audit coverage
               </Button>
+              <Button variant="outline" size="sm" onClick={() => void runResolve()} disabled={resolving}>
+                {resolving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                Find missing places
+              </Button>
               <Button variant="outline" size="sm" onClick={() => void runHydrate()} disabled={hydrating}>
                 {hydrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
                 Hydrate Place IDs
