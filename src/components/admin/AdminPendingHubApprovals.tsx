@@ -158,25 +158,21 @@ const AdminPendingHubApprovals = () => {
 
   const approve = async (row: PendingHub) => {
     setApprovingId(row.id);
-    // A rep hub often has no business name saved. Without one, the admin
-    // accounts table falls back to the raw slug and the freshly approved hub
-    // looks like an unrelated account. Fill it in at approval time, and move
-    // the pipeline stage off "ready_for_review" so reports stay accurate.
-    const resolvedName =
-      (row.full_name ?? "").trim() || humanizeSlug(row.username) || null;
+    // Never synthesise a business name from the slug: a blank name is an
+    // intentional state. Approval only moves the pipeline stage forward.
     const { error } = await supabase
       .from("personal_profiles")
       .update({
         is_approved: true,
         plan_type: "solo_pro",
         pipeline_status: "approved",
-        ...(resolvedName ? { full_name: resolvedName } : {}),
         review_note: null,
         review_note_at: null,
         rep_note: null,
         rep_note_at: null,
       } as never)
       .eq("id", row.id);
+
     if (error) {
       setApprovingId(null);
       toast.error("Approval failed: " + error.message);
