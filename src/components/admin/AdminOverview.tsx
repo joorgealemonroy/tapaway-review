@@ -141,6 +141,55 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </Button>
       </div>
 
+      {/* Location classification (separate from financial MRR reporting) */}
+      <Panel className="p-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <div className="text-white font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-emerald-400" /> Location classification
+            </div>
+            <div className="text-xs text-white/40">
+              Access and payment classification from the location system · does not affect MRR reporting
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate("/admin/locations")}
+            size="sm"
+            variant="ghost"
+            className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+          >
+            Open Locations <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
+        {locError ? (
+          <div className="text-sm text-red-300">
+            Couldn't load location classification.{" "}
+            <button className="underline" onClick={() => void reloadLocations()}>Retry</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {(Object.keys(STATUS_LABELS) as StatusKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => navigate(`/admin/locations?status=${key}`)}
+                className="text-left rounded-lg border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="text-[10px] uppercase tracking-widest text-white/40">{STATUS_LABELS[key]}</div>
+                <div className="text-xl font-semibold text-white mt-1 tabular-nums">
+                  {locLoading ? (
+                    <span className="inline-block h-5 w-8 rounded bg-white/[0.06] animate-pulse" />
+                  ) : (
+                    locCounts[key]
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+
+
       {/* Row 1 — live status band */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className={`lg:col-span-2 rounded-xl border p-5 ${healthClasses}`}>
