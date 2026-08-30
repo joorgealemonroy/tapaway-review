@@ -10,6 +10,7 @@ import { lazyWithRetry as lazy, clearChunkReloadGuard } from "@/lib/lazyWithRetr
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
+import SiteAnalytics from "@/components/analytics/SiteAnalytics";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
