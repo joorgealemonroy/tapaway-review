@@ -4515,6 +4515,14 @@ export type Database = {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
       }
+      audit_location_coverage_admin: {
+        Args: never
+        Returns: {
+          duplicates: number
+          inserted: number
+          state_changed: number
+        }[]
+      }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
