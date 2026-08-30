@@ -50,8 +50,45 @@ export interface BusinessLocation {
   public_directory_opt_in: boolean;
   needs_review: boolean;
   review_reason: string | null;
+  location_state: LocationState;
+  location_state_source: "auto" | "admin";
+  location_state_set_at: string | null;
+  location_state_reason: string | null;
+  parent_location_id: string | null;
   synced_at: string | null;
 }
+
+export type LocationState =
+  | "mapped_physical_location"
+  | "multi_location_master"
+  | "service_area_business"
+  | "online_or_personal_hub"
+  | "missing_information"
+  | "ambiguous_match"
+  | "invalid_place_id"
+  | "archived_or_inactive";
+
+export const LOCATION_STATES: LocationState[] = [
+  "mapped_physical_location",
+  "multi_location_master",
+  "service_area_business",
+  "online_or_personal_hub",
+  "missing_information",
+  "ambiguous_match",
+  "invalid_place_id",
+  "archived_or_inactive",
+];
+
+export const LOCATION_STATE_LABELS: Record<LocationState, string> = {
+  mapped_physical_location: "Mapped physical location",
+  multi_location_master: "Multi-location master",
+  service_area_business: "Service-area business",
+  online_or_personal_hub: "Online / personal hub",
+  missing_information: "Missing information",
+  ambiguous_match: "Ambiguous match",
+  invalid_place_id: "Invalid Place ID",
+  archived_or_inactive: "Archived / inactive",
+};
 
 export interface ApiLogEntry {
   created_at: string;
@@ -160,7 +197,17 @@ export const locationsApi = {
   classify: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "classify", ...payload }),
   updateOps: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "update_ops", ...payload }),
   logVisit: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "log_visit", ...payload }),
+  setState: (locationId: string, locationState: LocationState, reason?: string) =>
+    invoke<{ ok: boolean }>({ action: "set_state", locationId, locationState, reason }),
+  auditCoverage: () =>
+    invoke<{ ok: boolean; result: { inserted: number; state_changed: number; duplicates: number } }>({
+      action: "audit_coverage",
+    }),
   sync: () => invoke<{ ok: boolean }>({ action: "sync" }),
+  resolveMissing: () =>
+    invoke<{ ok: boolean; run: { scanned: number; accepted: number; ambiguous: number; none: number; failed: number } }>(
+      { action: "resolve_missing" },
+    ),
   hydrate: (limit = 200) =>
     invoke<{ ok: boolean; run: HydrateRun; totals: MappingTotals }>({ action: "hydrate", limit }),
 };
@@ -213,6 +260,14 @@ export function useLocationIntel(enabled = true) {
     return out;
   }, [locations]);
 
+  const stateCounts = useMemo(() => {
+    const out = {} as Record<LocationState, number>;
+    LOCATION_STATES.forEach((s) => {
+      out[s] = locations.filter((l) => l.location_state === s).length;
+    });
+    return out;
+  }, [locations]);
+
   const lastSyncedAt = useMemo(() => {
     const times = locations
       .map((l) => l.synced_at)
@@ -261,6 +316,7 @@ export function useLocationIntel(enabled = true) {
     locations,
     apiLog,
     counts,
+    stateCounts,
     loading,
     error,
     syncing,

@@ -767,9 +767,17 @@ export type Database = {
           lat: number | null
           lng: number | null
           location_id: string | null
+          location_state: string
+          location_state_reason: string | null
+          location_state_set_at: string | null
+          location_state_set_by: string | null
+          location_state_source: string
+          match_candidates: Json | null
+          match_candidates_expires_at: string | null
           needs_review: boolean
           next_follow_up_at: string | null
           paid_through_at: string | null
+          parent_location_id: string | null
           payment_attention: boolean
           payment_evidence_ref: string | null
           payment_state: string
@@ -828,9 +836,17 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           location_id?: string | null
+          location_state?: string
+          location_state_reason?: string | null
+          location_state_set_at?: string | null
+          location_state_set_by?: string | null
+          location_state_source?: string
+          match_candidates?: Json | null
+          match_candidates_expires_at?: string | null
           needs_review?: boolean
           next_follow_up_at?: string | null
           paid_through_at?: string | null
+          parent_location_id?: string | null
           payment_attention?: boolean
           payment_evidence_ref?: string | null
           payment_state?: string
@@ -889,9 +905,17 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           location_id?: string | null
+          location_state?: string
+          location_state_reason?: string | null
+          location_state_set_at?: string | null
+          location_state_set_by?: string | null
+          location_state_source?: string
+          match_candidates?: Json | null
+          match_candidates_expires_at?: string | null
           needs_review?: boolean
           next_follow_up_at?: string | null
           paid_through_at?: string | null
+          parent_location_id?: string | null
           payment_attention?: boolean
           payment_evidence_ref?: string | null
           payment_state?: string
@@ -924,6 +948,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_parent_location_id_fkey"
+            columns: ["parent_location_id"]
+            isOneToOne: false
+            referencedRelation: "business_locations"
             referencedColumns: ["id"]
           },
           {
@@ -1635,12 +1666,18 @@ export type Database = {
       }
       hub_link_checks: {
         Row: {
+          admin_review_note: string | null
+          admin_review_state: string
+          admin_reviewed_at: string | null
+          admin_reviewed_by: string | null
+          attempts: number
           checked_at: string
           classification: string | null
           created_at: string
           detail: string | null
           false_positive: boolean
           false_positive_note: string | null
+          final_url: string | null
           http_status: number | null
           hub_id: string
           id: string
@@ -1652,12 +1689,18 @@ export type Database = {
           url: string
         }
         Insert: {
+          admin_review_note?: string | null
+          admin_review_state?: string
+          admin_reviewed_at?: string | null
+          admin_reviewed_by?: string | null
+          attempts?: number
           checked_at?: string
           classification?: string | null
           created_at?: string
           detail?: string | null
           false_positive?: boolean
           false_positive_note?: string | null
+          final_url?: string | null
           http_status?: number | null
           hub_id: string
           id?: string
@@ -1669,12 +1712,18 @@ export type Database = {
           url: string
         }
         Update: {
+          admin_review_note?: string | null
+          admin_review_state?: string
+          admin_reviewed_at?: string | null
+          admin_reviewed_by?: string | null
+          attempts?: number
           checked_at?: string
           classification?: string | null
           created_at?: string
           detail?: string | null
           false_positive?: boolean
           false_positive_note?: string | null
+          final_url?: string | null
           http_status?: number | null
           hub_id?: string
           id?: string
@@ -1780,6 +1829,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      link_check_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          hubs_checked: number
+          id: string
+          is_complete: boolean
+          links_checked: number
+          links_total: number
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          hubs_checked?: number
+          id?: string
+          is_complete?: boolean
+          links_checked?: number
+          links_total?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          hubs_checked?: number
+          id?: string
+          is_complete?: boolean
+          links_checked?: number
+          links_total?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       location_status_history: {
         Row: {
@@ -4423,6 +4514,14 @@ export type Database = {
       admin_swap_hub_slug: {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
+      }
+      audit_location_coverage_admin: {
+        Args: never
+        Returns: {
+          duplicates: number
+          inserted: number
+          state_changed: number
+        }[]
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }

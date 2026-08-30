@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   APIProvider,
   AdvancedMarker,
@@ -69,14 +69,80 @@ const Pin = ({ tone, active }: { tone: MarkerTone; active: boolean }) => (
   />
 );
 
+/**
+ * Advanced markers may only be constructed once the map reports the capability.
+ * Deliberately NOT gated on getRenderingType() === VECTOR: advanced markers are
+ * supported on raster maps too, and gating on render type would hide valid pins.
+ * Capabilities are asynchronous, so we subscribe until they initialise.
+ */
+const useAdvancedMarkersReady = (): { ready: boolean; settled: boolean } => {
+  const map = useMap();
+  const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    if (!map) return;
+    let cancelled = false;
+    const read = () => {
+      if (cancelled) return;
+      let available = false;
+      try {
+        available = map.getMapCapabilities?.().isAdvancedMarkersAvailable === true;
+      } catch {
+        available = false;
+      }
+      setReady(available);
+      if (available) setSettled(true);
+    };
+    read();
+    const listener = map.addListener("mapcapabilities_changed", read);
+    // If capabilities never turn on, stop waiting so a diagnostic can be shown.
+    const timer = setTimeout(() => {
+      if (!cancelled) setSettled(true);
+    }, 10000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      listener.remove();
+      window.clearTimeout(timer);
+    };
+  }, [map]);
+
+  return { ready, settled };
+};
+
+/**
+ * Flood protection: a failing marker library used to throw once per marker
+ * (137 identical reports). This reports at most one occurrence per mount.
+ */
+class MarkerBoundary extends Component<
+  { children: ReactNode; onFail: (message: string) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onFail(error?.message ?? "Marker rendering failed");
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 interface MarkersProps {
   locations: BusinessLocation[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onCapabilityIssue: (issue: string | null) => void;
 }
 
 /** Renders clustered markers and keeps the viewport fitted to the current filter. */
-const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
+const Markers = ({ locations, selectedId, onSelect, onCapabilityIssue }: MarkersProps) => {
   const map = useMap();
   const clusterer = useRef<MarkerClusterer | null>(null);
   // Marker instances never affect rendered output, so they live in a ref.
@@ -160,20 +226,40 @@ const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
 
   const selected = locations.find((l) => l.id === selectedId) ?? null;
 
+  const { ready, settled } = useAdvancedMarkersReady();
+  const [markerFault, setMarkerFault] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (markerFault) {
+      onCapabilityIssue(`Marker rendering failed: ${markerFault}`);
+    } else if (settled && !ready) {
+      onCapabilityIssue(
+        "The map reports isAdvancedMarkersAvailable = false, so no pins can be created. " +
+          "That capability requires a Map ID that is accepted for this origin and key — " +
+          `confirm VITE_GOOGLE_MAPS_MAP_ID (${MAP_ID ?? "not set"}) belongs to the same Google Cloud project as the browser key and that this origin is on the key's referrer list.`,
+      );
+    } else {
+      onCapabilityIssue(null);
+    }
+  }, [ready, settled, markerFault, onCapabilityIssue]);
 
   return (
     <>
-      {locations.map((l) => (
-        <AdvancedMarker
-          key={l.id}
-          position={{ lat: l.lat as number, lng: l.lng as number }}
-          ref={getRef(l.id)}
-          onClick={() => onSelect(l.id)}
-          title={l.display_name ?? undefined}
-        >
-          <Pin tone={toneFor(l)} active={selectedId === l.id} />
-        </AdvancedMarker>
-      ))}
+      {ready && !markerFault && (
+        <MarkerBoundary onFail={setMarkerFault}>
+          {locations.map((l) => (
+            <AdvancedMarker
+              key={l.id}
+              position={{ lat: l.lat as number, lng: l.lng as number }}
+              ref={getRef(l.id)}
+              onClick={() => onSelect(l.id)}
+              title={l.display_name ?? undefined}
+            >
+              <Pin tone={toneFor(l)} active={selectedId === l.id} />
+            </AdvancedMarker>
+          ))}
+        </MarkerBoundary>
+      )}
       {selected && (
         <InfoWindow
           position={{ lat: selected.lat as number, lng: selected.lng as number }}
@@ -290,6 +376,7 @@ const MapShell = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fault, setFault] = useState<MapFault>(null);
   const [gmCode, setGmCode] = useState<string | null>(null);
+  const [capabilityIssue, setCapabilityIssue] = useState<string | null>(null);
 
   // The Maps script reports auth/billing/referrer failures on this global hook only.
   useEffect(() => {
@@ -391,9 +478,19 @@ const MapShell = ({
         zoomControl
         clickableIcons={false}
       >
-        <Markers locations={locations} selectedId={selectedId} onSelect={setSelectedId} />
+        <Markers
+          locations={locations}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onCapabilityIssue={setCapabilityIssue}
+        />
       </Map>
-      {locations.length === 0 && (
+      {capabilityIssue && (
+        <div className="absolute inset-x-3 top-3 rounded-lg border border-orange-500/40 bg-slate-950/90 p-3 text-[11px] leading-relaxed text-orange-100">
+          <span className="font-semibold">Markers unavailable.</span> {capabilityIssue}
+        </div>
+      )}
+      {locations.length === 0 && !capabilityIssue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full bg-slate-900/85 px-4 py-2 text-xs text-white">
           No mapped locations in this view — run Hydrate Place IDs or clear the filter.
         </div>

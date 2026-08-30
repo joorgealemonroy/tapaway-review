@@ -35,6 +35,9 @@ import {
 import { toast } from "sonner";
 import {
   BusinessLocation,
+  LOCATION_STATES,
+  LOCATION_STATE_LABELS,
+  LocationState,
   STATUS_LABELS,
   StatusKey,
   badgeFor,
@@ -280,12 +283,15 @@ const VisitDialog = ({
 export default function AdminLocations() {
   const [params, setParams] = useSearchParams();
   const filter = (params.get("status") as StatusKey | null) ?? null;
+  const stateFilter = (params.get("state") as LocationState | null) ?? null;
   const [search, setSearch] = useState("");
   const [classifying, setClassifying] = useState<BusinessLocation | null>(null);
   const [route, setRoute] = useState<string[]>([]);
+  const [auditing, setAuditing] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   const {
-    locations, counts, loading, error, syncing, reload, resync,
+    locations, counts, stateCounts, loading, error, syncing, reload, resync,
     lastSyncedAt, staleCoordinates, failedGoogleJobs, apiLog,
     hydrating, hydrate, lastHydrateRun, mapping,
   } = useLocationIntel(true);
@@ -294,12 +300,55 @@ export default function AdminLocations() {
     const q = search.trim().toLowerCase();
     return locations.filter((l) => {
       if (filter && !matchesStatus(l, filter)) return false;
+      if (stateFilter && l.location_state !== stateFilter) return false;
       if (!q) return true;
       return [l.display_name, l.hub_slug, l.formatted_address, l.city]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(q));
     });
-  }, [locations, filter, search]);
+  }, [locations, filter, stateFilter, search]);
+
+  const runResolve = async () => {
+    setResolving(true);
+    try {
+      const res = await locationsApi.resolveMissing();
+      const r = res.run;
+      toast.success(
+        `Place search: ${r.accepted} confirmed · ${r.ambiguous} sent to review · ${r.none} no match · ${r.failed} failed`,
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Place search failed");
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const res = await locationsApi.auditCoverage();
+      const r = res.result;
+      toast.success(
+        `Coverage audit: ${r?.inserted ?? 0} added · ${r?.state_changed ?? 0} states updated · ${r?.duplicates ?? 0} duplicates flagged`,
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Coverage audit failed");
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const resolveState = async (loc: BusinessLocation, next: LocationState) => {
+    try {
+      await locationsApi.setState(loc.id, next, "Resolved from the admin locations review queue");
+      toast.success(`${loc.display_name ?? "Location"} marked as ${LOCATION_STATE_LABELS[next]}`);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update the location state");
+    }
+  };
 
   // Marker actions are dispatched from inside the Google InfoWindow portal.
   useEffect(() => {
@@ -349,6 +398,11 @@ export default function AdminLocations() {
     else setParams({ status: key });
   };
 
+  const setStateFilter = (key: LocationState | null) => {
+    if (!key) setParams({});
+    else setParams({ state: key });
+  };
+
   const MAP_STATS: Array<[string, number]> = [
     ["Total locations", mapping.total],
     ["Mapped", mapping.mapped],
@@ -368,6 +422,14 @@ export default function AdminLocations() {
           icon={<MapPin className="h-5 w-5 text-emerald-400" />}
           actions={
             <>
+              <Button variant="outline" size="sm" onClick={() => void runAudit()} disabled={auditing}>
+                {auditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Audit coverage
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void runResolve()} disabled={resolving}>
+                {resolving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                Find missing places
+              </Button>
               <Button variant="outline" size="sm" onClick={() => void runHydrate()} disabled={hydrating}>
                 {hydrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
                 Hydrate Place IDs
@@ -389,7 +451,32 @@ export default function AdminLocations() {
           ))}
         </div>
 
+        {/* Coverage breakdown: every hub has exactly one explicit location state. */}
+        <Panel className="p-3">
+          <div className="text-[10px] uppercase tracking-widest text-white/35 mb-2">
+            Location coverage — {locations.length} hub{locations.length === 1 ? "" : "s"}, all classified
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStateFilter(null)}
+              className={`rounded-full border px-3 py-1 text-xs ${!stateFilter ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/60"}`}
+            >
+              All ({locations.length})
+            </button>
+            {LOCATION_STATES.filter((s) => stateCounts[s] > 0).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStateFilter(stateFilter === s ? null : s)}
+                className={`rounded-full border px-3 py-1 text-xs ${stateFilter === s ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/60 hover:text-white"}`}
+              >
+                {LOCATION_STATE_LABELS[s]} ({stateCounts[s]})
+              </button>
+            ))}
+          </div>
+        </Panel>
+
         <LocationsMap locations={rows} />
+
 
         {route.length > 0 && (
           <Panel className="p-3 text-xs text-white/60 flex items-center justify-between">
@@ -520,9 +607,30 @@ export default function AdminLocations() {
                         <td className="py-2.5 pr-3 text-xs text-white/50">
                           {l.google_place_id ? "Place ID" : "no place id"}
                           {l.lat ? " · coords" : " · no coords"}
+                          <div className="text-[11px] text-white/35">
+                            {LOCATION_STATE_LABELS[l.location_state]}
+                            {l.location_state_source === "admin" && (
+                              <span className="text-emerald-400"> · admin set</span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2.5 text-right">
-                          <Button size="sm" variant="ghost" onClick={() => setClassifying(l)}>Classify</Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Select
+                              value={l.location_state}
+                              onValueChange={(v) => void resolveState(l, v as LocationState)}
+                            >
+                              <SelectTrigger className="h-8 w-[168px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {LOCATION_STATES.map((s) => (
+                                  <SelectItem key={s} value={s}>{LOCATION_STATE_LABELS[s]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" onClick={() => setClassifying(l)}>Classify</Button>
+                          </div>
                         </td>
                       </tr>
                     );
