@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { LocationsMap } from "@/components/admin/LocationsMap";
 import {
   AlertTriangle,
   ArrowLeft,
