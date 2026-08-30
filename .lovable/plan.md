@@ -101,7 +101,8 @@ Marker colors: dark green (active paying), purple (active complimentary), blue (
 Retention corrections:
 
 - Google-sourced coordinates get **`coordinates_expires_at = coordinates_obtained_at + 30 days`**. A nightly job refreshes or clears expired Google-sourced coordinates; no Google-sourced lat/lng is retained past its expiry.
-- Coordinates independently supplied or confirmed by TapAway/the customer are marked `coordinate_source='customer_supplied'`/`'tapaway_verified'` and are exempt from the 30-day window.
+- Google-returned display names, addresses, phone numbers and categories are **never permanently copied** into TapAway-owned fields. They land only in the expiring `g_*` mirror and expire with the same window. The business information already supplied to TapAway remains the permanent source of record.
+- Promotion of a Google value into a TapAway-owned field, or marking coordinates `customer_supplied` / `tapaway_verified`, requires independent supply, correction or a genuine documented confirmation workflow recording actor, timestamp and reason. Viewing data on Google is not confirmation.
 - Place IDs may be stored long-term; they are refreshed on their own lifecycle (re-verified when a Place Details call reports the ID moved or is invalid, recording `place_id_verified_at`).
 - Google route results expire on their own timestamp and are purged; reopening an expired route recomputes them. TapAway-owned route content persists.
 - Google Maps attribution and the required terms/privacy notices are rendered on every map and itinerary surface.
