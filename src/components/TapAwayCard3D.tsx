@@ -21,7 +21,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
             className="relative"
             style={{
               width,
-              aspectRatio: "2.125 / 3.375",
+              aspectRatio: "153.12 / 247.92",
               transformStyle: "preserve-3d",
               borderRadius: "1.5rem",
               WebkitBackfaceVisibility: "hidden",
