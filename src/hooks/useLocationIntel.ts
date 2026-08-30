@@ -6,6 +6,8 @@ export interface BusinessLocation {
   business_id: string;
   hub_kind: "personal" | "restaurant" | "child_location";
   hub_slug: string | null;
+  personal_profile_id: string | null;
+  restaurant_id: string | null;
   display_name: string | null;
   formatted_address: string | null;
   city: string | null;
@@ -14,6 +16,9 @@ export interface BusinessLocation {
   phone: string | null;
   google_place_id: string | null;
   place_status: string;
+  hydration_status: string | null;
+  hydration_error: string | null;
+  hydration_attempted_at: string | null;
   lat: number | null;
   lng: number | null;
   coordinate_source: string | null;
