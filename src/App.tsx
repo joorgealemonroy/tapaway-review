@@ -77,6 +77,7 @@ const AdminCards = lazy(() => import("./pages/admin/AdminCards"));
 const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AdminSmsSubscribers = lazy(() => import("./pages/admin/AdminSmsSubscribers"));
 const AdminHubHealth = lazy(() => import("./pages/admin/AdminHubHealth"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminPrintQueue = lazy(() => import("./pages/admin/AdminPrintQueue"));
 const AdminErrors = lazy(() => import("./pages/admin/AdminErrors"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
@@ -188,6 +189,7 @@ const App = () => {
                 <Route path="/admin/founders" element={<AdminFounders />} />
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />
+                <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/print-queue" element={<AdminPrintQueue />} />
                 <Route path="/admin/errors" element={<AdminErrors />} />
                 
