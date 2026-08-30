@@ -171,6 +171,8 @@ export function useLocationIntel(enabled = true) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
+  const [lastHydrateRun, setLastHydrateRun] = useState<HydrateRun | null>(null);
 
   const load = useCallback(async () => {
     if (!enabled) return;
