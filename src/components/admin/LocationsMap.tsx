@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { BusinessLocation, badgeFor } from "@/hooks/useLocationIntel";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-/** DEMO_MAP_ID renders Google's default light styling and supports advanced markers. */
-const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) || "DEMO_MAP_ID";
+/** Real vector Map ID from the project — required for AdvancedMarker rendering. */
+const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined;
 
 export type MarkerTone =
   | "paid"
