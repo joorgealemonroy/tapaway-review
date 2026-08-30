@@ -204,6 +204,10 @@ export const locationsApi = {
       action: "audit_coverage",
     }),
   sync: () => invoke<{ ok: boolean }>({ action: "sync" }),
+  resolveMissing: () =>
+    invoke<{ ok: boolean; run: { scanned: number; accepted: number; ambiguous: number; none: number; failed: number } }>(
+      { action: "resolve_missing" },
+    ),
   hydrate: (limit = 200) =>
     invoke<{ ok: boolean; run: HydrateRun; totals: MappingTotals }>({ action: "hydrate", limit }),
 };
