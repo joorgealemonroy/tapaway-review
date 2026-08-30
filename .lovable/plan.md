@@ -7,7 +7,7 @@ Three workstreams. Privacy/Meta stays paused. No change to hub access, subscript
 - `business_locations`: 151 rows, 137 with coordinates, 137 with Place IDs, 0 invalid, 14 with no Place ID. Source tables: 139 personal profiles + 12 restaurants.
 - `hub_link_checks`: last run **12 Aug** — 100 ok, 76 broken, 1 malformed. Many of the 76 are 401/403 refusals from Yelp/Booksy-type hosts, which the current schema cannot express.
 - `client_errors`, last 24h: **not 146 separate bugs.** One React #185 occurrence at 11:56, one legacy `cardFrontArt is not defined` on `/`, and ~130 occurrences of a single new crash at 12:15:35 on `/admin/locations`:
-  `TypeError: Cannot read properties of undefined (reading 'keys')` thrown inside `marker.js` while constructing an `AdvancedMarkerElement` — one throw per marker. The map fell back to a raster map (no usable vector Map ID on that origin), and advanced markers cannot be constructed on a raster map. This is the real remaining map bug and is fixed in workstream 3 before anything else ships.
+  `TypeError: Cannot read properties of undefined (reading 'keys')` thrown inside Google's `marker.js` during `AdvancedMarkerElement` construction — one throw per marker. **The root cause is not yet established** and will be isolated by the bisection below before any fix is written. Raster rendering is explicitly *not* assumed to be the cause: Google supports Advanced Markers on raster maps too.
 
 ## Workstream 1 — every hub gets an explicit location state
 
@@ -16,7 +16,7 @@ Add to `business_locations`:
 - `location_state text not null default 'missing_information'` with a CHECK over: `mapped_physical_location`, `multi_location_master`, `service_area_business`, `online_or_personal_hub`, `missing_information`, `ambiguous_match`, `invalid_place_id`, `archived_or_inactive`
 - `location_state_source text` (`auto` / `admin`), `location_state_set_by uuid`, `location_state_set_at timestamptz`, `location_state_reason text`
 - `parent_location_id uuid references business_locations(id)` for master → child links
-- `match_candidates jsonb` for the ambiguous-review queue (name/address/place_id/confidence only)
+- `match_candidates jsonb` for the ambiguous-review queue (name/address/place_id/confidence only) plus `match_candidates_expires_at timestamptz` — Google-derived candidate names and addresses expire or refresh within 30 days and are purged by the existing retention job. Place IDs persist. Admin-verified fields live in the TapAway-owned columns and are never overwritten by an automated pass.
 
 Every state change writes a `location_status_history` row (actor, timestamp, previous value, reason). Manual states are never overwritten by automated passes.
 
