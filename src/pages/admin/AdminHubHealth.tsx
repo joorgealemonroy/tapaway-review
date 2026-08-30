@@ -285,7 +285,12 @@ export default function AdminHubHealth() {
                       const key = `${r.kind}:${r.slug}`;
                       const p = probes[key];
                       const checks = linksBySlug.get((r.slug ?? "").toLowerCase()) ?? [];
-                      const badLinks = checks.filter((c) => c.status !== "ok");
+                      const badLinks = checks.filter(needsAttention);
+                      const blockedLinks = checks.filter(
+                        (c) => c.admin_review_state !== "false_positive" && classOf(c) === "blocked_unverifiable",
+                      );
+                      const detailLinks = [...badLinks, ...blockedLinks];
+
                       return (
                         <Fragment key={key}>
                         <TableRow className="border-white/5 hover:bg-white/[0.03]">
