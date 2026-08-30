@@ -79,7 +79,7 @@ const PersonalCard3D = () => {
               className="relative"
               style={{
                 width: "min(220px, 70vw)",
-                aspectRatio: "1 / 1.586",
+                aspectRatio: "153.12 / 247.92",
                 transformStyle: "preserve-3d",
                 transform: "translateZ(0)",
               }}
@@ -98,7 +98,7 @@ const PersonalCard3D = () => {
                 }}
               >
                 <img 
-                  src="/tapaway-personal-front.png" 
+                  src="/tapaway-card-front-v2.svg" 
                   alt="TapAway personal card front" 
                   loading="eager"
                   decoding="async"
@@ -106,6 +106,7 @@ const PersonalCard3D = () => {
                   className="w-full h-full object-cover pointer-events-none"
                   style={{ borderRadius: "1.5rem" }}
                 />
+
               </div>
 
               {/* BACK */}
