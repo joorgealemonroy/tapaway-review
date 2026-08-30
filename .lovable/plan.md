@@ -68,3 +68,29 @@ A /rebornwraps drill-down showing the exact breakdown above and why each bucket 
 - Historical rows are untouched; the admin UI reads legacy tables for pre-cutover history and the new table after.
 - Delivered in the order above so tracking is trustworthy before Meta and consent land on top of it.
 - Verification: duplicate-fire test, RLS permission test, consent on/off behaviour, mobile layout pass, and a Meta test-event dedup check.
+
+## Approved safeguards (binding on implementation)
+
+- **Additive only.** No drop, rename, truncate or destructive alter of existing analytics tables, events or columns. Any destructive step would stop and ask first.
+- **Cutover timestamp** recorded in a new `analytics_config` row. Reporting reads legacy tables strictly before it and `analytics_hits` strictly after it — no overlapping window, no double counting.
+- **Two separate identifiers:** a returning-visitor ID stored only when consent permits, and a session ID that expires after 30 minutes of inactivity. Event counts and device/referrer signatures are never labelled "unique visitors" anywhere in the UI (the audit figures above are explicitly labelled estimates).
+- **Validated view** created `WITH (security_invoker = true)` over `analytics_hits`, excluding all IP-derived columns. Hub owners get no SELECT on `analytics_hits`, IP hashes, consent records or Meta logs — only aggregated counts for hubs they own, via a `SECURITY DEFINER` helper that verifies ownership.
+- **No public inserts.** `analytics_hits` has an admin-read policy only; writes are service-role, i.e. exclusively through the hardened `track` edge function with payload validation, an event-name allowlist, origin/CORS checks, payload-size limits, rate limiting and event-ID idempotency. No service-role credential reaches the client.
+- **IP-derived hash** built from a daily rotating salt in a table with no policies (unreachable even for admins), written with an expiry and cleared after 7 days; never surfaced in the admin UI.
+- **Documented retention:** raw analytics 400 days, IP-derived hashes 7 days, Meta delivery logs 90 days, consent records 730 days — stored in `analytics_config` and stated in the policy drafts before publication.
+- **Meta is opt-in twice:** a master TapAway switch plus a per-hub switch (default off). No hub, including /rebornwraps, participates until switched on.
+- **Consent gating:** no Meta browser or server event fires when advertising consent is rejected, withdrawn, or blocked by Global Privacy Control; revocation stops future events immediately.
+- **Deduplication:** identical event name and `event_id` on Pixel and CAPI, confirmed through Meta Test Events before production activation.
+- `META_CAPI_ACCESS_TOKEN` stays a backend-only secret; the Pixel ID lives in one configuration source rather than scattered literals.
+- **Never sent to Meta:** full URLs with query strings, form contents, dashboard routes, customer messages, sensitive fields or unhashed personal data.
+- **Legal policies are drafts only** — generated for review with the exact diff shown, published only after explicit approval, and flagged for attorney review.
+
+## Phased delivery (report after each phase)
+
+1. **Phase 1** — ingestion, dedup, classification, RLS, cutover record.
+2. **Phase 2** — admin analytics section and the /rebornwraps drill-down.
+3. **Phase 3** — consent and privacy controls.
+4. **Phase 4** — Meta Pixel/CAPI configuration and test-event verification.
+5. **Phase 5** — policy drafts and final verification.
+
+Each phase ends with a report of files changed, migrations executed, tests passed and remaining concerns. A restorable checkpoint is created before Phase 1 begins.
