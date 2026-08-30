@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
     " subscription_status_snapshot, last_payment_at, current_billing_period_end, paid_through_at," +
     " payment_evidence_ref, payment_attention, assigned_rep_id, last_visited_at, next_follow_up_at," +
     " internal_notes, visit_eligible, public_directory_opt_in, needs_review, review_reason," +
+    " hydration_status, hydration_error, hydration_attempted_at," +
     " synced_at, created_at, updated_at";
 
   try {
