@@ -201,14 +201,23 @@ export default function AdminHubHealth() {
           <CardHeader>
             <CardTitle className="text-white text-base">Outbound links</CardTitle>
             <CardDescription className="text-white/60">
-              Every link on a live hub is opened server-side to confirm it still resolves.
+              Every link on a live hub is opened server-side. A 401/403/429 means the host blocks
+              automated checks — it is never counted as broken.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Stat label="Links checked" value={linkTotals.total} />
-            <Stat label="Broken" value={linkTotals.broken} tone={linkTotals.broken ? "err" : "ok"} />
+            <Stat label="Confirmed broken" value={linkTotals.confirmed} tone={linkTotals.confirmed ? "err" : "ok"} />
+            <Stat label="Needs attention" value={linkTotals.attention} tone={linkTotals.attention ? "warn" : "ok"} />
             <Stat label="Hubs affected" value={linkTotals.hubs} tone={linkTotals.hubs ? "warn" : undefined} />
+            <Stat label="Healthy" value={linkTotals.healthy} tone="ok" />
+            <Stat label="Redirected" value={linkTotals.redirected} />
+            <Stat label="Server / TLS / timeout" value={linkTotals.serverError + linkTotals.tlsError + linkTotals.timeout} />
+            <Stat label="Blocked / unverifiable" value={linkTotals.blocked} />
+            <Stat label="Malformed" value={linkTotals.malformed} />
+            <Stat label="Marked false positive" value={linkTotals.falsePositive} />
           </CardContent>
+
         </Card>
 
 
