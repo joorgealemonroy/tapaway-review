@@ -112,6 +112,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "hub_table") {
+      if (!(await isAdminCaller())) return json({ error: "Forbidden" }, 403);
+
       const { data, error } = await admin.rpc("rpt_admin_hub_table", {
         _caller_user_id: callerUserId,
         _since: since,
