@@ -89,22 +89,13 @@ interface Props {
   initialProfile?: CachedProfile;
 }
 
-// Fire-and-forget link click tracker
+// Fire-and-forget link click tracker (centralized analytics client)
 const trackLinkClick = (profileId: string, link: { id: string; label: string; url: string }) => {
-  supabase
-    .from("personal_analytics")
-    .insert({
-      profile_id: profileId,
-      event_type: "link_click",
-      visitor_info: {
-        link_id: link.id,
-        link_label: link.label,
-        link_url: link.url,
-        referrer: document.referrer || null,
-        userAgent: navigator.userAgent,
-      },
-    })
-    .then(() => {});
+  trackEvent("link_click", {
+    hubId: profileId,
+    hubKind: "solo",
+    props: { link_id: link.id, link_label: link.label, link_url: link.url },
+  });
 };
 
 // Memoized link component to prevent re-renders
