@@ -477,9 +477,19 @@ const MapShell = ({
         zoomControl
         clickableIcons={false}
       >
-        <Markers locations={locations} selectedId={selectedId} onSelect={setSelectedId} />
+        <Markers
+          locations={locations}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onCapabilityIssue={setCapabilityIssue}
+        />
       </Map>
-      {locations.length === 0 && (
+      {capabilityIssue && (
+        <div className="absolute inset-x-3 top-3 rounded-lg border border-orange-500/40 bg-slate-950/90 p-3 text-[11px] leading-relaxed text-orange-100">
+          <span className="font-semibold">Markers unavailable.</span> {capabilityIssue}
+        </div>
+      )}
+      {locations.length === 0 && !capabilityIssue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full bg-slate-900/85 px-4 py-2 text-xs text-white">
           No mapped locations in this view — run Hydrate Place IDs or clear the filter.
         </div>
