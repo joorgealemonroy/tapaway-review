@@ -727,6 +727,291 @@ export type Database = {
           },
         ]
       }
+      business_locations: {
+        Row: {
+          access_status: string
+          assigned_rep_id: string | null
+          billing_interval: string
+          billing_source: string
+          business_category: string | null
+          business_id: string
+          city: string | null
+          classification_is_manual: boolean
+          coordinate_confirmed_at: string | null
+          coordinate_confirmed_by: string | null
+          coordinate_source: string | null
+          coordinates_expires_at: string | null
+          coordinates_obtained_at: string | null
+          created_at: string
+          current_billing_period_end: string | null
+          display_name: string | null
+          formatted_address: string | null
+          g_category: string | null
+          g_display_name: string | null
+          g_formatted_address: string | null
+          g_lat: number | null
+          g_lng: number | null
+          g_phone: string | null
+          google_data_expires_at: string | null
+          google_data_obtained_at: string | null
+          google_place_id: string | null
+          hub_kind: string
+          hub_slug: string | null
+          id: string
+          internal_notes: string | null
+          last_payment_at: string | null
+          last_visited_at: string | null
+          lat: number | null
+          lng: number | null
+          location_id: string | null
+          needs_review: boolean
+          next_follow_up_at: string | null
+          paid_through_at: string | null
+          payment_attention: boolean
+          payment_evidence_ref: string | null
+          payment_state: string
+          personal_profile_id: string | null
+          phone: string | null
+          place_id_verified_at: string | null
+          place_status: string
+          postal_code: string | null
+          public_directory_opt_in: boolean
+          restaurant_id: string | null
+          review_reason: string | null
+          state: string | null
+          status_reason: string | null
+          subscription_status_snapshot: string | null
+          synced_at: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          visit_eligible: boolean
+        }
+        Insert: {
+          access_status?: string
+          assigned_rep_id?: string | null
+          billing_interval?: string
+          billing_source?: string
+          business_category?: string | null
+          business_id: string
+          city?: string | null
+          classification_is_manual?: boolean
+          coordinate_confirmed_at?: string | null
+          coordinate_confirmed_by?: string | null
+          coordinate_source?: string | null
+          coordinates_expires_at?: string | null
+          coordinates_obtained_at?: string | null
+          created_at?: string
+          current_billing_period_end?: string | null
+          display_name?: string | null
+          formatted_address?: string | null
+          g_category?: string | null
+          g_display_name?: string | null
+          g_formatted_address?: string | null
+          g_lat?: number | null
+          g_lng?: number | null
+          g_phone?: string | null
+          google_data_expires_at?: string | null
+          google_data_obtained_at?: string | null
+          google_place_id?: string | null
+          hub_kind: string
+          hub_slug?: string | null
+          id?: string
+          internal_notes?: string | null
+          last_payment_at?: string | null
+          last_visited_at?: string | null
+          lat?: number | null
+          lng?: number | null
+          location_id?: string | null
+          needs_review?: boolean
+          next_follow_up_at?: string | null
+          paid_through_at?: string | null
+          payment_attention?: boolean
+          payment_evidence_ref?: string | null
+          payment_state?: string
+          personal_profile_id?: string | null
+          phone?: string | null
+          place_id_verified_at?: string | null
+          place_status?: string
+          postal_code?: string | null
+          public_directory_opt_in?: boolean
+          restaurant_id?: string | null
+          review_reason?: string | null
+          state?: string | null
+          status_reason?: string | null
+          subscription_status_snapshot?: string | null
+          synced_at?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          visit_eligible?: boolean
+        }
+        Update: {
+          access_status?: string
+          assigned_rep_id?: string | null
+          billing_interval?: string
+          billing_source?: string
+          business_category?: string | null
+          business_id?: string
+          city?: string | null
+          classification_is_manual?: boolean
+          coordinate_confirmed_at?: string | null
+          coordinate_confirmed_by?: string | null
+          coordinate_source?: string | null
+          coordinates_expires_at?: string | null
+          coordinates_obtained_at?: string | null
+          created_at?: string
+          current_billing_period_end?: string | null
+          display_name?: string | null
+          formatted_address?: string | null
+          g_category?: string | null
+          g_display_name?: string | null
+          g_formatted_address?: string | null
+          g_lat?: number | null
+          g_lng?: number | null
+          g_phone?: string | null
+          google_data_expires_at?: string | null
+          google_data_obtained_at?: string | null
+          google_place_id?: string | null
+          hub_kind?: string
+          hub_slug?: string | null
+          id?: string
+          internal_notes?: string | null
+          last_payment_at?: string | null
+          last_visited_at?: string | null
+          lat?: number | null
+          lng?: number | null
+          location_id?: string | null
+          needs_review?: boolean
+          next_follow_up_at?: string | null
+          paid_through_at?: string | null
+          payment_attention?: boolean
+          payment_evidence_ref?: string | null
+          payment_state?: string
+          personal_profile_id?: string | null
+          phone?: string | null
+          place_id_verified_at?: string | null
+          place_status?: string
+          postal_code?: string | null
+          public_directory_opt_in?: boolean
+          restaurant_id?: string | null
+          review_reason?: string | null
+          state?: string | null
+          status_reason?: string | null
+          subscription_status_snapshot?: string | null
+          synced_at?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          visit_eligible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_locations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_personal_profile_id_fkey"
+            columns: ["personal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_personal_profile_id_fkey"
+            columns: ["personal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_locations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_merges: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          moved_locations: Json
+          reason: string | null
+          reverted_at: string | null
+          reverted_by: string | null
+          target_business_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          moved_locations: Json
+          reason?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          target_business_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          moved_locations?: Json
+          reason?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          target_business_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_merges_target_business_id_fkey"
+            columns: ["target_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      businesses: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_errors: {
         Row: {
           component_stack: string | null
@@ -1432,6 +1717,91 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_status_history: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          field: string
+          id: string
+          location_id: string
+          new_value: string | null
+          previous_value: string | null
+          reason: string | null
+          source: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          field: string
+          id?: string
+          location_id: string
+          new_value?: string | null
+          previous_value?: string | null
+          reason?: string | null
+          source: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          field?: string
+          id?: string
+          location_id?: string
+          new_value?: string | null
+          previous_value?: string | null
+          reason?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_status_history_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "business_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_visits: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          location_id: string
+          notes: string | null
+          outcome: string
+          rep_id: string | null
+          visited_at: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          location_id: string
+          notes?: string | null
+          outcome: string
+          rep_id?: string | null
+          visited_at?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string
+          notes?: string | null
+          outcome?: string
+          rep_id?: string | null
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_visits_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "business_locations"
             referencedColumns: ["id"]
           },
         ]
@@ -2348,6 +2718,36 @@ export type Database = {
         }
         Relationships: []
       }
+      places_api_log: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error: string | null
+          http_status: number | null
+          id: string
+          location_id: string | null
+          ok: boolean
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          location_id?: string | null
+          ok: boolean
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          location_id?: string | null
+          ok?: boolean
+        }
+        Relationships: []
+      }
       promo_tokens: {
         Row: {
           created_at: string
@@ -3172,6 +3572,132 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      route_stops: {
+        Row: {
+          created_at: string
+          excluded: boolean
+          excluded_reason: string | null
+          google_eta: string | null
+          google_leg_distance_meters: number | null
+          google_leg_duration_seconds: number | null
+          id: string
+          location_id: string
+          notes: string | null
+          outcome: string | null
+          route_id: string
+          stop_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          excluded?: boolean
+          excluded_reason?: string | null
+          google_eta?: string | null
+          google_leg_distance_meters?: number | null
+          google_leg_duration_seconds?: number | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          outcome?: string | null
+          route_id: string
+          stop_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          excluded?: boolean
+          excluded_reason?: string | null
+          google_eta?: string | null
+          google_leg_distance_meters?: number | null
+          google_leg_duration_seconds?: number | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          outcome?: string | null
+          route_id?: string
+          stop_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_stops_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "business_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_stops_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routes: {
+        Row: {
+          avoid_highways: boolean
+          avoid_tolls: boolean
+          created_at: string
+          created_by: string | null
+          departure_time: string | null
+          dwell_minutes: number
+          end_address: string | null
+          google_polyline: string | null
+          google_result_expires_at: string | null
+          google_result_obtained_at: string | null
+          google_total_distance_meters: number | null
+          google_total_duration_seconds: number | null
+          id: string
+          max_stops: number | null
+          name: string | null
+          settings: Json
+          start_address: string | null
+          updated_at: string
+          visit_date: string | null
+        }
+        Insert: {
+          avoid_highways?: boolean
+          avoid_tolls?: boolean
+          created_at?: string
+          created_by?: string | null
+          departure_time?: string | null
+          dwell_minutes?: number
+          end_address?: string | null
+          google_polyline?: string | null
+          google_result_expires_at?: string | null
+          google_result_obtained_at?: string | null
+          google_total_distance_meters?: number | null
+          google_total_duration_seconds?: number | null
+          id?: string
+          max_stops?: number | null
+          name?: string | null
+          settings?: Json
+          start_address?: string | null
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Update: {
+          avoid_highways?: boolean
+          avoid_tolls?: boolean
+          created_at?: string
+          created_by?: string | null
+          departure_time?: string | null
+          dwell_minutes?: number
+          end_address?: string | null
+          google_polyline?: string | null
+          google_result_expires_at?: string | null
+          google_result_obtained_at?: string | null
+          google_total_distance_meters?: number | null
+          google_total_duration_seconds?: number | null
+          id?: string
+          max_stops?: number | null
+          name?: string | null
+          settings?: Json
+          start_address?: string | null
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Relationships: []
       }
       sales_reps: {
         Row: {
@@ -4092,6 +4618,13 @@ export type Database = {
           events: number
           sessions: number
           source: string
+        }[]
+      }
+      sync_business_locations_admin: {
+        Args: never
+        Returns: {
+          inserted: number
+          updated: number
         }[]
       }
     }
