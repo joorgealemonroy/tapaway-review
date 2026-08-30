@@ -197,6 +197,12 @@ export const locationsApi = {
   classify: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "classify", ...payload }),
   updateOps: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "update_ops", ...payload }),
   logVisit: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "log_visit", ...payload }),
+  setState: (locationId: string, locationState: LocationState, reason?: string) =>
+    invoke<{ ok: boolean }>({ action: "set_state", locationId, locationState, reason }),
+  auditCoverage: () =>
+    invoke<{ ok: boolean; result: { inserted: number; state_changed: number; duplicates: number } }>({
+      action: "audit_coverage",
+    }),
   sync: () => invoke<{ ok: boolean }>({ action: "sync" }),
   hydrate: (limit = 200) =>
     invoke<{ ok: boolean; run: HydrateRun; totals: MappingTotals }>({ action: "hydrate", limit }),
