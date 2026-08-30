@@ -13,6 +13,7 @@ import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
+import { track as trackEvent } from "@/lib/analytics";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
