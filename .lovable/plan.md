@@ -37,20 +37,24 @@ Read-only audit complete. No data was changed. Corrections below reflect your fe
 
 ## 2. Corrected schema (all additive)
 
-- `public.businesses` — grouping entity: `id`, `name`, `notes`, timestamps. **No automatic name-based grouping.** Backfill creates exactly one business per source hub; grouping (e.g. the confirmed Las Islas venues) happens only through an explicit admin merge action that records who merged what and when.
+- `public.businesses` — grouping entity: `id`, `name`, `notes`, timestamps. **No automatic name-based grouping.** Backfill creates exactly one business per source hub; grouping (e.g. the confirmed Las Islas venues) happens only through an explicit admin merge action that records who merged what and when. Merges are **audited and reversible** (`business_merges` records prior `business_id` per moved location, actor, timestamp, reason; an unmerge restores them). A merge only re-parents `business_locations` rows — it never merges or overwrites hubs, analytics, subscriptions or billing records.
 - `public.business_locations` — one row per physical location:
   - Identity: `id`, `business_id` (NOT NULL FK — every location belongs to exactly one business), `hub_kind` (`personal` / `restaurant` / `child_location`), `personal_profile_id` / `restaurant_id` / `location_id` (exactly one non-null, enforced by a CHECK constraint), `hub_slug`.
   - Uniqueness: partial unique indexes on each source FK so a source hub can never produce duplicate location rows.
-  - Place data: `google_place_id`, `display_name`, `formatted_address`, `city`, `state`, `postal_code`, `business_category`, `phone`.
-  - Coordinates with retention: `lat`, `lng`, `coordinate_source` (`google_places` / `google_geocoding` / `customer_supplied` / `tapaway_verified`), `coordinates_obtained_at`, `coordinates_expires_at`, `place_id_verified_at`, `place_status` (`ok` / `stale` / `invalid` / `missing`).
-  - Access & billing (see §3): `access_status`, `payment_state`, `billing_interval`, `billing_source`, `classification_is_manual`, `status_reason`, `trial_ends_at`, `subscription_status_snapshot`.
-  - Ops: `assigned_rep_id`, `last_visited_at`, `next_follow_up_at`, `internal_notes`, `visit_eligible`, `public_directory_opt_in`, `needs_review` (legacy/duplicate/ambiguous), timestamps.
+  - **TapAway-owned business details (permanent source):** `display_name`, `formatted_address`, `city`, `state`, `postal_code`, `business_category`, `phone` — populated only from information the business already supplied to TapAway, never overwritten by Place Details output.
+  - **Google-sourced mirror (retention-bound):** `google_place_id` (long-term), plus `g_display_name`, `g_formatted_address`, `g_phone`, `g_category`, `g_lat`, `g_lng` held in a separate expiring block with `google_data_obtained_at` / `google_data_expires_at`. Google values are shown as suggestions with attribution; an admin can promote one into the TapAway-owned field only through a documented confirmation action that records actor, timestamp and reason.
+  - Coordinates with retention: `lat`, `lng`, `coordinate_source` (`google_places` / `google_geocoding` / `customer_supplied` / `tapaway_verified`), `coordinates_obtained_at`, `coordinates_expires_at`, `coordinate_confirmed_by`, `coordinate_confirmed_at`, `place_id_verified_at`, `place_status` (`ok` / `stale` / `invalid` / `missing`). A coordinate becomes `customer_supplied` / `tapaway_verified` **only** through independent supply, correction or a documented confirmation workflow — never because an admin looked at Google.
+  - Access & billing (see §3): `access_status`, `payment_state`, `billing_interval`, `billing_source`, `classification_is_manual`, `status_reason`, `trial_ends_at`, `subscription_status_snapshot`, `last_payment_at`, `current_billing_period_end`, `paid_through_at`, `payment_evidence_ref` (Stripe subscription / payment intent id).
+  - Ops: `assigned_rep_id`, `last_visited_at`, `next_follow_up_at`, `internal_notes`, `visit_eligible`, `public_directory_opt_in` (**DEFAULT false** — no existing location becomes public automatically), `needs_review` (legacy/duplicate/ambiguous), timestamps.
 - `public.location_status_history` — every change to access or payment fields: actor, timestamp, field, previous value, new value, reason, source (`stripe` / `admin_manual` / `derivation`).
 - `public.location_visits` — visit outcome log (`visited`, `closed`, `spoke_with_owner`, `follow_up`, `converted`, `not_interested`), notes, rep, timestamp. Fully separate from subscription state.
 - `public.routes` / `public.route_stops` — TapAway-owned data (selected businesses, visit order, settings, outcomes, notes) stored permanently; Google-derived results (ETAs, durations, distances, polylines, leg coordinates) stored in a separate nullable result block with `google_result_obtained_at` and `google_result_expires_at`. Expired Google results are purged by the retention job and recomputed when the route is reopened.
+- `public.business_merges` — merge audit and undo record.
 - `public.places_api_log` — per-call endpoint, target location, status, error, for quota and error monitoring.
 
 All status fields are written only by a security-definer server function or an admin action through the protected edge function. No frontend write path can set `access_status`, `payment_state`, `billing_interval` or `billing_source`.
+
+**This system never changes hub access.** No derivation, backfill, reconciliation or payment classification may write to `personal_profiles` / `restaurants` access or billing columns. If any step would alter existing hub access or historical billing data, implementation stops and reports instead.
 
 ## 3. Corrected status-derivation rules
 
@@ -63,25 +67,29 @@ Access and payment are independent. **Backfill never changes hub access.** `acce
 Derivation order:
 
 1. **Explicit manual classification exists** → keep it. Automated reconciliation may override it only when confirmed Stripe evidence supersedes it (a live Stripe subscription or payment found on the same customer), and that override is written to status history with source `stripe`.
-2. **Stripe subscription present** → `payment_state` from Stripe status (`active`→`paying`, `trialing`→`trialing`, `past_due`/`unpaid`→`past_due`, `canceled`/`incomplete_expired`→`canceled`); `billing_interval` from the price recurrence; `billing_source='stripe_subscription'`.
-3. **Stripe one-time payment / payment link found, no subscription** → `paying`, `billing_interval='one_time'`, `billing_source='stripe_payment'`.
+2. **Stripe subscription present** → `payment_state` from Stripe status (`active`→`paying`, `trialing`→`trialing`, `past_due`/`unpaid`→`past_due`, `canceled`/`incomplete_expired`→`canceled`); `billing_interval` from the price recurrence; `billing_source='stripe_subscription'`; `current_billing_period_end` and `last_payment_at` from Stripe; `paid_through_at = current_billing_period_end`.
+3. **Stripe one-time payment / payment link, no subscription** → counts as `paying` **only while all of these hold**: the payment succeeded, is not refunded or disputed, maps to a TapAway product/price for this location, and `paid_through_at >= now()` (service period derived from the purchased product; unknown period → `unknown_manual` pending manual entry). When `paid_through_at` passes, the record moves to `payment_state='none'` with `status_reason='one_time_period_ended'` — a one-time payment never means "paying forever". `billing_interval='one_time'`, `billing_source='stripe_payment'`, evidence id stored.
 4. **`subscription_status='active'`, no Stripe evidence** → `payment_state='unknown_manual'`, `billing_interval='unknown'`, `billing_source='unknown'`, `status_reason='active without stripe evidence — needs manual classification'`, and the row enters the manual-review queue. It is **not** labelled complimentary.
 5. **`subscription_status='trialing'` and trial not expired** → `trialing`.
 6. Otherwise → `none`.
+
+Manual annual, one-time and manual-invoice classifications **require a `paid_through_at`** unless the admin explicitly selects `billing_interval='custom'` (lifetime/custom), which is recorded with a reason. When a manual `paid_through_at` lapses, the record surfaces as "Payment Attention Required" for review — it is never auto-downgraded in a way that touches access.
 
 `access_status` — `active` | `trial` | `expired` | `suspended` | `archived`:
 
 - `active` — approved and currently entitled (paid, complimentary, **or unknown_manual**). Unknown payment never removes access.
 - `trial` — trialing with an unexpired trial.
 - `expired` — trial ended (or `expires_at` passed) with no activation → the **failed trial** case, `status_reason='trial_expired_no_conversion'`.
-- `suspended` — set only by confirmed Stripe `past_due`/`unpaid`, or an explicit admin action. Never set by missing billing evidence.
+- `suspended` — set **only** by an explicit admin action (or a separately approved billing-enforcement policy). `past_due` alone does **not** suspend: it produces an orange **Payment Attention Required** flag while `access_status` stays as it was.
 - `archived` — explicitly archived by an admin.
 
-Admin-facing labels: **Paid**, **Free/Complimentary**, **Trial**, **Failed Trial**, **Past Due**, **Inactive**, **Billing Status Unknown** (from `unknown_manual`).
+Payment classification never controls, disables or hides the live hub. This system classifies and informs; access changes remain a deliberate, separate admin decision.
 
-Manual-review workflow: an admin queue lists the 16 profiles and 9 restaurants classified `unknown_manual`; each can be set to paid monthly, paid annual, one-time, complimentary, legacy manual or another category. Every manual classification records actor, timestamp, reason and previous value in `location_status_history` and sets `classification_is_manual = true`.
+Admin-facing labels: **Paid**, **Free/Complimentary**, **Trial**, **Failed Trial**, **Payment Attention Required** (past due), **Inactive**, **Billing Status Unknown** (from `unknown_manual`).
 
-Marker colors add a **Billing Status Unknown** entry (slate/outlined) alongside dark green (active paying), purple (active complimentary), blue (trialing), orange (past due / attention), red (expired or failed trial), gray (archived / suspended / unpublished). Every marker and card also carries a text status — color is never the only signal.
+Manual-review workflow: an admin queue lists the 16 profiles and 9 restaurants classified `unknown_manual`; each can be set to paid monthly, paid annual, one-time (with paid-through date), complimentary, legacy manual or custom. Every manual classification records actor, timestamp, reason and previous value in `location_status_history` and sets `classification_is_manual = true`.
+
+Marker colors: dark green (active paying), purple (active complimentary), blue (trialing), orange (payment attention required), red (expired or failed trial), gray (archived / suspended / unpublished), slate outline (**Billing Status Unknown**). Every marker and card also carries a text status — color is never the only signal.
 
 ## 4. Google APIs, retention and cost controls
 
@@ -93,7 +101,8 @@ Marker colors add a **Billing Status Unknown** entry (slate/outlined) alongside 
 Retention corrections:
 
 - Google-sourced coordinates get **`coordinates_expires_at = coordinates_obtained_at + 30 days`**. A nightly job refreshes or clears expired Google-sourced coordinates; no Google-sourced lat/lng is retained past its expiry.
-- Coordinates independently supplied or confirmed by TapAway/the customer are marked `coordinate_source='customer_supplied'`/`'tapaway_verified'` and are exempt from the 30-day window.
+- Google-returned display names, addresses, phone numbers and categories are **never permanently copied** into TapAway-owned fields. They land only in the expiring `g_*` mirror and expire with the same window. The business information already supplied to TapAway remains the permanent source of record.
+- Promotion of a Google value into a TapAway-owned field, or marking coordinates `customer_supplied` / `tapaway_verified`, requires independent supply, correction or a genuine documented confirmation workflow recording actor, timestamp and reason. Viewing data on Google is not confirmation.
 - Place IDs may be stored long-term; they are refreshed on their own lifecycle (re-verified when a Place Details call reports the ID moved or is invalid, recording `place_id_verified_at`).
 - Google route results expire on their own timestamp and are purged; reopening an expired route recomputes them. TapAway-owned route content persists.
 - Google Maps attribution and the required terms/privacy notices are rendered on every map and itinerary surface.
@@ -106,18 +115,20 @@ Cost controls: refresh only on expiry or `place_status='stale'`, nightly refresh
 - New admin-only edge function `locations-admin`, following the proven `analytics-report` pattern: verify JWT with a user-scoped client, derive caller identity from `auth.getUser()`, re-check admin role server-side, then use an isolated service-role client for privileged reads and writes.
 - Sales-representative access is deliberately **not** granted in this release; it is added when a rep-facing interface exists and has been tested.
 - The server Google key stays in edge-function secrets; the browser only receives the referrer-restricted maps key. Administrator and rep locations are never persisted or exposed.
-- **Future public directory:** no SECURITY DEFINER function exposed to `anon`. `/discover` will read through a protected public edge function returning an explicit allowlist of fields (name, slug, city, address, coordinates, category, public phone, hub link) for rows that are simultaneously active access, approved, published, place-verified and explicitly opted in. Billing, payment state, trial data, internal notes, rep assignment and analytics are never returned.
+- **Future public directory:** no SECURITY DEFINER database function is ever exposed to `anon`. `/discover` reads exclusively through a **protected public edge function** returning an explicit field allowlist (name, slug, city, address, coordinates, category, public phone, hub link) for rows that are simultaneously active access, approved, published, place-verified and explicitly opted in (`public_directory_opt_in` defaults to false). Billing, payment state, trial data, internal notes, rep assignment and analytics are never returned.
 
 ## 6. Phased implementation
 
-1. **Schema + derivation** — additive migration; backfill one location row per source hub (no name-based grouping); run derivation; write initial history; flag `-legacy` and ambiguous rows as `needs_review`. No access changes.
-2. **Manual-review queue** — admin UI to classify the 25 `unknown_manual` records, with full history capture.
-3. **Coordinate hydration + retention jobs** — fill the 42 missing coordinate sets, geocode the 5 address-only records, add the 30-day coordinate expiry job, Place ID re-verification, route-result purge and `places_api_log`.
+1. **Schema + derivation** — additive migration; backfill one location row per source hub (no name-based grouping); run derivation; write initial history; flag `-legacy` and ambiguous rows as `needs_review`. No writes to existing hub access or billing columns.
+2. **Manual-review queue** — admin UI to classify the 25 `unknown_manual` records (with paid-through dates where required), full history capture.
+3. **Coordinate hydration + retention jobs** — fill the 42 missing coordinate sets, geocode the 5 address-only records, add the 30-day Google coordinate/detail expiry job, Place ID re-verification, route-result purge and `places_api_log`.
 4. **Admin map** — `/admin/locations`: clustered map, legend, colored + text-labelled markers, synchronized filterable table, location card with Open Hub / Dashboard / Directions / Add to Route / Record Visit, mobile layout.
 5. **Route planner** — settings UI, server-side optimization, ordered stops with ETAs, excluded stops, Google Maps hand-off, printable itinerary, visit outcome logging.
-6. **Business grouping** — admin merge tool to combine confirmed multi-location businesses (Las Islas) under one `business_id`.
-7. **Directory readiness** — opt-in control in the hub dashboard, eligibility checks, protected public function; `/discover` built but unlaunched.
-8. **Stripe reconciliation** — extend `stripe-webhook` to update payment fields and append status history, respecting manual classifications.
+6. **Business grouping** — audited, reversible admin merge tool for confirmed multi-location businesses (Las Islas); re-parents location rows only.
+7. **Directory readiness** — opt-in control (default off) in the hub dashboard, eligibility checks, protected public **edge function**; `/discover` built but unlaunched.
+8. **Stripe reconciliation** — extend `stripe-webhook` to update payment fields (`last_payment_at`, `current_billing_period_end`, `paid_through_at`, refunds/disputes) and append status history, respecting manual classifications and never altering hub access.
+
+## 7. Records requiring manual cleanup
 
 ## 7. Records requiring manual cleanup
 
