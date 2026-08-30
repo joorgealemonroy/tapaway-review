@@ -60,18 +60,35 @@ export interface BrokenLinkRow {
   label: string | null;
   url: string;
   status: string;
+  classification: string | null;
+  admin_review_state?: string | null;
   http_status: number | null;
   detail: string | null;
+}
+
+export interface LinkBreakdown {
+  healthy: number;
+  redirected: number;
+  confirmed_broken: number;
+  server_error: number;
+  tls_error: number;
+  timeout: number;
+  blocked_unverifiable: number;
+  malformed: number;
+  false_positive: number;
 }
 
 export interface LinkHealth {
   totalLinks: number;
   brokenLinks: number;
+  needsAttention: number;
   hubsWithBroken: number;
+  breakdown: LinkBreakdown;
   worst: BrokenLinkRow[];
   lastCheckedAt: Date | null;
   running: boolean;
 }
+
 
 
 const EMPTY_COUNTS: OverviewCounts = {
@@ -150,11 +167,24 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
   const [linkHealth, setLinkHealth] = useState<LinkHealth>({
     totalLinks: 0,
     brokenLinks: 0,
+    needsAttention: 0,
     hubsWithBroken: 0,
+    breakdown: {
+      healthy: 0,
+      redirected: 0,
+      confirmed_broken: 0,
+      server_error: 0,
+      tls_error: 0,
+      timeout: 0,
+      blocked_unverifiable: 0,
+      malformed: 0,
+      false_positive: 0,
+    },
     worst: [],
     lastCheckedAt: null,
     running: false,
   });
+
 
 
   /* ---------------- counts + activity ---------------- */
@@ -329,10 +359,23 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
   const loadLinkHealth = useCallback(async () => {
     const { data, error } = await supabase
       .from("hub_link_checks")
-      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+      .select(
+        "hub_id, slug, label, url, status, classification, admin_review_state, http_status, detail, checked_at",
+      );
     if (error) return;
     const rows = (data ?? []) as (BrokenLinkRow & { checked_at: string })[];
-    const broken = rows.filter((r) => r.status !== "ok");
+
+    // A link only counts as broken when the checker could prove it. 401/403/429
+    // (blocked_unverifiable) never counts, and an admin false-positive override
+    // always wins over the detected classification.
+    const cls = (r: BrokenLinkRow) => r.classification ?? (r.status === "ok" ? "healthy" : "blocked_unverifiable");
+    const overridden = (r: BrokenLinkRow) => r.admin_review_state === "false_positive";
+    const confirmed = rows.filter((r) => !overridden(r) && ["confirmed_broken", "malformed"].includes(cls(r)));
+    const attention = rows.filter(
+      (r) => !overridden(r) && ["confirmed_broken", "malformed", "server_error", "tls_error", "timeout"].includes(cls(r)),
+    );
+    const n = (c: string) => rows.filter((r) => !overridden(r) && cls(r) === c).length;
+
     const newest = rows.reduce<string | null>(
       (acc, r) => (!acc || r.checked_at > acc ? r.checked_at : acc),
       null,
@@ -340,12 +383,25 @@ export function useAdminOverview(enabled: boolean, range: EngagementRange, daily
     setLinkHealth((s) => ({
       ...s,
       totalLinks: rows.length,
-      brokenLinks: broken.length,
-      hubsWithBroken: new Set(broken.map((b) => b.hub_id)).size,
-      worst: broken.slice(0, 25),
+      brokenLinks: confirmed.length,
+      needsAttention: attention.length,
+      hubsWithBroken: new Set(confirmed.map((b) => b.hub_id)).size,
+      breakdown: {
+        healthy: n("healthy"),
+        redirected: n("redirected"),
+        confirmed_broken: n("confirmed_broken"),
+        server_error: n("server_error"),
+        tls_error: n("tls_error"),
+        timeout: n("timeout"),
+        blocked_unverifiable: n("blocked_unverifiable"),
+        malformed: n("malformed"),
+        false_positive: rows.filter(overridden).length,
+      },
+      worst: attention.slice(0, 25),
       lastCheckedAt: newest ? new Date(newest) : null,
     }));
   }, []);
+
 
   const runLinkCheck = useCallback(async () => {
     setLinkHealth((s) => ({ ...s, running: true }));

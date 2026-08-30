@@ -11,15 +11,27 @@ import { HubRow, ProbeState, hubKey, liveHubs, probeHub, runHealthSweep } from "
 const PROD_ORIGIN = "https://tapaway.co";
 
 interface LinkCheck {
+  id?: string;
   hub_id: string;
   slug: string | null;
   label: string | null;
   url: string;
   status: string;
+  classification: string | null;
+  admin_review_state: string | null;
+  final_url: string | null;
   http_status: number | null;
   detail: string | null;
   checked_at: string;
 }
+
+/** Detected classes that mean "someone should look at this". */
+const ATTENTION = ["confirmed_broken", "malformed", "server_error", "tls_error", "timeout"];
+const classOf = (c: LinkCheck) => c.classification ?? (c.status === "ok" ? "healthy" : "blocked_unverifiable");
+/** An admin false-positive decision always wins over the detected class. */
+const needsAttention = (c: LinkCheck) =>
+  c.admin_review_state !== "false_positive" && ATTENTION.includes(classOf(c));
+
 
 export default function AdminHubHealth() {
   const [rows, setRows] = useState<HubRow[]>([]);
@@ -69,18 +81,40 @@ export default function AdminHubHealth() {
   const loadLinkChecks = useCallback(async () => {
     const { data, error } = await supabase
       .from("hub_link_checks")
-      .select("hub_id, slug, label, url, status, http_status, detail, checked_at");
+      .select(
+        "id, hub_id, slug, label, url, status, classification, admin_review_state, final_url, http_status, detail, checked_at",
+      );
     if (error) return;
     setLinkChecks((data ?? []) as LinkCheck[]);
   }, []);
 
   const runLinkCheck = async () => {
     setLinksRunning(true);
-    const { error } = await supabase.functions.invoke("check-hub-links", { body: {} });
+    const { data, error } = await supabase.functions.invoke("check-hub-links", { body: {} });
     if (error) toast.error(error.message);
-    else toast.success("Link check complete");
+    else if (data?.is_complete) toast.success(`Checked ${data.checked} of ${data.total} links`);
+    else toast.warning("Link check finished incomplete — totals may be stale");
     await loadLinkChecks();
     setLinksRunning(false);
+  };
+
+  /** Persistent admin override — never overwritten by later automated checks. */
+  const setReview = async (c: LinkCheck, state: "false_positive" | "none") => {
+    if (!c.id) return;
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("hub_link_checks")
+      .update({
+        admin_review_state: state,
+        admin_reviewed_by: auth.user?.id ?? null,
+        admin_reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", c.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(state === "false_positive" ? "Marked as false positive" : "Review cleared");
+      await loadLinkChecks();
+    }
   };
 
   useEffect(() => {
@@ -102,13 +136,25 @@ export default function AdminHubHealth() {
   }, [linkChecks]);
 
   const linkTotals = useMemo(() => {
-    const brokenLinks = linkChecks.filter((c) => c.status !== "ok");
+    const attention = linkChecks.filter(needsAttention);
+    const n = (c: string) =>
+      linkChecks.filter((r) => r.admin_review_state !== "false_positive" && classOf(r) === c).length;
     return {
       total: linkChecks.length,
-      broken: brokenLinks.length,
-      hubs: new Set(brokenLinks.map((b) => b.hub_id)).size,
+      attention: attention.length,
+      confirmed: n("confirmed_broken"),
+      healthy: n("healthy"),
+      redirected: n("redirected"),
+      serverError: n("server_error"),
+      tlsError: n("tls_error"),
+      timeout: n("timeout"),
+      malformed: n("malformed"),
+      blocked: n("blocked_unverifiable"),
+      falsePositive: linkChecks.filter((r) => r.admin_review_state === "false_positive").length,
+      hubs: new Set(attention.map((b) => b.hub_id)).size,
     };
   }, [linkChecks]);
+
 
   const { totals, broken } = useMemo(() => {
     const t = { live: 0, ok: 0, empty: 0, error: 0, pending: 0 };
