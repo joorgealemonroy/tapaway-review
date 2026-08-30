@@ -288,6 +288,7 @@ export default function AdminLocations() {
   const [classifying, setClassifying] = useState<BusinessLocation | null>(null);
   const [route, setRoute] = useState<string[]>([]);
   const [auditing, setAuditing] = useState(false);
+  const [resolving, setResolving] = useState(false);
 
   const {
     locations, counts, stateCounts, loading, error, syncing, reload, resync,
