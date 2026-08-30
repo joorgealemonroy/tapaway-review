@@ -37,20 +37,24 @@ Read-only audit complete. No data was changed. Corrections below reflect your fe
 
 ## 2. Corrected schema (all additive)
 
-- `public.businesses` — grouping entity: `id`, `name`, `notes`, timestamps. **No automatic name-based grouping.** Backfill creates exactly one business per source hub; grouping (e.g. the confirmed Las Islas venues) happens only through an explicit admin merge action that records who merged what and when.
+- `public.businesses` — grouping entity: `id`, `name`, `notes`, timestamps. **No automatic name-based grouping.** Backfill creates exactly one business per source hub; grouping (e.g. the confirmed Las Islas venues) happens only through an explicit admin merge action that records who merged what and when. Merges are **audited and reversible** (`business_merges` records prior `business_id` per moved location, actor, timestamp, reason; an unmerge restores them). A merge only re-parents `business_locations` rows — it never merges or overwrites hubs, analytics, subscriptions or billing records.
 - `public.business_locations` — one row per physical location:
   - Identity: `id`, `business_id` (NOT NULL FK — every location belongs to exactly one business), `hub_kind` (`personal` / `restaurant` / `child_location`), `personal_profile_id` / `restaurant_id` / `location_id` (exactly one non-null, enforced by a CHECK constraint), `hub_slug`.
   - Uniqueness: partial unique indexes on each source FK so a source hub can never produce duplicate location rows.
-  - Place data: `google_place_id`, `display_name`, `formatted_address`, `city`, `state`, `postal_code`, `business_category`, `phone`.
-  - Coordinates with retention: `lat`, `lng`, `coordinate_source` (`google_places` / `google_geocoding` / `customer_supplied` / `tapaway_verified`), `coordinates_obtained_at`, `coordinates_expires_at`, `place_id_verified_at`, `place_status` (`ok` / `stale` / `invalid` / `missing`).
-  - Access & billing (see §3): `access_status`, `payment_state`, `billing_interval`, `billing_source`, `classification_is_manual`, `status_reason`, `trial_ends_at`, `subscription_status_snapshot`.
-  - Ops: `assigned_rep_id`, `last_visited_at`, `next_follow_up_at`, `internal_notes`, `visit_eligible`, `public_directory_opt_in`, `needs_review` (legacy/duplicate/ambiguous), timestamps.
+  - **TapAway-owned business details (permanent source):** `display_name`, `formatted_address`, `city`, `state`, `postal_code`, `business_category`, `phone` — populated only from information the business already supplied to TapAway, never overwritten by Place Details output.
+  - **Google-sourced mirror (retention-bound):** `google_place_id` (long-term), plus `g_display_name`, `g_formatted_address`, `g_phone`, `g_category`, `g_lat`, `g_lng` held in a separate expiring block with `google_data_obtained_at` / `google_data_expires_at`. Google values are shown as suggestions with attribution; an admin can promote one into the TapAway-owned field only through a documented confirmation action that records actor, timestamp and reason.
+  - Coordinates with retention: `lat`, `lng`, `coordinate_source` (`google_places` / `google_geocoding` / `customer_supplied` / `tapaway_verified`), `coordinates_obtained_at`, `coordinates_expires_at`, `coordinate_confirmed_by`, `coordinate_confirmed_at`, `place_id_verified_at`, `place_status` (`ok` / `stale` / `invalid` / `missing`). A coordinate becomes `customer_supplied` / `tapaway_verified` **only** through independent supply, correction or a documented confirmation workflow — never because an admin looked at Google.
+  - Access & billing (see §3): `access_status`, `payment_state`, `billing_interval`, `billing_source`, `classification_is_manual`, `status_reason`, `trial_ends_at`, `subscription_status_snapshot`, `last_payment_at`, `current_billing_period_end`, `paid_through_at`, `payment_evidence_ref` (Stripe subscription / payment intent id).
+  - Ops: `assigned_rep_id`, `last_visited_at`, `next_follow_up_at`, `internal_notes`, `visit_eligible`, `public_directory_opt_in` (**DEFAULT false** — no existing location becomes public automatically), `needs_review` (legacy/duplicate/ambiguous), timestamps.
 - `public.location_status_history` — every change to access or payment fields: actor, timestamp, field, previous value, new value, reason, source (`stripe` / `admin_manual` / `derivation`).
 - `public.location_visits` — visit outcome log (`visited`, `closed`, `spoke_with_owner`, `follow_up`, `converted`, `not_interested`), notes, rep, timestamp. Fully separate from subscription state.
 - `public.routes` / `public.route_stops` — TapAway-owned data (selected businesses, visit order, settings, outcomes, notes) stored permanently; Google-derived results (ETAs, durations, distances, polylines, leg coordinates) stored in a separate nullable result block with `google_result_obtained_at` and `google_result_expires_at`. Expired Google results are purged by the retention job and recomputed when the route is reopened.
+- `public.business_merges` — merge audit and undo record.
 - `public.places_api_log` — per-call endpoint, target location, status, error, for quota and error monitoring.
 
 All status fields are written only by a security-definer server function or an admin action through the protected edge function. No frontend write path can set `access_status`, `payment_state`, `billing_interval` or `billing_source`.
+
+**This system never changes hub access.** No derivation, backfill, reconciliation or payment classification may write to `personal_profiles` / `restaurants` access or billing columns. If any step would alter existing hub access or historical billing data, implementation stops and reports instead.
 
 ## 3. Corrected status-derivation rules
 
