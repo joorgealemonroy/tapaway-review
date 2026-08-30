@@ -138,11 +138,31 @@ const invoke = async <T,>(payload: Record<string, unknown>): Promise<T> => {
   return data as T;
 };
 
+export interface HydrateRun {
+  scanned: number;
+  hydrated: number;
+  invalid: number;
+  failed: number;
+  rateLimited: number;
+  moved: number;
+}
+
+export interface MappingTotals {
+  total: number;
+  mapped: number;
+  invalidPlaceIds: number;
+  missingPlaceIds: number;
+  failedRequests: number;
+  stillUnmappable: number;
+}
+
 export const locationsApi = {
   classify: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "classify", ...payload }),
   updateOps: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "update_ops", ...payload }),
   logVisit: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "log_visit", ...payload }),
   sync: () => invoke<{ ok: boolean }>({ action: "sync" }),
+  hydrate: (limit = 200) =>
+    invoke<{ ok: boolean; run: HydrateRun; totals: MappingTotals }>({ action: "hydrate", limit }),
 };
 
 export function useLocationIntel(enabled = true) {
