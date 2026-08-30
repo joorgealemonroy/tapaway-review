@@ -40,125 +40,32 @@ Deno.serve(async (req) => {
     const { data: isAdminRes } = await userClient.rpc('is_admin');
     if (!isAdminRes) return json({ error: 'forbidden' }, 403);
 
-    // Load profile + comp settings.
-    const { data: profile } = await admin
-      .from('personal_profiles')
-      .select('id, sales_rep_id, is_approved, full_name')
-      .eq('id', personal_profile_id)
-      .maybeSingle();
-    if (!profile) return json({ error: 'profile not found' }, 404);
-    if (!profile.sales_rep_id) return json({ ok: true, skipped: 'no rep' });
-    if (!profile.is_approved) return json({ ok: true, skipped: 'not approved yet' });
-
-    const { data: settings } = await admin
-      .from('rep_compensation_settings')
-      .select('*')
-      .limit(1)
-      .single();
-
-    const repId: string = profile.sales_rep_id;
-    const now = new Date();
-    const periodLabel = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-
-    // --- Quality gate: is rep in probation or below 5% conversion rate? ---
-    const probationDays = Number(settings?.quality_gate_probation_days ?? 30);
-    const minRate = Number(settings?.quality_gate_min_rate ?? 0.05);
-    const capDemos = Number(settings?.quality_gate_cap_demos ?? 20);
-
-    const { data: repRow } = await admin
-      .from('sales_reps')
-      .select('created_at, quality_gate_exempt')
-      .eq('id', repId)
-      .maybeSingle();
-    const repAgeDays = repRow?.created_at
-      ? (Date.now() - new Date(repRow.created_at).getTime()) / 86400000
-      : 0;
-    const gateExempt = Boolean((repRow as { quality_gate_exempt?: boolean } | null)?.quality_gate_exempt);
-
-    const trailing30 = new Date(Date.now() - 30 * 86400000).toISOString();
-    const { count: approved30 } = await admin
-      .from('personal_profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('sales_rep_id', repId)
-      .eq('is_approved', true)
-      .gte('created_at', trailing30);
-    const { count: converted30 } = await admin
-      .from('personal_profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('sales_rep_id', repId)
-      .eq('subscription_status', 'active')
-      .gte('updated_at', trailing30);
-
-    const rate = (approved30 ?? 0) > 0 ? (converted30 ?? 0) / (approved30 ?? 1) : 0;
-    const qualityGateActive = !gateExempt && (repAgeDays < probationDays || rate < minRate);
-
-    // --- Count today's demo_bonus rows already awarded for this rep ---
-    const { count: bonusToday } = await admin
-      .from('commissions')
-      .select('id', { count: 'exact', head: true })
-      .eq('rep_id', repId)
-      .eq('commission_type', 'demo_bonus')
-      .gte('created_at', todayStart.toISOString());
-
-    const bonusIndex = (bonusToday ?? 0) + 1; // this new bonus's 1-based index today
-    const cap = Number(settings?.daily_demo_cap ?? 50);
-    const bonusAmount = Number(settings?.demo_bonus_amount ?? 5);
-
-    let bonusStatus: string = 'available';
-    let bonusNote: string | null = null;
-    if (bonusIndex > cap) {
-      bonusStatus = 'voided';
-      bonusNote = `Skipped: daily cap of ${cap} demos reached`;
-    } else if (qualityGateActive && bonusIndex > capDemos) {
-      bonusStatus = 'locked_quality_gate';
-      bonusNote = `Locked: unlock $${(cap - capDemos) * bonusAmount} more/day by reaching ${(minRate * 100).toFixed(0)}% conversion rate`;
+    // All cap / quality-gate / daily-base logic lives in one atomic,
+    // idempotent database function keyed to the California workday the demo
+    // was SUBMITTED (personal_profiles.created_at), never the approval day.
+    const { data: result, error: rpcErr } = await admin.rpc('award_demo_commission', {
+      _personal_profile_id: personal_profile_id,
+    });
+    if (rpcErr) {
+      console.error('award_demo_commission failed', rpcErr);
+      return json({ error: rpcErr.message }, 500);
     }
 
-    // Idempotent insert (unique(rep_id, personal_profile_id) where demo_bonus)
-    const { error: bonusErr } = await admin
-      .from('commissions')
-      .insert({
-        rep_id: repId,
-        personal_profile_id: profile.id,
-        type: 'bonus',
-        commission_type: 'demo_bonus',
-        amount: bonusStatus === 'voided' ? 0 : bonusAmount,
-        status: bonusStatus,
-        period_label: periodLabel,
-        points_value: 0,
-        note: bonusNote ?? `Demo bonus for ${profile.full_name || 'demo'}`,
+    const payload = (result ?? {}) as Record<string, unknown>;
+    const repId = payload.rep_id as string | undefined;
+    const earnedOn = payload.earned_on as string | undefined;
+
+    // --- Refresh monthly Closer's Pool tier for the earned period ---
+    if (repId) {
+      const periodLabel = new Date(`${earnedOn ?? new Date().toISOString().slice(0, 10)}T12:00:00Z`)
+        .toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+      await admin.rpc('recompute_closer_pool', {
+        _rep_id: repId,
+        _period_label: periodLabel,
       });
-    if (bonusErr && !String(bonusErr.message).includes('duplicate key')) {
-      console.error('demo_bonus insert failed', bonusErr);
     }
 
-    // --- Daily shift base ---
-    // Awarded entirely by the `trg_award_daily_base` Postgres trigger, which fires
-    // on every demo_bonus insert and adds exactly one $50 base per rep per UTC day.
-    // We only read the tally here for the response payload.
-    const { count: approvedToday } = await admin
-      .from('commissions')
-      .select('id', { count: 'exact', head: true })
-      .eq('rep_id', repId)
-      .eq('commission_type', 'demo_bonus')
-      .gte('created_at', todayStart.toISOString());
-
-
-    // --- Refresh monthly Closer's Pool tier ---
-    await admin.rpc('recompute_closer_pool', {
-      _rep_id: repId,
-      _period_label: periodLabel,
-    });
-
-    return json({
-      ok: true,
-      awarded: bonusStatus,
-      bonusIndex,
-      qualityGateActive,
-      dailyProgress: approvedToday,
-    });
+    return json({ ok: true, ...payload });
   } catch (e) {
     console.error(e);
     return json({ error: (e as Error).message }, 500);
