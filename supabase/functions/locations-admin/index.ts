@@ -412,7 +412,17 @@ Deno.serve(async (req) => {
             };
           }
 
-          await admin.from("business_locations").update(outcome).eq("id", row.id);
+          const { error: saveErr } = await admin
+            .from("business_locations")
+            .update(outcome)
+            .eq("id", row.id);
+          if (saveErr) {
+            console.error("hydrate save failed:", saveErr.message);
+            logError = `save_failed: ${saveErr.message}`.slice(0, 200);
+            logOk = false;
+            if (outcome.hydration_status === "hydrated") hydrated--;
+            failed++;
+          }
           await admin.from("places_api_log").insert({
             endpoint: "places.details",
             ok: logOk,
