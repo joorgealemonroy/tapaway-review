@@ -455,6 +455,12 @@ export default function AdminLocations() {
         onClose={() => setClassifying(null)}
         onSaved={() => void reload()}
       />
+
+      <VisitDialog
+        location={visiting}
+        onClose={() => setVisiting(null)}
+        onSaved={() => void reload()}
+      />
     </div>
   );
 }
