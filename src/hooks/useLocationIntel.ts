@@ -50,8 +50,45 @@ export interface BusinessLocation {
   public_directory_opt_in: boolean;
   needs_review: boolean;
   review_reason: string | null;
+  location_state: LocationState;
+  location_state_source: "auto" | "admin";
+  location_state_set_at: string | null;
+  location_state_reason: string | null;
+  parent_location_id: string | null;
   synced_at: string | null;
 }
+
+export type LocationState =
+  | "mapped_physical_location"
+  | "multi_location_master"
+  | "service_area_business"
+  | "online_or_personal_hub"
+  | "missing_information"
+  | "ambiguous_match"
+  | "invalid_place_id"
+  | "archived_or_inactive";
+
+export const LOCATION_STATES: LocationState[] = [
+  "mapped_physical_location",
+  "multi_location_master",
+  "service_area_business",
+  "online_or_personal_hub",
+  "missing_information",
+  "ambiguous_match",
+  "invalid_place_id",
+  "archived_or_inactive",
+];
+
+export const LOCATION_STATE_LABELS: Record<LocationState, string> = {
+  mapped_physical_location: "Mapped physical location",
+  multi_location_master: "Multi-location master",
+  service_area_business: "Service-area business",
+  online_or_personal_hub: "Online / personal hub",
+  missing_information: "Missing information",
+  ambiguous_match: "Ambiguous match",
+  invalid_place_id: "Invalid Place ID",
+  archived_or_inactive: "Archived / inactive",
+};
 
 export interface ApiLogEntry {
   created_at: string;
