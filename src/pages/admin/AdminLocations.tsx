@@ -192,15 +192,16 @@ const ClassifyDialog = ({
 };
 
 export default function AdminLocations() {
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const filter = (params.get("status") as StatusKey | null) ?? null;
   const [search, setSearch] = useState("");
   const [classifying, setClassifying] = useState<BusinessLocation | null>(null);
+  const [route, setRoute] = useState<string[]>([]);
 
   const {
     locations, counts, loading, error, syncing, reload, resync,
     lastSyncedAt, staleCoordinates, failedGoogleJobs, apiLog,
+    hydrating, hydrate, lastHydrateRun, mapping,
   } = useLocationIntel(true);
 
   const rows = useMemo(() => {
@@ -213,6 +214,41 @@ export default function AdminLocations() {
         .some((v) => (v as string).toLowerCase().includes(q));
     });
   }, [locations, filter, search]);
+
+  // Marker actions are dispatched from inside the Google InfoWindow portal.
+  useEffect(() => {
+    const byId = (id: string) => locations.find((l) => l.id === id) ?? null;
+    const onRoute = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setRoute((r) => (r.includes(id) ? r : [...r, id]));
+      toast.success(`${byId(id)?.display_name ?? "Location"} added to the route`);
+    };
+    const onVisit = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      const loc = id ? byId(id) : null;
+      if (loc) setVisiting(loc);
+    };
+    window.addEventListener("tapaway:add-to-route", onRoute);
+    window.addEventListener("tapaway:record-visit", onVisit);
+    return () => {
+      window.removeEventListener("tapaway:add-to-route", onRoute);
+      window.removeEventListener("tapaway:record-visit", onVisit);
+    };
+  }, [locations]);
+
+  const [visiting, setVisiting] = useState<BusinessLocation | null>(null);
+
+  const runHydrate = async () => {
+    try {
+      const res = await hydrate();
+      toast.success(
+        `Hydrated ${res.run.hydrated} Place IDs · ${res.run.invalid} invalid · ${res.run.failed} failed`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Hydration failed");
+    }
+  };
 
   const attention = useMemo(() => ([
     { label: "Unknown payment — needs classification", count: counts.active_unknown, key: "active_unknown" as StatusKey },
@@ -227,28 +263,54 @@ export default function AdminLocations() {
     else setParams({ status: key });
   };
 
+  const MAP_STATS: Array<[string, number]> = [
+    ["Total locations", mapping.total],
+    ["Mapped", mapping.mapped],
+    ["Place IDs hydrated", lastHydrateRun?.hydrated ?? 0],
+    ["Invalid Place IDs", mapping.invalidPlaceIds],
+    ["Missing Place IDs", mapping.missingPlaceIds],
+    ["Failed API requests", mapping.failedRequests],
+    ["Still unmappable", mapping.stillUnmappable],
+  ];
+
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Admin
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-emerald-400" /> Locations
-              </h1>
-              <p className="text-sm text-white/40">
-                Classification and field operations. Nothing here changes hub access or billing.
-              </p>
+      <div className="max-w-7xl mx-auto px-4 py-4 space-y-6">
+        <AdminPageHeader
+          title="Locations"
+          subtitle="Classification and field operations. Nothing here changes hub access or billing."
+          icon={<MapPin className="h-5 w-5 text-emerald-400" />}
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => void runHydrate()} disabled={hydrating}>
+                {hydrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
+                Hydrate Place IDs
+              </Button>
+              <Button variant="outline" size="sm" onClick={resync} disabled={syncing}>
+                {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Re-sync from hubs
+              </Button>
+            </>
+          }
+        />
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {MAP_STATS.map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+              <div className="text-[10px] uppercase tracking-widest text-white/35">{label}</div>
+              <div className="text-lg font-semibold tabular-nums">{value}</div>
             </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={resync} disabled={syncing}>
-            {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Re-sync from hubs
-          </Button>
+          ))}
         </div>
+
+        <LocationsMap locations={rows} />
+
+        {route.length > 0 && (
+          <Panel className="p-3 text-xs text-white/60 flex items-center justify-between">
+            <span>{route.length} location{route.length === 1 ? "" : "s"} queued for the next route</span>
+            <button className="underline" onClick={() => setRoute([])}>Clear route</button>
+          </Panel>
+        )}
 
         <Panel className="p-4 flex flex-wrap gap-6 text-xs text-white/50">
           <span className="flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Last sync: {relative(lastSyncedAt)}</span>
