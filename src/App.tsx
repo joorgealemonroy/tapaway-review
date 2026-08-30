@@ -120,6 +120,7 @@ const App = () => {
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
+              <SiteAnalytics />
               <Routes>
 
               <Route path="/" element={<Index />} />
