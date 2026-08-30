@@ -59,6 +59,7 @@ import {
   Activity,
   AlertTriangle,
   Printer,
+  MapPin,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
