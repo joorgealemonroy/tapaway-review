@@ -1164,17 +1164,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     
     // Track the save contact event
     if (profile.id) {
-      supabase
-        .from("personal_analytics")
-        .insert({
-          profile_id: profile.id,
-          event_type: "contact_save",
-          visitor_info: {
-            referrer: document.referrer || null,
-            userAgent: navigator.userAgent,
-          },
-        })
-        .then(() => {});
+      trackEvent("contact_save", { hubId: profile.id, hubKind: "solo" });
     }
     
     if (isIOS) {
