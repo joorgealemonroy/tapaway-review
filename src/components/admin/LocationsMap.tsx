@@ -142,7 +142,7 @@ interface MarkersProps {
 }
 
 /** Renders clustered markers and keeps the viewport fitted to the current filter. */
-const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
+const Markers = ({ locations, selectedId, onSelect, onCapabilityIssue }: MarkersProps) => {
   const map = useMap();
   const clusterer = useRef<MarkerClusterer | null>(null);
   // Marker instances never affect rendered output, so they live in a ref.
@@ -226,20 +226,40 @@ const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
 
   const selected = locations.find((l) => l.id === selectedId) ?? null;
 
+  const { ready, settled } = useAdvancedMarkersReady();
+  const [markerFault, setMarkerFault] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (markerFault) {
+      onCapabilityIssue(`Marker rendering failed: ${markerFault}`);
+    } else if (settled && !ready) {
+      onCapabilityIssue(
+        "The map reports isAdvancedMarkersAvailable = false, so no pins can be created. " +
+          "That capability requires a Map ID that is accepted for this origin and key — " +
+          `confirm VITE_GOOGLE_MAPS_MAP_ID (${MAP_ID ?? "not set"}) belongs to the same Google Cloud project as the browser key and that this origin is on the key's referrer list.`,
+      );
+    } else {
+      onCapabilityIssue(null);
+    }
+  }, [ready, settled, markerFault, onCapabilityIssue]);
 
   return (
     <>
-      {locations.map((l) => (
-        <AdvancedMarker
-          key={l.id}
-          position={{ lat: l.lat as number, lng: l.lng as number }}
-          ref={getRef(l.id)}
-          onClick={() => onSelect(l.id)}
-          title={l.display_name ?? undefined}
-        >
-          <Pin tone={toneFor(l)} active={selectedId === l.id} />
-        </AdvancedMarker>
-      ))}
+      {ready && !markerFault && (
+        <MarkerBoundary onFail={setMarkerFault}>
+          {locations.map((l) => (
+            <AdvancedMarker
+              key={l.id}
+              position={{ lat: l.lat as number, lng: l.lng as number }}
+              ref={getRef(l.id)}
+              onClick={() => onSelect(l.id)}
+              title={l.display_name ?? undefined}
+            >
+              <Pin tone={toneFor(l)} active={selectedId === l.id} />
+            </AdvancedMarker>
+          ))}
+        </MarkerBoundary>
+      )}
       {selected && (
         <InfoWindow
           position={{ lat: selected.lat as number, lng: selected.lng as number }}
