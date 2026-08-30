@@ -405,6 +405,10 @@ export default function AdminLocations() {
           icon={<MapPin className="h-5 w-5 text-emerald-400" />}
           actions={
             <>
+              <Button variant="outline" size="sm" onClick={() => void runAudit()} disabled={auditing}>
+                {auditing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Audit coverage
+              </Button>
               <Button variant="outline" size="sm" onClick={() => void runHydrate()} disabled={hydrating}>
                 {hydrating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MapPin className="h-4 w-4 mr-2" />}
                 Hydrate Place IDs
@@ -426,7 +430,32 @@ export default function AdminLocations() {
           ))}
         </div>
 
+        {/* Coverage breakdown: every hub has exactly one explicit location state. */}
+        <Panel className="p-3">
+          <div className="text-[10px] uppercase tracking-widest text-white/35 mb-2">
+            Location coverage — {locations.length} hub{locations.length === 1 ? "" : "s"}, all classified
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStateFilter(null)}
+              className={`rounded-full border px-3 py-1 text-xs ${!stateFilter ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/60"}`}
+            >
+              All ({locations.length})
+            </button>
+            {LOCATION_STATES.filter((s) => stateCounts[s] > 0).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStateFilter(stateFilter === s ? null : s)}
+                className={`rounded-full border px-3 py-1 text-xs ${stateFilter === s ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-white/10 text-white/60 hover:text-white"}`}
+              >
+                {LOCATION_STATE_LABELS[s]} ({stateCounts[s]})
+              </button>
+            ))}
+          </div>
+        </Panel>
+
         <LocationsMap locations={rows} />
+
 
         {route.length > 0 && (
           <Panel className="p-3 text-xs text-white/60 flex items-center justify-between">
