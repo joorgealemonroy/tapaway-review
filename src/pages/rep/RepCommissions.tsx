@@ -23,6 +23,7 @@ interface Commission {
   period_label: string;
   note: string | null;
   created_at: string;
+  earned_on: string | null;
   rep_restaurant_id: string | null;
   restaurant_name?: string;
 }
