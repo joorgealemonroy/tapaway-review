@@ -67,25 +67,29 @@ Access and payment are independent. **Backfill never changes hub access.** `acce
 Derivation order:
 
 1. **Explicit manual classification exists** → keep it. Automated reconciliation may override it only when confirmed Stripe evidence supersedes it (a live Stripe subscription or payment found on the same customer), and that override is written to status history with source `stripe`.
-2. **Stripe subscription present** → `payment_state` from Stripe status (`active`→`paying`, `trialing`→`trialing`, `past_due`/`unpaid`→`past_due`, `canceled`/`incomplete_expired`→`canceled`); `billing_interval` from the price recurrence; `billing_source='stripe_subscription'`.
-3. **Stripe one-time payment / payment link found, no subscription** → `paying`, `billing_interval='one_time'`, `billing_source='stripe_payment'`.
+2. **Stripe subscription present** → `payment_state` from Stripe status (`active`→`paying`, `trialing`→`trialing`, `past_due`/`unpaid`→`past_due`, `canceled`/`incomplete_expired`→`canceled`); `billing_interval` from the price recurrence; `billing_source='stripe_subscription'`; `current_billing_period_end` and `last_payment_at` from Stripe; `paid_through_at = current_billing_period_end`.
+3. **Stripe one-time payment / payment link, no subscription** → counts as `paying` **only while all of these hold**: the payment succeeded, is not refunded or disputed, maps to a TapAway product/price for this location, and `paid_through_at >= now()` (service period derived from the purchased product; unknown period → `unknown_manual` pending manual entry). When `paid_through_at` passes, the record moves to `payment_state='none'` with `status_reason='one_time_period_ended'` — a one-time payment never means "paying forever". `billing_interval='one_time'`, `billing_source='stripe_payment'`, evidence id stored.
 4. **`subscription_status='active'`, no Stripe evidence** → `payment_state='unknown_manual'`, `billing_interval='unknown'`, `billing_source='unknown'`, `status_reason='active without stripe evidence — needs manual classification'`, and the row enters the manual-review queue. It is **not** labelled complimentary.
 5. **`subscription_status='trialing'` and trial not expired** → `trialing`.
 6. Otherwise → `none`.
+
+Manual annual, one-time and manual-invoice classifications **require a `paid_through_at`** unless the admin explicitly selects `billing_interval='custom'` (lifetime/custom), which is recorded with a reason. When a manual `paid_through_at` lapses, the record surfaces as "Payment Attention Required" for review — it is never auto-downgraded in a way that touches access.
 
 `access_status` — `active` | `trial` | `expired` | `suspended` | `archived`:
 
 - `active` — approved and currently entitled (paid, complimentary, **or unknown_manual**). Unknown payment never removes access.
 - `trial` — trialing with an unexpired trial.
 - `expired` — trial ended (or `expires_at` passed) with no activation → the **failed trial** case, `status_reason='trial_expired_no_conversion'`.
-- `suspended` — set only by confirmed Stripe `past_due`/`unpaid`, or an explicit admin action. Never set by missing billing evidence.
+- `suspended` — set **only** by an explicit admin action (or a separately approved billing-enforcement policy). `past_due` alone does **not** suspend: it produces an orange **Payment Attention Required** flag while `access_status` stays as it was.
 - `archived` — explicitly archived by an admin.
 
-Admin-facing labels: **Paid**, **Free/Complimentary**, **Trial**, **Failed Trial**, **Past Due**, **Inactive**, **Billing Status Unknown** (from `unknown_manual`).
+Payment classification never controls, disables or hides the live hub. This system classifies and informs; access changes remain a deliberate, separate admin decision.
 
-Manual-review workflow: an admin queue lists the 16 profiles and 9 restaurants classified `unknown_manual`; each can be set to paid monthly, paid annual, one-time, complimentary, legacy manual or another category. Every manual classification records actor, timestamp, reason and previous value in `location_status_history` and sets `classification_is_manual = true`.
+Admin-facing labels: **Paid**, **Free/Complimentary**, **Trial**, **Failed Trial**, **Payment Attention Required** (past due), **Inactive**, **Billing Status Unknown** (from `unknown_manual`).
 
-Marker colors add a **Billing Status Unknown** entry (slate/outlined) alongside dark green (active paying), purple (active complimentary), blue (trialing), orange (past due / attention), red (expired or failed trial), gray (archived / suspended / unpublished). Every marker and card also carries a text status — color is never the only signal.
+Manual-review workflow: an admin queue lists the 16 profiles and 9 restaurants classified `unknown_manual`; each can be set to paid monthly, paid annual, one-time (with paid-through date), complimentary, legacy manual or custom. Every manual classification records actor, timestamp, reason and previous value in `location_status_history` and sets `classification_is_manual = true`.
+
+Marker colors: dark green (active paying), purple (active complimentary), blue (trialing), orange (payment attention required), red (expired or failed trial), gray (archived / suspended / unpublished), slate outline (**Billing Status Unknown**). Every marker and card also carries a text status — color is never the only signal.
 
 ## 4. Google APIs, retention and cost controls
 
