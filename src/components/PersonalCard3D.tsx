@@ -98,7 +98,7 @@ const PersonalCard3D = () => {
                 }}
               >
                 <img 
-                  src="/tapaway-personal-front.png" 
+                  src={cardFrontArt.url} 
                   alt="TapAway personal card front" 
                   loading="eager"
                   decoding="async"
@@ -106,6 +106,7 @@ const PersonalCard3D = () => {
                   className="w-full h-full object-cover pointer-events-none"
                   style={{ borderRadius: "1.5rem" }}
                 />
+
               </div>
 
               {/* BACK */}
