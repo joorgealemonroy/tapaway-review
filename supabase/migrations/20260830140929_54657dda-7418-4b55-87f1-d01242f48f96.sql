@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.unique_daily_shift_base;
