@@ -236,11 +236,13 @@ const RepCommissions = () => {
           <p className="text-3xl font-semibold text-emerald-300">${stats.available.toFixed(2)}</p>
           <p className="text-xs text-white/40 mt-1">Ready for ACH transfer</p>
           {(() => {
-            const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-            const todayStart = new Date(); todayStart.setUTCHours(0,0,0,0);
-            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= monthStart);
-            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= todayStart).length;
-            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && new Date(c.created_at) >= todayStart);
+            // Work days are California business days, keyed to the day the
+            // demo was submitted (earned_on), not the day it was approved.
+            const todayPT = pacificDay(new Date());
+            const monthPT = todayPT.slice(0, 7);
+            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c).startsWith(monthPT));
+            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c) === todayPT).length;
+            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && earnedDay(c) === todayPT);
             const QUOTA = 10;
             return (
               <>
