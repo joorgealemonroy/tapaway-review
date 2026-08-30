@@ -321,16 +321,25 @@ export default function AdminHubHealth() {
                           <TableCell>
                             {checks.length === 0 ? (
                               <span className="text-xs text-white/40">not checked</span>
-                            ) : badLinks.length === 0 ? (
-                              <span className="text-xs text-emerald-400 flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" /> {checks.length} ok
-                              </span>
                             ) : (
                               <button
                                 onClick={() => setExpanded(expanded === key ? null : key)}
-                                className="text-xs text-amber-400 flex items-center gap-1 hover:underline"
+                                className={`text-xs flex items-center gap-1 hover:underline ${
+                                  badLinks.length ? "text-amber-400" : "text-emerald-400"
+                                }`}
                               >
-                                <AlertCircle className="h-3 w-3" /> {badLinks.length} broken
+                                {badLinks.length ? (
+                                  <>
+                                    <AlertCircle className="h-3 w-3" /> {badLinks.length} need attention
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3" /> {checks.length} checked
+                                  </>
+                                )}
+                                {blockedLinks.length > 0 && (
+                                  <span className="text-white/40">· {blockedLinks.length} blocked</span>
+                                )}
                               </button>
                             )}
                           </TableCell>
@@ -353,17 +362,46 @@ export default function AdminHubHealth() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                        {expanded === key && badLinks.length > 0 && (
+                        {expanded === key && detailLinks.length > 0 && (
                           <TableRow className="border-white/5 hover:bg-transparent">
                             <TableCell colSpan={7} className="bg-white/[0.02]">
-                              <div className="space-y-1 py-1">
-                                {badLinks.map((b) => (
-                                  <div key={b.url} className="text-xs flex flex-wrap gap-2">
+                              <div className="space-y-2 py-1">
+                                {detailLinks.map((b) => (
+                                  <div key={b.url} className="text-xs flex flex-wrap items-center gap-2">
                                     <span className="text-white/60 w-28 shrink-0">{b.label ?? "Link"}</span>
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      {classOf(b).replace(/_/g, " ")}
+                                    </Badge>
                                     <span className="font-mono text-white/50 truncate max-w-md">{b.url}</span>
+                                    {b.final_url && b.final_url !== b.url && (
+                                      <span className="text-white/40 truncate max-w-xs">→ {b.final_url}</span>
+                                    )}
                                     <span className="text-amber-300">
-                                      {b.detail ?? `${b.status}${b.http_status ? ` (${b.http_status})` : ""}`}
+                                      {b.detail ?? (b.http_status ? `HTTP ${b.http_status}` : "")}
                                     </span>
+                                    {b.admin_review_state === "false_positive" ? (
+                                      <button
+                                        onClick={() => void setReview(b, "none")}
+                                        className="text-white/50 hover:underline"
+                                      >
+                                        false positive · undo
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => void setReview(b, "false_positive")}
+                                        className="text-white/50 hover:underline"
+                                      >
+                                        Mark false positive
+                                      </button>
+                                    )}
+                                    <a
+                                      href={b.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-white/50 hover:underline"
+                                    >
+                                      Open
+                                    </a>
                                   </div>
                                 ))}
                               </div>
@@ -372,6 +410,8 @@ export default function AdminHubHealth() {
                         )}
                         </Fragment>
                       );
+
+
 
                     })}
                   </TableBody>
