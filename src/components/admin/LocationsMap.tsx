@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { BusinessLocation, badgeFor } from "@/hooks/useLocationIntel";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
-/** DEMO_MAP_ID renders Google's default light styling and supports advanced markers. */
-const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) || "DEMO_MAP_ID";
+/** Real vector Map ID from the project — required for AdvancedMarker rendering. */
+const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined;
 
 export type MarkerTone =
   | "paid"
@@ -235,16 +235,24 @@ const LocationCard = ({
   );
 };
 
-const MapShell = ({ locations }: { locations: BusinessLocation[] }) => {
+type MapFault = "auth" | "script" | "init" | null;
+
+const MapShell = ({
+  locations,
+  scriptError,
+}: {
+  locations: BusinessLocation[];
+  scriptError: boolean;
+}) => {
   const loaded = useApiIsLoaded();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [fault, setFault] = useState<MapFault>(null);
 
-  // The Maps script reports auth/billing failures on this global hook only.
+  // The Maps script reports auth/billing/referrer failures on this global hook only.
   useEffect(() => {
     const w = window as unknown as { gm_authFailure?: () => void };
     const prev = w.gm_authFailure;
-    w.gm_authFailure = () => setFailed(true);
+    w.gm_authFailure = () => setFault("auth");
     return () => {
       w.gm_authFailure = prev;
     };
@@ -252,18 +260,45 @@ const MapShell = ({ locations }: { locations: BusinessLocation[] }) => {
 
   useEffect(() => {
     if (loaded) return;
-    const t = setTimeout(() => setFailed((f) => f || !loaded), 12000);
+    const t = setTimeout(() => setFault((f) => f ?? (loaded ? null : "init")), 12000);
     return () => clearTimeout(t);
   }, [loaded]);
 
-  if (failed) {
+  const effectiveFault: MapFault = scriptError ? "script" : fault;
+
+  if (effectiveFault) {
+    const common = `Origin: ${window.location.origin} · Map ID: ${MAP_ID}`;
+    if (effectiveFault === "auth") {
+      return (
+        <MapError
+          title="Google rejected this browser key (referrer, API or billing)"
+          lines={[
+            "The Maps JavaScript API loaded but refused to authorize the request. That is one of three things, in this order:",
+            "1) HTTP referrer restriction — this origin is not on the key's allowed referrer list.",
+            "2) API activation — Maps JavaScript API is not enabled on the key's Google Cloud project.",
+            "3) Billing — billing is not active on that project, or the Map ID belongs to a different project.",
+            common,
+          ]}
+        />
+      );
+    }
+    if (effectiveFault === "script") {
+      return (
+        <MapError
+          title="The Maps JavaScript script failed to load"
+          lines={[
+            "The browser could not fetch or execute the Maps JavaScript API script. This is a network, CSP or blocked-request failure rather than a key problem.",
+            common,
+          ]}
+        />
+      );
+    }
     return (
       <MapError
-        title="Google Maps rejected this request"
+        title="The map failed to initialize"
         lines={[
-          "The Maps JavaScript API loaded but refused to authorize the key.",
-          "Check, in order: the key's HTTP referrer restrictions must allow this origin; the Maps JavaScript API must be enabled on the project; billing must be active; and the Map ID must exist in the same project.",
-          `Origin: ${window.location.origin} · Map ID: ${MAP_ID}`,
+          "The Maps script did not finish initializing within 12 seconds. Check the browser console for a Google Maps error, and confirm the Map ID is a vector Map ID in the same project as the browser key.",
+          common,
         ]}
       />
     );
@@ -305,6 +340,7 @@ const MapError = ({ title, lines }: { title: string; lines: string[] }) => (
 );
 
 export const LocationsMap = ({ locations }: { locations: BusinessLocation[] }) => {
+  const [scriptError, setScriptError] = useState(false);
   const mappable = useMemo(
     () => locations.filter((l) => typeof l.lat === "number" && typeof l.lng === "number"),
     [locations],
@@ -322,10 +358,26 @@ export const LocationsMap = ({ locations }: { locations: BusinessLocation[] }) =
     );
   }
 
+  if (!MAP_ID) {
+    return (
+      <MapError
+        title="Google Maps Map ID is missing"
+        lines={[
+          "VITE_GOOGLE_MAPS_MAP_ID is not set for this build. Advanced markers require a vector Map ID from the same Google Cloud project as the browser key.",
+          "Add the Map ID to the project environment and reload this page.",
+        ]}
+      />
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <APIProvider apiKey={API_KEY} libraries={["marker"]}>
-        <MapShell locations={mappable} />
+      <APIProvider
+        apiKey={API_KEY}
+        libraries={["marker"]}
+        onError={() => setScriptError(true)}
+      >
+        <MapShell locations={mappable} scriptError={scriptError} />
       </APIProvider>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-white/50">
         <span className="flex items-center gap-1.5 text-white/40">
