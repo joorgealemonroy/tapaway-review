@@ -256,6 +256,14 @@ export function useLocationIntel(enabled = true) {
     return out;
   }, [locations]);
 
+  const stateCounts = useMemo(() => {
+    const out = {} as Record<LocationState, number>;
+    LOCATION_STATES.forEach((s) => {
+      out[s] = locations.filter((l) => l.location_state === s).length;
+    });
+    return out;
+  }, [locations]);
+
   const lastSyncedAt = useMemo(() => {
     const times = locations
       .map((l) => l.synced_at)
