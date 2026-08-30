@@ -80,6 +80,7 @@ const AdminHubHealth = lazy(() => import("./pages/admin/AdminHubHealth"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminPrintQueue = lazy(() => import("./pages/admin/AdminPrintQueue"));
 const AdminErrors = lazy(() => import("./pages/admin/AdminErrors"));
+const AdminLocations = lazy(() => import("./pages/admin/AdminLocations"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
 const Compliance = lazy(() => import("./pages/Compliance"));
@@ -192,6 +193,7 @@ const App = () => {
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/print-queue" element={<AdminPrintQueue />} />
                 <Route path="/admin/errors" element={<AdminErrors />} />
+                <Route path="/admin/locations" element={<AdminLocations />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />
