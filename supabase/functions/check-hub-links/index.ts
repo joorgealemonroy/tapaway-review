@@ -24,8 +24,28 @@ const FETCH_HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
-const TIMEOUT_MS = 8000;
-const BATCH_SIZE = 12;
+const TIMEOUT_MS = 12000;
+const BATCH_SIZE = 10;
+
+/**
+ * Detected classification. This is what the checker observed; it never
+ * overwrites the admin's persistent `admin_review_state` override.
+ *  healthy             2xx/3xx reached, final URL is the same target
+ *  redirected          reached, but the final URL differs from the stored one
+ *  confirmed_broken    4xx that genuinely means "gone" (404/410) after a GET retry
+ *  server_error        5xx from the origin
+ *  tls_error           certificate / handshake failure
+ *  timeout             no response inside the timeout, after a retry
+ *  blocked_unverifiable 401/403/429 or anti-bot walls — says nothing about the link
+ */
+type Classification =
+  | "healthy"
+  | "redirected"
+  | "confirmed_broken"
+  | "server_error"
+  | "tls_error"
+  | "timeout"
+  | "blocked_unverifiable";
 
 interface LinkTarget {
   hub_id: string;
@@ -37,15 +57,17 @@ interface LinkTarget {
 
 interface CheckRow extends LinkTarget {
   status: "ok" | "broken" | "malformed" | "unknown" | "unverified";
+  classification: Classification | "malformed";
   http_status: number | null;
   detail: string | null;
+  final_url: string | null;
+  attempts: number;
   checked_at: string;
 }
 
 /**
  * These hosts serve a 403/429 to any server-side request (bot protection) even
- * though the link works perfectly for a real visitor. Reporting them as broken
- * drowned the real failures in noise, so they get their own "unverified" state.
+ * though the link works perfectly for a real visitor.
  */
 const BOT_PROTECTED_HOSTS = [
   "yelp.com",
@@ -95,67 +117,165 @@ function isMalformed(url: string): boolean {
   return TRUNCATED_SEGMENTS.has(handle.toLowerCase());
 }
 
-/** Only http(s) links are network-checkable. */
+/**
+ * SSRF guard: only public http(s) destinations are probed. Anything pointing at
+ * localhost, link-local or RFC1918 space is rejected without a request.
+ */
+const PRIVATE_HOST_RE =
+  /^(localhost|127\.|0\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?|.*\.local)$/i;
+
 function normalizeUrl(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
   if (!/^https?:\/\//i.test(trimmed)) return null;
+  try {
+    const u = new URL(trimmed);
+    if (PRIVATE_HOST_RE.test(u.hostname)) return null;
+  } catch {
+    return null;
+  }
   return trimmed;
 }
 
-async function probe(url: string): Promise<{ status: CheckRow["status"]; http_status: number | null; detail: string | null }> {
+/** Compares URLs ignoring trailing slash, scheme upgrade and www. */
+function sameTarget(a: string, b: string): boolean {
+  const norm = (u: string) =>
+    u.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
+}
+
+function isTlsError(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("certificate") || m.includes("tls") || m.includes("ssl") ||
+    m.includes("handshake") || m.includes("cert")
+  );
+}
+
+async function probe(
+  url: string,
+): Promise<{ classification: CheckRow["classification"]; http_status: number | null; detail: string | null; final_url: string | null; attempts: number }> {
   if (isMalformed(url)) {
-    return { status: "malformed", http_status: null, detail: "URL looks like a broken legacy social link" };
+    return {
+      classification: "malformed",
+      http_status: null,
+      detail: "URL looks like a broken legacy social link",
+      final_url: null,
+      attempts: 0,
+    };
   }
 
+  let attempts = 0;
   const attempt = async (method: "HEAD" | "GET") => {
+    attempts++;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      return await fetch(url, {
-        method,
-        redirect: "follow",
-        headers: FETCH_HEADERS,
-        signal: controller.signal,
-      });
+      // redirect: "follow" only follows http(s); the SSRF guard above already
+      // rejected private destinations for the initial hop.
+      return await fetch(url, { method, redirect: "follow", headers: FETCH_HEADERS, signal: controller.signal });
     } finally {
       clearTimeout(timer);
     }
   };
 
-  try {
-    let res = await attempt("HEAD");
-    if (res.status === 405 || res.status === 403 || res.status === 404 || res.status === 501) {
-      // Many sites reject HEAD outright — retry with GET before calling it broken.
-      try {
-        res = await attempt("GET");
-      } catch {
-        /* keep HEAD result */
+  let lastError = "";
+  for (let round = 0; round < 2; round++) {
+    try {
+      let res = await attempt(round === 0 ? "HEAD" : "GET");
+      if (res.status === 405 || res.status === 403 || res.status === 404 || res.status === 501 || res.status === 429) {
+        // Many origins reject HEAD outright — always confirm with a GET.
+        try {
+          res = await attempt("GET");
+        } catch {
+          /* keep the HEAD result */
+        }
       }
-    }
-    if (res.status >= 200 && res.status < 400) {
-      return { status: "ok", http_status: res.status, detail: null };
-    }
-    // 403/429 from a known bot-protected host says nothing about the link.
-    if ((res.status === 403 || res.status === 429) && isBotProtected(url)) {
+      const finalUrl = res.url || url;
+
+      if (res.status >= 200 && res.status < 400) {
+        if (!sameTarget(url, finalUrl)) {
+          return {
+            classification: "redirected",
+            http_status: res.status,
+            detail: `Redirects to ${finalUrl.slice(0, 160)}`,
+            final_url: finalUrl,
+            attempts,
+          };
+        }
+        return { classification: "healthy", http_status: res.status, detail: null, final_url: finalUrl, attempts };
+      }
+
+      // Never call an auth/anti-bot wall a broken link.
+      if (res.status === 401 || res.status === 403 || res.status === 429) {
+        return {
+          classification: "blocked_unverifiable",
+          http_status: res.status,
+          detail: isBotProtected(url)
+            ? "Host blocks automated checks — verify manually"
+            : `HTTP ${res.status} to automated checks — not proof the link is broken`,
+          final_url: finalUrl,
+          attempts,
+        };
+      }
+
+      if (res.status >= 500) {
+        return {
+          classification: "server_error",
+          http_status: res.status,
+          detail: `Origin returned HTTP ${res.status}`,
+          final_url: finalUrl,
+          attempts,
+        };
+      }
+
+      if (res.status === 404 || res.status === 410) {
+        return {
+          classification: "confirmed_broken",
+          http_status: res.status,
+          detail: `HTTP ${res.status}`,
+          final_url: finalUrl,
+          attempts,
+        };
+      }
+
       return {
-        status: "unverified",
+        classification: "blocked_unverifiable",
         http_status: res.status,
-        detail: "Blocked automated checks — verify manually",
+        detail: `Unexpected HTTP ${res.status}`,
+        final_url: finalUrl,
+        attempts,
       };
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "request failed";
+      if (isTlsError(lastError)) {
+        return { classification: "tls_error", http_status: null, detail: lastError.slice(0, 160), final_url: null, attempts };
+      }
+      // Retry once on transport failure/timeout before classifying.
     }
-    return { status: "broken", http_status: res.status, detail: `HTTP ${res.status}` };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "request failed";
-    const timedOut = message.toLowerCase().includes("abort");
-    return {
-      status: "broken",
-      http_status: null,
-      detail: timedOut ? `No response within ${TIMEOUT_MS / 1000}s` : message.slice(0, 160),
-    };
   }
+
+  const timedOut = lastError.toLowerCase().includes("abort");
+  return {
+    classification: timedOut ? "timeout" : "confirmed_broken",
+    http_status: null,
+    detail: timedOut
+      ? `No response within ${TIMEOUT_MS / 1000}s after ${attempts} attempts`
+      : lastError.slice(0, 160) || "Host unreachable",
+    final_url: null,
+    attempts,
+  };
 }
+
+/** Legacy status column stays populated so nothing that reads it breaks. */
+function legacyStatus(c: CheckRow["classification"]): CheckRow["status"] {
+  if (c === "healthy" || c === "redirected") return "ok";
+  if (c === "malformed") return "malformed";
+  if (c === "blocked_unverifiable") return "unverified";
+  return "broken";
+}
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -267,21 +387,48 @@ serve(async (req) => {
     for (const t of targets) unique.set(`${t.hub_id}|${t.url}`, t);
     const queue = [...unique.values()];
 
+    // ---- Record the run ---------------------------------------------------
+    const { data: runRow } = await supabase
+      .from("link_check_runs")
+      .insert({ status: "running", links_total: queue.length })
+      .select("id")
+      .single();
+    const runId = runRow?.id as string | undefined;
+
     // ---- Probe in batches -------------------------------------------------
     const rows: CheckRow[] = [];
     for (let i = 0; i < queue.length; i += BATCH_SIZE) {
       const batch = queue.slice(i, i + BATCH_SIZE);
       const results = await Promise.all(batch.map((t) => probe(t.url)));
       batch.forEach((t, idx) => {
-        rows.push({ ...t, ...results[idx], checked_at: new Date().toISOString() });
+        const r = results[idx];
+        rows.push({
+          ...t,
+          classification: r.classification,
+          status: legacyStatus(r.classification),
+          http_status: r.http_status,
+          detail: r.detail,
+          final_url: r.final_url,
+          attempts: r.attempts,
+          checked_at: new Date().toISOString(),
+        });
       });
+      if (runId && i % (BATCH_SIZE * 5) === 0) {
+        await supabase.from("link_check_runs").update({ links_checked: rows.length }).eq("id", runId);
+      }
     }
 
+    // The admin's persistent false-positive/acknowledged override is never
+    // touched here — the upsert only writes detected fields.
+    let upsertError: string | null = null;
     for (let i = 0; i < rows.length; i += 200) {
       const { error } = await supabase
         .from("hub_link_checks")
         .upsert(rows.slice(i, i + 200), { onConflict: "hub_id,url" });
-      if (error) console.error("upsert error", error);
+      if (error) {
+        upsertError = error.message;
+        console.error("upsert error", error);
+      }
     }
 
     // Drop rows for links that no longer exist on any hub.
@@ -292,18 +439,52 @@ serve(async (req) => {
       await supabase.from("hub_link_checks").delete().in("id", stale.slice(i, i + 200));
     }
 
-    // "unverified" means the check was blocked, not that the link is broken.
-    const broken = rows.filter((r) => r.status !== "ok" && r.status !== "unverified");
+    const count = (c: string) => rows.filter((r) => r.classification === c).length;
+    const breakdown = {
+      healthy: count("healthy"),
+      redirected: count("redirected"),
+      confirmed_broken: count("confirmed_broken"),
+      server_error: count("server_error"),
+      tls_error: count("tls_error"),
+      timeout: count("timeout"),
+      blocked_unverifiable: count("blocked_unverifiable"),
+      malformed: count("malformed"),
+    };
+
+    const complete = !upsertError && rows.length === queue.length;
+    if (runId) {
+      await supabase
+        .from("link_check_runs")
+        .update({
+          finished_at: new Date().toISOString(),
+          status: complete ? "complete" : "failed",
+          is_complete: complete,
+          links_checked: rows.length,
+          hubs_checked: new Set(rows.map((r) => r.hub_id)).size,
+          error: upsertError,
+        })
+        .eq("id", runId);
+    }
+
+    // Only genuinely-broken classes count as broken. 401/403/429 never do.
+    const broken = rows.filter(
+      (r) => r.classification === "confirmed_broken" || r.classification === "malformed",
+    );
     return new Response(
       JSON.stringify({
         success: true,
+        run_id: runId,
+        is_complete: complete,
         checked: rows.length,
+        total: queue.length,
+        breakdown,
         broken: broken.length,
         hubs_with_broken: new Set(broken.map((b) => b.hub_id)).size,
         removed_stale: stale.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (error) {
     console.error("check-hub-links error", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal error" }), {

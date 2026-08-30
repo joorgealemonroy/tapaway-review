@@ -350,13 +350,44 @@ Deno.serve(async (req) => {
 
         const { data: pending, error: pendErr } = await admin
           .from("business_locations")
-          .select("id, display_name, formatted_address, city, state, hub_slug")
+          .select("id, display_name, formatted_address, city, state, hub_slug, phone")
           .is("google_place_id", null)
           .not("formatted_address", "is", null)
           .limit(100);
         if (pendErr) throw pendErr;
 
         let accepted = 0, ambiguous = 0, none = 0, failedSearch = 0;
+
+        // Corroboration helpers. A single Google result is NOT sufficient on its
+        // own: the candidate must match the TapAway-supplied name AND at least
+        // one independent signal (street address or phone).
+        const norm = (v: unknown) =>
+          String(v ?? "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+        const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "").slice(-10);
+        const nameMatches = (ours: string, theirs: string) => {
+          const a = norm(ours), b = norm(theirs);
+          if (!a || !b) return false;
+          if (a === b || b.includes(a) || a.includes(b)) return true;
+          // Slug-style names ("lasnuevasislas") vs spaced Google names.
+          const ca = a.replace(/ /g, ""), cb = b.replace(/ /g, "");
+          if (ca.length >= 6 && (cb.includes(ca) || ca.includes(cb))) return true;
+          const stop = new Set(["the", "a", "and", "llc", "inc", "co", "restaurant", "cafe"]);
+          const at = a.split(" ").filter((t) => t.length > 2 && !stop.has(t));
+          const bt = new Set(b.split(" ").filter((t) => t.length > 2 && !stop.has(t)));
+          if (at.length === 0) return false;
+          const hits = at.filter((t) => bt.has(t)).length;
+          return hits / at.length >= 0.6;
+        };
+        const addressMatches = (ours: string, theirs: string) => {
+          const a = norm(ours), b = norm(theirs);
+          if (!a || !b) return false;
+          const ourNum = a.match(/\b\d{1,6}\b/)?.[0];
+          const theirNum = b.match(/\b\d{1,6}\b/)?.[0];
+          if (!ourNum || !theirNum || ourNum !== theirNum) return false;
+          const street = a.split(" ").filter((t) => t.length > 3 && !/^\d+$/.test(t));
+          const bt = new Set(b.split(" "));
+          return street.some((t) => bt.has(t));
+        };
 
         for (const row of pending ?? []) {
           const query = [row.display_name, row.formatted_address].filter(Boolean).join(" ");
@@ -367,7 +398,8 @@ Deno.serve(async (req) => {
               headers: {
                 "Content-Type": "application/json",
                 "X-Goog-Api-Key": googleKey,
-                "X-Goog-FieldMask": "places.id,places.location,places.formattedAddress,places.displayName",
+                "X-Goog-FieldMask":
+                  "places.id,places.location,places.formattedAddress,places.displayName,places.nationalPhoneNumber",
               },
               body: JSON.stringify({ textQuery: query, maxResultCount: 5 }),
             });
@@ -389,42 +421,62 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            if (places.length === 1) {
-              // Strong confidence: exactly one candidate.
-              const p = places[0] as { id?: string; location?: { latitude?: number; longitude?: number } };
-              const lat = p.location?.latitude;
-              const lng = p.location?.longitude;
-              if (p.id && typeof lat === "number" && typeof lng === "number") {
-                accepted++;
-                await admin.from("business_locations").update({
-                  google_place_id: p.id,
-                  place_status: "ok",
-                  place_id_verified_at: nowIso,
-                  lat, lng, g_lat: lat, g_lng: lng,
-                  coordinate_source: "google_places",
-                  coordinates_obtained_at: nowIso,
-                  coordinates_expires_at: expIso,
-                  google_data_obtained_at: nowIso,
-                  google_data_expires_at: expIso,
-                  location_state: "mapped_physical_location",
-                  match_candidates: null,
-                  match_candidates_expires_at: null,
-                  needs_review: false,
-                  review_reason: null,
-                }).eq("id", row.id);
-                continue;
-              }
+            type Cand = {
+              id?: string;
+              location?: { latitude?: number; longitude?: number };
+              formattedAddress?: string;
+              nationalPhoneNumber?: string;
+              displayName?: { text?: string };
+            };
+
+            // Score every candidate; accept only when exactly one clears the bar.
+            const corroborated = (places as Cand[]).filter((p) => {
+              if (!p.id) return false;
+              if (typeof p.location?.latitude !== "number" || typeof p.location?.longitude !== "number") return false;
+              if (!nameMatches(String(row.display_name ?? ""), p.displayName?.text ?? "")) return false;
+              const addrOk = addressMatches(String(row.formatted_address ?? ""), p.formattedAddress ?? "");
+              const phoneOk = Boolean(row.phone) && digits(row.phone).length === 10 &&
+                digits(row.phone) === digits(p.nationalPhoneNumber);
+              return addrOk || phoneOk;
+            });
+
+            if (corroborated.length === 1) {
+              const p = corroborated[0];
+              const lat = p.location?.latitude as number;
+              const lng = p.location?.longitude as number;
+              accepted++;
+              await admin.from("business_locations").update({
+                google_place_id: p.id,
+                place_status: "ok",
+                place_id_verified_at: nowIso,
+                lat, lng, g_lat: lat, g_lng: lng,
+                coordinate_source: "google_places",
+                coordinates_obtained_at: nowIso,
+                coordinates_expires_at: expIso,
+                google_data_obtained_at: nowIso,
+                google_data_expires_at: expIso,
+                location_state: "mapped_physical_location",
+                match_candidates: null,
+                match_candidates_expires_at: null,
+                needs_review: false,
+                review_reason: null,
+              }).eq("id", row.id);
+              continue;
             }
 
-            // Multiple candidates: never guess. Store an expiring review list.
+            // Zero or several corroborated candidates: never guess. Store an
+            // expiring review list for explicit admin confirmation.
             ambiguous++;
             await admin.from("business_locations").update({
               match_candidates: places.slice(0, 5),
               match_candidates_expires_at: expIso,
               location_state: "ambiguous_match",
               needs_review: true,
-              review_reason: `${places.length} possible Google matches — admin confirmation required`,
+              review_reason: corroborated.length === 0
+                ? `${places.length} Google result(s), none corroborated by name plus address or phone — admin confirmation required`
+                : `${corroborated.length} equally strong Google matches — admin confirmation required`,
             }).eq("id", row.id);
+
           } catch (e) {
             failedSearch++;
             await admin.from("places_api_log").insert({

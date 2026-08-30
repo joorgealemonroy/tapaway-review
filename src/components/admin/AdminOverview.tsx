@@ -289,7 +289,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
       {/* Link health band */}
       <div
         className={`rounded-xl border p-5 ${
-          linkHealth.brokenLinks > 0
+          linkHealth.needsAttention > 0
             ? "border-amber-500/30 bg-amber-500/[0.06]"
             : "border-white/5 bg-white/[0.02]"
         }`}
@@ -297,15 +297,15 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <Link2
-              className={`h-5 w-5 mt-0.5 ${linkHealth.brokenLinks > 0 ? "text-amber-400" : "text-emerald-400"}`}
+              className={`h-5 w-5 mt-0.5 ${linkHealth.needsAttention > 0 ? "text-amber-400" : "text-emerald-400"}`}
             />
             <div className="min-w-0">
               <div className="text-white font-medium">
                 {linkHealth.totalLinks === 0
                   ? "Links have not been checked yet"
-                  : linkHealth.brokenLinks > 0
-                    ? `${linkHealth.hubsWithBroken} hub${linkHealth.hubsWithBroken === 1 ? "" : "s"} have a broken link (${linkHealth.brokenLinks} of ${linkHealth.totalLinks})`
-                    : `All ${linkHealth.totalLinks} links on live hubs work`}
+                  : linkHealth.needsAttention > 0
+                    ? `${linkHealth.needsAttention} of ${linkHealth.totalLinks} links need attention (${linkHealth.brokenLinks} confirmed broken across ${linkHealth.hubsWithBroken} hub${linkHealth.hubsWithBroken === 1 ? "" : "s"})`
+                    : `All ${linkHealth.totalLinks} checkable links responded`}
               </div>
               <div className="text-xs text-white/50 mt-1">
                 Every outbound link opened server-side ·{" "}
@@ -313,13 +313,31 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
                   ? `checked ${relative(linkHealth.lastCheckedAt.toISOString())}`
                   : "never run"}
               </div>
+              {linkHealth.totalLinks > 0 && (
+                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/50">
+                  <span className="text-emerald-300/80">{linkHealth.breakdown.healthy} healthy</span>
+                  <span>{linkHealth.breakdown.redirected} redirected</span>
+                  <span className="text-red-300/80">{linkHealth.breakdown.confirmed_broken} confirmed broken</span>
+                  <span>{linkHealth.breakdown.server_error} server error</span>
+                  <span>{linkHealth.breakdown.tls_error} TLS error</span>
+                  <span>{linkHealth.breakdown.timeout} timeout</span>
+                  <span>{linkHealth.breakdown.malformed} malformed</span>
+                  <span className="text-white/40">
+                    {linkHealth.breakdown.blocked_unverifiable} blocked / unverifiable
+                  </span>
+                  {linkHealth.breakdown.false_positive > 0 && (
+                    <span className="text-white/40">{linkHealth.breakdown.false_positive} marked false positive</span>
+                  )}
+                </div>
+              )}
               {linkHealth.worst.length > 0 && (
                 <div className="mt-3 space-y-1">
                   {linkHealth.worst.slice(0, 5).map((b) => (
                     <div key={`${b.hub_id}-${b.url}`} className="text-xs flex gap-2 min-w-0">
                       <span className="font-mono text-amber-200 shrink-0">/{b.slug ?? "?"}</span>
                       <span className="text-white/50 shrink-0">{b.label}</span>
-                      <span className="text-amber-200/70 truncate">{b.detail ?? b.status}</span>
+                      <span className="text-white/40 shrink-0">{b.classification ?? b.status}</span>
+                      <span className="text-amber-200/70 truncate">{b.detail ?? ""}</span>
                     </div>
                   ))}
                   {linkHealth.worst.length > 5 && (
@@ -329,6 +347,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
               )}
             </div>
           </div>
+
           <div className="flex gap-2">
             <Button
               onClick={() => void runLinkCheck()}
