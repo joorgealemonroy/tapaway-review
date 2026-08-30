@@ -69,6 +69,71 @@ const Pin = ({ tone, active }: { tone: MarkerTone; active: boolean }) => (
   />
 );
 
+/**
+ * Advanced markers may only be constructed once the map reports the capability.
+ * Deliberately NOT gated on getRenderingType() === VECTOR: advanced markers are
+ * supported on raster maps too, and gating on render type would hide valid pins.
+ * Capabilities are asynchronous, so we subscribe until they initialise.
+ */
+const useAdvancedMarkersReady = (): { ready: boolean; settled: boolean } => {
+  const map = useMap();
+  const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    if (!map) return;
+    let cancelled = false;
+    const read = () => {
+      if (cancelled) return;
+      let available = false;
+      try {
+        available = map.getMapCapabilities?.().isAdvancedMarkersAvailable === true;
+      } catch {
+        available = false;
+      }
+      setReady(available);
+      if (available) setSettled(true);
+    };
+    read();
+    const listener = map.addListener("mapcapabilities_changed", read);
+    // If capabilities never turn on, stop waiting so a diagnostic can be shown.
+    const timer = setTimeout(() => {
+      if (!cancelled) setSettled(true);
+    }, 10000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      listener.remove();
+      window.clearTimeout(timer);
+    };
+  }, [map]);
+
+  return { ready, settled };
+};
+
+/**
+ * Flood protection: a failing marker library used to throw once per marker
+ * (137 identical reports). This reports at most one occurrence per mount.
+ */
+class MarkerBoundary extends Component<
+  { children: ReactNode; onFail: (message: string) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error) {
+    this.props.onFail(error?.message ?? "Marker rendering failed");
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 interface MarkersProps {
   locations: BusinessLocation[];
   selectedId: string | null;
