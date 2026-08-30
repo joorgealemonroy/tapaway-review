@@ -125,12 +125,36 @@ Cost controls: refresh only on expiry or `place_status='stale'`, nightly refresh
 4. **Admin map** — `/admin/locations`: clustered map, legend, colored + text-labelled markers, synchronized filterable table, location card with Open Hub / Dashboard / Directions / Add to Route / Record Visit, mobile layout.
 5. **Route planner** — settings UI, server-side optimization, ordered stops with ETAs, excluded stops, Google Maps hand-off, printable itinerary, visit outcome logging.
 6. **Business grouping** — audited, reversible admin merge tool for confirmed multi-location businesses (Las Islas); re-parents location rows only.
-7. **Directory readiness** — opt-in control (default off) in the hub dashboard, eligibility checks, protected public **edge function**; `/discover` built but unlaunched.
+7. **Directory readiness** — the **only** customer-dashboard change in the whole project: a public directory opt-in toggle (default off), a location preview, an address/location correction workflow, and a plain-language explanation of exactly what becomes public. Plus eligibility checks and the protected public **edge function**; `/discover` built but unlaunched.
 8. **Stripe reconciliation** — extend `stripe-webhook` to update payment fields (`last_payment_at`, `current_billing_period_end`, `paid_through_at`, refunds/disputes) and append status history, respecting manual classifications and never altering hub access.
 
-## 7. Records requiring manual cleanup
+Each phase ships its own visible, usable UI: the manual-review queue (phase 2), dashboard status cards and badges (phases 2–4), map (phase 4), route planner (phase 5) and attention panels (phase 4).
 
-## 7. Records requiring manual cleanup
+## 7. Admin dashboard surfaces
+
+**Navigation** — a clearly visible **Locations** item in the admin navigation (`src/pages/Admin.tsx` quick access + admin nav) linking to `/admin/locations`.
+
+**Summary cards on the main admin dashboard**, sourced entirely from the new classified location system and rendered alongside — never replacing or altering — existing financial/MRR reporting:
+
+- Active Paid · Active Complimentary · Active — Billing Unknown · Current Trials · Failed Trials · Payment Attention Required · Inactive/Archived · Unmappable Locations · Follow-ups Due
+
+Every card links straight to the matching filtered view in `/admin/locations` (e.g. `/admin/locations?filter=billing_unknown`).
+
+**Status badges in existing admin lists** — `AdminUnifiedAccountsTable`, `AdminBusinessLiteTable` and the business/profile lists gain a compact badge showing Paid / Complimentary / Trial / Failed Trial / Payment Attention / Billing Unknown, with matching color **and** text, so classification is visible without opening the map.
+
+**Attention panel** with counts and drill-through for:
+
+- Unknown-payment accounts requiring classification (currently 25)
+- Expired-but-still-trialing records (currently 57)
+- Missing Place IDs or coordinates
+- Legacy/duplicate hubs requiring review
+- Follow-ups due today or overdue
+
+**Sync health strip** — last successful location sync time, coordinate freshness (how many caches expire within 7 days, how many already expired), and any failed Google refresh jobs from `places_api_log`, with retry.
+
+All admin surfaces implement explicit loading, empty and error states. **No internal payment status, complimentary status, trial failure, internal notes or sales information ever appears in a customer dashboard.**
+
+## 8. Records requiring manual cleanup
 
 - 57 expired-but-`trialing` profiles → confirm expired vs. activated.
 - 16 `active` profiles + 9 `active` restaurants → classify from `unknown_manual`.
