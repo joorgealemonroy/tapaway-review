@@ -13,6 +13,7 @@ import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
+import { track as trackEvent } from "@/lib/analytics";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageLightbox } from "@/components/personal/ImageLightbox";
@@ -89,22 +90,13 @@ interface Props {
   initialProfile?: CachedProfile;
 }
 
-// Fire-and-forget link click tracker
+// Fire-and-forget link click tracker (centralized analytics client)
 const trackLinkClick = (profileId: string, link: { id: string; label: string; url: string }) => {
-  supabase
-    .from("personal_analytics")
-    .insert({
-      profile_id: profileId,
-      event_type: "link_click",
-      visitor_info: {
-        link_id: link.id,
-        link_label: link.label,
-        link_url: link.url,
-        referrer: document.referrer || null,
-        userAgent: navigator.userAgent,
-      },
-    })
-    .then(() => {});
+  trackEvent("link_click", {
+    hubId: profileId,
+    hubKind: "solo",
+    props: { link_id: link.id, link_label: link.label, link_url: link.url },
+  });
 };
 
 // Memoized link component to prevent re-renders
@@ -1172,17 +1164,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     
     // Track the save contact event
     if (profile.id) {
-      supabase
-        .from("personal_analytics")
-        .insert({
-          profile_id: profile.id,
-          event_type: "contact_save",
-          visitor_info: {
-            referrer: document.referrer || null,
-            userAgent: navigator.userAgent,
-          },
-        })
-        .then(() => {});
+      trackEvent("contact_save", { hubId: profile.id, hubKind: "solo" });
     }
     
     if (isIOS) {

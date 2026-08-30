@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { track as trackEvent } from '@/lib/analytics';
 import { 
   getCachedProfile, 
   setCachedProfile,
@@ -210,27 +211,11 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
 }
 
 /**
- * Track profile visit (fire and forget, non-blocking)
+ * Track profile visit.
+ * Post-cutover this routes through the centralized analytics client, which
+ * deduplicates remounts/refreshes and classifies bot/internal/preview traffic
+ * server-side. It no longer inserts into personal_analytics directly.
  */
 export function trackProfileVisit(profileId: string): void {
-  // Use requestIdleCallback if available for non-blocking tracking
-  const track = () => {
-    supabase
-      .from('personal_analytics')
-      .insert({
-        profile_id: profileId,
-        event_type: 'profile_visit',
-        visitor_info: {
-          referrer: document.referrer || null,
-          userAgent: navigator.userAgent,
-        },
-      })
-      .then(() => {});
-  };
-
-  if ('requestIdleCallback' in window) {
-    (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(track);
-  } else {
-    setTimeout(track, 0);
-  }
+  trackEvent('hub_view', { hubId: profileId, hubKind: 'solo' });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { trackProfileVisit } from "@/hooks/useProfileData";
 import { 
   CheckCircle2,
   ExternalLink,
@@ -87,18 +88,8 @@ const PersonalProfile = () => {
 
         setLinks(linksData || []);
 
-        // Track visit (fire and forget)
-        supabase
-          .from("personal_analytics")
-          .insert({
-            profile_id: profileData.id,
-            event_type: "profile_visit",
-            visitor_info: {
-              referrer: document.referrer || null,
-              userAgent: navigator.userAgent,
-            },
-          })
-          .then(() => {});
+        // Track visit through the centralized analytics client (deduped server-side)
+        trackProfileVisit(profileData.id);
       } catch (err) {
         console.error("Error loading profile:", err);
         setNotFound(true);
