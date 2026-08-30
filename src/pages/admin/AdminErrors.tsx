@@ -40,12 +40,16 @@ type ErrorGroup = {
  */
 const normalizeMessage = (msg: string) =>
   msg
+    // Reporter-generated occurrence id, e.g. "[err_1788092134640_qqy00k] " —
+    // unique per occurrence, so it must never reach the fingerprint.
+    .replace(/^\s*\[err_[a-z0-9_]+\]\s*/i, "")
     .replace(/https?:\/\/\S+/g, "<url>")
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<uuid>")
     .replace(/['"`][^'"`]{0,80}['"`]/g, "<str>")
     .replace(/\b\d+\b/g, "<n>")
     .trim()
     .slice(0, 200);
+
 
 const normalizeRoute = (route: string | null) => {
   if (!route) return "(unknown route)";
