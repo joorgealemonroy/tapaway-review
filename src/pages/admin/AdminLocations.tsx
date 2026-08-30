@@ -308,6 +308,22 @@ export default function AdminLocations() {
     });
   }, [locations, filter, stateFilter, search]);
 
+  const runResolve = async () => {
+    setResolving(true);
+    try {
+      const res = await locationsApi.resolveMissing();
+      const r = res.run;
+      toast.success(
+        `Place search: ${r.accepted} confirmed · ${r.ambiguous} sent to review · ${r.none} no match · ${r.failed} failed`,
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Place search failed");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const runAudit = async () => {
     setAuditing(true);
     try {
