@@ -1,4 +1,5 @@
-import { Star, Smartphone, Wifi, QrCode } from "lucide-react";
+import cardFrontArt from "@/assets/tapaway-card-front-v2.svg.asset.json";
+import cardBackArt from "@/assets/tapaway-card-back-v2.svg.asset.json";
 
 interface CardCustomizerProps {
   logoUrl?: string | null;
@@ -8,6 +9,27 @@ interface CardCustomizerProps {
   onHeadlineChange: (value: string) => void;
   onSubHeadlineChange: (value: string) => void;
 }
+
+const CARD_SHELL =
+  "relative w-full max-w-[320px] aspect-[153.12/247.92] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden";
+
+const LogoOverlay = ({ logoUrl, size }: { logoUrl?: string | null; size: string }) => {
+  if (!logoUrl) return null;
+  return (
+    <div
+      className="absolute rounded-full overflow-hidden"
+      style={{
+        left: "50%",
+        top: "48.5%",
+        width: size,
+        aspectRatio: "1 / 1",
+        transform: "translate(-50%, -50%)",
+      }}
+    >
+      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+    </div>
+  );
+};
 
 const CardFront = ({
   logoUrl,
@@ -19,91 +41,44 @@ const CardFront = ({
   subHeadline: string;
 }) => (
   <div
-    className="w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+    className={CARD_SHELL}
     style={{
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(-4deg)",
     }}
   >
-    <div className="flex flex-col items-center justify-between h-full text-center p-6">
-      {/* Stars */}
-      <div className="flex space-x-1">
-        {[...Array(5)].map((_, i) => (
-          <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-        ))}
-      </div>
+    <img src={cardFrontArt.url} alt="TapAway card front" className="w-full h-full object-cover" />
 
-      {/* Headline */}
-      <p className="text-lg font-normal text-gray-800 leading-snug mt-3">
-        {headline || "Loved your visit? Leave us a review!"}
+    {/* Custom headline block — covers the artwork's default copy */}
+    <div
+      className="absolute left-0 right-0 bg-white flex flex-col items-center justify-center px-5 text-center"
+      style={{ top: "15%", height: "13.5%" }}
+    >
+      <p className="text-[13px] font-bold text-black leading-tight">
+        {headline || "Menu, reviews, socials & more."}
       </p>
-
-      {/* Sub-headline */}
-      <p className="text-sm font-normal text-gray-800 mt-1">
-        {subHeadline || "Tap or Scan below to share your experience."}
+      <p className="text-[13px] font-bold text-black leading-tight">
+        {subHeadline || "Tap or scan to explore."}
       </p>
-
-      {/* Logo circle */}
-      <div className="w-48 h-48 rounded-full bg-[#707070] flex items-center justify-center my-auto flex-shrink-0 overflow-hidden">
-        {logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-white font-black text-3xl leading-none tracking-tight text-center">
-            YOUR<br />LOGO<br />HERE
-          </span>
-        )}
-      </div>
-
-      {/* Bottom icons row */}
-      <div className="flex items-center justify-center w-full h-16 mb-4">
-        {/* NFC tap icon */}
-        <div className="flex items-center gap-1">
-          <Smartphone className="w-10 h-10 text-black" />
-          <Wifi className="w-8 h-8 text-black -ml-2 rotate-90" />
-        </div>
-
-        <div className="h-full w-px bg-black mx-4" />
-
-        {/* QR code icon */}
-        <QrCode className="w-16 h-16 text-black" />
-      </div>
-
-      {/* Footer URL */}
-      <p className="font-black text-xs text-black pb-2 tracking-wide">tapaway.co</p>
     </div>
+
+    <LogoOverlay logoUrl={logoUrl} size="65%" />
   </div>
 );
 
 const CardBack = ({ logoUrl }: { logoUrl?: string | null }) => (
   <div
-    className="w-full max-w-[320px] aspect-[54/86] bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+    className={CARD_SHELL}
     style={{
       boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
       transform: "perspective(1000px) rotateX(8deg) rotateY(4deg)",
     }}
   >
-    <div className="flex flex-col items-center justify-center h-full text-center p-6">
-      {/* Logo circle */}
-      <div className="w-36 h-36 rounded-full bg-[#707070] flex items-center justify-center overflow-hidden mb-6">
-        {logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-white font-black text-2xl leading-none tracking-tight text-center">
-            YOUR<br />LOGO<br />HERE
-          </span>
-        )}
-      </div>
-
-      {/* QR code placeholder */}
-      <div className="w-20 h-20 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-4">
-        <QrCode className="w-14 h-14 text-black" />
-      </div>
-
-      {/* Footer URL */}
-      <p className="font-black text-xs text-black pb-2 tracking-wide">tapaway.co</p>
-    </div>
+    <img src={cardBackArt.url} alt="TapAway card back" className="w-full h-full object-cover" />
+    <LogoOverlay logoUrl={logoUrl} size="88%" />
   </div>
 );
+
 const CardCustomizer = ({
   logoUrl,
   headline,
