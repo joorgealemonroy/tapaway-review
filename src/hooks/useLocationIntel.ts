@@ -231,6 +231,30 @@ export function useLocationIntel(enabled = true) {
 
   const failedGoogleJobs = useMemo(() => apiLog.filter((e) => !e.ok).length, [apiLog]);
 
+  const mapping: MappingTotals = useMemo(
+    () => ({
+      total: locations.length,
+      mapped: locations.filter((l) => l.lat !== null).length,
+      invalidPlaceIds: locations.filter((l) => l.place_status === "invalid").length,
+      missingPlaceIds: locations.filter((l) => !l.google_place_id).length,
+      failedRequests: locations.filter((l) => l.hydration_status === "failed").length,
+      stillUnmappable: locations.filter((l) => l.lat === null).length,
+    }),
+    [locations],
+  );
+
+  const hydrate = useCallback(async () => {
+    setHydrating(true);
+    try {
+      const res = await locationsApi.hydrate(300);
+      setLastHydrateRun(res.run);
+      await load();
+      return res;
+    } finally {
+      setHydrating(false);
+    }
+  }, [load]);
+
   return {
     locations,
     apiLog,
@@ -238,6 +262,10 @@ export function useLocationIntel(enabled = true) {
     loading,
     error,
     syncing,
+    hydrating,
+    hydrate,
+    lastHydrateRun,
+    mapping,
     reload: load,
     resync,
     lastSyncedAt,
