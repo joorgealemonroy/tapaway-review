@@ -247,14 +247,28 @@ const MapShell = ({
   const loaded = useApiIsLoaded();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fault, setFault] = useState<MapFault>(null);
+  const [gmCode, setGmCode] = useState<string | null>(null);
 
   // The Maps script reports auth/billing/referrer failures on this global hook only.
   useEffect(() => {
     const w = window as unknown as { gm_authFailure?: () => void };
     const prev = w.gm_authFailure;
     w.gm_authFailure = () => setFault("auth");
+    // Google only names the precise cause (e.g. ApiTargetBlockedMapError,
+    // RefererNotAllowedMapError, BillingNotEnabledMapError) on console.error.
+    const origError = console.error;
+    console.error = (...args: unknown[]) => {
+      const text = args.map((a) => String(a)).join(" ");
+      const match = text.match(/Google Maps JavaScript API error:\s*([A-Za-z]+)/);
+      if (match) {
+        setGmCode(match[1]);
+        setFault((f) => f ?? "auth");
+      }
+      origError(...(args as []));
+    };
     return () => {
       w.gm_authFailure = prev;
+      console.error = origError;
     };
   }, []);
 
