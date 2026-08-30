@@ -7,7 +7,7 @@ Three workstreams. Privacy/Meta stays paused. No change to hub access, subscript
 - `business_locations`: 151 rows, 137 with coordinates, 137 with Place IDs, 0 invalid, 14 with no Place ID. Source tables: 139 personal profiles + 12 restaurants.
 - `hub_link_checks`: last run **12 Aug** — 100 ok, 76 broken, 1 malformed. Many of the 76 are 401/403 refusals from Yelp/Booksy-type hosts, which the current schema cannot express.
 - `client_errors`, last 24h: **not 146 separate bugs.** One React #185 occurrence at 11:56, one legacy `cardFrontArt is not defined` on `/`, and ~130 occurrences of a single new crash at 12:15:35 on `/admin/locations`:
-  `TypeError: Cannot read properties of undefined (reading 'keys')` thrown inside `marker.js` while constructing an `AdvancedMarkerElement` — one throw per marker. The map fell back to a raster map (no usable vector Map ID on that origin), and advanced markers cannot be constructed on a raster map. This is the real remaining map bug and is fixed in workstream 3 before anything else ships.
+  `TypeError: Cannot read properties of undefined (reading 'keys')` thrown inside Google's `marker.js` during `AdvancedMarkerElement` construction — one throw per marker. **The root cause is not yet established** and will be isolated by the bisection below before any fix is written. Raster rendering is explicitly *not* assumed to be the cause: Google supports Advanced Markers on raster maps too.
 
 ## Workstream 1 — every hub gets an explicit location state
 
@@ -16,7 +16,7 @@ Add to `business_locations`:
 - `location_state text not null default 'missing_information'` with a CHECK over: `mapped_physical_location`, `multi_location_master`, `service_area_business`, `online_or_personal_hub`, `missing_information`, `ambiguous_match`, `invalid_place_id`, `archived_or_inactive`
 - `location_state_source text` (`auto` / `admin`), `location_state_set_by uuid`, `location_state_set_at timestamptz`, `location_state_reason text`
 - `parent_location_id uuid references business_locations(id)` for master → child links
-- `match_candidates jsonb` for the ambiguous-review queue (name/address/place_id/confidence only)
+- `match_candidates jsonb` for the ambiguous-review queue (name/address/place_id/confidence only) plus `match_candidates_expires_at timestamptz` — Google-derived candidate names and addresses expire or refresh within 30 days and are purged by the existing retention job. Place IDs persist. Admin-verified fields live in the TapAway-owned columns and are never overwritten by an automated pass.
 
 Every state change writes a `location_status_history` row (actor, timestamp, previous value, reason). Manual states are never overwritten by automated passes.
 
@@ -46,7 +46,7 @@ Completion requires zero physical-business hubs left unresolved; anything remain
 
 ## Workstream 2 — link checking that tells the truth
 
-`hub_link_checks.status` gains the new vocabulary (additive CHECK replacement, existing rows remapped: `broken` → re-derived on the fresh run, nothing deleted): `healthy`, `redirected`, `confirmed_broken`, `server_error`, `tls_error`, `timeout`, `blocked_unverifiable`, `manual_false_positive`. Adds `final_url`, `attempts`, `false_positive_note`.
+Migration is non-destructive and non-reinterpreting: a **new** `classification` column carries the new vocabulary (`healthy`, `redirected`, `confirmed_broken`, `server_error`, `tls_error`, `timeout`, `blocked_unverifiable`, `manual_false_positive`) alongside the untouched legacy `status`, plus `final_url`, `attempts`, `false_positive_note`, and a `link_check_runs` row recording each run's start/finish/completeness. Historical rows are **not** re-labelled from old data. The dashboard keeps reading the legacy card until a full fresh run completes successfully; only then does it switch to the new classifications, so a partial or failed run can never display misleading totals.
 
 `check-hub-links` rewrite:
 - HEAD → fall back to a limited GET when HEAD is unsupported/misleading.
@@ -57,10 +57,29 @@ Completion requires zero physical-business hubs left unresolved; anything remain
 
 Fresh full run immediately after deploy. The overview card is rewritten to show hubs with confirmed broken links, confirmed broken count, blocked/unverifiable, TLS, server errors/timeouts, total checked, and the exact last-checked timestamp — with the red/amber headline counting **only** `confirmed_broken`. The details page gains Open Link, Open Hub, Edit Link and Mark False Positive.
 
-## Workstream 3 — the error investigation (and the crash it exposed)
+## Workstream 3 — diagnose the marker crash properly, then fix it
 
-### Fix first: advanced markers on a raster map
-`LocationsMap` will only mount markers once the API is loaded **and** the map instance reports a usable vector/Map-ID render mode; on raster fallback it renders the existing diagnostic state instead of throwing 137 times. Marker construction is additionally guarded so a single Google failure cannot flood the error log.
+### The diagnosis is not yet made — it gets bisected first
+No fix is written until an incremental reproduction in a published-equivalent build identifies the real failure. In order, each step observed with the non-minified stack:
+
+1. Map with the production Map ID, zero markers.
+2. One plain `AdvancedMarker`, no custom content.
+3. One `AdvancedMarker` with the custom `Pin` content.
+4. Stable marker refs, no clusterer.
+5. Clusterer with one marker.
+6. Clusterer with all 137 markers.
+
+The step that first throws names the cause: Map ID missing from the production build or never passed to the map, Map ID rejected or bound to a different Google Cloud project, marker library unavailable, custom Pin/content construction, marker-ref lifecycle, clusterer integration, or a `@vis.gl/react-google-maps` ↔ Maps JS version incompatibility. If step 2 throws with capabilities reporting true, that is a package/API incompatibility and gets isolated (version pin or direct `AdvancedMarkerElement` construction) before any markers are mounted en masse.
+
+### Capability gating — correctly
+Markers wait on `map.getMapCapabilities().isAdvancedMarkersAvailable`, subscribing to `mapcapabilities_changed` until capabilities initialise. **No** `getRenderingType() === VECTOR` gate — Advanced Markers are supported on raster maps and gating on render type would hide valid pins.
+
+If `isAdvancedMarkersAvailable` is false, the diagnostic names the actual missing capability (and whether `VITE_GOOGLE_MAPS_MAP_ID` reached the production bundle) — never "raster limitation".
+
+### Error-flood protection
+Marker construction failures are caught and coalesced: one failure mode produces one grouped error occurrence per page load, not 137 identical records.
+
+**Acceptance:** real pins rendering on `https://tapaway.co/admin/locations`. A clean diagnostic instead of a crash is not completion.
 
 ### Grouping and reporting
 `client_errors` rows are fingerprinted on normalized message (ids/hashes stripped) + route + top stack frame + build, giving unique-issue counts, first/last seen, occurrence counts, role/anonymous state and post-deploy occurrence counts. Records are **not** cleared, reset or deleted — the 146 ages out of the window naturally.
