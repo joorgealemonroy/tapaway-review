@@ -255,6 +255,7 @@ export type Database = {
           cutover_at: string
           id: boolean
           ip_hash_retention_days: number
+          last_retention_run_at: string | null
           meta_enabled: boolean
           meta_log_retention_days: number
           meta_test_mode: boolean
@@ -267,6 +268,7 @@ export type Database = {
           cutover_at?: string
           id?: boolean
           ip_hash_retention_days?: number
+          last_retention_run_at?: string | null
           meta_enabled?: boolean
           meta_log_retention_days?: number
           meta_test_mode?: boolean
@@ -279,6 +281,7 @@ export type Database = {
           cutover_at?: string
           id?: boolean
           ip_hash_retention_days?: number
+          last_retention_run_at?: string | null
           meta_enabled?: boolean
           meta_log_retention_days?: number
           meta_test_mode?: boolean
