@@ -91,6 +91,13 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
     runHealth,
   } = useAdminOverview(true, range, dailyDays);
 
+  const {
+    counts: locCounts,
+    loading: locLoading,
+    error: locError,
+    reload: reloadLocations,
+  } = useLocationIntel(true);
+
   const totalHubs = counts.personalTotal + counts.restaurantTotal;
   const today = daily.length ? daily[daily.length - 1] : null;
   const yesterday = daily.length > 1 ? daily[daily.length - 2] : null;
