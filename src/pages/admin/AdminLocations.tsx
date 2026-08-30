@@ -4,7 +4,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { LocationsMap } from "@/components/admin/LocationsMap";
 import {
   AlertTriangle,
-  ArrowLeft,
+  
   Clock,
   Loader2,
   MapPin,
