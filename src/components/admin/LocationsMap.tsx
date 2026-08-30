@@ -283,14 +283,29 @@ const MapShell = ({
   if (effectiveFault) {
     const common = `Origin: ${window.location.origin} · Map ID: ${MAP_ID}`;
     if (effectiveFault === "auth") {
+      const CAUSE: Record<string, string> = {
+        ApiTargetBlockedMapError:
+          "API restriction — the browser key's \"Restrict key\" API list does not include Maps JavaScript API. Add it (and Maps Static/Places if used) in Google Cloud Console → Credentials.",
+        RefererNotAllowedMapError:
+          "Referrer restriction — this origin is not on the key's allowed HTTP referrer list. Add both the root and wildcard patterns for it.",
+        BillingNotEnabledMapError:
+          "Billing — billing is not enabled on the Google Cloud project that owns this key.",
+        ApiNotActivatedMapError:
+          "API activation — Maps JavaScript API is not enabled on the key's Google Cloud project.",
+        InvalidKeyMapError: "The browser key value is not valid for this project.",
+        ExpiredKeyMapError: "The browser key has expired and must be regenerated.",
+      };
       return (
         <MapError
-          title="Google rejected this browser key (referrer, API or billing)"
+          title="Google rejected this browser key"
           lines={[
-            "The Maps JavaScript API loaded but refused to authorize the request. That is one of three things, in this order:",
-            "1) HTTP referrer restriction — this origin is not on the key's allowed referrer list.",
-            "2) API activation — Maps JavaScript API is not enabled on the key's Google Cloud project.",
-            "3) Billing — billing is not active on that project, or the Map ID belongs to a different project.",
+            gmCode
+              ? `Google reported ${gmCode}.`
+              : "The Maps JavaScript API loaded but refused to authorize the request.",
+            gmCode && CAUSE[gmCode]
+              ? CAUSE[gmCode]
+              : "Check, in order: the key's HTTP referrer list, whether Maps JavaScript API is enabled/allowed on the key, and whether billing is active on that project.",
+            "Also confirm the Map ID is a vector Map ID in the same project as the key.",
             common,
           ]}
         />
