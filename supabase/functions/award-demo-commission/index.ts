@@ -69,12 +69,13 @@ Deno.serve(async (req) => {
 
     const { data: repRow } = await admin
       .from('sales_reps')
-      .select('created_at')
+      .select('created_at, quality_gate_exempt')
       .eq('id', repId)
       .maybeSingle();
     const repAgeDays = repRow?.created_at
       ? (Date.now() - new Date(repRow.created_at).getTime()) / 86400000
       : 0;
+    const gateExempt = Boolean((repRow as { quality_gate_exempt?: boolean } | null)?.quality_gate_exempt);
 
     const trailing30 = new Date(Date.now() - 30 * 86400000).toISOString();
     const { count: approved30 } = await admin
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
       .gte('updated_at', trailing30);
 
     const rate = (approved30 ?? 0) > 0 ? (converted30 ?? 0) / (approved30 ?? 1) : 0;
-    const qualityGateActive = repAgeDays < probationDays || rate < minRate;
+    const qualityGateActive = !gateExempt && (repAgeDays < probationDays || rate < minRate);
 
     // --- Count today's demo_bonus rows already awarded for this rep ---
     const { count: bonusToday } = await admin
