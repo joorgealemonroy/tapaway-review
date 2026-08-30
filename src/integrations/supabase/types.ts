@@ -1134,6 +1134,7 @@ export type Database = {
           clawback_until: string | null
           commission_type: string | null
           created_at: string
+          earned_on: string | null
           id: string
           note: string | null
           paid_at: string | null
@@ -1154,6 +1155,7 @@ export type Database = {
           clawback_until?: string | null
           commission_type?: string | null
           created_at?: string
+          earned_on?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null
@@ -1174,6 +1176,7 @@ export type Database = {
           clawback_until?: string | null
           commission_type?: string | null
           created_at?: string
+          earned_on?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null
