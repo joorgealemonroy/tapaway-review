@@ -138,6 +138,7 @@ interface MarkersProps {
   locations: BusinessLocation[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onCapabilityIssue: (issue: string | null) => void;
 }
 
 /** Renders clustered markers and keeps the viewport fitted to the current filter. */
