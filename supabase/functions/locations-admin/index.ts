@@ -394,7 +394,7 @@ Deno.serve(async (req) => {
                     Date.now() + 30 * 24 * 60 * 60 * 1000,
                   ).toISOString(),
                   place_id_verified_at: nowIso,
-                  place_status: "verified",
+                  place_status: "ok",
                   hydration_status: movedPlace ? "hydrated_moved_place" : "hydrated",
                   hydration_error: null,
                   hydration_attempted_at: nowIso,
