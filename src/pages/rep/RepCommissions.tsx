@@ -28,6 +28,17 @@ interface Commission {
   restaurant_name?: string;
 }
 
+/** California business day (YYYY-MM-DD) for a timestamp. */
+const pacificDay = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+
+/** The workday a commission was earned; falls back to its creation day. */
+const earnedDay = (c: { earned_on: string | null; created_at: string }) =>
+  c.earned_on ?? pacificDay(new Date(c.created_at));
+
 const STATUS_STYLES: Record<string, string> = {
   trial_pending: 'bg-blue-400/10 text-blue-200 border-blue-400/20',
   available: 'bg-emerald-400/10 text-emerald-200 border-emerald-400/20',
