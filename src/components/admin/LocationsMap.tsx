@@ -376,6 +376,7 @@ const MapShell = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fault, setFault] = useState<MapFault>(null);
   const [gmCode, setGmCode] = useState<string | null>(null);
+  const [capabilityIssue, setCapabilityIssue] = useState<string | null>(null);
 
   // The Maps script reports auth/billing/referrer failures on this global hook only.
   useEffect(() => {
