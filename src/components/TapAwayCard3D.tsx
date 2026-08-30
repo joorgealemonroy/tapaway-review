@@ -45,7 +45,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
             >
 
               <img
-                src="/tapaway-card-front.svg"
+                src={cardFrontArt.url}
                 alt="TapAway card front"
                 loading="eager"
                 decoding="async"
@@ -55,21 +55,26 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
 
               />
 
-              {/* Logo overlay — centered on the card face */}
+              {/* Logo overlay — fills the artwork's logo circle */}
               {logoUrl && (
-                <div className="absolute inset-0 flex items-center justify-center" style={{ top: "-8%" }}>
-                  <img
-                    src={logoUrl}
-                    alt="Your logo"
-                    className="w-[60px] h-[60px] rounded-full object-cover border-2 border-white/20 shadow-lg"
-                  />
+                <div
+                  className="absolute rounded-full overflow-hidden"
+                  style={{
+                    left: "50%",
+                    top: "48.5%",
+                    width: "66%",
+                    aspectRatio: "1 / 1",
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <img src={logoUrl} alt="Your logo" className="w-full h-full object-cover" />
                 </div>
               )}
 
               {/* Business name — bottom of card face */}
               {businessName && (
                 <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-3 pointer-events-none">
-                  <span className="text-[9px] font-bold text-white/90 tracking-wide truncate max-w-[80%] text-center drop-shadow-md">
+                  <span className="text-[9px] font-bold text-black/80 tracking-wide truncate max-w-[80%] text-center">
                     {businessName}
                   </span>
                 </div>
@@ -90,12 +95,27 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
               }}
             >
               <img
-                src="/tapaway-card-back.svg"
+                src={cardBackArt.url}
                 alt="TapAway card back"
                 className="w-full h-full object-cover"
-                style={{ transform: "rotate(180deg)", borderRadius: "1.5rem" }}
+                style={{ borderRadius: "1.5rem" }}
               />
+              {logoUrl && (
+                <div
+                  className="absolute rounded-full overflow-hidden"
+                  style={{
+                    left: "50%",
+                    top: "48.5%",
+                    width: "88%",
+                    aspectRatio: "1 / 1",
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <img src={logoUrl} alt="Your logo" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
+
           </div>
         </div>
       </div>
