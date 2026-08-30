@@ -115,18 +115,20 @@ Cost controls: refresh only on expiry or `place_status='stale'`, nightly refresh
 - New admin-only edge function `locations-admin`, following the proven `analytics-report` pattern: verify JWT with a user-scoped client, derive caller identity from `auth.getUser()`, re-check admin role server-side, then use an isolated service-role client for privileged reads and writes.
 - Sales-representative access is deliberately **not** granted in this release; it is added when a rep-facing interface exists and has been tested.
 - The server Google key stays in edge-function secrets; the browser only receives the referrer-restricted maps key. Administrator and rep locations are never persisted or exposed.
-- **Future public directory:** no SECURITY DEFINER function exposed to `anon`. `/discover` will read through a protected public edge function returning an explicit allowlist of fields (name, slug, city, address, coordinates, category, public phone, hub link) for rows that are simultaneously active access, approved, published, place-verified and explicitly opted in. Billing, payment state, trial data, internal notes, rep assignment and analytics are never returned.
+- **Future public directory:** no SECURITY DEFINER database function is ever exposed to `anon`. `/discover` reads exclusively through a **protected public edge function** returning an explicit field allowlist (name, slug, city, address, coordinates, category, public phone, hub link) for rows that are simultaneously active access, approved, published, place-verified and explicitly opted in (`public_directory_opt_in` defaults to false). Billing, payment state, trial data, internal notes, rep assignment and analytics are never returned.
 
 ## 6. Phased implementation
 
-1. **Schema + derivation** — additive migration; backfill one location row per source hub (no name-based grouping); run derivation; write initial history; flag `-legacy` and ambiguous rows as `needs_review`. No access changes.
-2. **Manual-review queue** — admin UI to classify the 25 `unknown_manual` records, with full history capture.
-3. **Coordinate hydration + retention jobs** — fill the 42 missing coordinate sets, geocode the 5 address-only records, add the 30-day coordinate expiry job, Place ID re-verification, route-result purge and `places_api_log`.
+1. **Schema + derivation** — additive migration; backfill one location row per source hub (no name-based grouping); run derivation; write initial history; flag `-legacy` and ambiguous rows as `needs_review`. No writes to existing hub access or billing columns.
+2. **Manual-review queue** — admin UI to classify the 25 `unknown_manual` records (with paid-through dates where required), full history capture.
+3. **Coordinate hydration + retention jobs** — fill the 42 missing coordinate sets, geocode the 5 address-only records, add the 30-day Google coordinate/detail expiry job, Place ID re-verification, route-result purge and `places_api_log`.
 4. **Admin map** — `/admin/locations`: clustered map, legend, colored + text-labelled markers, synchronized filterable table, location card with Open Hub / Dashboard / Directions / Add to Route / Record Visit, mobile layout.
 5. **Route planner** — settings UI, server-side optimization, ordered stops with ETAs, excluded stops, Google Maps hand-off, printable itinerary, visit outcome logging.
-6. **Business grouping** — admin merge tool to combine confirmed multi-location businesses (Las Islas) under one `business_id`.
-7. **Directory readiness** — opt-in control in the hub dashboard, eligibility checks, protected public function; `/discover` built but unlaunched.
-8. **Stripe reconciliation** — extend `stripe-webhook` to update payment fields and append status history, respecting manual classifications.
+6. **Business grouping** — audited, reversible admin merge tool for confirmed multi-location businesses (Las Islas); re-parents location rows only.
+7. **Directory readiness** — opt-in control (default off) in the hub dashboard, eligibility checks, protected public **edge function**; `/discover` built but unlaunched.
+8. **Stripe reconciliation** — extend `stripe-webhook` to update payment fields (`last_payment_at`, `current_billing_period_end`, `paid_through_at`, refunds/disputes) and append status history, respecting manual classifications and never altering hub access.
+
+## 7. Records requiring manual cleanup
 
 ## 7. Records requiring manual cleanup
 
