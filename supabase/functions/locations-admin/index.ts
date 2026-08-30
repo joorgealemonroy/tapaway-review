@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
     " payment_evidence_ref, payment_attention, assigned_rep_id, last_visited_at, next_follow_up_at," +
     " internal_notes, visit_eligible, public_directory_opt_in, needs_review, review_reason," +
     " hydration_status, hydration_error, hydration_attempted_at," +
+    " location_state, location_state_source, location_state_set_at, location_state_reason," +
+    " match_candidates, match_candidates_expires_at, parent_location_id," +
     " synced_at, created_at, updated_at";
 
   try {
@@ -271,6 +273,59 @@ Deno.serve(async (req) => {
             next_follow_up_at: dateOrNull(body.nextFollowUpAt),
           })
           .eq("id", locationId);
+        return json({ ok: true });
+      }
+
+      // Idempotent coverage audit: every source hub gets exactly one location row
+      // and an explicit location state. Never merges or removes anything.
+      case "audit_coverage": {
+        const { data, error } = await admin.rpc("audit_location_coverage_admin");
+        if (error) throw error;
+        return json({ ok: true, result: Array.isArray(data) ? data[0] : data });
+      }
+
+      // Explicit admin resolution of a location state. Recorded in status history
+      // and never overwritten by the automated audit afterwards.
+      case "set_state": {
+        if (!locationId) return json({ error: "locationId required" }, 400);
+        const state = str(body.locationState, 40);
+        const allowed = [
+          "mapped_physical_location",
+          "multi_location_master",
+          "service_area_business",
+          "online_or_personal_hub",
+          "missing_information",
+          "ambiguous_match",
+          "invalid_place_id",
+          "archived_or_inactive",
+        ];
+        if (!state || !allowed.includes(state)) return json({ error: "Invalid location state" }, 400);
+        const reason = str(body.reason, 1000);
+        const { data: prev } = await admin
+          .from("business_locations")
+          .select("location_state")
+          .eq("id", locationId)
+          .maybeSingle();
+        const { error } = await admin
+          .from("business_locations")
+          .update({
+            location_state: state,
+            location_state_source: "admin",
+            location_state_set_by: callerUserId,
+            location_state_set_at: new Date().toISOString(),
+            location_state_reason: reason,
+          })
+          .eq("id", locationId);
+        if (error) throw error;
+        await admin.from("location_status_history").insert({
+          location_id: locationId,
+          field: "location_state",
+          previous_value: prev?.location_state ?? null,
+          new_value: state,
+          reason,
+          source: "admin_manual",
+          actor_user_id: callerUserId,
+        });
         return json({ ok: true });
       }
 
