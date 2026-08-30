@@ -337,6 +337,106 @@ Deno.serve(async (req) => {
         return json({ ok: true, result: data });
       }
 
+      // Server-side Places text search for hubs that have an address but no
+      // Place ID. Only a single, unambiguous result is accepted automatically;
+      // anything else is stored as an expiring candidate list for admin review.
+      case "resolve_missing": {
+        const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY_SERVER");
+        if (!googleKey) {
+          return json({ error: "google_key_missing", details: "GOOGLE_PLACES_API_KEY_SERVER is not configured." }, 400);
+        }
+        const nowIso = new Date().toISOString();
+        const expIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: pending, error: pendErr } = await admin
+          .from("business_locations")
+          .select("id, display_name, formatted_address, city, state, hub_slug")
+          .is("google_place_id", null)
+          .not("formatted_address", "is", null)
+          .limit(100);
+        if (pendErr) throw pendErr;
+
+        let accepted = 0, ambiguous = 0, none = 0, failedSearch = 0;
+
+        for (const row of pending ?? []) {
+          const query = [row.display_name, row.formatted_address].filter(Boolean).join(" ");
+          if (!query.trim()) { none++; continue; }
+          try {
+            const resp = await fetch("https://places.googleapis.com/v1/places:searchText", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": googleKey,
+                "X-Goog-FieldMask": "places.id,places.location,places.formattedAddress,places.displayName",
+              },
+              body: JSON.stringify({ textQuery: query, maxResultCount: 5 }),
+            });
+            if (!resp.ok) {
+              failedSearch++;
+              await admin.from("places_api_log").insert({ endpoint: "searchText", ok: false, error: `http_${resp.status}` });
+              continue;
+            }
+            const out = await resp.json();
+            const places: Array<Record<string, unknown>> = out?.places ?? [];
+            await admin.from("places_api_log").insert({ endpoint: "searchText", ok: true, error: null });
+
+            if (places.length === 0) {
+              none++;
+              await admin.from("business_locations").update({
+                needs_review: true,
+                review_reason: "Google returned no match for the stored address",
+              }).eq("id", row.id);
+              continue;
+            }
+
+            if (places.length === 1) {
+              // Strong confidence: exactly one candidate.
+              const p = places[0] as { id?: string; location?: { latitude?: number; longitude?: number } };
+              const lat = p.location?.latitude;
+              const lng = p.location?.longitude;
+              if (p.id && typeof lat === "number" && typeof lng === "number") {
+                accepted++;
+                await admin.from("business_locations").update({
+                  google_place_id: p.id,
+                  place_status: "ok",
+                  place_id_verified_at: nowIso,
+                  lat, lng, g_lat: lat, g_lng: lng,
+                  coordinate_source: "google_places",
+                  coordinates_obtained_at: nowIso,
+                  coordinates_expires_at: expIso,
+                  google_data_obtained_at: nowIso,
+                  google_data_expires_at: expIso,
+                  location_state: "mapped_physical_location",
+                  match_candidates: null,
+                  match_candidates_expires_at: null,
+                  needs_review: false,
+                  review_reason: null,
+                }).eq("id", row.id);
+                continue;
+              }
+            }
+
+            // Multiple candidates: never guess. Store an expiring review list.
+            ambiguous++;
+            await admin.from("business_locations").update({
+              match_candidates: places.slice(0, 5),
+              match_candidates_expires_at: expIso,
+              location_state: "ambiguous_match",
+              needs_review: true,
+              review_reason: `${places.length} possible Google matches — admin confirmation required`,
+            }).eq("id", row.id);
+          } catch (e) {
+            failedSearch++;
+            await admin.from("places_api_log").insert({
+              endpoint: "searchText", ok: false,
+              error: e instanceof Error ? e.message.slice(0, 200) : "search failed",
+            });
+          }
+        }
+
+        return json({ ok: true, run: { scanned: pending?.length ?? 0, accepted, ambiguous, none, failed: failedSearch } });
+      }
+
       // Fills expiring Google-sourced coordinates for locations that already
       // carry a Place ID. Google data is cached for 30 days only and is never
       // promoted into the TapAway-owned display fields.
