@@ -248,6 +248,45 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_config: {
+        Row: {
+          consent_retention_days: number
+          created_at: string
+          cutover_at: string
+          id: boolean
+          ip_hash_retention_days: number
+          meta_enabled: boolean
+          meta_log_retention_days: number
+          meta_test_mode: boolean
+          raw_retention_days: number
+          updated_at: string
+        }
+        Insert: {
+          consent_retention_days?: number
+          created_at?: string
+          cutover_at?: string
+          id?: boolean
+          ip_hash_retention_days?: number
+          meta_enabled?: boolean
+          meta_log_retention_days?: number
+          meta_test_mode?: boolean
+          raw_retention_days?: number
+          updated_at?: string
+        }
+        Update: {
+          consent_retention_days?: number
+          created_at?: string
+          cutover_at?: string
+          id?: boolean
+          ip_hash_retention_days?: number
+          meta_enabled?: boolean
+          meta_log_retention_days?: number
+          meta_test_mode?: boolean
+          raw_retention_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -296,6 +335,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      analytics_hits: {
+        Row: {
+          browser: string | null
+          campaign_channel: string | null
+          classification_reason: string | null
+          consent_advertising: boolean | null
+          consent_analytics: boolean | null
+          country: string | null
+          created_at: string
+          device_category: string | null
+          entry_path: string | null
+          event_id: string
+          event_name: string
+          hub_id: string | null
+          hub_kind: string | null
+          id: string
+          ip_hash: string | null
+          ip_hash_expires_at: string | null
+          is_new_visitor: boolean | null
+          is_validated: boolean
+          occurred_at: string
+          os: string | null
+          path: string | null
+          props: Json
+          referrer: string | null
+          referrer_host: string | null
+          region: string | null
+          scroll_depth_pct: number | null
+          session_id: string
+          time_on_page_ms: number | null
+          traffic_class: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          campaign_channel?: string | null
+          classification_reason?: string | null
+          consent_advertising?: boolean | null
+          consent_analytics?: boolean | null
+          country?: string | null
+          created_at?: string
+          device_category?: string | null
+          entry_path?: string | null
+          event_id: string
+          event_name: string
+          hub_id?: string | null
+          hub_kind?: string | null
+          id?: string
+          ip_hash?: string | null
+          ip_hash_expires_at?: string | null
+          is_new_visitor?: boolean | null
+          is_validated?: boolean
+          occurred_at?: string
+          os?: string | null
+          path?: string | null
+          props?: Json
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          scroll_depth_pct?: number | null
+          session_id: string
+          time_on_page_ms?: number | null
+          traffic_class?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          campaign_channel?: string | null
+          classification_reason?: string | null
+          consent_advertising?: boolean | null
+          consent_analytics?: boolean | null
+          country?: string | null
+          created_at?: string
+          device_category?: string | null
+          entry_path?: string | null
+          event_id?: string
+          event_name?: string
+          hub_id?: string | null
+          hub_kind?: string | null
+          id?: string
+          ip_hash?: string | null
+          ip_hash_expires_at?: string | null
+          is_new_visitor?: boolean | null
+          is_validated?: boolean
+          occurred_at?: string
+          os?: string | null
+          path?: string | null
+          props?: Json
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          scroll_depth_pct?: number | null
+          session_id?: string
+          time_on_page_ms?: number | null
+          traffic_class?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
+      analytics_ip_salt: {
+        Row: {
+          created_at: string
+          salt: string
+          salt_date: string
+        }
+        Insert: {
+          created_at?: string
+          salt: string
+          salt_date?: string
+        }
+        Update: {
+          created_at?: string
+          salt?: string
+          salt_date?: string
+        }
+        Relationships: []
       }
       app_settings: {
         Row: {
@@ -3214,6 +3385,102 @@ export type Database = {
       }
     }
     Views: {
+      analytics_hits_validated: {
+        Row: {
+          browser: string | null
+          campaign_channel: string | null
+          country: string | null
+          created_at: string | null
+          device_category: string | null
+          entry_path: string | null
+          event_id: string | null
+          event_name: string | null
+          hub_id: string | null
+          hub_kind: string | null
+          id: string | null
+          is_new_visitor: boolean | null
+          occurred_at: string | null
+          os: string | null
+          path: string | null
+          props: Json | null
+          referrer: string | null
+          referrer_host: string | null
+          region: string | null
+          scroll_depth_pct: number | null
+          session_id: string | null
+          time_on_page_ms: number | null
+          traffic_class: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          campaign_channel?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_category?: string | null
+          entry_path?: string | null
+          event_id?: string | null
+          event_name?: string | null
+          hub_id?: string | null
+          hub_kind?: string | null
+          id?: string | null
+          is_new_visitor?: boolean | null
+          occurred_at?: string | null
+          os?: string | null
+          path?: string | null
+          props?: Json | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          scroll_depth_pct?: number | null
+          session_id?: string | null
+          time_on_page_ms?: number | null
+          traffic_class?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          campaign_channel?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_category?: string | null
+          entry_path?: string | null
+          event_id?: string | null
+          event_name?: string | null
+          hub_id?: string | null
+          hub_kind?: string | null
+          id?: string | null
+          is_new_visitor?: boolean | null
+          occurred_at?: string | null
+          os?: string | null
+          path?: string | null
+          props?: Json | null
+          referrer?: string | null
+          referrer_host?: string | null
+          region?: string | null
+          scroll_depth_pct?: number | null
+          session_id?: string | null
+          time_on_page_ms?: number | null
+          traffic_class?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
       bookings_public: {
         Row: {
           booking_date: string | null
@@ -3571,6 +3838,7 @@ export type Database = {
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
+      expire_analytics_ip_hashes: { Args: never; Returns: undefined }
       get_auth_user_by_email: {
         Args: { lookup_email: string }
         Returns: {
@@ -3736,6 +4004,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hub_analytics_summary: {
+        Args: { _hub_id: string; _since?: string; _until?: string }
+        Returns: {
+          event_name: string
+          events: number
+          sessions: number
+          visitors: number
+        }[]
       }
       is_admin: { Args: never; Returns: boolean }
       is_affiliate: { Args: never; Returns: boolean }
