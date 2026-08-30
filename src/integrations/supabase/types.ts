@@ -4529,6 +4529,10 @@ export type Database = {
           state_changed: number
         }[]
       }
+      award_demo_commission: {
+        Args: { _personal_profile_id: string }
+        Returns: Json
+      }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
       current_user_email: { Args: never; Returns: string }
