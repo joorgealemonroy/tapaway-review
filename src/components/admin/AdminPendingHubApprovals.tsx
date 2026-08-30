@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { humanizeSlug } from "@/lib/displayName";
+import { toast } from "sonner";
 import { toast } from "sonner";
 import {
   Dialog,
