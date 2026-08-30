@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
   try {
     if (action === "overview") {
-      const { data, error } = await admin.rpc("admin_overview", {
+      const { data, error } = await admin.rpc("rpt_admin_overview", {
         _caller_user_id: callerUserId,
         _since: since,
         _until: until,
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "hub_table") {
-      const { data, error } = await admin.rpc("admin_hub_table", {
+      const { data, error } = await admin.rpc("rpt_admin_hub_table", {
         _caller_user_id: callerUserId,
         _since: since,
         _until: until,
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
     if (action === "hub_summary" || action === "hub_detail") {
       if (!hubId) return json({ error: "hubId required" }, 400);
 
-      const { data: summary, error } = await admin.rpc("hub_analytics_summary", {
+      const { data: summary, error } = await admin.rpc("rpt_hub_analytics_summary", {
         _caller_user_id: callerUserId,
         _hub_id: hubId,
         _since: since,
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
 
       // The private function returns zero rows for an unauthorised caller.
       // Distinguish "not authorised" from "authorised but no traffic".
-      const { data: authz } = await admin.rpc("hub_sources", {
+      const { data: authz } = await admin.rpc("rpt_hub_sources", {
         _caller_user_id: callerUserId,
         _hub_id: hubId,
         _since: since,
