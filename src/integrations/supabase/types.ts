@@ -3862,6 +3862,7 @@ export type Database = {
           name: string
           payout_method: string | null
           phone: string | null
+          quality_gate_exempt: boolean
           signature_at: string | null
           signature_name: string | null
           updated_at: string
@@ -3877,6 +3878,7 @@ export type Database = {
           name: string
           payout_method?: string | null
           phone?: string | null
+          quality_gate_exempt?: boolean
           signature_at?: string | null
           signature_name?: string | null
           updated_at?: string
@@ -3892,6 +3894,7 @@ export type Database = {
           name?: string
           payout_method?: string | null
           phone?: string | null
+          quality_gate_exempt?: boolean
           signature_at?: string | null
           signature_name?: string | null
           updated_at?: string
