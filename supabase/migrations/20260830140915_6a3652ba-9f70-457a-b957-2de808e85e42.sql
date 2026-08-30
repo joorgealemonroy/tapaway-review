@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.commissions_shift_base_daily_unique;

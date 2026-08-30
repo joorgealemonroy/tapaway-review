@@ -23,9 +23,21 @@ interface Commission {
   period_label: string;
   note: string | null;
   created_at: string;
+  earned_on: string | null;
   rep_restaurant_id: string | null;
   restaurant_name?: string;
 }
+
+/** California business day (YYYY-MM-DD) for a timestamp. */
+const pacificDay = (d: Date) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
+
+/** The workday a commission was earned; falls back to its creation day. */
+const earnedDay = (c: { earned_on: string | null; created_at: string }) =>
+  c.earned_on ?? pacificDay(new Date(c.created_at));
 
 const STATUS_STYLES: Record<string, string> = {
   trial_pending: 'bg-blue-400/10 text-blue-200 border-blue-400/20',
@@ -235,11 +247,13 @@ const RepCommissions = () => {
           <p className="text-3xl font-semibold text-emerald-300">${stats.available.toFixed(2)}</p>
           <p className="text-xs text-white/40 mt-1">Ready for ACH transfer</p>
           {(() => {
-            const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-            const todayStart = new Date(); todayStart.setUTCHours(0,0,0,0);
-            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= monthStart);
-            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && new Date(c.created_at) >= todayStart).length;
-            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && new Date(c.created_at) >= todayStart);
+            // Work days are California business days, keyed to the day the
+            // demo was submitted (earned_on), not the day it was approved.
+            const todayPT = pacificDay(new Date());
+            const monthPT = todayPT.slice(0, 7);
+            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c).startsWith(monthPT));
+            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c) === todayPT).length;
+            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && earnedDay(c) === todayPT);
             const QUOTA = 10;
             return (
               <>
@@ -334,7 +348,7 @@ const RepCommissions = () => {
               key={c.id}
               className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-2 md:gap-4 px-5 py-3.5 border-b border-white/5 last:border-b-0 items-center text-sm"
             >
-              <div className="text-white/60">{format(new Date(c.created_at), 'MMM d, yyyy')}</div>
+              <div className="text-white/60">{format(new Date(`${earnedDay(c)}T12:00:00`), 'MMM d, yyyy')}</div>
               <div className="text-white/90">{c.restaurant_name || (c.commission_type === 'shift_base' ? 'Daily Shift' : c.commission_type === 'closer_pool' ? "Monthly Closer's Pool" : '—')}</div>
               <div>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-white/70 text-[11px] font-medium">

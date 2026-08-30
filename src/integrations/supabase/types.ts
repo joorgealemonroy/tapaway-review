@@ -1134,6 +1134,7 @@ export type Database = {
           clawback_until: string | null
           commission_type: string | null
           created_at: string
+          earned_on: string | null
           id: string
           note: string | null
           paid_at: string | null
@@ -1154,6 +1155,7 @@ export type Database = {
           clawback_until?: string | null
           commission_type?: string | null
           created_at?: string
+          earned_on?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null
@@ -1174,6 +1176,7 @@ export type Database = {
           clawback_until?: string | null
           commission_type?: string | null
           created_at?: string
+          earned_on?: string | null
           id?: string
           note?: string | null
           paid_at?: string | null
@@ -4525,6 +4528,10 @@ export type Database = {
           inserted: number
           state_changed: number
         }[]
+      }
+      award_demo_commission: {
+        Args: { _personal_profile_id: string }
+        Returns: Json
       }
       build_google_review_url: { Args: { place_id: string }; Returns: string }
       cleanup_expired_archives: { Args: never; Returns: undefined }
