@@ -4620,6 +4620,13 @@ export type Database = {
           source: string
         }[]
       }
+      sync_business_locations_admin: {
+        Args: never
+        Returns: {
+          inserted: number
+          updated: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "sales_rep" | "affiliate"
