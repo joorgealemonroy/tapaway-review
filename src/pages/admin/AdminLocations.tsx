@@ -283,12 +283,14 @@ const VisitDialog = ({
 export default function AdminLocations() {
   const [params, setParams] = useSearchParams();
   const filter = (params.get("status") as StatusKey | null) ?? null;
+  const stateFilter = (params.get("state") as LocationState | null) ?? null;
   const [search, setSearch] = useState("");
   const [classifying, setClassifying] = useState<BusinessLocation | null>(null);
   const [route, setRoute] = useState<string[]>([]);
+  const [auditing, setAuditing] = useState(false);
 
   const {
-    locations, counts, loading, error, syncing, reload, resync,
+    locations, counts, stateCounts, loading, error, syncing, reload, resync,
     lastSyncedAt, staleCoordinates, failedGoogleJobs, apiLog,
     hydrating, hydrate, lastHydrateRun, mapping,
   } = useLocationIntel(true);
@@ -297,12 +299,39 @@ export default function AdminLocations() {
     const q = search.trim().toLowerCase();
     return locations.filter((l) => {
       if (filter && !matchesStatus(l, filter)) return false;
+      if (stateFilter && l.location_state !== stateFilter) return false;
       if (!q) return true;
       return [l.display_name, l.hub_slug, l.formatted_address, l.city]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(q));
     });
-  }, [locations, filter, search]);
+  }, [locations, filter, stateFilter, search]);
+
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const res = await locationsApi.auditCoverage();
+      const r = res.result;
+      toast.success(
+        `Coverage audit: ${r?.inserted ?? 0} added · ${r?.state_changed ?? 0} states updated · ${r?.duplicates ?? 0} duplicates flagged`,
+      );
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Coverage audit failed");
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const resolveState = async (loc: BusinessLocation, next: LocationState) => {
+    try {
+      await locationsApi.setState(loc.id, next, "Resolved from the admin locations review queue");
+      toast.success(`${loc.display_name ?? "Location"} marked as ${LOCATION_STATE_LABELS[next]}`);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update the location state");
+    }
+  };
 
   // Marker actions are dispatched from inside the Google InfoWindow portal.
   useEffect(() => {
