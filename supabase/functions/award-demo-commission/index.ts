@@ -52,17 +52,21 @@ Deno.serve(async (req) => {
     }
 
     const payload = (result ?? {}) as Record<string, unknown>;
-    const repId = payload.rep_id as string | undefined;
-    const earnedOn = payload.earned_on as string | undefined;
+    const periodLabel = payload.period_label as string | undefined;
 
     // --- Refresh monthly Closer's Pool tier for the earned period ---
-    if (repId) {
-      const periodLabel = new Date(`${earnedOn ?? new Date().toISOString().slice(0, 10)}T12:00:00Z`)
-        .toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
-      await admin.rpc('recompute_closer_pool', {
-        _rep_id: repId,
-        _period_label: periodLabel,
-      });
+    if (periodLabel) {
+      const { data: prof } = await admin
+        .from('personal_profiles')
+        .select('sales_rep_id')
+        .eq('id', personal_profile_id)
+        .maybeSingle();
+      if (prof?.sales_rep_id) {
+        await admin.rpc('recompute_closer_pool', {
+          _rep_id: prof.sales_rep_id,
+          _period_label: periodLabel,
+        });
+      }
     }
 
     return json({ ok: true, ...payload });
