@@ -23,6 +23,8 @@ Every state change writes a `location_status_history` row (actor, timestamp, pre
 ### Coverage audit + resolver (edge function `locations-admin`, new actions)
 `audit_coverage` re-scans **all** source hubs (both tables) and inserts any missing `business_locations` row — one row per source hub, no name-based grouping.
 
+It is strictly idempotent: the migration adds (or verifies) a unique index on `(source_type, source_id)`, and the audit writes via `INSERT ... ON CONFLICT (source_type, source_id) DO UPDATE` touching only automated fields. Running the audit any number of times can never create a duplicate location row, and never overwrites admin-set state, coordinates or notes. If any pre-existing duplicates are found, they are reported for review rather than auto-merged.
+
 `resolve` walks unresolved rows in batches, in this order:
 1. Valid unexpired coordinates → `mapped_physical_location`.
 2. Place ID present → Place Details hydration (existing path, minimal field mask).
@@ -46,7 +48,9 @@ Completion requires zero physical-business hubs left unresolved; anything remain
 
 ## Workstream 2 — link checking that tells the truth
 
-Migration is non-destructive and non-reinterpreting: a **new** `classification` column carries the new vocabulary (`healthy`, `redirected`, `confirmed_broken`, `server_error`, `tls_error`, `timeout`, `blocked_unverifiable`, `manual_false_positive`) alongside the untouched legacy `status`, plus `final_url`, `attempts`, `false_positive_note`, and a `link_check_runs` row recording each run's start/finish/completeness. Historical rows are **not** re-labelled from old data. The dashboard keeps reading the legacy card until a full fresh run completes successfully; only then does it switch to the new classifications, so a partial or failed run can never display misleading totals.
+Migration is non-destructive and non-reinterpreting: a **new** `classification` column carries the new vocabulary (`healthy`, `redirected`, `confirmed_broken`, `server_error`, `tls_error`, `timeout`, `blocked_unverifiable`) alongside the untouched legacy `status`, plus `final_url`, `attempts`, and a `link_check_runs` row recording each run's start/finish/completeness. Historical rows are **not** re-labelled from old data. The dashboard keeps reading the legacy card until a full fresh run completes successfully; only then does it switch to the new classifications, so a partial or failed run can never display misleading totals.
+
+"Mark False Positive" is a **separate persistent admin override**, not a classification value: `admin_review_state` (`none` / `false_positive` / `acknowledged`), `admin_review_note`, `admin_reviewed_by`, `admin_reviewed_at`. Automated runs write only `classification` and never touch the override columns, so a later check can update what it detected while the admin's decision and note survive. The dashboard counts a link as a problem only when the automated classification says so **and** no active false-positive override exists; the details view shows both the detected classification and the override side by side, with the admin able to clear the override explicitly.
 
 `check-hub-links` rewrite:
 - HEAD → fall back to a limited GET when HEAD is unsupported/misleading.
@@ -82,7 +86,7 @@ Marker construction failures are caught and coalesced: one failure mode produces
 **Acceptance:** real pins rendering on `https://tapaway.co/admin/locations`. A clean diagnostic instead of a crash is not completion.
 
 ### Grouping and reporting
-`client_errors` rows are fingerprinted on normalized message (ids/hashes stripped) + route + top stack frame + build, giving unique-issue counts, first/last seen, occurrence counts, role/anonymous state and post-deploy occurrence counts. Records are **not** cleared, reset or deleted — the 146 ages out of the window naturally.
+`client_errors` rows are fingerprinted on **normalized message + route + stable stack source only** — the build identifier is deliberately **excluded** from the fingerprint so the same bug across two deployments stays one unique issue. Normalization strips uuids, numeric ids, hashes and query strings from the message, and strips changing asset hashes, bundle fingerprints, ports and origins from stack paths (`/assets/AdminLocations-CWSEoFmK.js:1:234` → `assets/AdminLocations.js`). Build is stored alongside each occurrence, so a group can still be broken down by build and by before/after a deployment. Each group reports unique-issue count, first/last seen, occurrence count, builds affected, role/anonymous state and post-deploy occurrences. Records are **not** cleared, reset or deleted — the 146 ages out of the window naturally.
 
 Known groups going in: the AdvancedMarker `keys` crash (~130), React #185 (1, fixed, resolved only after the published map stays clean), `cardFrontArt is not defined` (1, legacy, reproduced and fixed or confirmed stale).
 
