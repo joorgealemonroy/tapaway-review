@@ -6,6 +6,8 @@ export interface BusinessLocation {
   business_id: string;
   hub_kind: "personal" | "restaurant" | "child_location";
   hub_slug: string | null;
+  personal_profile_id: string | null;
+  restaurant_id: string | null;
   display_name: string | null;
   formatted_address: string | null;
   city: string | null;
@@ -14,6 +16,9 @@ export interface BusinessLocation {
   phone: string | null;
   google_place_id: string | null;
   place_status: string;
+  hydration_status: string | null;
+  hydration_error: string | null;
+  hydration_attempted_at: string | null;
   lat: number | null;
   lng: number | null;
   coordinate_source: string | null;
@@ -133,11 +138,31 @@ const invoke = async <T,>(payload: Record<string, unknown>): Promise<T> => {
   return data as T;
 };
 
+export interface HydrateRun {
+  scanned: number;
+  hydrated: number;
+  invalid: number;
+  failed: number;
+  rateLimited: number;
+  moved: number;
+}
+
+export interface MappingTotals {
+  total: number;
+  mapped: number;
+  invalidPlaceIds: number;
+  missingPlaceIds: number;
+  failedRequests: number;
+  stillUnmappable: number;
+}
+
 export const locationsApi = {
   classify: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "classify", ...payload }),
   updateOps: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "update_ops", ...payload }),
   logVisit: (payload: Record<string, unknown>) => invoke<{ ok: boolean }>({ action: "log_visit", ...payload }),
   sync: () => invoke<{ ok: boolean }>({ action: "sync" }),
+  hydrate: (limit = 200) =>
+    invoke<{ ok: boolean; run: HydrateRun; totals: MappingTotals }>({ action: "hydrate", limit }),
 };
 
 export function useLocationIntel(enabled = true) {
@@ -146,6 +171,8 @@ export function useLocationIntel(enabled = true) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
+  const [lastHydrateRun, setLastHydrateRun] = useState<HydrateRun | null>(null);
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -206,6 +233,30 @@ export function useLocationIntel(enabled = true) {
 
   const failedGoogleJobs = useMemo(() => apiLog.filter((e) => !e.ok).length, [apiLog]);
 
+  const mapping: MappingTotals = useMemo(
+    () => ({
+      total: locations.length,
+      mapped: locations.filter((l) => l.lat !== null).length,
+      invalidPlaceIds: locations.filter((l) => l.place_status === "invalid").length,
+      missingPlaceIds: locations.filter((l) => !l.google_place_id).length,
+      failedRequests: locations.filter((l) => l.hydration_status === "failed").length,
+      stillUnmappable: locations.filter((l) => l.lat === null).length,
+    }),
+    [locations],
+  );
+
+  const hydrate = useCallback(async () => {
+    setHydrating(true);
+    try {
+      const res = await locationsApi.hydrate(300);
+      setLastHydrateRun(res.run);
+      await load();
+      return res;
+    } finally {
+      setHydrating(false);
+    }
+  }, [load]);
+
   return {
     locations,
     apiLog,
@@ -213,6 +264,10 @@ export function useLocationIntel(enabled = true) {
     loading,
     error,
     syncing,
+    hydrating,
+    hydrate,
+    lastHydrateRun,
+    mapping,
     reload: load,
     resync,
     lastSyncedAt,

@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
     " subscription_status_snapshot, last_payment_at, current_billing_period_end, paid_through_at," +
     " payment_evidence_ref, payment_attention, assigned_rep_id, last_visited_at, next_follow_up_at," +
     " internal_notes, visit_eligible, public_directory_opt_in, needs_review, review_reason," +
+    " hydration_status, hydration_error, hydration_attempted_at," +
     " synced_at, created_at, updated_at";
 
   try {
@@ -279,6 +280,172 @@ Deno.serve(async (req) => {
         const { data, error } = await admin.rpc("sync_business_locations_admin");
         if (error) throw error;
         return json({ ok: true, result: data });
+      }
+
+      // Fills expiring Google-sourced coordinates for locations that already
+      // carry a Place ID. Google data is cached for 30 days only and is never
+      // promoted into the TapAway-owned display fields.
+      case "hydrate": {
+        const googleKey = Deno.env.get("GOOGLE_PLACES_API_KEY_SERVER");
+        if (!googleKey) {
+          return json(
+            {
+              error: "google_key_missing",
+              details:
+                "GOOGLE_PLACES_API_KEY_SERVER is not configured, so Place Details cannot be requested.",
+            },
+            400,
+          );
+        }
+        const limit = Math.min(Math.max(Number(body.limit) || 200, 1), 300);
+        const nowIso = new Date().toISOString();
+
+        const { data: candidates, error: candErr } = await admin
+          .from("business_locations")
+          .select("id, google_place_id, lat, coordinates_expires_at, hydration_status")
+          .not("google_place_id", "is", null)
+          .or(`lat.is.null,coordinates_expires_at.lt.${nowIso}`)
+          .neq("place_status", "invalid")
+          .limit(limit);
+        if (candErr) throw candErr;
+
+        let hydrated = 0;
+        let invalid = 0;
+        let failed = 0;
+        let rateLimited = 0;
+        let moved = 0;
+
+        for (const row of candidates ?? []) {
+          const placeId = String(row.google_place_id ?? "").trim();
+          if (!placeId) continue;
+          let outcome: Record<string, unknown> = {};
+          let logOk = false;
+          let logError: string | null = null;
+          try {
+            const resp = await fetch(
+              `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
+              {
+                headers: {
+                  "X-Goog-Api-Key": googleKey,
+                  // Minimal field mask: location plus the moved-place pointer.
+                  "X-Goog-FieldMask": "id,location",
+                },
+              },
+            );
+
+            if (resp.status === 429) {
+              rateLimited++;
+              logError = "rate_limited";
+              outcome = {
+                hydration_status: "retry_queued",
+                hydration_error: "Google rate limit — queued for retry",
+                hydration_attempted_at: nowIso,
+              };
+            } else if (resp.status === 404 || resp.status === 400) {
+              invalid++;
+              logError = `place_invalid_${resp.status}`;
+              outcome = {
+                place_status: "invalid",
+                hydration_status: "invalid_place_id",
+                hydration_error: `Google returned ${resp.status} for this Place ID`,
+                hydration_attempted_at: nowIso,
+                needs_review: true,
+                review_reason: "Google Place ID is invalid or obsolete",
+              };
+            } else if (!resp.ok) {
+              failed++;
+              logError = `http_${resp.status}`;
+              outcome = {
+                hydration_status: "failed",
+                hydration_error: `Google Place Details returned HTTP ${resp.status}`,
+                hydration_attempted_at: nowIso,
+              };
+            } else {
+              const detail = await resp.json();
+              const lat = detail?.location?.latitude;
+              const lng = detail?.location?.longitude;
+              const returnedId = typeof detail?.id === "string" ? detail.id : placeId;
+              if (typeof lat !== "number" || typeof lng !== "number") {
+                failed++;
+                logError = "no_location";
+                outcome = {
+                  hydration_status: "failed",
+                  hydration_error: "Place Details returned no coordinates",
+                  hydration_attempted_at: nowIso,
+                };
+              } else {
+                logOk = true;
+                hydrated++;
+                const movedPlace = returnedId !== placeId;
+                if (movedPlace) moved++;
+                outcome = {
+                  lat,
+                  lng,
+                  g_lat: lat,
+                  g_lng: lng,
+                  // Google-sourced coordinates expire after 30 days.
+                  coordinate_source: "google_places",
+                  coordinates_obtained_at: nowIso,
+                  coordinates_expires_at: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000,
+                  ).toISOString(),
+                  google_data_obtained_at: nowIso,
+                  google_data_expires_at: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000,
+                  ).toISOString(),
+                  place_id_verified_at: nowIso,
+                  place_status: "ok",
+                  hydration_status: movedPlace ? "hydrated_moved_place" : "hydrated",
+                  hydration_error: null,
+                  hydration_attempted_at: nowIso,
+                  ...(movedPlace ? { google_place_id: returnedId } : {}),
+                };
+              }
+            }
+          } catch (e) {
+            failed++;
+            logError = e instanceof Error ? e.message.slice(0, 200) : "request_failed";
+            outcome = {
+              hydration_status: "failed",
+              hydration_error: logError,
+              hydration_attempted_at: nowIso,
+            };
+          }
+
+          const { error: saveErr } = await admin
+            .from("business_locations")
+            .update(outcome)
+            .eq("id", row.id);
+          if (saveErr) {
+            console.error("hydrate save failed:", saveErr.message);
+            logError = `save_failed: ${saveErr.message}`.slice(0, 200);
+            logOk = false;
+            if (outcome.hydration_status === "hydrated") hydrated--;
+            failed++;
+          }
+          await admin.from("places_api_log").insert({
+            endpoint: "places.details",
+            ok: logOk,
+            error: logError,
+          });
+        }
+
+        const { data: after } = await admin
+          .from("business_locations")
+          .select("id, lat, google_place_id, formatted_address, place_status, hydration_status");
+        const all = after ?? [];
+        return json({
+          ok: true,
+          run: { scanned: candidates?.length ?? 0, hydrated, invalid, failed, rateLimited, moved },
+          totals: {
+            total: all.length,
+            mapped: all.filter((l) => l.lat !== null).length,
+            invalidPlaceIds: all.filter((l) => l.place_status === "invalid").length,
+            missingPlaceIds: all.filter((l) => !l.google_place_id).length,
+            failedRequests: all.filter((l) => l.hydration_status === "failed").length,
+            stillUnmappable: all.filter((l) => l.lat === null).length,
+          },
+        });
       }
 
       default:
