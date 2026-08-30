@@ -1,6 +1,3 @@
-import cardFrontArt from "@/assets/tapaway-card-front-v2.svg.asset.json";
-import cardBackArt from "@/assets/tapaway-card-back-v2.svg.asset.json";
-
 interface CardCustomizerProps {
   logoUrl?: string | null;
   businessName?: string;
@@ -47,7 +44,7 @@ const CardFront = ({
       transform: "perspective(1000px) rotateX(8deg) rotateY(-4deg)",
     }}
   >
-    <img src={cardFrontArt.url} alt="TapAway card front" className="w-full h-full object-cover" />
+    <img src="/tapaway-card-front-v2.svg" alt="TapAway card front" className="w-full h-full object-cover" />
 
     {/* Custom headline block — covers the artwork's default copy */}
     <div
@@ -74,7 +71,7 @@ const CardBack = ({ logoUrl }: { logoUrl?: string | null }) => (
       transform: "perspective(1000px) rotateX(8deg) rotateY(4deg)",
     }}
   >
-    <img src={cardBackArt.url} alt="TapAway card back" className="w-full h-full object-cover" />
+    <img src="/tapaway-card-back-v2.svg" alt="TapAway card back" className="w-full h-full object-cover" />
     <LogoOverlay logoUrl={logoUrl} size="88%" />
   </div>
 );

@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import QRCode from "react-qr-code";
-import cardFrontArt from "@/assets/tapaway-card-front-v2.svg.asset.json";
 
 const PersonalCard3D = () => {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -99,7 +98,7 @@ const PersonalCard3D = () => {
                 }}
               >
                 <img 
-                  src={cardFrontArt.url} 
+                  src="/tapaway-card-front-v2.svg" 
                   alt="TapAway personal card front" 
                   loading="eager"
                   decoding="async"

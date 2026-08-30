@@ -1,6 +1,3 @@
-import cardFrontArt from "@/assets/tapaway-card-front-v2.svg.asset.json";
-import cardBackArt from "@/assets/tapaway-card-back-v2.svg.asset.json";
-
 interface TapAwayCard3DProps {
   logoUrl?: string;
   businessName?: string;
@@ -48,7 +45,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
             >
 
               <img
-                src={cardFrontArt.url}
+                src="/tapaway-card-front-v2.svg"
                 alt="TapAway card front"
                 loading="eager"
                 decoding="async"
@@ -98,7 +95,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
               }}
             >
               <img
-                src={cardBackArt.url}
+                src="/tapaway-card-back-v2.svg"
                 alt="TapAway card back"
                 className="w-full h-full object-cover"
                 style={{ borderRadius: "1.5rem" }}
