@@ -79,34 +79,75 @@ interface MarkersProps {
 const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
   const map = useMap();
   const clusterer = useRef<MarkerClusterer | null>(null);
-  const [markers, setMarkers] = useState<Record<string, Marker>>({});
+  // Marker instances never affect rendered output, so they live in a ref.
+  const markersRef = useRef<globalThis.Map<string, Marker>>(new globalThis.Map());
+  // One stable callback per id — a new function identity per render would make
+  // React detach/reattach every ref on every render.
+  const refCallbacks = useRef<globalThis.Map<string, (m: Marker | null) => void>>(
+    new globalThis.Map(),
+  );
 
   useEffect(() => {
-    if (!map || clusterer.current) return;
-    clusterer.current = new MarkerClusterer({ map });
+    if (!map) return;
+    const c = new MarkerClusterer({ map });
+    clusterer.current = c;
+    // Refs can attach before this effect runs; seed whatever is already stored.
+    const existing = Array.from(markersRef.current.values());
+    if (existing.length) c.addMarkers(existing, true);
+    c.render();
+    return () => {
+      clusterer.current = null;
+      c.clearMarkers(true);
+      c.setMap(null);
+    };
   }, [map]);
 
-  useEffect(() => {
-    if (!clusterer.current) return;
-    clusterer.current.clearMarkers();
-    clusterer.current.addMarkers(Object.values(markers));
-  }, [markers]);
-
-  const setRef = useCallback((id: string, marker: Marker | null) => {
-    setMarkers((prev) => {
-      if (marker && prev[id] === marker) return prev;
-      if (!marker && !prev[id]) return prev;
-      const next = { ...prev };
-      if (marker) next[id] = marker;
-      else delete next[id];
-      return next;
-    });
+  const getRef = useCallback((id: string) => {
+    let cb = refCallbacks.current.get(id);
+    if (!cb) {
+      cb = (marker: Marker | null) => {
+        const store = markersRef.current;
+        const prev = store.get(id);
+        if (marker) {
+          if (prev === marker) return;
+          if (prev) clusterer.current?.removeMarker(prev, true);
+          store.set(id, marker);
+          clusterer.current?.addMarker(marker, true);
+        } else {
+          if (!prev) return;
+          store.delete(id);
+          clusterer.current?.removeMarker(prev, true);
+        }
+        clusterer.current?.render();
+      };
+      refCallbacks.current.set(id, cb);
+    }
+    return cb;
   }, []);
 
-  // fitBounds whenever the filtered set changes so every visible pin is on screen.
-  const boundsKey = locations.map((l) => l.id).join(",");
+  // Drop cached callbacks for ids that are no longer rendered.
   useEffect(() => {
-    if (!map || locations.length === 0) return;
+    const live = new Set(locations.map((l) => l.id));
+    refCallbacks.current.forEach((_, id) => {
+      if (!live.has(id)) refCallbacks.current.delete(id);
+    });
+  }, [locations]);
+
+  // fitBounds runs only when the actual set of pins changes, never in response
+  // to a camera/bounds event (which would re-trigger itself).
+  const signature = useMemo(
+    () =>
+      locations
+        .map((l) => `${l.id}:${(l.lat as number).toFixed(5)},${(l.lng as number).toFixed(5)}`)
+        .join("|"),
+    [locations],
+  );
+  const lastFitted = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!map || !signature) return;
+    if (lastFitted.current === signature) return;
+    lastFitted.current = signature;
     const bounds = new google.maps.LatLngBounds();
     locations.forEach((l) => bounds.extend({ lat: l.lat as number, lng: l.lng as number }));
     if (locations.length === 1) {
@@ -115,9 +156,10 @@ const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
     } else {
       map.fitBounds(bounds, 64);
     }
-  }, [map, boundsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, signature]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = locations.find((l) => l.id === selectedId) ?? null;
+
 
   return (
     <>
@@ -125,7 +167,7 @@ const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
         <AdvancedMarker
           key={l.id}
           position={{ lat: l.lat as number, lng: l.lng as number }}
-          ref={(m) => setRef(l.id, m)}
+          ref={getRef(l.id)}
           onClick={() => onSelect(l.id)}
           title={l.display_name ?? undefined}
         >
@@ -253,24 +295,28 @@ const MapShell = ({
   useEffect(() => {
     const w = window as unknown as { gm_authFailure?: () => void };
     const prev = w.gm_authFailure;
-    w.gm_authFailure = () => setFault("auth");
-    // Google only names the precise cause (e.g. ApiTargetBlockedMapError,
-    // RefererNotAllowedMapError, BillingNotEnabledMapError) on console.error.
-    const origError = console.error;
-    console.error = (...args: unknown[]) => {
-      const text = args.map((a) => String(a)).join(" ");
+    w.gm_authFailure = () => setFault((f) => (f === "auth" ? f : "auth"));
+
+    // Google names the precise cause (ApiTargetBlockedMapError,
+    // RefererNotAllowedMapError, BillingNotEnabledMapError, …) in the message it
+    // emits. Listen passively — unrelated errors are ignored, not consumed — and
+    // stay installed until a Maps error actually matches.
+    const onError = (e: ErrorEvent) => {
+      const text = `${e.message ?? ""} ${String(e.error ?? "")}`;
       const match = text.match(/Google Maps JavaScript API error:\s*([A-Za-z]+)/);
-      if (match) {
-        setGmCode(match[1]);
-        setFault((f) => f ?? "auth");
-      }
-      origError(...(args as []));
+      if (!match) return;
+      const code = match[1];
+      setGmCode((c) => (c === code ? c : code));
+      setFault((f) => f ?? "auth");
     };
+    window.addEventListener("error", onError);
+
     return () => {
       w.gm_authFailure = prev;
-      console.error = origError;
+      window.removeEventListener("error", onError);
     };
   }, []);
+
 
   useEffect(() => {
     if (loaded) return;
