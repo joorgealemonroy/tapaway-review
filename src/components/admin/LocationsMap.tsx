@@ -295,24 +295,28 @@ const MapShell = ({
   useEffect(() => {
     const w = window as unknown as { gm_authFailure?: () => void };
     const prev = w.gm_authFailure;
-    w.gm_authFailure = () => setFault("auth");
-    // Google only names the precise cause (e.g. ApiTargetBlockedMapError,
-    // RefererNotAllowedMapError, BillingNotEnabledMapError) on console.error.
-    const origError = console.error;
-    console.error = (...args: unknown[]) => {
-      const text = args.map((a) => String(a)).join(" ");
+    w.gm_authFailure = () => setFault((f) => (f === "auth" ? f : "auth"));
+
+    // Google names the precise cause (ApiTargetBlockedMapError,
+    // RefererNotAllowedMapError, BillingNotEnabledMapError, …) in the message it
+    // emits. Listen passively — unrelated errors are ignored, not consumed — and
+    // stay installed until a Maps error actually matches.
+    const onError = (e: ErrorEvent) => {
+      const text = `${e.message ?? ""} ${String(e.error ?? "")}`;
       const match = text.match(/Google Maps JavaScript API error:\s*([A-Za-z]+)/);
-      if (match) {
-        setGmCode(match[1]);
-        setFault((f) => f ?? "auth");
-      }
-      origError(...(args as []));
+      if (!match) return;
+      const code = match[1];
+      setGmCode((c) => (c === code ? c : code));
+      setFault((f) => f ?? "auth");
     };
+    window.addEventListener("error", onError);
+
     return () => {
       w.gm_authFailure = prev;
-      console.error = origError;
+      window.removeEventListener("error", onError);
     };
   }, []);
+
 
   useEffect(() => {
     if (loaded) return;
