@@ -167,7 +167,7 @@ const Markers = ({ locations, selectedId, onSelect }: MarkersProps) => {
         <AdvancedMarker
           key={l.id}
           position={{ lat: l.lat as number, lng: l.lng as number }}
-          ref={(m) => setRef(l.id, m)}
+          ref={getRef(l.id)}
           onClick={() => onSelect(l.id)}
           title={l.display_name ?? undefined}
         >
