@@ -381,6 +381,11 @@ export default function AdminLocations() {
     else setParams({ status: key });
   };
 
+  const setStateFilter = (key: LocationState | null) => {
+    if (!key) setParams({});
+    else setParams({ state: key });
+  };
+
   const MAP_STATS: Array<[string, number]> = [
     ["Total locations", mapping.total],
     ["Mapped", mapping.mapped],
