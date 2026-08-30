@@ -193,6 +193,90 @@ const ClassifyDialog = ({
   );
 };
 
+const VISIT_OUTCOMES = [
+  "visited",
+  "spoke_with_owner",
+  "follow_up",
+  "converted",
+  "not_interested",
+  "closed",
+];
+
+/** Field visit log. Operational only — it never touches access or billing. */
+const VisitDialog = ({
+  location,
+  onClose,
+  onSaved,
+}: {
+  location: BusinessLocation | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) => {
+  const [outcome, setOutcome] = useState("visited");
+  const [notes, setNotes] = useState("");
+  const [followUp, setFollowUp] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!location) return;
+    setSaving(true);
+    try {
+      await locationsApi.logVisit({
+        locationId: location.id,
+        outcome,
+        notes: notes.trim() || null,
+        nextFollowUpAt: followUp || null,
+      });
+      toast.success("Visit recorded");
+      onSaved();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to record visit");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!location} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Record visit</DialogTitle>
+          <DialogDescription>{location?.display_name ?? "Location"}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Outcome</Label>
+            <Select value={outcome} onValueChange={setOutcome}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {VISIT_OUTCOMES.map((v) => (
+                  <SelectItem key={v} value={v}>{v.replace(/_/g, " ")}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Next follow-up</Label>
+            <Input type="date" value={followUp} onChange={(e) => setFollowUp(e.target.value)} />
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Save visit
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 export default function AdminLocations() {
   const [params, setParams] = useSearchParams();
   const filter = (params.get("status") as StatusKey | null) ?? null;
