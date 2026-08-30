@@ -1,3 +1,6 @@
+import cardFrontArt from "@/assets/tapaway-card-front-v2.svg.asset.json";
+import cardBackArt from "@/assets/tapaway-card-back-v2.svg.asset.json";
+
 interface TapAwayCard3DProps {
   logoUrl?: string;
   businessName?: string;
