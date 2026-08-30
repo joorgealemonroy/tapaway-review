@@ -340,6 +340,7 @@ const MapError = ({ title, lines }: { title: string; lines: string[] }) => (
 );
 
 export const LocationsMap = ({ locations }: { locations: BusinessLocation[] }) => {
+  const [scriptError, setScriptError] = useState(false);
   const mappable = useMemo(
     () => locations.filter((l) => typeof l.lat === "number" && typeof l.lng === "number"),
     [locations],
@@ -357,10 +358,26 @@ export const LocationsMap = ({ locations }: { locations: BusinessLocation[] }) =
     );
   }
 
+  if (!MAP_ID) {
+    return (
+      <MapError
+        title="Google Maps Map ID is missing"
+        lines={[
+          "VITE_GOOGLE_MAPS_MAP_ID is not set for this build. Advanced markers require a vector Map ID from the same Google Cloud project as the browser key.",
+          "Add the Map ID to the project environment and reload this page.",
+        ]}
+      />
+    );
+  }
+
   return (
     <div className="space-y-3">
-      <APIProvider apiKey={API_KEY} libraries={["marker"]}>
-        <MapShell locations={mappable} />
+      <APIProvider
+        apiKey={API_KEY}
+        libraries={["marker"]}
+        onError={() => setScriptError(true)}
+      >
+        <MapShell locations={mappable} scriptError={scriptError} />
       </APIProvider>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-white/50">
         <span className="flex items-center gap-1.5 text-white/40">
