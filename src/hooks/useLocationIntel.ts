@@ -312,6 +312,7 @@ export function useLocationIntel(enabled = true) {
     locations,
     apiLog,
     counts,
+    stateCounts,
     loading,
     error,
     syncing,
