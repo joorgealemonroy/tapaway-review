@@ -4036,6 +4036,64 @@ export type Database = {
         Args: { _period_label: string; _rep_id: string }
         Returns: undefined
       }
+      rpt_admin_hub_table: {
+        Args: { _caller_user_id: string; _since: string; _until: string }
+        Returns: {
+          bot_events: number
+          conversion_events: number
+          cta_events: number
+          hub_id: string
+          hub_kind: string
+          internal_events: number
+          known_returning_visitors: number
+          raw_events: number
+          validated_events: number
+          validated_page_views: number
+          verified_sessions: number
+        }[]
+      }
+      rpt_admin_overview: {
+        Args: { _caller_user_id: string; _since: string; _until: string }
+        Returns: {
+          bot_events: number
+          conversion_events: number
+          cta_events: number
+          internal_events: number
+          known_returning_visitors: number
+          raw_events: number
+          validated_events: number
+          validated_page_views: number
+          verified_sessions: number
+        }[]
+      }
+      rpt_hub_analytics_summary: {
+        Args: {
+          _caller_user_id: string
+          _hub_id: string
+          _since: string
+          _until: string
+        }
+        Returns: {
+          event_name: string
+          events: number
+          sessions: number
+          visitors: number
+        }[]
+      }
+      rpt_hub_sources: {
+        Args: {
+          _caller_user_id: string
+          _hub_id: string
+          _since: string
+          _until: string
+        }
+        Returns: {
+          channel: string
+          events: number
+          sessions: number
+          source: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "sales_rep" | "affiliate"
