@@ -773,6 +773,22 @@ if (event.type === 'checkout.session.completed') {
     }
 
     // ============================================================
+    // IN-PERSON CLOSE — activate a prebuilt solo hub after payment
+    // Source of truth for activation. Idempotent + state verified.
+    // ============================================================
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.type === 'in_person_close' && session.metadata?.hub_type === 'personal_profile') {
+        try {
+          await handleInPersonClose(stripe, session);
+        } catch (err) {
+          console.error('[stripe-webhook][in_person_close] Failed:', err);
+        }
+      }
+    }
+
+
+    // ============================================================
     // CARD ADDON / ONE-TIME CARD ORDER HANDLING
     // ============================================================
     if (event.type === 'checkout.session.completed') {
