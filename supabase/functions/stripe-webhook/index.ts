@@ -1247,3 +1247,197 @@ if (event.type === 'checkout.session.completed') {
     });
   }
 });
+// ================================================================
+// IN-PERSON CLOSE HELPERS
+// ================================================================
+
+function sbAdmin() {
+  return import('https://esm.sh/@supabase/supabase-js@2.39.7').then((mod) =>
+    mod.createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }),
+  );
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Look up an existing auth identity by verified email (exact, normalized). */
+async function findAuthUserByEmail(email: string): Promise<{ id: string } | null> {
+  const url = `${Deno.env.get('SUPABASE_URL')}/auth/v1/admin/users?filter=${encodeURIComponent(email)}&per_page=50`;
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const res = await fetch(url, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) return null;
+  const body = await res.json();
+  const users = (body?.users ?? []) as Array<{ id: string; email?: string }>;
+  const match = users.find((u) => (u.email ?? '').trim().toLowerCase() === email);
+  return match ? { id: match.id } : null;
+}
+
+async function sendDashboardAccessEmail(userId: string, email: string, businessName: string) {
+  const admin = await sbAdmin();
+  const raw = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  const tokenHash = await sha256Hex(raw);
+  await admin.from('magic_link_tokens').delete().eq('user_id', userId);
+  await admin.from('magic_link_tokens').insert({
+    user_id: userId,
+    email,
+    token_hash: tokenHash,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+
+  const baseUrl = Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
+  const link = `${baseUrl}/auth/magic?token=${raw}`;
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendKey) {
+    console.error('[stripe-webhook][in_person_close] RESEND_API_KEY missing — access email not sent');
+    return;
+  }
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
+    <tr><td style="text-align:center;padding-bottom:32px;"><img src="https://tapaway.co/tapaway-logo-email.png" alt="TapAway" width="120" /></td></tr>
+    <tr><td style="background:#1a1a1a;border-radius:16px;padding:40px 32px;text-align:center;border:1px solid #2a2a2a;">
+      <h1 style="margin:0 0 16px 0;font-size:24px;color:#ffffff;">Access your TapAway dashboard</h1>
+      <p style="margin:0 0 32px 0;font-size:16px;color:#a1a1a1;line-height:1.6;">Your ${businessName} account is active. Tap below to open your dashboard — no password needed.</p>
+      <a href="${link}" style="display:inline-block;background:#6BCB77;color:#000;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;">Access My Dashboard</a>
+      <p style="margin:24px 0 0 0;font-size:13px;color:#666;">This link works for 7 days. You can set a password later in your account settings.</p>
+    </td></tr>
+    <tr><td style="text-align:center;padding-top:32px;"><p style="margin:0;font-size:12px;color:#4a4a4a;">Need help? Email tap@tapaway.co</p></td></tr>
+  </table></body></html>`;
+
+  const text = `Your ${businessName} TapAway account is active.\n\nOpen your dashboard (no password needed):\n${link}\n\nThis link works for 7 days. Need help? tap@tapaway.co`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
+    body: JSON.stringify({
+      from: Deno.env.get('EMAIL_FROM') || 'TapAway <no-reply@tapaway.co>',
+      to: [email],
+      subject: 'Access Your TapAway Dashboard',
+      html,
+      text,
+      reply_to: 'tap@tapaway.co',
+    }),
+  });
+  if (!res.ok) console.error('[stripe-webhook][in_person_close] Resend error:', await res.text());
+}
+
+async function handleInPersonClose(stripe: Stripe, session: Stripe.Checkout.Session) {
+  const hubId = session.metadata?.hub_id;
+  if (!hubId) return;
+
+  // --- 1. Verify real paid state (never trust the event name alone) --------
+  const paidOk = session.status === 'complete' && (session.payment_status === 'paid' || session.payment_status === 'no_payment_required');
+  const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+  if (!paidOk || !subscriptionId || !customerId) {
+    console.log('[stripe-webhook][in_person_close] Not activating — unverified state', {
+      hubId, status: session.status, payment_status: session.payment_status, subscriptionId, customerId,
+    });
+    return;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!['active', 'trialing'].includes(subscription.status)) {
+    console.log('[stripe-webhook][in_person_close] Not activating — subscription state', subscription.status);
+    return;
+  }
+  const priceId = subscription.items.data[0]?.price?.id;
+  const interval = subscription.items.data[0]?.price?.recurring?.interval;
+  if (!priceId || !interval) {
+    console.log('[stripe-webhook][in_person_close] Not activating — no recognizable price');
+    return;
+  }
+
+  const admin = await sbAdmin();
+  const { data: hub } = await admin
+    .from('personal_profiles')
+    .select('id, user_id, username, full_name, subscription_status, stripe_subscription_id')
+    .eq('id', hubId)
+    .maybeSingle();
+  if (!hub) {
+    console.error('[stripe-webhook][in_person_close] Hub not found', hubId);
+    return;
+  }
+
+  // Idempotency: a replayed event for the same subscription is a no-op.
+  if (hub.stripe_subscription_id === subscriptionId && hub.subscription_status === 'active') {
+    console.log('[stripe-webhook][in_person_close] Already activated — no-op', hubId);
+    return;
+  }
+  // Never attach a second live subscription to the same hub.
+  if (hub.stripe_subscription_id && hub.stripe_subscription_id !== subscriptionId && hub.subscription_status === 'active') {
+    console.error('[stripe-webhook][in_person_close] Hub already has another active subscription', hubId);
+    return;
+  }
+
+  // --- 2. Ownership by verified Stripe email -------------------------------
+  const rawEmail = session.customer_details?.email || session.customer_email || '';
+  const email = rawEmail.trim().toLowerCase();
+  let ownerUserId: string | null = hub.user_id ?? null;
+  let emailedTo: string | null = null;
+
+  if (email) {
+    const existing = await findAuthUserByEmail(email);
+    if (existing) {
+      ownerUserId = existing.id;
+    } else {
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: { source: 'in_person_close', hub_id: hubId },
+      });
+      if (createErr) {
+        console.error('[stripe-webhook][in_person_close] Could not create identity:', createErr.message);
+      } else if (created?.user) {
+        ownerUserId = created.user.id;
+      }
+    }
+  }
+
+  const planType = interval === 'year' ? 'yearly' : 'monthly';
+  const cardClub = session.metadata?.card_club === 'true';
+
+  const update: Record<string, unknown> = {
+    subscription_status: 'active',
+    pipeline_status: 'active',
+    plan_type: planType,
+    has_card_addon: cardClub,
+    is_approved: true,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    stripe_price_id: priceId,
+    stripe_billing_email: email || null,
+  };
+  // Only ever attach ownership; never reassign an existing owner to someone else.
+  if (ownerUserId && !hub.user_id) update.user_id = ownerUserId;
+
+  const { error: updErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
+  if (updErr) {
+    // stripe_price_id may not exist on this table — retry without it.
+    delete update.stripe_price_id;
+    const { error: retryErr } = await admin.from('personal_profiles').update(update).eq('id', hubId);
+    if (retryErr) {
+      console.error('[stripe-webhook][in_person_close] Update failed:', retryErr.message);
+      return;
+    }
+  }
+
+  console.log('[stripe-webhook][in_person_close] Hub activated', { hubId, subscriptionId, planType });
+
+  // --- 3. Passwordless dashboard access ------------------------------------
+  if (ownerUserId && email) {
+    try {
+      await sendDashboardAccessEmail(ownerUserId, email, hub.full_name || hub.username || 'your business');
+      emailedTo = email;
+    } catch (err) {
+      console.error('[stripe-webhook][in_person_close] Access email failed:', err);
+    }
+  }
+  console.log('[stripe-webhook][in_person_close] Access email', emailedTo ? `sent to ${emailedTo}` : 'not sent');
+}
