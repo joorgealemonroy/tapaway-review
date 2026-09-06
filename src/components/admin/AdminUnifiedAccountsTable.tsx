@@ -174,6 +174,7 @@ const AdminUnifiedAccountsTable = () => {
   const [swapping, setSwapping] = useState<string | null>(null);
 
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
+  const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
 
 
   useEffect(() => {
