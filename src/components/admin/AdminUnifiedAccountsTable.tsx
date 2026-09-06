@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
+import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
 import { toast } from "sonner";
 import {
   ArrowLeftRight,
@@ -174,6 +175,7 @@ const AdminUnifiedAccountsTable = () => {
   const [swapping, setSwapping] = useState<string | null>(null);
 
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
+  const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
 
 
   useEffect(() => {
@@ -845,6 +847,16 @@ const AdminUnifiedAccountsTable = () => {
                           <FileText className="h-3.5 w-3.5" />
                         </Button>
                       )}
+                      {r.kind === "lite" && r.subscription_status !== "active" && (
+                        <Button
+                          onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
+                          size="sm"
+                          className="h-7 px-2 text-[11px] bg-emerald-500/90 hover:bg-emerald-500 text-black font-semibold"
+                          title="Open the in-person sales presentation for this hub"
+                        >
+                          Close Sale
+                        </Button>
+                      )}
                       <Button
                         onClick={() => openDashboard(r)}
                         size="sm"
@@ -884,6 +896,7 @@ const AdminUnifiedAccountsTable = () => {
       )}
 
       <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
+      <CloseSaleDialog target={closeSaleTarget} onClose={() => setCloseSaleTarget(null)} />
     </div>
   );
 

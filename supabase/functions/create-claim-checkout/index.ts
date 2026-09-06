@@ -3,6 +3,11 @@
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from '../_shared/rateLimit.ts';
+import {
+  signHubSalesToken,
+  verifyHubSalesToken,
+  HUB_SALES_TOKEN_TTL_SECONDS,
+} from '../_shared/hubSalesToken.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,11 +57,8 @@ Deno.serve(async (req) => {
     if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY not configured');
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
-    const { profileId, plan } = await req.json();
-    if (!profileId || typeof profileId !== 'string' || !UUID_RE.test(profileId)) {
-      return json({ error: 'Invalid profile id' }, 400);
-    }
-    const selectedPlan = plan === 'base' || plan === 'annual' ? plan : 'bundle';
+    const body = await req.json();
+    const { action, plan, token } = body ?? {};
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -64,10 +66,47 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
+    // ---- Admin-only: mint a 24h presentation token for one hub -------------
+    if (action === 'mint') {
+      const authHeader = req.headers.get('Authorization') || '';
+      if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+
+      const caller = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
+      );
+      const { data: userData } = await caller.auth.getUser();
+      if (!userData?.user) return json({ error: 'Unauthorized' }, 401);
+      const { data: isAdmin } = await caller.rpc('is_admin');
+      if (isAdmin !== true) return json({ error: 'Forbidden' }, 403);
+
+      const hubId = body.profileId;
+      if (!hubId || typeof hubId !== 'string' || !UUID_RE.test(hubId)) {
+        return json({ error: 'Invalid profile id' }, 400);
+      }
+      const { data: hub } = await admin
+        .from('personal_profiles')
+        .select('id')
+        .eq('id', hubId)
+        .maybeSingle();
+      if (!hub) return json({ error: 'Hub not found' }, 404);
+
+      const minted = await signHubSalesToken(hubId);
+      return json({ token: minted, expiresInSeconds: HUB_SALES_TOKEN_TTL_SECONDS });
+    }
+
+    // ---- Customer checkout: the hub comes from the signed token only -------
+    const profileId = await verifyHubSalesToken(token);
+    if (!profileId) return json({ error: 'This link has expired. Ask your TapAway rep for a new one.' }, 401);
+
+    const selectedPlan = plan === 'base' || plan === 'annual' ? plan : 'bundle';
+
     const { data: profile } = await admin
       .from('personal_profiles')
-      .select('id, email, username, full_name, stripe_customer_id')
+      .select('id, email, username, full_name, stripe_customer_id, stripe_subscription_id, subscription_status')
       .eq('id', profileId)
+
       .maybeSingle();
     if (!profile) return json({ error: 'Hub not found' }, 404);
 
@@ -92,33 +131,52 @@ Deno.serve(async (req) => {
     const origin = req.headers.get('origin') || Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
     const hasCardClub = selectedPlan !== 'base';
 
+    // Duplicate-purchase protection lives here, not in the idempotency key:
+    // an abandoned or expired session must always be retryable.
+    const liveStatuses = ['active', 'trialing', 'past_due'];
+    if (profile.stripe_subscription_id && liveStatuses.includes(String(profile.subscription_status ?? ''))) {
+      try {
+        const existing = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+        if (['active', 'trialing', 'past_due'].includes(existing.status)) {
+          return json({ error: 'This hub already has an active subscription.' }, 409);
+        }
+      } catch (_e) {
+        // Subscription no longer exists in Stripe — allow a fresh checkout.
+      }
+    }
+
+    const checkoutAttemptId = crypto.randomUUID();
+    const isRealEmail = !!profile.email && !/@demo\.tapaway\.local$/i.test(profile.email);
+
+    const metadata = {
+      type: 'in_person_close',
+      hub_id: profileId,
+      hub_type: 'personal_profile',
+      checkout_attempt_id: checkoutAttemptId,
+      profile_id: profileId,
+      plan: selectedPlan,
+      billing_interval: selectedPlan === 'annual' ? 'year' : 'month',
+      card_club: String(hasCardClub),
+    };
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: lineItems,
       ...(profile.stripe_customer_id
         ? { customer: profile.stripe_customer_id }
-        : { customer_email: profile.email || undefined }),
+        : isRealEmail
+          ? { customer_email: profile.email as string }
+          : {}),
       // Apple Pay / Google Pay / Link wallets are surfaced automatically by
       // Stripe Checkout based on the dashboard payment-method settings.
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      success_url: `${origin}/claim?id=${profileId}&success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/claim?id=${profileId}`,
-      metadata: {
-        type: 'claim',
-        profile_id: profileId,
-        plan: selectedPlan,
-        card_club: String(hasCardClub),
-      },
-      subscription_data: {
-        metadata: {
-          type: 'claim',
-          profile_id: profileId,
-          plan: selectedPlan,
-          card_club: String(hasCardClub),
-        },
-      },
-    } as Stripe.Checkout.SessionCreateParams);
+      success_url: `${origin}/claim?t=${encodeURIComponent(String(token))}&success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/claim?t=${encodeURIComponent(String(token))}`,
+      metadata,
+      subscription_data: { metadata },
+    } as Stripe.Checkout.SessionCreateParams, { idempotencyKey: `claim_${profileId}_${checkoutAttemptId}` });
+
 
     return json({ url: session.url });
   } catch (error) {
