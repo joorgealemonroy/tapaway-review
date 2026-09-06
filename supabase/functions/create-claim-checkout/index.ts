@@ -3,6 +3,11 @@
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from '../_shared/rateLimit.ts';
+import {
+  signHubSalesToken,
+  verifyHubSalesToken,
+  HUB_SALES_TOKEN_TTL_SECONDS,
+} from '../_shared/hubSalesToken.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
