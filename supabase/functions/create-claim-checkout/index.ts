@@ -126,33 +126,52 @@ Deno.serve(async (req) => {
     const origin = req.headers.get('origin') || Deno.env.get('FRONTEND_URL') || 'https://tapaway.co';
     const hasCardClub = selectedPlan !== 'base';
 
+    // Duplicate-purchase protection lives here, not in the idempotency key:
+    // an abandoned or expired session must always be retryable.
+    const liveStatuses = ['active', 'trialing', 'past_due'];
+    if (profile.stripe_subscription_id && liveStatuses.includes(String(profile.subscription_status ?? ''))) {
+      try {
+        const existing = await stripe.subscriptions.retrieve(profile.stripe_subscription_id);
+        if (['active', 'trialing', 'past_due'].includes(existing.status)) {
+          return json({ error: 'This hub already has an active subscription.' }, 409);
+        }
+      } catch (_e) {
+        // Subscription no longer exists in Stripe — allow a fresh checkout.
+      }
+    }
+
+    const checkoutAttemptId = crypto.randomUUID();
+    const isRealEmail = !!profile.email && !/@demo\.tapaway\.local$/i.test(profile.email);
+
+    const metadata = {
+      type: 'in_person_close',
+      hub_id: profileId,
+      hub_type: 'personal_profile',
+      checkout_attempt_id: checkoutAttemptId,
+      profile_id: profileId,
+      plan: selectedPlan,
+      billing_interval: selectedPlan === 'annual' ? 'year' : 'month',
+      card_club: String(hasCardClub),
+    };
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: lineItems,
       ...(profile.stripe_customer_id
         ? { customer: profile.stripe_customer_id }
-        : { customer_email: profile.email || undefined }),
+        : isRealEmail
+          ? { customer_email: profile.email as string }
+          : {}),
       // Apple Pay / Google Pay / Link wallets are surfaced automatically by
       // Stripe Checkout based on the dashboard payment-method settings.
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      success_url: `${origin}/claim?id=${profileId}&success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/claim?id=${profileId}`,
-      metadata: {
-        type: 'claim',
-        profile_id: profileId,
-        plan: selectedPlan,
-        card_club: String(hasCardClub),
-      },
-      subscription_data: {
-        metadata: {
-          type: 'claim',
-          profile_id: profileId,
-          plan: selectedPlan,
-          card_club: String(hasCardClub),
-        },
-      },
-    } as Stripe.Checkout.SessionCreateParams);
+      success_url: `${origin}/claim?t=${encodeURIComponent(String(token))}&success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/claim?t=${encodeURIComponent(String(token))}`,
+      metadata,
+      subscription_data: { metadata },
+    } as Stripe.Checkout.SessionCreateParams, { idempotencyKey: `claim_${profileId}_${checkoutAttemptId}` });
+
 
     return json({ url: session.url });
   } catch (error) {
