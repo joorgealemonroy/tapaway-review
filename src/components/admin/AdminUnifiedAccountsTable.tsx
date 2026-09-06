@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
+import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
 import { toast } from "sonner";
 import {
   ArrowLeftRight,
