@@ -896,6 +896,7 @@ const AdminUnifiedAccountsTable = () => {
       )}
 
       <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
+      <CloseSaleDialog target={closeSaleTarget} onClose={() => setCloseSaleTarget(null)} />
     </div>
   );
 
