@@ -52,11 +52,8 @@ Deno.serve(async (req) => {
     if (!stripeSecretKey) throw new Error('STRIPE_SECRET_KEY not configured');
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
-    const { profileId, plan } = await req.json();
-    if (!profileId || typeof profileId !== 'string' || !UUID_RE.test(profileId)) {
-      return json({ error: 'Invalid profile id' }, 400);
-    }
-    const selectedPlan = plan === 'base' || plan === 'annual' ? plan : 'bundle';
+    const body = await req.json();
+    const { action, plan, token } = body ?? {};
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -64,10 +61,47 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
+    // ---- Admin-only: mint a 24h presentation token for one hub -------------
+    if (action === 'mint') {
+      const authHeader = req.headers.get('Authorization') || '';
+      if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+
+      const caller = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
+      );
+      const { data: userData } = await caller.auth.getUser();
+      if (!userData?.user) return json({ error: 'Unauthorized' }, 401);
+      const { data: isAdmin } = await caller.rpc('is_admin');
+      if (isAdmin !== true) return json({ error: 'Forbidden' }, 403);
+
+      const hubId = body.profileId;
+      if (!hubId || typeof hubId !== 'string' || !UUID_RE.test(hubId)) {
+        return json({ error: 'Invalid profile id' }, 400);
+      }
+      const { data: hub } = await admin
+        .from('personal_profiles')
+        .select('id')
+        .eq('id', hubId)
+        .maybeSingle();
+      if (!hub) return json({ error: 'Hub not found' }, 404);
+
+      const minted = await signHubSalesToken(hubId);
+      return json({ token: minted, expiresInSeconds: HUB_SALES_TOKEN_TTL_SECONDS });
+    }
+
+    // ---- Customer checkout: the hub comes from the signed token only -------
+    const profileId = await verifyHubSalesToken(token);
+    if (!profileId) return json({ error: 'This link has expired. Ask your TapAway rep for a new one.' }, 401);
+
+    const selectedPlan = plan === 'base' || plan === 'annual' ? plan : 'bundle';
+
     const { data: profile } = await admin
       .from('personal_profiles')
-      .select('id, email, username, full_name, stripe_customer_id')
+      .select('id, email, username, full_name, stripe_customer_id, stripe_subscription_id, subscription_status')
       .eq('id', profileId)
+
       .maybeSingle();
     if (!profile) return json({ error: 'Hub not found' }, 404);
 
