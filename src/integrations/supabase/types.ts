@@ -3627,6 +3627,8 @@ export type Database = {
           avm_question_title: string | null
           background_theme_style: string
           business_phone: string | null
+          card_check_message: string | null
+          card_check_status: string | null
           card_print_pdf_path: string | null
           created_at: string
           created_by: string | null
@@ -3692,6 +3694,8 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
+          card_check_message?: string | null
+          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -3757,6 +3761,8 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
+          card_check_message?: string | null
+          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
