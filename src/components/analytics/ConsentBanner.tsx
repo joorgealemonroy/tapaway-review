@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getConsent, setConsent, type ConsentState } from "@/lib/consent";
+import { getConsent, onConsentChange, setConsent, type ConsentState } from "@/lib/consent";
 
 /**
  * Cookie/tracking consent banner. Appears once, bottom of the screen, until
@@ -14,9 +14,13 @@ export function ConsentBanner() {
   useEffect(() => {
     const sync = (state: ConsentState) => setVisible(state === "pending");
     sync(getConsent());
+    const unsub = onConsentChange(sync);
     // Re-check shortly after mount in case storage was slow/blocked.
     const t = setTimeout(() => sync(getConsent()), 1500);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      unsub();
+    };
   }, []);
 
   if (!visible) return null;
