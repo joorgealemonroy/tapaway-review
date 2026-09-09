@@ -49,7 +49,7 @@ const TapAwayCard3D = ({ logoUrl, businessName, staticTilt, width = "min(240px, 
                 alt="TapAway card front"
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
+                {...({ fetchpriority: "high" } as Record<string, string>)}
                 className="w-full h-full object-cover"
                 style={{ borderRadius: "1.5rem" }}
 

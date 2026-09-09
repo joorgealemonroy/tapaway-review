@@ -102,7 +102,7 @@ const PersonalCard3D = () => {
                   alt="TapAway personal card front" 
                   loading="eager"
                   decoding="async"
-                  fetchPriority="high"
+                  {...({ fetchpriority: "high" } as Record<string, string>)}
                   className="w-full h-full object-cover pointer-events-none"
                   style={{ borderRadius: "1.5rem" }}
                 />
