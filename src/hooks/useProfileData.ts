@@ -150,7 +150,9 @@ async function fetchProfileData(username: string): Promise<FetchProfileResult> {
       const { data: statusRows } = await supabase
         .rpc('get_public_personal_profile_status', { _slug: username.toLowerCase() });
       const statusRow = Array.isArray(statusRows) && statusRows.length > 0 ? statusRows[0] : null;
-      if (statusRow && (statusRow as { is_approved?: boolean | null }).is_approved === true) {
+      // Approval is deliberately NOT required here: a trial that was never
+      // handed out still gets the branded "claim your hub" page, not a 404.
+      if (statusRow) {
         return { kind: 'expired', preview: statusRow as ExpiredProfilePreview };
       }
     } catch (statusErr) {
