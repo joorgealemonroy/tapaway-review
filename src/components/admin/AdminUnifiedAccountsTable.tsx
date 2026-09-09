@@ -688,6 +688,52 @@ const AdminUnifiedAccountsTable = () => {
             </button>
           ))}
         </div>
+
+        {/* Exact calendar day — shows every account created that day, all
+            statuses and pipeline stages, so nothing is hidden. */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-8 px-3 text-xs font-medium bg-white/[0.03] border-white/5 text-white/70 hover:text-white",
+                pickedDate && "bg-sky-500/15 border-sky-400/40 text-sky-100"
+              )}
+            >
+              <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+              {pickedDate ? pickedDate.toLocaleDateString() : "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarPicker
+              mode="single"
+              selected={pickedDate}
+              onSelect={(d) => {
+                setPickedDate(d);
+                if (d) {
+                  // Show the whole day: never hide expired/canceled/draft hubs.
+                  setStatusFilter("all");
+                  setPipelineFilter("all");
+                  setZeroTapsOnly(false);
+                  setBrokenOnly(false);
+                }
+              }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {pickedDate && (
+          <button
+            onClick={() => setPickedDate(undefined)}
+            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-white/10 bg-white/[0.04] text-[11px] text-white/70 hover:text-white"
+          >
+            Created {pickedDate.toLocaleDateString()}
+            <X className="h-3 w-3" />
+          </button>
+        )}
+
         <span className="text-[11px] text-white/35">Usage shown for: {rangeLabel}</span>
       </div>
 
