@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_coupons: {
+        Row: {
+          amount_off_cents: number | null
+          created_at: string
+          duration: string
+          duration_in_months: number | null
+          id: string
+          name: string
+          note: string | null
+          percent_off: number | null
+          stripe_coupon_id: string
+        }
+        Insert: {
+          amount_off_cents?: number | null
+          created_at?: string
+          duration: string
+          duration_in_months?: number | null
+          id?: string
+          name: string
+          note?: string | null
+          percent_off?: number | null
+          stripe_coupon_id: string
+        }
+        Update: {
+          amount_off_cents?: number | null
+          created_at?: string
+          duration?: string
+          duration_in_months?: number | null
+          id?: string
+          name?: string
+          note?: string | null
+          percent_off?: number | null
+          stripe_coupon_id?: string
+        }
+        Relationships: []
+      }
       affiliate_abuse_flags: {
         Row: {
           created_at: string
