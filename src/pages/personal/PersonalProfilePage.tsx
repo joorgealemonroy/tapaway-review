@@ -1013,6 +1013,34 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     };
   }, [preIsLogoHeader, preLogoUrl, preLogoBandColor]);
 
+  // Banner hubs with a near-black stored background (the old default) get the
+  // warm brand backdrop back by sampling the banner's own bottom edge — this
+  // is how legacy banner hubs like /rebornwraps originally looked.
+  const preIsBannerHeader = preProfile?.header_type === "banner";
+  const preBannerUrl = preIsBannerHeader && preProfile?.profile_photo_url
+    ? getOptimizedImageUrl(preProfile.profile_photo_url, 1080, 92)
+    : null;
+  const preBannerBg = (preProfile?.background_color as string | undefined) || null;
+  const preBgIsFlat = !preProfile?.bg_style &&
+    !!preBannerBg && !preBannerBg.startsWith('linear-gradient') && !preBannerBg.startsWith('radial-gradient');
+  const preNeedsBannerSample = Boolean(
+    preIsBannerHeader && preBannerUrl && preBgIsFlat && isColorDark(preBannerBg as string)
+  );
+  const [sampledBannerBg, setSampledBannerBg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!preNeedsBannerSample || !preBannerUrl) {
+      setSampledBannerBg(null);
+      return;
+    }
+    let cancelled = false;
+    sampleBottomEdgeColor(preBannerUrl).then((c) => {
+      if (!cancelled && c) setSampledBannerBg(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [preNeedsBannerSample, preBannerUrl]);
+
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
