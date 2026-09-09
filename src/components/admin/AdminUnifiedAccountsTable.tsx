@@ -377,7 +377,7 @@ const AdminUnifiedAccountsTable = () => {
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, pipelineFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, pipelineFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir, pickedDate]);
 
   const summary = useMemo(() => {
     const scoped = rows.filter((r) => (kindFilter === "all" ? true : r.kind === kindFilter));
