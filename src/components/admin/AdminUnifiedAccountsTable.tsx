@@ -150,6 +150,8 @@ const AdminUnifiedAccountsTable = () => {
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [brokenOnly, setBrokenOnly] = useState(false);
+  /** Exact calendar day filter (local time) on created_at. Null = presets only. */
+  const [pickedDate, setPickedDate] = useState<Date | undefined>(undefined);
   const [pipelineFilter, setPipelineFilter] = useState<"all" | PipelineKey>("live");
   const [zeroTapsOnly, setZeroTapsOnly] = useState(false);
   const [range, setRange] = useState<RangeKey>(() => {
