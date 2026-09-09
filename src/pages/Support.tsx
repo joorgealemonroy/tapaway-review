@@ -1,621 +1,529 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  CreditCard, 
-  MapPin, 
-  AlertCircle, 
-  Receipt, 
-  HelpCircle,
-  Check,
-  ArrowLeft,
+import { useEffect, useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  CheckCircle2,
+  CreditCard,
+  LifeBuoy,
   Loader2,
-  Phone,
+  LogIn,
   Mail,
-  Building2
-} from 'lucide-react';
+  MessageCircle,
+  Receipt,
+  Wrench,
+} from "lucide-react";
+import { RequestMoreCards } from "@/components/dashboard/RequestMoreCards";
+import {
+  cardAllowanceForPlan,
+  cardPlanLabel,
+  subscriptionLabel,
+  canRequestCards,
+} from "@/lib/cardAllowance";
 
-type RequestType = 'NEW_CARDS' | 'MORE_CARDS' | 'TECH_ISSUE' | 'BILLING' | 'OTHER' | null;
-
-interface FormData {
+type Account = {
+  kind: "restaurant" | "personal";
+  id: string;
   name: string;
   businessName: string;
   email: string;
-  phone: string;
-  location: string;
-  description: string;
-  quantityRequested: number;
-  // New cards specific
-  cardNeeds: string[];
-  // More cards specific
-  newLocationsCount: number;
-  // Tech issue specific
-  techIssues: string[];
-}
+  planType: string | null;
+  status: string | null;
+};
 
-const requestTypeOptions = [
-  {
-    type: 'NEW_CARDS' as RequestType,
-    icon: CreditCard,
-    title: 'Request new or replacement cards',
-    description: 'Lost, damaged, or need more cards',
-  },
-  {
-    type: 'MORE_CARDS' as RequestType,
-    icon: MapPin,
-    title: 'Add more cards or locations',
-    description: 'Expand to new locations',
-  },
-  {
-    type: 'TECH_ISSUE' as RequestType,
-    icon: AlertCircle,
-    title: 'Issue with my hub / link / QR / NFC',
-    description: 'Something isn\'t working right',
-  },
-  {
-    type: 'BILLING' as RequestType,
-    icon: Receipt,
-    title: 'Billing or account question',
-    description: 'Invoices, payments, or account changes',
-  },
-  {
-    type: 'OTHER' as RequestType,
-    icon: HelpCircle,
-    title: 'Something else',
-    description: 'General questions or feedback',
-  },
+const ISSUE_CHIPS = [
+  "A link is wrong",
+  "QR code not scanning",
+  "NFC card not working",
+  "Hub page looks broken",
+  "Something else",
 ];
 
-const cardNeedOptions = [
-  { id: 'replacement_damaged', label: 'Replacement for damaged card' },
-  { id: 'lost_card', label: 'Lost card' },
-  { id: 'more_existing', label: 'More cards for existing location' },
-  { id: 'new_location', label: 'Cards for a new location' },
-];
+const Support = () => {
+  const { user, loading: authLoading } = useAuth();
 
-const techIssueOptions = [
-  { id: 'wrong_link', label: 'Link goes to wrong place' },
-  { id: 'qr_not_scanning', label: 'QR code not scanning' },
-  { id: 'nfc_not_working', label: 'NFC not working' },
-  { id: 'page_broken', label: 'Hub page is broken or missing' },
-  { id: 'other', label: 'Other issue' },
-];
+  const [account, setAccount] = useState<Account | null>(null);
+  const [loadingAccount, setLoadingAccount] = useState(false);
 
-export default function Support() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const [selectedType, setSelectedType] = useState<RequestType>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    businessName: '',
-    email: '',
-    phone: '',
-    location: '',
-    description: '',
-    quantityRequested: 15,
-    cardNeeds: [],
-    newLocationsCount: 1,
-    techIssues: [],
-  });
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  // Signed-out: dashboard access
+  const [accessEmail, setAccessEmail] = useState("");
+  const [accessSending, setAccessSending] = useState(false);
+  const [accessSent, setAccessSent] = useState(false);
 
-  // Prefill form data for logged-in users
+  // General question (both states)
+  const [gName, setGName] = useState("");
+  const [gEmail, setGEmail] = useState("");
+  const [gMessage, setGMessage] = useState("");
+  const [gSending, setGSending] = useState(false);
+  const [gSent, setGSent] = useState(false);
+
+  // Signed-in: issue report
+  const [issueChips, setIssueChips] = useState<string[]>([]);
+  const [issueText, setIssueText] = useState("");
+  const [issueSending, setIssueSending] = useState(false);
+  const [issueSent, setIssueSent] = useState(false);
+
+  // Signed-in: billing note
+  const [billingText, setBillingText] = useState("");
+  const [billingSending, setBillingSending] = useState(false);
+  const [billingSent, setBillingSent] = useState(false);
+
   useEffect(() => {
-    const prefillUserData = async () => {
-      if (!user) return;
-      
-      // Get user's restaurant data
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('restaurant_name, email, phone, owner_name')
-        .eq('owner_id', user.id)
-        .maybeSingle();
-      
-      if (restaurant) {
-        setFormData(prev => ({
-          ...prev,
-          name: restaurant.owner_name || prev.name,
-          businessName: restaurant.restaurant_name || prev.businessName,
-          email: restaurant.email || user.email || prev.email,
-          phone: restaurant.phone || prev.phone,
-        }));
-      } else if (user.email) {
-        setFormData(prev => ({
-          ...prev,
-          email: user.email || prev.email,
-        }));
+    if (!user) {
+      setAccount(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      setLoadingAccount(true);
+      try {
+        const { data: restaurant } = await supabase
+          .from("restaurants")
+          .select("id, restaurant_name, owner_name, email, plan_type, subscription_status")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+
+        if (restaurant && !cancelled) {
+          setAccount({
+            kind: "restaurant",
+            id: restaurant.id,
+            name: restaurant.owner_name || restaurant.restaurant_name || "",
+            businessName: restaurant.restaurant_name || "",
+            email: restaurant.email || user.email || "",
+            planType: restaurant.plan_type,
+            status: restaurant.subscription_status,
+          });
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("personal_profiles")
+          .select("id, full_name, username, email, plan_type, subscription_status")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile && !cancelled) {
+          setAccount({
+            kind: "personal",
+            id: profile.id,
+            name: profile.full_name || "",
+            businessName: profile.username || "",
+            email: profile.email || user.email || "",
+            planType: profile.plan_type,
+            status: profile.subscription_status,
+          });
+        }
+      } catch (e) {
+        console.error("[Support] account load failed:", e);
+      } finally {
+        if (!cancelled) setLoadingAccount(false);
       }
     };
-    
-    prefillUserData();
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-    
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required';
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-    
-    if (selectedType === 'NEW_CARDS' && formData.cardNeeds.length === 0) {
-      newErrors.cardNeeds = 'Please select at least one option';
-    }
-    
-    if (selectedType === 'TECH_ISSUE' && formData.techIssues.length === 0) {
-      newErrors.techIssues = 'Please select at least one issue';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const allowance = useMemo(() => cardAllowanceForPlan(account?.planType), [account?.planType]);
+
+  const submitRequest = async (
+    requestType: "TECH_ISSUE" | "BILLING" | "OTHER",
+    description: string,
+    details?: Record<string, unknown>,
+    override?: { name: string; email: string }
+  ) => {
+    const name = override?.name || account?.name || "";
+    const email = override?.email || account?.email || user?.email || "";
+    const { error } = await supabase.from("support_requests").insert({
+      request_type: requestType,
+      name: name || "Website visitor",
+      business_name: account?.businessName || "",
+      email,
+      description,
+      request_details: details ?? {},
+      user_id: user?.id || null,
+    });
+    if (error) throw error;
+
+    await supabase.functions.invoke("support-notification", {
+      body: {
+        requestType,
+        name: name || "Website visitor",
+        businessName: account?.businessName || "",
+        email,
+        description,
+        requestDetails: details ?? {},
+      },
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const sendAccessLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedType || !validateForm()) return;
-    
-    setIsSubmitting(true);
-    
+    if (!accessEmail.trim()) return;
+    setAccessSending(true);
     try {
-      // Build request details based on type
-      const requestDetails: Record<string, any> = {};
-      
-      if (selectedType === 'NEW_CARDS') {
-        requestDetails.cardNeeds = formData.cardNeeds;
-        requestDetails.quantity = formData.quantityRequested;
-      } else if (selectedType === 'MORE_CARDS') {
-        requestDetails.newLocationsCount = formData.newLocationsCount;
-        requestDetails.quantity = formData.quantityRequested;
-      } else if (selectedType === 'TECH_ISSUE') {
-        requestDetails.techIssues = formData.techIssues;
-      }
-      
-      // Insert support request
-      const { error: insertError } = await supabase
-        .from('support_requests')
-        .insert({
-          request_type: selectedType,
-          name: formData.name.trim(),
-          business_name: formData.businessName.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim() || null,
-          location: formData.location.trim() || null,
-          quantity_requested: ['NEW_CARDS', 'MORE_CARDS'].includes(selectedType) ? formData.quantityRequested : null,
-          description: formData.description.trim() || null,
-          request_details: requestDetails,
-          user_id: user?.id || null,
-        });
-      
-      if (insertError) throw insertError;
-      
-      // Send notification email
-      await supabase.functions.invoke('support-notification', {
-        body: {
-          requestType: selectedType,
-          name: formData.name,
-          businessName: formData.businessName,
-          email: formData.email,
-          phone: formData.phone,
-          location: formData.location,
-          description: formData.description,
-          requestDetails,
-        },
+      await supabase.functions.invoke("request-dashboard-access", {
+        body: { email: accessEmail.trim().toLowerCase() },
       });
-      
-      setIsSubmitted(true);
-    } catch (error: any) {
-      console.error('Error submitting support request:', error);
-      toast({
-        title: 'Something went wrong',
-        description: 'Please try again or email us directly at tap@tapaway.co',
-        variant: 'destructive',
-      });
+      setAccessSent(true);
+    } catch (err) {
+      console.error("[Support] access link failed:", err);
+      setAccessSent(true); // neutral either way
     } finally {
-      setIsSubmitting(false);
+      setAccessSending(false);
     }
   };
 
-  const handleCheckboxChange = (field: 'cardNeeds' | 'techIssues', value: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: checked 
-        ? [...prev[field], value]
-        : prev[field].filter(v => v !== value),
-    }));
+  const sendGeneral = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = user ? account?.name || "" : gName.trim();
+    const email = user ? account?.email || user.email || "" : gEmail.trim();
+    if (!gMessage.trim() || (!user && (!name || !email))) {
+      toast.error("Please fill in every field so we can get back to you.");
+      return;
+    }
+    setGSending(true);
+    try {
+      await submitRequest("OTHER", gMessage.trim(), { source: "general_question" }, { name, email });
+      setGSent(true);
+      setGMessage("");
+    } catch (err) {
+      console.error("[Support] general submit failed:", err);
+      toast.error("Something went wrong. Email us at tap@tapaway.co and we'll sort it out.");
+    } finally {
+      setGSending(false);
+    }
   };
 
-  // Success state
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">
-            Thanks — we've received your request
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            We typically respond within 1 business day. Check your inbox for a confirmation email.
-          </p>
-          <p className="text-sm text-muted-foreground mb-8">
-            If it's urgent, reply directly to the confirmation email you receive.
-          </p>
-          <Button onClick={() => navigate('/')} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to TapAway
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const sendIssue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!issueText.trim() && issueChips.length === 0) {
+      toast.error("Tell us what's happening so we can fix it.");
+      return;
+    }
+    setIssueSending(true);
+    try {
+      await submitRequest(
+        "TECH_ISSUE",
+        issueText.trim() || issueChips.join(", "),
+        { issues: issueChips }
+      );
+      setIssueSent(true);
+      setIssueText("");
+      setIssueChips([]);
+    } catch (err) {
+      console.error("[Support] issue submit failed:", err);
+      toast.error("Something went wrong. Email us at tap@tapaway.co and we'll sort it out.");
+    } finally {
+      setIssueSending(false);
+    }
+  };
+
+  const sendBilling = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billingText.trim()) {
+      toast.error("Add a short note and we'll take a look.");
+      return;
+    }
+    setBillingSending(true);
+    try {
+      await submitRequest("BILLING", billingText.trim(), { source: "billing_question" });
+      setBillingSent(true);
+      setBillingText("");
+    } catch (err) {
+      console.error("[Support] billing submit failed:", err);
+      toast.error("Something went wrong. Email us at tap@tapaway.co and we'll sort it out.");
+    } finally {
+      setBillingSending(false);
+    }
+  };
+
+  const Sent = ({ text }: { text: string }) => (
+    <div className="flex items-start gap-2 rounded-lg bg-primary/10 p-3 text-sm">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+      <span>{text}</span>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <div className="border-b border-border bg-card">
-        <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Phone className="w-5 h-5 text-primary" />
-            </div>
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Mail className="w-5 h-5 text-primary" />
-            </div>
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary" />
-            </div>
+    <div className="min-h-screen bg-muted/30 px-4 py-8 sm:py-12">
+      <Helmet>
+        <title>Support & Help | TapAway</title>
+        <meta
+          name="description"
+          content="Get help with your TapAway hub, cards, and billing, or send us a question."
+        />
+        <link rel="canonical" href="https://tapaway.co/support" />
+      </Helmet>
+
+      <div className="mx-auto w-full max-w-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <LifeBuoy className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Need help with TapAway?
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Request new cards, fix issues, or ask us anything. We're here to help your business get more reviews.
-          </p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Support &amp; Help</h1>
+          <p className="text-sm text-muted-foreground">We usually reply the same day.</p>
         </div>
-      </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        {/* Request Type Selector */}
-        {!selectedType ? (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground mb-6">
-              What can we help you with?
-            </h2>
-            <div className="grid gap-3">
-              {requestTypeOptions.map((option) => (
-                <button
-                  key={option.type}
-                  onClick={() => setSelectedType(option.type)}
-                  className="flex items-center gap-4 p-5 bg-card border border-border rounded-xl text-left hover:border-primary/50 hover:bg-accent/50 transition-all"
-                >
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <option.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">{option.title}</div>
-                    <div className="text-sm text-muted-foreground">{option.description}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
+        {authLoading || (user && loadingAccount) ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={() => setSelectedType(null)}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Choose a different topic</span>
-            </button>
-
-            {/* Selected type header */}
-            <div className="flex items-center gap-4 p-5 bg-primary/5 border border-primary/20 rounded-xl">
-              {(() => {
-                const option = requestTypeOptions.find(o => o.type === selectedType);
-                if (!option) return null;
-                return (
-                  <>
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <option.icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground">{option.title}</div>
-                      <div className="text-sm text-muted-foreground">{option.description}</div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* Common Fields */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-foreground">Your Information</h3>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="John Smith"
-                    maxLength={100}
-                    className={errors.name ? 'border-destructive' : ''}
-                  />
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="businessName">Business Name *</Label>
-                  <Input
-                    id="businessName"
-                    value={formData.businessName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
-                    placeholder="Your Restaurant"
-                    maxLength={100}
-                    className={errors.businessName ? 'border-destructive' : ''}
-                  />
-                  {errors.businessName && <p className="text-sm text-destructive">{errors.businessName}</p>}
-                </div>
+        ) : user && account ? (
+          <>
+            {/* Plan header */}
+            <Card className="p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="text-sm">
+                  {cardPlanLabel(account.planType)}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {allowance} cards per month
+                </span>
+                <span className="text-muted-foreground">·</span>
+                <span className="text-sm font-medium">{subscriptionLabel(account.status)}</span>
               </div>
+              {account.businessName && (
+                <p className="mt-2 text-sm text-muted-foreground">{account.businessName}</p>
+              )}
+            </Card>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="you@example.com"
-                    maxLength={255}
-                    className={errors.email ? 'border-destructive' : ''}
-                  />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (optional)</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="(555) 123-4567"
-                    maxLength={20}
-                  />
-                </div>
+            {/* Cards */}
+            <Card className="p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Get more cards</h2>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {canRequestCards(account.status)
+                  ? `Your plan includes ${allowance} cards a month. Tell us how many you need and confirm where to send them.`
+                  : "Card requests need an active plan."}
+              </p>
+              <RequestMoreCards
+                variant={account.kind === "personal" ? "personal" : "restaurant"}
+                restaurantId={account.kind === "restaurant" ? account.id : undefined}
+                personalProfileId={account.kind === "personal" ? account.id : undefined}
+                trigger={<Button className="w-full sm:w-auto">Request cards</Button>}
+              />
+            </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Location / Store (optional)</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="e.g., Downtown location, Store #123"
-                  maxLength={200}
-                />
+            {/* Something's not working */}
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Something's not working</h2>
               </div>
-            </div>
-
-            {/* Type-specific Fields */}
-            {selectedType === 'NEW_CARDS' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">What do you need?</h3>
-                
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>Note:</strong> Replacement cards are limited to 10 per month per location.
-                  </p>
-                </div>
-                
-                <div className="space-y-3">
-                  {cardNeedOptions.map((option) => (
-                    <label key={option.id} className="flex items-center gap-3 cursor-pointer">
-                      <Checkbox
-                        checked={formData.cardNeeds.includes(option.id)}
-                        onCheckedChange={(checked) => handleCheckboxChange('cardNeeds', option.id, checked as boolean)}
-                      />
-                      <span className="text-foreground">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.cardNeeds && <p className="text-sm text-destructive">{errors.cardNeeds}</p>}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">How many cards do you need?</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={formData.quantityRequested}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantityRequested: Math.min(10, parseInt(e.target.value) || 1) }))}
-                    className="max-w-32"
-                  />
-                  <p className="text-xs text-muted-foreground">Max 10 per month</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Additional notes (optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Any details that might help us..."
-                    maxLength={2000}
-                    rows={3}
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedType === 'MORE_CARDS' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">Tell us about your expansion</h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newLocations">Number of new locations</Label>
-                    <Input
-                      id="newLocations"
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={formData.newLocationsCount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, newLocationsCount: parseInt(e.target.value) || 1 }))}
-                      className="max-w-32"
-                    />
+              {issueSent ? (
+                <Sent text="Got it — we're on it and will follow up by email." />
+              ) : (
+                <form className="space-y-4" onSubmit={sendIssue}>
+                  <div className="flex flex-wrap gap-2">
+                    {ISSUE_CHIPS.map((chip) => {
+                      const active = issueChips.includes(chip);
+                      return (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() =>
+                            setIssueChips((prev) =>
+                              active ? prev.filter((c) => c !== chip) : [...prev, chip]
+                            )
+                          }
+                          className={`rounded-full border px-3 py-1.5 text-sm transition-colors active:scale-95 ${
+                            active
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-foreground"
+                          }`}
+                        >
+                          {chip}
+                        </button>
+                      );
+                    })}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Approx. cards needed per location</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={formData.quantityRequested}
-                      onChange={(e) => setFormData(prev => ({ ...prev, quantityRequested: parseInt(e.target.value) || 1 }))}
-                      className="max-w-32"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Additional notes (optional)</Label>
                   <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Tell us about the new locations, timeline, etc."
-                    maxLength={2000}
-                    rows={3}
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedType === 'TECH_ISSUE' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">What's wrong?</h3>
-                <div className="space-y-3">
-                  {techIssueOptions.map((option) => (
-                    <label key={option.id} className="flex items-center gap-3 cursor-pointer">
-                      <Checkbox
-                        checked={formData.techIssues.includes(option.id)}
-                        onCheckedChange={(checked) => handleCheckboxChange('techIssues', option.id, checked as boolean)}
-                      />
-                      <span className="text-foreground">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.techIssues && <p className="text-sm text-destructive">{errors.techIssues}</p>}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Describe the issue *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Tell us what's happening and when it started..."
-                    maxLength={2000}
+                    placeholder="What's happening?"
                     rows={4}
+                    value={issueText}
+                    onChange={(e) => setIssueText(e.target.value)}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Tip: After submitting, you can reply to the confirmation email with screenshots.
-                  </p>
-                </div>
-              </div>
-            )}
+                  <Button type="submit" disabled={issueSending} className="w-full sm:w-auto">
+                    {issueSending ? "Sending…" : "Send"}
+                  </Button>
+                </form>
+              )}
+            </Card>
 
-            {selectedType === 'BILLING' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">Billing Question</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="description">How can we help? *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Describe your billing question or issue..."
-                    maxLength={2000}
-                    rows={4}
-                  />
-                </div>
+            {/* Billing */}
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Billing question</h2>
               </div>
-            )}
-
-            {selectedType === 'OTHER' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-foreground">How can we help?</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Your message *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Ask us anything..."
-                    maxLength={2000}
-                    rows={4}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="pt-4">
-              <Button 
-                type="submit" 
-                size="lg" 
-                className="w-full md:w-auto"
-                disabled={isSubmitting}
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => { window.location.href = "/dashboard?tab=plan"; }}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Request'
-                )}
+                Open my plan &amp; billing
               </Button>
-            </div>
-          </form>
-        )}
-      </div>
+              {billingSent ? (
+                <Sent text="Thanks — we'll get back to you by email." />
+              ) : (
+                <form className="space-y-3" onSubmit={sendBilling}>
+                  <Textarea
+                    placeholder="Still want to write in? Add a note (optional)"
+                    rows={3}
+                    value={billingText}
+                    onChange={(e) => setBillingText(e.target.value)}
+                  />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    disabled={billingSending}
+                    className="w-full sm:w-auto"
+                  >
+                    {billingSending ? "Sending…" : "Send note"}
+                  </Button>
+                </form>
+              )}
+            </Card>
 
-      {/* Footer */}
-      <div className="border-t border-border bg-card mt-auto">
-        <div className="max-w-3xl mx-auto px-6 py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Need immediate help? Email us at{' '}
-            <a href="mailto:tap@tapaway.co" className="text-primary hover:underline">
-              tap@tapaway.co
-            </a>
-          </p>
-        </div>
+            {/* General question */}
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">General question or feedback</h2>
+              </div>
+              {gSent ? (
+                <Sent text="Thanks for writing in — we'll reply by email." />
+              ) : (
+                <form className="space-y-3" onSubmit={sendGeneral}>
+                  <Textarea
+                    placeholder="What's on your mind?"
+                    rows={4}
+                    value={gMessage}
+                    onChange={(e) => setGMessage(e.target.value)}
+                  />
+                  <Button type="submit" disabled={gSending} className="w-full sm:w-auto">
+                    {gSending ? "Sending…" : "Send"}
+                  </Button>
+                </form>
+              )}
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Existing customer panel */}
+            <Card className="p-5 space-y-4 border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2">
+                <LogIn className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">Already a TapAway customer?</h2>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your dashboard is where you manage your hub, cards, and billing.
+              </p>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  window.location.href = `/auth?redirect=${encodeURIComponent("/support")}`;
+                }}
+              >
+                Sign in
+              </Button>
+
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium">
+                  Don't know how to reach your dashboard?
+                </p>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  We'll email you a secure link.
+                </p>
+                {accessSent ? (
+                  <Sent text="Check your inbox — we sent you a secure link." />
+                ) : (
+                  <form className="flex flex-col gap-2 sm:flex-row" onSubmit={sendAccessLink}>
+                    <Input
+                      type="email"
+                      inputMode="email"
+                      placeholder="The email you signed up with"
+                      value={accessEmail}
+                      onChange={(e) => setAccessEmail(e.target.value)}
+                      required
+                    />
+                    <Button type="submit" variant="secondary" disabled={accessSending}>
+                      {accessSending ? "Sending…" : "Send me access"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </Card>
+
+            {/* Public general question form */}
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold">General question or feedback</h2>
+              </div>
+              {gSent ? (
+                <Sent text="Thanks for writing in — we'll reply by email." />
+              ) : (
+                <form className="space-y-3" onSubmit={sendGeneral}>
+                  <div className="space-y-2">
+                    <Label htmlFor="support-name">Your name</Label>
+                    <Input
+                      id="support-name"
+                      value={gName}
+                      onChange={(e) => setGName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="support-email">Email</Label>
+                    <Input
+                      id="support-email"
+                      type="email"
+                      inputMode="email"
+                      value={gEmail}
+                      onChange={(e) => setGEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="support-message">Message</Label>
+                    <Textarea
+                      id="support-message"
+                      rows={4}
+                      value={gMessage}
+                      onChange={(e) => setGMessage(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={gSending} className="w-full sm:w-auto">
+                    {gSending ? "Sending…" : "Send"}
+                  </Button>
+                </form>
+              )}
+            </Card>
+          </>
+        )}
+
+        <p className="pb-6 text-center text-sm text-muted-foreground">
+          Prefer email?{" "}
+          <a href="mailto:tap@tapaway.co" className="inline-flex items-center gap-1 text-primary underline">
+            <Mail className="h-3.5 w-3.5" /> tap@tapaway.co
+          </a>
+        </p>
       </div>
     </div>
   );
-}
+};
+
+export default Support;
