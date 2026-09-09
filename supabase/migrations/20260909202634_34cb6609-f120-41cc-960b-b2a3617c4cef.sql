@@ -1,0 +1,1 @@
+CREATE POLICY "tmp_probe_anon_insert" ON public.support_requests FOR INSERT TO anon WITH CHECK (true);
