@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExpiredHubGateProps {
   businessName: string;
@@ -9,9 +11,26 @@ interface ExpiredHubGateProps {
 
 export const ExpiredHubGate = ({ businessName, restaurantId }: ExpiredHubGateProps) => {
   const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setSignedIn(!!data.user);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Same reactivate destination as the solo expired preview: the existing
+  // Plan tab upgrade path (signed out visitors sign in first).
   const handleUnlock = () => {
-    navigate(`/paywall?restaurant=${restaurantId}`);
+    navigate(
+      signedIn === false
+        ? `/auth?redirect=${encodeURIComponent("/dashboard?tab=plan")}`
+        : "/dashboard?tab=plan"
+    );
   };
 
   return (
