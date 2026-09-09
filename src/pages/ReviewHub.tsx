@@ -111,14 +111,12 @@ const ReviewHub = () => {
       .rpc("get_public_restaurant_hub_status", params);
 
     const status = data?.[0];
-    // Comped accounts (family, free on purpose — payment_state =
-    // 'complimentary') are never paused, regardless of subscription_status.
-    if (
-      status &&
-      status.payment_state !== "complimentary" &&
-      status.subscription_status !== "active" &&
-      status.subscription_status !== "trialing"
-    ) {
+    // This only runs after the live hub RPC resolved nothing, so any status
+    // row here means "the hub exists but isn't live" — lapsed subscription OR
+    // a trial that was never handed out (unapproved). Both get the recovery
+    // gate rather than "Hub Not Found". Comped accounts (payment_state =
+    // 'complimentary') are never treated as paused.
+    if (status && status.payment_state !== "complimentary") {
       setPausedHub({ id: status.id, restaurant_name: status.restaurant_name });
     }
   };
