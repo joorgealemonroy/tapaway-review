@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { sendTemplatedEmail } from "../_shared/email.ts";
+import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1163,6 +1164,23 @@ if (event.type === 'checkout.session.completed') {
 
       if (amountPaid > 0 && invoiceSubId) {
         console.log(`[stripe-webhook] invoice.paid: sub=${invoiceSubId}, amount=${amountPaid}`);
+
+        // Meta Conversions API: server-side Purchase for Instagram ad
+        // tracking. event_id is the Stripe invoice id, so redelivered
+        // webhooks never double-count. Silent no-op until META_PIXEL_ID /
+        // META_CONVERSIONS_API_TOKEN are configured. Never fails the webhook.
+        try {
+          const capiResult = await sendMetaCapiEvent({
+            eventName: "Purchase",
+            eventId: `invoice_${invoice.id}`,
+            email: (invoice.customer_email as string) || null,
+            value: amountPaid / 100,
+            currency: (invoice.currency || "usd").toLowerCase(),
+          });
+          console.log("[stripe-webhook] Meta CAPI:", capiResult);
+        } catch (capiErr) {
+          console.error("[stripe-webhook] Meta CAPI failed (non-fatal):", capiErr);
+        }
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
