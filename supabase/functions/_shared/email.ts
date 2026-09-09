@@ -363,13 +363,19 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
             `<strong>Your links</strong> — socials, menu, directions, everything in one place.`,
             `<strong>Your look</strong> — we matched it to your brand.`,
           ]) +
-          `<p style="margin:0;">Want anything changed — colors, links, wording? Just reply to this email and we'll take care of it.</p>`,
+          `<p style="margin:0 0 18px 0;">Want anything changed — colors, links, wording? Just reply to this email and we'll take care of it.</p>` +
+          `<div style="border-top:1px solid #e5e7eb;padding-top:18px;">
+             <p style="margin:0 0 8px 0;font-weight:700;color:#111827;">Your dashboard</p>
+             <p style="margin:0 0 6px 0;">Manage your hub, order cards, and handle billing from your dashboard.</p>
+             <p style="margin:0 0 6px 0;">Sign in at <a href="${SITE_URL}/auth" style="color:#0d9488;">tapaway.co/auth</a> with the email you signed up with.</p>
+             <p style="margin:0;">First time signing in? Use the "Forgot password" link on the sign-in page to set a password — we'll email a 6-digit code.</p>
+           </div>`,
         ctaLabel: "View my hub",
         ctaUrl: String(v.hubUrl || SITE_URL),
         footerNote: REPLY_FOOTER,
       }),
     text: (v) =>
-      `TapAway — Your hub is ready 🎉\n\nHey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed — colors, links, wording? Just reply and we'll take care of it.\n— TapAway`,
+      `TapAway — Your hub is ready 🎉\n\nHey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed — colors, links, wording? Just reply and we'll take care of it.\n\nYOUR DASHBOARD\nManage your hub, order cards, and handle billing from your dashboard.\nSign in at ${SITE_URL}/auth with the email you signed up with.\nFirst time signing in? Use the "Forgot password" link on the sign-in page to set a password — we'll email a 6-digit code.\n\n— TapAway`,
   },
 };
 
