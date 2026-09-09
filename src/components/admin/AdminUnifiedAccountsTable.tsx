@@ -334,8 +334,18 @@ const AdminUnifiedAccountsTable = () => {
     // "las islas marias gardena" must find the hub whose slug is
     // "islasmariasgardena" — compare with separators stripped too.
     const squashed = s.replace(/[^a-z0-9]/g, "");
+    const sameLocalDay = (iso: string | null, day: Date) => {
+      if (!iso) return false;
+      const d = new Date(iso);
+      return (
+        d.getFullYear() === day.getFullYear() &&
+        d.getMonth() === day.getMonth() &&
+        d.getDate() === day.getDate()
+      );
+    };
     return rows
       .filter((r) => {
+        if (pickedDate && !sameLocalDay(r.created_at, pickedDate)) return false;
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
         if (pipelineFilter !== "all" && (r.pipeline ?? "live") !== pipelineFilter) return false;
