@@ -40,8 +40,6 @@ import {
   Settings,
   Copy,
   Loader2,
-  Link as LinkIcon,
-  Timer,
   LogOut,
   MessageSquare,
   LayoutDashboard,
@@ -95,7 +93,7 @@ type Location = {
   restaurant_id: string;
 };
 
-type Section = "overview" | "accounts" | "reps" | "promo" | "system";
+type Section = "overview" | "accounts" | "reps" | "system";
 
 const NAV = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
@@ -105,7 +103,6 @@ const NAV = [
   { id: "locations" as const, label: "Locations", icon: MapPin, path: "/admin/locations" },
   { id: "emails" as const, label: "Emails", icon: Mail, path: "/admin/emails" },
   { id: "reps" as const, label: "Sales Reps", icon: Users },
-  { id: "promo" as const, label: "Promo Links", icon: LinkIcon },
   { id: "system" as const, label: "System & SMS", icon: Settings },
 ];
 
@@ -141,7 +138,7 @@ const Admin = () => {
   // specific admin section, e.g. Analytics → Accounts & Hubs drill-down).
   useEffect(() => {
     const s = searchParams.get("section");
-    if (s === "accounts" || s === "reps" || s === "promo" || s === "system" || s === "overview") {
+    if (s === "accounts" || s === "reps" || s === "system" || s === "overview") {
       setSection(s);
       setSearchParams({}, { replace: true });
     }
@@ -166,11 +163,6 @@ const Admin = () => {
   const [deleting, setDeleting] = useState(false);
 
   const [yelpDebugTarget, setYelpDebugTarget] = useState<YelpDebugRestaurant | null>(null);
-
-  const [promoDiscountType, setPromoDiscountType] = useState<string>("50_off");
-  const [generatingPromo, setGeneratingPromo] = useState(false);
-  const [promoUrl, setPromoUrl] = useState<string | null>(null);
-  const [promoExpiresAt, setPromoExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -394,31 +386,6 @@ const Admin = () => {
   const openHub = (r: Restaurant) => {
     if (!r.custom_slug) return;
     window.open(`/${r.custom_slug}`, "_blank");
-  };
-
-  const handleGeneratePromo = async () => {
-    setGeneratingPromo(true);
-    setPromoUrl(null);
-    try {
-      const { data, error: promoError } = await supabase.functions.invoke("generate-promo-token", {
-        body: { discount_type: promoDiscountType },
-      });
-      if (promoError) throw promoError;
-      if (data?.error) throw new Error(data.error as string);
-      setPromoUrl(data.url as string);
-      setPromoExpiresAt(data.expires_at as string);
-      toast.success("Promo link generated!");
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to generate promo link");
-    } finally {
-      setGeneratingPromo(false);
-    }
-  };
-
-  const copyPromoUrl = () => {
-    if (!promoUrl) return;
-    navigator.clipboard.writeText(promoUrl);
-    toast.success("Link copied to clipboard");
   };
 
   if (authLoading || adminLoading) {
@@ -703,58 +670,6 @@ const Admin = () => {
     </div>
   );
 
-  const renderPromo = () => (
-    <Panel className="p-6 max-w-2xl">
-      <div className="flex items-center gap-2 mb-1">
-        <LinkIcon className="h-4 w-4 text-white/60" />
-        <h3 className="font-medium text-white">Promo Link Generator</h3>
-      </div>
-      <p className="text-sm text-white/40 mb-5">
-        Generate a one-time onboarding link with a discount. Links expire after 30 minutes.
-      </p>
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-        <div className="space-y-1.5 sm:w-[200px]">
-          <Label className="text-xs text-white/60">Discount Type</Label>
-          <Select value={promoDiscountType} onValueChange={setPromoDiscountType}>
-            <SelectTrigger className="bg-white/[0.03] border-white/5 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="50_off">50% Off</SelectItem>
-              <SelectItem value="free">100% Free</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          onClick={handleGeneratePromo}
-          disabled={generatingPromo}
-          className="bg-white text-[#0a0e1a] hover:bg-white/90"
-        >
-          {generatingPromo ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-          ) : (
-            <><Timer className="h-4 w-4 mr-2" />Generate 30-Min Link</>
-          )}
-        </Button>
-      </div>
-      {promoUrl && (
-        <div className="mt-4 rounded-lg border border-white/5 bg-white/[0.03] p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Input value={promoUrl} readOnly className="text-xs font-mono flex-1 bg-transparent border-white/5 text-white/80" />
-            <Button variant="outline" size="sm" onClick={copyPromoUrl} className="border-white/10 bg-transparent text-white/70 hover:bg-white/[0.05] hover:text-white">
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-          {promoExpiresAt && (
-            <p className="text-xs text-white/40">
-              Expires: {new Date(promoExpiresAt).toLocaleTimeString()}
-            </p>
-          )}
-        </div>
-      )}
-    </Panel>
-  );
-
   const renderSystem = () => (
     <div className="space-y-4">
       <Panel className="divide-y divide-white/5">
@@ -811,7 +726,6 @@ const Admin = () => {
           {section === "overview" && renderOverview()}
           {section === "accounts" && renderAccounts()}
           {section === "reps" && renderReps()}
-          {section === "promo" && renderPromo()}
           {section === "system" && renderSystem()}
         </main>
       </div>

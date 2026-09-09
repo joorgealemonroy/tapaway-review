@@ -70,6 +70,7 @@ const PersonalSignup = () => {
   const [signupComplete, setSignupComplete] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [completedUsername, setCompletedUsername] = useState<string | null>(null);
+  const [completedEmail, setCompletedEmail] = useState<string | null>(null);
   const [completedPlanType, setCompletedPlanType] = useState<"free" | "monthly" | "yearly" | "vip">("yearly");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [hasImportedProfile, setHasImportedProfile] = useState(false);
@@ -386,6 +387,7 @@ const PersonalSignup = () => {
   const handleCheckoutComplete = () => {
     // Capture username and plan type BEFORE clearing draft
     setCompletedUsername(formData.username);
+    setCompletedEmail(formData.email);
     setCompletedPlanType(formData.planType);
     setSignupComplete(true);
     clearDraft();
@@ -403,7 +405,7 @@ const PersonalSignup = () => {
   const stepTitles = { 1: "Create your TapAway", 2: fromVibeFlow ? "Auto-build your profile" : "Build your profile", 3: "Finish your order" };
 
   if (signupComplete && completedUsername) {
-    return <SuccessScreen username={completedUsername} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
+    return <SuccessScreen username={completedUsername} email={completedEmail} planType={completedPlanType} vibeName={vibeMetadata?.name} accentColor={vibeMetadata?.accentColor} />;
   }
 
   return (

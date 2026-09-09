@@ -15,6 +15,7 @@ import {
   Tag,
   Truck,
   Users,
+  X,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,41 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
   const [nudging, setNudging] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
+  // Dismissed ("not now") action items — persisted locally so they stay out
+  // of the way until the underlying situation changes or Jorge restores them.
+  const DISMISS_KEY = "tapaway-admin-dismissed-actions";
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      return new Set<string>(JSON.parse(localStorage.getItem(DISMISS_KEY) ?? "[]"));
+    } catch {
+      return new Set<string>();
+    }
+  });
+  const [showDismissed, setShowDismissed] = useState(false);
+  const persistDismissed = (next: Set<string>) => {
+    try {
+      localStorage.setItem(DISMISS_KEY, JSON.stringify([...next]));
+    } catch {
+      /* storage unavailable — dismissals just won't persist */
+    }
+  };
+  const dismissItem = (key: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      persistDismissed(next);
+      return next;
+    });
+  };
+  const restoreItem = (key: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      persistDismissed(next);
+      return next;
+    });
+  };
+
   const load = useCallback(async () => {
     setBillingLoading(true);
     setBillingError(null);
@@ -129,11 +165,22 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
     }
   };
 
+  const isDismissed = (key: string) => dismissed.has(key);
+  const visiblePastDue = (billing?.past_due ?? []).filter(
+    (p) => !isDismissed(`pastdue:${p.subscription_id}`)
+  );
+  const visibleTrials = (billing?.trials_ending ?? []).filter(
+    (t) => !isDismissed(`trial:${t.profile_id}`)
+  );
+  const demosVisible = (unapprovedDemos ?? 0) > 0 && !isDismissed("demos");
+  const printVisible = (awaitingPrint ?? 0) > 0 && !isDismissed("print");
+
   const actionCount =
-    (billing?.past_due.length ?? 0) +
-    (billing?.trials_ending.length ?? 0) +
-    (unapprovedDemos ?? 0) +
-    (awaitingPrint ?? 0);
+    visiblePastDue.length +
+    visibleTrials.length +
+    (demosVisible ? unapprovedDemos ?? 0 : 0) +
+    (printVisible ? awaitingPrint ?? 0 : 0);
+  const dismissedCount = dismissed.size;
 
   return (
     <div className="space-y-4">
@@ -229,7 +276,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
           </div>
         ) : (
           <div className="space-y-2">
-            {(billing?.past_due ?? []).map((p) => (
+            {visiblePastDue.map((p) => (
               <div
                 key={p.subscription_id}
                 className="flex items-center gap-3 p-3 rounded-lg bg-red-500/[0.07] border border-red-500/20"
@@ -255,54 +302,135 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
                     "Nudge"
                   )}
                 </Button>
+                <button
+                  onClick={() => dismissItem(`pastdue:${p.subscription_id}`)}
+                  className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Dismiss for now"
+                  title="Not now"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ))}
 
-            {(billing?.trials_ending ?? []).map((t) => (
-              <button
+            {visibleTrials.map((t) => (
+              <div
                 key={t.profile_id}
-                onClick={onOpenAccounts}
-                className="w-full flex items-center gap-3 p-3 rounded-lg bg-amber-500/[0.07] border border-amber-500/20 text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-amber-500/[0.07] border border-amber-500/20"
               >
-                <Clock className="h-4 w-4 text-amber-300 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{t.name}</div>
-                  <div className="text-xs text-white/50">Trial ends {inDays(t.ends_at)}</div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
-              </button>
+                <button
+                  onClick={onOpenAccounts}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                >
+                  <Clock className="h-4 w-4 text-amber-300 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white truncate">{t.name}</div>
+                    <div className="text-xs text-white/50">Trial ends {inDays(t.ends_at)}</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+                </button>
+                <button
+                  onClick={() => dismissItem(`trial:${t.profile_id}`)}
+                  className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Dismiss for now"
+                  title="Not now"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             ))}
 
-            {(unapprovedDemos ?? 0) > 0 && (
-              <button
-                onClick={() => navigate("/admin/fulfillment")}
-                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-left"
-              >
-                <Users className="h-4 w-4 text-white/60 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">
-                    {unapprovedDemos} demo{unapprovedDemos === 1 ? "" : "s"} waiting for approval
+            {demosVisible && (
+              <div className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <button
+                  onClick={() => navigate("/admin/fulfillment")}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                >
+                  <Users className="h-4 w-4 text-white/60 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white">
+                      {unapprovedDemos} demo{unapprovedDemos === 1 ? "" : "s"} waiting for approval
+                    </div>
+                    <div className="text-xs text-white/50">Review → print → activate</div>
                   </div>
-                  <div className="text-xs text-white/50">Review → print → activate</div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
-              </button>
+                  <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+                </button>
+                <button
+                  onClick={() => dismissItem("demos")}
+                  className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Dismiss for now"
+                  title="Not now"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             )}
 
-            {(awaitingPrint ?? 0) > 0 && (
-              <button
-                onClick={() => navigate("/admin/fulfillment")}
-                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-left"
-              >
-                <Printer className="h-4 w-4 text-white/60 shrink-0" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">
-                    {awaitingPrint} approved hub{awaitingPrint === 1 ? "" : "s"} not printed yet
+            {printVisible && (
+              <div className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <button
+                  onClick={() => navigate("/admin/fulfillment")}
+                  className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                >
+                  <Printer className="h-4 w-4 text-white/60 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-white">
+                      {awaitingPrint} approved hub{awaitingPrint === 1 ? "" : "s"} not printed yet
+                    </div>
+                    <div className="text-xs text-white/50">Print queue</div>
                   </div>
-                  <div className="text-xs text-white/50">Print queue</div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
-              </button>
+                  <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+                </button>
+                <button
+                  onClick={() => dismissItem("print")}
+                  className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Dismiss for now"
+                  title="Not now"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {dismissedCount > 0 && (
+              <div className="pt-1">
+                <button
+                  onClick={() => setShowDismissed((s) => !s)}
+                  className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                >
+                  {showDismissed
+                    ? "Hide snoozed"
+                    : `${dismissedCount} snoozed — show`}
+                </button>
+                {showDismissed && (
+                  <div className="mt-2 space-y-1.5">
+                    {[...dismissed].map((key) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.06]"
+                      >
+                        <span className="text-xs text-white/40 truncate">
+                          {key.startsWith("pastdue:")
+                            ? "Past-due payment"
+                            : key.startsWith("trial:")
+                            ? "Trial ending"
+                            : key === "demos"
+                            ? "Demo approvals"
+                            : key === "print"
+                            ? "Print queue"
+                            : key}
+                        </span>
+                        <button
+                          onClick={() => restoreItem(key)}
+                          className="text-xs text-primary hover:underline shrink-0"
+                        >
+                          Bring back
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -317,7 +445,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
             { label: "Fulfillment", desc: "Approve · print · ship", icon: Printer, path: "/admin/fulfillment" },
             { label: "Broadcast", desc: "SMS blast", icon: Megaphone, path: "/admin/emails" },
             { label: "Emails", desc: "Templates & history", icon: Mail, path: "/admin/emails" },
-            { label: "Promo link", desc: "Discount pay link", icon: Tag, path: "/admin/discounts" },
+            { label: "Discount link", desc: "Discount pay link", icon: Tag, path: "/admin/discounts" },
             { label: "Analytics", desc: "Traffic & taps", icon: Users, path: "/admin/analytics" },
           ].map((a) => (
             <button

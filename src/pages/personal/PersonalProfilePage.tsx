@@ -35,6 +35,7 @@ import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
+import { Helmet } from "react-helmet-async";
 
 
 
@@ -1096,6 +1097,16 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     : null;
   const hasCover = !!coverImageUrl;
 
+  // Share preview (OG tags): when someone shares the hub, the native share
+  // sheet and link unfurls show the hub's photo, name, and headline.
+  const sharePageUrl = `https://tapaway.co/${profile.username}`;
+  const shareTitle = `${profile.full_name} | TapAway`;
+  const shareDescription =
+    profile.headline || profile.bio || `Tap to view ${profile.full_name}'s links on TapAway.`;
+  const shareImage = profile.profile_photo_url
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
+    : "https://tapaway.co/logo-og.png";
+
   // Full-image banner (header_type === "banner"): the profile photo IS the
   // header, shown full-bleed with the full picture in frame.
   const bannerUrl = (profile.header_type === "banner" && profile.profile_photo_url)
@@ -1177,11 +1188,25 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
       className="min-h-screen"
       style={{ backgroundColor: outerBgColor }}
     >
+      <Helmet>
+        <title>{shareTitle}</title>
+        <meta name="description" content={shareDescription} />
+        <link rel="canonical" href={sharePageUrl} />
+        <meta property="og:title" content={shareTitle} />
+        <meta property="og:description" content={shareDescription} />
+        <meta property="og:url" content={sharePageUrl} />
+        <meta property="og:image" content={shareImage} />
+        <meta property="og:type" content="profile" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={shareTitle} />
+        <meta name="twitter:description" content={shareDescription} />
+        <meta name="twitter:image" content={shareImage} />
+      </Helmet>
       {/* Phone-frame container - full width on mobile, centered card on desktop with rounded corners */}
       {/* Add top padding on desktop for spacing, using outer bg color instead of margin */}
       <div className="hidden md:block md:h-4" />
       <div 
-        className="min-h-[100dvh] md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
+        className="min-h-[100dvh] md:max-w-[430px] md:mx-auto relative md:rounded-3xl md:mb-4"
         style={{
           ...bgStyle,
           // Soft glow that blends the frame edge into the outer background
@@ -1192,6 +1217,42 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         {brandGlowStyle && (
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
+        {/* Action buttons - Share and Save Contact. Pinned to the top-right of
+            the page so they're always visible and discoverable, even over busy
+            banner images. Solid high-contrast pills. */}
+        <div
+          className="absolute right-4 flex gap-2 z-30"
+          style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}
+        >
+          {profile.contact_enabled && profile.contact_display_style !== 'button' && (
+            <span className="relative">
+              <button
+                onClick={handleSaveContact}
+                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
+                aria-label="Save contact"
+              >
+                <UserPlus className="h-4 w-4" />
+              </button>
+              {showContactTooltip && (
+                <div
+                  className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
+                  style={{ animationDuration: '0.3s' }}
+                >
+                  Save my contact!
+                  <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
+                </div>
+              )}
+            </span>
+          )}
+          <button
+            onClick={handleShare}
+            className={`h-11 pl-3.5 pr-4 rounded-full flex items-center gap-1.5 shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
+            aria-label="Share profile"
+          >
+            <Share2 className="h-4 w-4" />
+            <span className="text-sm font-semibold">Share</span>
+          </button>
+        </div>
         {/* Header — logo band, full-image banner, or cover image. Banner and
             logo modes show the full picture in frame; the circle avatar below
             is hidden in those modes. */}
@@ -1267,40 +1328,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         <div 
           className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover || hasBanner ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
-          {/* Action buttons - Share and Save Contact. Solid high-contrast pill so
-              the share button is always visible and discoverable, even over
-              busy banner images. */}
-          <div className="absolute top-0 right-4 flex gap-2 z-20">
-              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
-                <span className="relative">
-                  <button
-                    onClick={handleSaveContact}
-                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
-                    aria-label="Save contact"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </button>
-                  {showContactTooltip && (
-                    <div
-                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
-                      style={{ animationDuration: '0.3s' }}
-                    >
-                      Save my contact!
-                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
-                    </div>
-                  )}
-                </span>
-              )}
-              <button
-                onClick={handleShare}
-                className={`h-11 pl-3.5 pr-4 rounded-full flex items-center gap-1.5 shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
-                aria-label="Share profile"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="text-sm font-semibold">Share</span>
-              </button>
-            </div>
-
           {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
           {!hasBanner && !isLogoHeader && (
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>

@@ -10,6 +10,7 @@ import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
 
 interface Props {
   username: string;
+  email?: string | null;
   planType?: "free" | "monthly" | "yearly" | "vip";
   vibeName?: string;
   accentColor?: string;
@@ -84,7 +85,7 @@ const AnimatedSparkle = () => (
   </motion.div>
 );
 
-export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentColor }: Props) => {
+export const SuccessScreen = ({ username, email, planType = "yearly", vibeName, accentColor }: Props) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -164,7 +165,20 @@ export const SuccessScreen = ({ username, planType = "yearly", vibeName, accentC
           transition={{ delay: 0.75, duration: 0.5 }}
           className="mt-2 text-muted-foreground text-center text-base"
         >
-          Your profile is live and ready to share.
+          You're in! Sit tight — we're putting the finishing touches on your hub right now.
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.85, duration: 0.5 }}
+          className="mt-2 text-muted-foreground text-center text-sm max-w-sm"
+        >
+          You don't need to do a thing. We'll send you an email
+          {email ? (
+            <> at <span className="font-medium text-foreground">{email}</span></>
+          ) : null}{" "}
+          the moment your hub is ready to share.
         </motion.p>
 
         {/* Profile Link Card with shimmer */}

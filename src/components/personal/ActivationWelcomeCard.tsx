@@ -57,7 +57,7 @@ export function ActivationWelcomeCard({ profileId, username, onOpenTab }: Activa
         <div className="min-w-0">
           <h2 className="font-bold text-foreground">Welcome to TapAway! Your account is fully active.</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Your hub is live. Share your link or tap your NFC card to start collecting taps — your stats will fill in as visitors arrive.
+            Sit tight — we're putting the finishing touches on your hub. We'll email you the moment it's ready to share, and you don't need to do a thing.
           </p>
         </div>
       </div>
