@@ -2778,6 +2778,7 @@ export type Database = {
           is_stripe_onboarded: boolean | null
           logo_bg_color: string | null
           logo_scale: string
+          payment_state: string
           pfp_position: string | null
           pipeline_status: string | null
           place_city: string | null
@@ -2878,6 +2879,7 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           logo_bg_color?: string | null
           logo_scale?: string
+          payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
@@ -2978,6 +2980,7 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           logo_bg_color?: string | null
           logo_scale?: string
+          payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
