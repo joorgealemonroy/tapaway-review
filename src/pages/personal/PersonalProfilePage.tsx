@@ -980,6 +980,32 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     }
   }, [data?.profile]);
 
+  // Logo band sampling — MUST stay above the early returns below, otherwise the
+  // hook count changes between the loading render and the loaded render and
+  // React throws "Rendered more hooks than during the previous render".
+  const preProfile = data?.profile as any;
+  const preIsLogoHeader = preProfile?.header_type === "logo";
+  const preLogoUrl = preIsLogoHeader && preProfile?.profile_photo_url
+    ? getOptimizedImageUrl(preProfile.profile_photo_url, 1080, 92)
+    : null;
+  const preLogoBandColor = preIsLogoHeader
+    ? (preProfile?.logo_bg_color || preProfile?.header_color || null)
+    : null;
+  const [sampledLogoBand, setSampledLogoBand] = useState<string | null>(null);
+  useEffect(() => {
+    if (!preIsLogoHeader || !preLogoUrl || preLogoBandColor) {
+      setSampledLogoBand(null);
+      return;
+    }
+    let cancelled = false;
+    sampleBottomEdgeColor(preLogoUrl).then((c) => {
+      if (!cancelled && c) setSampledLogoBand(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [preIsLogoHeader, preLogoUrl, preLogoBandColor]);
+
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
@@ -1089,20 +1115,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     : null;
   // Fallback: if no band color was stored, sample the logo image's edge live
   // so the blend still works. Never throws; null means "keep page background".
-  const [sampledLogoBand, setSampledLogoBand] = useState<string | null>(null);
-  useEffect(() => {
-    if (!isLogoHeader || !logoUrl || logoBandColor) {
-      setSampledLogoBand(null);
-      return;
-    }
-    let cancelled = false;
-    sampleBottomEdgeColor(logoUrl).then((c) => {
-      if (!cancelled && c) setSampledLogoBand(c);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLogoHeader, logoUrl, logoBandColor]);
   const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
