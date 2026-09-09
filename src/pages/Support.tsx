@@ -142,15 +142,17 @@ const Support = () => {
   ) => {
     const name = override?.name || account?.name || "";
     const email = override?.email || account?.email || user?.email || "";
-    const { error } = await supabase.from("support_requests").insert({
-      request_type: requestType,
-      name: name || "Website visitor",
-      business_name: account?.businessName || "",
-      email,
-      description,
-      request_details: details ?? {},
-      user_id: user?.id || null,
-    });
+    const { error } = await supabase.from("support_requests").insert([
+      {
+        request_type: requestType,
+        name: name || "Website visitor",
+        business_name: account?.businessName || "",
+        email,
+        description,
+        request_details: (details ?? {}) as Record<string, unknown>,
+        user_id: user?.id || undefined,
+      },
+    ]);
     if (error) throw error;
 
     await supabase.functions.invoke("support-notification", {
