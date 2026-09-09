@@ -1520,30 +1520,36 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           name: string
           stripe_price_id: string
           stripe_product_id: string
           trial_days: number
+          updated_at: string
         }
         Insert: {
           amount_cents: number
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           name: string
           stripe_price_id: string
           stripe_product_id: string
           trial_days?: number
+          updated_at?: string
         }
         Update: {
           amount_cents?: number
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           stripe_price_id?: string
           stripe_product_id?: string
           trial_days?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2772,6 +2778,7 @@ export type Database = {
           is_stripe_onboarded: boolean | null
           logo_bg_color: string | null
           logo_scale: string
+          payment_state: string
           pfp_position: string | null
           pipeline_status: string | null
           place_city: string | null
@@ -2872,6 +2879,7 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           logo_bg_color?: string | null
           logo_scale?: string
+          payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
@@ -2972,6 +2980,7 @@ export type Database = {
           is_stripe_onboarded?: boolean | null
           logo_bg_color?: string | null
           logo_scale?: string
+          payment_state?: string
           pfp_position?: string | null
           pipeline_status?: string | null
           place_city?: string | null
@@ -4938,6 +4947,26 @@ export type Database = {
           user_id: string
           username: string
           vibe_id: string
+        }[]
+      }
+      get_public_personal_profile_status: {
+        Args: { _slug: string }
+        Returns: {
+          background_color: string
+          bg_style: string
+          bio: string
+          button_theme: string
+          full_name: string
+          header_image_url: string
+          headline: string
+          id: string
+          is_approved: boolean
+          pfp_position: string
+          plan_type: string
+          profile_photo_url: string
+          subscription_status: string
+          text_color: string
+          username: string
         }[]
       }
       get_public_personal_showcase: {
