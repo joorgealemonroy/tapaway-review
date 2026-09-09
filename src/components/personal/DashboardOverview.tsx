@@ -62,6 +62,7 @@ interface OverviewProfile {
   full_name?: string | null;
   headline: string | null;
   bio: string | null;
+  header_type?: string | null;
   plan_type: string | null;
   subscription_status: string | null;
   trial_ends_at: string | null;
@@ -264,6 +265,11 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
     profile.full_name?.trim() || (profile.username ? `@${profile.username}` : "Your hub");
   const nameInitial = (profile.full_name || profile.username || "?").trim().charAt(0).toUpperCase();
 
+  // Banner/logo hubs show the full picture as the header — headline & bio
+  // are intentionally skipped there, so don't nag about them.
+  const hideHeadlineStep =
+    profile.header_type === "banner" || profile.header_type === "logo";
+
   const checklist: ChecklistItem[] = [
     {
       id: "photo",
@@ -307,7 +313,7 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
       done: !!profile.card_confirmed,
       targetTab: isTrialing ? "links" : "cards",
     },
-  ];
+  ].filter((c) => !(hideHeadlineStep && c.id === "headline"));
 
   const doneCount = checklist.filter((c) => c.done).length;
 

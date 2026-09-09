@@ -1047,13 +1047,23 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     groupedItems.push({ kind: "grid-group", links: currentGridGroup });
   }
 
-  // Cover image (set in the Design tab). This is the ONLY header decoration
-  // rendered now — legacy header_type values (color/image/banner/logo) are
-  // stored but intentionally not honored, falling back to this clean default.
+  // Cover image (set in the Design tab).
   const coverImageUrl = profile.header_image_url
     ? getOptimizedImageUrl(profile.header_image_url, 1080, 90)
     : null;
   const hasCover = !!coverImageUrl;
+
+  // Full-image banner (header_type === "banner"): the profile photo IS the
+  // header, shown full-bleed with the full picture in frame.
+  const bannerUrl = (profile.header_type === "banner" && profile.profile_photo_url)
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
+    : null;
+  const hasBanner = !!bannerUrl;
+  // Logo header (header_type === "logo"): the whole logo shown uncropped up top.
+  const isLogoHeader = profile.header_type === "logo";
+  const logoUrl = (isLogoHeader && profile.profile_photo_url)
+    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 92)
+    : null;
 
    // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
@@ -1130,9 +1140,51 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         {brandGlowStyle && (
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
-        {/* Cover image — the only header decoration. Optional; legacy
-            header styles (color/banner/logo) fall back to no cover. */}
-        {coverImageUrl ? (
+        {/* Header — logo band, full-image banner, or cover image. Banner and
+            logo modes show the full picture in frame; the circle avatar below
+            is hidden in those modes. */}
+        {isLogoHeader ? (
+          <div
+            className="relative w-full flex items-center justify-center px-5"
+            style={{ paddingTop: "max(2rem, env(safe-area-inset-top, 0px))", paddingBottom: "3rem" }}
+          >
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={profile.full_name}
+                loading="eager"
+                decoding="async"
+                className="mx-auto max-h-56 w-auto object-contain"
+              />
+            ) : (
+              <div className="h-24" />
+            )}
+          </div>
+        ) : hasBanner ? (
+          <div className="relative">
+            {/* Full-bleed banner — the full picture stays in frame. */}
+            <div className="w-full h-[55vh] md:h-[50vh] overflow-hidden">
+              <img
+                src={bannerUrl}
+                alt="Banner"
+                loading="eager"
+                decoding="async"
+                className="w-full h-full object-cover object-top"
+                style={{
+                  WebkitMaskImage: "linear-gradient(to bottom, black 75%, transparent 100%)",
+                  maskImage: "linear-gradient(to bottom, black 75%, transparent 100%)",
+                }}
+              />
+            </div>
+            {/* Fade into the page background */}
+            <div
+              className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${fadeToColor}40 60%, ${fadeToColor} 100%)`,
+              }}
+            />
+          </div>
+        ) : coverImageUrl ? (
           <div className="relative">
             <div className="w-full h-48 md:h-56 overflow-hidden">
               <img
@@ -1156,7 +1208,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
         {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover || hasBanner ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Action buttons - Share and Save Contact */}
           <div className="absolute top-0 right-4 flex gap-2">
@@ -1189,8 +1241,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               </button>
             </div>
 
-          {/* Avatar - priority loaded */}
-
+          {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
+          {!hasBanner && !isLogoHeader && (
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
               <OptimizedAvatar
                 src={profile.profile_photo_url}
@@ -1205,8 +1257,31 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
             </div>
+          )}
 
           {/* Name & Username & Headline/Bio */}
+          {hasBanner ? (
+            // Banner mode: white text with drop shadows, readable over the banner fade
+            <>
+              <h1 className="text-3xl font-bold drop-shadow-lg text-white">
+                {profile.show_username !== false ? `@${profile.username}` : profile.full_name}
+              </h1>
+              {profile.headline && (
+                <p className="text-base mt-2 drop-shadow-md text-white/90">
+                  {profile.headline}
+                </p>
+              )}
+              {profile.bio && (
+                <p className="text-base font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed text-white">
+                  {profile.bio}
+                </p>
+              )}
+              {/* Social icon bar */}
+              <SocialIconBar links={iconLinks} isDarkBg={true} profileId={profile.id} />
+              <div className="mb-3" />
+            </>
+          ) : (
+          <>
           <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
               {profile.headline && (
                 <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
@@ -1227,6 +1302,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               {profile.bio && (
                 <p className={`${mutedClass} text-sm mt-2 max-w-xs mx-auto`} style={textStyle}>{profile.bio}</p>
               )}
+          </>
+          )}
               {/* Inline Save Contact button */}
               {profile.contact_enabled && profile.contact_display_style === 'button' && (
                 <button
