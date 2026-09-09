@@ -2772,6 +2772,7 @@ export type Database = {
           header_image_url: string | null
           header_type: string | null
           headline: string | null
+          hub_ready_notified_at: string | null
           id: string
           is_approved: boolean
           is_founding_user: boolean
@@ -2873,6 +2874,7 @@ export type Database = {
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
+          hub_ready_notified_at?: string | null
           id?: string
           is_approved?: boolean
           is_founding_user?: boolean
@@ -2974,6 +2976,7 @@ export type Database = {
           header_image_url?: string | null
           header_type?: string | null
           headline?: string | null
+          hub_ready_notified_at?: string | null
           id?: string
           is_approved?: boolean
           is_founding_user?: boolean
@@ -3694,6 +3697,7 @@ export type Database = {
           header_subtitle: string | null
           header_title: string | null
           hub_background_style: string | null
+          hub_ready_notified_at: string | null
           id: string
           instagram_url: string | null
           is_approved: boolean
@@ -3761,6 +3765,7 @@ export type Database = {
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
+          hub_ready_notified_at?: string | null
           id?: string
           instagram_url?: string | null
           is_approved?: boolean
@@ -3828,6 +3833,7 @@ export type Database = {
           header_subtitle?: string | null
           header_title?: string | null
           hub_background_style?: string | null
+          hub_ready_notified_at?: string | null
           id?: string
           instagram_url?: string | null
           is_approved?: boolean
