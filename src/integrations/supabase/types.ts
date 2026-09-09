@@ -1514,6 +1514,39 @@ export type Database = {
           },
         ]
       }
+      custom_plans: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          stripe_price_id: string
+          stripe_product_id: string
+          trial_days: number
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          stripe_price_id: string
+          stripe_product_id: string
+          trial_days?: number
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          stripe_price_id?: string
+          stripe_product_id?: string
+          trial_days?: number
+        }
+        Relationships: []
+      }
       fulfillment_orders: {
         Row: {
           created_at: string
