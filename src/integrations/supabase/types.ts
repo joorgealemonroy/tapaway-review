@@ -3816,6 +3816,65 @@ export type Database = {
           },
         ]
       }
+      review_request_sends: {
+        Row: {
+          campaign_id: string | null
+          id: string
+          phone_hash: string
+          profile_id: string | null
+          restaurant_id: string | null
+          sent_at: string
+          sent_via: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          id?: string
+          phone_hash: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          sent_at?: string
+          sent_via?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          id?: string
+          phone_hash?: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          sent_at?: string
+          sent_via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_request_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_sentiments: {
         Row: {
           ai_reply: string | null
