@@ -74,7 +74,7 @@ async function resolveAccount(
   if (kind === "personal") {
     const { data, error } = await admin
       .from("personal_profiles")
-      .select("id, email, stripe_billing_email, full_name, username, phone, stripe_customer_id, subscription_status, payment_state")
+      .select("id, email, stripe_billing_email, full_name, username, contact_phone, stripe_customer_id, subscription_status, payment_state")
       .eq("id", accountId)
       .maybeSingle();
     if (error) return { error: error.message };
@@ -90,7 +90,7 @@ async function resolveAccount(
       account: {
         email: (row.stripe_billing_email as string | null) || (row.email as string | null),
         name: (row.full_name as string) || (row.username as string) || "friend",
-        phone: (row.phone as string | null) || null,
+        phone: (row.contact_phone as string | null) || null,
         stripeCustomerId: row.stripe_customer_id as string | null,
         subscriptionStatus: row.subscription_status as string | null,
         profileId: row.id as string,
