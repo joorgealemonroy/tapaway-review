@@ -1139,20 +1139,13 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const profileBgStyle = (profile as any).bg_style as string | null;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
 
-  // Premium dark base: use slate-950 as base with brand color as radial glow
-  // Only override for default flat hex backgrounds (not user-set gradients)
-  const isDefaultDarkBg = !profileBgStyle && !isGradientBg && isColorDark(bgColor);
+  // The page background is exactly the color the owner chose — no slate
+  // override — so warm/brand backgrounds read the way they were designed.
   const bgStyle = profileBgStyle
     ? { background: profileBgStyle }
-    : isGradientBg
-      ? { background: bgColor }
-      : isDefaultDarkBg
-        ? { backgroundColor: '#020617' }
-        : { backgroundColor: bgColor };
-  // Brand glow gradient for dark backgrounds
-  const brandGlowStyle = isDefaultDarkBg && bgColor !== '#020617'
-    ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
-    : undefined;
+    : { background: bgColor };
+  const brandGlowStyle = undefined as { background: string } | undefined;
+
   const pfpCentered = (profile.pfp_position || "center") === "center";
   // Shared readability rules derived from the actual page background.
   const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
@@ -1287,7 +1280,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         ) : hasBanner ? (
           <div className="relative">
             {/* Full-bleed banner — the full picture stays in frame. */}
-            <div className="w-full h-[55vh] md:h-[50vh] overflow-hidden">
+            <div className="w-full h-[48vh] md:h-[44vh] overflow-hidden">
+
               <img
                 src={bannerUrl}
                 alt="Banner"
@@ -1332,7 +1326,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
         {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover || hasBanner ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-32' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
           {!hasBanner && !isLogoHeader && (
