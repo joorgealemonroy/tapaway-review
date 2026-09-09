@@ -162,6 +162,7 @@ const App = () => {
                 <Route path="/auth/magic" element={<MagicLinkVerify />} />
                 <Route path="/select-dashboard" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
+                <Route path="/auth/set-password" element={<SetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/onboarding-success" element={<OnboardingSuccess />} />
                 <Route path="/van-success" element={<VanSuccess />} />
