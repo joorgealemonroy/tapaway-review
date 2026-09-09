@@ -1,4 +1,4 @@
-import { Activity, MessageSquare, UtensilsCrossed, MoreHorizontal, BarChart3, Settings, HelpCircle, CreditCard } from "lucide-react";
+import { Activity, MessageSquare, MessageCircle, UtensilsCrossed, MoreHorizontal, BarChart3, Settings, HelpCircle, CreditCard } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -16,14 +16,15 @@ const PRIMARY_TABS = [
 ];
 
 const MORE_TABS_FULL = [
-  { value: "engagement", label: "Engagement", icon: BarChart3, description: "Tap activity & trends" },
+  { value: "engagement", label: "Engagement", icon: BarChart3, description: "Promotions & polls" },
+  { value: "sms", label: "SMS", icon: MessageCircle, description: "Text your customers" },
   { value: "settings", label: "Settings", icon: Settings, description: "Hub links & branding" },
   { value: "support", label: "Support", icon: HelpCircle, description: "Get help from TapAway" },
   { value: "billing", label: "Billing", icon: CreditCard, description: "Plan & invoices" },
 ];
 
 const MORE_TABS_DEMO = [
-  { value: "engagement", label: "Engagement", icon: BarChart3, description: "Tap activity & trends" },
+  { value: "engagement", label: "Engagement", icon: BarChart3, description: "Promotions & polls" },
 ];
 
 export const BusinessMobileNav = ({ activeTab, onTabChange, isDemoView = false }: BusinessMobileNavProps) => {

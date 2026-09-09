@@ -10,6 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExternalLink, MapPin, Eye, Sun, Moon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AnalyticsOverview } from "@/components/dashboard/AnalyticsOverview";
+import { BusinessEngagement } from "@/components/dashboard/BusinessEngagement";
+import { AccountStatusStrip } from "@/components/dashboard/AccountStatusStrip";
+import { isTabDirty, anyTabDirty } from "@/lib/unsavedChanges";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MenuTab } from "@/components/dashboard/MenuTab";
 import { SettingsTab } from "@/components/dashboard/SettingsTab";
 import { SupportTab } from "@/components/dashboard/SupportTab";
@@ -19,6 +32,7 @@ import { EngagementTab } from "@/components/dashboard/EngagementTab";
 import RestaurantSmsMarketingTab from "@/components/restaurant/RestaurantSmsMarketingTab";
 import { AvMealPrepDashboard } from "@/components/dashboard/AvMealPrepDashboard";
 import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
+import { WelcomeIntro } from "@/components/dashboard/WelcomeIntro";
 import { BusinessMobileNav } from "@/components/dashboard/BusinessMobileNav";
 
 import { isGrandfatheredUser, isSuperAdmin } from "@/lib/grandfatheredUsers";
@@ -116,12 +130,15 @@ interface Restaurant {
   subscription_status: string | null;
   plan_type: string | null;
   next_billing_date: string | null;
+  trial_ends_at?: string | null;
+  payment_state?: string | null;
   type?: string | null;
   greeting_name?: string | null;
   total_taps?: number;
   is_demo_account?: boolean;
   created_at?: string;
   menu_image_url?: string | null;
+  logo_url?: string | null;
   google_review_url?: string | null;
   yelp_review_url?: string | null;
 }
@@ -158,6 +175,8 @@ const DashboardBusiness = () => {
   const [isGrandfathered, setIsGrandfathered] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [theme, setTheme] = useState(() => localStorage.getItem('tapaway_dashboard_theme') || 'dark');
+  // Tab the user asked for while another tab still has unsaved edits.
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -165,6 +184,39 @@ const DashboardBusiness = () => {
     localStorage.setItem('tapaway_dashboard_theme', next);
     document.documentElement.classList.toggle('dark', next === 'dark');
   };
+
+  /**
+   * Unsaved-changes protection: Menu and Settings register dirty-checkers
+   * (src/lib/unsavedChanges.ts). Switching tabs with pending edits unmounts
+   * the tab content and would discard them silently — ask first.
+   */
+  const handleTabChange = (value: string) => {
+    if (value === activeTab) return;
+    if (isTabDirty(activeTab)) {
+      setPendingTab(value);
+      return;
+    }
+    setActiveTab(value);
+  };
+
+  const confirmDiscardAndSwitch = () => {
+    if (pendingTab) setActiveTab(pendingTab);
+    setPendingTab(null);
+  };
+
+  const cancelTabSwitch = () => setPendingTab(null);
+
+  // Closing the tab/window with unsaved edits — the browser's native prompt.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (anyTabDirty()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // Handle admin impersonation mode - load restaurant by ID
   useEffect(() => {
@@ -196,11 +248,14 @@ const DashboardBusiness = () => {
         subscription_status: r.subscription_status,
         plan_type: r.plan_type,
         next_billing_date: r.next_billing_date,
+        trial_ends_at: r.trial_ends_at ?? null,
+        payment_state: r.payment_state ?? null,
         type: r.type,
         greeting_name: r.greeting_name,
         is_demo_account: r.is_demo_account ?? false,
         created_at: r.created_at,
         menu_image_url: r.menu_image_url,
+        logo_url: r.logo_url ?? null,
         google_review_url: r.google_review_url,
         yelp_review_url: r.yelp_review_url,
       });
@@ -293,7 +348,7 @@ const DashboardBusiness = () => {
     // Get all restaurants
     const { data: allRestaurantsData } = await supabase
       .from("restaurants")
-      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, type, greeting_name, is_demo_account, created_at, menu_image_url, google_review_url, yelp_review_url")
+      .select("id, restaurant_name, custom_slug, stripe_portal_url, subscription_status, plan_type, next_billing_date, trial_ends_at, payment_state, type, greeting_name, is_demo_account, created_at, menu_image_url, logo_url, google_review_url, yelp_review_url")
       .order("restaurant_name");
 
     if (!allRestaurantsData || allRestaurantsData.length === 0) return;
@@ -321,6 +376,8 @@ const DashboardBusiness = () => {
       subscription_status: r.subscription_status,
       plan_type: r.plan_type,
       next_billing_date: r.next_billing_date,
+      trial_ends_at: r.trial_ends_at ?? null,
+      payment_state: r.payment_state ?? null,
       type: r.type,
       greeting_name: r.greeting_name,
       is_demo_account: r.is_demo_account ?? false,
@@ -358,6 +415,8 @@ const DashboardBusiness = () => {
         subscription_status: activeRestaurant.subscription_status,
         plan_type: activeRestaurant.plan_type,
         next_billing_date: activeRestaurant.next_billing_date,
+        trial_ends_at: activeRestaurant.trial_ends_at ?? null,
+        payment_state: activeRestaurant.payment_state ?? null,
         type: activeRestaurant.type,
         greeting_name: activeRestaurant.greeting_name,
         is_demo_account: activeRestaurant.is_demo_account ?? false,
@@ -378,11 +437,14 @@ const DashboardBusiness = () => {
           subscription_status: r.subscription_status,
           plan_type: r.plan_type,
           next_billing_date: r.next_billing_date,
+        trial_ends_at: r.trial_ends_at ?? null,
+        payment_state: r.payment_state ?? null,
           type: r.type,
           greeting_name: r.greeting_name,
           is_demo_account: r.is_demo_account ?? false,
           created_at: r.created_at,
           menu_image_url: r.menu_image_url,
+        logo_url: r.logo_url ?? null,
           google_review_url: r.google_review_url,
           yelp_review_url: r.yelp_review_url,
         })));
@@ -420,11 +482,14 @@ const DashboardBusiness = () => {
               subscription_status: r.subscription_status,
               plan_type: r.plan_type,
               next_billing_date: r.next_billing_date,
+        trial_ends_at: r.trial_ends_at ?? null,
+        payment_state: r.payment_state ?? null,
               type: r.type,
               greeting_name: r.greeting_name,
               is_demo_account: r.is_demo_account ?? false,
               created_at: r.created_at,
               menu_image_url: r.menu_image_url,
+              logo_url: r.logo_url ?? null,
               google_review_url: r.google_review_url,
               yelp_review_url: r.yelp_review_url,
             });
@@ -608,7 +673,7 @@ const DashboardBusiness = () => {
               </p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
               <div className="overflow-x-auto -mx-3 md:mx-0 px-3 md:px-0 hidden md:block">
                 {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? (
                   <TabsList className={`inline-flex min-w-full md:grid md:w-full ${isDemoView ? 'md:grid-cols-1' : 'md:grid-cols-3'} h-auto gap-1`}>
@@ -639,6 +704,21 @@ const DashboardBusiness = () => {
               </div>
 
               <TabsContent value="overview" className="space-y-4 md:space-y-6">
+                {/* Account status: plan, Hub Live/Paused, trial countdown, reactivation */}
+                <AccountStatusStrip
+                  planType={restaurant.plan_type}
+                  // In demo preview mode the viewer isn't the account owner —
+                  // don't show a paused banner for someone else's demo.
+                  subscriptionStatus={isDemoView ? "active" : restaurant.subscription_status}
+                  trialEndsAt={restaurant.trial_ends_at ?? null}
+                  paymentState={restaurant.payment_state ?? null}
+                  nextBillingDate={restaurant.next_billing_date}
+                  pausedAction={
+                    <Button asChild className="min-h-[44px] w-full sm:w-auto">
+                      <a href={`/paywall?restaurant=${restaurant.id}`}>Reactivate my hub</a>
+                    </Button>
+                  }
+                />
                 {/* Welcome banner for new users - hide in demo mode */}
                 {!isAdmin && !isDemoView && restaurant.created_at && (
                   <WelcomeBanner
@@ -650,7 +730,34 @@ const DashboardBusiness = () => {
                     hasYelpLink={!!restaurant.yelp_review_url}
                   />
                 )}
-                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} isDemoView={isDemoView} />}
+                {restaurant.custom_slug === 'avmealpreps' || restaurant.type === 'meal_prep' ? <AvMealPrepDashboard restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} /> : <>
+                  {/* One-time first-run intro — new owners only, never in demo/admin views */}
+                  {!isAdmin && !isDemoView && (
+                    <WelcomeIntro
+                      accountId={restaurant.id}
+                      kind="business"
+                      displayName={restaurant.restaurant_name}
+                      hubPath={restaurant.custom_slug ? `/${restaurant.custom_slug}` : null}
+                      createdAt={restaurant.created_at ?? null}
+                      onNavigateTab={handleTabChange}
+                    />
+                  )}
+                  {/* Engagement: milestones, usage nudges, playbook, feature discovery */}
+                  <BusinessEngagement
+                    restaurantId={restaurant.id}
+                    restaurantName={restaurant.restaurant_name}
+                    logoUrl={restaurant.logo_url ?? null}
+                    customSlug={restaurant.custom_slug}
+                    createdAt={restaurant.created_at}
+                    paymentState={restaurant.payment_state}
+                    subscriptionStatus={restaurant.subscription_status}
+                    hasMenu={!!restaurant.menu_image_url}
+                    hasGoogleLink={!!restaurant.google_review_url}
+                    isDemoView={isDemoView}
+                    onNavigateTab={handleTabChange}
+                  />
+                  <AnalyticsOverview restaurantId={restaurant.id} restaurantName={restaurant.restaurant_name} restaurant={restaurant} user={user} isDemoView={isDemoView} onNavigateTab={handleTabChange} customSlug={restaurant.custom_slug} />
+                </>}
               </TabsContent>
 
               {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && <>
@@ -692,8 +799,31 @@ const DashboardBusiness = () => {
 
             {/* Mobile bottom navigation */}
             {restaurant.custom_slug !== 'avmealpreps' && restaurant.type !== 'meal_prep' && (
-              <BusinessMobileNav activeTab={activeTab} onTabChange={setActiveTab} isDemoView={isDemoView} />
+              <BusinessMobileNav activeTab={activeTab} onTabChange={handleTabChange} isDemoView={isDemoView} />
             )}
+
+            {/* Unsaved-changes prompt — Menu/Settings hold edits in local state */}
+            <AlertDialog open={pendingTab !== null} onOpenChange={(open) => { if (!open) cancelTabSwitch(); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Your edits on this tab aren't saved yet. Switching tabs will discard them.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2">
+                  <AlertDialogCancel onClick={cancelTabSwitch} className="min-h-[44px]">
+                    Keep editing
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmDiscardAndSwitch}
+                    className="min-h-[44px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Discard changes
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>}
       </div>
     </div>;

@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Lock, ExternalLink, Upload, Edit } from "lucide-react";
+import { Settings, Lock, ExternalLink, Upload, Edit, Loader2 } from "lucide-react";
 import { validateAllUrls } from "@/lib/urlValidation";
 import { useState as useReactState } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -13,6 +13,7 @@ import { SettingsGreeting } from "./SettingsGreeting";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 import { RequestMoreCards } from "./RequestMoreCards";
 import { DeveloperResetButton } from "../admin/DeveloperResetButton";
+import { registerUnsavedGuard } from "@/lib/unsavedChanges";
 
 interface Restaurant {
   id: string;
@@ -20,7 +21,6 @@ interface Restaurant {
   custom_slug: string;
   logo_url: string | null;
   hub_background_style: string | null;
-  custom_background_url: string | null;
   google_place_id: string | null;
   google_review_url: string | null;
   yelp_review_url: string | null;
@@ -40,6 +40,29 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useReactState(false);
+  // Double-submit guard for the Save Changes button.
+  const [saving, setSaving] = useState(false);
+
+  // Unsaved-changes tracking: snapshot of the last-saved settings. The
+  // dashboard shell warns before switching tabs or closing while dirty.
+  // Note: the logo upload and the greeting editor save immediately —
+  // their handlers re-sync the snapshot so they don't false-positive.
+  const restaurantRef = useRef<Restaurant | null>(null);
+  const snapshotRef = useRef<string | null>(null);
+  useEffect(() => {
+    restaurantRef.current = restaurant;
+  }, [restaurant]);
+  const syncSnapshot = (next: Restaurant | null) => {
+    snapshotRef.current = next ? JSON.stringify(next) : null;
+  };
+  useEffect(() => {
+    return registerUnsavedGuard("settings", {
+      isDirty: () => {
+        const snap = snapshotRef.current;
+        return snap !== null && JSON.stringify(restaurantRef.current) !== snap;
+      },
+    });
+  }, []);
 
   useEffect(() => {
     fetchSettings();
@@ -48,12 +71,13 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
   const fetchSettings = async () => {
     const { data } = await supabase
       .from("restaurants")
-      .select("id, restaurant_name, custom_slug, logo_url, hub_background_style, custom_background_url, google_place_id, google_review_url, yelp_review_url, instagram_url, directions_url, greeting_name, phone")
+      .select("id, restaurant_name, custom_slug, logo_url, hub_background_style, google_place_id, google_review_url, yelp_review_url, instagram_url, directions_url, greeting_name, phone")
       .eq("id", restaurantId)
       .single();
 
     if (data) {
       setRestaurant(data);
+      syncSnapshot(data);
     }
     
     setLoading(false);
@@ -89,47 +113,12 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
       if (updateError) throw updateError;
 
-      setRestaurant(prev => prev ? { ...prev, logo_url: publicUrl } : null);
+      setRestaurant(prev => {
+        const next = prev ? { ...prev, logo_url: publicUrl } : null;
+        syncSnapshot(next);
+        return next;
+      });
       toast({ title: "Logo updated", description: "Your logo has been updated successfully." });
-    } catch (error: any) {
-      toast({ title: "Error", description: `Upload failed: ${error.message}`, variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      
-      if (!event.target.files || event.target.files.length === 0) {
-        return;
-      }
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const randomUuid = crypto.randomUUID();
-      const filePath = `${restaurantId}/bg-${randomUuid}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('restaurant-logos')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('restaurant-logos')
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from('restaurants')
-        .update({ custom_background_url: publicUrl })
-        .eq('id', restaurantId);
-
-      if (updateError) throw updateError;
-
-      setRestaurant(prev => prev ? { ...prev, custom_background_url: publicUrl } : null);
-      toast({ title: "Background updated", description: "Your custom background has been updated." });
     } catch (error: any) {
       toast({ title: "Error", description: `Upload failed: ${error.message}`, variant: "destructive" });
     } finally {
@@ -139,6 +128,8 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
 
   const saveSettings = async () => {
     if (!restaurant) return;
+    // Double-click guard — without it, two rapid saves fire duplicate updates.
+    if (saving) return;
 
     // Validate URLs before saving
     const validation = validateAllUrls({
@@ -179,6 +170,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       }
     }
 
+    setSaving(true);
     try {
       // Normalize Google Place ID from the input (could be URL or bare ID)
       const normalizedPlaceId = normalizeGooglePlaceId(restaurant.google_place_id);
@@ -188,7 +180,6 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       const updateData: any = {
         restaurant_name: restaurant.restaurant_name,
         hub_background_style: restaurant.hub_background_style,
-        custom_background_url: restaurant.custom_background_url,
         google_place_id: normalizedPlaceId,
         google_review_url: canonicalGoogleUrl,
         yelp_review_url: restaurant.yelp_review_url,
@@ -221,15 +212,19 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       }
 
       // Update local state with normalized values
-      setRestaurant(prev => prev ? { 
-        ...prev, 
+      const saved = {
+        ...restaurant,
         google_place_id: normalizedPlaceId,
-        google_review_url: canonicalGoogleUrl 
-      } : null);
+        google_review_url: canonicalGoogleUrl,
+      };
+      setRestaurant(saved);
+      syncSnapshot(saved);
 
       toast({ title: "Settings saved", description: "Your settings have been updated successfully." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -257,8 +252,19 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <RequestMoreCards restaurantId={restaurantId} />
-          <Button onClick={saveSettings} className="gradient-primary text-white flex-1 sm:flex-none">
-            Save Changes
+          <Button
+            onClick={saveSettings}
+            disabled={saving}
+            className="gradient-primary text-white flex-1 sm:flex-none min-h-[44px]"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </div>
       </div>
@@ -266,7 +272,13 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
       {/* Greeting Settings */}
       <SettingsGreeting
         restaurant={restaurant}
-        onUpdated={(updated) => setRestaurant({ ...restaurant, ...updated })}
+        onUpdated={(updated) => {
+          // Greeting saves itself immediately — keep the unsaved-changes
+          // snapshot in sync so it doesn't false-positive as dirty.
+          const next = { ...restaurant, ...updated };
+          setRestaurant(next);
+          syncSnapshot(next);
+        }}
       />
 
       {/* Logo Upload Section */}
@@ -387,7 +399,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 placeholder="ChIJ... or https://search.google.com/local/writereview?placeid=..."
               />
               {restaurant.google_review_url && (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild className="shrink-0 h-11 w-11">
                   <a href={restaurant.google_review_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -419,7 +431,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 placeholder="https://www.yelp.com/biz/..."
               />
               {restaurant.yelp_review_url && (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild className="shrink-0 h-11 w-11">
                   <a href={restaurant.yelp_review_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -452,7 +464,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 placeholder="https://instagram.com/yourbusiness"
               />
               {restaurant.instagram_url && (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild className="shrink-0 h-11 w-11">
                   <a href={restaurant.instagram_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4" />
                   </a>
@@ -473,7 +485,7 @@ export const SettingsTab = ({ restaurantId }: SettingsTabProps) => {
                 placeholder="https://maps.apple.com/?q=..."
               />
               {restaurant.directions_url && (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" asChild className="shrink-0 h-11 w-11">
                   <a href={restaurant.directions_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4" />
                   </a>

@@ -59,11 +59,16 @@ serve(async (req) => {
 
     console.log(`Admin ${user.email} triggered weekly report generation`);
 
-    // Get all active restaurants
+    // Get all active restaurants.
+    // Owner decision 2026-09-09: trialing accounts never receive weekly reports.
+    // The .eq('active') already excludes them now that trials are marked
+    // 'trialing', but the explicit .neq('trialing') keeps this true even if
+    // the equality filter or status values ever change again.
     const { data: restaurants } = await supabaseClient
       .from('restaurants')
       .select('*, owner_id')
-      .eq('subscription_status', 'active');
+      .eq('subscription_status', 'active')
+      .neq('subscription_status', 'trialing');
 
     if (!restaurants) {
       return new Response(JSON.stringify({ message: 'No restaurants found' }), {

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { approveDemo, approveToastText } from "@/lib/approveDemo";
 
 import {
   Dialog,
@@ -158,46 +159,17 @@ const AdminPendingHubApprovals = () => {
 
   const approve = async (row: PendingHub) => {
     setApprovingId(row.id);
-    // Never synthesise a business name from the slug: a blank name is an
-    // intentional state. Approval only moves the pipeline stage forward.
-    const { error } = await supabase
-      .from("personal_profiles")
-      .update({
-        is_approved: true,
-        plan_type: "solo_pro",
-        pipeline_status: "approved",
-        review_note: null,
-        review_note_at: null,
-        rep_note: null,
-        rep_note_at: null,
-      } as never)
-      .eq("id", row.id);
-
-    if (error) {
-      setApprovingId(null);
-      toast.error("Approval failed: " + error.message);
-      return;
-    }
-
     try {
-      const { data, error: awardErr } = await supabase.functions.invoke(
-        "award-demo-commission",
-        { body: { personal_profile_id: row.id } },
-      );
-      if (awardErr) throw awardErr;
-      if (data?.awarded === "locked_quality_gate") {
-        toast.success("Approved — bonus locked by Quality Gate (rep <5% conversion)");
-      } else if (data?.awarded === "voided") {
-        toast.success("Approved — daily cap reached, no bonus awarded");
-      } else {
-        toast.success("Demo approved — rep bonus awarded");
-      }
+      const result = await approveDemo(row.id);
+      const t = approveToastText(result.award, "awardError" in result);
+      if (t.kind === "success") toast.success(t.text);
+      else toast.warning(t.text);
     } catch (e) {
-      console.error("award-demo-commission failed", e);
-      toast.warning("Approved, but commission could not be awarded automatically");
+      toast.error(e instanceof Error ? e.message : "Approval failed");
+      return;
+    } finally {
+      setApprovingId(null);
     }
-
-    setApprovingId(null);
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   };
 

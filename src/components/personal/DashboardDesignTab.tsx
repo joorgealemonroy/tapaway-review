@@ -1,191 +1,116 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageCropper } from "./ImageCropper";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Paintbrush, 
-  Image as ImageIcon, 
-  X, 
+import {
+  Camera,
+  Image as ImageIcon,
+  X,
   Upload,
   Loader2,
-  Sparkles,
-  Lock,
-  Maximize2,
-  ChevronDown
+  Crop,
 } from "lucide-react";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { ProUpgradeDialog } from "./ProUpgradeDialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { extractBottomColor, generateAmbientGradient } from "@/lib/imageColorExtraction";
-import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
-import { LOGO_SCALE_LABELS, LOGO_SCALES, normalizeLogoScale } from "@/lib/logoHeader";
-import { colorLuminance } from "@/lib/hubContrast";
 import {
-  BANNER_ASPECT_LABELS,
-  bannerAspectRatio,
-  normalizeBannerAspect,
-} from "@/lib/bannerAspect";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   profileId: string;
-  headerType: string;
-  headerColor: string | null;
-  headerImageUrl: string | null;
   backgroundColor: string | null;
   profilePhotoUrl: string | null;
-  bannerFit: string | null;
-  bannerAspect?: string | null;
-  bannerOriginalUrl?: string | null;
-  logoScale?: string | null;
-  logoBgColor?: string | null;
-
-  isPremium: boolean;
+  /** The cover image shown at the top of the hub (personal_profiles.header_image_url). */
+  bannerImageUrl: string | null;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
-  isRepDemo?: boolean;
-  onUpgrade?: () => void;
   onUpdate: (updates: {
-    headerType?: string;
-    headerColor?: string | null;
-    headerImageUrl?: string | null;
     backgroundColor?: string | null;
-    bannerFit?: string | null;
-    bannerAspect?: string | null;
-    bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
-    logoScale?: string | null;
-    logoBgColor?: string | null;
+    bannerImageUrl?: string | null;
   }) => void;
 }
 
 type DesignDatabaseUpdates = Partial<{
-  header_type: string;
-  header_color: string | null;
   background_color: string | null;
-  banner_fit: string | null;
-  banner_aspect: string | null;
-  logo_scale: string | null;
-  logo_bg_color: string | null;
+  profile_photo_url: string | null;
+  header_image_url: string | null;
 }>;
 
 type DesignPreviewUpdates = Parameters<Props["onUpdate"]>[0];
 
-
-const COLOR_PRESETS = [
-  "#000000", "#FFFFFF", "#1a1a2e", "#2d6a4f",
-  "#e63946", "#4361ee", "#f4a261", "#9b5de5",
-  "#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
-  "#B5EAD7", "#FFDAC1", "#C3B1E1",
-];
-
-const FADE_PRESETS = [
-  { value: "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)", label: "Blush" },
-  { value: "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)", label: "Lavender" },
-  { value: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", label: "Cool Blue" },
-  { value: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", label: "Peach" },
-  { value: "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)", label: "Mint" },
-  { value: "linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)", label: "Grey" },
-];
-
+// One curated set of solid page colors — no gradients, no fades.
 const BG_PRESETS = [
-  "#ffffff", "#f5f5f5", "#fafafa", "#1a1a1a", "#0a0a0a", "#1e293b",
-  "#fef3c7", "#ecfdf5",
-  "#F8C8DC", "#FFB6C1", "#DDA0DD", "#E8B4BC",
-  "#B5EAD7", "#FFDAC1", "#C3B1E1",
+  "#ffffff",
+  "#f5f5f5",
+  "#fef3c7",
+  "#ecfdf5",
+  "#e0f2fe",
+  "#ede9fe",
+  "#fce7f3",
+  "#1a1a1a",
+  "#0a0a0a",
+  "#1e293b",
 ];
 
-const BG_FADE_PRESETS = [
-  { value: "linear-gradient(180deg, #fdfcfb 0%, #e2d1c3 100%)", label: "Warm" },
-  { value: "linear-gradient(180deg, #e0eafc 0%, #cfdef3 100%)", label: "Sky" },
-  { value: "linear-gradient(180deg, #f3e7e9 0%, #e3eeff 100%)", label: "Rose" },
-  { value: "linear-gradient(180deg, #fceabb 0%, #f8b500 100%)", label: "Sunset" },
-  { value: "linear-gradient(180deg, #667db6 0%, #0082c8 50%, #667db6 100%)", label: "Ocean" },
-  { value: "linear-gradient(180deg, #232526 0%, #414345 100%)", label: "Midnight" },
-];
+const isSolidHex = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value);
 
+/**
+ * Simplified design editor: profile photo, cover image, and one good
+ * background color picker. Legacy header styles (header_type, banner shapes,
+ * logo scale, etc.) are intentionally not offered anymore — see the hub
+ * render for how stored legacy values fall back to the clean default.
+ */
 export const DashboardDesignTab = ({
   profileId,
-  headerType,
-  headerColor,
-  headerImageUrl,
   backgroundColor,
   profilePhotoUrl,
-  bannerFit,
-  bannerAspect,
-  bannerOriginalUrl,
-  logoScale,
-  logoBgColor,
-  isPremium,
+  bannerImageUrl,
   isFoundingUser,
   showFoundingBadge,
-  
-  onUpgrade,
   onUpdate,
 }: Props) => {
-  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
-  const [cropperOpen, setCropperOpen] = useState(false);
-  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [imageBasedColor, setImageBasedColor] = useState<string | null>(null);
-  const [extractingColor, setExtractingColor] = useState(false);
+  const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
+  const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const userPickedBg = useRef(false);
-  const hasInitialized = useRef(false);
+  const [uploading, setUploading] = useState<"photo" | "banner" | null>(null);
+  const [badgeVisible, setBadgeVisible] = useState(showFoundingBadge ?? false);
+  const [togglingBadge, setTogglingBadge] = useState(false);
+  const [confirmRemoveCover, setConfirmRemoveCover] = useState(false);
+
+  // Cropper state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [cropperTarget, setCropperTarget] = useState<"photo" | "banner">("photo");
+
   const queuedUpdatesRef = useRef<DesignDatabaseUpdates>({});
   const saveInFlightRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Consecutive failed flushes — after a few, stop auto-retrying so a
+  // persistent failure doesn't loop forever; the user retries manually.
+  const consecutiveFailuresRef = useRef(0);
+  const MAX_AUTO_RETRIES = 3;
 
-  // --- Manual banner cropping ---
-  const [bannerCropOpen, setBannerCropOpen] = useState(false);
-  const [bannerCropSrc, setBannerCropSrc] = useState<string | null>(null);
-  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
-  const [bannerSaving, setBannerSaving] = useState(false);
-
-  // --- Pending (buffered) state for deferred save ---
-  const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
-  const [pendingHeaderColor, setPendingHeaderColor] = useState(headerColor);
-  const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
-  const [pendingBannerFit, setPendingBannerFit] = useState(bannerFit || "contain");
-  const [pendingBannerAspect, setPendingBannerAspect] = useState(normalizeBannerAspect(bannerAspect));
-  const [pendingLogoScale, setPendingLogoScale] = useState(normalizeLogoScale(logoScale));
-  const [pendingLogoBgColor, setPendingLogoBgColor] = useState<string | null>(logoBgColor ?? null);
-  const [customColorInput, setCustomColorInput] = useState(headerColor || "#6BCB77");
-  const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
-
-  // Re-sync pending state when props change externally (e.g. photo upload
-  // auto-matches background_color). Without this, pendingBgColor stays stale
-  // and the Unsaved-Changes bar can overwrite the freshly-sampled color
-  // back to the previous value.
+  // Re-sync when props change externally.
   useEffect(() => {
-    if (userPickedBg.current) return;
-    setPendingHeaderType(headerType);
-    setPendingHeaderColor(headerColor);
     setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "cover");
-    setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
-    setPendingLogoScale(normalizeLogoScale(logoScale));
-    setPendingLogoBgColor(logoBgColor ?? null);
-    setCustomColorInput(headerColor || "#6BCB77");
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [headerType, headerColor, backgroundColor, bannerFit, bannerAspect, logoScale, logoBgColor]);
+  }, [backgroundColor]);
 
-
-  // Mid-luminance backgrounds are the ones where neither dark nor light text
-  // reads well — warn the owner instead of letting the hub ship unreadable.
-  const logoContrastOk = useMemo(() => {
-    const lum = colorLuminance(pendingBgColor || "#ffffff");
-    if (lum === null) return true;
-    return lum <= 0.42 || lum >= 0.58;
-  }, [pendingBgColor]);
-
-
+  useEffect(() => {
+    setBadgeVisible(showFoundingBadge ?? false);
+  }, [showFoundingBadge]);
 
   const flushDesignSave = useCallback(async () => {
     if (saveInFlightRef.current || Object.keys(queuedUpdatesRef.current).length === 0) return;
@@ -203,22 +128,25 @@ export const DashboardDesignTab = ({
         .eq("id", profileId);
       if (error) throw error;
 
-      userPickedBg.current = false;
+      consecutiveFailuresRef.current = 0;
       setSaveStatus("saved");
       if (savedStatusTimerRef.current) clearTimeout(savedStatusTimerRef.current);
       savedStatusTimerRef.current = setTimeout(() => setSaveStatus("idle"), 1600);
     } catch (err) {
-      // Preserve newer queued values while restoring only fields that were not
-      // changed again during this request.
       queuedUpdatesRef.current = { ...updates, ...queuedUpdatesRef.current };
+      consecutiveFailuresRef.current += 1;
       console.error("Save error:", err);
       setSaveStatus("error");
       toast.error("Design could not be saved. Please try again.");
     } finally {
       saveInFlightRef.current = false;
       setSaving(false);
-      if (Object.keys(queuedUpdatesRef.current).length > 0) {
-        setTimeout(() => { void flushDesignSave(); }, 0);
+      if (
+        Object.keys(queuedUpdatesRef.current).length > 0 &&
+        consecutiveFailuresRef.current < MAX_AUTO_RETRIES
+      ) {
+        // Back off between automatic retries — don't hammer the network.
+        setTimeout(() => { void flushDesignSave(); }, 2500);
       }
     }
   }, [profileId]);
@@ -243,225 +171,19 @@ export const DashboardDesignTab = ({
     if (Object.keys(queuedUpdatesRef.current).length > 0) void flushDesignSave();
   }, [flushDesignSave]);
 
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDiscard = () => {
-    userPickedBg.current = false;
-    setPendingHeaderType(headerType);
-    setPendingHeaderColor(headerColor);
-    setPendingBgColor(backgroundColor);
-    setPendingBannerFit(bannerFit || "cover");
-    setPendingBannerAspect(normalizeBannerAspect(bannerAspect));
-    setPendingLogoScale(normalizeLogoScale(logoScale));
-    setPendingLogoBgColor(logoBgColor ?? null);
-    setCustomColorInput(headerColor || "#6BCB77");
-    setBgColorInput(backgroundColor || "#ffffff");
-    // Reset preview back to saved values
-    onUpdate({
-      headerType,
-      headerColor,
-      backgroundColor,
-      bannerFit: bannerFit || "cover",
-      bannerAspect: normalizeBannerAspect(bannerAspect),
-      logoScale: normalizeLogoScale(logoScale),
-      logoBgColor: logoBgColor ?? null,
-    });
-  };
-
-  // --- Manual banner crop ---
-  const openBannerCropper = async () => {
-    const source = bannerOriginalUrl || profilePhotoUrl;
-    if (!source) {
-      toast.error("Upload a logo or photo first");
-      return;
-    }
-    try {
-      const sampled = await sampleBottomEdgeColor(source);
-      setBannerFillColor(sampled || pendingBgColor || "#ffffff");
-    } catch {
-      setBannerFillColor(pendingBgColor || "#ffffff");
-    }
-    setBannerCropSrc(source);
-    setBannerCropOpen(true);
-  };
-
-  const handleBannerCropComplete = async (croppedBlob: Blob) => {
-    setBannerSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const filePath = `${user.id}/${profileId}/banner.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("personal-photos")
-        .upload(filePath, croppedBlob, {
-          upsert: true,
-          contentType: croppedBlob.type || "image/jpeg",
-        });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("personal-photos")
-        .getPublicUrl(filePath);
-      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
-
-      // Keep the pre-crop image around so the banner can be re-cropped later
-      const originalUrl = bannerOriginalUrl || profilePhotoUrl;
-
-      const { error } = await supabase
-        .from("personal_profiles")
-        .update({
-          profile_photo_url: urlWithBust,
-          banner_original_url: originalUrl,
-          banner_fit: "cover",
-          banner_aspect: pendingBannerAspect,
-        })
-        .eq("id", profileId);
-      if (error) throw error;
-
-      setPendingBannerFit("cover");
-      onUpdate({
-        profilePhotoUrl: urlWithBust,
-        bannerOriginalUrl: originalUrl,
-        bannerFit: "cover",
-        bannerAspect: pendingBannerAspect,
-      });
-      toast.success("Banner updated!");
-    } catch (err) {
-      console.error("Banner crop error:", err);
-      toast.error("Failed to save banner");
-    } finally {
-      setBannerSaving(false);
-    }
-  };
-
-
-  // Local-only setters (update preview + pending state, no DB write)
-  const handleColorChange = (color: string) => {
-    setPendingHeaderColor(color);
-    setCustomColorInput(color);
-    queueDesignSave({ header_color: color }, { headerColor: color });
-  };
-
   const handleBgColorChange = (color: string) => {
-    userPickedBg.current = true;
     setPendingBgColor(color);
     setBgColorInput(color);
     // Keep the live preview in step with the picker.
-    queueDesignSave(
-      { background_color: color },
-      { headerType: pendingHeaderType, backgroundColor: color },
-    );
+    queueDesignSave({ background_color: color }, { backgroundColor: color });
   };
 
-  // The logo band takes the logo's own color. The page color below is never
-  // touched — that stays whatever the owner picked.
-  const applyLogoBandColor = (color: string) => {
-    userPickedBg.current = true;
-    setPendingLogoBgColor(color);
-    queueDesignSave(
-      { header_type: "logo", logo_bg_color: color },
-      { headerType: "logo", logoBgColor: color },
-    );
-  };
-
-  const handleTypeChange = (type: string) => {
-    setPendingHeaderType(type);
-    queueDesignSave({ header_type: type }, { headerType: type });
-    // Picking "Logo" should just work: blend the page into the logo's own
-    // background automatically, no extra taps required.
-    if (type === "logo" && profilePhotoUrl) {
-      sampleBottomEdgeColor(profilePhotoUrl).then((sampled) => {
-        if (sampled) applyLogoBandColor(sampled);
-      });
-    }
-  };
-
-  // Push logo sizing to the live preview as it is adjusted
-  const handleLogoScaleChange = (value: string) => {
-    setPendingLogoScale(normalizeLogoScale(value));
-    queueDesignSave(
-      { logo_scale: normalizeLogoScale(value) },
-      { headerType: pendingHeaderType, logoScale: normalizeLogoScale(value) },
-    );
-  };
-
-  // Match the page background to the logo's own edge color so wide logos with
-  // white/colored margins blend seamlessly into the page.
-  const matchBackgroundToLogo = async () => {
-    if (!profilePhotoUrl) {
-      toast.error("Upload a logo first");
-      return;
-    }
-    const sampled = await sampleBottomEdgeColor(profilePhotoUrl);
-    if (!sampled) {
-      toast.error("Could not read the logo color");
-      return;
-    }
-    applyLogoBandColor(sampled);
-    toast.success("Logo background matched to your logo");
-  };
-
-  // For banner mode, we use the profile photo as the banner (no separate upload)
-  const bannerImageSource = pendingHeaderType === "banner" ? profilePhotoUrl : null;
-
-  // Auto-apply ambient gradient when banner mode is active
-  useEffect(() => {
-    if (userPickedBg.current) return;
-
-    // Skip auto-apply on initial mount to prevent toast on every tab visit
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      // Still extract color for the "Auto match" button, just don't auto-apply
-      const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
-      if (imageSource) {
-        extractBottomColor(imageSource)
-          .then((color) => setImageBasedColor(color))
-          .catch(() => setImageBasedColor(null));
-      }
-      return;
-    }
-
-    const imageSource = pendingHeaderType === "banner" ? bannerImageSource : profilePhotoUrl;
-    if (!imageSource) {
-      setImageBasedColor(null);
-      return;
-    }
-    
-    setExtractingColor(true);
-    extractBottomColor(imageSource)
-      .then((color) => {
-        setImageBasedColor(color);
-        const ambientGradient = generateAmbientGradient(color);
-        
-        const isLegacyGradient = pendingBgColor?.startsWith('linear-gradient');
-        const isRadialGradient = pendingBgColor?.startsWith('radial-gradient');
-        const shouldAutoApply = !pendingBgColor || isLegacyGradient || isRadialGradient;
-        
-        if (shouldAutoApply) {
-          setPendingBgColor(ambientGradient);
-          setBgColorInput(ambientGradient);
-          queueDesignSave(
-            { background_color: ambientGradient },
-            { headerType: pendingHeaderType, backgroundColor: ambientGradient },
-          );
-          toast.success("Background auto-matched to your profile photo");
-        }
-      })
-      .catch(() => {
-        setImageBasedColor(null);
-      })
-      .finally(() => {
-        setExtractingColor(false);
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingHeaderType, bannerImageSource, queueDesignSave]);
-
-  // --- Image upload stays immediate ---
+  // --- Image upload plumbing ---
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
+        URL.revokeObjectURL(img.src);
         const canvas = document.createElement("canvas");
         const maxDim = 2400;
         let { width, height } = img;
@@ -484,58 +206,114 @@ export const DashboardDesignTab = ({
           "image/jpeg", 0.85
         );
       };
-      img.onerror = reject;
+      img.onerror = (e) => { URL.revokeObjectURL(img.src); reject(e); };
       img.src = URL.createObjectURL(file);
     });
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return; }
-    if (file.size > 20 * 1024 * 1024) { toast.error("Image must be less than 20MB"); return; }
-
-    let processedFile: Blob = file;
+  const validateImageFile = async (file: File): Promise<Blob | null> => {
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file"); return null; }
+    if (file.size > 20 * 1024 * 1024) { toast.error("Image must be less than 20MB"); return null; }
+    let processed: Blob = file;
     if (file.size > 2 * 1024 * 1024) {
-      try { processedFile = await compressImage(file); }
-      catch { toast.error("Failed to process image"); return; }
+      try { processed = await compressImage(file); }
+      catch { toast.error("Failed to process image"); return null; }
     }
-    setRawImageUrl(URL.createObjectURL(processedFile));
-    setCropperOpen(true);
+    return processed;
   };
 
-  const handleCropComplete = async (croppedBlob: Blob, _previewDataUrl?: string) => {
-    setUploading(true);
+  const uploadCroppedBlob = async (blob: Blob, target: "photo" | "banner") => {
+    setUploading(target);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-      const filePath = `${user.id}/header.jpg`;
+      const filePath = target === "photo"
+        ? `${user.id}/${profileId}/profile.jpg`
+        : `${user.id}/${profileId}/banner.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("personal-photos")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("personal-photos").getPublicUrl(filePath);
       const urlWithBust = `${publicUrl}?t=${Date.now()}`;
-      await supabase.from("personal_profiles").update({ header_image_url: urlWithBust, header_type: "image" }).eq("id", profileId);
-      onUpdate({ headerImageUrl: urlWithBust, headerType: "image" });
-      setPendingHeaderType("image");
-      toast.success("Header image updated!");
+
+      if (target === "photo") {
+        const { error } = await supabase
+          .from("personal_profiles")
+          .update({ profile_photo_url: urlWithBust })
+          .eq("id", profileId);
+        if (error) throw error;
+        onUpdate({ profilePhotoUrl: urlWithBust });
+        toast.success("Profile photo updated!");
+      } else {
+        const { error } = await supabase
+          .from("personal_profiles")
+          .update({ header_image_url: urlWithBust })
+          .eq("id", profileId);
+        if (error) throw error;
+        onUpdate({ bannerImageUrl: urlWithBust });
+        toast.success("Cover image updated!");
+      }
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Failed to upload header image");
-    } finally { setUploading(false); }
-  };
-
-  const handleRemoveImage = async () => {
-    try {
-      await supabase.from("personal_profiles").update({ header_image_url: null, header_type: "color" }).eq("id", profileId);
-      onUpdate({ headerImageUrl: null, headerType: "color" });
-      setPendingHeaderType("color");
-    } catch (err) {
-      console.error("Error removing image:", err);
-      toast.error("Failed to remove image");
+      toast.error(target === "photo" ? "Failed to upload photo" : "Failed to upload cover image");
+    } finally {
+      setUploading(null);
     }
   };
+
+  const handleFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: "photo" | "banner",
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const processed = await validateImageFile(file);
+    if (!processed) return;
+    setCropperSrc(URL.createObjectURL(processed));
+    setCropperTarget(target);
+    setCropperOpen(true);
+  };
+
+  /** Re-crop the currently saved image so it can be framed right. */
+  const openAdjustCropper = (target: "photo" | "banner") => {
+    const source = target === "photo" ? profilePhotoUrl : bannerImageUrl;
+    if (!source) {
+      toast.error(target === "photo" ? "Upload a photo first" : "Upload a cover image first");
+      return;
+    }
+    // Bust the cache so the cropper fetches the freshly-replaced image.
+    setCropperSrc(source.includes("?") ? source : `${source}?t=${Date.now()}`);
+    setCropperTarget(target);
+    setCropperOpen(true);
+  };
+
+  const handleRemoveBanner = async () => {
+    setUploading("banner");
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ header_image_url: null })
+        .eq("id", profileId);
+      if (error) throw error;
+      onUpdate({ bannerImageUrl: null });
+      toast.success("Cover image removed");
+    } catch (err) {
+      console.error("Error removing cover image:", err);
+      toast.error("Failed to remove cover image");
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  // A stored legacy gradient still renders on the hub — the picker just can't
+  // edit it, so show it honestly as "Custom".
+  const currentIsGradient = typeof pendingBgColor === "string" &&
+    (pendingBgColor.startsWith("linear-gradient") || pendingBgColor.startsWith("radial-gradient"));
 
   return (
     <div className="space-y-8">
@@ -546,520 +324,246 @@ export const DashboardDesignTab = ({
           <span className={saveStatus === "error" ? "text-destructive" : undefined}>
             {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Save failed" : "Saving…"}
           </span>
+          {saveStatus === "error" && (
+            <button
+              type="button"
+              onClick={() => {
+                consecutiveFailuresRef.current = 0;
+                void flushDesignSave();
+              }}
+              className="min-h-[44px] px-3 font-semibold text-primary"
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
 
-
-      {/* Header Style Section */}
-      <div className="space-y-4">
+      {/* Profile photo */}
+      <section className="space-y-4">
         <div>
-          <h3 className="text-base font-semibold text-foreground">Header Style</h3>
+          <h3 className="text-base font-semibold text-foreground">Profile photo</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Choose how your profile header appears
+            This shows next to your name. Adjust it to frame it just right.
           </p>
         </div>
-
-
-        <RadioGroup 
-          value={pendingHeaderType} 
-          onValueChange={handleTypeChange}
-          className="grid grid-cols-2 gap-3"
-        >
-          <div>
-            <RadioGroupItem value="color" id="header-color" className="peer sr-only" />
-            <Label 
-              htmlFor="header-color" 
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-            >
-              <Paintbrush className="h-5 w-5" />
-              <span className="text-xs font-medium">Solid Color</span>
-            </Label>
-          </div>
-          <div>
-            <RadioGroupItem value="image" id="header-image" className="peer sr-only" />
-            <Label 
-              htmlFor="header-image" 
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-            >
-              <ImageIcon className="h-5 w-5" />
-              <span className="text-xs font-medium">Image</span>
-            </Label>
-          </div>
-          {isPremium ? (
-            <div>
-              <RadioGroupItem value="banner" id="header-banner" className="peer sr-only" />
-              <Label 
-                htmlFor="header-banner" 
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-              >
-                <Sparkles className="h-5 w-5 text-primary" />
-                <span className="text-xs font-medium">Full Banner</span>
-              </Label>
-            </div>
-          ) : (
-            <div
-              onClick={() => setUpgradeFeature("Full Banner Mode")}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all hover:bg-muted/50 relative"
-            >
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-xs font-medium">Full Banner</span>
-              <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                <Lock className="h-2.5 w-2.5" />
-                Pro
-              </span>
-            </div>
-          )}
-          {isPremium ? (
-            <div>
-              <RadioGroupItem value="logo" id="header-logo" className="peer sr-only" />
-              <Label
-                htmlFor="header-logo"
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted/50"
-              >
-                <Maximize2 className="h-5 w-5 text-primary" />
-                <span className="text-xs font-medium">Logo</span>
-              </Label>
-            </div>
-          ) : (
-            <div
-              onClick={() => setUpgradeFeature("Logo Header")}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-muted bg-card cursor-pointer transition-all hover:bg-muted/50 relative"
-            >
-              <Maximize2 className="h-5 w-5 text-primary" />
-              <span className="text-xs font-medium">Logo</span>
-              <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                <Lock className="h-2.5 w-2.5" />
-                Pro
-              </span>
-            </div>
-          )}
-        </RadioGroup>
-
-
-        {/* Pro upgrade dialog */}
-        <ProUpgradeDialog
-          open={!!upgradeFeature}
-          onOpenChange={(open) => !open && setUpgradeFeature(null)}
-          featureName={upgradeFeature || ""}
-          onUpgrade={() => {
-            setUpgradeFeature(null);
-            onUpgrade?.();
-          }}
-        />
-
-        {pendingHeaderType === "logo" ? (
-          <div className="space-y-3">
-            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-              <div className="flex items-start gap-3">
-                <Maximize2 className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Logo header</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your logo is shown whole at the top — never cropped or zoomed — and the page
-                    flows straight into your buttons and tiles below.
-                  </p>
-                </div>
+        <div className="flex items-center gap-4">
+          <div className="relative h-20 w-20 shrink-0 rounded-full overflow-hidden bg-muted border border-border">
+            {profilePhotoUrl ? (
+              <img src={profilePhotoUrl} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center">
+                <Camera className="h-7 w-7 text-muted-foreground" />
               </div>
-            </div>
-
-            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Logo size</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Tap a size — this is how it looks on a phone.
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {LOGO_SCALE_LABELS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleLogoScaleChange(opt.value)}
-                    className={`flex flex-col items-center justify-end gap-2 p-3 min-h-[92px] rounded-lg border-2 text-xs font-medium transition-all ${
-                      pendingLogoScale === opt.value
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:bg-muted/50"
-                    }`}
-                  >
-                    <span
-                      className="flex items-center justify-center w-full rounded"
-                      style={{
-                        height: 44,
-                        backgroundColor: pendingBgColor && !pendingBgColor.includes("gradient")
-                          ? pendingBgColor
-                          : "transparent",
-                      }}
-                    >
-                      {profilePhotoUrl ? (
-                        <img
-                          src={profilePhotoUrl}
-                          alt=""
-                          className="object-contain"
-                          style={{
-                            width: LOGO_SCALES[opt.value].width,
-                            maxHeight: 40,
-                          }}
-                        />
-                      ) : (
-                        <span className="block w-2/3 h-2 rounded bg-muted-foreground/30" />
-                      )}
-                    </span>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-1 space-y-2">
-                <p className="text-sm font-medium text-foreground">Logo background</p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-11 w-11 shrink-0 rounded-lg border border-border"
-                    style={{ background: pendingLogoBgColor || pendingBgColor || "#ffffff" }}
-                  />
-                  <Button variant="outline" className="flex-1 h-11" onClick={matchBackgroundToLogo}>
-                    <Paintbrush className="h-4 w-4 mr-2" />
-                    Match to logo
-                  </Button>
-                  <Button variant="outline" className="h-11 px-3" onClick={() => applyLogoBandColor("#ffffff")}>
-                    White
-                  </Button>
-                  <Button variant="outline" className="h-11 px-3" onClick={() => applyLogoBandColor("#000000")}>
-                    Black
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-1 space-y-2">
-                <p className="text-sm font-medium text-foreground">Page color</p>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-11 w-11 shrink-0 rounded-lg border border-border"
-                    style={{ background: pendingBgColor || "#ffffff" }}
-                  />
-                  <div className="flex-1 text-xs text-muted-foreground">
-                    The section below your logo.
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="h-11 px-3"
-                    onClick={() => handleBgColorChange("#ffffff")}
-                  >
-                    White
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-11 px-3"
-                    onClick={() => handleBgColorChange("#000000")}
-                  >
-                    Black
-                  </Button>
-                </div>
-                <p
-                  className={`text-[11px] ${
-                    logoContrastOk ? "text-muted-foreground" : "text-amber-600"
-                  }`}
-                >
-                  {logoContrastOk
-                    ? "Buttons and text will read clearly on this background."
-                    : "This color may wash out your buttons — try White or Black."}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : pendingHeaderType === "banner" ? (
-          <div className="space-y-3">
-            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">Full-Screen Banner Mode</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your profile photo displays as a stunning full-screen banner with ambient color matching.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Banner shape */}
-            <div className="p-4 rounded-xl border border-border bg-card space-y-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Banner shape</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Pick the height of your banner, then crop your image to fit it exactly.
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {BANNER_ASPECT_LABELS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setPendingBannerAspect(opt.value);
-                      queueDesignSave(
-                        { banner_aspect: opt.value },
-                        { bannerAspect: opt.value },
-                      );
-                    }}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                      pendingBannerAspect === opt.value
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:bg-muted/50"
-                    }`}
-                  >
-                    <span
-                      className="w-full rounded bg-muted-foreground/20"
-                      style={{ aspectRatio: `${bannerAspectRatio(opt.value)} / 1` }}
-                    />
-                    <span className="text-xs font-medium">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={openBannerCropper}
-                disabled={bannerSaving || (!profilePhotoUrl && !bannerOriginalUrl)}
-              >
-                {bannerSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                )}
-                Adjust banner
-              </Button>
-              <p className="text-[11px] text-muted-foreground">
-                Zoom out to show your whole logo — empty space is filled with the background
-                color you choose.
-              </p>
-            </div>
-
-            {/* Banner cropper */}
-            {bannerCropSrc && (
-              <ImageCropper
-                open={bannerCropOpen}
-                onOpenChange={(open) => {
-                  setBannerCropOpen(open);
-                  if (!open) setBannerCropSrc(null);
-                }}
-                imageSrc={bannerCropSrc}
-                onCropComplete={handleBannerCropComplete}
-                aspectRatio={bannerAspectRatio(pendingBannerAspect)}
-                cropShape="rect"
-                minZoom={0.25}
-                restrictPosition={false}
-                fillColor={bannerFillColor}
-                editableFill
-                autoTrim
-                fullFrameOutput
-                maxOutputDimension={2048}
-                outputQuality={0.92}
-                title="Adjust your banner"
-              />
             )}
-
           </div>
-        ) : pendingHeaderType === "color" ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
-              <div className="flex flex-wrap gap-2">
-                {COLOR_PRESETS.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => handleColorChange(color)}
-                    className={`h-10 w-10 rounded-full border-2 transition-all ${
-                      pendingHeaderColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Fades</p>
-              <div className="flex flex-wrap gap-2">
-                {FADE_PRESETS.map((fade) => (
-                  <button
-                    key={fade.label}
-                    onClick={() => handleColorChange(fade.value)}
-                    className={`h-10 w-10 rounded-full border-2 transition-all ${
-                      pendingHeaderColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
-                    }`}
-                    style={{ background: fade.value }}
-                    title={fade.label}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={customColorInput.startsWith("#") ? customColorInput : "#000000"}
-                onChange={(e) => {
-                  setCustomColorInput(e.target.value);
-                  handleColorChange(e.target.value);
-                }}
-                className="h-10 w-10 rounded-lg border-0 cursor-pointer"
-              />
-              <Input
-                type="text"
-                placeholder="#000000"
-                value={customColorInput}
-                onChange={(e) => setCustomColorInput(e.target.value)}
-                onBlur={() => {
-                  if (/^#[0-9A-Fa-f]{6}$/.test(customColorInput)) {
-                    handleColorChange(customColorInput);
-                  }
-                }}
-                className="h-10 flex-1 font-mono text-sm"
-              />
-            </div>
-          </div>
-        ) : pendingHeaderType === "image" ? (
-          !isPremium ? (
-            <div 
-              onClick={() => setUpgradeFeature("Custom Header Image")}
-              className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors cursor-pointer relative"
+          <div className="flex flex-col gap-2 min-w-0 flex-1">
+            <Button
+              variant="outline"
+              className="min-h-[44px] w-full sm:w-auto"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={uploading !== null}
             >
-              <ImageIcon className="h-6 w-6 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Upload header image</span>
-              <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                <Lock className="h-2.5 w-2.5" />
-                Pro
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {headerImageUrl ? (
-                <div className="relative">
-                  <img src={headerImageUrl} alt="Header" className="w-full h-24 object-cover rounded-lg" />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                    >
-                      {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
-                    </button>
-                    <button onClick={handleRemoveImage} className="p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-colors">
-                      <X className="h-4 w-4 text-white" />
-                    </button>
-                  </div>
-                </div>
+              {uploading === "photo" ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="w-full h-24 bg-muted/50 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
-                >
-                  {uploading ? (
-                    <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-                  ) : (
-                    <>
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Upload header image</span>
-                    </>
-                  )}
-                </button>
+                <Upload className="h-4 w-4 mr-2" />
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-            </div>
-          )
-        ) : null}
-      </div>
+              {profilePhotoUrl ? "Upload new photo" : "Upload photo"}
+            </Button>
+            {profilePhotoUrl && (
+              <Button
+                variant="ghost"
+                className="min-h-[44px] w-full sm:w-auto"
+                onClick={() => openAdjustCropper("photo")}
+                disabled={uploading !== null}
+              >
+                <Crop className="h-4 w-4 mr-2" />
+                Adjust framing
+              </Button>
+            )}
+          </div>
+        </div>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFileSelect(e, "photo")}
+          className="hidden"
+        />
+      </section>
 
       <div className="h-px bg-border" />
 
-      {/* Background Section */}
-      <Collapsible defaultOpen={false}>
-        <CollapsibleTrigger className="w-full">
-          <div className="flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-base font-semibold text-foreground">Background</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">Set your page's background color</p>
+      {/* Cover image */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Cover image</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            A wide banner at the top of your page. Optional.
+          </p>
+        </div>
+        {bannerImageUrl ? (
+          <div className="relative">
+            <img
+              src={bannerImageUrl}
+              alt="Cover"
+              className="w-full h-36 object-cover rounded-xl border border-border"
+            />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-11 w-11 rounded-full shadow"
+                onClick={() => openAdjustCropper("banner")}
+                disabled={uploading !== null}
+                aria-label="Adjust cover image"
+              >
+                {uploading === "banner" ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Crop className="h-5 w-5" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-11 w-11 rounded-full shadow"
+                onClick={() => setConfirmRemoveCover(true)}
+                disabled={uploading !== null}
+                aria-label="Remove cover image"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
-            <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
           </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 pt-4">
-        
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-2">Popular</p>
-          <div className="flex flex-wrap gap-2">
-            {BG_PRESETS.map((color) => (
-              <button
-                key={color}
-                onClick={() => handleBgColorChange(color)}
-                className={`h-10 w-10 rounded-full border-2 transition-all ${
-                  pendingBgColor === color ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
-                }`}
-                style={{ backgroundColor: color }}
-                title={color}
-              />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-2">Fades</p>
-          <div className="flex flex-wrap gap-2">
-            {BG_FADE_PRESETS.map((fade) => (
-              <button
-                key={fade.label}
-                onClick={() => handleBgColorChange(fade.value)}
-                className={`h-10 w-10 rounded-full border-2 transition-all ${
-                  pendingBgColor === fade.value ? "border-primary ring-2 ring-primary/30" : "border-border hover:scale-110"
-                }`}
-                style={{ background: fade.value }}
-                title={fade.label}
-              />
-            ))}
-          </div>
-        </div>
-        
-        {(bannerImageSource || profilePhotoUrl) && imageBasedColor && (
+        ) : (
           <button
-            onClick={() => handleBgColorChange(generateAmbientGradient(imageBasedColor))}
-            className="w-full flex items-center gap-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={uploading !== null}
+            className="w-full min-h-[96px] bg-muted/50 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors"
           >
-            <div className="h-10 w-10 rounded-full flex-shrink-0 ring-2 ring-primary/20" style={{ background: generateAmbientGradient(imageBasedColor) }} />
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-medium text-foreground">Auto match to photo</p>
-              <p className="text-xs text-muted-foreground">Tap to apply ambient gradient</p>
-            </div>
-            <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+            {uploading === "banner" ? (
+              <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+            ) : (
+              <>
+                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Upload cover image</span>
+              </>
+            )}
           </button>
         )}
-        
+        {bannerImageUrl && (
+          <Button
+            variant="outline"
+            className="min-h-[44px] w-full sm:w-auto"
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={uploading !== null}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Replace cover image
+          </Button>
+        )}
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleFileSelect(e, "banner")}
+          className="hidden"
+        />
+      </section>
+
+      <div className="h-px bg-border" />
+
+      {/* Background color — one good picker */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Page background</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Pick a color for your page, or enter your own.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {BG_PRESETS.map((color) => {
+            const selected = pendingBgColor === color;
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => handleBgColorChange(color)}
+                aria-label={`Background color ${color}`}
+                aria-pressed={selected}
+                className={`h-12 w-12 rounded-full border-2 transition-all ${
+                  selected
+                    ? "border-primary ring-2 ring-primary/30 scale-110"
+                    : "border-border hover:scale-105"
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            );
+          })}
+          {currentIsGradient && (
+            <button
+              type="button"
+              aria-label={`Current custom background ${pendingBgColor}`}
+              aria-pressed
+              className="h-12 w-12 rounded-full border-2 border-primary ring-2 ring-primary/30"
+              style={{ background: pendingBgColor as string }}
+              title="Your current custom background"
+            />
+          )}
+        </div>
+
         <div className="flex items-center gap-3">
+          <Label htmlFor="bg-custom-color" className="sr-only">Custom background color</Label>
           <input
+            id="bg-custom-color"
             type="color"
-            value={bgColorInput.startsWith("#") ? bgColorInput : "#ffffff"}
+            value={isSolidHex(bgColorInput) ? bgColorInput : "#ffffff"}
             onChange={(e) => {
               setBgColorInput(e.target.value);
               handleBgColorChange(e.target.value);
             }}
-            className="h-10 w-10 rounded-lg border-0 cursor-pointer"
+            className="h-12 w-12 shrink-0 rounded-lg border border-border cursor-pointer bg-transparent p-1"
+            aria-label="Pick a custom color"
           />
-          <Input
-            type="text"
-            placeholder="#ffffff"
-            value={bgColorInput}
-            onChange={(e) => setBgColorInput(e.target.value)}
-            onBlur={() => {
-              if (/^#[0-9A-Fa-f]{6}$/.test(bgColorInput)) {
-                handleBgColorChange(bgColorInput);
-              }
-            }}
-          className="h-10 flex-1 font-mono text-sm"
-          />
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm pointer-events-none">
+              #
+            </span>
+            <Input
+              type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="FFFFFF"
+              aria-label="Custom color hex code"
+              value={bgColorInput.replace(/^#/, "")}
+              onChange={(e) => setBgColorInput(`#${e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6)}`)}
+              onBlur={() => {
+                if (isSolidHex(bgColorInput)) {
+                  handleBgColorChange(bgColorInput);
+                } else {
+                  // Snap back to the saved value on invalid input.
+                  setBgColorInput(pendingBgColor && isSolidHex(pendingBgColor) ? pendingBgColor : "#ffffff");
+                  toast.error("Enter a 6-digit hex color, like #1a1a2e");
+                }
+              }}
+              className="h-12 pl-8 font-mono text-base md:text-sm uppercase"
+            />
+          </div>
         </div>
-        </CollapsibleContent>
-      </Collapsible>
+        <p className="text-xs text-muted-foreground">
+          Dark colors work best with light text, light colors with dark text — your
+          page adjusts text automatically.
+        </p>
+      </section>
 
       {/* Founding Creator Badge Toggle */}
       {isFoundingUser && (
         <div className="border-t pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-semibold text-foreground">Founding Creator Badge</h3>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -1067,8 +571,13 @@ export const DashboardDesignTab = ({
               </p>
             </div>
             <Switch
-              checked={showFoundingBadge ?? false}
+              checked={badgeVisible}
+              disabled={togglingBadge}
+              aria-label="Show Founding Creator badge on public profile"
               onCheckedChange={async (checked) => {
+                if (togglingBadge) return;
+                setTogglingBadge(true);
+                setBadgeVisible(checked);
                 try {
                   const { error } = await supabase
                     .from("personal_profiles")
@@ -1076,11 +585,12 @@ export const DashboardDesignTab = ({
                     .eq("id", profileId);
                   if (error) throw error;
                   toast.success(checked ? "Badge visible on your profile" : "Badge hidden from your profile");
-                  // Force page refresh to update state
-                  window.location.reload();
                 } catch (err) {
                   console.error("Toggle badge error:", err);
+                  setBadgeVisible(!checked);
                   toast.error("Failed to update badge visibility");
+                } finally {
+                  setTogglingBadge(false);
                 }
               }}
             />
@@ -1088,19 +598,50 @@ export const DashboardDesignTab = ({
         </div>
       )}
 
-      {rawImageUrl && (
+      {cropperSrc && (
         <ImageCropper
           open={cropperOpen}
-          onOpenChange={setCropperOpen}
-          imageSrc={rawImageUrl}
-          onCropComplete={handleCropComplete}
-          aspectRatio={16 / 5}
-          cropShape="rect"
-          fullFrameOutput
+          onOpenChange={(open) => {
+            setCropperOpen(open);
+            if (!open) {
+              // Release the blob URL created in handleFileSelect (remote URLs
+              // used by "adjust crop" are not blob URLs — leave those alone).
+              setCropperSrc((src) => {
+                if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+                return null;
+              });
+            }
+          }}
+          imageSrc={cropperSrc}
+          onCropComplete={(blob) => uploadCroppedBlob(blob, cropperTarget)}
+          aspectRatio={cropperTarget === "photo" ? 1 : 3}
+          cropShape={cropperTarget === "photo" ? "round" : "rect"}
+          minZoom={1}
           maxOutputDimension={2048}
-          outputQuality={0.92}
+          outputQuality={0.9}
+          title={cropperTarget === "photo" ? "Adjust your profile photo" : "Adjust your cover image"}
         />
       )}
+
+      <AlertDialog open={confirmRemoveCover} onOpenChange={setConfirmRemoveCover}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove cover image?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your hub will go back to the plain background. You can upload a new cover any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="min-h-[44px]">Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
+              onClick={() => { setConfirmRemoveCover(false); void handleRemoveBanner(); }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

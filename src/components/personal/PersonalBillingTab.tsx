@@ -79,7 +79,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 <span className="text-3xl font-bold">Free Trial</span>
               </div>
               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
-                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then $20/month.
+                ⏳ {trialDaysLeft} days left — your trial ends {trialEndDate?.toLocaleDateString()}. Then {isAnnual ? "$199/year" : "$20/month"}.
               </p>
             </div>
           ) : (
@@ -106,6 +106,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 {hasSubscription ? (
                   <Button
                     variant="outline"
+                    className="min-h-[44px]"
                     onClick={() => window.open(STRIPE_PORTAL_URL, "_blank")}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
@@ -113,7 +114,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                     <ExternalLink className="h-3 w-3 ml-2" />
                   </Button>
                 ) : (
-                  <Button onClick={onUpgrade}>
+                  <Button onClick={onUpgrade} className="min-h-[44px]">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Set up Billing
                   </Button>
@@ -153,7 +154,7 @@ export function PersonalBillingTab({ profile, onUpgrade }: PersonalBillingTabPro
                 ({trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left).
               </li>
               <li>
-                When the trial ends, your hub is billed <span className="font-medium text-foreground">$20/month</span>{" "}
+                When the trial ends, your hub is billed <span className="font-medium text-foreground">{isAnnual ? "$199/year" : "$20/month"}</span>{" "}
                 unless you cancel first. You can cancel any time before the end date at no charge.
               </li>
               <li>

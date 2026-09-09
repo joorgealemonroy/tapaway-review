@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Whitelist of valid event types
+// Whitelist of valid event types. Must stay in sync with every trackEvent()
+// call site: ReviewHub.tsx link buttons and AvMealPrepHub custom-hub events.
 const VALID_EVENT_TYPES = [
   'tap',
   'google_click',
@@ -16,7 +17,19 @@ const VALID_EVENT_TYPES = [
   'instagram_click',
   'menu_view',
   'menu_close',
-  'phone_click'
+  'phone_click',
+  'promotion_click',
+  'poll_vote',
+  // AV Meal Prep custom hub events (src/components/hubs/AvMealPrepHub.tsx)
+  'avm_loved_click',
+  'avm_could_be_better_click',
+  'avm_loved_submit',
+  'avm_feedback_submit',
+  'avm_order_click',
+  'avm_instagram_click',
+  'avm_trainer_bundle_click',
+  'avm_share_clicked',
+  'avm_add_to_home_clicked'
 ];
 
 serve(async (req) => {

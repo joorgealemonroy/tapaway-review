@@ -53,7 +53,7 @@ const PersonalPricing = () => {
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               All Your Links,<br />One TapAway
             </h1>
-            <p className="text-muted-foreground mt-2">Starting at ${PERSONAL_PRICING.monthly}/month</p>
+            <p className="text-muted-foreground mt-2">Starting at ${PERSONAL_PRICING.monthly}/month — or ${PERSONAL_PRICING.yearly}/year and save ${PERSONAL_PRICING.monthly * 12 - PERSONAL_PRICING.yearly}</p>
           </div>
 
           <Button

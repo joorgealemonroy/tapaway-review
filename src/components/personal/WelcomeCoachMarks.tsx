@@ -211,9 +211,10 @@ export const WelcomeCoachMarks = ({
             {/* Close button */}
             <button
               onClick={handleSkip}
-              className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close welcome tour"
+              className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
 
             {/* Content */}
@@ -246,11 +247,11 @@ export const WelcomeCoachMarks = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleSkip}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="min-h-[44px] px-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Skip
                 </button>
-                <Button size="sm" onClick={handleNext} className="h-7 text-xs px-3">
+                <Button size="sm" onClick={handleNext} className="min-h-[44px] text-xs px-4">
                   {isLastStep ? "Done!" : "Next"}
                 </Button>
               </div>

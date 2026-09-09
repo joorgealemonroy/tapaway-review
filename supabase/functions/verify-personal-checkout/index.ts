@@ -59,6 +59,21 @@ serve(async (req) => {
 
     const metadata = session.metadata || {};
     const customerEmail = session.customer_email || (session.customer as Stripe.Customer)?.email;
+
+    // Van sale targeting (admin-created checkout sessions): when the session
+    // carries a personal_profile_id, provision THAT profile directly instead
+    // of the user_id lookup below. Metadata is set server-side by
+    // create-checkout-session (admin-gated for van sales) and is verified
+    // here from the Stripe session, so it cannot be forged by the caller.
+    // This matters because a van demo row is owned by the admin's user_id,
+    // which may already have its own profile row.
+    const metadataProfileId =
+      typeof metadata.personal_profile_id === 'string' && metadata.personal_profile_id.length > 0
+        ? metadata.personal_profile_id
+        : null;
+    if (metadataProfileId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(metadataProfileId)) {
+      throw new Error('Invalid personal_profile_id in session metadata');
+    }
     
     if (!customerEmail) {
       throw new Error('No customer email found');
@@ -165,11 +180,9 @@ serve(async (req) => {
     // For Checkout API: username comes from metadata
     const username = metadata.username || usernameFromRef || customerEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
     
-    const { data: existingProfile } = await supabase
-      .from('personal_profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    const { data: existingProfile } = metadataProfileId
+      ? await supabase.from('personal_profiles').select('id').eq('id', metadataProfileId).single()
+      : await supabase.from('personal_profiles').select('id').eq('user_id', userId).single();
 
     let profileId: string;
     let isNewProfile = false;
@@ -187,6 +200,64 @@ serve(async (req) => {
     }
 
     console.log('[verify-personal-checkout] Subscription status:', { subscriptionStatus, trialEndsAt });
+
+    // Capture IP for affiliate abuse tracking (also used as the per-user
+    // rate-limit key for the card check below).
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("x-real-ip")
+      || null;
+
+    // ── $1 trial card verification (CARD-CHECK) ──
+    // Fail-closed: a declined/dead card must never produce a live trial row.
+    // Van sales (metadata.van_sale === "true") charge immediately, so the
+    // charge itself is the verification — they skip this check.
+    if (subscriptionStatus === 'trialing' && metadata.van_sale !== "true") {
+      const stripeCustomerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+      const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+
+      let cardCheck: { ok: boolean; code?: string; message?: string } | null = null;
+      try {
+        const checkRes = await fetch(`${supabaseUrl}/functions/v1/verify-trial-card`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            customerId: stripeCustomerId,
+            ...(clientIp ? { clientIp } : {}),
+            // Stable idempotency key: retries / page refreshes never stack extra $1 auths.
+            ...(stripeSubscriptionId ? { idempotencyKey: stripeSubscriptionId } : {}),
+          }),
+        });
+        cardCheck = await checkRes.json();
+      } catch (checkErr) {
+        console.error('[verify-personal-checkout] card check call failed (fail-closed):', checkErr);
+      }
+
+      if (!cardCheck?.ok) {
+        // Dead card: cancel the trial subscription in Stripe immediately so a
+        // dead-card trial never exists or bills, then surface the
+        // plain-language message to PersonalSignupComplete.
+        if (stripeSubscriptionId) {
+          try {
+            await stripe.subscriptions.cancel(stripeSubscriptionId);
+            console.log('[verify-personal-checkout] canceled dead-card trial subscription:', stripeSubscriptionId);
+          } catch (cancelErr) {
+            console.error('[verify-personal-checkout] failed to cancel dead-card subscription (non-fatal):', cancelErr);
+          }
+        }
+        const plainMessage = cardCheck?.message
+          || "Your card couldn't be verified. Please try a different card or contact your bank.";
+        console.log('[verify-personal-checkout] card check failed:', { code: cardCheck?.code });
+        return new Response(
+          JSON.stringify({ success: false, cardCheckFailed: true, error: plainMessage }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('[verify-personal-checkout] card check passed');
+    }
 
     if (existingProfile) {
       // Update existing profile
@@ -260,6 +331,37 @@ serve(async (req) => {
       }
     }
 
+    // Van-sale password handoff (no trial, owner pays on the spot): send the
+    // owner a single-use, expiring password-setup link via SMS (owner mobile
+    // on the profile) or email fallback. Triggered only for admin-created
+    // van checkout sessions (metadata.van_sale === 'true', set server-side
+    // by the admin-gated create-checkout-session call). The handoff function
+    // itself claims exactly-once delivery (atomic claim on
+    // personal_profiles.van_handoff_sent_at), so the 4-second poll from
+    // /admin/van can never double-text the owner. Never fails the flow.
+    let handoff: Record<string, unknown> = { sent: false, skipped: true };
+    if (metadata.van_sale === "true" && metadataProfileId) {
+      try {
+        const hRes = await fetch(`${supabaseUrl}/functions/v1/send-van-handoff`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({ profile_id: profileId }),
+        });
+        handoff = await hRes.json();
+        console.log("[verify-personal-checkout] van handoff result:", {
+          profile_id: profileId,
+          ok: (handoff as Record<string, unknown>).success === true,
+          channel: (handoff as Record<string, unknown>).channel,
+        });
+      } catch (hErr) {
+        console.error("[verify-personal-checkout] van handoff failed (non-fatal):", hErr);
+        handoff = { sent: false, error: hErr instanceof Error ? hErr.message : "unknown" };
+      }
+    }
+
     // Send welcome emails for NEW profiles only
     if (isNewProfile) {
       try {
@@ -301,10 +403,7 @@ serve(async (req) => {
       }
     }
 
-    // Capture IP for affiliate abuse tracking
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || req.headers.get("x-real-ip")
-      || null;
+    // clientIp was captured above (used for affiliate abuse tracking + card check).
 
     // Return success with session info for auto-login
     return new Response(
@@ -316,6 +415,7 @@ serve(async (req) => {
         planType: detectedPlanType,
         needsPasswordSetup: tempPassword !== null,
         clientIp,
+        handoff, // van sale: { success, channel, sent_to } — no raw link, ever
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

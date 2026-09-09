@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { isUsernameReserved } from "@/lib/reservedUsernames";
 import { getPublicUsername } from "@/lib/personalUsername";
+import { toast } from "sonner";
 
 export interface HeroSnapshot {
   name: string;
@@ -79,7 +80,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
   };
 
   const [usernameInput, setUsernameInput] = useState(extractEditableUsername(username));
-  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid" | "unknown">("idle");
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -167,7 +168,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
         if (!data) setUsernameError("This username is already taken");
       } catch (err) {
         console.error("Error checking username:", err);
-        setUsernameStatus("idle");
+        // Don't silently reset — the check genuinely failed (offline, etc.)
+        // and the user would otherwise hit a confusing save error.
+        setUsernameStatus("unknown");
+        setUsernameError("Couldn't check username availability — check your connection and try again");
       }
     }, 500);
 
@@ -176,6 +180,10 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   const handleSave = useCallback(async () => {
     if (!hasChanges) return;
+
+    if (!name.trim()) {
+      throw new Error("Please add your display name before saving");
+    }
 
     const newPublicUsername = getPublicUsername(isFree ? "free" : (planType as any) || "free", usernameInput);
     const usernameChanged = !usernameLocked && newPublicUsername !== username;
@@ -207,11 +215,17 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
     if (usernameChanged) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        const { error: nfcError } = await supabase
           .from("nfc_cards")
           .update({ destination_value: newPublicUsername })
           .eq("owner_user_id", user.id)
           .eq("destination_type", "profile");
+        if (nfcError) {
+          // Profile already saved — don't throw, but the user must know
+          // their physical cards still point at the old username.
+          console.error("Failed to sync NFC cards with new username:", nfcError);
+          toast.error("Profile saved, but your NFC cards couldn't be updated — contact support so they still point to your new URL.");
+        }
       }
 
       invalidateProfileCache(username);
@@ -270,7 +284,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+      <CollapsibleTrigger className="flex items-center justify-between w-full min-h-[44px] py-2">
         <Label className="text-sm font-medium text-foreground pointer-events-none">Hero Identity</Label>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
       </CollapsibleTrigger>
@@ -308,6 +322,7 @@ export const DashboardHeroEditor = forwardRef<DashboardHeroEditorHandle, Props>(
               {usernameStatus === "available" && <Check className="h-4 w-4 text-green-500" />}
               {usernameStatus === "taken" && <X className="h-4 w-4 text-destructive" />}
               {usernameStatus === "invalid" && <X className="h-4 w-4 text-destructive" />}
+              {usernameStatus === "unknown" && <AlertTriangle className="h-4 w-4 text-amber-600" />}
             </div>
           </div>
           {usernameLocked ? (

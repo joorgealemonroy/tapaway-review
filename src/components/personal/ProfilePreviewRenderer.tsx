@@ -1,17 +1,15 @@
-import { memo, useMemo, useState, useEffect } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { ExternalLink, Mail, UserPlus, Share2 } from "lucide-react";
 import { resolveHubContrast } from "@/lib/hubContrast";
 import { getOptimizedImageUrl, OptimizedImage } from "./OptimizedImage";
 import { getPlatformConfig, PLATFORM_COLORS } from "@/lib/platformLinks";
 import { ImageLightbox } from "./ImageLightbox";
-import { extractBottomColor } from "@/lib/imageColorExtraction";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl } from "@/lib/sanitizeUrl";
 import MarketingExamplesCard from "./MarketingExamplesCard";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { LocationsBlock } from "./LocationsBlock";
-import { logoPreviewStyle } from "@/lib/logoHeader";
 
 
 
@@ -115,54 +113,34 @@ function ProfilePreviewRendererComponent({
   isPreview = false,
   onLinkClick,
 }: ProfilePreviewRendererProps) {
-  const headerType = profile.header_type || "color";
+  // Cover image (set in the Design tab). This is the ONLY header decoration
+  // rendered now — legacy header_type values are stored but not honored.
+  const coverImageUrl = profile.header_image_url
+    ? getOptimizedImageUrl(profile.header_image_url, 400, 80)
+    : null;
+  const hasCover = !!coverImageUrl;
+  // Legacy header color kept only as a small block accent; it no longer
+  // controls any header.
   const headerColor = profile.header_color || "#6366f1";
-  const headerImageUrl = profile.header_image_url;
   // Default to black background
   const backgroundColor = profile.background_color || "#000000";
   const isGradientBg = backgroundColor.startsWith('linear-gradient') || backgroundColor.startsWith('radial-gradient');
-  
+
   // Premium dark base with brand glow for flat dark backgrounds
   const isDefaultDarkBg = !isGradientBg && isColorDark(backgroundColor);
   const effectiveBgColor = isDefaultDarkBg ? '#020617' : backgroundColor;
   const brandGlowStyle = isDefaultDarkBg && backgroundColor !== '#020617'
     ? { background: `radial-gradient(ellipse at top center, ${backgroundColor}30 0%, transparent 60%)` }
     : undefined;
-  
-  // Banner for premium users (header_type === "banner")
-  // Uses profile_photo_url as the banner (no separate upload)
-  const hasBanner = headerType === "banner";
-  const isLogoHeader = headerType === "logo";
 
-  const bannerUrl = (hasBanner && profile.profile_photo_url) 
-    ? getOptimizedImageUrl(profile.profile_photo_url, 400, 80) 
-    : null;
-  
-  // Extract color from profile photo (used as banner) for natural fade
-  const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (hasBanner && profile.profile_photo_url) {
-      extractBottomColor(profile.profile_photo_url).then(setExtractedBannerColor);
-    } else {
-      setExtractedBannerColor(null);
-    }
-  }, [hasBanner, profile.profile_photo_url]);
-  
-  const isDarkBg = useMemo(() => hasBanner || (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg, hasBanner]);
+  const isDarkBg = useMemo(() => (isGradientBg ? isColorDark(getBaseColorFromGradient(backgroundColor)) : isColorDark(backgroundColor)), [backgroundColor, isGradientBg]);
   // Same readability rules the live hub uses.
   const previewContrast = useMemo(() => resolveHubContrast(backgroundColor), [backgroundColor]);
-  const logoBandColor = profile.logo_bg_color || profile.header_color || null;
-  const bandContrast = useMemo(
-    () => (logoBandColor ? resolveHubContrast(logoBandColor) : previewContrast),
-    [logoBandColor, previewContrast]
-  );
-  
+
   // Dynamic text classes
   const headingClass = isDarkBg ? "text-white" : "text-gray-900";
   const textClass = isDarkBg ? "text-white/80" : "text-gray-600";
-  const mutedClass = isDarkBg ? "text-white/60" : "text-gray-500";
-  const pfpPosition = (profile.header_type === "banner" || profile.header_type === "logo") ? "center" : (profile.pfp_position || "center");
+  const pfpPosition = profile.pfp_position || "center";
 
   const activeLinks = useMemo(
     () => links.filter((l) => l.is_active !== false),
@@ -842,127 +820,37 @@ function ProfilePreviewRendererComponent({
       )}
       {/* Header or Banner */}
       <div className="relative w-full">
-        {isLogoHeader ? (
-          <div
-            className="relative w-full flex items-center justify-center pt-6 pb-8 px-4"
-            style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
-          >
-            {profile.profile_photo_url ? (
-              <img
-                src={getOptimizedImageUrl(profile.profile_photo_url, 800, 90)}
-                alt={profile.full_name}
-                className="mx-auto"
-                style={logoPreviewStyle(profile.logo_scale, 320)}
-              />
-            ) : (
-              <div className="h-20 flex items-center">
-                <span className="text-xs text-muted-foreground">Add a logo</span>
-              </div>
-            )}
-            {/* Matches the floating Save contact / Share cluster on the live hub */}
-            <div className="absolute top-3 right-3 flex gap-1.5 z-20">
-              <span
-                className={`h-8 w-8 rounded-full flex items-center justify-center ${bandContrast.chipClass}`}
-              >
-                <UserPlus className={`h-3.5 w-3.5 ${bandContrast.chipIconClass}`} />
-              </span>
-              <span
-                className={`h-8 w-8 rounded-full flex items-center justify-center ${bandContrast.chipClass}`}
-              >
-                <Share2 className={`h-3.5 w-3.5 ${bandContrast.chipIconClass}`} />
-              </span>
-            </div>
-          </div>
-        ) : hasBanner ? (
-
-          <>
-            {/* Banner mode - preserve the original dashboard preview dimensions. */}
-            <div 
-              className="h-64 overflow-hidden relative"
-            >
-              {bannerUrl ? (
-                <img
-                  src={bannerUrl}
-                  alt="Banner"
-                  className="h-full w-full object-cover object-top"
-                  style={{
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                    maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  }}
-                />
-              ) : (
-                <div 
-                  className="h-full w-full flex items-center justify-center"
-                  style={{ background: `linear-gradient(135deg, ${headerColor}, ${headerColor}88)` }}
-                >
-                  <span className="text-white/60 text-xs">Add a photo for your banner</span>
-                </div>
-              )}
-
-              {/* Gradient fade using extracted color from image - taller for text overlap */}
-              <div 
-                className="absolute inset-x-0 bottom-0 h-40 pointer-events-none"
-                style={{
-                  background: `linear-gradient(to bottom, transparent 0%, transparent 30%, ${
-                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                  }40 60%, ${
-                    extractedBannerColor || (isGradientBg ? getBaseColorFromGradient(backgroundColor) : backgroundColor)
-                  } 100%)`
-                }}
-              />
-            </div>
-
-          </>
-        ) : (
-          <>
-            <div className="h-32 overflow-hidden">
-              {headerType === "image" && headerImageUrl ? (
-                <OptimizedImage
-                  src={headerImageUrl}
-                  alt="Header"
-                  className="h-full w-full object-cover"
-                  width={800}
-                />
-              ) : (
-                <div
-                  className="h-full w-full"
-                  style={{ backgroundColor: headerColor }}
-                />
-              )}
-            </div>
-            {/* Fade overlay from header to background */}
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+        {/* Cover image — the only header decoration. Optional; legacy
+            header styles fall back to no cover. */}
+        {coverImageUrl ? (
+          <div className="h-36 overflow-hidden relative">
+            <img
+              src={coverImageUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+            {/* Fade overlay from cover to background */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
               style={{
                 background: `linear-gradient(to bottom, transparent 0%, ${
                   isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
-                }40 40%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
-                }90 70%, ${
-                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
-                } 100%)`
+                } 100%)`,
               }}
             />
-          </>
-        )}
+          </div>
+        ) : null}
       </div>
 
-      {/* Curved seam between the logo band and the content sheet */}
-      {isLogoHeader && (
-        <div
-          className="relative z-[5] -mt-5 h-5 rounded-t-[22px] w-full"
-          style={isGradientBg ? { background: backgroundColor } : { backgroundColor: effectiveBgColor }}
-        />
-      )}
 
-      {/* Profile section - overlapping text for banner (transparent, text floats on banner) */}
+      {/* Profile section */}
       <div
-        className={`px-6 ${hasBanner ? '-mt-16' : ''} ${
-          pfpPosition === "left" && !isLogoHeader ? "flex items-start gap-4" : ""
+        className={`px-6 ${hasCover ? '-mt-12' : 'pt-6'} ${
+          pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >
+        {/* Avatar */}
         {/* Avatar - hidden when the logo/banner is the header */}
-        {!hasBanner && !isLogoHeader && (
 
           <div
             className={`relative ${
@@ -993,7 +881,6 @@ function ProfilePreviewRendererComponent({
               </div>
             )}
           </div>
-        )}
 
         {/* Name and headline */}
         <div
@@ -1001,10 +888,8 @@ function ProfilePreviewRendererComponent({
             pfpPosition === "left" ? "flex-1 pt-2" : "mt-4"
           } ${pfpPosition === "center" ? "text-center" : ""}`}
         >
-          <h1 className={`${hasBanner ? 'text-3xl' : 'text-xl'} font-bold ${headingClass}`}>
-            {hasBanner
-              ? (profile.show_username !== false ? `@${profile.username}` : profile.full_name)
-              : profile.full_name}
+          <h1 className={`text-xl font-bold ${headingClass}`}>
+            {profile.full_name}
           </h1>
           {profile.headline && (
             <p className={`mt-1 text-sm ${textClass}`}>{profile.headline}</p>
@@ -1053,11 +938,8 @@ function ProfilePreviewRendererComponent({
         </div>
       )}
 
-      {/* Content - solid background for banner mode */}
-      <div 
-        className={`mt-6 space-y-3 px-6 pb-8 ${hasBanner ? 'rounded-2xl pt-4 pb-6 -mx-0' : ''}`}
-        style={hasBanner ? { backgroundColor: extractedBannerColor || '#1a1a1a' } : undefined}
-      >
+      {/* Content */}
+      <div className="mt-6 space-y-3 px-6 pb-8">
         {/* Featured link */}
         {featuredLink && renderLink(featuredLink, true, false, 0)}
 

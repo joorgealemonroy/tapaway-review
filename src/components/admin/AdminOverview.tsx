@@ -11,6 +11,8 @@ import {
   Link2,
   Loader2,
   MapPin,
+  MousePointerClick,
+  PackageCheck,
   Printer,
   RefreshCw,
   ShieldAlert,
@@ -21,6 +23,10 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Button } from "@/components/ui/button";
 import { useAdminOverview, EngagementRange } from "@/hooks/useAdminOverview";
 import { STATUS_LABELS, StatusKey, useLocationIntel } from "@/hooks/useLocationIntel";
+import MrrGoalBar from "./MrrGoalBar";
+import TrialPipeline from "./TrialPipeline";
+import TapLeaderboard from "./TapLeaderboard";
+import AtRiskList from "./AtRiskList";
 
 
 const Panel = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -89,6 +95,18 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
     health,
     refresh,
     runHealth,
+    // Command center
+    mrr,
+    mrrLoading,
+    trials,
+    followupsDue,
+    pipelineLoading,
+    leaderboard,
+    leaderboardLoading,
+    atRisk,
+    atRiskLoading,
+    fulfillment,
+    fulfillmentLoading,
   } = useAdminOverview(true, range, dailyDays);
 
   const {
@@ -120,6 +138,9 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
     { label: "Hubs pending approval", value: counts.pendingApproval, icon: ClipboardList, action: onOpenAccounts },
     { label: "Changes requested", value: counts.changesRequested, icon: AlertTriangle, action: onOpenAccounts },
     { label: "Cards awaiting print", value: counts.printAwaiting, icon: Printer, path: "/admin/print-queue" },
+    { label: "Demos to review", value: fulfillmentLoading ? 0 : fulfillment.needsReview, icon: ClipboardList, path: "/admin/fulfillment" },
+    { label: "Demos to print", value: fulfillmentLoading ? 0 : fulfillment.toPrint, icon: Printer, path: "/admin/fulfillment" },
+    { label: "Demos to deliver", value: fulfillmentLoading ? 0 : fulfillment.toDeliver, icon: PackageCheck, path: "/admin/fulfillment" },
     { label: "Rep applications", value: counts.repAppsPending, icon: Users, path: "/admin/reps" },
     { label: "Demo kit requests", value: counts.demoRequestsPending, icon: ClipboardList, path: "/admin/demo-requests" },
     { label: "W-9s to review", value: counts.taxPending, icon: FileText, path: "/admin/tax-review" },
@@ -132,7 +153,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
       {/* Header / freshness */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-white font-medium">Live Overview</h2>
+          <h2 className="text-white font-medium">Command Center</h2>
           <p className="text-sm text-white/40">
             {lastUpdatedAt
               ? `Updated ${lastUpdatedAt.toLocaleTimeString()} · auto-refreshes every 60s`
@@ -150,140 +171,193 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </Button>
       </div>
 
-      {/* Location classification (separate from financial MRR reporting) */}
+      {/* 1 — MONEY: MRR + goal, trials active, van sales today, taps today */}
+      <MrrGoalBar mrr={mrr} loading={mrrLoading} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Metric
+          label="Trials active"
+          value={pipelineLoading ? null : trials.length}
+          sub={`${followupsDue.length} follow-up${followupsDue.length === 1 ? "" : "s"} due today`}
+          loading={pipelineLoading}
+        />
+        <Metric
+          label="Van sales today"
+          value={loading ? null : counts.vanSalesToday}
+          sub="Paid on the spot — outside the trial pipeline"
+          loading={loading}
+        />
+        <Metric
+          label="Taps today"
+          value={dailyLoading ? null : (today?.taps ?? 0).toLocaleString()}
+          sub="Across all hubs"
+          loading={dailyLoading}
+        />
+      </div>
+
+      {/* 2 — TRIAL PIPELINE: who to close */}
+      <TrialPipeline
+        trials={trials}
+        followupsDue={followupsDue}
+        loading={pipelineLoading}
+        onOpenAccounts={onOpenAccounts}
+      />
+
+      {/* 3 — NEEDS ACTION queues */}
       <Panel className="p-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <div className="text-white font-medium flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-emerald-400" /> Location classification
-            </div>
-            <div className="text-xs text-white/40">
-              Access and payment classification from the location system · does not affect MRR reporting
-            </div>
-          </div>
-          <Button
-            onClick={() => navigate("/admin/locations")}
-            size="sm"
-            variant="ghost"
-            className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-          >
-            Open Locations <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-          </Button>
+        <div className="mb-3">
+          <h3 className="text-white font-medium">Needs action</h3>
+          <p className="text-sm text-white/40">Everything waiting on you right now.</p>
         </div>
-        {locError ? (
-          <div className="text-sm text-red-300">
-            Couldn't load location classification.{" "}
-            <button className="underline" onClick={() => void reloadLocations()}>Retry</button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {(Object.keys(STATUS_LABELS) as StatusKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => navigate(`/admin/locations?status=${key}`)}
-                className="text-left rounded-lg border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors"
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {queues.map((q) => (
+            <button
+              key={q.label}
+              onClick={() => (q.action ? q.action() : q.path && navigate(q.path))}
+              className={`group flex items-center justify-between gap-2 px-3 py-3 rounded-lg border transition-all text-left min-h-[56px] ${
+                q.value > 0
+                  ? "border-primary/25 bg-primary/[0.06] hover:bg-primary/[0.1]"
+                  : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+              }`}
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <q.icon className={`h-4 w-4 shrink-0 ${q.value > 0 ? "text-primary" : "text-white/40"}`} />
+                <span className="text-xs text-white/70 group-hover:text-white truncate">{q.label}</span>
+              </span>
+              <span
+                className={`text-sm font-semibold tabular-nums shrink-0 ${
+                  q.value > 0 ? "text-white" : "text-white/30"
+                }`}
               >
-                <div className="text-[10px] uppercase tracking-widest text-white/40">{STATUS_LABELS[key]}</div>
-                <div className="text-xl font-semibold text-white mt-1 tabular-nums">
-                  {locLoading ? (
-                    <span className="inline-block h-5 w-8 rounded bg-white/[0.06] animate-pulse" />
-                  ) : (
-                    locCounts[key]
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+                {q.value}
+              </span>
+            </button>
+          ))}
+        </div>
       </Panel>
 
+      {/* 3b — FULFILLMENT: one-tap entry to the pipeline board */}
+      <Panel className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-white font-medium">Fulfillment</h3>
+            <p className="text-sm text-white/40">
+              {fulfillmentLoading
+                ? "Loading queue…"
+                : `${fulfillment.needsReview} to review · ${fulfillment.toPrint} to print · ${fulfillment.toDeliver} to deliver`}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px]"
+            onClick={() => navigate("/admin/fulfillment")}
+          >
+            Open pipeline <ArrowUpRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </Panel>
 
+      {/* 3c — VIP SMS: opted-in subscriber count, links to the subscriber list */}
+      <Panel className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-white font-medium flex items-center gap-2">
+              VIP SMS subscribers
+              <span className="text-2xl font-semibold text-white tabular-nums">
+                {loading ? "—" : counts.smsSubscribers.toLocaleString()}
+              </span>
+            </h3>
+            <p className="text-sm text-white/40">
+              {loading
+                ? "Loading…"
+                : counts.smsSubscribers === 0
+                  ? "No one has opted in yet"
+                  : "Opted in across all restaurants"}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px]"
+            onClick={() => navigate("/admin/sms-subscribers")}
+          >
+            Open list <ArrowUpRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </Panel>
 
-      {/* Row 1 — live status band */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className={`lg:col-span-2 rounded-xl border p-5 ${healthClasses}`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              {healthTone === "ok" ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5" />
-              ) : healthTone === "warn" ? (
-                <Loader2 className="h-5 w-5 text-amber-400 mt-0.5 animate-spin" />
-              ) : (
-                <ShieldAlert className="h-5 w-5 text-red-400 mt-0.5" />
-              )}
-              <div>
-                <div className="text-white font-medium">
-                  {health.broken > 0
-                    ? `${health.broken} of ${health.total} live hubs are not reachable`
-                    : health.running || health.pending > 0
-                      ? `Checking ${health.total} live hubs…`
-                      : health.total > 0
-                        ? `All ${health.total} live hubs are reachable`
-                        : "No live hubs to check"}
-                </div>
-                <div className="text-xs text-white/50 mt-1">
-                  Anonymous probes against the public endpoints ·{" "}
-                  {health.lastCheckedAt ? `checked ${relative(health.lastCheckedAt.toISOString())}` : "running now"}
-                </div>
-                {health.brokenSlugs.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {health.brokenSlugs.slice(0, 4).map((b) => (
-                      <div key={b.slug} className="text-xs flex gap-2">
-                        <span className="font-mono text-red-200">/{b.slug}</span>
-                        <span className="text-red-200/70 truncate">{b.detail}</span>
-                      </div>
-                    ))}
-                    {health.brokenSlugs.length > 4 && (
-                      <div className="text-xs text-red-200/60">+{health.brokenSlugs.length - 4} more</div>
-                    )}
-                  </div>
-                )}
+      {/* 4 — TAP LEADERBOARD (admin only) */}
+      <TapLeaderboard
+        leaderboard={leaderboard}
+        loading={leaderboardLoading}
+        onOpenAccounts={onOpenAccounts}
+      />
+
+      {/* 5 — AT RISK */}
+      <AtRiskList atRisk={atRisk} loading={atRiskLoading} onOpenAccounts={onOpenAccounts} />
+
+      {/* 6 — HUB HEALTH: problems scream here */}
+      <div className={`rounded-xl border p-5 ${healthClasses}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            {healthTone === "ok" ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5" />
+            ) : healthTone === "warn" ? (
+              <Loader2 className="h-5 w-5 text-amber-400 mt-0.5 animate-spin" />
+            ) : (
+              <ShieldAlert className="h-5 w-5 text-red-400 mt-0.5" />
+            )}
+            <div>
+              <div className="text-white font-medium">
+                {health.broken > 0
+                  ? `${health.broken} of ${health.total} live hubs are not reachable`
+                  : health.running || health.pending > 0
+                    ? `Checking ${health.total} live hubs…`
+                    : health.total > 0
+                      ? `All ${health.total} live hubs are reachable`
+                      : "No live hubs to check"}
               </div>
+              <div className="text-xs text-white/50 mt-1">
+                Anonymous probes against the public endpoints ·{" "}
+                {health.lastCheckedAt ? `checked ${relative(health.lastCheckedAt.toISOString())}` : "running now"}
+              </div>
+              {health.brokenSlugs.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {health.brokenSlugs.slice(0, 4).map((b) => (
+                    <div key={b.slug} className="text-xs flex gap-2">
+                      <span className="font-mono text-red-200">/{b.slug}</span>
+                      <span className="text-red-200/70 truncate">{b.detail}</span>
+                    </div>
+                  ))}
+                  {health.brokenSlugs.length > 4 && (
+                    <div className="text-xs text-red-200/60">+{health.brokenSlugs.length - 4} more</div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => void runHealth()}
-                disabled={health.running}
-                size="sm"
-                variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-              >
-                <Activity className="h-3.5 w-3.5 mr-2" />
-                Run check
-              </Button>
-              <Button
-                onClick={() => navigate("/admin/hub-health")}
-                size="sm"
-                variant="ghost"
-                className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-              >
-                Details
-                <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => void runHealth()}
+              disabled={health.running}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              <Activity className="h-3.5 w-3.5 mr-2" />
+              Run check
+            </Button>
+            <Button
+              onClick={() => navigate("/admin/hub-health")}
+              size="sm"
+              variant="ghost"
+              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+            >
+              Details
+              <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
           </div>
         </div>
-
-        <button
-          onClick={() => navigate("/admin/errors")}
-          className={`text-left rounded-xl border p-5 transition-colors ${
-            counts.errors24h > 0
-              ? "border-red-500/30 bg-red-500/[0.07] hover:bg-red-500/[0.1]"
-              : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
-          }`}
-        >
-          <div className="text-xs uppercase tracking-widest text-white/40">App errors · 24h</div>
-          <div
-            className={`text-3xl font-semibold mt-2 tabular-nums ${
-              counts.errors24h > 0 ? "text-red-300" : "text-white"
-            }`}
-          >
-            {counts.errors24h}
-          </div>
-          <div className="text-xs text-white/40 mt-1">
-            {counts.errors24h > 0 ? "Open the error log" : "No crashes captured"}
-          </div>
-        </button>
       </div>
 
       {/* Link health band */}
@@ -376,32 +450,7 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
         </div>
       </div>
 
-
-
-      {/* Row 2 — business KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Metric
-          label="Total hubs"
-          value={totalHubs}
-          sub={`${counts.personalTotal} Solo · ${counts.restaurantTotal} Business`}
-          loading={loading}
-        />
-        <Metric
-          label="Active subscriptions"
-          value={counts.activeSubs}
-          sub={`${counts.trialing} on trial`}
-          loading={loading}
-        />
-        <Metric label="New hubs · 7d" value={counts.newLast7} sub="Created this week" loading={loading} />
-        <Metric
-          label="Hubs active · 7d"
-          value={engagement?.activeHubs ?? 0}
-          sub="Tapped in the last 7 days"
-          loading={engagementLoading}
-        />
-      </div>
-
-      {/* Engagement with range switch */}
+      {/* Engagement detail (kept, below the do-today sections) */}
       <Panel className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
@@ -522,40 +571,30 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
 
       </Panel>
 
-      {/* Row 3 — action queues */}
-      <Panel className="p-5">
-        <div className="mb-3">
-          <h3 className="text-white font-medium">Needs action</h3>
-          <p className="text-sm text-white/40">Everything waiting on you right now.</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {queues.map((q) => (
-            <button
-              key={q.label}
-              onClick={() => (q.action ? q.action() : q.path && navigate(q.path))}
-              className={`group flex items-center justify-between gap-2 px-3 py-3 rounded-lg border transition-all text-left ${
-                q.value > 0
-                  ? "border-primary/25 bg-primary/[0.06] hover:bg-primary/[0.1]"
-                  : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
-              }`}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <q.icon className={`h-4 w-4 shrink-0 ${q.value > 0 ? "text-primary" : "text-white/40"}`} />
-                <span className="text-xs text-white/70 group-hover:text-white truncate">{q.label}</span>
-              </span>
-              <span
-                className={`text-sm font-semibold tabular-nums shrink-0 ${
-                  q.value > 0 ? "text-white" : "text-white/30"
-                }`}
-              >
-                {q.value}
-              </span>
-            </button>
-          ))}
-        </div>
-      </Panel>
+      {/* Business KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Metric
+          label="Total hubs"
+          value={totalHubs}
+          sub={`${counts.personalTotal} Solo · ${counts.restaurantTotal} Business`}
+          loading={loading}
+        />
+        <Metric
+          label="Active subscriptions"
+          value={counts.activeSubs}
+          sub={`${counts.trialing} on trial`}
+          loading={loading}
+        />
+        <Metric label="New hubs · 7d" value={counts.newLast7} sub="Created this week" loading={loading} />
+        <Metric
+          label="Hubs active · 7d"
+          value={engagement?.activeHubs ?? 0}
+          sub="Tapped in the last 7 days"
+          loading={engagementLoading}
+        />
+      </div>
 
-      {/* Row 4 — recent activity */}
+      {/* Recent activity */}
       <Panel className="p-5">
         <div className="mb-3">
           <h3 className="text-white font-medium">Recent activity</h3>
@@ -588,6 +627,77 @@ const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
           </div>
         )}
       </Panel>
+
+      {/* Location classification (kept at the bottom) */}
+      <Panel className="p-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <div className="text-white font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-emerald-400" /> Location classification
+            </div>
+            <div className="text-xs text-white/40">
+              Access and payment classification from the location system · does not affect MRR reporting
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate("/admin/locations")}
+            size="sm"
+            variant="ghost"
+            className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
+          >
+            Open Locations <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+        </div>
+        {locError ? (
+          <div className="text-sm text-red-300">
+            Couldn't load location classification.{" "}
+            <button className="underline" onClick={() => void reloadLocations()}>Retry</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {(Object.keys(STATUS_LABELS) as StatusKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => navigate(`/admin/locations?status=${key}`)}
+                className="text-left rounded-lg border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="text-[10px] uppercase tracking-widest text-white/40">{STATUS_LABELS[key]}</div>
+                <div className="text-xl font-semibold text-white mt-1 tabular-nums">
+                  {locLoading ? (
+                    <span className="inline-block h-5 w-8 rounded bg-white/[0.06] animate-pulse" />
+                  ) : (
+                    locCounts[key]
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      {/* App errors */}
+      <button
+        onClick={() => navigate("/admin/errors")}
+        className={`text-left rounded-xl border p-5 transition-colors w-full ${
+          counts.errors24h > 0
+            ? "border-red-500/30 bg-red-500/[0.07] hover:bg-red-500/[0.1]"
+            : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+        }`}
+      >
+        <div className="text-xs uppercase tracking-widest text-white/40 flex items-center gap-1.5">
+          <MousePointerClick className="h-3.5 w-3.5" /> App errors · 24h
+        </div>
+        <div
+          className={`text-3xl font-semibold mt-2 tabular-nums ${
+            counts.errors24h > 0 ? "text-red-300" : "text-white"
+          }`}
+        >
+          {counts.errors24h}
+        </div>
+        <div className="text-xs text-white/40 mt-1">
+          {counts.errors24h > 0 ? "Open the error log" : "No crashes captured"}
+        </div>
+      </button>
     </div>
   );
 };

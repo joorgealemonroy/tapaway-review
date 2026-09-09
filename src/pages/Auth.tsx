@@ -443,7 +443,7 @@ const Auth = () => {
       case "forgot":
         return {
           title: "Reset your password",
-          subtitle: "We'll email you a link to set a new password.",
+          subtitle: "We'll email you a 6-digit code to set a new password.",
         };
       default:
         return {

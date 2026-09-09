@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, RefreshCw, ShieldAlert, Info, Lock } from "lucide-react";
+import { Loader2, RefreshCw, ShieldAlert, Info, Lock, ArrowLeft, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 
 /**
@@ -87,6 +89,8 @@ function Stat({
 }
 
 export default function AdminAnalytics() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
+  const navigate = useNavigate();
   const [range, setRange] = useState<string>("30");
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -131,6 +135,15 @@ export default function AdminAnalytics() {
 
   const sessionLabel = meta?.sessionLabel ?? "Sessions";
 
+  if (guardLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0e1a]">
+        <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+      </div>
+    );
+  }
+  if (!isAdmin) return null;
+
   if (denied) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] text-white p-6">
@@ -149,6 +162,9 @@ export default function AdminAnalytics() {
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="-mb-2 -ml-2 text-white/70 hover:text-white">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Admin
+        </Button>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Analytics</h1>
@@ -302,12 +318,19 @@ export default function AdminAnalytics() {
                 <CardHeader>
                   <CardTitle className="text-base">Traffic sources</CardTitle>
                   <CardDescription className="text-white/60">
-                    Per-hub sources (referrer host, UTM source and campaign channel) are available in the hub
-                    drill-down. NFC and QR visits are identified from campaign parameters.
+                    This page tracks no UTM campaign channels. Per-hub sources — referrer hosts, with visits
+                    that carry no referrer grouped as "Direct / NFC tap" — are shown in that hub's drill-down,
+                    which lives on Accounts &amp; Hubs.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-sm text-white/60">
-                  Select a hub in Hub Analytics and open its drill-down to review its sources.
+                <CardContent>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => navigate("/admin?section=accounts")}
+                  >
+                    Open Accounts &amp; Hubs <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -403,8 +426,9 @@ export default function AdminAnalytics() {
                     <Lock className="h-4 w-4 text-white/40" /> Meta tracking
                   </CardTitle>
                   <CardDescription className="text-white/60">
-                    The master switch is off. No Pixel loads and no Conversions API events are sent. This section
-                    activates in a later phase, after consent and privacy controls ship.
+                    No Meta tracking is wired up at all right now. No Pixel loads and no Conversions API
+                    events are sent. If Meta tracking is ever added, a master switch and consent wiring will
+                    live here first.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

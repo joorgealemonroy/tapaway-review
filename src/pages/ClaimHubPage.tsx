@@ -72,7 +72,7 @@ const PLAN_OPTIONS: {
     price: PRICING.annual.display,
     interval: PRICING.annual.interval,
     blurb: PRICING.annual.blurb,
-    badge: "Best value",
+    badge: "Best value — save $41/yr",
     cards: "Your printed cards included",
   },
 ];

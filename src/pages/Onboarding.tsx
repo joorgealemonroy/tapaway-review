@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone } from "lucide-react";
+import { Check, Loader2, Shield, ArrowRight, User, Building2, CloudUpload, X, Mail, Phone, CreditCard } from "lucide-react";
 // MagicLoadingOverlay removed — concierge model: no auto-builder
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,11 +22,12 @@ import {
 
 
 type Plan = "solo" | "venue";
+type BillingInterval = "month" | "year";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Service Pros & Individuals.", price: 15, cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 21 },
-  venue: { label: "Venue Pack", subtitle: "For Storefronts & Teams.", price: 39, cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 21 },
+  solo: { label: "Solo Pro", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
+  venue: { label: "Venue Pack", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
 };
 
 const PROTECTION_PRICE = 5;
@@ -49,7 +50,53 @@ const Onboarding = () => {
   // Promo token detection
   const promoTokenParam = searchParams.get("promo_token") || undefined;
   const [promoDiscountType, setPromoDiscountType] = useState<string | null>(null);
-  const [promoValidated, setPromoValidated] = useState(false);
+  // Token-specific validation state. A plain boolean races with the OAuth
+  // param restore: after the stashed query string is navigated back in,
+  // searchParams update and this re-validates the NEW token — but a boolean
+  // left over from the pre-restore (no-token) pass could let post-auth setup
+  // run against the wrong token. The gate below requires the validated token
+  // to match the token currently in the URL.
+  const [promoValidation, setPromoValidation] = useState<{ token: string | null; done: boolean }>({
+    token: null,
+    done: true,
+  });
+
+  // OAuth round-trip param restore.
+  // Google/Apple strip query params from the redirect URI, which would
+  // otherwise lose ?card=, ?promo_token=, and ?rep= on the way back.
+  // handleOAuth stashes the query string before redirecting; this restores
+  // it on return (before anything else reads the params). Runs once.
+  const [restoreChecked, setRestoreChecked] = useState(false);
+  const restoreAttempted = useRef(false);
+  useEffect(() => {
+    if (restoreAttempted.current) return;
+    restoreAttempted.current = true;
+    const current = new URLSearchParams(window.location.search);
+    const hasOurs =
+      current.get("session_id") || current.get("card") || current.get("promo_token") || current.get("rep");
+    if (hasOurs) {
+      sessionStorage.removeItem("tapaway_oauth_return_search");
+      setRestoreChecked(true);
+      return;
+    }
+    const stashed = sessionStorage.getItem("tapaway_oauth_return_search");
+    if (stashed && stashed.length > 1) {
+      sessionStorage.removeItem("tapaway_oauth_return_search");
+      navigate(
+        { pathname: "/onboarding", search: stashed, hash: window.location.hash || undefined },
+        { replace: true }
+      );
+    }
+    setRestoreChecked(true);
+  }, [navigate]);
+
+  // Card-claim detection (NFC tap flow: /start?card=CODE → /onboarding?card=CODE).
+  // Stripe's success URL drops query params, so stash the code in sessionStorage
+  // before the checkout redirect and claim it once onboarding completes.
+  useEffect(() => {
+    const cardCode = searchParams.get("card");
+    if (cardCode) sessionStorage.setItem("tapaway_card_code", cardCode);
+  }, [searchParams]);
 
   const [step, setStep] = useState<Step>("plan");
   const [direction, setDirection] = useState(1);
@@ -59,6 +106,9 @@ const Onboarding = () => {
 
   // Plan state
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  // Billing period: yearly is preselected and visually pushed as the best
+  // value (Solo $199/yr = save $41; Venue $390/yr = 2 months free).
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>("year");
   const [hasProtection, setHasProtection] = useState(false);
   const [dashboardType, setDashboardType] = useState<"restaurant" | "personal" | null>(null);
 
@@ -96,14 +146,30 @@ const Onboarding = () => {
   // ── Handle Stripe return ──
   const [verifyingCheckout, setVerifyingCheckout] = useState(false);
 
+  // CARD-CHECK: plain-language message when the $1 card verification failed.
+  // The trial was canceled in Stripe — show the error + retry, never success.
+  const [cardCheckError, setCardCheckError] = useState<string | null>(null);
+
   // ── Validate promo token on mount ──
+  // Re-runs whenever the token in the URL changes — including when the OAuth
+  // round-trip restore navigates the stashed query string back in. The
+  // validation state is keyed to the token it validated so post-auth setup
+  // can never proceed against a stale/mismatched token.
   useEffect(() => {
-    if (!promoTokenParam) { setPromoValidated(true); return; }
+    const token = promoTokenParam ?? null;
+    // Mark validation pending for THIS token so the gate below waits for it.
+    setPromoValidation({ token, done: false });
+    if (!token) {
+      setPromoValidation({ token: null, done: true });
+      return;
+    }
+    let cancelled = false;
     const validatePromo = async () => {
       try {
         const { data, error: promoError } = await supabase.functions.invoke("validate-promo-token", {
-          body: { token: promoTokenParam },
+          body: { token },
         });
+        if (cancelled) return;
         if (!promoError && data?.valid) {
           setPromoDiscountType(data.discount_type as string);
           console.log("[onboarding] Valid promo token:", data.discount_type);
@@ -112,12 +178,13 @@ const Onboarding = () => {
           toast.error("This promo link is invalid or expired.");
         }
       } catch {
-        console.error("[onboarding] Promo validation failed");
+        if (!cancelled) console.error("[onboarding] Promo validation failed");
       } finally {
-        setPromoValidated(true);
+        if (!cancelled) setPromoValidation({ token, done: true });
       }
     };
     validatePromo();
+    return () => { cancelled = true; };
   }, [promoTokenParam]);
 
   // ── Init: check session, prefill, handle Stripe return ──
@@ -128,6 +195,9 @@ const Onboarding = () => {
 
       if (savedData.businessName) setBusinessName(savedData.businessName);
       if (savedData.planType) setSelectedPlan(savedData.planType as Plan);
+      if (savedData.billingInterval === "month" || savedData.billingInterval === "year") {
+        setBillingInterval(savedData.billingInterval);
+      }
       if (savedData.hasProtection) setHasProtection(true);
       if (savedData.dashboardType) setDashboardType(savedData.dashboardType as 'personal' | 'restaurant');
       if (savedData.phone) setOwnerPhone(savedData.phone);
@@ -159,6 +229,19 @@ const Onboarding = () => {
             if (error) throw error;
             console.log("[onboarding] Stripe checkout verified:", data);
 
+            // CARD-CHECK: the $1 card verification failed — the trial was
+            // canceled in Stripe. Show the plain-language message with a
+            // retry path instead of the success screen.
+            if (data?.cardCheckFailed) {
+              setCardCheckError(
+                typeof data?.message === "string" && data.message.length > 0
+                  ? data.message
+                  : "We couldn't verify your card — double-check the details or try a different card."
+              );
+              setInitialCheckDone(true);
+              return;
+            }
+
             // Mark onboarding complete
             await supabase.from("restaurants").update({ onboarding_completed: true, onboarding_step: 4 }).eq("id", restaurant.id);
 
@@ -178,6 +261,7 @@ const Onboarding = () => {
             }
 
             // Concierge model: route ALL paid users to VIP success screen
+            await claimPendingCard();
             clearOnboardingData();
             navigate("/onboarding-success");
             return;
@@ -195,6 +279,22 @@ const Onboarding = () => {
     };
     init();
   }, [navigate, searchParams]);
+
+  // ── Card claim (NFC tap flow) ──
+  // Claims a stashed card code after onboarding completes, mirroring the
+  // personal-signup flow. Non-fatal: onboarding success must never depend
+  // on the claim succeeding.
+  const claimPendingCard = useCallback(async () => {
+    const cardCode = sessionStorage.getItem("tapaway_card_code");
+    if (!cardCode) return;
+    try {
+      await supabase.functions.invoke("claim-card", { body: { public_code: cardCode } });
+      console.log("[onboarding] Card claimed:", cardCode);
+      sessionStorage.removeItem("tapaway_card_code");
+    } catch (err) {
+      console.warn("[onboarding] Card claim failed (non-fatal):", err);
+    }
+  }, []);
 
   // ── Auth guard ──
   useEffect(() => {
@@ -341,11 +441,19 @@ const Onboarding = () => {
     setIsLoading(true);
 
     try {
+      // Stash the current query string — the OAuth provider strips query
+      // params from the redirect URI, which would otherwise lose ?card=,
+      // ?promo_token=, and ?rep= on the way back. Restored on mount.
+      if (window.location.search) {
+        sessionStorage.setItem("tapaway_oauth_return_search", window.location.search);
+      }
+
       // Save ALL step 3 data before redirect
       saveOnboardingData({
         businessName: businessName.trim(),
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
+        billingInterval,
         hasProtection,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
@@ -387,6 +495,7 @@ const Onboarding = () => {
         businessName: businessName.trim(),
         logoUrl: logoUrl || '',
         planType: selectedPlan || 'venue',
+        billingInterval,
         hasProtection,
         googlePlaceId: selectedGooglePlace?.placeId || '',
         googlePlaceName: selectedGooglePlace?.name || '',
@@ -596,6 +705,7 @@ const Onboarding = () => {
 
           try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
 
+          await claimPendingCard();
           clearOnboardingData();
           navigate("/onboarding-success");
           return;
@@ -609,16 +719,20 @@ const Onboarding = () => {
         }
       }
 
-      // ── ADMIN/TEST BYPASS: skip Stripe for dev testing ──
+      // ── ADMIN/TEST BYPASS: local dev only — never runs in production builds.
+      // Jorge: to test without Stripe, run `npm run dev` (Vite sets
+      // import.meta.env.DEV to true only there) and sign in with tap@tapaway.co.
       const userEmail = session.user.email || '';
-      if (userEmail === 'tap@tapaway.co' || userEmail.endsWith('@tapaway.co') || userEmail.includes('+test')) {
-        console.log("[onboarding] Admin/test bypass — skipping Stripe");
+      const devBypassEnabled = import.meta.env.DEV === true;
+      if (devBypassEnabled && userEmail === 'tap@tapaway.co') {
+        console.log("[onboarding] Admin/test bypass — skipping Stripe (local dev only)");
         await supabase.from("restaurants").update({
           subscription_status: "active",
           onboarding_completed: true,
           onboarding_step: 4,
         }).eq("id", rId);
         try { await supabase.functions.invoke("finalize-onboarding", { body: { restaurantId: rId } }); } catch {}
+        await claimPendingCard();
         clearOnboardingData();
         navigate("/onboarding-success");
         return;
@@ -632,6 +746,11 @@ const Onboarding = () => {
             userId: uid,
             restaurantId: rId,
             planType: plan,
+            // Yearly is the pushed option: 14-day trial still applies, then
+            // the full yearly amount ($199 Solo / $390 Venue) is charged.
+            billingInterval: savedData.billingInterval === "month" || savedData.billingInterval === "year"
+              ? savedData.billingInterval
+              : billingInterval,
             hasProtection: protection,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
@@ -652,7 +771,22 @@ const Onboarding = () => {
       }
     };
 
-    // Only run post-auth completion if we came back from OAuth
+    // Only run post-auth completion once the OAuth param restore and promo
+    // validation have both settled — the free-promo path depends on
+    // promoDiscountType being resolved, and rep/card params must be back
+    // before the restaurant row is created. The token check closes the race
+    // where a stale "validated" flag from the pre-restore pass could let
+    // completeSetup() run before the restored promo token was validated.
+    if (!restoreChecked) return;
+    const currentToken = promoTokenParam ?? null;
+    if (!promoValidation.done || promoValidation.token !== currentToken) return;
+
+    // Rep mode: the client's account is created via handleRepCheckout
+    // (create-rep-onboarding), never via the standard post-auth setup.
+    // Without this, a signed-in rep returning from OAuth would create the
+    // business under their own account and be sent to Stripe.
+    if (isRepMode) return;
+
     if (step === "info" || step === "plan") {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_IN") {
@@ -663,15 +797,48 @@ const Onboarding = () => {
       completeSetup();
       return () => subscription.unsubscribe();
     }
-  }, [initialCheckDone, step]);
+  }, [initialCheckDone, step, restoreChecked, promoValidation, promoTokenParam, isRepMode]);
 
   // ── Loading ──
-  if (!initialCheckDone || verifyingCheckout || !promoValidated || isCompletingSetup) {
+  const promoGateOpen =
+    promoValidation.done && promoValidation.token === (promoTokenParam ?? null);
+  if (!initialCheckDone || verifyingCheckout || !promoGateOpen || isCompletingSetup) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         {verifyingCheckout && <p className="text-gray-400 text-sm">Verifying your payment…</p>}
         {isCompletingSetup && <p className="text-gray-400 text-sm">Setting up your account…</p>}
+      </div>
+    );
+  }
+
+  // CARD-CHECK failure screen: the $1 card verification failed, so the trial
+  // was canceled in Stripe and never went live. Offer a retry — never success.
+  if (cardCheckError) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-white flex flex-col items-center justify-center px-6">
+        <div className="max-w-md w-full text-center space-y-5">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/15 flex items-center justify-center">
+            <CreditCard className="w-7 h-7 text-red-400" />
+          </div>
+          <h1 className="text-2xl font-black">We couldn't verify your card</h1>
+          <p className="text-gray-400 text-sm leading-relaxed">{cardCheckError}</p>
+          <button
+            onClick={() => {
+              setCardCheckError(null);
+              // Drop session_id so we don't re-verify the dead session, then
+              // restart the flow — saved business info is prefilled.
+              navigate("/onboarding", { replace: true });
+              goTo("plan", -1);
+            }}
+            className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg transition-colors flex items-center justify-center gap-2"
+          >
+            Try a different card <ArrowRight className="w-5 h-5" />
+          </button>
+          <p className="text-xs text-gray-500">
+            Your trial hasn't started and you haven't been charged. Checking out again starts a fresh trial once your card verifies.
+          </p>
+        </div>
       </div>
     );
   }
@@ -705,6 +872,37 @@ const Onboarding = () => {
               <div className="text-center">
                 <h1 className="text-3xl font-black mb-2">What's your setup?</h1>
                 <p className="text-gray-400">Pick the plan that fits your business.</p>
+              </div>
+
+              {/* Billing period toggle — yearly is preselected and pushed as the best value */}
+              <div className="flex justify-center">
+                <div className="relative grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#111827] border border-white/10 w-72">
+                  <button
+                    type="button"
+                    onClick={() => setBillingInterval("month")}
+                    className={`h-11 rounded-xl text-sm font-bold transition-colors ${
+                      billingInterval === "month"
+                        ? "bg-white/10 text-white"
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillingInterval("year")}
+                    className={`relative h-11 rounded-xl text-sm font-bold transition-colors ${
+                      billingInterval === "year"
+                        ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]"
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                  >
+                    Yearly
+                    <span className="absolute -top-2.5 -right-1 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      Best value
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -750,7 +948,13 @@ const Onboarding = () => {
                           </div>
                           <div className="mb-1">
                             <div className="text-2xl font-black text-[#3B82F6] leading-tight">$0 Today</div>
-                            <div className="text-xs text-gray-500">(then ${d.price}/mo after {d.trialDays} days)</div>
+                            {billingInterval === "year" ? (
+                              <div className="text-xs text-gray-500">
+                                (then <span className="font-bold text-emerald-400">${d.yearlyPrice}/yr</span> after {d.trialDays} days — ${d.yearlyPerMonth}/mo · {d.yearlyBadge})
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500">(then ${d.price}/mo after {d.trialDays} days)</div>
+                            )}
                           </div>
                           <p className="text-sm text-gray-400 mb-1">{d.subtitle}</p>
                           <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards + Free Shipping</span>.</p>
@@ -764,9 +968,12 @@ const Onboarding = () => {
               {/* Trial terms disclosure — required before any trial starts. */}
               <p className="mt-4 text-[11px] leading-relaxed text-gray-500">
                 Trial terms: your free trial starts today and runs{" "}
-                {selectedPlan ? PLAN_DETAILS[selectedPlan].trialDays : 14} days. Unless you cancel before it ends,
-                your plan renews automatically at the listed monthly price and your card is charged. Cancel any time
-                from your dashboard. Smart Cards and stands shipped during the trial remain the property of TapAway
+                {selectedPlan ? PLAN_DETAILS[selectedPlan].trialDays : 14} days. We'll place a temporary $1 hold
+                to verify your card. It's released automatically — never charged. Unless you cancel before the trial
+                ends, your plan renews automatically{billingInterval === "year" && selectedPlan
+                  ? <> at the listed yearly price (<span className="font-semibold text-gray-400">${PLAN_DETAILS[selectedPlan].yearlyPrice}/year</span>)</>
+                  : " at the listed monthly price"} and your card is charged. Cancel any
+                time from your dashboard. Smart Cards and stands shipped during the trial remain the property of TapAway
                 until a paid plan is active. If the trial ends without activation, your hub is deactivated and its
                 public link stops resolving. See our{" "}
                 <a href="/terms" className="underline">Terms</a> and{" "}
@@ -999,7 +1206,7 @@ const Onboarding = () => {
                     After trial: ${PLAN_DETAILS[selectedPlan].price}{hasProtection ? ` + $${PROTECTION_PRICE}` : ""}/mo
                   </p>
                   <p className="text-xs text-gray-600">
-                    Your trial starts after a 7-day shipping buffer so you get the full experience.
+                    Your 14-day free trial starts today — cards ship free while you try it.
                   </p>
                 </div>
               )}
@@ -1099,6 +1306,13 @@ const Onboarding = () => {
                   )}
                 </div>
               )}
+
+              {/* Card-verification disclosure: card entry happens on Stripe's
+                  hosted page, so the notice lives on our last screen before
+                  the redirect. */}
+              <p className="text-center text-xs text-gray-500">
+                We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
+              </p>
 
               <button
                 onClick={() => goTo("protection", -1)}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -13,17 +13,19 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Plus,
-  GripVertical,
   Trash2,
   Edit,
   Star,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown,
+  Loader2
 } from "lucide-react";
 import { LinkModal } from "@/components/personal/LinkModal";
 import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
-import { useTouchHoldDrag } from "@/hooks/useTouchHoldDrag";
 
 interface DbPersonalLink {
   id: string;
@@ -64,49 +66,43 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
   const [editingLink, setEditingLink] = useState<PersonalLink | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [moving, setMoving] = useState(false);
 
-  // Use the touch hold drag hook for better mobile UX
-  const handleReorder = useCallback((newLinks: DbPersonalLink[]) => {
+  // Simple, reliable reorder via up/down buttons. The previous touch-hold-drag
+  // reorder never worked on touch (rows had no data-drag-index target, so drops
+  // were silently ignored) and its `touch-none` class blocked page scrolling on
+  // rows — so it was replaced with explicit buttons that work on any device.
+  const moveLink = async (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= links.length || moving) return;
+    const prev = links;
+    const newLinks = [...links];
+    const [moved] = newLinks.splice(index, 1);
+    newLinks.splice(newIndex, 0, moved);
     onLinksChange(newLinks);
-  }, [onLinksChange]);
-
-  const persistOrder = useCallback(async () => {
+    setMoving(true);
     try {
-      const updates = links.map((link, i) => ({
-        id: link.id,
-        sort_order: i,
-      }));
-
-      for (const update of updates) {
-        await supabase
-          .from("personal_links")
-          .update({ sort_order: update.sort_order })
-          .eq("id", update.id);
+      const results = await Promise.all(
+        newLinks.map((link, i) =>
+          supabase.from("personal_links").update({ sort_order: i }).eq("id", link.id),
+        ),
+      );
+      // supabase-js returns errors in the result (it doesn't throw), so check them.
+      const failed = results.some((r) => r.error);
+      if (failed) {
+        console.error("Reorder failed:", results.map((r) => r.error).filter(Boolean));
+        onLinksChange(prev); // revert so the list matches the database
+        toast.error("Couldn't save the new order — try again.");
       }
     } catch (err) {
       console.error("Reorder error:", err);
-      toast.error("Failed to save order");
+      onLinksChange(prev); // revert so the list matches the database
+      toast.error("Couldn't save the new order — try again.");
+    } finally {
+      setMoving(false);
     }
-  }, [links]);
-
-  const {
-    draggedIndex,
-    isDragEnabled,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-    handleDragStart,
-    handleDragOver,
-    handleDragEnd: hookDragEnd,
-  } = useTouchHoldDrag({
-    items: links,
-    onReorder: handleReorder,
-    onDragEnd: persistOrder,
-    itemHeight: 60,
-  });
-
-  const handleDragEnd = () => {
-    hookDragEnd();
   };
 
   const convertToPersonalLink = (dbLink: DbPersonalLink): PersonalLink => ({
@@ -299,6 +295,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
   };
 
   const removeLink = async (id: string) => {
+    setDeleting(true);
     try {
       const { error } = await supabase
         .from("personal_links")
@@ -313,6 +310,8 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
     } catch (err) {
       console.error("Error removing link:", err);
       toast.error("Failed to remove link");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -321,7 +320,28 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
 
   return (
     <div className="space-y-3">
-      <Label className="text-sm font-medium text-foreground">Links</Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-sm font-medium text-foreground">Links</Label>
+        {links.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setReordering((r) => !r)}
+            className={`flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-medium transition-colors ${
+              reordering
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted active:bg-muted"
+            }`}
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            {reordering ? "Done" : "Reorder"}
+          </button>
+        )}
+      </div>
+      {reordering && links.length > 1 && (
+        <p className="text-xs text-muted-foreground">
+          Use the arrows to change the order your links appear on your hub.
+        </p>
+      )}
       
       {links.length > 0 && (
         <div className="space-y-2">
@@ -334,21 +354,10 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
             return (
               <div
                 key={link.id}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                onTouchStart={(e) => handleTouchStart(e, index)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                className={`flex items-center gap-2 p-3 bg-card rounded-xl border transition-all touch-none select-none ${
-                  draggedIndex === index ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
-                } ${isDragEnabled && draggedIndex === index ? "scale-105 shadow-xl" : ""}
-                ${isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"} ${!isActive ? "opacity-50" : ""}`}
+                className={`flex items-center gap-1.5 p-3 bg-card rounded-xl border transition-all ${
+                  isFeatured ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20" : "border-border"
+                } ${!isActive ? "opacity-50" : ""}`}
               >
-                <div className="p-1 cursor-grab active:cursor-grabbing touch-none select-none">
-                  <GripVertical className="h-6 w-6 text-muted-foreground" />
-                </div>
                 <div 
                   className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${!link.pill_color && !link.cover_image_url ? (config?.gradient || config?.bgColor || "bg-primary/10") : ""}`}
                   style={link.pill_color ? { backgroundColor: link.pill_color } : undefined}
@@ -359,56 +368,89 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
                     <Icon className={`h-5 w-5 ${link.pill_color ? "text-white" : config?.color || "text-primary"}`} />
                   ) : null}
                 </div>
-                <div className="flex-1 min-w-0 select-none pointer-events-none">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm text-foreground select-none">{link.label}</p>
+                    <p className="font-medium text-sm text-foreground truncate">{link.label}</p>
                     {isFeatured && (
-                      <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded select-none">
+                      <span className="text-[10px] font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded shrink-0">
                         FEATURED
                       </span>
                     )}
                     {link.cover_image_url && (
-                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded select-none">
+                      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded shrink-0">
                         COVER
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate select-none">{link.url}</p>
+                  <p className="text-xs text-muted-foreground truncate">{link.url}</p>
                 </div>
                 
-                {/* Feature toggle */}
-                <button
-                  onClick={() => toggleFeatured(link.id, link.is_featured)}
-                  className={`p-3 -m-1 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isFeatured ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted"}`}
-                  title={isFeatured ? "Remove from featured" : "Make featured"}
-                >
-                  <Star className={`h-5 w-5 ${isFeatured ? "fill-current" : ""}`} />
-                </button>
-                
-                {/* Visibility toggle */}
-                <button
-                  onClick={() => toggleLinkVisibility(link.id, link.is_active)}
-                  className={`p-3 -m-1 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isActive ? "text-muted-foreground hover:bg-muted" : "text-muted-foreground/50 bg-muted"}`}
-                  title={isActive ? "Hide link" : "Show link"}
-                >
-                  {isActive ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setEditingLink(convertToPersonalLink(link));
-                    setLinkModalOpen(true);
-                  }}
-                  className="p-3 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                >
-                  <Edit className="h-5 w-5 text-muted-foreground" />
-                </button>
-                <button
-                  onClick={() => setDeleteId(link.id)}
-                  className="p-3 -m-1 hover:bg-destructive/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                >
-                  <Trash2 className="h-5 w-5 text-destructive" />
-                </button>
+                {reordering ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => moveLink(index, -1)}
+                      disabled={index === 0 || moving}
+                      aria-label={`Move ${link.label} up`}
+                      className="rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:bg-muted active:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <ChevronUp className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveLink(index, 1)}
+                      disabled={index === links.length - 1 || moving}
+                      aria-label={`Move ${link.label} down`}
+                      className="rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:bg-muted active:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Feature toggle */}
+                    <button
+                      type="button"
+                      onClick={() => toggleFeatured(link.id, link.is_featured)}
+                      className={`rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isFeatured ? "text-amber-500 bg-amber-100 dark:bg-amber-900/30" : "text-muted-foreground hover:bg-muted active:bg-muted"}`}
+                      title={isFeatured ? "Remove from featured" : "Make featured"}
+                      aria-label={isFeatured ? `Unfeature ${link.label}` : `Feature ${link.label}`}
+                    >
+                      <Star className={`h-5 w-5 ${isFeatured ? "fill-current" : ""}`} />
+                    </button>
+                    
+                    {/* Visibility toggle */}
+                    <button
+                      type="button"
+                      onClick={() => toggleLinkVisibility(link.id, link.is_active)}
+                      className={`rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${isActive ? "text-muted-foreground hover:bg-muted active:bg-muted" : "text-muted-foreground/50 bg-muted"}`}
+                      title={isActive ? "Hide link" : "Show link"}
+                      aria-label={isActive ? `Hide ${link.label}` : `Show ${link.label}`}
+                    >
+                      {isActive ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingLink(convertToPersonalLink(link));
+                        setLinkModalOpen(true);
+                      }}
+                      aria-label={`Edit ${link.label}`}
+                      className="hover:bg-muted active:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    >
+                      <Edit className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteId(link.id)}
+                      aria-label={`Remove ${link.label}`}
+                      className="hover:bg-destructive/10 active:bg-destructive/10 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    >
+                      <Trash2 className="h-5 w-5 text-destructive" />
+                    </button>
+                  </>
+                )}
               </div>
             );
           })}
@@ -416,11 +458,12 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
       )}
 
       <button 
+        type="button"
         onClick={() => {
           setEditingLink(null);
           setLinkModalOpen(true);
         }}
-        className="w-full flex items-center gap-3 p-4 bg-muted/50 hover:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
+        className="w-full flex items-center gap-3 p-4 min-h-[56px] bg-muted/50 hover:bg-muted active:bg-muted rounded-xl border border-dashed border-border hover:border-primary transition-colors"
       >
         <Plus className="h-5 w-5 text-muted-foreground" />
         <span className="text-sm font-medium text-muted-foreground">Add a link</span>
@@ -438,6 +481,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
         onAdd={handleAddLink}
         editingLink={editingLink}
         onUpdate={handleUpdateLink}
+        saving={saving}
         existingTypes={existingTypes}
         existingIconTypes={links
           .filter(l => l.display_style === "icon" || l.display_style === "both")
@@ -446,7 +490,7 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
       />
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={() => { if (!deleting) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove this link?</AlertDialogTitle>
@@ -455,11 +499,13 @@ export const DashboardLinksManager = ({ profileId, links, onLinksChange }: Props
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting} className="min-h-[44px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && removeLink(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
             >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

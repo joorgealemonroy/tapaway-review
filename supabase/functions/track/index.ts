@@ -212,8 +212,18 @@ Deno.serve(async (req) => {
     );
 
     // ---- short-window dedupe (remounts, retries, refresh double-fires) ---
+    // For link_click the guard is scoped to the clicked link: two DIFFERENT
+    // links tapped within the window are two real clicks, not duplicates.
+    // (Without this, the second link a visitor taps within 30s is silently
+    // dropped because session + event_name + path all match.)
     const path = cleanPath(str(body.path));
-    const { data: recent } = await admin
+    const rawProps =
+      body.props && typeof body.props === "object" && !Array.isArray(body.props)
+        ? (body.props as Record<string, unknown>)
+        : null;
+    const dedupeLinkId =
+      eventName === "link_click" ? str(rawProps?.link_id, 100) : null;
+    let dedupeQuery = admin
       .from("analytics_hits")
       .select("id")
       .eq("session_id", sessionId)
@@ -221,6 +231,10 @@ Deno.serve(async (req) => {
       .eq("path", path ?? "/")
       .gte("occurred_at", new Date(Date.now() - DEDUPE_WINDOW_MS).toISOString())
       .limit(1);
+    if (dedupeLinkId) {
+      dedupeQuery = dedupeQuery.eq("props->>link_id", dedupeLinkId);
+    }
+    const { data: recent } = await dedupeQuery;
     if (recent && recent.length > 0) {
       return new Response(JSON.stringify({ ok: true, deduped: "window" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

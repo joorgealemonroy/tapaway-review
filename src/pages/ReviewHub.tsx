@@ -58,13 +58,17 @@ const ReviewHub = () => {
   }>();
   const location = useLocation();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  // Set when the hub exists but its subscription lapsed (trial ended unpaid,
+  // canceled, past_due, ...): the data RPC returns no rows, so the visitor
+  // sees the "Review Page Paused" gate instead of "Hub Not Found".
+  const [pausedHub, setPausedHub] = useState<{ id: string; restaurant_name: string } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSections, setMenuSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [smsDrawerOpen, setSmsDrawerOpen] = useState(false);
   const [engagements, setEngagements] = useState<any[]>([]);
   const [pollVotes, setPollVotes] = useState<Record<string, Record<string, number>>>({});
-  const { isAdmin } = useAdminAccess();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   
   // Visitor theme preference (light/dark) - defaults to light, respects saved preference
   const [visitorTheme, setVisitorTheme] = useState<'light' | 'dark'>(() => {
@@ -73,12 +77,14 @@ const ReviewHub = () => {
     return 'light';
   });
 
-  // Track when a restaurant is loaded (tap event)
+  // Track when a restaurant is loaded (tap event). Waits for the admin
+  // check to resolve so an admin/staff preview of the hub never logs a tap
+  // against the client's stats.
   useEffect(() => {
-    if (restaurant) {
+    if (restaurant && !adminLoading) {
       trackEvent('tap');
     }
-  }, [restaurant]);
+  }, [restaurant, adminLoading]);
 
   useEffect(() => {
     // Check if we're on a custom slug route (not /hub/:id)
@@ -96,6 +102,27 @@ const ReviewHub = () => {
     }
   }, [restaurantId, customSlug, slug, location]);
 
+  // Lapsed-subscription check: the hub data RPC only resolves for live
+  // subscriptions, so a canceled/expired/past_due hub returns no rows. The
+  // lightweight status RPC tells "paused" (show the recovery gate) apart
+  // from "no such hub" (show Hub Not Found).
+  const checkPausedHubStatus = async (params: { _slug?: string; _id?: string }) => {
+    const { data } = await supabase
+      .rpc("get_public_restaurant_hub_status", params);
+
+    const status = data?.[0];
+    // Comped accounts (family, free on purpose — payment_state =
+    // 'complimentary') are never paused, regardless of subscription_status.
+    if (
+      status &&
+      status.payment_state !== "complimentary" &&
+      status.subscription_status !== "active" &&
+      status.subscription_status !== "trialing"
+    ) {
+      setPausedHub({ id: status.id, restaurant_name: status.restaurant_name });
+    }
+  };
+
   const fetchRestaurantBySlug = async (slug: string) => {
     const { data, error } = await supabase
       .rpc("get_public_restaurant_hub", { _slug: slug });
@@ -104,6 +131,9 @@ const ReviewHub = () => {
 
     if (error || !hub) {
       console.error("Restaurant not found for slug:", slug, error);
+      // Hub data RPC is subscription-gated: no rows can mean a lapsed
+      // subscription, so check the paused gate before giving up.
+      await checkPausedHubStatus({ _slug: slug });
       setRestaurant(null);
       setLoading(false);
       return;
@@ -133,6 +163,11 @@ const ReviewHub = () => {
       });
       fetchMenu(hub.id);
       fetchEngagement(hub.id);
+    } else {
+      // Same lapsed-subscription fallback as the slug path.
+      await checkPausedHubStatus({ _id: id });
+      setRestaurant(null);
+      setLoading(false);
     }
   };
 
@@ -218,15 +253,17 @@ const ReviewHub = () => {
   };
 
 
-  const trackEvent = async (eventName: string) => {
-    if (!restaurant) return;
-    
+  const trackEvent = async (eventName: string, eventData?: any) => {
+    // Admin/staff views must never inflate a client's numbers — Jorge
+    // previewing a hub, a rep demoing one, etc. are not customer traffic.
+    if (!restaurant || isAdmin) return;
+
     try {
       const { error } = await supabase.functions.invoke('track-event', {
         body: {
           restaurant_id: restaurant.id,
           event_type: eventName,
-          event_data: {},
+          event_data: eventData ?? {},
         }
       });
 
@@ -272,6 +309,17 @@ const ReviewHub = () => {
 
   // If not loading and still no restaurant, show not found
   if (!restaurant) {
+    // Subscription lapsed (trial ended unpaid / canceled / past_due): the
+    // hub data RPC resolved nothing, so show the paused gate with the
+    // /paywall recovery path instead of "Hub Not Found".
+    if (pausedHub) {
+      return (
+        <ExpiredHubGate
+          businessName={pausedHub.restaurant_name}
+          restaurantId={pausedHub.id}
+        />
+      );
+    }
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '100vh', background: '#fff', padding: '16px' }}>
         <div style={{ textAlign: 'center', maxWidth: '480px' }}>

@@ -1,5 +1,5 @@
 // Stripe Configuration - SINGLE SOURCE OF TRUTH
-// IMPORTANT: This price ID includes 30-day free trial with card required, $0 due today
+// IMPORTANT: This price ID includes 14-day free trial with card required, $0 due today
 export const TRIAL_PRICE_ID = "price_1Sl3aCDg8DaTuVNZtL0SAQrl";
 
 // Stripe Payment Link for trial signups (uses TRIAL_PRICE_ID)
@@ -47,7 +47,7 @@ export const PRICING = {
     amount: 199,
     display: "$199",
     interval: "/year",
-    blurb: "Save $101 a year and Card Club membership is included free.",
+    blurb: "Save $41 a year vs paying monthly — Card Club membership included free.",
   },
 } as const;
 

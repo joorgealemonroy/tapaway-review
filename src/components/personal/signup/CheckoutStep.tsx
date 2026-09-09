@@ -1402,7 +1402,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
                 {sessionStorage.getItem("tapaway_card_vip") === "true"
                   ? "⭐ VIP Access — $0"
                   : formData.planType === "yearly" 
-                  ? "Pro Annual — $6.25/month"
+                  ? `Pro Annual — $${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month`
                   : formData.planType === "monthly"
                   ? `Pro Monthly — $${PERSONAL_PRICING.monthly}/month`
                   : "Free Plan — $0"
@@ -1414,7 +1414,7 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
                 </p>
               ) : formData.planType === "yearly" ? (
                 <p className="text-xs text-primary font-medium mt-1">
-                  Billed annually $75
+                  Billed annually ${PERSONAL_PRICING.yearly}
                 </p>
               ) : null}
             </div>
@@ -1449,8 +1449,8 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             
             <div className="flex items-start justify-between pt-2">
               <div>
-                <span className="font-bold text-xl text-foreground">Pro — $6.25/month</span>
-                <p className="text-sm text-primary font-medium mt-1">Billed annually $75 • Save $45/year</p>
+                <span className="font-bold text-xl text-foreground">Pro — ${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/month</span>
+                <p className="text-sm text-primary font-medium mt-1">Billed annually ${PERSONAL_PRICING.yearly} • Save ${PERSONAL_PRICING.monthly * 12 - PERSONAL_PRICING.yearly}/year</p>
               </div>
               <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${
                 formData.planType === "yearly" ? "border-primary bg-primary" : "border-muted-foreground"
@@ -1544,11 +1544,11 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
               {formData.planType === "free" || formData.planType === "vip"
                 ? "$0"
                 : formData.planType === "yearly"
-                ? "$6.25/mo"
+                ? `$${(PERSONAL_PRICING.yearly / 12).toFixed(2)}/mo`
                 : `$${PERSONAL_PRICING.monthly}/mo`}
             </span>
             {formData.planType === "yearly" && (
-              <p className="text-xs text-muted-foreground">Billed annually $75</p>
+              <p className="text-xs text-muted-foreground">Billed annually ${PERSONAL_PRICING.yearly}</p>
             )}
           </div>
         </div>
@@ -1593,6 +1593,13 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             <Shield className="h-3 w-3" />
             <span>Secure checkout powered by Stripe</span>
           </div>
+        )}
+        {/* Card-verification disclosure: card entry happens on Stripe's hosted
+            page, so the notice lives on our last screen before the redirect. */}
+        {PERSONAL_PAYMENTS_ENABLED && !isFreePlan && (
+          <p className="text-xs text-muted-foreground">
+            We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
+          </p>
         )}
       </div>
 

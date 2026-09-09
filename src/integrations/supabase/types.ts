@@ -2657,6 +2657,7 @@ export type Database = {
           logo_bg_color: string | null
           logo_scale: string
           pfp_position: string | null
+          payment_state: string
           pipeline_status: string | null
           place_city: string | null
           place_lat: number | null
@@ -2694,6 +2695,8 @@ export type Database = {
           updated_at: string | null
           user_id: string
           username: string
+          van_handoff_channel: string | null
+          van_handoff_sent_at: string | null
           vibe_id: string | null
         }
         Insert: {
@@ -2744,6 +2747,7 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
+          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2781,6 +2785,8 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           username: string
+          van_handoff_channel?: string | null
+          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Update: {
@@ -2831,6 +2837,7 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
+          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2868,6 +2875,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           username?: string
+          van_handoff_channel?: string | null
+          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Relationships: []
@@ -3481,6 +3490,8 @@ export type Database = {
           avm_question_title: string | null
           background_theme_style: string
           business_phone: string | null
+          card_check_message: string | null
+          card_check_status: string | null
           card_print_pdf_path: string | null
           created_at: string
           created_by: string | null
@@ -3514,6 +3525,7 @@ export type Database = {
           owner_id: string
           owner_name: string | null
           owner_phone: string | null
+          payment_state: string
           phone: string | null
           pipeline_status: string
           plan_type: string | null
@@ -3545,6 +3557,8 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
+          card_check_message?: string | null
+          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -3578,6 +3592,7 @@ export type Database = {
           owner_id: string
           owner_name?: string | null
           owner_phone?: string | null
+          payment_state?: string
           phone?: string | null
           pipeline_status?: string
           plan_type?: string | null
@@ -3609,6 +3624,8 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
+          card_check_message?: string | null
+          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -3642,6 +3659,7 @@ export type Database = {
           owner_id?: string
           owner_name?: string | null
           owner_phone?: string | null
+          payment_state?: string
           phone?: string | null
           pipeline_status?: string
           plan_type?: string | null
@@ -4047,6 +4065,41 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      trial_nurture_log: {
+        Row: {
+          day_number: number
+          error: string | null
+          id: string
+          restaurant_id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          day_number: number
+          error?: string | null
+          id?: string
+          restaurant_id: string
+          sent_at?: string
+          status: string
+        }
+        Update: {
+          day_number?: number
+          error?: string | null
+          id?: string
+          restaurant_id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_nurture_log_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -4517,6 +4570,10 @@ export type Database = {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
       }
+      admin_activate_card: {
+        Args: { _card_public_code: string; _profile_id: string }
+        Returns: Json
+      }
       admin_swap_hub_slug: {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
@@ -4641,6 +4698,26 @@ export type Database = {
           vibe_id: string
         }[]
       }
+      get_public_personal_profile_status: {
+        Args: { _slug: string }
+        Returns: {
+          background_color: string
+          bg_style: string
+          bio: string
+          button_theme: string
+          full_name: string
+          header_image_url: string
+          headline: string
+          id: string
+          is_approved: boolean
+          pfp_position: string
+          plan_type: string
+          profile_photo_url: string
+          subscription_status: string
+          text_color: string
+          username: string
+        }[]
+      }
       get_public_personal_showcase: {
         Args: { _limit?: number }
         Returns: {
@@ -4683,6 +4760,17 @@ export type Database = {
           secondary_color: string
           type: string
           yelp_review_url: string
+        }[]
+      }
+      get_public_restaurant_hub_status: {
+        Args: { _id?: string; _slug?: string }
+        Returns: {
+          custom_slug: string
+          id: string
+          is_approved: boolean
+          payment_state: string
+          restaurant_name: string
+          subscription_status: string
         }[]
       }
       get_public_restaurant_menu: {

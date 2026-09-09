@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Menu, Upload, Mail, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Menu, Upload, Mail, ChevronDown, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { MenuImageUpload } from "@/components/MenuImageUpload";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { registerUnsavedGuard } from "@/lib/unsavedChanges";
 
 interface MenuItem {
   id?: string;
@@ -36,6 +37,24 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
   const [sections, setSections] = useState<MenuSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  // Guards the multi-step save against double-submit duplicates.
+  const [saving, setSaving] = useState(false);
+
+  // Unsaved-changes tracking: snapshot of the last-saved menu. The dashboard
+  // shell warns before switching tabs or closing the page while dirty.
+  const sectionsRef = useRef<MenuSection[]>([]);
+  const snapshotRef = useRef<string | null>(null);
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
+  useEffect(() => {
+    return registerUnsavedGuard("menu", {
+      isDirty: () => {
+        const snap = snapshotRef.current;
+        return snap !== null && JSON.stringify(sectionsRef.current) !== snap;
+      },
+    });
+  }, []);
 
   useEffect(() => {
     fetchMenu();
@@ -69,10 +88,14 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
       .order("sort_order");
 
     if (menuData) {
-      setSections(menuData.map(s => ({
+      const mapped = menuData.map(s => ({
         ...s,
         items: (s.menu_items || []).sort((a: any, b: any) => a.sort_order - b.sort_order)
-      })));
+      }));
+      setSections(mapped);
+      snapshotRef.current = JSON.stringify(mapped);
+    } else {
+      snapshotRef.current = JSON.stringify([]);
     }
     
     setLoading(false);
@@ -116,6 +139,25 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
   };
 
   const saveMenu = async () => {
+    // Double-submit guard: two concurrent saves each insert their own
+    // sections and delete only their own ids → duplicated menus in the DB.
+    if (saving) return;
+
+    // Never silently drop unnamed sections. If the user typed items but
+    // forgot the section name, saving would discard them without a word.
+    // Block the save and say exactly what to fix instead.
+    const unnamedCount = sections.filter((s) => !s.name.trim()).length;
+    if (unnamedCount > 0) {
+      toast({
+        title: "Name your sections first",
+        description: `${unnamedCount} ${unnamedCount === 1 ? "section has" : "sections have"} no name — name ${unnamedCount === 1 ? "it" : "them"} or remove ${unnamedCount === 1 ? "it" : "them"} to save. Unnamed sections are not saved.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+
     // Non-destructive: write the new menu first, only remove the old rows
     // once every insert succeeded. A failure leaves the existing menu intact.
     const previousSectionIds = sections
@@ -126,8 +168,6 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
 
     try {
       for (const [sIdx, section] of sections.entries()) {
-        if (!section.name.trim()) continue;
-
         const { data: sectionData, error: sectionError } = await supabase
           .from("menu_sections")
           .insert({
@@ -173,13 +213,28 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
       }
 
       await fetchMenu();
-      toast({ title: "Success", description: "Menu saved successfully!" });
+      toast({ title: "Menu saved", description: "Your menu is live on your review hub." });
     } catch (error: any) {
       console.error("❌ MENU SAVE FAILED:", error);
 
       // Roll back anything we just wrote so the menu isn't duplicated.
+      // If the rollback itself fails, say so — silently swallowing it is
+      // what left duplicates in the DB in the first place.
       if (insertedSectionIds.length > 0) {
-        await supabase.from("menu_sections").delete().in("id", insertedSectionIds);
+        try {
+          const { error: rollbackError } = await supabase
+            .from("menu_sections")
+            .delete()
+            .in("id", insertedSectionIds);
+          if (rollbackError) throw rollbackError;
+        } catch (rollbackError) {
+          console.error("❌ MENU ROLLBACK FAILED:", rollbackError);
+          toast({
+            title: "Save failed and cleanup didn't finish",
+            description: "Your previous menu may now appear twice. Please reload the page and save again — or message support and we'll sort it out.",
+            variant: "destructive",
+          });
+        }
       }
 
       toast({
@@ -189,6 +244,8 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
           "We couldn't save your menu. Your previous menu is unchanged — please try again.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -216,8 +273,19 @@ export const MenuTab = ({ restaurantId, isDemoView = false }: MenuTabProps) => {
             <Upload className="w-4 h-4 mr-2" />
             Upload Menu
           </Button>
-          <Button onClick={saveMenu} className="gradient-primary text-white flex-1 sm:flex-none">
-            Save Menu
+          <Button
+            onClick={saveMenu}
+            disabled={saving}
+            className="gradient-primary text-white flex-1 sm:flex-none min-h-[44px]"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save Menu"
+            )}
           </Button>
         </div>
       </div>

@@ -130,7 +130,7 @@ export const MenuDisplay = ({ menu, isDarkBg, textColor, interactive = true }: P
                   type="button"
                   onClick={() => setQuery("")}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-muted flex items-center justify-center"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-muted flex items-center justify-center before:absolute before:-inset-2 before:content-['']"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

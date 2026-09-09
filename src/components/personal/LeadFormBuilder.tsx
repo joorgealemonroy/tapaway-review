@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, GripVertical, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown, ListChecks, Hash } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Type, Mail, Phone, AlignLeft, ChevronDown, ListChecks, Hash } from "lucide-react";
 import { toast } from "sonner";
 
 interface FormField {
@@ -89,6 +89,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
       }
     } catch (err) {
       console.error("Error loading lead form:", err);
+      toast.error("Couldn't load your form. Pull to refresh or reopen this tab.");
     } finally {
       setLoading(false);
     }
@@ -212,9 +213,10 @@ const LeadFormBuilder = ({ profileId }: Props) => {
         <CollapsibleTrigger className="flex items-center gap-2 text-left group flex-1">
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
           <div>
-            <h3 className="font-semibold text-foreground">Lead Capture Form</h3>
+            <h3 className="font-semibold text-foreground">Collect customer info</h3>
             <p className="text-sm text-muted-foreground">
-              Collect quotes & inquiries from your profile visitors
+              Turn this on and a button appears on your page. When a visitor fills it out, you get
+              notified and their info lands here.
             </p>
           </div>
         </CollapsibleTrigger>
@@ -253,31 +255,32 @@ const LeadFormBuilder = ({ profileId }: Props) => {
                 {fields.map((field, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-2.5">
-                      <GripVertical className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
                       <Badge variant="secondary" className="text-xs flex-shrink-0">
                         {fieldTypeBadge(field.type)}
                       </Badge>
                       <Input
                         value={field.label}
                         onChange={(e) => updateField(idx, { label: e.target.value })}
-                        className="h-8 text-sm"
+                        className="min-h-[44px] text-base"
                         maxLength={60}
+                        aria-label="Field label"
                       />
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <Label className="text-xs text-muted-foreground">Req</Label>
                         <Switch
                           checked={field.required}
                           onCheckedChange={(val) => updateField(idx, { required: val })}
-                          className="scale-75"
+                          aria-label={`Mark "${field.label}" as required`}
                         />
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                        className="h-11 w-11 flex-shrink-0 text-muted-foreground hover:text-destructive"
                         onClick={() => removeField(idx)}
+                        aria-label={`Remove field "${field.label}"`}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
 
@@ -292,17 +295,19 @@ const LeadFormBuilder = ({ profileId }: Props) => {
                             <Input
                               value={opt}
                               onChange={(e) => updateOption(idx, optIdx, e.target.value)}
-                              className="h-7 text-xs"
+                              className="min-h-[44px] text-base"
                               maxLength={100}
                               placeholder="Option text"
+                              aria-label={`Option ${optIdx + 1}`}
                             />
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                              className="h-11 w-11 flex-shrink-0 text-muted-foreground hover:text-destructive"
                               onClick={() => removeOption(idx, optIdx)}
+                              aria-label={`Remove option ${optIdx + 1}`}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
@@ -310,10 +315,10 @@ const LeadFormBuilder = ({ profileId }: Props) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 text-xs w-full"
+                            className="min-h-[44px] text-sm w-full"
                             onClick={() => addOption(idx)}
                           >
-                            <Plus className="h-3 w-3 mr-1" />
+                            <Plus className="h-4 w-4 mr-1" />
                             Add Option
                           </Button>
                         )}
@@ -326,7 +331,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
               {fields.length < 20 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full min-h-[44px]">
                       <Plus className="h-4 w-4 mr-1" />
                       Add Field
                     </Button>
@@ -343,7 +348,7 @@ const LeadFormBuilder = ({ profileId }: Props) => {
               )}
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
+            <Button onClick={handleSave} disabled={saving} className="w-full min-h-[44px]">
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
               Save Form
             </Button>

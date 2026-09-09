@@ -964,7 +964,7 @@ export const LinksStep = ({
               This is a Pro feature
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Upgrade to Pro to unlock {upgradeFeatureName}. Try it free for 7 days — no charge today.
+              Upgrade to Pro to unlock {upgradeFeatureName}. No charge today.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">

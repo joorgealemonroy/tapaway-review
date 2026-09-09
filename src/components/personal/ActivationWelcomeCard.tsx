@@ -45,9 +45,9 @@ export function ActivationWelcomeCard({ profileId, username, onOpenTab }: Activa
       <button
         onClick={dismiss}
         aria-label="Dismiss welcome message"
-        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
       >
-        <X className="h-4 w-4" />
+        <X className="h-5 w-5" />
       </button>
 
       <div className="flex items-start gap-3">
@@ -57,21 +57,21 @@ export function ActivationWelcomeCard({ profileId, username, onOpenTab }: Activa
         <div className="min-w-0">
           <h2 className="font-bold text-foreground">Welcome to TapAway! Your account is fully active.</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Your countertop stand is permanently unlocked and your customer insights are ready below.
+            Your hub is live. Share your link or tap your NFC card to start collecting taps — your stats will fill in as visitors arrive.
           </p>
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3 mt-4">
-        <Button variant="outline" className="justify-start" onClick={() => onOpenTab("sms")}>
+        <Button variant="outline" className="justify-start min-h-[44px]" onClick={() => onOpenTab("sms")}>
           <Smartphone className="h-4 w-4 mr-2" /> View VIP Subscribers
         </Button>
-        <Button variant="outline" className="justify-start" onClick={() => onOpenTab("content")}>
+        <Button variant="outline" className="justify-start min-h-[44px]" onClick={() => onOpenTab("content")}>
           <Sparkles className="h-4 w-4 mr-2" /> Customize Hub Links
         </Button>
         <Button
           variant="outline"
-          className="justify-start"
+          className="justify-start min-h-[44px]"
           disabled={!qrUrl}
           onClick={() => qrUrl && window.open(qrUrl, "_blank", "noopener,noreferrer")}
         >

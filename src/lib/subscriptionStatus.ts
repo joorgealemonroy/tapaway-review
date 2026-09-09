@@ -25,6 +25,7 @@ const BLOCKED_STATUSES = new Set([
  */
 export const LEGACY_BUSINESS_PLANS = new Set<string>([
   'venue',
+  'venue_yearly', // yearly billing variant of venue — same dashboard routing as venue
   'venue_pack',
   'solo_pro',
   'multi',

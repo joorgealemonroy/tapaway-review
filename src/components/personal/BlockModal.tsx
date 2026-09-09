@@ -26,7 +26,6 @@ import {
   Grid,
   X,
   Plus,
-  ShoppingBag,
   UtensilsCrossed,
   MapPin,
   Trash2,
@@ -34,7 +33,6 @@ import {
   ArrowDown
 
 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { MenuBlockEditor } from "@/components/personal/MenuBlockEditor";
@@ -80,7 +78,6 @@ const BLOCK_TYPES = [
   { type: "photo_collage", label: "Photo Collage", icon: Grid, description: "Gallery of small images" },
   { type: "menu", label: "Menu", icon: UtensilsCrossed, description: "Sections, items and prices" },
   { type: "locations", label: "Locations", icon: MapPin, description: "Let visitors pick a location or hub" },
-  { type: "product", label: "Product", icon: ShoppingBag, description: "Embed a product listing" },
 ] as const;
 
 export const BlockModal = ({ 
@@ -139,11 +136,6 @@ export const BlockModal = ({
   const [uploadingCollageImage, setUploadingCollageImage] = useState(false);
   const [collageDragOver, setCollageDragOver] = useState(false);
 
-  
-  // Product block options
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [creatorProducts, setCreatorProducts] = useState<{ id: string; title: string; price_cents: number }[]>([]);
-
   // SMS subscribe block options
   const [smsHeadline, setSmsHeadline] = useState("");
   const [smsDescription, setSmsDescription] = useState("");
@@ -178,21 +170,6 @@ export const BlockModal = ({
   const collageFileInputRef = useRef<HTMLInputElement>(null);
 
   const isMobile = useIsMobile();
-
-  // Load creator products when product type is selected
-  useEffect(() => {
-    if (selectedType === "product" && profileId) {
-      supabase
-        .from("creator_products")
-        .select("id, title, price_cents")
-        .eq("creator_id", profileId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          if (data) setCreatorProducts(data as any);
-        });
-    }
-  }, [selectedType, profileId]);
 
   // Reset/populate form when modal opens or editingBlock changes
   useEffect(() => {
@@ -260,8 +237,6 @@ export const BlockModal = ({
           }
           setCollageMedia(media);
           setCollageColumns(parseInt(content.columns || "3") as 2 | 3);
-        } else if (editingBlock.block_type === "product") {
-          setSelectedProductId(content.product_id || "");
         } else if (editingBlock.block_type === "menu") {
           const parsedMenu = parseMenuContent(editingBlock.content);
           setMenuTitle(parsedMenu.title);
@@ -319,7 +294,6 @@ export const BlockModal = ({
     setCollageMedia([]);
     setCollageColumns(3);
     setCollageRawImage(null);
-    setSelectedProductId("");
     // SMS subscribe
     setSmsHeadline("");
     setSmsDescription("");
@@ -846,14 +820,6 @@ export const BlockModal = ({
         };
         break;
       }
-      case "product": {
-        if (!selectedProductId) {
-          toast.error("Please select a product");
-          return;
-        }
-        content = { product_id: selectedProductId };
-        break;
-      }
       case "sms_subscribe": {
         content = smsStyle === "button"
           ? {
@@ -1049,13 +1015,13 @@ export const BlockModal = ({
                   placeholder="Title text..."
                   value={youtubeOverlayTitle}
                   onChange={(e) => setYoutubeOverlayTitle(e.target.value)}
-                  className="h-10"
+                  className="min-h-[44px]"
                 />
                 <Input
                   placeholder="Subtitle text..."
                   value={youtubeOverlaySubtitle}
                   onChange={(e) => setYoutubeOverlaySubtitle(e.target.value)}
-                  className="h-10"
+                  className="min-h-[44px]"
                 />
               </div>
             </div>
@@ -1083,6 +1049,7 @@ export const BlockModal = ({
                       <Button
                         variant="secondary"
                         size="sm"
+                        className="min-h-[44px]"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         Change
@@ -1114,7 +1081,7 @@ export const BlockModal = ({
                   <button
                     type="button"
                     onClick={() => setImageSize("small")}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 px-3 py-2 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
                       imageSize === "small" 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted hover:bg-muted/80 text-foreground"
@@ -1125,7 +1092,7 @@ export const BlockModal = ({
                   <button
                     type="button"
                     onClick={() => setImageSize("large")}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 px-3 py-2 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
                       imageSize === "large" 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted hover:bg-muted/80 text-foreground"
@@ -1160,19 +1127,19 @@ export const BlockModal = ({
                       placeholder="Title (e.g., NEW DROP 🔥)"
                       value={overlayTitle}
                       onChange={(e) => setOverlayTitle(e.target.value)}
-                      className="h-10"
+                      className="min-h-[44px]"
                     />
                     <Input
                       placeholder="Subtitle (e.g., Limited availability)"
                       value={overlaySubtitle}
                       onChange={(e) => setOverlaySubtitle(e.target.value)}
-                      className="h-10"
+                      className="min-h-[44px]"
                     />
                     <Input
                       placeholder="CTA text (e.g., Shop Now →)"
                       value={overlayCta}
                       onChange={(e) => setOverlayCta(e.target.value)}
-                      className="h-10"
+                      className="min-h-[44px]"
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">Text will appear on top of the image</p>
@@ -1399,15 +1366,17 @@ export const BlockModal = ({
                       {item.type === "image" && (
                         <button
                           onClick={() => handleEditCollageImage(idx)}
-                          className="absolute top-1 left-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                          className="absolute top-1 left-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 before:absolute before:-inset-2.5 before:content-['']"
                           title="Crop image"
+                          aria-label="Crop image"
                         >
                           <Crop className="h-3 w-3 text-white" />
                         </button>
                       )}
                       <button
                         onClick={() => handleRemoveCollageMedia(idx)}
-                        className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70"
+                        className="absolute top-1 right-1 h-6 w-6 bg-black/50 rounded-full flex items-center justify-center hover:bg-black/70 before:absolute before:-inset-2.5 before:content-['']"
+                        aria-label="Remove image"
                       >
                         <X className="h-3 w-3 text-white" />
                       </button>
@@ -1439,28 +1408,6 @@ export const BlockModal = ({
 
               </div>
             </>
-          )}
-
-          {selectedType === "product" && (
-            <div className="space-y-2">
-              <Label>Select Product</Label>
-              {creatorProducts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active products found. Create a product in the Shop tab first.</p>
-              ) : (
-                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a product..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {creatorProducts.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.title} — ${(p.price_cents / 100).toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
           )}
 
           {selectedType === "locations" && (
@@ -1525,30 +1472,33 @@ export const BlockModal = ({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-11 w-11"
                             disabled={index === 0}
                             onClick={() => moveLocation(index, -1)}
+                            aria-label={`Move location ${index + 1} up`}
                           >
-                            <ArrowUp className="h-3.5 w-3.5" />
+                            <ArrowUp className="h-4 w-4" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-11 w-11"
                             disabled={index === locations.length - 1}
                             onClick={() => moveLocation(index, 1)}
+                            aria-label={`Move location ${index + 1} down`}
                           >
-                            <ArrowDown className="h-3.5 w-3.5" />
+                            <ArrowDown className="h-4 w-4" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive"
+                            className="h-11 w-11 text-destructive"
                             onClick={() => removeLocation(index)}
+                            aria-label={`Remove location ${index + 1}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -1581,21 +1531,21 @@ export const BlockModal = ({
                         value={loc.name}
                         onChange={(e) => updateLocation(index, { name: e.target.value })}
                         placeholder="Location name"
-                        className="h-10"
+                        className="min-h-[44px]"
                         maxLength={60}
                       />
                       <Input
                         value={loc.city ?? ""}
                         onChange={(e) => updateLocation(index, { city: e.target.value })}
                         placeholder="City (e.g. Los Angeles, CA)"
-                        className="h-10"
+                        className="min-h-[44px]"
                         maxLength={60}
                       />
                       <Input
                         value={loc.subtitle ?? ""}
                         onChange={(e) => updateLocation(index, { subtitle: e.target.value })}
                         placeholder="Short subtitle (optional)"
-                        className="h-10"
+                        className="min-h-[44px]"
                         maxLength={80}
                       />
                       <div className="space-y-1">
@@ -1603,7 +1553,7 @@ export const BlockModal = ({
                           value={loc.destination}
                           onChange={(e) => updateLocation(index, { destination: e.target.value })}
                           placeholder="islasmarias  or  https://example.com"
-                          className="h-10"
+                          className="min-h-[44px]"
                         />
                         <p className="text-[11px] text-muted-foreground">
                           {loc.destination.trim() === ""
@@ -1766,14 +1716,14 @@ export const BlockModal = ({
             {!editingBlock && (
               <Button 
                 variant="outline" 
-                className="flex-1"
+                className="flex-1 min-h-[44px]"
                 onClick={() => setSelectedType(null)}
               >
                 Back
               </Button>
             )}
             <Button 
-              className="flex-1"
+              className="flex-1 min-h-[44px]"
               onClick={handleSave}
               disabled={saving}
             >

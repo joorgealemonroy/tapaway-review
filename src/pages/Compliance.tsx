@@ -42,41 +42,6 @@ const Compliance = () => {
           </p>
         </section>
 
-        {/* Opt-in flow with screenshots */}
-        <section className="space-y-6">
-          <h2 className="text-xl font-bold">Step-by-Step Opt-In Flow</h2>
-
-          {[
-            { n: 1, title: "Customer taps an NFC card", desc: "A physical TapAway card is tapped against a customer's phone (no app required). The phone reads the embedded URL and opens the business's profile.", img: "/compliance/step-1-tap.png" },
-            { n: 2, title: "Customer lands on the business profile", desc: "The profile clearly identifies the business and displays a 'Join VIP Text List' call-to-action button. The customer must actively press this button — no auto-prompts.", img: "/compliance/step-2-profile.png" },
-            { n: 3, title: "Customer fills out the opt-in form", desc: "A drawer/dialog opens with Name + Phone fields. Directly below the Submit button, the carrier-required disclosure is visible (rates, frequency, STOP/HELP, links to Privacy Policy and Terms). The user must type their phone number and tap Submit.", img: "/compliance/step-3-form.png" },
-            { n: 4, title: "Confirmation", desc: "On submission a success toast confirms enrollment. A welcome SMS is sent to the recipient.", img: "/compliance/step-4-confirmation.png" },
-          ].map((s) => (
-            <div key={s.n} className="border border-border rounded-lg overflow-hidden bg-card">
-              <div className="p-4 border-b border-border flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-                  {s.n}
-                </div>
-                <div>
-                  <h3 className="font-semibold">{s.title}</h3>
-                  <p className="text-sm text-muted-foreground">{s.desc}</p>
-                </div>
-              </div>
-              <div className="bg-muted/30 p-4 flex items-center justify-center">
-                <img
-                  src={s.img}
-                  alt={`Step ${s.n}: ${s.title}`}
-                  loading="lazy"
-                  className="max-h-[480px] w-auto rounded-md border border-border"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </section>
-
         {/* Sample messages */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold flex items-center gap-2">

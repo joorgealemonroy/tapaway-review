@@ -32,6 +32,7 @@ export interface OnboardingData {
   googlePlaceName?: string;
   googlePlaceAddress?: string;
   dashboardType?: string;
+  billingInterval?: 'month' | 'year';
 }
 
 const defaultData: OnboardingData = {

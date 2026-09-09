@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { sendTemplatedEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,9 +117,12 @@ if (event.type === 'checkout.session.completed') {
         })
       );
 
-      // Get or create user
-      const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
-      let userId = metadataUserId || existingUser?.users.find(u => u.email === customerEmail)?.id;
+      // Get or create user — look up by verified email with the admin API
+      // filter param (exact match) instead of listUsers(), which only returns
+      // the first page of identities and misses existing customers past 50 users.
+      const normalizedEmail = customerEmail.trim().toLowerCase();
+      const existingUser = await findAuthUserByEmail(normalizedEmail);
+      let userId = metadataUserId || existingUser?.id;
 
       if (!userId) {
         // Create new user with a random password and mark them as needing to set password
@@ -160,18 +164,192 @@ if (event.type === 'checkout.session.completed') {
         }
       }
 
+      // Persist the REAL Stripe subscription status ('trialing' during the free
+      // trial, 'active' once paid) so the trial funnel is visible in the DB.
+      // $0 trial checkouts used to be hard-coded to 'active' below.
+      let subscriptionStatus = 'active';
+      let trialEndsAt: string | null = null;
+      if (subscriptionId) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          if (sub.status === 'trialing') {
+            subscriptionStatus = 'trialing';
+            if (sub.trial_end) {
+              trialEndsAt = new Date(sub.trial_end * 1000).toISOString();
+            }
+          }
+        } catch (subErr) {
+          console.error('[stripe-webhook] Failed to retrieve subscription (non-fatal):', subErr);
+        }
+      }
+
       console.log(`[stripe-webhook] Creating restaurant for plan: ${planType}`);
 
       // Get user metadata for greeting_name if available
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
       const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
+      // ============================================================
+      // $1 TRIAL CARD VERIFICATION (CARD-CHECK) — fail-closed.
+      // Runs only for true trials (subscriptionStatus === 'trialing').
+      // Exempt: van sales (metadata.van_sale, immediate charge) and any
+      // immediate-charge session (status 'active') — the charge itself is
+      // the verification there.
+      // ============================================================
+      let cardCheckRan = false;
+      let cardCheckStatus: string | null = null;   // 'passed' when the check ran and passed
+      let cardCheckMessage: string | null = null;  // plain-language decline, when failed
+      if (subscriptionStatus === 'trialing' && session.metadata?.van_sale !== 'true' && subscriptionId) {
+        cardCheckRan = true;
+        type CardCheckResult = { ok: boolean; code?: string; message?: string };
+        let cardCheck: CardCheckResult | null = null;
+
+        // Idempotency: if a check was already recorded for THIS subscription,
+        // reuse it — retries (and the verify-checkout fallback) must never
+        // double-run the $1 auth.
+        let priorStatus: string | null = null;
+        let priorMessage: string | null = null;
+        try {
+          const { data: priorRow } = await supabaseAdmin
+            .from('restaurants')
+            .select('card_check_status, card_check_message')
+            .eq('stripe_subscription_id', subscriptionId)
+            .maybeSingle();
+          if (priorRow && (priorRow.card_check_status === 'passed' || priorRow.card_check_status === 'failed')) {
+            priorStatus = priorRow.card_check_status;
+            priorMessage = priorRow.card_check_message;
+          }
+        } catch (idemErr) {
+          console.error('[stripe-webhook] card-check idempotency lookup failed (non-fatal):', idemErr);
+        }
+
+        if (priorStatus === 'passed') {
+          console.log('[stripe-webhook] card check already passed for subscription:', subscriptionId);
+          cardCheckStatus = 'passed';
+        } else if (priorStatus === 'failed') {
+          console.log('[stripe-webhook] card check already failed for subscription:', subscriptionId);
+          cardCheckMessage = priorMessage;
+        } else {
+          const checkClientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            || req.headers.get('x-real-ip')
+            || undefined;
+          try {
+            const checkRes = await fetch(`${supabaseUrl}/functions/v1/verify-trial-card`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
+                customerId,
+                ...(checkClientIp ? { clientIp: checkClientIp } : {}),
+                // Stable idempotency key: webhook redeliveries never stack extra $1 auths.
+                idempotencyKey: subscriptionId,
+              }),
+            });
+            cardCheck = await checkRes.json();
+          } catch (checkErr) {
+            console.error('[stripe-webhook] card check call failed (fail-closed):', checkErr);
+          }
+
+          if (cardCheck?.ok) {
+            cardCheckStatus = 'passed';
+            console.log('[stripe-webhook] card check passed for subscription:', subscriptionId);
+          } else {
+            cardCheckMessage = cardCheck?.message
+              || "Your card couldn't be verified. Please try a different card or contact your bank.";
+            console.log('[stripe-webhook] card check failed:', { code: cardCheck?.code, subscription: subscriptionId });
+          }
+        }
+
+        // Server-derived from Stripe session metadata. Declared once here —
+        // before the card-check fail-closed branch below, which needs it —
+        // instead of in the claim block further down (avoids a TDZ crash).
+        const claimRestaurantId = session.metadata?.claim_restaurant_id || null;
+
+        if (cardCheckStatus !== 'passed') {
+          // FAIL CLOSED: cancel the dead-card trial in Stripe immediately, then
+          // record the failure on the restaurant row WITHOUT marking it
+          // 'trialing' — the trial never goes live. /onboarding reads
+          // card_check_message to show the customer what to fix.
+          try {
+            await stripe.subscriptions.cancel(subscriptionId);
+            console.log('[stripe-webhook] canceled dead-card trial subscription:', subscriptionId);
+          } catch (cancelErr) {
+            console.error('[stripe-webhook] failed to cancel dead-card subscription (non-fatal):', cancelErr);
+          }
+
+          const failureData = {
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            plan_type: planType,
+            subscription_status: 'incomplete',
+            trial_ends_at: null,
+            card_check_status: 'failed',
+            card_check_message: cardCheckMessage,
+          };
+
+          if (claimRestaurantId) {
+            // Failed claim: still hand the demo hub to the payer so a retry
+            // updates this same row — but keep it paused, never 'trialing'.
+            const { error: failClaimErr } = await supabaseAdmin
+              .from('restaurants')
+              .update({
+                owner_id: userId,
+                created_by: null,
+                expires_at: null,
+                ...failureData,
+              })
+              .eq('id', claimRestaurantId);
+            if (failClaimErr) console.error('[stripe-webhook] failed to mark claim row card-check-failed:', failClaimErr);
+          } else {
+            const { data: existingForFailure } = await supabaseAdmin
+              .from('restaurants')
+              .select('id')
+              .eq('owner_id', userId)
+              .maybeSingle();
+            if (existingForFailure) {
+              const { error: failUpdateErr } = await supabaseAdmin
+                .from('restaurants')
+                .update(failureData)
+                .eq('id', existingForFailure.id);
+              if (failUpdateErr) console.error('[stripe-webhook] failed to mark restaurant card-check-failed:', failUpdateErr);
+            } else {
+              const { error: failInsertErr } = await supabaseAdmin
+                .from('restaurants')
+                .insert({
+                  owner_id: userId,
+                  restaurant_name: session.metadata?.restaurant_name || 'My Restaurant',
+                  greeting_name: greetingName,
+                  ...failureData,
+                  header_title: "How was your visit?",
+                  header_subtitle: "We'd love to hear about your experience!",
+                  menu_title: "Our Menu",
+                });
+              if (failInsertErr) console.error('[stripe-webhook] failed to insert card-check-failed restaurant:', failInsertErr);
+            }
+          }
+
+          // Handled: don't provision a trial, print cards, or pay commissions
+          // for a dead card. Stripe won't retry (200).
+          return new Response(
+            JSON.stringify({ received: true, card_check: 'failed' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+      // Stamp 'passed' on the write paths below when the check ran.
+      const cardCheckFields = cardCheckRan
+        ? { card_check_status: cardCheckStatus, card_check_message: cardCheckMessage }
+        : {};
+
       // Rep-created demo hub ownership hand-off.
       // When metadata.claim_restaurant_id is present, transfer that hub to the
       // paying user, clear its expiration, and short-circuit — no new restaurant
       // is created, and the rep's dashboard loses the row because created_by
       // is cleared.
-      const claimRestaurantId = session.metadata?.claim_restaurant_id || null;
+      // (claimRestaurantId was declared once above, before the card-check
+      // fail-closed branch that also uses it.)
       if (claimRestaurantId) {
         const { error: claimError } = await supabaseAdmin
           .from('restaurants')
@@ -182,7 +360,9 @@ if (event.type === 'checkout.session.completed') {
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             plan_type: planType,
-            subscription_status: 'active',
+            subscription_status: subscriptionStatus,
+            trial_ends_at: trialEndsAt,
+            ...cardCheckFields,
           })
           .eq('id', claimRestaurantId);
 
@@ -214,7 +394,9 @@ if (event.type === 'checkout.session.completed') {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           plan_type: planType,
-          subscription_status: 'active',
+          subscription_status: subscriptionStatus,
+          trial_ends_at: trialEndsAt,
+          ...cardCheckFields,
         };
         
         // Link sales rep if this came from rep portal
@@ -242,7 +424,9 @@ if (event.type === 'checkout.session.completed') {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
           plan_type: planType,
-          subscription_status: 'active',
+          subscription_status: subscriptionStatus,
+          trial_ends_at: trialEndsAt,
+          ...cardCheckFields,
           header_title: "How was your visit?",
           header_subtitle: "We'd love to hear about your experience!",
           menu_title: "Our Menu",
@@ -1084,6 +1268,91 @@ if (event.type === 'checkout.session.completed') {
           }
         } else {
           console.log('[stripe-webhook] invoice.paid: no rep commission found for this subscription, skipping');
+        }
+      }
+    }
+
+    // ============================================================
+    // FAILED PAYMENT — nudge the owner to update their card.
+    // invoice.payment_failed was NOT handled before; owners only found out
+    // from Stripe's own emails (or not at all). This sends the canonical
+    // payment_failed template via the shared email library (logged).
+    // ============================================================
+    if (event.type === 'invoice.payment_failed') {
+      const invoice = event.data.object as any;
+      const failCustomerId = invoice.customer as string | null;
+      const amountDue = typeof invoice.amount_due === 'number' ? invoice.amount_due : 0;
+      console.log(`[stripe-webhook] invoice.payment_failed: customer=${failCustomerId}, amount_due=${amountDue}`);
+
+      if (failCustomerId) {
+        try {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+          const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+          const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
+            mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
+              auth: { autoRefreshToken: false, persistSession: false },
+            })
+          );
+
+          // Personal (Solo) account first.
+          const { data: failProfile } = await supabaseAdmin
+            .from('personal_profiles')
+            .select('id, full_name, email, stripe_billing_email')
+            .eq('stripe_customer_id', failCustomerId)
+            .maybeSingle();
+
+          let toEmail: string | null = null;
+          let ownerName = 'there';
+          let businessName = 'your TapAway plan';
+          let profileId: string | null = null;
+
+          if (failProfile) {
+            toEmail = String(failProfile.stripe_billing_email || failProfile.email || '').trim() || null;
+            ownerName = String(failProfile.full_name || '').trim().split(' ')[0] || 'there';
+            businessName = String(failProfile.full_name || 'your TapAway plan').trim() || 'your TapAway plan';
+            profileId = failProfile.id;
+          } else {
+            // Legacy business account.
+            const { data: failRestaurant } = await supabaseAdmin
+              .from('restaurants')
+              .select('id, restaurant_name, owner_name, email, payment_state')
+              .eq('stripe_customer_id', failCustomerId)
+              .maybeSingle();
+            if (failRestaurant && failRestaurant.payment_state !== 'complimentary') {
+              toEmail = String(failRestaurant.email || '').trim() || null;
+              ownerName = String(failRestaurant.owner_name || '').trim().split(' ')[0] || 'there';
+              businessName = String(failRestaurant.restaurant_name || 'your TapAway plan').trim();
+            } else if (failRestaurant) {
+              console.log('[stripe-webhook] invoice.payment_failed: comped account, skipping email');
+            }
+          }
+
+          if (toEmail) {
+            const amount = amountDue > 0
+              ? new Intl.NumberFormat('en-US', { style: 'currency', currency: (invoice.currency || 'usd').toUpperCase() }).format(amountDue / 100)
+              : '';
+            const mailResult = await sendTemplatedEmail({
+              to: toEmail,
+              templateKey: 'payment_failed',
+              profileId,
+              vars: {
+                name: ownerName,
+                businessName,
+                amount,
+                dashboardUrl: 'https://tapaway.co/dashboard',
+              },
+            });
+            console.log('[stripe-webhook] payment_failed email:', {
+              to: toEmail,
+              ok: mailResult.ok,
+              error: mailResult.error || null,
+            });
+          } else {
+            console.log('[stripe-webhook] invoice.payment_failed: no account/email found for customer', failCustomerId);
+          }
+        } catch (e) {
+          // Never fail the webhook over a notification email.
+          console.error('[stripe-webhook] invoice.payment_failed handler error:', e instanceof Error ? e.message : e);
         }
       }
     }

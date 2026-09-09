@@ -6,9 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Megaphone, BarChart3, Info } from "lucide-react";
+import { Plus, Trash2, Megaphone, BarChart3, Info, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 interface Engagement {
   id: string;
   type: 'promotion' | 'poll';
@@ -30,6 +40,13 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
   const [content, setContent] = useState('');
   const [promotionLink, setPromotionLink] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
+  // Double-submit guards: the deactivate-then-insert flow creates duplicate
+  // ACTIVE promotions/polls if it runs twice at once.
+  const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  // One tap on the trash icon used to delete permanently — confirm first.
+  const [deleteTarget, setDeleteTarget] = useState<Engagement | null>(null);
 
   useEffect(() => {
     fetchEngagements();
@@ -67,6 +84,11 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
       return;
     }
 
+    // Guard: two rapid saves would each deactivate-then-insert, leaving two
+    // ACTIVE engagements of the same type.
+    if (saving) return;
+    setSaving(true);
+
     try {
       // First, deactivate any existing active engagement of the same type
       await supabase
@@ -92,17 +114,22 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
 
       if (error) throw error;
 
-      toast({ title: "Success", description: `${type === 'promotion' ? 'Promotion' : 'Poll'} created successfully` });
+      toast({ title: `${type === 'promotion' ? 'Promotion' : 'Poll'} created`, description: "It's live on your review hub now." });
       setContent('');
       setPromotionLink('');
       setPollOptions(['', '']);
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Not created", description: error?.message || "We couldn't create that — please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleToggleActive = async (id: string, currentStatus: boolean, engagementType: 'promotion' | 'poll') => {
+    // Guard: the deactivate-then-update race can leave two actives of one type.
+    if (togglingId) return;
+    setTogglingId(id);
     try {
       // If activating, first deactivate other same-type engagements
       if (!currentStatus) {
@@ -124,23 +151,31 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
       toast({ title: "Success", description: `Engagement ${!currentStatus ? 'activated' : 'deactivated'}` });
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Not updated", description: error?.message || "We couldn't update that — please try again.", variant: "destructive" });
+    } finally {
+      setTogglingId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    const target = deleteTarget;
+    if (!target || deleting) return;
+    setDeleting(true);
     try {
       const { error } = await supabase
         .from("restaurant_engagement")
         .delete()
-        .eq("id", id);
+        .eq("id", target.id);
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Engagement deleted" });
+      toast({ title: "Deleted", description: "That engagement is gone for good." });
+      setDeleteTarget(null);
       fetchEngagements();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Not deleted", description: error?.message || "We couldn't delete that — please try again.", variant: "destructive" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -244,8 +279,15 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
             </div>
           )}
 
-          <Button onClick={handleSave} className="w-full">
-            Create {type === 'promotion' ? 'Promotion' : 'Poll'}
+          <Button onClick={handleSave} disabled={saving} className="w-full min-h-[44px]">
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating…
+              </>
+            ) : (
+              <>Create {type === 'promotion' ? 'Promotion' : 'Poll'}</>
+            )}
           </Button>
         </div>
       </Card>
@@ -322,14 +364,25 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
                     <Button
                       variant="outline"
                       size="sm"
+                      className="min-h-[44px]"
+                      disabled={togglingId === engagement.id}
                       onClick={() => handleToggleActive(engagement.id, engagement.is_active, engagement.type)}
                     >
-                      {engagement.is_active ? 'Deactivate' : 'Activate'}
+                      {togglingId === engagement.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : engagement.is_active ? (
+                        'Deactivate'
+                      ) : (
+                        'Activate'
+                      )}
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDelete(engagement.id)}
+                      className="min-h-[44px]"
+                      disabled={togglingId === engagement.id}
+                      onClick={() => setDeleteTarget(engagement)}
+                      aria-label={`Delete ${engagement.type}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -340,6 +393,41 @@ export const EngagementTab = ({ restaurantId, isDemoView = false }: EngagementTa
           })
         )}
       </div>
+
+      {/* Delete confirmation — one tap used to delete permanently. */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete this {deleteTarget?.type === "poll" ? "poll" : "promotion"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This can't be undone
+              {deleteTarget?.type === "poll" ? " — the poll results go with it." : "."}
+              {" "}It's removed from your review hub right away.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel disabled={deleting} className="min-h-[44px]">
+              Keep it
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="min-h-[44px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Yes, delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

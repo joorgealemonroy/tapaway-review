@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Suspense, useEffect } from "react";
@@ -55,7 +55,7 @@ const DPA = lazy(() => import("./pages/DPA"));
 // Sales Rep Portal - lazy loaded
 const RepHome = lazy(() => import("./pages/rep/RepHome"));
 const RepRestaurants = lazy(() => import("./pages/rep/RepBusinesses"));
-const RepClose = lazy(() => import("./pages/rep/RepClose"));
+// RepClose REMOVED 2026-09-09 (locked): the rep only creates demos, Jorge closes.
 const RepDemoCreate = lazy(() => import("./pages/rep/RepDemoCreate"));
 const RepCommissions = lazy(() => import("./pages/rep/RepCommissions"));
 const RepResources = lazy(() => import("./pages/rep/RepResources"));
@@ -79,13 +79,20 @@ const AdminSmsSubscribers = lazy(() => import("./pages/admin/AdminSmsSubscribers
 const AdminHubHealth = lazy(() => import("./pages/admin/AdminHubHealth"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminPrintQueue = lazy(() => import("./pages/admin/AdminPrintQueue"));
+const AdminFulfillment = lazy(() => import("./pages/admin/AdminFulfillment"));
 const AdminErrors = lazy(() => import("./pages/admin/AdminErrors"));
 const AdminLocations = lazy(() => import("./pages/admin/AdminLocations"));
+const VanVisit = lazy(() => import("./pages/admin/VanVisit"));
+const AdminDiscounts = lazy(() => import("./pages/admin/AdminDiscounts"));
+const AdminCustomPlans = lazy(() => import("./pages/admin/AdminCustomPlans"));
+const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
+const VanSuccess = lazy(() => import("./pages/VanSuccess"));
 const AffiliateDashboard = lazy(() => import("./pages/affiliate/AffiliateDashboard"));
 const Examples = lazy(() => import("./pages/Examples"));
 const Compliance = lazy(() => import("./pages/Compliance"));
 const SmsSignup = lazy(() => import("./pages/SmsSignup"));
 const ClaimHubPage = lazy(() => import("./pages/ClaimHubPage"));
+const Paywall = lazy(() => import("./pages/Paywall"));
 
 
 // Minimal loading spinner
@@ -104,6 +111,13 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// /start is the NFC tap-to-claim entry point — forward the query string
+// (e.g. ?card=CODE) to /onboarding so the card claim flow survives the redirect.
+function StartRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/onboarding${search}`} replace />;
+}
 
 const App = () => {
   // A successful boot means the current bundle loaded — release the one-shot
@@ -144,10 +158,11 @@ const App = () => {
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/onboarding-success" element={<OnboardingSuccess />} />
+                <Route path="/van-success" element={<VanSuccess />} />
                 <Route path="/onboarding-start" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/onboarding/start" element={<Navigate to="/onboarding?source=stripe" replace />} />
-                <Route path="/start" element={<Navigate to="/onboarding" replace />} />
-                <Route path="/paywall" element={<Navigate to="/onboarding" replace />} />
+                <Route path="/start" element={<StartRedirect />} />
+                <Route path="/paywall" element={<Paywall />} />
                 <Route path="/trial-confirmed" element={<Navigate to="/onboarding?source=stripe" replace />} />
                 <Route path="/claim" element={<ClaimHubPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -167,7 +182,7 @@ const App = () => {
                 {/* Sales Rep Portal */}
                 <Route path="/rep" element={<RepHome />} />
                 <Route path="/rep/restaurants" element={<RepRestaurants />} />
-                <Route path="/rep/close" element={<RepClose />} />
+                {/* /rep/close removed 2026-09-09 (locked): rep creates demos, Jorge closes */}
                 <Route path="/rep/demo/new" element={<RepDemoCreate />} />
                 <Route path="/rep/demo/:id" element={<RepDemoCreate />} />
                 <Route path="/rep/commissions" element={<RepCommissions />} />
@@ -192,8 +207,13 @@ const App = () => {
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/print-queue" element={<AdminPrintQueue />} />
+                <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
                 <Route path="/admin/errors" element={<AdminErrors />} />
                 <Route path="/admin/locations" element={<AdminLocations />} />
+                <Route path="/admin/van" element={<VanVisit />} />
+                <Route path="/admin/discounts" element={<AdminDiscounts />} />
+                <Route path="/admin/custom-plans" element={<AdminCustomPlans />} />
+                <Route path="/admin/emails" element={<AdminEmails />} />
                 
                 <Route path="/affiliate" element={<AffiliateDashboard />} />
                 <Route path="/rep-checkout-success" element={<RepCheckoutSuccess />} />

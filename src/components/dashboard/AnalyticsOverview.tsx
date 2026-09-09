@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu, Activity, Calendar } from "lucide-react";
+import { TrendingUp, MousePointer, Star, Instagram, MapPin, Menu, Activity, Calendar, Clock } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  getClientTapStats,
+  getClientTrafficSeries,
+  getClientLinkClickTotals,
+  getClientLinkClicksByDay,
+  losAngelesDayLabel,
+  losAngelesWeekday,
+  LINK_CLICK_EVENT_TYPES,
+  LINK_CLICK_LABELS,
+  type ClientLinkDayClicks,
+} from "@/lib/clientStats";
 
 interface AnalyticsData {
   totalTaps: number;
@@ -13,8 +23,12 @@ interface AnalyticsData {
   directionsClicks: number;
   menuViews: number;
   chartData: Array<{ date: string; taps: number }>;
-  mostClicked: string;
-  peakDay: string;
+  /** Null when there is no data — never render placeholders as facts. */
+  mostClicked: string | null;
+  peakDay: string | null;
+  /** Per-day per-link clicks, chronological, zero-filled (America/Los_Angeles). */
+  clicksByDay: ClientLinkDayClicks[];
+  totalClicks: number;
 }
 
 export interface AnalyticsOverviewProps {
@@ -26,9 +40,13 @@ export interface AnalyticsOverviewProps {
   };
   user: any;
   isDemoView?: boolean;
+  /** Deep-links the empty-state CTA buttons to the right dashboard tab. */
+  onNavigateTab?: (tab: "settings" | "menu") => void;
+  /** Used by the empty-state CTA to link the live hub. */
+  customSlug?: string | null;
 }
 
-export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user, isDemoView = false }: AnalyticsOverviewProps) => {
+export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, user, isDemoView = false, onNavigateTab, customSlug }: AnalyticsOverviewProps) => {
   const [daysBack, setDaysBack] = useState(7);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalTaps: 0,
@@ -38,8 +56,10 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     directionsClicks: 0,
     menuViews: 0,
     chartData: [],
-    mostClicked: "Google Review",
-    peakDay: "Monday"
+    mostClicked: null,
+    peakDay: null,
+    clicksByDay: [],
+    totalClicks: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -56,82 +76,69 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     "there";
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [restaurantId, daysBack]);
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [tapStats, traffic, clickTotals, clicksByDay] = await Promise.all([
+          getClientTapStats(restaurantId),
+          getClientTrafficSeries(restaurantId, daysBack),
+          getClientLinkClickTotals(restaurantId, daysBack),
+          getClientLinkClicksByDay(restaurantId, daysBack),
+        ]);
+        if (cancelled) return;
 
-  const fetchAnalytics = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("analytics_events")
-        .select("*")
-        .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false });
+        const totalTaps = daysBack <= 7 ? tapStats.tapsThisWeek : tapStats.tapsLast30d;
 
-      if (error) throw error;
-
-      if (data) {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - daysBack);
-        const recentData = data.filter(e => new Date(e.created_at) >= cutoff);
-
-        // Event types must match the edge function whitelist: tap, google_click, yelp_click, directions_click, instagram_click, menu_view, menu_close
-        const tapEvents = recentData.filter((e: any) => e.event_type === "tap");
-        const googleClicks = recentData.filter((e: any) => e.event_type === "google_click").length;
-        const yelpClicks = recentData.filter((e: any) => e.event_type === "yelp_click").length;
-        const instagramClicks = recentData.filter((e: any) => e.event_type === "instagram_click").length;
-        const directionsClicks = recentData.filter((e: any) => e.event_type === "directions_click").length;
-        const menuViews = recentData.filter((e: any) => e.event_type === "menu_view").length;
-
-        const dateGroups: { [key: string]: number } = {};
-        recentData.forEach(event => {
-          const date = new Date(event.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          dateGroups[date] = (dateGroups[date] || 0) + 1;
-        });
-
-        const chartData: Array<{ date: string; taps: number }> = [];
-        for (let i = daysBack - 1; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          chartData.push({ date: label, taps: dateGroups[label] || 0 });
+        // Most-clicked link — only from real clicks, never a placeholder.
+        let mostClicked: string | null = null;
+        let bestCount = 0;
+        for (const type of LINK_CLICK_EVENT_TYPES) {
+          if (clickTotals[type] > bestCount) {
+            bestCount = clickTotals[type];
+            mostClicked = LINK_CLICK_LABELS[type];
+          }
         }
 
-        const clicks = [
-          { name: "Google Review", count: googleClicks },
-          { name: "Yelp", count: yelpClicks },
-          { name: "Instagram", count: instagramClicks },
-          { name: "Directions", count: directionsClicks },
-          { name: "Menu", count: menuViews }
-        ];
-        const mostClicked = clicks.reduce((max, item) => item.count > max.count ? item : max, clicks[0]).name;
+        // Peak day = most total activity (taps + link clicks) on one
+        // America/Los_Angeles calendar day. Null with zero activity.
+        const tapsByDay = new Map(traffic.map((p) => [p.date, p.taps]));
+        let peakDay: string | null = null;
+        let peakCount = 0;
+        for (const day of clicksByDay) {
+          const activity = day.total + (tapsByDay.get(day.date) ?? 0);
+          if (activity > peakCount) {
+            peakCount = activity;
+            peakDay = losAngelesWeekday(day.date);
+          }
+        }
 
-        const dayGroups: { [key: string]: number } = {};
-        recentData.forEach(event => {
-          const day = new Date(event.created_at).toLocaleDateString('en-US', { weekday: 'long' });
-          dayGroups[day] = (dayGroups[day] || 0) + 1;
-        });
-        const peakDay = Object.entries(dayGroups).reduce((max, [day, count]) => 
-          count > (dayGroups[max] || 0) ? day : max, 'Monday'
-        );
+        const totalClicks = clicksByDay.reduce((a, d) => a + d.total, 0);
 
         setAnalytics({
-          totalTaps: tapEvents.length,
-          googleClicks,
-          yelpClicks,
-          instagramClicks,
-          directionsClicks,
-          menuViews,
-          chartData,
+          totalTaps,
+          googleClicks: clickTotals.google_click,
+          yelpClicks: clickTotals.yelp_click,
+          instagramClicks: clickTotals.instagram_click,
+          directionsClicks: clickTotals.directions_click,
+          menuViews: clickTotals.menu_view,
+          chartData: traffic.map((p) => ({ date: losAngelesDayLabel(p.date), taps: p.taps })),
           mostClicked,
-          peakDay
+          peakDay,
+          clicksByDay,
+          totalClicks,
         });
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId, daysBack]);
 
   if (loading) {
     return (
@@ -147,6 +154,9 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     { name: "Menu Views", count: analytics.menuViews, icon: Menu, color: "text-purple-600" },
     { name: "Instagram", count: analytics.instagramClicks, icon: Instagram, color: "text-pink-600" },
   ];
+
+  // Most recent day first for the per-day list.
+  const daysDesc = [...analytics.clicksByDay].reverse();
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-8 animate-fade-in">
@@ -176,17 +186,67 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               </ToggleGroup>
             </div>
             <p className="text-muted-foreground text-sm sm:text-base">
-              You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last {daysBack} days.
-              {analytics.totalTaps > 0 && (
+              {analytics.totalTaps > 0 ? (
                 <>
-                  {" "}Your most clicked button is <span className="font-semibold text-primary">{analytics.mostClicked}</span>, 
-                  and your peak day is <span className="font-semibold text-primary">{analytics.peakDay}</span>.
+                  You've had <span className="font-semibold text-primary">{analytics.totalTaps} taps</span> in the last {daysBack} days.
+                  {analytics.mostClicked && (
+                    <>
+                      {" "}Your most clicked button is <span className="font-semibold text-primary">{analytics.mostClicked}</span>
+                      {analytics.peakDay && (
+                        <>, and your peak day is <span className="font-semibold text-primary">{analytics.peakDay}</span></>
+                      )}.
+                    </>
+                  )}
                 </>
+              ) : (
+                <>No taps in the last {daysBack} days yet — once customers start tapping, your trends will show up here.</>
               )}
             </p>
           </div>
         </div>
       </Card>
+
+      {/* Empty state: no fake stats — point the owner at the setup that drives taps. */}
+      {analytics.totalTaps === 0 && (
+        <Card className="p-5 sm:p-6 card-elevated border-primary/20 bg-primary/5">
+          <h3 className="text-lg font-bold mb-1">Let's get your first taps 🚀</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Taps come from a hub that's ready to share. These two take five minutes:
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            {onNavigateTab ? (
+              <>
+                <button
+                  onClick={() => onNavigateTab("settings")}
+                  className="min-h-[44px] px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Add your Google review link
+                </button>
+                <button
+                  onClick={() => onNavigateTab("menu")}
+                  className="min-h-[44px] px-4 rounded-lg border border-border bg-background text-sm font-semibold hover:bg-muted transition-colors"
+                >
+                  Add your menu
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Add your Google review link and your menu in Settings and Menu to get started.
+              </p>
+            )}
+            {customSlug && (
+              <a
+                href={`/${customSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[44px] px-4 rounded-lg border border-border bg-background text-sm font-semibold hover:bg-muted transition-colors inline-flex items-center justify-center"
+              >
+                View your hub
+              </a>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Key Stats Row */}
       <div className="grid grid-cols-3 gap-2 sm:gap-6">
@@ -212,7 +272,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               <p className="text-sm font-medium text-muted-foreground">Most Clicked</p>
             </div>
           </div>
-          <p className="text-2xl font-bold">{analytics.mostClicked}</p>
+          <p className="text-2xl font-bold">{analytics.mostClicked ?? "—"}</p>
           <p className="text-xs text-muted-foreground mt-1">Most popular action</p>
         </Card>
 
@@ -225,7 +285,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               <p className="text-sm font-medium text-muted-foreground">Peak Day</p>
             </div>
           </div>
-          <p className="text-2xl font-bold">{analytics.peakDay}</p>
+          <p className="text-2xl font-bold">{analytics.peakDay ?? "—"}</p>
           <p className="text-xs text-muted-foreground mt-1">Most active day</p>
         </Card>
       </div>
@@ -246,7 +306,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-              <XAxis dataKey="date" className="fill-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
+              <XAxis dataKey="date" className="fill-muted-foreground" fontSize={12} tickLine={false} axisLine={false} minTickGap={daysBack > 7 ? 32 : 12} />
               <YAxis className="fill-muted-foreground" fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{
@@ -299,6 +359,50 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
               💡 <span className="font-semibold">Pro Tip:</span> Hand out more cards at tables with great experiences to boost these numbers!
             </p>
           </div>
+        )}
+      </Card>
+
+      {/* When clicks happened — per-day, per-link breakdown (America/Los_Angeles days) */}
+      <Card className="p-6 card-elevated">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            When your clicks happened
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Which buttons got tapped, day by day — last {daysBack} days
+          </p>
+        </div>
+        {analytics.totalClicks === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No link clicks in the last {daysBack} days yet — when customers tap a button on
+            your hub, you'll see exactly which day it happened here.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {daysDesc.map((day) => {
+              const parts = LINK_CLICK_EVENT_TYPES.filter((t) => day.clicks[t] > 0).map(
+                (t) => `${LINK_CLICK_LABELS[t]} ×${day.clicks[t]}`,
+              );
+              return (
+                <li key={day.date} className="py-2.5 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">
+                      {losAngelesWeekday(day.date)}, {losAngelesDayLabel(day.date)}
+                    </p>
+                    {parts.length > 0 ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">{parts.join(" · ")}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-0.5">No clicks</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-primary shrink-0">
+                    {day.total} {day.total === 1 ? "click" : "clicks"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </Card>
     </div>

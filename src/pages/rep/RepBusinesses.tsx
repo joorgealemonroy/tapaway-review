@@ -266,7 +266,7 @@ const RepBusinesses = () => {
       /* stats are best-effort — the link still works */
     }
 
-    const message = `Hey ${owner}! Your TapAway card captured ${vip} VIP numbers during your trial. Claim your card & keep full access here: ${claimUrl} — $20/mo, or lock in the $199 annual pass and save $101.`;
+    const message = `Hey ${owner}! Your TapAway card captured ${vip} VIP numbers during your trial. Claim your card & keep full access here: ${claimUrl} — Solo $20/mo or Venue $39/mo, 7-day free trial.`;
     try {
       await navigator.clipboard.writeText(message);
       toast.success('Claim message copied — paste it into a text');

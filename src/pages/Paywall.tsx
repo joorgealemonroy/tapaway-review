@@ -195,13 +195,14 @@ const Paywall = () => {
 
               {/* Under CTA */}
               <p className="text-xs text-center text-muted-foreground">
-                No charge today • Cancel anytime before day 30
+                No charge today • Cancel anytime before day 14
               </p>
 
               {/* Post-trial pricing */}
               <div className="text-center pt-4 border-t border-border/30">
                 <p className="text-sm text-muted-foreground">
-                  After the trial: <span className="font-semibold text-foreground">$20/month</span>. No contracts.
+                  After the trial: <span className="font-semibold text-foreground">$20/month</span> or{" "}
+                  <span className="font-semibold text-foreground">$199/year (save $41)</span>. No contracts.
                 </p>
               </div>
 

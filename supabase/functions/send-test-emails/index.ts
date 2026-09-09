@@ -58,13 +58,13 @@ function welcomeHtml(biz: string) {
 <tr><td style="text-align:center;padding-bottom:24px;"><span style="font-size:24px;font-weight:800;color:#0d9488;">TapAway</span><br/><span style="font-size:14px;color:#6b7280;">Setup complete</span></td></tr>
 <tr><td style="background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(13,148,136,0.10);">
 <h1 style="margin:0 0 16px;font-size:26px;font-weight:700;color:#111827;text-align:center;">You're all set 🎉</h1>
-<p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;text-align:center;">Your TapAway setup for <strong>${biz}</strong> is complete and your free 30-day trial is active.</p>
+<p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;text-align:center;">Your TapAway setup for <strong>${biz}</strong> is complete and your free 14-day trial is active.</p>
 <div style="background:#f0fdfa;border-radius:12px;padding:20px;margin-bottom:24px;">
 <h2 style="margin:0 0 12px;font-size:16px;font-weight:700;color:#0d9488;">What happens next</h2>
 <ul style="margin:0;padding:0 0 0 20px;color:#374151;line-height:1.8;font-size:15px;">
 <li>Your NFC cards ship in 1–2 business days</li><li>Your review + social hub is ready to use</li><li>We'll help you optimize anytime</li></ul></div>
 <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;border-top:1px solid #e5e7eb;padding-top:20px;">
-<strong>Trial reminder:</strong> No charge today. Cancel anytime before day 30.<br/><br/>— TapAway</p>
+<strong>Trial reminder:</strong> No charge today. Cancel anytime before day 14.<br/><br/>— TapAway</p>
 </td></tr></table></body></html>`;
 }
 

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { 
   CheckCircle2,
@@ -13,6 +13,7 @@ import { getPlatformConfig } from "@/lib/platformLinks";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useProfileData, trackProfileVisit } from "@/hooks/useProfileData";
+import { ExpiredSoloHubPreview } from "@/components/hub/ExpiredSoloHubPreview";
 import { track as trackEvent } from "@/lib/analytics";
 import { OptimizedAvatar, getOptimizedImageUrl } from "@/components/personal/OptimizedImage";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,12 +22,9 @@ import { downloadVCard } from "@/lib/vcard";
 import QRCode from "react-qr-code";
 import { ShareModal } from "@/components/personal/ShareModal";
 
-import { ProductPreviewModal } from "@/components/personal/ProductPreviewModal";
-import { extractBottomColor } from "@/lib/imageColorExtraction";
 import { useAppBackground } from "@/hooks/useAppBackground";
 import useEmblaCarousel from "embla-carousel-react";
 import { sanitizeUrl, isValidYouTubeVideoId } from "@/lib/sanitizeUrl";
-import { logoImageStyle } from "@/lib/logoHeader";
 
 import LeadFormSheet from "@/components/personal/LeadFormSheet";
 import MarketingExamplesCard from "@/components/personal/MarketingExamplesCard";
@@ -45,17 +43,6 @@ function getBaseColorFromGradient(gradient: string): string {
     return colorMatch[colorMatch.length - 1];
   }
   return "#000000";
-}
-
-// Helper to compute luminance from an rgb() color string — returns 0 (dark) to 1 (light)
-function getRgbLuminance(rgbColor: string | null): number | null {
-  if (!rgbColor) return null;
-  const match = rgbColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-  if (!match) return null;
-  const r = parseInt(match[1]);
-  const g = parseInt(match[2]);
-  const b = parseInt(match[3]);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
 // Helper to determine if a color is dark (handles null, undefined, shorthand hex)
@@ -848,197 +835,18 @@ const ProfileBlock = memo(function ProfileBlock({
       );
     }
     default:
-      // Product block handled outside switch via creatorProducts lookup
+      // "product" blocks (legacy shop feature, removed 2026-09) fall through here and render nothing
       return null;
   }
 });
 
-// Product card for marketplace
-const ProductCard = memo(function ProductCard({ 
-  product, 
-  isDarkBg,
-  onBuy,
-  onPreview
-}: { 
-  product: { id: string; title: string; description: string | null; price_cents: number; product_type: string; cover_image_url: string | null; image_urls?: string[] | null; duration_minutes?: number; creator_id?: string };
-  isDarkBg?: boolean;
-  onBuy: (productId: string, bookingId?: string) => void;
-  onPreview: (product: any) => void;
-}) {
-  const isBooking = product.product_type === "booking";
-  return (
-    <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'}`}>
-      {product.cover_image_url && (
-        <img src={product.cover_image_url} alt={product.title} className="w-full h-32 object-cover" loading="lazy" />
-      )}
-      <div className="p-4 space-y-2">
-        <h4 className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>{product.title}</h4>
-        {product.description && (
-          <p className={`text-xs line-clamp-2 ${isDarkBg ? 'text-white/60' : 'text-muted-foreground'}`}>{product.description}</p>
-        )}
-        <div className="flex items-center justify-between pt-1">
-          <span className={`font-bold ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
-            ${(product.price_cents / 100).toFixed(2)}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onPreview(product)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
-            >
-              {isBooking ? "View & Book" : "View Details"}
-            </button>
-            {!isBooking && (
-              <button
-                onClick={() => onBuy(product.id)}
-                className="px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-              >
-                Buy Now
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// Inline Product Block - rendered within the unified content stream
-const ProductBlockCard = memo(function ProductBlockCard({
-  product,
-  isDarkBg,
-  onBuy,
-  onPreview,
-}: {
-  product: { id: string; title: string; description: string | null; price_cents: number; cover_image_url: string | null; product_type?: string; duration_minutes?: number; creator_id?: string };
-  isDarkBg?: boolean;
-  onBuy: (productId: string, bookingId?: string) => void;
-  onPreview: (product: any) => void;
-}) {
-  const isBooking = product.product_type === "booking";
-  return (
-    <div className={`rounded-xl overflow-hidden border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-card border-border'} shadow-sm`}>
-      {product.cover_image_url && (
-        <div className="relative aspect-video">
-          <img src={product.cover_image_url} alt={product.title} className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg">
-            ${(product.price_cents / 100).toFixed(2)}
-          </div>
-        </div>
-      )}
-      <div className="p-4 space-y-2">
-        <h4 className={`font-bold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>{product.title}</h4>
-        {product.description && (
-          <p className={`text-xs line-clamp-2 ${isDarkBg ? 'text-white/60' : 'text-muted-foreground'}`}>{product.description}</p>
-        )}
-        {!product.cover_image_url && (
-          <span className={`font-bold text-sm ${isDarkBg ? 'text-white' : 'text-foreground'}`}>
-            ${(product.price_cents / 100).toFixed(2)}
-          </span>
-        )}
-        <div className="flex gap-2">
-          {isBooking ? (
-            <button
-              onClick={() => onPreview(product)}
-              className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              Book Now
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => onBuy(product.id)}
-                className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
-              >
-                Get it Now
-              </button>
-              <button
-                onClick={() => onPreview(product)}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 ${isDarkBg ? 'border-white/30 text-white' : 'border-border text-foreground'}`}
-              >
-                Preview
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-
 const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) => {
   const { username: paramUsername, slug } = useParams<{ username?: string; slug?: string }>();
-  const [searchParams] = useSearchParams();
   const username = usernameOverride || paramUsername || slug;
   const navigate = useNavigate();
   
   // Use optimized data fetching with caching — pass initialProfile to skip redundant query
-  const { data, loading, error } = useProfileData(username, initialProfile);
-
-  // Creator products state
-  const [creatorProducts, setCreatorProducts] = useState<any[]>([]);
-  const [purchaseToken, setPurchaseToken] = useState<string | null>(null);
-  const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
-  const [previewProduct, setPreviewProduct] = useState<any | null>(null);
-
-  // Fetch creator products when profile loads
-  useEffect(() => {
-    if (!data?.profile?.id) return;
-    
-    supabase
-      .rpc("get_public_creator_products", { _creator_id: data.profile.id })
-      .then(({ data: products }) => {
-        if (products) setCreatorProducts(products as typeof creatorProducts);
-      });
-  }, [data?.profile?.id]);
-
-  // Handle purchase success - lookup access token
-  useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    const purchaseStatus = searchParams.get("purchase");
-    
-    if (purchaseStatus === "success" && sessionId) {
-      // Poll for the purchase record (webhook may take a moment)
-      const checkPurchase = async () => {
-        for (let i = 0; i < 10; i++) {
-          const { data: purchases } = await supabase
-            .from("creator_purchases")
-            .select("access_token")
-            .eq("stripe_session_id", sessionId)
-            .limit(1);
-          
-          if (purchases && purchases.length > 0) {
-            setPurchaseToken((purchases[0] as any).access_token);
-            toast.success("Purchase complete! Your download is ready.");
-            return;
-          }
-          await new Promise(r => setTimeout(r, 2000));
-        }
-        toast.info("Payment received! Your download link will be available shortly.");
-      };
-      checkPurchase();
-    }
-  }, [searchParams]);
-
-  const handleBuyProduct = async (productId: string, bookingId?: string) => {
-    setBuyingProductId(productId);
-    try {
-      const body: any = { productId };
-      if (bookingId) body.bookingId = bookingId;
-      
-      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke("create-product-checkout", {
-        body,
-      });
-      if (checkoutError) throw checkoutError;
-      if (checkoutData?.url) {
-        window.location.href = checkoutData.url;
-      }
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error("Failed to start checkout");
-    } finally {
-      setBuyingProductId(null);
-    }
-  };
+  const { data, loading, error, expiredPreview } = useProfileData(username, initialProfile);
 
   // Track visit after data loads (non-blocking)
   useEffect(() => {
@@ -1090,7 +898,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   }, []);
 
   const [showShareModal, setShowShareModal] = useState(false);
-  const [extractedBannerColor, setExtractedBannerColor] = useState<string | null>(null);
   const [showContactTooltip, setShowContactTooltip] = useState(false);
 
   // Show "Save my contact!" tooltip once per session
@@ -1106,24 +913,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     }, 6000);
     return () => clearTimeout(timer);
   }, [data?.profile?.contact_enabled, username]);
-
-  // Extract color from profile photo (used as banner) for natural fade effect
-  // When header_type is "banner", we use the profile_photo_url as the banner
-  const bannerUrlForExtraction = data?.profile?.header_type === "banner" && data?.profile?.profile_photo_url
-    ? data.profile.profile_photo_url
-    : null;
-  
-  useEffect(() => {
-    if (bannerUrlForExtraction) {
-      extractBottomColor(bannerUrlForExtraction).then(setExtractedBannerColor);
-    } else {
-      setExtractedBannerColor(null);
-    }
-  }, [bannerUrlForExtraction]);
-
-  // Detect if banner color is light (white/bright image) — need stronger overlay + dark text
-  const bannerLuminance = getRgbLuminance(extractedBannerColor);
-  const isLightBanner = bannerLuminance !== null && bannerLuminance > 0.7;
 
   // Must be called before early returns to comply with React Rules of Hooks
   const docBgColor = (() => {
@@ -1191,6 +980,12 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   }
 
   if (error || !data) {
+    // Trial ended without payment: graceful preview instead of a dead end.
+    // The account's status stays honestly lapsed — this banner is a
+    // conversion surface, not a status change.
+    if (expiredPreview) {
+      return <ExpiredSoloHubPreview preview={expiredPreview} />;
+    }
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-2">Profile not found</h1>
@@ -1252,42 +1047,26 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     groupedItems.push({ kind: "grid-group", links: currentGridGroup });
   }
 
-  // Use optimized header image URL for faster loading
-  const optimizedHeaderUrl = profile.header_type === "image" && profile.header_image_url
-    ? getOptimizedImageUrl(profile.header_image_url, 640, 85)
+  // Cover image (set in the Design tab). This is the ONLY header decoration
+  // rendered now — legacy header_type values (color/image/banner/logo) are
+  // stored but intentionally not honored, falling back to this clean default.
+  const coverImageUrl = profile.header_image_url
+    ? getOptimizedImageUrl(profile.header_image_url, 1080, 90)
     : null;
-  
-  // Banner image for premium users (header_type === "banner")
-  // Uses profile_photo_url as the banner (no separate upload)
-  const bannerUrl = (profile.header_type === "banner" && profile.profile_photo_url)
-    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
-    : null;
-  const hasBanner = !!bannerUrl;
-
-  // "Logo header" — the whole logo is shown uncropped at the top, then the page
-  // flows straight into the standard Solo Pro layout.
-  const isLogoHeader = profile.header_type === "logo";
-  const logoUrl = (isLogoHeader && profile.profile_photo_url)
-    ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 92)
-    : null;
-
-  
-  const headerStyle = optimizedHeaderUrl
-    ? { backgroundImage: `url(${optimizedHeaderUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
-    : { background: profile.header_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" };
+  const hasCover = !!coverImageUrl;
 
    // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
   const profileBgStyle = (profile as any).bg_style as string | null;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
-  
+
   // Premium dark base: use slate-950 as base with brand color as radial glow
   // Only override for default flat hex backgrounds (not user-set gradients)
   const isDefaultDarkBg = !profileBgStyle && !isGradientBg && isColorDark(bgColor);
   const bgStyle = profileBgStyle
     ? { background: profileBgStyle }
-    : isGradientBg 
-      ? { background: bgColor } 
+    : isGradientBg
+      ? { background: bgColor }
       : isDefaultDarkBg
         ? { backgroundColor: '#020617' }
         : { backgroundColor: bgColor };
@@ -1295,19 +1074,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const brandGlowStyle = isDefaultDarkBg && bgColor !== '#020617'
     ? { background: `radial-gradient(ellipse at top center, ${bgColor}30 0%, transparent 60%)` }
     : undefined;
-  const pfpCentered = profile.header_type === "banner" || isLogoHeader || profile.pfp_position === "center";
-  // Logo header: the band behind the logo can carry its own (sampled) color so
-  // it reads as a separate section from the content below it.
-  const logoBandColor = isLogoHeader
-    ? ((profile as any).logo_bg_color || profile.header_color || null)
-    : null;
+  const pfpCentered = (profile.pfp_position || "center") === "center";
   // Shared readability rules derived from the actual page background.
   const hubContrast = resolveHubContrast(profileBgStyle || bgColor);
-  const bandContrast = logoBandColor ? resolveHubContrast(logoBandColor) : hubContrast;
-  // For banners, use the extracted bottom color luminance instead of blindly assuming dark
-  const isDarkBg = hasBanner
-    ? (extractedBannerColor ? isColorDark(extractedBannerColor) : true)
-    : (isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor));
+  const isDarkBg = isGradientBg ? isColorDark(getBaseColorFromGradient(bgColor)) : isColorDark(bgColor);
 
   // Rep-built demo hub that has not converted to a paid plan yet
   const isUnclaimedDemo =
@@ -1352,163 +1122,44 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         className="min-h-[100dvh] md:max-w-[430px] md:mx-auto md:relative md:rounded-3xl md:mb-4"
         style={{
           ...bgStyle,
-          // Larger, softer glow that blends the frame edge into the outer background
-          boxShadow: hasBanner && extractedBannerColor 
-            ? `0 0 60px 20px ${extractedBannerColor}25`
-            : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          // Soft glow that blends the frame edge into the outer background
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
         }}
       >
         {/* Brand color radial glow overlay */}
         {brandGlowStyle && (
           <div className="absolute inset-0 pointer-events-none rounded-3xl" style={brandGlowStyle} />
         )}
-        {isLogoHeader ? (
-          <div
-            className="relative w-full flex items-center justify-center pt-8 pb-12 px-5"
-            style={logoBandColor ? { backgroundColor: logoBandColor } : undefined}
-          >
-            {logoUrl ? (
+        {/* Cover image — the only header decoration. Optional; legacy
+            header styles (color/banner/logo) fall back to no cover. */}
+        {coverImageUrl ? (
+          <div className="relative">
+            <div className="w-full h-48 md:h-56 overflow-hidden">
               <img
-                src={logoUrl}
-                alt={profile.full_name}
+                src={coverImageUrl}
+                alt=""
                 loading="eager"
                 decoding="async"
-                className="mx-auto"
-                style={logoImageStyle((profile as any).logo_scale)}
+                className="w-full h-full object-cover"
               />
-            ) : (
-              <div className="h-24" />
-            )}
-
-            {/* Save contact / Share float over the logo band so they stay
-                visible on light and dark pages alike. */}
+            </div>
+            {/* Fade into the page background */}
             <div
-              className="absolute right-4 flex gap-2 z-20"
-              style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
-            >
-              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
-                <span className="relative">
-                  <button
-                    onClick={handleSaveContact}
-                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
-                    aria-label="Save contact"
-                  >
-                    <UserPlus className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
-                  </button>
-                  {showContactTooltip && (
-                    <div
-                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
-                      style={{ animationDuration: '0.3s' }}
-                    >
-                      Save my contact!
-                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
-                    </div>
-                  )}
-                </span>
-              )}
-              <button
-                onClick={handleShare}
-                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-sm transition-colors ${bandContrast.chipClass}`}
-                aria-label="Share profile"
-              >
-                <Share2 className={`h-4 w-4 ${bandContrast.chipIconClass}`} />
-              </button>
-            </div>
-          </div>
-        ) : hasBanner ? (
-
-          <div className="relative">
-            {/* Existing banners retain their original full-height presentation. */}
-            <div 
-              className="w-full h-[55vh] md:h-[50vh] overflow-hidden"
-              style={{ willChange: 'transform' }}
-            >
-              <img
-                src={bannerUrl}
-                alt="Banner"
-                loading="eager"
-                decoding="async"
-                className="w-full h-full object-cover object-top"
-                style={{
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                  maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-                }}
-              />
-            </div>
-
-            {/* Gradient fade at bottom using extracted color from image - taller for text overlap */}
-            <div 
-              className="absolute inset-x-0 bottom-0 h-64 pointer-events-none"
+              className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
               style={{
-                background: isLightBanner
-                  ? `linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%)`
-                  : `linear-gradient(to bottom, transparent 0%, transparent 30%, ${extractedBannerColor || fadeToColor}40 60%, ${extractedBannerColor || fadeToColor} 100%)`
-              }}
-            />
-
-            {/* Action buttons - top right for banner profiles */}
-            <div className="absolute top-4 right-4 flex gap-2 z-20">
-              {profile.contact_enabled && profile.contact_display_style !== 'button' && (
-                <span className="relative">
-                  <button
-                    onClick={handleSaveContact}
-                    className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
-                    aria-label="Save contact"
-                  >
-                    <UserPlus className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
-                  </button>
-                  {showContactTooltip && (
-                    <div
-                      className="absolute z-50 right-0 top-full mt-2 whitespace-nowrap bg-white text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg animate-fade-in pointer-events-none"
-                      style={{ animationDuration: '0.3s' }}
-                    >
-                      Save my contact!
-                      <div className="absolute top-[-6px] right-3 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-white" />
-                    </div>
-                  )}
-                </span>
-              )}
-              <button
-                onClick={handleShare}
-                className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isLightBanner ? 'bg-white/80 hover:bg-white/90' : 'bg-black/30 hover:bg-black/40'}`}
-                aria-label="Share profile"
-              >
-                <Share2 className={`h-4 w-4 ${isLightBanner ? 'text-gray-900' : 'text-white'}`} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="relative">
-            <div 
-              className="h-48 bg-muted" 
-              style={headerStyle} 
-            />
-            {/* Smoother fade overlay from header to background - 6-stop gradient for cleaner blending */}
-            <div 
-              className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-              style={{
-                background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor}10 15%, ${fadeToColor}30 35%, ${fadeToColor}60 55%, ${fadeToColor}90 75%, ${fadeToColor} 100%)`
+                background: `linear-gradient(to bottom, transparent 0%, ${fadeToColor} 100%)`,
               }}
             />
           </div>
-        )}
+        ) : null}
         
-        {/* Curved seam: the content sheet overlaps the logo band with rounded
-            top corners, like the banner hubs. */}
-        {isLogoHeader && (
-          <div
-            className="relative z-[5] -mt-7 h-7 rounded-t-[28px] w-full"
-            style={bgStyle}
-          />
-        )}
 
-        {/* Profile Content - overlapping text for banner mode (transparent bg, text floats on banner) */}
+        {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${isLogoHeader ? 'mt-0' : hasBanner ? '-mt-32' : '-mt-20'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
-          {/* Action buttons - Share and Save Contact (non-banner, non-logo profiles) */}
-          {!hasBanner && !isLogoHeader && (
-            <div className="absolute top-0 right-4 flex gap-2">
+          {/* Action buttons - Share and Save Contact */}
+          <div className="absolute top-0 right-4 flex gap-2">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
@@ -1537,10 +1188,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
               </button>
             </div>
-          )}
 
-          {/* Avatar - priority loaded, hidden when the logo/banner is the header */}
-          {!hasBanner && !isLogoHeader && (
+          {/* Avatar - priority loaded */}
 
             <div className={`relative ${pfpCentered ? "inline-block" : ""} mb-4`}>
               <OptimizedAvatar
@@ -1556,33 +1205,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 <CheckCircle2 className="h-4 w-4 text-white" />
               </div>
             </div>
-          )}
 
           {/* Name & Username & Headline/Bio */}
-          {hasBanner ? (
-            // Banner mode: adaptive text based on banner brightness
-            <>
-              <h1 className={`text-3xl font-bold drop-shadow-lg ${isLightBanner ? 'text-gray-900' : 'text-white'}`}>
-                {profile.show_username !== false ? `@${profile.username}` : profile.full_name}
-              </h1>
-              {profile.headline && (
-                <p className={`text-base mt-2 drop-shadow-md ${isLightBanner ? 'text-gray-800' : 'text-white/90'}`}>
-                  {profile.headline}
-                </p>
-              )}
-                {profile.bio && (
-                  <p className={`text-base font-bold mt-3 max-w-xs mx-auto drop-shadow-md leading-relaxed ${isLightBanner ? 'text-gray-900' : 'text-white'}`}>
-                    {profile.bio}
-                  </p>
-                )}
-              {/* Social icon bar */}
-              <SocialIconBar links={iconLinks} isDarkBg={!isLightBanner} profileId={profile.id} />
-              <div className="mb-3" />
-            </>
-          ) : (
-            // Standard mode: Current styling
-            <>
-              <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
+          <h1 className={`text-2xl font-bold ${headingClass}`} style={headingStyle}>{profile.full_name}</h1>
               {profile.headline && (
                 <p className={`text-sm ${textClass} mt-1`} style={textStyle}>{profile.headline}</p>
               )}
@@ -1627,14 +1252,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 </button>
               )}
               <div className="mb-6" />
-            </>
-          )}
 
-          {/* Links section - solid background starts here for banner mode */}
-          <div 
-            className={hasBanner ? "rounded-3xl pt-4 pb-6 -mx-4 px-4" : ""}
-            style={hasBanner ? { backgroundColor: isLightBanner ? '#1a1a1a' : (extractedBannerColor || undefined) } : undefined}
-          >
+          {/* Links section */}
+          <div>
             {/* Lead Form CTA */}
             <div className="mb-4">
               <LeadFormSheet profileId={profile.id} accentColor={profileAccentColor} />
@@ -1669,16 +1289,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                   const currentIndex = linkIndex++;
                   return <ProfileLink key={`link-${item.data.id}`} link={item.data} profileId={profile.id} index={currentIndex} profilePhotoUrl={profile.profile_photo_url} accentColor={profileAccentColor} contrast={hubContrast} />;
                 } else {
-                  // Check if it's a product block
-                  const blockData = item.data;
-                  const blockContent = blockData.content as Record<string, string>;
-                  if (blockData.block_type === "product" && blockContent.product_id) {
-                    const product = creatorProducts.find((p: any) => p.id === blockContent.product_id);
-                    if (product) {
-                      return <ProductBlockCard key={`block-${blockData.id}`} product={product} isDarkBg={isDarkBg} onBuy={handleBuyProduct} onPreview={setPreviewProduct} />;
-                    }
-                    return null;
-                  }
                   return <ProfileBlock key={`block-${item.data.id}`} block={item.data} profileId={profile.id} isDarkBg={isDarkBg} textColor={profileTextColor} />;
                 }
               });
@@ -1692,43 +1302,6 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               </p>
             )}
           </div>
-
-          {/* Purchase Success Download Banner */}
-          {purchaseToken && (
-            <div className={`mt-6 p-4 rounded-xl border text-center ${isDarkBg ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
-              <p className={`font-semibold text-sm ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>🎉 Purchase Complete!</p>
-              <a
-                href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-product?token=${purchaseToken}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2 px-6 py-2 bg-primary text-primary-foreground rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
-              >
-                Download Your File
-              </a>
-              <p className={`text-xs mt-2 ${isDarkBg ? 'text-white/50' : 'text-gray-500'}`}>Link expires in 72 hours</p>
-            </div>
-          )}
-
-          {/* Creator Products Shop Section - only if show_shop_section is true */}
-          {creatorProducts.length > 0 && (data?.profile as any)?.show_shop_section !== false && (
-            <div className="mt-6 space-y-3">
-              <h3 className={`text-lg font-bold ${isDarkBg ? 'text-white' : 'text-gray-900'}`}>
-                Shop
-              </h3>
-              <div className="grid gap-3">
-                {creatorProducts.map(product => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
-                    isDarkBg={isDarkBg} 
-                    onBuy={handleBuyProduct}
-                    onPreview={setPreviewProduct}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
 
           {/* Footer */}
           <footer className="mt-6 pb-4 text-center space-y-3">
@@ -1799,19 +1372,9 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
           username: profile.username,
           full_name: profile.full_name,
           profile_photo_url: profile.profile_photo_url,
-          header_type: profile.header_type,
+          header_image_url: profile.header_image_url,
         }}
         shareUrl={`https://tapaway.co/${profile.username}`}
-      />
-
-      
-
-      {/* Product Preview Modal */}
-      <ProductPreviewModal
-        product={previewProduct}
-        isOpen={!!previewProduct}
-        onClose={() => setPreviewProduct(null)}
-        onBuy={handleBuyProduct}
       />
     </div>
   );

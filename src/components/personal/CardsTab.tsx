@@ -55,11 +55,15 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   useEffect(() => { loadRequests(); }, [profileId]);
 
   const loadRequests = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("personal_card_requests")
       .select("id, quantity, status, created_at, shipping_name, shipping_address_line1, shipping_address_line2, shipping_city, shipping_state, shipping_postal_code")
       .eq("profile_id", profileId)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error loading card requests:", error);
+      toast.error("Couldn't load your card orders. Check your connection and reopen this tab.");
+    }
     setRequests((data as CardRequest[]) || []);
 
     // Pre-fill address from last request
@@ -138,7 +142,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
       if (error) throw error;
       toast.success("Card request submitted!");
       setQuantity(1);
-      loadRequests();
+      void loadRequests();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit request");
     } finally {
@@ -170,7 +174,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
           {address.name} · {address.line1}, {address.city} {address.state} {address.postal_code}
         </p>
       </div>
-      <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={() => setEditingAddress(true)}>
+      <Button variant="ghost" size="sm" className="shrink-0 text-xs min-h-[44px]" onClick={() => setEditingAddress(true)}>
         <Pencil className="h-3 w-3 mr-1" /> Edit
       </Button>
     </div>
@@ -184,7 +188,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
           <Label className="text-sm font-medium">Shipping Address</Label>
         </div>
         {isAddressComplete(address) && (
-          <Button variant="ghost" size="sm" className="text-xs" onClick={() => setEditingAddress(false)}>
+          <Button variant="ghost" size="sm" className="text-xs min-h-[44px]" onClick={() => setEditingAddress(false)}>
             <Check className="h-3 w-3 mr-1" /> Done
           </Button>
         )}
@@ -192,7 +196,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
       <Input placeholder="Full name" value={address.name} onChange={e => setAddress(a => ({ ...a, name: e.target.value }))} />
       <Input placeholder="Address line 1" value={address.line1} onChange={e => setAddress(a => ({ ...a, line1: e.target.value }))} />
       <Input placeholder="Address line 2 (optional)" value={address.line2} onChange={e => setAddress(a => ({ ...a, line2: e.target.value }))} />
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <Input placeholder="City" value={address.city} onChange={e => setAddress(a => ({ ...a, city: e.target.value }))} />
         <Input placeholder="State" value={address.state} onChange={e => setAddress(a => ({ ...a, state: e.target.value }))} />
         <Input placeholder="ZIP" value={address.postal_code} onChange={e => setAddress(a => ({ ...a, postal_code: e.target.value }))} />
@@ -229,17 +233,17 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
                 <div className="flex items-center gap-3">
                   <Label className="text-sm">Quantity</Label>
                   <div className="flex items-center gap-2">
-                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
-                      <Minus className="h-3 w-3" />
+                    <Button size="icon" variant="outline" className="h-11 w-11" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Decrease quantity">
+                      <Minus className="h-4 w-4" />
                     </Button>
                     <span className="w-8 text-center font-medium">{quantity}</span>
-                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQuantity(q => Math.min(remaining, q + 1))} disabled={quantity >= remaining}>
-                      <Plus className="h-3 w-3" />
+                    <Button size="icon" variant="outline" className="h-11 w-11" onClick={() => setQuantity(q => Math.min(remaining, q + 1))} disabled={quantity >= remaining} aria-label="Increase quantity">
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
                 {editingAddress ? <AddressForm /> : <AddressSummary />}
-                <Button onClick={handleFreeRequest} disabled={submitting} className="w-full">
+                <Button onClick={handleFreeRequest} disabled={submitting} className="w-full min-h-[44px]">
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
                   Confirm Request
                 </Button>
@@ -265,7 +269,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
             </CardHeader>
             <CardContent className="space-y-4">
               {editingAddress ? <AddressForm /> : <AddressSummary />}
-              <Button onClick={() => handleCheckout("subscribe_addon")} disabled={submitting} className="w-full">
+              <Button onClick={() => handleCheckout("subscribe_addon")} disabled={submitting} className="w-full min-h-[44px]">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
                 Subscribe — $5/mo
               </Button>
@@ -291,7 +295,7 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
             </CardHeader>
             <CardContent className="space-y-4">
               {editingAddress ? <AddressForm /> : <AddressSummary />}
-              <Button variant="outline" onClick={() => handleCheckout("onetime")} disabled={submitting} className="w-full">
+              <Button variant="outline" onClick={() => handleCheckout("onetime")} disabled={submitting} className="w-full min-h-[44px]">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
                 Buy 3 Cards — $10
               </Button>

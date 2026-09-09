@@ -45,6 +45,7 @@ import {
   matchesStatus,
   useLocationIntel,
 } from "@/hooks/useLocationIntel";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 
 const CARD_ORDER: StatusKey[] = [
   "active_paid",
@@ -281,6 +282,7 @@ const VisitDialog = ({
 
 
 export default function AdminLocations() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
   const [params, setParams] = useSearchParams();
   const filter = (params.get("status") as StatusKey | null) ?? null;
   const stateFilter = (params.get("state") as LocationState | null) ?? null;
@@ -412,6 +414,15 @@ export default function AdminLocations() {
     ["Failed API requests", mapping.failedRequests],
     ["Still unmappable", mapping.stillUnmappable],
   ];
+
+  if (guardLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0b]">
+        <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+      </div>
+    );
+  }
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">
@@ -567,7 +578,7 @@ export default function AdminLocations() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="min-w-[760px] w-full text-sm">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-widest text-white/35">
                     <th className="py-2 pr-3">Business</th>

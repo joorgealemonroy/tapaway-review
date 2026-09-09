@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +59,11 @@ import {
   Activity,
   AlertTriangle,
   Printer,
+  PackageCheck,
   MapPin,
+  Percent,
+  Tag,
+  Mail,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
@@ -96,6 +100,7 @@ const NAV = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
   { id: "accounts" as const, label: "Accounts & Hubs", icon: Building2 },
   { id: "print" as const, label: "Print & Ship Queue", icon: Printer, path: "/admin/print-queue" },
+  { id: "fulfillment" as const, label: "Fulfillment", icon: PackageCheck, path: "/admin/fulfillment" },
   { id: "locations" as const, label: "Locations", icon: MapPin, path: "/admin/locations" },
   { id: "reps" as const, label: "Sales Reps", icon: Users },
   { id: "promo" as const, label: "Promo Links", icon: LinkIcon },
@@ -118,6 +123,9 @@ const SYSTEM_LINKS = [
   { label: "App Errors", desc: "Recent crashes captured from the app", icon: AlertTriangle, path: "/admin/errors" },
   { label: "VIP SMS Subscribers", desc: "Search & export VIP text lists", icon: MessageSquare, path: "/admin/sms-subscribers" },
   { label: "Comp Settings", desc: "Rates & bonus thresholds", icon: Settings, path: "/admin/settings/comp" },
+  { label: "Discounts", desc: "Quick discount pay links", icon: Percent, path: "/admin/discounts" },
+  { label: "Custom Plans", desc: "Custom-priced recurring plans", icon: Tag, path: "/admin/custom-plans" },
+  { label: "Emails", desc: "Template previews, send history & broadcasts", icon: Mail, path: "/admin/emails" },
 ];
 
 const Admin = () => {
@@ -126,6 +134,17 @@ const Admin = () => {
   const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   const [section, setSection] = useState<Section>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Deep link: /admin?section=accounts (used by sub-pages that point at a
+  // specific admin section, e.g. Analytics → Accounts & Hubs drill-down).
+  useEffect(() => {
+    const s = searchParams.get("section");
+    if (s === "accounts" || s === "reps" || s === "promo" || s === "system" || s === "overview") {
+      setSection(s);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [segment, setSegment] = useState<"all" | "legacy" | "lite">("all");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -287,7 +306,14 @@ const Admin = () => {
   };
 
   const toggleSub = async (r: Restaurant) => {
-    const next = r.subscription_status === "active" ? "paused" : "active";
+    // Only toggle between active/paused; leave trialing and other statuses
+    // untouched so an admin can't accidentally mark a trial as paid.
+    const next =
+      r.subscription_status === "active"
+        ? "paused"
+        : r.subscription_status === "paused"
+          ? "active"
+          : r.subscription_status;
     const { data, error: updateError } = await supabase
       .from("restaurants")
       .update({ subscription_status: next })
@@ -496,6 +522,8 @@ const Admin = () => {
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] ${
                     r.subscription_status === "active"
                       ? "bg-emerald-500/10 text-emerald-300"
+                      : r.subscription_status === "trialing"
+                      ? "bg-sky-500/10 text-sky-300"
                       : r.subscription_status === "paused"
                       ? "bg-amber-500/10 text-amber-300"
                       : r.subscription_status === "canceled"

@@ -35,40 +35,30 @@ const pacificDay = (d: Date) =>
     year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(d);
 
-/** The workday a commission was earned; falls back to its creation day. */
+/** The workday a demo payout was earned; falls back to its creation day. */
 const earnedDay = (c: { earned_on: string | null; created_at: string }) =>
   c.earned_on ?? pacificDay(new Date(c.created_at));
 
 const STATUS_STYLES: Record<string, string> = {
-  trial_pending: 'bg-blue-400/10 text-blue-200 border-blue-400/20',
-  available: 'bg-emerald-400/10 text-emerald-200 border-emerald-400/20',
   pending: 'bg-amber-400/10 text-amber-200 border-amber-400/20',
+  available: 'bg-emerald-400/10 text-emerald-200 border-emerald-400/20',
   paid: 'bg-emerald-400/15 text-emerald-100 border-emerald-400/30',
   voided: 'bg-white/5 text-white/40 border-white/10',
   clawed_back: 'bg-red-400/10 text-red-200 border-red-400/20',
-  locked_quality_gate: 'bg-purple-400/10 text-purple-200 border-purple-400/20',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  trial_pending: 'In Trial',
-  available: 'Available',
   pending: 'Pending',
+  available: 'Available',
   paid: 'Paid',
   voided: 'Voided',
   clawed_back: 'Clawed Back',
-  locked_quality_gate: 'Quality Gate',
 };
 
 const typeLabel = (c: Commission) => {
   const ct = c.commission_type || c.type;
   switch (ct) {
-    case 'shift_base': return 'Daily Base ($50)';
     case 'demo_bonus': return 'Demo Bonus ($5)';
-    case 'annual_bounty': return 'Annual Bounty ($75)';
-    case 'closer_pool': return "Closer's Pool";
-    case 'bonus': return 'Production Bonus';
-    case 'recurring': return 'Recurring (legacy)';
-    case 'upfront': return 'Upfront (legacy)';
     default: return ct || '—';
   }
 };
@@ -116,7 +106,7 @@ const RepCommissions = () => {
 
         if (statusFilter !== 'all') query = query.eq('status', statusFilter);
         if (typeFilter !== 'all') {
-          if (['shift_base', 'bonus', 'demo_bonus', 'annual_bounty', 'closer_pool', 'upfront', 'recurring'].includes(typeFilter)) {
+          if (['demo_bonus'].includes(typeFilter)) {
             query = query.eq('commission_type', typeFilter);
           } else {
             query = query.eq('type', typeFilter);
@@ -138,7 +128,7 @@ const RepCommissions = () => {
           .from('commissions').select('amount, status').eq('rep_id', salesRep.id);
 
         // Count demos submitted for admin review but not yet approved — these
-        // will each earn a $5 demo_bonus on approval but have no commission row yet.
+        // will each earn a $5 demo bonus on approval but have no payout row yet.
         const { count: pendingDemoCount } = await supabase
           .from('personal_profiles')
           .select('id', { count: 'exact', head: true })
@@ -147,7 +137,7 @@ const RepCommissions = () => {
           .not('submitted_for_review_at', 'is', null);
 
         const pendingCommissionAmount =
-          allComm?.filter(c => ['pending', 'trial_pending'].includes(c.status))
+          allComm?.filter(c => ['pending'].includes(c.status))
             .reduce((s, c) => s + Number(c.amount), 0) || 0;
         const pendingDemoAmount = (pendingDemoCount ?? 0) * DEMO_BONUS;
 
@@ -182,8 +172,14 @@ const RepCommissions = () => {
   const w9Ok = taxStatus === 'approved';
   const w9Warn = taxStatus === 'submitted';
 
+  // Demo bonuses earned this calendar month (Pacific days, keyed to the day the
+  // demo was submitted, not the day it was approved).
+  const todayPT = pacificDay(new Date());
+  const monthPT = todayPT.slice(0, 7);
+  const bonusesThisMonth = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c).startsWith(monthPT));
+
   return (
-    <RepShell title="Commissions" subtitle="Track your earnings and payout readiness.">
+    <RepShell title="Earnings" subtitle="Track your demo payouts.">
       {/* Payout readiness strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         <button
@@ -202,7 +198,7 @@ const RepCommissions = () => {
           <div className="flex-1">
             <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">W-9 Tax Form</p>
             <p className="text-sm font-semibold text-white mt-0.5">{w9Label}</p>
-            <p className="text-[11px] text-white/50 mt-0.5">Required before commissions can be paid out.</p>
+            <p className="text-[11px] text-white/50 mt-0.5">Required before payouts can be sent.</p>
           </div>
           {!w9Ok && <ArrowRight className="h-4 w-4 text-white/40" />}
         </button>
@@ -234,6 +230,15 @@ const RepCommissions = () => {
         </div>
       )}
 
+      {/* How pay works */}
+      <div className="mb-6 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-xs leading-relaxed text-white/55">
+        <p className="font-semibold text-white/80">How you get paid</p>
+        <p className="mt-1">
+          You earn <strong className="text-emerald-300">$5 for every demo hub you build that an admin approves</strong>.
+          That's the whole deal — there are no commissions, no closing pay, no bonuses, no tiers, and no recurring
+          payments of any kind. The rows below are your record of those $5 demo payouts.
+        </p>
+      </div>
 
       {/* Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -246,41 +251,24 @@ const RepCommissions = () => {
           </div>
           <p className="text-3xl font-semibold text-emerald-300">${stats.available.toFixed(2)}</p>
           <p className="text-xs text-white/40 mt-1">Ready for ACH transfer</p>
-          {(() => {
-            // Work days are California business days, keyed to the day the
-            // demo was submitted (earned_on), not the day it was approved.
-            const todayPT = pacificDay(new Date());
-            const monthPT = todayPT.slice(0, 7);
-            const bonuses = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c).startsWith(monthPT));
-            const demosToday = commissions.filter(c => c.commission_type === 'demo_bonus' && earnedDay(c) === todayPT).length;
-            const baseToday = commissions.find(c => c.commission_type === 'shift_base' && earnedDay(c) === todayPT);
-            const QUOTA = 10;
-            return (
-              <>
-                {bonuses.length > 0 && (
-                  <p className="text-[11px] text-emerald-300/70 mt-2">Demo bonuses this month: {bonuses.length} × $5 = ${bonuses.reduce((s, c) => s + Number(c.amount), 0).toFixed(2)}</p>
-                )}
-                <p className="text-[11px] mt-1 text-white/50">
-                  {baseToday
-                    ? <>Daily base earned today: <span className="text-emerald-300 font-semibold">+$50</span></>
-                    : <>Daily $50 base: <span className="text-white/80 font-semibold">{Math.min(demosToday, QUOTA)}/{QUOTA}</span> demos approved today</>}
-                </p>
-              </>
-            );
-          })()}
+          {bonusesThisMonth.length > 0 && (
+            <p className="text-[11px] text-emerald-300/70 mt-2">
+              Demo bonuses this month: {bonusesThisMonth.length} × $5 = ${bonusesThisMonth.reduce((s, c) => s + Number(c.amount), 0).toFixed(2)}
+            </p>
+          )}
         </RepCard>
         <RepCard className="p-5">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-400/20">
               <Clock className="h-5 w-5 text-amber-300" />
             </div>
-            <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Pending Validation</p>
+            <p className="text-[11px] uppercase tracking-widest text-white/40 font-medium">Pending Review</p>
           </div>
           <p className="text-3xl font-semibold text-amber-300">${stats.pending.toFixed(2)}</p>
           <p className="text-xs text-white/40 mt-1">
             {stats.pendingDemoCount > 0
               ? `${stats.pendingDemoCount} demo${stats.pendingDemoCount === 1 ? '' : 's'} awaiting admin review · $${stats.pendingDemoAmount.toFixed(2)}`
-              : 'Earnings awaiting approval'}
+              : 'Payouts awaiting approval'}
           </p>
         </RepCard>
         <RepCard className="p-5">
@@ -303,13 +291,11 @@ const RepCommissions = () => {
           </SelectTrigger>
           <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="trial_pending">In Trial</SelectItem>
-            <SelectItem value="available">Available</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="available">Available</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="voided">Voided</SelectItem>
             <SelectItem value="clawed_back">Clawed Back</SelectItem>
-            <SelectItem value="locked_quality_gate">Quality Gate</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -318,12 +304,7 @@ const RepCommissions = () => {
           </SelectTrigger>
           <SelectContent className="bg-[#0f1420] border-white/10 text-white/80">
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="shift_base">Daily Base ($50)</SelectItem>
             <SelectItem value="demo_bonus">Demo Bonus ($5)</SelectItem>
-            <SelectItem value="annual_bounty">Annual Bounty ($75)</SelectItem>
-            <SelectItem value="closer_pool">Closer's Pool</SelectItem>
-            <SelectItem value="upfront">Upfront (legacy)</SelectItem>
-            <SelectItem value="recurring">Recurring (legacy)</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -332,7 +313,7 @@ const RepCommissions = () => {
       <RepCard className="overflow-hidden">
         <div className="hidden md:grid md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-4 px-5 py-3 border-b border-white/5 bg-white/[0.02] text-[10px] font-semibold text-white/40 uppercase tracking-widest">
           <div>Date</div>
-          <div>Business / Shift</div>
+          <div>Business</div>
           <div>Type</div>
           <div>Amount</div>
           <div>Status</div>
@@ -340,7 +321,7 @@ const RepCommissions = () => {
 
         {commissions.length === 0 ? (
           <div className="text-center py-14 text-white/40 text-sm">
-            No commissions yet. Start closing businesses to earn.
+            No payouts yet. You earn $5 for every demo hub you build that an admin approves.
           </div>
         ) : (
           commissions.map(c => (
@@ -349,7 +330,7 @@ const RepCommissions = () => {
               className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1.2fr_1fr_1fr] gap-2 md:gap-4 px-5 py-3.5 border-b border-white/5 last:border-b-0 items-center text-sm"
             >
               <div className="text-white/60">{format(new Date(`${earnedDay(c)}T12:00:00`), 'MMM d, yyyy')}</div>
-              <div className="text-white/90">{c.restaurant_name || (c.commission_type === 'shift_base' ? 'Daily Shift' : c.commission_type === 'closer_pool' ? "Monthly Closer's Pool" : '—')}</div>
+              <div className="text-white/90">{c.restaurant_name || '—'}</div>
               <div>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-white/70 text-[11px] font-medium">
                   {typeLabel(c)}
@@ -376,15 +357,13 @@ const RepCommissions = () => {
         </p>
         <p className="mb-2">
           Compensation is performance-based and nothing is earned until it qualifies: <strong className="text-white/60">$5</strong> per
-          demo hub <em>after an admin approves it</em> (max 50 approved hubs per day),
-          a <strong className="text-white/60">$50 daily base</strong> awarded once per calendar day only when 10 or more of your hubs
-          are approved that day, and a one-time <strong className="text-white/60">$75</strong> bounty when a business you built converts
-          to an annual plan. There is no recurring or lifetime percentage commission.
+          demo hub <em>after an admin approves it</em>. There is no daily base, no annual bounty, no closing
+          commission, no bonus, no tier, and no recurring or percentage-based pay of any kind.
         </p>
         <p>
           Only amounts marked <em>Available</em> or <em>Paid</em> are earned. Payouts run Tuesdays at 12:00 PM PT and
           require a valid W-9 and ACH details on file. TapAway may void or claw back amounts awarded in error or tied
-          to fraudulent, duplicated or unauthorized hubs, and may change rates with notice. See the full{" "}
+          to fraudulent, duplicated or unauthorized hubs, and may change the $5 rate with notice. See the full{" "}
           <a href="/rep/docs" className="underline decoration-dotted">Sales Partner Agreement</a> for details.
         </p>
       </div>

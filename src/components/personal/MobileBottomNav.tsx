@@ -1,4 +1,4 @@
-import { Link2, Palette, BarChart3, MoreHorizontal, Mail, MessageSquare, Sparkles, Users, ShoppingBag, CreditCard, Moon, Sun, ArrowLeftRight } from "lucide-react";
+import { Link2, Palette, BarChart3, MoreHorizontal, Mail, MessageSquare, Sparkles, Users, CreditCard, Moon, Sun, ArrowLeftRight, LayoutDashboard } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
@@ -21,15 +21,15 @@ interface MobileBottomNavProps {
 }
  
  const PRIMARY_TABS = [
+   { value: "overview", label: "Overview", icon: LayoutDashboard },
    { value: "links", label: "Links", icon: Link2 },
    { value: "design", label: "Design", icon: Palette },
-   { value: "analytics", label: "Stats", icon: BarChart3 },
  ];
  
 const BASE_MORE_TABS = [
-  { value: "shop", label: "Shop", icon: ShoppingBag, description: "Sell digital products" },
-  { value: "leads", label: "Leads", icon: Mail, description: "View email captures" },
+  { value: "leads", label: "Customer info", icon: Mail, description: "Collect info from page visitors" },
   { value: "sms", label: "SMS", icon: MessageSquare, description: "Text your subscribers" },
+  { value: "analytics", label: "Stats", icon: BarChart3, description: "Visits & link clicks" },
   { value: "plan", label: "Plan", icon: Sparkles, description: "Subscription & billing" },
   { value: "cards", label: "Cards", icon: CreditCard, description: "Request NFC cards" },
 ];

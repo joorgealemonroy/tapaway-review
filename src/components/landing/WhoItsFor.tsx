@@ -74,7 +74,7 @@ export const WhoItsFor = () => {
           className="text-center mt-8"
         >
           <a
-            href="/tapaway"
+            href="/examples"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors"
           >
             See What a Review Hub Looks Like

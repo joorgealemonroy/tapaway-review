@@ -76,7 +76,7 @@ export const NewHero = () => {
         duration: 0.4,
         delay: 0.5
       }} className="text-xs text-gray-500">
-          $20/month · or $199/year and Card Club is included free
+          $20/mo Solo · $39/mo Venue · or $199/yr & $390/yr · 14-day free trial
         </motion.p>
         
         <motion.div initial={{

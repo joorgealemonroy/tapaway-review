@@ -14,6 +14,40 @@ const MAX_LEN = 160;
 const STOP_SUFFIX = "\nReply STOP to opt out.";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Review-request dedup (Jorge's hard rule: one review-request SMS per phone
+ * number per business, ever). A message counts as a review request when the
+ * UI flags it (owner used the review-request template) OR its text mentions
+ * reviews — /\breviews?\b/i — so hand-written "please leave us a review"
+ * messages are covered too.
+ *
+ * Phone normalization (exact scheme — must match the SQL comment in
+ * 20260909180000_review_request_sends.sql):
+ *   1. Strip every non-digit character.
+ *   2. 10 digits -> prepend "1" (assume North American).
+ *   3. 11 digits starting with "1" -> keep.
+ *   4. Anything else -> keep digits as-is (international / unusual, no guessing).
+ *   5. Prefix "+".
+ * phone_hash = lowercase hex SHA-256 of the normalized string. No salt/pepper:
+ * salts would break cross-check consistency, and a rotating pepper would
+ * silently break dedup (re-texting people — the exact thing this prevents).
+ */
+const REVIEW_REQUEST_RE = /\breviews?\b/i;
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
+async function hashPhone(normalized: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
+  return Array.from(new Uint8Array(bytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
@@ -77,6 +111,8 @@ Deno.serve(async (req) => {
     const profileId = typeof body?.profile_id === "string" ? body.profile_id.trim() : "";
     const restaurantId = typeof body?.restaurant_id === "string" ? body.restaurant_id.trim() : "";
     const message = typeof body?.message === "string" ? body.message.trim() : "";
+    // True when the owner sent from the review-request template in the UI.
+    const reviewTemplateFlag = body?.review_request === true;
 
     if (!profileId && !restaurantId) {
       return json(400, { error: "Must provide profile_id or restaurant_id" });
@@ -182,11 +218,65 @@ Deno.serve(async (req) => {
       };
     }
 
+    const isReviewRequest = reviewTemplateFlag || REVIEW_REQUEST_RE.test(message);
+
+    // ---- Review-request dedup: one SMS per phone number per business, ever.
+    // Check the send log BEFORE sending; numbers already texted a review
+    // request are silently skipped and never re-texted.
+    let eligiblePhones = phones;
+    let skippedDuplicates = 0;
+    // phone -> hash, kept so we can record exactly the numbers we sent.
+    let phoneHashes: Array<{ phone: string; hash: string }> = [];
+    const ownerCol = profileId ? "profile_id" : "restaurant_id";
+    const ownerId = profileId || restaurantId;
+
+    if (isReviewRequest && phones.length > 0) {
+      phoneHashes = await Promise.all(
+        phones.map(async (p) => ({ phone: p, hash: await hashPhone(normalizePhone(p)) })),
+      );
+      const { data: prior, error: priorErr } = await admin
+        .from("review_request_sends")
+        .select("phone_hash")
+        .eq(ownerCol, ownerId)
+        .in(
+          "phone_hash",
+          phoneHashes.map((h) => h.hash),
+        );
+      if (priorErr) {
+        console.error("review-request dedup lookup failed", priorErr);
+        // Fail closed: never risk re-texting someone because a lookup errored.
+        return json(500, { error: "Failed to check review-request history" });
+      }
+      const seen = new Set((prior ?? []).map((r: any) => String(r.phone_hash)));
+      const eligible = phoneHashes.filter((h) => !seen.has(h.hash));
+      skippedDuplicates = phoneHashes.length - eligible.length;
+      eligiblePhones = eligible.map((h) => h.phone);
+      phoneHashes = eligible;
+    }
+
     if (phones.length === 0) {
       return json(200, { recipient_count: 0, success_count: 0, failure_count: 0 });
     }
 
+    // Everyone already got a review request: nothing to do, and no campaign
+    // row (Recent campaigns shouldn't show sends that never went out).
+    if (isReviewRequest && eligiblePhones.length === 0) {
+      return json(200, {
+        recipient_count: phones.length,
+        success_count: 0,
+        failure_count: 0,
+        skipped_duplicates: skippedDuplicates,
+        review_request: true,
+      });
+    }
+
     const fullMessage = `${senderName}: ${message}${STOP_SUFFIX}`;
+
+    // For review requests, the campaign logs the sends actually attempted
+    // (eligible phones), not the duplicates that were skipped.
+    if (isReviewRequest) {
+      campaignRow = { ...campaignRow, recipient_count: eligiblePhones.length };
+    }
 
     const { data: campaign, error: campErr } = await admin
       .from(campaignTable)
@@ -202,9 +292,12 @@ Deno.serve(async (req) => {
     const BATCH = 10;
     let success = 0;
     let failure = 0;
+    // Track per-phone results so review-request dedup records exactly the
+    // numbers that were accepted (failed sends stay eligible for a retry).
+    const sendResults: Array<{ phone: string; ok: boolean }> = [];
 
-    for (let i = 0; i < phones.length; i += BATCH) {
-      const batch = phones.slice(i, i + BATCH);
+    for (let i = 0; i < eligiblePhones.length; i += BATCH) {
+      const batch = eligiblePhones.slice(i, i + BATCH);
       const results = await Promise.all(
         batch.map(async (to) => {
           try {
@@ -233,7 +326,11 @@ Deno.serve(async (req) => {
           }
         }),
       );
-      for (const ok of results) ok ? success++ : failure++;
+      batch.forEach((to, idx) => {
+        const ok = results[idx];
+        sendResults.push({ phone: to, ok });
+        ok ? success++ : failure++;
+      });
     }
 
     await admin
@@ -241,10 +338,35 @@ Deno.serve(async (req) => {
       .update({ success_count: success, failure_count: failure })
       .eq("id", campaign.id);
 
+    // ---- Record review-request sends (check-then-record). Only accepted
+    // sends are logged, so a failed send can be retried without being
+    // treated as a duplicate. The partial unique index on
+    // (business, phone_hash) is the race-safety backstop: two concurrent
+    // sends to the same number can both pass the check, and the second
+    // insert is ignored (error 23505) — dedup still holds.
+    if (isReviewRequest && campaign) {
+      const hashByPhone = new Map(phoneHashes.map((h) => [h.phone, h.hash]));
+      const rows = sendResults
+        .filter((r) => r.ok && hashByPhone.has(r.phone))
+        .map((r) => ({
+          [ownerCol]: ownerId,
+          phone_hash: hashByPhone.get(r.phone),
+          sent_via: "send-mass-sms",
+          campaign_id: campaign.id,
+        }));
+      if (rows.length > 0) {
+        const { error: logErr } = await admin.from("review_request_sends").insert(rows);
+        if (logErr && (logErr as any).code !== "23505") {
+          console.error("review_request_sends insert failed", logErr);
+        }
+      }
+    }
+
     return json(200, {
-      recipient_count: phones.length,
+      recipient_count: eligiblePhones.length,
       success_count: success,
       failure_count: failure,
+      ...(isReviewRequest ? { skipped_duplicates: skippedDuplicates, review_request: true } : {}),
     });
   } catch (err) {
     console.error("send-mass-sms unexpected error", err);

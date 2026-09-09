@@ -162,6 +162,11 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
   const touchHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialTouchYRef = useRef<number | null>(null);
   const draggedElRef = useRef<HTMLElement | null>(null);
+  // Set when a touch-drag actually moved an item — used to suppress the
+  // tap-to-toggle menu on grid tiles right after a drag ends.
+  const justDraggedRef = useRef(false);
+  // Grid-tile action menu (tap-to-toggle on touch devices; hover on desktop).
+  const [tileMenuOpen, setTileMenuOpen] = useState<string | null>(null);
   
   // Track pending changes - these haven't been saved to DB yet
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(createEmptyPendingChanges());
@@ -691,6 +696,10 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
     if (isDragEnabled && draggedItem) {
       setDraggedItem(null);
       markPendingChange({ orderChanged: true });
+      // A real drag happened — the synthetic click that follows this
+      // touchend must not toggle the grid-tile menu.
+      justDraggedRef.current = true;
+      setTimeout(() => { justDraggedRef.current = false; }, 350);
     }
     
     setIsDragEnabled(false);
@@ -1040,9 +1049,26 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         onDragStart={() => handleDragStart(index, { kind: "link", data: link })}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
-                        onTouchStart={(e) => handleTouchStart(e, index, { kind: "link", data: link })}
-                        
-                     className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all touch-none group ${
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${link.label} — open actions`}
+                        aria-expanded={tileMenuOpen === link.id}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setTileMenuOpen((open) => (open === link.id ? null : link.id));
+                          }
+                        }}
+                        onClick={() => {
+                          // A drag just ended — don't toggle the menu from the
+                          // synthetic click that follows touchend.
+                          if (justDraggedRef.current) {
+                            justDraggedRef.current = false;
+                            return;
+                          }
+                          setTileMenuOpen((open) => (open === link.id ? null : link.id));
+                        }}
+                        className={`relative aspect-square rounded-xl overflow-hidden border bg-card transition-all group ${
                           isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : ""
                         } ${isDragEnabled && isDragging ? "scale-105 shadow-xl" : ""} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-50" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                       >
@@ -1083,9 +1109,16 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                           </div>
                         )}
 
-                        {/* Drag handle */}
-                        <div className="absolute top-2 right-2 cursor-grab text-white/70 hover:text-white">
-                          <GripVertical className="h-4 w-4" />
+                        {/* Drag handle — hold to reorder. Scoped here so touching
+                            the tile scrolls the page normally; tapping the
+                            tile toggles the actions menu instead. */}
+                        <div
+                          onTouchStart={(e) => handleTouchStart(e, index, { kind: "link", data: link })}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-0 right-0 z-10 h-11 w-11 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none text-white/70 hover:text-white"
+                          aria-label={`Hold to reorder ${link.label}`}
+                        >
+                          <GripVertical className="h-5 w-5" />
                         </div>
 
                         {/* Label */}
@@ -1104,40 +1137,50 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                         </div>
 
 
-                        {/* Actions overlay on hover */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                        {/* Actions overlay — hover on desktop, tap the tile on touch */}
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className={`absolute inset-0 bg-black/40 transition-opacity flex flex-wrap items-center justify-center gap-1.5 p-2 ${
+                            tileMenuOpen === link.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          }`}
+                        >
                           <button
-                            onClick={() => toggleFeatured(link.id, link.is_featured)}
-                            className={`p-1.5 rounded bg-white/20 hover:bg-white/30 transition-colors ${
+                            onClick={() => { setTileMenuOpen(null); toggleFeatured(link.id, link.is_featured); }}
+                            className={`h-11 w-11 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center ${
                               link.is_featured ? "text-yellow-400" : "text-white"
                             }`}
                             title={link.is_featured ? "Unstar" : "Star"}
+                            aria-label={link.is_featured ? `Unstar ${link.label}` : `Star ${link.label}`}
                           >
-                            <Star className={`h-3.5 w-3.5 ${link.is_featured ? "fill-current" : ""}`} />
+                            <Star className={`h-5 w-5 ${link.is_featured ? "fill-current" : ""}`} />
                           </button>
                           <button
-                            onClick={() => toggleLinkVisibility(link.id, link.is_active)}
-                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            onClick={() => { setTileMenuOpen(null); toggleLinkVisibility(link.id, link.is_active); }}
+                            className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center justify-center"
                             title={isActive ? "Hide" : "Show"}
+                            aria-label={`${isActive ? "Hide" : "Show"} ${link.label}`}
                           >
-                            {isActive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                            {isActive ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                           </button>
                           <button
                             onClick={() => {
+                              setTileMenuOpen(null);
                               setEditingLink(convertToPersonalLink(link));
                               setLinkModalOpen(true);
                             }}
-                            className="p-1.5 rounded bg-white/20 hover:bg-white/30 text-white transition-colors"
+                            className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center justify-center"
                             title="Edit"
+                            aria-label={`Edit ${link.label}`}
                           >
-                            <Edit className="h-3.5 w-3.5" />
+                            <Edit className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => setDeleteItem({ kind: "link", id: link.id })}
-                            className="p-1.5 rounded bg-white/20 hover:bg-red-500/70 text-white transition-colors"
+                            onClick={() => { setTileMenuOpen(null); setDeleteItem({ kind: "link", id: link.id }); }}
+                            className="h-11 w-11 rounded-full bg-white/20 hover:bg-red-500/70 text-white transition-colors flex items-center justify-center"
                             title="Delete"
+                            aria-label={`Delete ${link.label}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
@@ -1181,14 +1224,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragStart={() => handleDragStart(index, item)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, index, item)}
                   
-                  className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border transition-all touch-none select-none backdrop-blur-sm ${
+                  className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border transition-all select-none backdrop-blur-sm ${
                     isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${isFeatured ? "border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/20" : "border-border/50 bg-card/80"} ${!isActive && !link.url?.startsWith('#placeholder-') ? "opacity-40" : ""} ${link.url?.startsWith('#placeholder-') ? "ring-2 ring-red-500 animate-[red-glow_2s_ease-in-out_infinite]" : ""}`}
                 >
-                  <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
-                    <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+                  {/* Drag handle — hold to reorder. Scoped here (not the whole
+                      row) so a touch anywhere else scrolls the page normally. */}
+                  <div
+                    onTouchStart={(e) => handleTouchStart(e, index, item)}
+                    className="h-11 w-11 -ml-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
+                    aria-label={`Hold to reorder ${link.label}`}
+                  >
+                    <GripVertical className="h-5 w-5 text-muted-foreground/50" />
                   </div>
                   {/* Thumbnail or platform icon */}
                   {link.thumbnail_url ? (
@@ -1250,13 +1298,14 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   <Switch
                     checked={isActive}
                     onCheckedChange={() => toggleLinkVisibility(link.id, link.is_active)}
-                    className="scale-75"
+                    aria-label={`${isActive ? "Hide" : "Show"} ${link.label}`}
+                    className="relative before:absolute before:-inset-3 before:content-['']"
                   />
                   
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-1.5 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                      <button aria-label={`More actions for ${link.label}`} className="hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
+                        <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
@@ -1291,14 +1340,19 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   onDragStart={() => handleDragStart(index, item)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, index, item)}
                   
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm transition-all touch-none select-none ${
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm transition-all select-none ${
                     isDragging ? "opacity-50 scale-[1.03] shadow-xl ring-2 ring-primary/50" : ""
                   } ${isDragEnabled && isDragging ? "scale-[1.03] shadow-xl" : ""} ${!isActive ? "opacity-40" : ""}`}
                 >
-                  <div className="p-0.5 cursor-grab active:cursor-grabbing touch-none select-none">
-                    <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+                  {/* Drag handle — hold to reorder. Scoped here (not the whole
+                      row) so a touch anywhere else scrolls the page normally. */}
+                  <div
+                    onTouchStart={(e) => handleTouchStart(e, index, item)}
+                    className="h-11 w-11 -ml-2 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none shrink-0"
+                    aria-label={`Hold to reorder ${getBlockLabel(block)}`}
+                  >
+                    <GripVertical className="h-5 w-5 text-muted-foreground/50" />
                   </div>
                   <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     {renderBlockIcon(block.block_type)}
@@ -1309,8 +1363,8 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-2 -m-1 hover:bg-muted rounded-lg transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center">
-                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                      <button aria-label={`More actions for ${getBlockLabel(block)}`} className="hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
+                        <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
@@ -1401,10 +1455,10 @@ export const DashboardUnifiedContent = forwardRef<DashboardUnifiedContentHandle,
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
             >
               Remove
             </AlertDialogAction>

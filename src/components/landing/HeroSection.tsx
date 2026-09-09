@@ -50,7 +50,7 @@ export const HeroSection = () => {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               <Star className="w-4 h-4 fill-primary" />
-              <span>Trusted by 150+ businesses nationwide</span>
+              <span>Trusted by local businesses across Southern California</span>
             </motion.div>
 
             {/* Main Headline */}

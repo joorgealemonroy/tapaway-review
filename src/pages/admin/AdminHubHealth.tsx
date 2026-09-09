@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { HubRow, ProbeState, hubKey, liveHubs, probeHub, runHealthSweep } from "@/lib/hubHealthProbe";
 
@@ -34,6 +36,8 @@ const needsAttention = (c: LinkCheck) =>
 
 
 export default function AdminHubHealth() {
+  const { isAdmin, loading: guardLoading } = useAdminGuard();
+  const navigate = useNavigate();
   const [rows, setRows] = useState<HubRow[]>([]);
   const [probes, setProbes] = useState<Record<string, ProbeState>>({});
   const [loading, setLoading] = useState(true);
@@ -170,10 +174,21 @@ export default function AdminHubHealth() {
     return { totals: t, broken: b };
   }, [rows, probes]);
 
+  if (guardLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0e1a]">
+        <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+      </div>
+    );
+  }
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="-mb-2 -ml-2 text-white/70 hover:text-white">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Admin
+        </Button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Hub Health</h1>

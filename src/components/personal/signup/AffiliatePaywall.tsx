@@ -247,7 +247,10 @@ export const AffiliatePaywall = ({ referralCode }: Props) => {
             <span>Secure checkout • Cancel anytime</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            After your 2-week free trial, you'll be charged. Cancel before trial ends and you won't be charged.
+            After your 14-day free trial, you'll be charged. Cancel before trial ends and you won't be charged.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            We'll place a temporary $1 hold to verify your card. It's released automatically — never charged.
           </p>
         </div>
 

@@ -105,17 +105,71 @@ serve(async (req) => {
 
     // Determine plan type
     let planType = session.metadata?.plan_type || 'monthly';
-    if (subscriptionId && !session.metadata?.plan_type) {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const priceId = subscription.items.data[0]?.price.id;
-      if (priceId?.includes('year')) {
-        planType = 'yearly';
+
+    // Persist the REAL Stripe subscription status ('trialing' during the free
+    // trial, 'active' once paid) so the trial funnel is visible in the DB.
+    // $0 trial checkouts used to be hard-coded to 'active' below.
+    let subscriptionStatus = 'active';
+    let trialEndsAt: string | null = null;
+    if (subscriptionId) {
+      const subscription =
+        typeof session.subscription === 'object' && session.subscription
+          ? session.subscription
+          : await stripe.subscriptions.retrieve(subscriptionId);
+      if (subscription.status === 'trialing') {
+        subscriptionStatus = 'trialing';
+        if (subscription.trial_end) {
+          trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+        }
+      }
+      if (!session.metadata?.plan_type) {
+        const priceId = subscription.items.data[0]?.price.id;
+        if (priceId?.includes('year')) {
+          planType = 'yearly';
+        }
       }
     }
 
     // Create Supabase admin client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // ── $1 trial card verification (CARD-CHECK), shared by both branches ──
+    // Server-to-server call to verify-trial-card (service-role bearer; never
+    // exposed to the client). Fail-closed: any failure blocks the trial.
+    const runTrialCardCheck = async (): Promise<{ ok: boolean; message: string }> => {
+      const fallbackMessage = "Your card couldn't be verified. Please try a different card or contact your bank.";
+      const checkClientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('x-real-ip')
+        || undefined;
+      try {
+        const checkRes = await fetch(`${supabaseUrl}/functions/v1/verify-trial-card`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            customerId,
+            ...(checkClientIp ? { clientIp: checkClientIp } : {}),
+            // Stable idempotency key: retries never stack extra $1 auths.
+            ...(subscriptionId ? { idempotencyKey: subscriptionId } : {}),
+          }),
+        });
+        const result = await checkRes.json();
+        if (result?.ok) return { ok: true, message: '' };
+        return { ok: false, message: result?.message || fallbackMessage };
+      } catch (checkErr) {
+        console.error('[verify-checkout] card check call failed (fail-closed):', checkErr);
+        return { ok: false, message: fallbackMessage };
+      }
+    };
+    const isVanSession = session.metadata?.van_sale === 'true';
+    const needsCardCheck = (row: { card_check_status?: string | null; stripe_subscription_id?: string | null } | null) =>
+      subscriptionStatus === 'trialing' &&
+      !isVanSession &&
+      !!subscriptionId &&
+      !(row?.card_check_status === 'passed' && row?.stripe_subscription_id === subscriptionId);
     
     const supabaseAdmin = await import('https://esm.sh/@supabase/supabase-js@2.39.7').then(
       mod => mod.createClient(supabaseUrl, supabaseServiceKey, {
@@ -129,12 +183,72 @@ serve(async (req) => {
     // Check if restaurant already exists for this user
     const { data: existingRestaurant } = await supabaseAdmin
       .from('restaurants')
-      .select('id, subscription_status')
+      .select('id, subscription_status, card_check_status, card_check_message, stripe_subscription_id')
       .eq('owner_id', userId)
       .maybeSingle();
 
     if (existingRestaurant) {
       console.log('[verify-checkout] Restaurant already exists:', existingRestaurant.id);
+
+      // CARD-CHECK: surface a failed card verification instead of
+      // overwriting it. The trial was canceled in Stripe; the customer must
+      // retry with a working card.
+      if (
+        existingRestaurant.card_check_status === 'failed' &&
+        existingRestaurant.stripe_subscription_id === subscriptionId
+      ) {
+        return new Response(JSON.stringify({
+          success: false,
+          cardCheckFailed: true,
+          message: existingRestaurant.card_check_message
+            || "We couldn't verify your card — double-check the details or try a different card.",
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // CARD-CHECK: fail-closed for trials the webhook never verified
+      // (e.g. webhook delivery failed). Skipped when already verified.
+      let cardCheckFailedMessage: string | null = null;
+      let cardCheckPassed = false;
+      if (needsCardCheck(existingRestaurant)) {
+        const check = await runTrialCardCheck();
+        if (!check.ok) {
+          cardCheckFailedMessage = check.message;
+          try {
+            await stripe.subscriptions.cancel(subscriptionId!);
+            console.log('[verify-checkout] canceled dead-card trial subscription:', subscriptionId);
+          } catch (cancelErr) {
+            console.error('[verify-checkout] failed to cancel dead-card subscription (non-fatal):', cancelErr);
+          }
+          const { error: failUpdateErr } = await supabaseAdmin
+            .from('restaurants')
+            .update({
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              subscription_status: 'incomplete',
+              trial_ends_at: null,
+              card_check_status: 'failed',
+              card_check_message: cardCheckFailedMessage,
+            })
+            .eq('id', existingRestaurant.id);
+          if (failUpdateErr) console.error('[verify-checkout] failed to mark restaurant card-check-failed:', failUpdateErr);
+        } else {
+          cardCheckPassed = true;
+          console.log('[verify-checkout] card check passed for subscription:', subscriptionId);
+        }
+      }
+      if (cardCheckFailedMessage) {
+        return new Response(JSON.stringify({
+          success: false,
+          cardCheckFailed: true,
+          message: cardCheckFailedMessage,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       
       // Update existing restaurant with Stripe info if needed
       if (existingRestaurant.subscription_status !== 'active') {
@@ -158,11 +272,13 @@ serve(async (req) => {
             stripe_subscription_id: subscriptionId,
             stripe_portal_url: portalUrl,
             plan_type: planType,
-            subscription_status: 'active',
+            subscription_status: subscriptionStatus,
+            trial_ends_at: trialEndsAt,
+            ...(cardCheckPassed ? { card_check_status: 'passed', card_check_message: null } : {}),
           })
           .eq('id', existingRestaurant.id);
         
-        console.log('[verify-checkout] Updated existing restaurant to active');
+        console.log('[verify-checkout] Updated existing restaurant to', subscriptionStatus);
       }
 
       return new Response(JSON.stringify({ 
@@ -179,6 +295,57 @@ serve(async (req) => {
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
     const greetingName = userData?.user?.user_metadata?.greeting_name || null;
 
+    // CARD-CHECK: the webhook never provisioned this trial, so verify the
+    // card here before creating the row (fail-closed). No prior row exists,
+    // so there is nothing to skip on.
+    let createCardCheckPassed = false;
+    if (needsCardCheck(null)) {
+      const check = await runTrialCardCheck();
+      if (!check.ok) {
+        try {
+          await stripe.subscriptions.cancel(subscriptionId!);
+          console.log('[verify-checkout] canceled dead-card trial subscription:', subscriptionId);
+        } catch (cancelErr) {
+          console.error('[verify-checkout] failed to cancel dead-card subscription (non-fatal):', cancelErr);
+        }
+        const { data: failedRow, error: failInsertError } = await supabaseAdmin
+          .from('restaurants')
+          .insert({
+            owner_id: userId,
+            restaurant_name: 'My Restaurant',
+            greeting_name: greetingName,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscriptionId,
+            plan_type: planType,
+            subscription_status: 'incomplete',
+            trial_ends_at: null,
+            card_check_status: 'failed',
+            card_check_message: check.message,
+            header_title: "How was your visit?",
+            header_subtitle: "We'd love to hear about your experience!",
+            menu_title: "Our Menu",
+            onboarding_step: 1,
+            onboarding_completed: false,
+          })
+          .select('id')
+          .single();
+        if (failInsertError) {
+          console.error('[verify-checkout] Failed to insert card-check-failed restaurant:', failInsertError);
+        }
+        return new Response(JSON.stringify({
+          success: false,
+          cardCheckFailed: true,
+          message: check.message,
+          restaurantId: failedRow?.id || null,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      createCardCheckPassed = true;
+      console.log('[verify-checkout] card check passed for subscription:', subscriptionId);
+    }
+
     // Create new restaurant record FIRST (without portal URL)
     const { data: newRestaurant, error: insertError } = await supabaseAdmin
       .from('restaurants')
@@ -189,7 +356,9 @@ serve(async (req) => {
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         plan_type: planType,
-        subscription_status: 'active',
+        subscription_status: subscriptionStatus,
+        trial_ends_at: trialEndsAt,
+        ...(createCardCheckPassed ? { card_check_status: 'passed', card_check_message: null } : {}),
         header_title: "How was your visit?",
         header_subtitle: "We'd love to hear about your experience!",
         menu_title: "Our Menu",

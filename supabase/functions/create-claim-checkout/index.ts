@@ -113,6 +113,10 @@ Deno.serve(async (req) => {
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
     if (selectedPlan === 'annual') {
+      // SKU UNIFICATION: this is the SAME $199/yr Solo yearly product that
+      // create-checkout-session sells for yearly Solo signups
+      // (metadata tapaway_plan=annual_value_pass, 'TapAway Annual Value Pass').
+      // Do not create a second yearly SKU — both paths resolve to this one.
       const prod = await findOrCreateProduct(stripe, 'tapaway_plan', 'annual_value_pass', 'TapAway Annual Value Pass');
       const price = await findOrCreatePrice(stripe, prod, 19900, 'year');
       lineItems.push({ price, quantity: 1 });

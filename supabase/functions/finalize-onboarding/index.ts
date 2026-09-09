@@ -1,128 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { sendTemplatedEmail, sendEmailAndLog } from "../_shared/email.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Email sending helper with text fallback support
-async function sendEmail(options: {
-  to: string;
-  from: string;
-  subject: string;
-  html: string;
-  text?: string;
-}): Promise<boolean> {
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  if (!resendApiKey) {
-    console.error('[finalize-onboarding] RESEND_API_KEY not configured');
-    return false;
-  }
-
-  try {
-    console.log('[finalize-onboarding] Sending email to:', options.to, 'subject:', options.subject);
-    
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(options),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[finalize-onboarding] Resend API error:', response.status, errorText);
-      return false;
-    }
-
-    const data = await response.json();
-    console.log('[finalize-onboarding] Email sent successfully:', data.id);
-    return true;
-  } catch (error) {
-    console.error('[finalize-onboarding] Email send failed:', error);
-    return false;
-  }
-}
-
-// TapAway logo hosted on imgur - cropped version
-const LOGO_URL = 'https://i.imgur.com/bc1EJv8.png';
-
-// Generate branded welcome email HTML - exact template from requirements
-function generateWelcomeEmailHtml(params: {
-  ownerName: string;
-  businessName: string;
-}): string {
-  const { ownerName, businessName } = params;
-  const displayName = businessName || "your business";
-  
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#f0fdfa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;padding:40px 20px;">
-    <tr>
-      <td style="text-align:center;padding-bottom:24px;">
-        <span style="font-size:24px;font-weight:800;color:#0d9488;">TapAway</span><br/>
-        <span style="font-size:14px;color:#6b7280;">Setup complete</span>
-      </td>
-    </tr>
-    <tr>
-      <td style="background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(13,148,136,0.10);">
-        <h1 style="margin:0 0 16px 0;font-size:26px;font-weight:700;color:#111827;text-align:center;">You're all set 🎉</h1>
-        <p style="margin:0 0 24px 0;font-size:16px;color:#374151;line-height:1.6;text-align:center;">
-          Your TapAway setup for <strong>${displayName}</strong> is complete and your free 30-day trial is active.
-        </p>
-        <div style="background:#f0fdfa;border-radius:12px;padding:20px;margin-bottom:24px;">
-          <h2 style="margin:0 0 12px 0;font-size:16px;font-weight:700;color:#0d9488;">What happens next</h2>
-          <ul style="margin:0;padding:0 0 0 20px;color:#374151;line-height:1.8;font-size:15px;">
-            <li>Your NFC cards ship in 1–2 business days</li>
-            <li>Your review + social hub is ready to use</li>
-            <li>We'll help you optimize anytime you want</li>
-          </ul>
-        </div>
-        <p style="margin:0 0 24px 0;font-size:15px;color:#374151;text-align:center;">
-          Need anything? Just reply to this email — we respond fast.
-        </p>
-        <p style="margin:0;font-size:13px;color:#6b7280;text-align:center;border-top:1px solid #e5e7eb;padding-top:20px;">
-          <strong>Trial reminder:</strong> You won't be charged today. Cancel anytime before day 30 if you decide it's not for you.<br/><br/>
-          — TapAway
-        </p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-// Generate plain text welcome email
-function generateWelcomeEmailText(params: {
-  ownerName: string;
-  businessName: string;
-}): string {
-  const { businessName } = params;
-  const displayName = businessName || "your business";
-  
-  return `TapAway — Setup complete
-
-You're all set 🎉
-Your TapAway setup for ${displayName} is complete and your free 30-day trial is active.
-
-What happens next:
-- Your NFC cards ship in 1–2 business days
-- Your review + social hub is ready to use
-
-Need help? Reply to this email.
-
-Trial reminder: No charge today. Cancel anytime before day 30.
-— TapAway`;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -167,7 +51,7 @@ serve(async (req) => {
     // Find the user's active restaurant
     let restaurantQuery = supabaseAdmin
       .from('restaurants')
-      .select('id, restaurant_name, custom_slug, owner_name, email, plan_type, stripe_customer_id')
+      .select('id, restaurant_name, custom_slug, owner_name, email, plan_type, stripe_customer_id, subscription_status')
       .eq('owner_id', user.id);
     
     if (restaurantIdFromBody) {
@@ -312,43 +196,49 @@ serve(async (req) => {
     let customerEmailSent = false;
     let internalEmailSent = false;
 
-    // Send branded customer welcome email
+    // DISCOUNT COPY HONESTY (2026-09-09): discount pay links and any other
+    // immediate-charge checkout land here with subscription_status already
+    // 'active' (verify-checkout persisted the real Stripe status first). Those
+    // buyers were charged TODAY — sending them the trial "welcome" template
+    // ("you won't be charged today") would be a lie. Pick the paid variant
+    // instead; trial signups (subscription_status='trialing') keep `welcome`.
+    const alreadyActive = (restaurant as { subscription_status?: string | null }).subscription_status === 'active';
+    const welcomeKey = alreadyActive ? 'welcome_paid' : 'welcome';
+
+    // Send branded customer welcome email via the shared library
+    // (canonical "welcome" template + email_sends logging).
     if (customerEmail) {
-      const customerHtml = generateWelcomeEmailHtml({
-        ownerName,
-        businessName: restaurantName,
-      });
-
-      const customerText = generateWelcomeEmailText({
-        ownerName,
-        businessName: restaurantName,
-      });
-
       console.log("[finalize-onboarding] Sending welcome email", {
         email: customerEmail,
         ts: new Date().toISOString(),
-        type: "welcome",
+        type: welcomeKey,
         provider: "resend",
         from: emailFrom,
       });
 
-      customerEmailSent = await sendEmail({
+      const welcomeResult = await sendTemplatedEmail({
         to: customerEmail,
         from: emailFrom,
-        subject: "You're all set — TapAway is live 🎉",
-        html: customerHtml,
-        text: customerText,
+        templateKey: welcomeKey,
+        vars: {
+          name: ownerName,
+          businessName: restaurantName,
+          hubUrl,
+          dashboardUrl,
+        },
       });
-      
+      customerEmailSent = welcomeResult.ok;
+
       if (customerEmailSent) {
         console.log("[finalize-onboarding] Welcome email sent successfully", {
           email: customerEmail,
           ts: new Date().toISOString(),
-          type: "welcome",
+          type: welcomeKey,
           from: emailFrom,
+          resend_id: welcomeResult.resendId,
         });
       } else {
-        console.error('[finalize-onboarding] FAILED to send customer welcome email to:', customerEmail);
+        console.error('[finalize-onboarding] FAILED to send customer welcome email to:', customerEmail, welcomeResult.error);
       }
     } else {
       console.warn('[finalize-onboarding] No customer email available!');
@@ -436,15 +326,17 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    internalEmailSent = await sendEmail({
+    const internalResult = await sendEmailAndLog({
       to: emailInternal,
       from: emailFrom,
+      templateKey: "internal_order",
       subject: `${shippingInfo ? '📦' : '⚠️'} New TapAway Order – ${restaurant.restaurant_name} (${actualFulfillmentOrder?.quantity || 15} cards)${!shippingInfo ? ' - MISSING ADDRESS' : ''}`,
       html: internalHtml,
     });
-    
+    internalEmailSent = internalResult.ok;
+
     if (!internalEmailSent) {
-      console.error('[finalize-onboarding] FAILED to send internal notification email!');
+      console.error('[finalize-onboarding] FAILED to send internal notification email!', internalResult.error);
     }
 
     console.log('[finalize-onboarding] Complete:', {

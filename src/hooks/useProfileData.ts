@@ -57,8 +57,45 @@ interface UseProfileDataResult {
   data: ProfileData | null;
   loading: boolean;
   error: 'not_found' | 'error' | null;
+  /**
+   * Set when the profile exists but its subscription has lapsed (expired
+   * trial, canceled, past_due, ...). Branding-only preview metadata for the
+   * graceful "trial ended" view — NOT the hub content. Status stays whatever
+   * it is ('expired', etc.); nothing here flips it back to active.
+   */
+  expiredPreview: ExpiredProfilePreview | null;
   refetch: () => Promise<void>;
 }
+
+/**
+ * Branding-only public preview for a lapsed solo hub, from
+ * get_public_personal_profile_status. No links, blocks, contact info, or
+ * billing fields — deliberately minimal so the trial-ended banner is a
+ * conversion surface, not a leak.
+ */
+export interface ExpiredProfilePreview {
+  id: string;
+  username: string;
+  full_name: string | null;
+  headline: string | null;
+  bio: string | null;
+  profile_photo_url: string | null;
+  header_image_url: string | null;
+  background_color: string | null;
+  bg_style: string | null;
+  text_color: string | null;
+  button_theme: string | null;
+  pfp_position: string | null;
+  plan_type: string | null;
+  subscription_status: string | null;
+  is_approved: boolean | null;
+}
+
+/** Discriminated fetch result: live hub, lapsed-trial preview, or missing. */
+type FetchProfileResult =
+  | { kind: 'live'; data: ProfileData }
+  | { kind: 'expired'; preview: ExpiredProfilePreview }
+  | { kind: 'missing' };
 
 /**
  * Fetch parallel data (links, blocks, nfc) given a profile
@@ -93,7 +130,7 @@ async function fetchParallelData(profileData: { id: string; user_id?: string }):
 /**
  * Fetch all profile data from scratch (username lookup + parallel)
  */
-async function fetchProfileData(username: string): Promise<ProfileData | null> {
+async function fetchProfileData(username: string): Promise<FetchProfileResult> {
   const { data: rows, error: profileError } = await supabase
     .rpc('get_public_personal_profile', { _slug: username.toLowerCase() });
   const profileData = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -104,23 +141,64 @@ async function fetchProfileData(username: string): Promise<ProfileData | null> {
 
   if (profileError || !profileData || !isPubliclyVisible) {
     if (profileError) console.error('[useProfileData] public profile RPC failed', profileError);
-    return null;
+
+    // The profile may still exist with a lapsed subscription (e.g. trial
+    // expired without payment). Distinguish "lapsed" from "no such profile"
+    // so the page can render the graceful trial-ended preview instead of a
+    // dead-end "Profile not found" screen.
+    try {
+      const { data: statusRows } = await supabase
+        .rpc('get_public_personal_profile_status', { _slug: username.toLowerCase() });
+      const statusRow = Array.isArray(statusRows) && statusRows.length > 0 ? statusRows[0] : null;
+      if (statusRow && (statusRow as { is_approved?: boolean | null }).is_approved === true) {
+        return { kind: 'expired', preview: statusRow as ExpiredProfilePreview };
+      }
+    } catch (statusErr) {
+      // Status lookup is best-effort (e.g. migration not applied yet):
+      // fall through to "not found" rather than erroring the page.
+      console.warn('[useProfileData] profile status lookup failed', statusErr);
+    }
+    return { kind: 'missing' };
   }
 
   // Resolve user_id privately via RPC for the hasActiveCard check (not exposed publicly)
   const parallel = await fetchParallelData(profileData as { id: string; user_id?: string });
-  return { profile: profileData as any, ...parallel };
+  return { kind: 'live', data: { profile: profileData as any, ...parallel } };
 }
 
 export function useProfileData(username: string | undefined, initialProfile?: CachedProfile): UseProfileDataResult {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<'not_found' | 'error' | null>(null);
+  const [expiredPreview, setExpiredPreview] = useState<ExpiredProfilePreview | null>(null);
   const initialProfileRef = useRef(initialProfile);
+
+  /** Apply a fetch result to hook state. `cacheLive` only caches full live hubs. */
+  const applyResult = useCallback((result: FetchProfileResult, usernameKey: string) => {
+    if (result.kind === 'live') {
+      setCachedProfile(usernameKey, result.data);
+      setData(result.data);
+      setExpiredPreview(null);
+      setError(null);
+      preloadCriticalImages(result.data);
+    } else if (result.kind === 'expired') {
+      // Deliberately NOT written to the live profile cache — an expired hub
+      // must never be served from cache as if it were live, and a reactivated
+      // hub must never keep showing the preview from cache.
+      setData(null);
+      setExpiredPreview(result.preview);
+      setError(null);
+    } else {
+      setData(null);
+      setExpiredPreview(null);
+      setError('not_found');
+    }
+  }, []);
 
   const loadProfile = useCallback(async () => {
     if (!username) {
       setError('not_found');
+      setExpiredPreview(null);
       setLoading(false);
       return;
     }
@@ -128,6 +206,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
     // Check reserved usernames
     if (isUsernameReserved(username)) {
       setError('not_found');
+      setExpiredPreview(null);
       setLoading(false);
       return;
     }
@@ -141,6 +220,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
         const result: ProfileData = { profile: preResolved, ...parallel };
         setCachedProfile(username, result);
         setData(result);
+        setExpiredPreview(null);
         setError(null);
         preloadCriticalImages(result);
       } catch (err) {
@@ -161,17 +241,15 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
         blocks: cached.blocks,
         hasActiveCard: cached.hasActiveCard ?? false,
       });
+      setExpiredPreview(null);
       setLoading(false);
       setError(null);
       
       // Background revalidate if cache is older than 30s
       const age = Date.now() - cached.fetchedAt;
       if (age > 30000) {
-        fetchProfileData(username).then((freshData) => {
-          if (freshData) {
-            setCachedProfile(username, freshData);
-            setData(freshData);
-          }
+        fetchProfileData(username).then((freshResult) => {
+          applyResult(freshResult, username);
         });
       }
       return;
@@ -180,23 +258,15 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
     try {
       setLoading(true);
       const result = await fetchProfileData(username);
-      
-      if (!result) {
-        setError('not_found');
-        setData(null);
-      } else {
-        setCachedProfile(username, result);
-        setData(result);
-        setError(null);
-        preloadCriticalImages(result);
-      }
+      applyResult(result, username);
     } catch (err) {
       console.error('Error fetching profile:', err);
+      setExpiredPreview(null);
       setError('error');
     } finally {
       setLoading(false);
     }
-  }, [username]);
+  }, [username, applyResult]);
 
   useEffect(() => {
     loadProfile();
@@ -207,7 +277,7 @@ export function useProfileData(username: string | undefined, initialProfile?: Ca
     await loadProfile();
   }, [loadProfile, username]);
 
-  return { data, loading, error, refetch };
+  return { data, loading, error, expiredPreview, refetch };
 }
 
 /**

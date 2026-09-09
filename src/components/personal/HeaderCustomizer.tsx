@@ -274,7 +274,8 @@ export const HeaderCustomizer = ({
                 onUpdate({ backgroundColor: color });
                 setBgColorInput(color);
               }}
-              className={`h-8 w-8 rounded-full border-2 transition-all ${
+              aria-label={`Set background color ${color}`}
+              className={`h-11 w-11 rounded-full border-2 transition-all ${
                 backgroundColor === color ? "border-primary scale-110" : "border-border hover:scale-105"
               }`}
               style={{ backgroundColor: color }}

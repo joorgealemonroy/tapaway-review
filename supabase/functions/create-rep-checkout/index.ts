@@ -17,31 +17,22 @@ const PLAN_TIERS: Record<string, {
   productName: string;
   trialDays: number;
 }> = {
-  base_monthly: {
-    label: 'Base Software',
+  solo_monthly: {
+    label: 'Solo',
     planTier: 'business_lite',
     billingCycle: 'monthly',
     priceAmount: 2000, // $20/mo
     interval: 'month',
-    productName: 'TapAway Base Software (Monthly)',
+    productName: 'TapAway Solo (Monthly)',
     trialDays: 7,
   },
-  bundle_monthly: {
-    label: 'Base + Card Club',
-    planTier: 'business_lite',
+  venue_monthly: {
+    label: 'Venue',
+    planTier: 'restaurant',
     billingCycle: 'monthly',
-    priceAmount: 2500, // $25/mo ($20 base + $5 Card Club)
+    priceAmount: 3900, // $39/mo
     interval: 'month',
-    productName: 'TapAway Base + Card Club (Monthly)',
-    trialDays: 7,
-  },
-  annual: {
-    label: 'Annual Value Pass',
-    planTier: 'business_lite',
-    billingCycle: 'annual',
-    priceAmount: 19900, // $199/yr, Card Club included
-    interval: 'year',
-    productName: 'TapAway Annual Value Pass',
+    productName: 'TapAway Venue (Monthly)',
     trialDays: 7,
   },
 };

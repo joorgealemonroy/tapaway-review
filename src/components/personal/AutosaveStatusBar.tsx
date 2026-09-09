@@ -54,7 +54,7 @@ export const AutosaveStatusBar = ({ status, onUndo, onRetry, canUndo }: Props) =
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2.5 text-xs"
+            className="min-h-[44px] px-3 text-xs"
             onClick={onUndo}
           >
             <Undo2 className="h-3.5 w-3.5 mr-1" />
@@ -66,7 +66,7 @@ export const AutosaveStatusBar = ({ status, onUndo, onRetry, canUndo }: Props) =
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 px-2.5 text-xs"
+            className="min-h-[44px] px-3 text-xs"
             onClick={onRetry}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1" />

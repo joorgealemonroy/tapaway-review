@@ -146,3 +146,9 @@ verify_jwt = false
 
 [functions.twilio-webhook]
 verify_jwt = false
+
+[functions.trial-followup]
+verify_jwt = false
+
+[functions.verify-trial-card]
+verify_jwt = false

@@ -22,8 +22,10 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
+  CreditCard,
   ExternalLink,
   FileText,
+  Gift,
   Loader2,
   Search,
   Trash2,
@@ -39,6 +41,8 @@ type UnifiedRow = {
   slug: string | null;
   plan_type: string | null;
   subscription_status: string | null;
+  /** 'complimentary' = gifted: never billed, never broadcast-chased. */
+  payment_state?: string | null;
   is_approved: boolean | null;
   created_at: string | null;
   updated_at?: string | null;
@@ -173,6 +177,8 @@ const AdminUnifiedAccountsTable = () => {
   });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [swapping, setSwapping] = useState<string | null>(null);
+  const [nudging, setNudging] = useState<string | null>(null);
+  const [gifting, setGifting] = useState<string | null>(null);
 
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
   const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
@@ -202,7 +208,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: restaurants, error: rErr } = await supabase
           .from("restaurants")
           .select(
-            "id, restaurant_name, custom_slug, plan_type, subscription_status, is_approved, created_at, updated_at, logo_url"
+            "id, restaurant_name, custom_slug, plan_type, subscription_status, payment_state, is_approved, created_at, updated_at, logo_url"
           );
         if (rErr) throw rErr;
 
@@ -210,7 +216,7 @@ const AdminUnifiedAccountsTable = () => {
         const { data: profiles, error: pErr } = await supabase
           .from("personal_profiles")
           .select(
-            "id, user_id, username, full_name, plan_type, subscription_status, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
+            "id, user_id, username, full_name, plan_type, subscription_status, payment_state, is_approved, pipeline_status, created_at, updated_at, profile_photo_url, sales_rep_id, created_by_rep_id, card_print_pdf_path"
           );
         if (pErr) throw pErr;
 
@@ -260,6 +266,7 @@ const AdminUnifiedAccountsTable = () => {
           slug: r.custom_slug ?? null,
           plan_type: r.plan_type ?? null,
           subscription_status: r.subscription_status ?? null,
+          payment_state: (r as { payment_state?: string | null }).payment_state ?? null,
           is_approved: r.is_approved ?? null,
           created_at: r.created_at ?? null,
           updated_at: (r as { updated_at?: string | null }).updated_at ?? null,
@@ -284,6 +291,7 @@ const AdminUnifiedAccountsTable = () => {
             slug: p.username ?? null,
             plan_type: p.plan_type ?? null,
             subscription_status: p.subscription_status ?? null,
+            payment_state: (p as { payment_state?: string | null }).payment_state ?? null,
             is_approved: p.is_approved ?? null,
             created_at: p.created_at ?? null,
             updated_at: (p as { updated_at?: string | null }).updated_at ?? null,
@@ -482,6 +490,80 @@ const AdminUnifiedAccountsTable = () => {
     }
   };
 
+
+  /**
+   * Payment-recovery nudge (locked 2026-09-09): one tap sends the canonical
+   * payment_failed email with a Stripe billing-portal link, plus an SMS when
+   * a phone is on file. Recovering a failed payment should be frictionless.
+   */
+  const sendRecoveryNudge = async (r: UnifiedRow) => {
+    if (
+      !window.confirm(
+        `Send a payment-update reminder to ${r.name}?\n\nThey get an email (and a text if a phone is on file) with a one-tap link to update their card.`
+      )
+    )
+      return;
+    setNudging(r.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-payment-recovery", {
+        body: { account_id: r.id, kind: r.kind === "legacy" ? "restaurant" : "personal" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      const emailBit = data?.email?.ok
+        ? "email sent"
+        : data?.email?.skipped
+          ? `email: ${data.email.skipped}`
+          : "email failed";
+      const smsBit = data?.sms?.ok
+        ? "SMS sent"
+        : data?.sms?.skipped
+          ? `SMS: ${data.sms.skipped}`
+          : "SMS failed";
+      toast.success(`Nudge sent — ${emailBit} · ${smsBit}`);
+    } catch (e) {
+      toast.error("Nudge failed: " + (e instanceof Error ? e.message : "unknown"));
+    } finally {
+      setNudging(null);
+    }
+  };
+
+  /**
+   * Complimentary toggle (locked 2026-09-09): Jorge gifts accounts and
+   * doesn't track them. One tap marks/unmarks payment_state='complimentary'.
+   * Complimentary accounts never get billed or broadcast-chased — no
+   * feature-update emails, no trial texts, no payment nudges.
+   */
+  const toggleComplimentary = async (r: UnifiedRow) => {
+    const isComp = r.payment_state === "complimentary";
+    if (
+      !window.confirm(
+        isComp
+          ? `Remove complimentary status from ${r.name}?\n\nThey'll be treated as a normal account again (billing + broadcasts resume).`
+          : `Mark ${r.name} as COMPLIMENTARY?\n\nThis account will never get billed or broadcast-chased — no feature-update emails, no trial texts, no payment nudges. Use it for gifted/family accounts.`
+      )
+    )
+      return;
+    setGifting(r.id);
+    try {
+      const value = isComp ? "unknown_manual" : "complimentary";
+      const { error } =
+        r.kind === "legacy"
+          ? await supabase.from("restaurants").update({ payment_state: value }).eq("id", r.id)
+          : await supabase.from("personal_profiles").update({ payment_state: value }).eq("id", r.id);
+      if (error) throw error;
+      setRows((prev) =>
+        prev.map((x) => (x.id === r.id && x.kind === r.kind ? { ...x, payment_state: value } : x)),
+      );
+      toast.success(
+        isComp ? "Complimentary removed." : "Marked complimentary — never billed or chased.",
+      );
+    } catch (e) {
+      toast.error("Toggle failed: " + (e instanceof Error ? e.message : "unknown"));
+    } finally {
+      setGifting(null);
+    }
+  };
 
   const HeaderCell = ({
     label,
@@ -777,12 +859,60 @@ const AdminUnifiedAccountsTable = () => {
                     >
                       {r.subscription_status ?? "—"}
                     </span>
+                    {r.payment_state === "complimentary" && (
+                      <span
+                        className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-purple-500/15 text-purple-300"
+                        title="Complimentary — this account never gets billed or broadcast-chased"
+                      >
+                        Gifted
+                      </span>
+                    )}
                   </td>
                   <td className="p-2.5 text-[11px] text-white/50">
                     {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
                   </td>
                   <td className="p-2.5">
                     <div className="flex items-center justify-end gap-1">
+                      {/* Payment-recovery nudge — past-due rows only */}
+                      {r.subscription_status === "past_due" && (
+                        <Button
+                          onClick={() => sendRecoveryNudge(r)}
+                          disabled={nudging === r.id}
+                          size="icon"
+                          variant="ghost"
+                          className="h-10 w-10 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10"
+                          title="Send payment-update reminder (email + SMS with billing link)"
+                        >
+                          {nudging === r.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <CreditCard className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
+                      {/* Complimentary toggle — one tap, any account */}
+                      <Button
+                        onClick={() => toggleComplimentary(r)}
+                        disabled={gifting === r.id}
+                        size="icon"
+                        variant="ghost"
+                        className={`h-10 w-10 ${
+                          r.payment_state === "complimentary"
+                            ? "text-purple-300 hover:text-purple-200 hover:bg-purple-500/10"
+                            : "text-white/40 hover:text-white hover:bg-white/[0.05]"
+                        }`}
+                        title={
+                          r.payment_state === "complimentary"
+                            ? "Complimentary — this account never gets billed or broadcast-chased. Tap to remove."
+                            : "Mark as complimentary — never gets billed or broadcast-chased"
+                        }
+                      >
+                        {gifting === r.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Gift className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
                       <Button
                         onClick={() =>
                           setAnalyticsTarget({
@@ -798,7 +928,7 @@ const AdminUnifiedAccountsTable = () => {
                         }
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-sky-300/80 hover:text-sky-300 hover:bg-sky-500/10"
+                        className="h-10 w-10 text-sky-300/80 hover:text-sky-300 hover:bg-sky-500/10"
                         title="View analytics"
                       >
                         <BarChart3 className="h-3.5 w-3.5" />
@@ -808,7 +938,7 @@ const AdminUnifiedAccountsTable = () => {
                           onClick={() => openHub(r)}
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-white/60 hover:text-white hover:bg-white/[0.05]"
+                          className="h-10 w-10 text-white/60 hover:text-white hover:bg-white/[0.05]"
                           title="Open live hub"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -824,7 +954,7 @@ const AdminUnifiedAccountsTable = () => {
                             disabled={swapping === r.id}
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10"
+                            className="h-10 w-10 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10"
                             title={`Swap slug with business hub "${business.name}" (/${business.slug})`}
                           >
                             {swapping === r.id ? (
@@ -841,7 +971,7 @@ const AdminUnifiedAccountsTable = () => {
                           onClick={() => downloadPdf(r)}
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          className="h-10 w-10 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
                           title="Download print PDF"
                         >
                           <FileText className="h-3.5 w-3.5" />
@@ -851,7 +981,7 @@ const AdminUnifiedAccountsTable = () => {
                         <Button
                           onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
                           size="sm"
-                          className="h-7 px-2 text-[11px] bg-emerald-500/90 hover:bg-emerald-500 text-black font-semibold"
+                          className="h-10 px-3 text-xs bg-emerald-500/90 hover:bg-emerald-500 text-black font-semibold"
                           title="Open the in-person sales presentation for this hub"
                         >
                           Close Sale
@@ -861,7 +991,7 @@ const AdminUnifiedAccountsTable = () => {
                         onClick={() => openDashboard(r)}
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2 text-[11px] text-white/70 hover:text-white hover:bg-white/[0.05]"
+                        className="h-10 px-3 text-xs text-white/70 hover:text-white hover:bg-white/[0.05]"
                       >
                         Dashboard
                       </Button>
@@ -870,7 +1000,7 @@ const AdminUnifiedAccountsTable = () => {
                         disabled={deleting === r.id}
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
+                        className="h-10 w-10 text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
                         title="Delete"
                       >
                         {deleting === r.id ? (

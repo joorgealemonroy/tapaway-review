@@ -41,7 +41,7 @@ serve(async (req) => {
     const demoAccounts = [
       {
         email: 'demo1@tapaway.co',
-        password: 'DemoTest!12345',
+        password: crypto.randomUUID(),
         restaurant: {
           restaurant_name: 'Las Islas Marías - Demo',
           custom_slug: 'lasislasmariasdemo',
@@ -79,7 +79,7 @@ serve(async (req) => {
       },
       {
         email: 'demo2@tapaway.co',
-        password: 'DemoTest!54321',
+        password: crypto.randomUUID(),
         restaurant: {
           restaurant_name: 'Sakura Sushi House - Demo',
           custom_slug: 'sakurasushidemo',
@@ -116,7 +116,7 @@ serve(async (req) => {
       },
       {
         email: 'onboardtest@tapaway.co',
-        password: 'Onboard!Test123',
+        password: crypto.randomUUID(),
         restaurant: {
           restaurant_name: 'Demo Bistro - Basic Setup',
           custom_slug: 'demobistrobasic',
@@ -131,7 +131,7 @@ serve(async (req) => {
       },
       {
         email: 'nomenutest@tapaway.co',
-        password: 'MenuLess!12345',
+        password: crypto.randomUUID(),
         restaurant: {
           restaurant_name: 'Demo Cafe - No Menu',
           custom_slug: 'democafenomenu',
@@ -149,7 +149,7 @@ serve(async (req) => {
       },
       {
         email: 'nolinkstest@tapaway.co',
-        password: 'NoLinks!98765',
+        password: crypto.randomUUID(),
         restaurant: {
           restaurant_name: 'Demo Restaurant - No Links',
           custom_slug: 'demorestaurantnolinks',

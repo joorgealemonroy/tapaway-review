@@ -141,6 +141,12 @@ const EmailLeadsTab = ({ profileId }: Props) => {
 
   return (
     <div className="space-y-6">
+      {/* Plain-language explainer */}
+      <p className="text-sm text-muted-foreground">
+        Collect info from people who visit your page — quote requests, questions, contact details.
+        When someone fills out your form, you get a notification and their answers land here.
+      </p>
+
       {/* Form Builder */}
       <LeadFormBuilder profileId={profileId} />
 
@@ -155,7 +161,7 @@ const EmailLeadsTab = ({ profileId }: Props) => {
             )}
           </div>
           {submissions.length > 0 && (
-            <Button variant="outline" size="sm" onClick={exportSubmissionsCSV}>
+            <Button variant="outline" size="sm" onClick={exportSubmissionsCSV} className="min-h-[44px]">
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
@@ -202,8 +208,8 @@ const EmailLeadsTab = ({ profileId }: Props) => {
                     <div className="px-4 pb-4 border-t border-border pt-3 space-y-2">
                       {entries.map(([key, value]) => (
                         <div key={key}>
-                          <p className="text-xs font-medium text-muted-foreground">{key}</p>
-                          <p className="text-sm text-foreground">{value}</p>
+                          <p className="text-xs font-medium text-muted-foreground break-words">{key}</p>
+                          <p className="text-sm text-foreground break-words">{value}</p>
                         </div>
                       ))}
                     </div>
@@ -224,7 +230,7 @@ const EmailLeadsTab = ({ profileId }: Props) => {
               <h3 className="font-semibold text-foreground text-sm">Email Captures</h3>
               <span className="text-xs text-muted-foreground">({leads.length})</span>
             </div>
-            <Button variant="outline" size="sm" onClick={exportEmailsCSV}>
+            <Button variant="outline" size="sm" onClick={exportEmailsCSV} className="min-h-[44px]">
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
@@ -271,7 +277,7 @@ const EmailLeadsTab = ({ profileId }: Props) => {
           <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-semibold text-foreground mb-2">No leads yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-            Enable the Lead Capture Form above or add an Email Capture block to your profile.
+            Enable the Customer info form above or add an Email Capture block to your profile.
           </p>
         </div>
       )}

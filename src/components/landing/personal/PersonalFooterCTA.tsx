@@ -42,7 +42,7 @@ export const PersonalFooterCTA = () => {
           </div>
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            <span>Pro from $6.25/mo</span>
+            <span>Pro from $16.58/mo ($199/yr)</span>
           </div>
         </motion.div>
 

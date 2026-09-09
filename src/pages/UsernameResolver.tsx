@@ -63,6 +63,19 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
 
       const lowerSlug = slug.toLowerCase();
 
+      // Resolve a restaurant slug to the ReviewHub page. The hub data RPC is
+      // subscription-gated, so a lapsed (canceled/past_due/...) hub returns no
+      // rows — use the status RPC to still route it to ReviewHub so the visitor
+      // sees the "Review Page Paused" gate instead of a 404.
+      const resolveRestaurantType = async (): Promise<"restaurant" | "notfound"> => {
+        const { data: restaurant } = await supabase
+          .rpc("get_public_restaurant_hub", { _slug: lowerSlug });
+        if (restaurant && restaurant.length > 0) return "restaurant";
+        const { data: statusRows } = await supabase
+          .rpc("get_public_restaurant_hub_status", { _slug: lowerSlug });
+        return statusRows && statusRows.length > 0 ? "restaurant" : "notfound";
+      };
+
       // Admin preview: bypass the public gate and read from personal_profiles directly
       if (isAdminPreview && isAdmin) {
         const { data: adminProfile } = await supabase
@@ -82,10 +95,7 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
 
       // Reserved usernames should not match personal profiles
       if (isUsernameReserved(slug)) {
-        const { data: restaurant } = await supabase
-          .rpc("get_public_restaurant_hub", { _slug: lowerSlug });
-
-        setResolvedType(restaurant && restaurant.length > 0 ? "restaurant" : "notfound");
+        setResolvedType(await resolveRestaurantType());
         setLoading(false);
         return;
       }
@@ -126,10 +136,21 @@ const UsernameResolverInner = memo(({ slug, isAdminPreview }: { slug?: string; i
         return;
       }
 
-      const { data: restaurant } = await supabase
-        .rpc("get_public_restaurant_hub", { _slug: lowerSlug });
+      // Lapsed solo subscription (e.g. trial ended without payment): the
+      // public RPC won't resolve it, but the status RPC tells us an approved
+      // profile exists — route to PersonalProfilePage with NO pre-resolved
+      // profile so its own fetch renders the graceful trial-ended preview
+      // (real branding + kind banner + reactivate CTA).
+      const { data: statusRows } = await supabase
+        .rpc("get_public_personal_profile_status", { _slug: lowerSlug });
+      if (statusRows && statusRows.length > 0) {
+        setResolvedProfile(null);
+        setResolvedType("personal");
+        setLoading(false);
+        return;
+      }
 
-      setResolvedType(restaurant && restaurant.length > 0 ? "restaurant" : "notfound");
+      setResolvedType(await resolveRestaurantType());
       setLoading(false);
     };
 

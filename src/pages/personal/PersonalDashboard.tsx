@@ -22,16 +22,15 @@ import {
   Sparkles,
   Star,
   Users,
-  ShoppingBag,
   ArrowLeftRight,
   Smartphone,
   CreditCard,
   MessageSquare,
   AlertTriangle,
   RefreshCw,
+  LayoutDashboard,
 } from "lucide-react";
 import { ImageCropper } from "@/components/personal/ImageCropper";
-import { bannerAspectRatio } from "@/lib/bannerAspect";
 import { DashboardUnifiedContent, DashboardUnifiedContentHandle, UnifiedContentSnapshot } from "@/components/personal/DashboardUnifiedContent";
 import { DashboardDesignTab } from "@/components/personal/DashboardDesignTab";
 import { DashboardHeroEditor, DashboardHeroEditorHandle, HeroSnapshot } from "@/components/personal/DashboardHeroEditor";
@@ -40,13 +39,11 @@ import { ProfilePreviewPanel } from "@/components/personal/ProfilePreviewPanel";
 import { AutosaveStatusBar, AutosaveStatus } from "@/components/personal/AutosaveStatusBar";
 import { invalidateProfileCache } from "@/hooks/useProfileCache";
 import { compressImage } from "@/lib/imageOptimization";
-import { sampleBottomEdgeColor, DEFAULT_HUB_BACKGROUND_COLOR } from "@/lib/sampleBannerColor";
 import EmailLeadsTab from "@/components/personal/EmailLeadsTab";
 import SmsMarketingTab from "@/components/personal/SmsMarketingTab";
 import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab";
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
-import { PersonalShopTab } from "@/components/personal/PersonalShopTab";
 import { CardsTab } from "@/components/personal/CardsTab";
 
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
@@ -55,6 +52,7 @@ import { useAffiliateAccess } from "@/hooks/useAffiliateAccess";
 import { useSalesRep } from "@/hooks/useSalesRep";
 import { cn } from "@/lib/utils";
 import { ActivationWelcomeCard } from "@/components/personal/ActivationWelcomeCard";
+import { DashboardOverview } from "@/components/personal/DashboardOverview";
 import { MobileBottomNav } from "@/components/personal/MobileBottomNav";
 import { LegalFooter } from "@/components/compliance/LegalFooter";
 
@@ -161,13 +159,9 @@ const PersonalDashboard = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
-  const [bannerFillColor, setBannerFillColor] = useState<string | null>(null);
-  const [cropAspectRatio, setBannerAspectRatio] = useState(16 / 9);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Pre-crop banner upload, kept so we can store a re-croppable original.
-  const bannerOriginalBlobRef = useRef<Blob | null>(null);
   const unifiedContentRef = useRef<DashboardUnifiedContentHandle>(null);
   const heroEditorRef = useRef<DashboardHeroEditorHandle>(null);
   const [heroHasPending, setHeroHasPending] = useState(false);
@@ -185,7 +179,7 @@ const PersonalDashboard = () => {
 
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
-  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "links");
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
   // Set by the /claim success page so the welcome card only shows right after activation.
   const [justClaimed] = useState(() => {
     try {
@@ -220,8 +214,10 @@ const PersonalDashboard = () => {
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
   // Load profile data - always fresh from DB, never cached
-  const loadData = useCallback(async () => {
-    const sp = searchParamsRef.current;
+  // Accepts explicit params so callers that just changed the URL (profile
+  // switching) don't read stale values from the ref before it syncs.
+  const loadData = useCallback(async (paramsOverride?: URLSearchParams) => {
+    const sp = paramsOverride ?? searchParamsRef.current;
     const adminViewIdLocal = sp.get("admin_view_personal") || sp.get("admin_view");
     const requestedProfileIdLocal = sp.get("profile_id");
     try {
@@ -525,15 +521,11 @@ const PersonalDashboard = () => {
       return;
     }
 
-    // Compress if > 2MB. Banner crops keep much more resolution so the exported
-    // header stays sharp on high-DPI phones even when the logo is letterboxed.
-    const isBanner = profile?.header_type === "banner";
+    // Compress if > 2MB.
     let processedFile: Blob = file;
     if (file.size > 2 * 1024 * 1024) {
       try {
-        processedFile = isBanner
-          ? await compressImage(file, 2560, 0.92)
-          : await compressImage(file);
+        processedFile = await compressImage(file);
       } catch {
         toast.error("Failed to process image");
         return;
@@ -542,22 +534,6 @@ const PersonalDashboard = () => {
 
     const objectUrl = URL.createObjectURL(processedFile);
     setRawImageUrl(objectUrl);
-    bannerOriginalBlobRef.current = isBanner ? processedFile : null;
-
-    // For banner-style hubs, pre-sample a background-fill color from the image
-    // so the cropper can paint the empty canvas area when the user zooms out.
-    if (profile?.header_type === "banner") {
-      try {
-        const fill = await sampleBottomEdgeColor(objectUrl);
-        setBannerFillColor(fill);
-      } catch {
-        setBannerFillColor(null);
-      }
-      setBannerAspectRatio(bannerAspectRatio(profile?.banner_aspect));
-    } else {
-      setBannerFillColor(null);
-      setBannerAspectRatio(1);
-    }
 
     setCropperOpen(true);
   };
@@ -582,66 +558,17 @@ const PersonalDashboard = () => {
 
       if (uploadError) throw uploadError;
 
-      // Keep the pre-crop upload so the banner can be re-cropped later at full
-      // resolution instead of re-cropping the already-flattened export.
-      let originalUrl: string | null = null;
-      if (profile.header_type === "banner" && bannerOriginalBlobRef.current) {
-        const original = bannerOriginalBlobRef.current;
-        const originalPath = `${user.id}/${profile.id}/banner-original`;
-        const { error: origError } = await supabase.storage
-          .from("personal-photos")
-          .upload(originalPath, original, {
-            upsert: true,
-            contentType: original.type || "image/jpeg",
-          });
-        if (!origError) {
-          const { data: { publicUrl: origPublic } } = supabase.storage
-            .from("personal-photos")
-            .getPublicUrl(originalPath);
-          originalUrl = `${origPublic}?t=${Date.now()}`;
-        }
-        bannerOriginalBlobRef.current = null;
-      }
-
       const { data: { publicUrl } } = supabase.storage
         .from("personal-photos")
         .getPublicUrl(filePath);
 
-      // Add cache buster for display; sample from clean URL to avoid CORS
-      // caching issues with query strings.
       const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
-
-      // Determine whether we should auto-match the page background to the
-      // bottom edge of this photo (only when using a full-banner header and
-      // the user hasn't manually customized the background yet).
-      const shouldAutoMatchBg =
-        profile.header_type === "banner" &&
-        (profile.background_color ?? DEFAULT_HUB_BACKGROUND_COLOR).toLowerCase() ===
-          DEFAULT_HUB_BACKGROUND_COLOR;
-
-      let sampledBg: string | null = null;
-      if (shouldAutoMatchBg) {
-        sampledBg = await sampleBottomEdgeColor(publicUrl);
-        if (!sampledBg) {
-          console.warn(
-            "[banner] sampleBottomEdgeColor returned null — likely CORS or decode failure; leaving background_color as-is",
-          );
-        }
-      }
-
-      // Fold both writes into a single atomic UPDATE so the sampled bg
-      // can't be lost to a partial failure or later refetch.
-      const updates: Record<string, string> = { profile_photo_url: urlWithCacheBust };
-      if (sampledBg) updates.background_color = sampledBg;
-      // The image was cropped to the exact banner frame, so render it edge-to-edge.
-      if (profile.header_type === "banner") updates.banner_fit = "cover";
-      if (originalUrl) updates.banner_original_url = originalUrl;
 
       const { data: updatedRow, error: updateError } = await supabase
         .from("personal_profiles")
-        .update(updates)
+        .update({ profile_photo_url: urlWithCacheBust })
         .eq("id", profile.id)
-        .select("profile_photo_url, background_color")
+        .select("profile_photo_url")
         .single();
 
       if (updateError) throw updateError;
@@ -649,7 +576,6 @@ const PersonalDashboard = () => {
       setProfile({
         ...profile,
         profile_photo_url: updatedRow?.profile_photo_url ?? urlWithCacheBust,
-        background_color: updatedRow?.background_color ?? profile.background_color,
       });
 
       invalidateProfileCache(profile.username);
@@ -704,44 +630,24 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
-  const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    navigate("/personal");
-  }, [navigate]);
+  // handleSignOut is defined after flushAutosave so it can flush pending
+  // edits before the auth session (and this page) goes away.
 
   const handleDesignUpdate = useCallback((updates: {
-    headerType?: string;
-    headerColor?: string | null;
-    headerImageUrl?: string | null;
     backgroundColor?: string | null;
-    pfpPosition?: string;
-    bannerImageUrl?: string | null;
-    bannerFit?: string | null;
-    bannerAspect?: string | null;
-    bannerOriginalUrl?: string | null;
     profilePhotoUrl?: string | null;
-    logoScale?: string | null;
-    logoBgColor?: string | null;
+    bannerImageUrl?: string | null;
   }) => {
     if (profile) {
-      const updatedProfile = { 
-        ...profile, 
-        header_type: updates.headerType ?? profile.header_type,
-        header_color: updates.headerColor !== undefined ? updates.headerColor : profile.header_color,
-        header_image_url: updates.headerImageUrl !== undefined ? updates.headerImageUrl : profile.header_image_url,
+      const updatedProfile = {
+        ...profile,
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
-        pfp_position: updates.pfpPosition ?? profile.pfp_position,
-        banner_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.banner_image_url,
-        banner_fit: updates.bannerFit !== undefined ? updates.bannerFit : profile.banner_fit,
-        banner_aspect: updates.bannerAspect !== undefined ? updates.bannerAspect : profile.banner_aspect,
-        banner_original_url: updates.bannerOriginalUrl !== undefined ? updates.bannerOriginalUrl : profile.banner_original_url,
         profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
-        logo_scale: updates.logoScale !== undefined ? updates.logoScale : profile.logo_scale,
-        logo_bg_color: updates.logoBgColor !== undefined ? updates.logoBgColor : profile.logo_bg_color,
+        header_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.header_image_url,
       };
 
       setProfile(updatedProfile);
-      
+
       // Invalidate public profile cache
       invalidateProfileCache(profile.username);
     }
@@ -786,6 +692,8 @@ const PersonalDashboard = () => {
       if (failed) {
         const reason = (results.find(r => r.status === "rejected") as PromiseRejectedResult).reason;
         console.error("Autosave failed:", reason);
+        const detail = reason instanceof Error ? reason.message : "Couldn't save your latest changes.";
+        toast.error(detail, { id: "autosave-failed" });
         setAutosaveStatus("error");
         return;
       }
@@ -888,6 +796,23 @@ const PersonalDashboard = () => {
     flushAutosave();
   }, [flushAutosave]);
 
+  // Sign out only after any pending edits in the debounce window are
+  // flushed — otherwise those edits are silently lost (the autosave
+  // beforeunload flush is fire-and-forget and can't be awaited).
+  const handleSignOut = useCallback(async () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    try {
+      await flushAutosave();
+    } catch (err) {
+      console.error("[dashboard] sign-out autosave flush failed:", err);
+    }
+    await supabase.auth.signOut();
+    navigate("/personal");
+  }, [navigate, flushAutosave]);
+
 
   if (loading) {
     return (
@@ -952,18 +877,29 @@ const PersonalDashboard = () => {
   const pipelineStatus = profile.pipeline_status || "draft";
 
   const handleSaveDraft = async () => {
-    const { error } = await supabase
-      .from("personal_profiles")
-      .update({ pipeline_status: "draft" } as any)
-      .eq("id", profile.id);
-    if (error) { toast.error("Failed to save draft"); return; }
-    setProfile(p => p ? { ...p, pipeline_status: "draft" } : p);
-    toast.success("Draft saved");
-    if (isRepDemo) navigate("/rep/restaurants");
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ pipeline_status: "draft" } as any)
+        .eq("id", profile.id);
+      if (error) { toast.error("Failed to save draft"); return; }
+      setProfile(p => p ? { ...p, pipeline_status: "draft" } : p);
+      toast.success("Draft saved");
+      if (isRepDemo) navigate("/rep/restaurants");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
   const handleSubmitForReview = async () => {
+    // Guard at entry — the username search below is async, so without this a
+    // double-tap would run the whole submit flow twice.
+    if (submitting) return;
+    setSubmitting(true);
+    try {
     // Auto-generate a vanity slug from the business name if the username is
     // still the placeholder "demo-xxxxxx" created at demo-hub spin-up.
     let nextUsername: string | null = null;
@@ -1004,12 +940,10 @@ const PersonalDashboard = () => {
     };
     if (nextUsername) updates.username = nextUsername;
 
-    setSubmitting(true);
     const { error } = await supabase
       .from("personal_profiles")
       .update(updates as any)
       .eq("id", profile.id);
-    setSubmitting(false);
     if (error) { toast.error(`Failed to submit: ${error.message}`); return; }
 
     setSubmitOpen(false);
@@ -1021,17 +955,26 @@ const PersonalDashboard = () => {
       toast.success("Sent to admin for approval");
     }
     navigate("/rep/restaurants");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
   const handleRecallDraft = async () => {
-    const { error } = await supabase
-      .from("personal_profiles")
-      .update({ pipeline_status: "draft", submitted_for_review_at: null } as any)
-      .eq("id", profile.id);
-    if (error) { toast.error("Failed to recall"); return; }
-    setProfile(p => p ? { ...p, pipeline_status: "draft", submitted_for_review_at: null } : p);
-    toast.success("Pulled back to draft");
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("personal_profiles")
+        .update({ pipeline_status: "draft", submitted_for_review_at: null } as any)
+        .eq("id", profile.id);
+      if (error) { toast.error("Failed to recall"); return; }
+      setProfile(p => p ? { ...p, pipeline_status: "draft", submitted_for_review_at: null } : p);
+      toast.success("Pulled back to draft");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -1065,13 +1008,13 @@ const PersonalDashboard = () => {
               {pipelineStatus === "ready_for_review" ? (
                 <>
                   <span className="text-xs text-muted-foreground hidden sm:inline">Awaiting admin approval</span>
-                  <Button size="sm" variant="outline" onClick={handleRecallDraft}>
+                  <Button size="sm" variant="outline" onClick={handleRecallDraft} disabled={submitting}>
                     Recall to draft
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button size="sm" variant="outline" onClick={handleSaveDraft}>
+                  <Button size="sm" variant="outline" onClick={handleSaveDraft} disabled={submitting}>
                     Save draft
                   </Button>
                   <Button size="sm" className="bg-emerald-500 hover:bg-emerald-400 text-[#0a0e1a]" onClick={() => { setSubmitNote(profile.rep_note || ""); setSubmitOpen(true); }}>
@@ -1179,7 +1122,7 @@ const PersonalDashboard = () => {
                 </Button>
               )}
               
-              <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-10 w-10">
+              <Button variant="ghost" size="icon" onClick={handleSignOut} className="h-11 w-11">
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
@@ -1282,7 +1225,7 @@ const PersonalDashboard = () => {
                 id="profile-url"
                 onClick={copyProfileUrl}
                 className={cn(
-                  "flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors",
+                  "flex items-center gap-1 min-h-[44px] text-sm text-muted-foreground hover:text-foreground transition-colors",
                   coachHighlight === "share" && "ring-2 ring-primary ring-offset-2 rounded px-1 -mx-1"
                 )}
               >
@@ -1332,7 +1275,15 @@ const PersonalDashboard = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="space-y-6">
-          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-7" : "grid-cols-9")}>
+          <TabsList className={cn("hidden md:grid w-full", isTrialing ? "grid-cols-8" : "grid-cols-10")}>
+            <TabsTrigger 
+              id="tab-overview"
+              value="overview" 
+              className="flex items-center gap-2"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
             <TabsTrigger 
               id="tab-links"
               value="links" 
@@ -1357,7 +1308,7 @@ const PersonalDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="leads" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Leads</span>
+              <span className="hidden sm:inline">Customer info</span>
             </TabsTrigger>
             <TabsTrigger value="sms" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -1366,10 +1317,6 @@ const PersonalDashboard = () => {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Stats</span>
-            </TabsTrigger>
-            <TabsTrigger value="shop" className="flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Shop</span>
             </TabsTrigger>
             <TabsTrigger value="plan" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
@@ -1394,13 +1341,12 @@ const PersonalDashboard = () => {
                     <DropdownMenuItem
                       key={p.id}
                       onClick={() => {
-                        if (isAdminView) {
-                          setSearchParams({ admin_view_personal: p.id });
-                        } else {
-                          setSearchParams({ profile_id: p.id });
-                        }
+                        const next = new URLSearchParams(
+                          isAdminView ? { admin_view_personal: p.id } : { profile_id: p.id }
+                        );
+                        setSearchParams(next);
                         setLoading(true);
-                        loadData();
+                        loadData(next);
                       }}
                     >
                       @{p.username}
@@ -1410,6 +1356,17 @@ const PersonalDashboard = () => {
               </DropdownMenu>
             )}
           </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <DashboardOverview
+              profile={profile}
+              links={links}
+              isTrialing={isTrialing}
+              isReadOnlyView={isAdminView}
+              onGoToTab={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            />
+          </TabsContent>
 
           {/* Links Tab */}
           <TabsContent value="links" className="space-y-6">
@@ -1455,21 +1412,11 @@ const PersonalDashboard = () => {
           <TabsContent value="design" className="space-y-6">
             <DashboardDesignTab
               profileId={profile.id}
-              headerType={profile.header_type}
-              headerColor={profile.header_color}
-              headerImageUrl={profile.header_image_url}
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
-              bannerFit={profile.banner_fit}
-              bannerAspect={profile.banner_aspect}
-              bannerOriginalUrl={profile.banner_original_url}
-              logoScale={profile.logo_scale}
-              logoBgColor={profile.logo_bg_color}
-              isPremium={profile.plan_type !== 'free' && profile.plan_type !== null}
+              bannerImageUrl={profile.header_image_url}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
-              isRepDemo={isRepDemo}
-              onUpgrade={() => handleUpgrade("yearly")}
               onUpdate={handleDesignUpdate}
             />
 
@@ -1500,7 +1447,7 @@ const PersonalDashboard = () => {
             </div>
           </TabsContent>
 
-          {/* Leads Tab */}
+          {/* Customer info Tab */}
           <TabsContent value="leads" className="space-y-4">
             <EmailLeadsTab profileId={profile.id} />
           </TabsContent>
@@ -1521,19 +1468,6 @@ const PersonalDashboard = () => {
           </TabsContent>
 
 
-
-          {/* Shop Tab */}
-          <TabsContent value="shop" className="space-y-4">
-            <PersonalShopTab 
-              profileId={profile.id}
-              userId={profile.user_id}
-              stripeConnectAccountId={(profile as any).stripe_connect_account_id || null}
-              isStripeOnboarded={(profile as any).is_stripe_onboarded || false}
-              onProfileUpdate={loadData}
-              planType={profile.plan_type}
-              isTrialing={isTrialing}
-            />
-          </TabsContent>
 
           {/* Plan Tab */}
           <TabsContent value="plan" className="space-y-4">
@@ -1611,7 +1545,7 @@ const PersonalDashboard = () => {
       />
 
 
-      {/* Image Cropper */}
+      {/* Image Cropper — profile photo (square) */}
       {rawImageUrl && (
         <ImageCropper
           open={cropperOpen}
@@ -1619,21 +1553,14 @@ const PersonalDashboard = () => {
             setCropperOpen(open);
             if (!open) {
               setRawImageUrl(null);
-              setBannerFillColor(null);
             }
           }}
           imageSrc={rawImageUrl}
           onCropComplete={handleCropComplete}
-          aspectRatio={cropAspectRatio}
-          cropShape={profile?.header_type === "banner" ? "rect" : "round"}
-          minZoom={profile?.header_type === "banner" ? 0.25 : 1}
-          restrictPosition={profile?.header_type !== "banner"}
-          fillColor={bannerFillColor}
-          editableFill={profile?.header_type === "banner"}
-          autoTrim={profile?.header_type === "banner"}
-          fullFrameOutput={profile?.header_type === "banner"}
-          maxOutputDimension={profile?.header_type === "banner" ? 2048 : 1024}
-          outputQuality={profile?.header_type === "banner" ? 0.92 : 0.8}
+          aspectRatio={1}
+          cropShape="round"
+          minZoom={1}
+          title="Adjust your profile photo"
         />
       )}
 
@@ -1653,18 +1580,17 @@ const PersonalDashboard = () => {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         isAffiliate={isAffiliate}
         allProfiles={allProfiles.map(p => ({ id: p.id, username: p.username }))}
         activeProfileId={profile.id}
         onSwitchProfile={(profileId) => {
-          if (isAdminView) {
-            setSearchParams({ admin_view_personal: profileId });
-          } else {
-            setSearchParams({ profile_id: profileId });
-          }
+          const next = new URLSearchParams(
+            isAdminView ? { admin_view_personal: profileId } : { profile_id: profileId }
+          );
+          setSearchParams(next);
           setLoading(true);
-          loadData();
+          loadData(next);
         }}
         isTrialing={isTrialing}
       />

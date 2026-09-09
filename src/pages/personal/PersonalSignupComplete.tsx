@@ -40,6 +40,7 @@ const PersonalSignupComplete = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [planType, setPlanType] = useState<"free" | "monthly" | "yearly">("yearly");
   const [error, setError] = useState<string | null>(null);
+  const [cardCheckFailed, setCardCheckFailed] = useState(false);
   const [step, setStep] = useState<"verifying" | "finalizing" | "success" | "no_data">("verifying");
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
 
@@ -83,7 +84,12 @@ const PersonalSignupComplete = () => {
         if (verifyError) throw verifyError;
         
         if (!data?.success) {
-          throw new Error(data?.error || "Verification failed");
+          // CARD-CHECK: a failed $1 card verification blocks the trial (the
+          // subscription was canceled server-side). Show the plain-language
+          // message instead of the generic error screen.
+          const err = new Error(data?.error || "Verification failed") as Error & { cardCheckFailed?: boolean };
+          err.cardCheckFailed = data?.cardCheckFailed === true;
+          throw err;
         }
 
         console.log("[PersonalSignupComplete] Verification succeeded:", {
@@ -428,8 +434,12 @@ const PersonalSignupComplete = () => {
         setStep("success");
       } catch (err) {
         console.error("[PersonalSignupComplete] Error:", err);
+        const wasCardCheck = (err as { cardCheckFailed?: boolean })?.cardCheckFailed === true;
+        setCardCheckFailed(wasCardCheck);
         setError(err instanceof Error ? err.message : "Failed to verify payment");
-        toast.error("Something went wrong. Please contact support.");
+        if (!wasCardCheck) {
+          toast.error("Something went wrong. Please contact support.");
+        }
       } finally {
         setLoading(false);
       }
@@ -479,8 +489,10 @@ const PersonalSignupComplete = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
-        <p className="text-muted-foreground mb-6">{error}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">
+          {cardCheckFailed ? "We couldn't verify your card" : "Something went wrong"}
+        </h1>
+        <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
         <a href="/personal/signup" className="text-primary hover:underline">
           Try again
         </a>

@@ -30,9 +30,14 @@ const faqs = [
       "No. TapAway is 100% compliant with Google's review policies. We never offer incentives for reviews, we simply make it faster and easier for happy customers to leave honest feedback. Google encourages businesses to ask for reviews.",
   },
   {
-    question: "What happens after 30 days?",
+    question: "What happens after 14 days?",
     answer:
-      "After your 30-day free trial, TapAway is just $20/month (add the $5/mo Card Club any time, or go annual at $199/yr with Card Club included). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 31, no action needed.",
+      "After your 14-day free trial, TapAway is just $20/month for Solo or $39/month for Venue — or go yearly and save: $199/year for Solo (save $41) or $390/year for Venue (2 months free). You can cancel anytime before the trial ends and you won't be charged. If you love it (most do), your card on file will be billed automatically on day 15, no action needed.",
+  },
+  {
+    question: "Will I be charged $1?",
+    answer:
+      "No — never. When you start a trial, we place a temporary $1 hold to verify your card. It's released automatically — never charged.",
   },
   {
     question: "Can I add more locations later?",

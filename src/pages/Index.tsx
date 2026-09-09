@@ -56,7 +56,7 @@ const Index = () => {
       <footer className="py-8 px-4 bg-foreground text-background/60 border-t border-background/10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm">© 2025 TapAway. More 5-star reviews, effortlessly.</p>
+            <p className="text-sm">© {new Date().getFullYear()} TapAway. More 5-star reviews, effortlessly.</p>
             <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-sm">
               <a href="https://www.tiktok.com/@tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">TikTok</a>
               <a href="https://www.instagram.com/tapawayco" rel="me" target="_blank" className="hover:text-background transition-colors">Instagram</a>

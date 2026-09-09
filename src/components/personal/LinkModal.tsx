@@ -63,6 +63,7 @@ interface Props {
   onUpdate?: (id: string, updates: Partial<PersonalLink & { displayStyle?: string; coverImageUrl?: string; thumbnailUrl?: string }>) => void;
   existingTypes?: string[];
   existingIconTypes?: string[]; // Platform types that already have an icon
+  saving?: boolean; // true while the parent is persisting an add/update — disables the save button to prevent double-submit
 }
 
 export const LinkModal = ({ 
@@ -72,7 +73,8 @@ export const LinkModal = ({
   editingLink,
   onUpdate,
   existingTypes = [],
-  existingIconTypes = []
+  existingIconTypes = [],
+  saving = false,
 }: Props) => {
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformConfig | null>(null);
   const [inputValue, setInputValue] = useState("");
@@ -309,7 +311,7 @@ export const LinkModal = ({
   };
 
   const handleSave = () => {
-    if (!selectedPlatform || !inputValue.trim()) return;
+    if (!selectedPlatform || !inputValue.trim() || saving) return;
 
     const rawValue = inputValue.trim();
     const value = selectedPlatform.extractValue(rawValue) || rawValue;
@@ -346,9 +348,10 @@ export const LinkModal = ({
         <div className="flex items-center gap-3">
           <button 
             onClick={handleBack}
-            className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Back to link types"
+            className="h-11 w-11 -ml-2 flex items-center justify-center hover:bg-muted rounded-lg transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
           <div className={`h-10 w-10 rounded-full flex items-center justify-center ${config.gradient || config.bgColor}`}>
             <config.icon className={`h-5 w-5 ${config.color}`} />
@@ -400,7 +403,10 @@ export const LinkModal = ({
               }
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className={`h-12 ${config.prefix && config.inputType !== "url" ? "pl-8" : ""} ${fetchedFavicon && config.type === "website" ? "pl-10" : ""}`}
+              // text-base: iOS Safari auto-zooms the page when focusing an
+              // input under 16px. (The base Input is already text-base on
+              // mobile; this makes the requirement explicit and future-proof.)
+              className={`h-12 text-base ${config.prefix && config.inputType !== "url" ? "pl-8" : ""} ${fetchedFavicon && config.type === "website" ? "pl-10" : ""}`}
               autoFocus
             />
             {/* Favicon preview for website links */}
@@ -437,7 +443,8 @@ export const LinkModal = ({
             placeholder={config.label}
             value={customLabel}
             onChange={(e) => setCustomLabel(e.target.value)}
-            className="h-12"
+            // text-base: iOS Safari auto-zooms the page when focusing an input under 16px.
+            className="h-12 text-base"
           />
         </div>
 
@@ -462,7 +469,7 @@ export const LinkModal = ({
                 <button
                   type="button"
                   onClick={() => setPillColor(null)}
-                  className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                  className={`h-11 w-11 rounded-full border-2 flex items-center justify-center transition-all ${
                     pillColor === null ? "border-primary" : "border-transparent"
                   }`}
                   style={{ background: config.gradient || config.bgColor.replace("bg-[", "").replace("]", "").replace("bg-", "") }}
@@ -476,7 +483,7 @@ export const LinkModal = ({
                     key={color}
                     type="button"
                     onClick={() => setPillColor(color)}
-                    className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                    className={`h-11 w-11 rounded-full border-2 flex items-center justify-center transition-all ${
                       pillColor === color ? "border-primary scale-110" : "border-transparent"
                     }`}
                     style={{ backgroundColor: color }}
@@ -605,7 +612,8 @@ export const LinkModal = ({
               <button
                 type="button"
                 onClick={removeCoverImage}
-                className="absolute top-2 right-2 h-8 w-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors"
+                aria-label="Remove cover image"
+                className="absolute top-2 right-2 h-8 w-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center transition-colors before:absolute before:-inset-2.5 before:content-['']"
               >
                 <X className="h-4 w-4 text-white" />
               </button>
@@ -700,7 +708,10 @@ export const LinkModal = ({
           const previewUrl = selectedPlatform.generateUrl(previewValue);
           const invalid = !previewUrl || isBareDomainHandle(previewValue);
           return (
-            <p className={`text-xs truncate ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+            // break-all (not truncate): a 200+ char URL with no spaces must
+            // wrap inside the sheet — it must never push the page wider than
+            // the viewport on mobile.
+            <p className={`text-xs break-all ${invalid ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
               {invalid
                 ? `Enter your page name, e.g. ${selectedPlatform.placeholder}`
                 : `→ ${previewUrl}`}
@@ -711,9 +722,10 @@ export const LinkModal = ({
 
         <Button
           onClick={handleSave}
-          disabled={!inputValue.trim()}
+          disabled={!inputValue.trim() || saving}
           className="w-full h-12"
         >
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {editingLink ? "Save Changes" : "Add Link"}
         </Button>
       </div>
@@ -762,7 +774,9 @@ export const LinkModal = ({
           <DrawerHeader className="text-left">
             <DrawerTitle>{modalTitle}</DrawerTitle>
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-8">
+          {/* min-w-0 + overflow-x-hidden: no child (long URLs, wide content)
+              can ever push the sheet wider than the viewport. */}
+          <div className="overflow-y-auto overflow-x-hidden flex-1 min-w-0 px-4 pb-8">
             {modalContent}
           </div>
         </DrawerContent>

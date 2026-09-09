@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { escapeHtml } from "../_shared/sanitize.ts";
+import { sendEmailAndLog } from "../_shared/email.ts";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,11 +64,13 @@ const handler = async (req: Request): Promise<Response> => {
       timeStyle: "short",
     });
 
-    // Send email with card images as attachments
-    const emailResponse = await resend.emails.send({
+    // Send email with card images as attachments — via the shared library so
+    // the send is logged to email_sends (internal ops mail, templateKey "internal").
+    const emailResult = await sendEmailAndLog({
       from: "TapAway Cards <cards@tapaway.co>",
       to: ["tap@tapaway.co"],
-      reply_to: email,
+      replyTo: email,
+      templateKey: "internal_card_approval",
       subject: `[Card Approval] ${safeFullName} (@${safeUsername}) - Ready to Print`,
       html: `
         <!DOCTYPE html>
@@ -167,7 +167,11 @@ const handler = async (req: Request): Promise<Response> => {
       ],
     });
 
-    console.log("[send-card-approval] Email sent successfully:", emailResponse);
+    if (!emailResult.ok) {
+      throw new Error(emailResult.error || "Email send failed");
+    }
+
+    console.log("[send-card-approval] Email sent successfully:", emailResult.resendId);
 
     return new Response(
       JSON.stringify({ success: true, message: "Card approval email sent" }),

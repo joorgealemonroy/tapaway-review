@@ -82,11 +82,12 @@ export function DashboardContactCard({
       if (file.size > 2 * 1024 * 1024) {
         const img = new Image();
         const url = URL.createObjectURL(file);
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = reject;
-          img.src = url;
-        });
+        try {
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error("Image processing failed"));
+            img.src = url;
+          });
         const maxDim = 1200;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
@@ -99,10 +100,12 @@ export function DashboardContactCard({
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
-        processedFile = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85);
+        processedFile = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Image processing failed"))), "image/jpeg", 0.85);
         });
-        URL.revokeObjectURL(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       }
 
       const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -180,6 +183,9 @@ export function DashboardContactCard({
           <p className="text-sm text-muted-foreground mt-1">
             Let visitors save your contact info to their phone with one tap
           </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            This is the card people see on your hub — as an icon, or a "Save Contact" button. Anything you change here shows up there.
+          </p>
         </CollapsibleTrigger>
         <Switch
           checked={enabled}
@@ -201,11 +207,11 @@ export function DashboardContactCard({
           className="flex gap-4"
         >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="icon" id="style-icon" />
+            <RadioGroupItem value="icon" id="style-icon" className="h-5 w-5" />
             <Label htmlFor="style-icon" className="cursor-pointer text-sm">Icon (top right)</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="button" id="style-button" />
+            <RadioGroupItem value="button" id="style-button" className="h-5 w-5" />
             <Label htmlFor="style-button" className="cursor-pointer text-sm">Button (in content)</Label>
           </div>
         </RadioGroup>
@@ -267,6 +273,7 @@ export function DashboardContactCard({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="min-h-[44px]"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingPhoto}
               >
@@ -277,7 +284,7 @@ export function DashboardContactCard({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="ml-2 text-muted-foreground"
+                  className="ml-2 text-muted-foreground min-h-[44px]"
                   onClick={() => setContactPhotoUrl("")}
                 >
                   Use profile photo
@@ -396,7 +403,7 @@ export function DashboardContactCard({
         </div>
       </div>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full">
+      <Button onClick={handleSave} disabled={saving} className="w-full min-h-[44px]">
         {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Save Contact Settings
       </Button>
