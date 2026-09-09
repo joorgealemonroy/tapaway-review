@@ -175,10 +175,11 @@ serve(async (req) => {
       } else {
         const body = `TapAway: Hey ${account.name}, your hub is ready! 🎉 See it here: ${hubUrl} — your cards are on the way.`;
         try {
+          const authHeader = `Bearer ${lovableKey}`;
           const res = await fetch(`${TWILIO_GATEWAY}/Messages.json`, {
             method: "POST",
             headers: {
-Authorization: <redacted>
+              Authorization: authHeader,
               "X-Connection-Api-Key": twilioKey,
               "Content-Type": "application/x-www-form-urlencoded",
             },
