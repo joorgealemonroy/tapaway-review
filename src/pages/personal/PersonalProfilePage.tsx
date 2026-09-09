@@ -1163,8 +1163,15 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
-  const bgColor = profile.background_color || "#000000";
+  const storedBgColor = profile.background_color || "#000000";
   const profileBgStyle = (profile as any).bg_style as string | null;
+  const storedBgIsFlat = !profileBgStyle &&
+    !storedBgColor.startsWith('linear-gradient') && !storedBgColor.startsWith('radial-gradient');
+  // Banner hubs whose stored background is a near-black default get the warm
+  // backdrop sampled from the banner itself (legacy look, e.g. /rebornwraps).
+  const bgColor = (hasBanner && storedBgIsFlat && isColorDark(storedBgColor) && sampledBannerBg)
+    ? sampledBannerBg
+    : storedBgColor;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
 
   // The page background is exactly the color the owner chose — no slate
@@ -1354,7 +1361,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
         {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-32' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-20' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
           {!hasBanner && !isLogoHeader && (
