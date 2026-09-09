@@ -25,6 +25,8 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
+  CalendarIcon,
+  X,
   BellRing,
   CreditCard,
   ExternalLink,
