@@ -1547,6 +1547,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_sends: {
+        Row: {
+          error: string | null
+          id: string
+          opened_at: string | null
+          profile_id: string | null
+          resend_id: string | null
+          sent_at: string
+          status: string
+          subject: string
+          template_key: string
+          to_email: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          opened_at?: string | null
+          profile_id?: string | null
+          resend_id?: string | null
+          sent_at?: string
+          status: string
+          subject: string
+          template_key: string
+          to_email: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          opened_at?: string | null
+          profile_id?: string | null
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_key?: string
+          to_email?: string
+        }
+        Relationships: []
+      }
       fulfillment_orders: {
         Row: {
           created_at: string
