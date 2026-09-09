@@ -22,6 +22,7 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
+  BellRing,
   CreditCard,
   ExternalLink,
   FileText,
@@ -179,6 +180,7 @@ const AdminUnifiedAccountsTable = () => {
   const [swapping, setSwapping] = useState<string | null>(null);
   const [nudging, setNudging] = useState<string | null>(null);
   const [gifting, setGifting] = useState<string | null>(null);
+  const [notifying, setNotifying] = useState<string | null>(null);
 
   const [analyticsTarget, setAnalyticsTarget] = useState<HubAnalyticsTarget | null>(null);
   const [closeSaleTarget, setCloseSaleTarget] = useState<CloseSaleTarget>(null);
@@ -529,6 +531,44 @@ const AdminUnifiedAccountsTable = () => {
   };
 
   /**
+   * "Hub ready" notification — fulfills the signup promise ("we'll send you
+   * a text and an email the moment your hub is ready"). One tap sends the
+   * hub_ready email plus the short SMS version when a phone is on file.
+   * The server refuses to double-send unless forced.
+   */
+  const sendHubReady = async (r: UnifiedRow) => {
+    if (
+      !window.confirm(
+        `Send the "your hub is ready" notification to ${r.name}?\n\nThey get an email AND a text (if a phone is on file) with their hub link.`
+      )
+    )
+      return;
+    setNotifying(r.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-hub-ready", {
+        body: { account_id: r.id, kind: r.kind === "legacy" ? "restaurant" : "personal" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      const emailBit = data?.email?.ok
+        ? "email sent"
+        : data?.email?.skipped
+          ? `email: ${data.email.skipped}`
+          : "email failed";
+      const smsBit = data?.sms?.ok
+        ? "SMS sent"
+        : data?.sms?.skipped
+          ? `SMS: ${data.sms.skipped}`
+          : "SMS failed";
+      toast.success(`Hub-ready sent — ${emailBit} · ${smsBit}`);
+    } catch (e) {
+      toast.error("Hub-ready failed: " + (e instanceof Error ? e.message : "unknown"));
+    } finally {
+      setNotifying(null);
+    }
+  };
+
+  /**
    * Complimentary toggle (locked 2026-09-09): Jorge gifts accounts and
    * doesn't track them. One tap marks/unmarks payment_state='complimentary'.
    * Complimentary accounts never get billed or broadcast-chased — no
@@ -875,6 +915,21 @@ const AdminUnifiedAccountsTable = () => {
                   </td>
                   <td className="p-2.5">
                     <div className="flex items-center justify-end gap-1">
+                      {/* Hub-ready notification — one tap sends the email + SMS "your hub is ready" */}
+                      <Button
+                        onClick={() => sendHubReady(r)}
+                        disabled={notifying === r.id}
+                        size="icon"
+                        variant="ghost"
+                        className="h-10 w-10 text-emerald-300/80 hover:text-emerald-300 hover:bg-emerald-500/10"
+                        title="Send 'your hub is ready' — email + text with their hub link"
+                      >
+                        {notifying === r.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <BellRing className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
                       {/* Payment-recovery nudge — past-due rows only */}
                       {r.subscription_status === "past_due" && (
                         <Button
@@ -1102,6 +1157,16 @@ const AdminUnifiedAccountsTable = () => {
                     {nudging === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                   </Button>
                 )}
+                <Button
+                  onClick={() => sendHubReady(r)}
+                  disabled={notifying === r.id}
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10 text-emerald-300/80 border border-emerald-500/20"
+                  title="Send 'your hub is ready' — email + text with their hub link"
+                >
+                  {notifying === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                </Button>
                 {r.kind === "lite" && r.subscription_status !== "active" && (
                   <Button
                     onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}

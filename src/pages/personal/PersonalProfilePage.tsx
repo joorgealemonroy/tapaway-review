@@ -36,6 +36,7 @@ import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
 import { logoImageStyle } from "@/lib/logoHeader";
 import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
 import { Helmet } from "react-helmet-async";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 
 
@@ -855,6 +856,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   useEffect(() => {
     if (data?.profile?.id) {
       trackProfileVisit(data.profile.id);
+      // Meta: hub view → ViewContent (only fires if pixel initialized)
+      trackMetaEvent("ViewContent", {
+        content_name: data.profile.username,
+        content_category: "hub",
+      });
     }
   }, [data?.profile?.id]);
 

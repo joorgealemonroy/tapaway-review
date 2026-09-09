@@ -341,6 +341,36 @@ export const TEMPLATES: Record<string, EmailTemplate> = {
     text: (v) =>
       `TapAway — ${v.headline || "Quick update"}\n\nHey ${v.name || "friend"} —\n\n${v.body || ""}\n\n${v.ctaUrl || ""}\n— TapAway`,
   },
+
+  // hub_ready. Sent when Jorge finishes building a client's hub — the
+  // "we'll text and email you the moment your hub is ready" promise from
+  // signup. Fired by the send-hub-ready function from the admin.
+  // Vars: name, username, hubUrl.
+  hub_ready: {
+    key: "hub_ready",
+    subject: (v) => `Your TapAway hub is ready 🎉`,
+    preheader: () =>
+      "We built it for you — here's your link, ready to share.",
+    html: (v) =>
+      wrapEmail({
+        preheader: "We built it for you — here's your link, ready to share.",
+        headline: `Your hub is ready 🎉`,
+        introHtml: `<p style="margin:0 0 8px 0;">Hey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.</p>`,
+        bodyHtml:
+          `<p style="margin:0 0 8px 0;">This is the page every customer will land on when they tap your card or scan your QR code. Take a look:</p>` +
+          stepsList([
+            `<strong>Your reviews</strong> — one tap takes customers straight to Google.`,
+            `<strong>Your links</strong> — socials, menu, directions, everything in one place.`,
+            `<strong>Your look</strong> — we matched it to your brand.`,
+          ]) +
+          `<p style="margin:0;">Want anything changed — colors, links, wording? Just reply to this email and we'll take care of it.</p>`,
+        ctaLabel: "View my hub",
+        ctaUrl: String(v.hubUrl || SITE_URL),
+        footerNote: REPLY_FOOTER,
+      }),
+    text: (v) =>
+      `TapAway — Your hub is ready 🎉\n\nHey ${v.name || "friend"} — great news. We just finished building your TapAway hub and it's live right now.\n\nThis is the page every customer will land on when they tap your card or scan your QR code:\n${v.hubUrl || SITE_URL}\n\nWant anything changed — colors, links, wording? Just reply and we'll take care of it.\n— TapAway`,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────

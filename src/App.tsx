@@ -11,6 +11,8 @@ import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverlay";
 import SiteAnalytics from "@/components/analytics/SiteAnalytics";
+import { ConsentBanner } from "@/components/analytics/ConsentBanner";
+import { watchConsentForPixel } from "@/lib/metaPixel";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -123,6 +125,9 @@ const App = () => {
   // reload guard so a future deploy can reload again if needed.
   useEffect(() => {
     clearChunkReloadGuard();
+    // Meta Pixel boots only after tracking consent is accepted.
+    const unwatch = watchConsentForPixel();
+    return unwatch;
   }, []);
 
   return (
@@ -137,6 +142,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <RepImpersonationOverlay />
               <SiteAnalytics />
+              <ConsentBanner />
               <Routes>
 
               <Route path="/" element={<Index />} />

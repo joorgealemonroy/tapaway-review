@@ -273,7 +273,9 @@ serve(async (req) => {
         stripe_billing_email: customerEmail,
       };
       if (trialEndsAt) updateData.trial_ends_at = trialEndsAt;
-      if (customerPhone) updateData.contact_phone = customerPhone;
+      // NOTE: contact_phone is only seeded on insert (below). It doubles as
+      // the vCard contact-card phone the client can edit — never overwrite it
+      // on update.
       
       await supabase
         .from('personal_profiles')

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { track, setInternalActor } from "@/lib/analytics";
+import { trackMetaPageView } from "@/lib/metaPixel";
 
 /**
  * Site-wide page-view, time-on-page and scroll-depth tracking.
@@ -48,6 +49,8 @@ const SiteAnalytics = () => {
     maxScroll.current = 0;
 
     track("page_view", { path, hubKind: "site" });
+    // Meta Pixel PageView (only fires if pixel initialized = consent accepted)
+    trackMetaPageView();
 
     const onScroll = () => {
       const doc = document.documentElement;
