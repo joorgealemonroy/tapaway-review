@@ -63,7 +63,6 @@ interface OverviewProfile {
   headline: string | null;
   bio: string | null;
   header_type?: string | null;
-  header_type?: string | null;
   plan_type: string | null;
   subscription_status: string | null;
   trial_ends_at: string | null;

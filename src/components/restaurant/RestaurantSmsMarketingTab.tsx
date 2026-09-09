@@ -17,6 +17,7 @@ import {
 import { MessageSquare, Users, Send, Loader2, Check, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { tapawayUrl } from "@/lib/siteUrl";
 
 const MAX_LEN = 160;
 /** Same review-request signal the server uses — any mention of reviews. */
