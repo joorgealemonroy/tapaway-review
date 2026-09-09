@@ -146,6 +146,96 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Shared ownership check for the per-hub actions below.
+    const canReadHub = async (id: string) => {
+      const [{ count: ownsProfile }, { count: ownsRestaurant }, { data: isAdmin }] =
+        await Promise.all([
+          admin
+            .from("personal_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("id", id)
+            .eq("user_id", callerUserId),
+          admin
+            .from("restaurants")
+            .select("id", { count: "exact", head: true })
+            .eq("id", id)
+            .eq("owner_id", callerUserId),
+          admin.rpc("has_role", { _user_id: callerUserId, _role: "admin" }),
+        ]);
+      return Boolean(ownsProfile || ownsRestaurant || isAdmin);
+    };
+
+    // Validated human traffic for one hub over the requested window.
+    const hubHits = async (id: string, columns: string) => {
+      let q = admin
+        .from("analytics_hits")
+        .select(columns)
+        .eq("hub_id", id)
+        .eq("is_validated", true)
+        .eq("traffic_class", "human")
+        .limit(50000);
+      if (since) q = q.gte("occurred_at", since);
+      if (until) q = q.lte("occurred_at", until);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as unknown as Record<string, unknown>[];
+    };
+
+    const laDay = (iso: string) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Los_Angeles",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(iso));
+
+    if (action === "hub_daily") {
+      if (!hubId) return json({ error: "hubId required" }, 400);
+      if (!(await canReadHub(hubId))) return json({ error: "Forbidden" }, 403);
+
+      const rows = await hubHits(hubId, "event_name, occurred_at");
+      const byDay = new Map<string, Record<string, number>>();
+      for (const r of rows) {
+        const day = laDay(String(r.occurred_at));
+        const bucket = byDay.get(day) ?? {};
+        const name = String(r.event_name);
+        bucket[name] = (bucket[name] ?? 0) + 1;
+        byDay.set(day, bucket);
+      }
+      const daily = [...byDay.entries()]
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([day, events]) => ({ day, events }));
+      return json({ meta, daily });
+    }
+
+    if (action === "hub_breakdowns") {
+      if (!hubId) return json({ error: "hubId required" }, 400);
+      if (!(await canReadHub(hubId))) return json({ error: "Forbidden" }, 403);
+
+      const rows = await hubHits(hubId, "event_name, device_category, props");
+      const linkMap = new Map<string, { label: string; clicks: number }>();
+      const deviceMap = new Map<string, number>();
+      for (const r of rows) {
+        const device = String(r.device_category ?? "unknown");
+        deviceMap.set(device, (deviceMap.get(device) ?? 0) + 1);
+        if (r.event_name === "link_click") {
+          const props = (r.props ?? {}) as Record<string, unknown>;
+          const key = String(props.link_id ?? props.link_label ?? "unknown");
+          const label = String(props.link_label ?? props.link_url ?? "Untitled link");
+          const entry = linkMap.get(key) ?? { label, clicks: 0 };
+          entry.clicks += 1;
+          linkMap.set(key, entry);
+        }
+      }
+      return json({
+        meta,
+        links: [...linkMap.values()].sort((a, b) => b.clicks - a.clicks).slice(0, 10),
+        devices: [...deviceMap.entries()]
+          .map(([name, events]) => ({ name, events }))
+          .sort((a, b) => b.events - a.events),
+      });
+    }
+
     if (action === "hub_summary" || action === "hub_detail") {
       if (!hubId) return json({ error: "hubId required" }, 400);
 
