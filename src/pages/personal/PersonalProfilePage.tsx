@@ -1013,6 +1013,34 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     };
   }, [preIsLogoHeader, preLogoUrl, preLogoBandColor]);
 
+  // Banner hubs with a near-black stored background (the old default) get the
+  // warm brand backdrop back by sampling the banner's own bottom edge — this
+  // is how legacy banner hubs like /rebornwraps originally looked.
+  const preIsBannerHeader = preProfile?.header_type === "banner";
+  const preBannerUrl = preIsBannerHeader && preProfile?.profile_photo_url
+    ? getOptimizedImageUrl(preProfile.profile_photo_url, 1080, 92)
+    : null;
+  const preBannerBg = (preProfile?.background_color as string | undefined) || null;
+  const preBgIsFlat = !preProfile?.bg_style &&
+    !!preBannerBg && !preBannerBg.startsWith('linear-gradient') && !preBannerBg.startsWith('radial-gradient');
+  const preNeedsBannerSample = Boolean(
+    preIsBannerHeader && preBannerUrl && preBgIsFlat && isColorDark(preBannerBg as string)
+  );
+  const [sampledBannerBg, setSampledBannerBg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!preNeedsBannerSample || !preBannerUrl) {
+      setSampledBannerBg(null);
+      return;
+    }
+    let cancelled = false;
+    sampleBottomEdgeColor(preBannerUrl).then((c) => {
+      if (!cancelled && c) setSampledBannerBg(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [preNeedsBannerSample, preBannerUrl]);
+
   // Loading skeleton - minimal, fast to render
   if (loading) {
     return (
@@ -1135,8 +1163,15 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
-  const bgColor = profile.background_color || "#000000";
+  const storedBgColor = profile.background_color || "#000000";
   const profileBgStyle = (profile as any).bg_style as string | null;
+  const storedBgIsFlat = !profileBgStyle &&
+    !storedBgColor.startsWith('linear-gradient') && !storedBgColor.startsWith('radial-gradient');
+  // Banner hubs whose stored background is a near-black default get the warm
+  // backdrop sampled from the banner itself (legacy look, e.g. /rebornwraps).
+  const bgColor = (hasBanner && storedBgIsFlat && isColorDark(storedBgColor) && sampledBannerBg)
+    ? sampledBannerBg
+    : storedBgColor;
   const isGradientBg = profileBgStyle ? true : (bgColor.startsWith('linear-gradient') || bgColor.startsWith('radial-gradient'));
 
   // The page background is exactly the color the owner chose — no slate
@@ -1326,7 +1361,7 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
         {/* Profile Content */}
         <div 
-          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-32' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
+          className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasBanner ? '-mt-20' : hasCover ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
           {/* Avatar - hidden when the banner or logo is the header (full picture in frame) */}
           {!hasBanner && !isLogoHeader && (
