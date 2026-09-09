@@ -942,10 +942,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
     // Mobile-first: use the native share sheet when available, fall back to
     // the in-app share drawer/modal otherwise.
     if (typeof navigator !== "undefined" && (navigator as any).share) {
+      const name = data.profile.full_name?.trim();
       (navigator as any)
         .share({
-          title: `${data.profile.full_name} | TapAway`,
-          text: `Check out ${data.profile.full_name} on TapAway`,
+          title: name ? `${name} | TapAway` : "TapAway",
+          text: name ? `Check out ${name} on TapAway` : "Check out this hub on TapAway",
           url: shareUrl,
         })
         .catch(() => {
@@ -1134,9 +1135,10 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   // Share preview (OG tags): when someone shares the hub, the native share
   // sheet and link unfurls show the hub's photo, name, and headline.
   const sharePageUrl = `https://tapaway.co/${profile.username}`;
-  const shareTitle = `${profile.full_name} | TapAway`;
+  const shareName = profile.full_name?.trim() || null;
+  const shareTitle = shareName ? `${shareName} | TapAway` : "TapAway";
   const shareDescription =
-    profile.headline || profile.bio || `Tap to view ${profile.full_name}'s links on TapAway.`;
+    profile.headline || profile.bio || (shareName ? `Tap to view ${shareName}'s links on TapAway.` : "Tap to view this hub on TapAway.");
   const shareImage = profile.profile_photo_url
     ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 90)
     : "https://tapaway.co/logo-og.png";

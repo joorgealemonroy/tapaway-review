@@ -36,9 +36,10 @@ const PersonalProfile = () => {
     // Share URL uses edge function for rich OG previews
     const ogUrl = `https://xfrvckdcrqvkqdwjzopt.supabase.co/functions/v1/serve-og-profile?slug=${profile?.username}`;
     const displayUrl = `https://tapaway.co/${profile?.username}`;
+    const shareName = profile?.full_name?.trim() || null;
     const shareData = {
-      title: `${profile?.full_name} | TapAway`,
-      text: `Check out ${profile?.full_name}'s TapAway profile`,
+      title: shareName ? `${shareName} | TapAway` : "TapAway",
+      text: shareName ? `Check out ${shareName}'s TapAway profile` : "Check out this TapAway profile",
       url: ogUrl,
     };
 
