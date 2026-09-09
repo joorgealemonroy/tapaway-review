@@ -2612,6 +2612,7 @@ export type Database = {
         Row: {
           activated_at: string | null
           activated_by: string | null
+          activated_card_id: string | null
           approved_at: string | null
           approved_by: string | null
           archived_at: string | null
@@ -2691,6 +2692,7 @@ export type Database = {
           show_founding_badge: boolean
           show_shop_section: boolean | null
           show_username: boolean
+          source: string | null
           stripe_billing_email: string | null
           stripe_connect_account_id: string | null
           stripe_customer_id: string | null
@@ -2708,6 +2710,7 @@ export type Database = {
         Insert: {
           activated_at?: string | null
           activated_by?: string | null
+          activated_card_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           archived_at?: string | null
@@ -2787,6 +2790,7 @@ export type Database = {
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
+          source?: string | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -2804,6 +2808,7 @@ export type Database = {
         Update: {
           activated_at?: string | null
           activated_by?: string | null
+          activated_card_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           archived_at?: string | null
@@ -2883,6 +2888,7 @@ export type Database = {
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
+          source?: string | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -4609,6 +4615,10 @@ export type Database = {
           link_clicks: number
           taps: number
         }[]
+      }
+      admin_activate_card: {
+        Args: { _card_public_code: string; _profile_id: string }
+        Returns: Json
       }
       admin_engagement_daily: {
         Args: { _days?: number; _tz?: string }
