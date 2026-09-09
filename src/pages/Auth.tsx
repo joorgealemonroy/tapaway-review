@@ -692,7 +692,31 @@ const Auth = () => {
                 >
                   Create an account
                 </Button>
+
+                {/* Self-serve dashboard access for customers who never set a password */}
+                <div className="pt-1 text-center text-xs text-muted-foreground">
+                  <span>First time signing in? </span>
+                  <button
+                    type="button"
+                    className="text-foreground hover:underline font-medium"
+                    onClick={async () => {
+                      setError(null);
+                      const normalized = email.trim().toLowerCase();
+                      if (!normalized) {
+                        setError("Enter your email above first, then tap this.");
+                        return;
+                      }
+                      await supabase.functions.invoke("request-dashboard-access", {
+                        body: { email: normalized },
+                      });
+                      setMessage("Check your inbox — we sent you a secure link.");
+                    }}
+                  >
+                    Get dashboard access
+                  </button>
+                </div>
               </div>
+
             </form>
           )}
 
