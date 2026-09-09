@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "tmp_probe_anon_insert" ON public.support_requests;
