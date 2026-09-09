@@ -33,6 +33,8 @@ import { MenuDisplay } from "@/components/personal/MenuDisplay";
 import { parseMenuContent } from "@/lib/menuBlock";
 import { LocationsBlock } from "@/components/personal/LocationsBlock";
 import { resolveHubContrast, type HubContrast } from "@/lib/hubContrast";
+import { logoImageStyle } from "@/lib/logoHeader";
+import { sampleBottomEdgeColor } from "@/lib/sampleBannerColor";
 
 
 
@@ -929,6 +931,21 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
 
   const handleShare = useCallback(() => {
     if (!data?.profile) return;
+    const shareUrl = `https://tapaway.co/${data.profile.username}`;
+    // Mobile-first: use the native share sheet when available, fall back to
+    // the in-app share drawer/modal otherwise.
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      (navigator as any)
+        .share({
+          title: `${data.profile.full_name} | TapAway`,
+          text: `Check out ${data.profile.full_name} on TapAway`,
+          url: shareUrl,
+        })
+        .catch(() => {
+          /* user dismissed — nothing to do */
+        });
+      return;
+    }
     setShowShareModal(true);
   }, [data?.profile]);
 
@@ -1064,6 +1081,29 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
   const logoUrl = (isLogoHeader && profile.profile_photo_url)
     ? getOptimizedImageUrl(profile.profile_photo_url, 1080, 92)
     : null;
+  // Logo header: the band behind the logo carries its own color (sampled from
+  // the logo's edge when it was designed) so a white/colored logo blends
+  // seamlessly instead of sitting as a box on the page background.
+  const logoBandColor = isLogoHeader
+    ? ((profile as any).logo_bg_color || (profile as any).header_color || null)
+    : null;
+  // Fallback: if no band color was stored, sample the logo image's edge live
+  // so the blend still works. Never throws; null means "keep page background".
+  const [sampledLogoBand, setSampledLogoBand] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isLogoHeader || !logoUrl || logoBandColor) {
+      setSampledLogoBand(null);
+      return;
+    }
+    let cancelled = false;
+    sampleBottomEdgeColor(logoUrl).then((c) => {
+      if (!cancelled && c) setSampledLogoBand(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLogoHeader, logoUrl, logoBandColor]);
+  const effectiveLogoBand = logoBandColor || sampledLogoBand;
 
    // Default to black background (#000000) for users without a set background
   const bgColor = profile.background_color || "#000000";
@@ -1146,7 +1186,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         {isLogoHeader ? (
           <div
             className="relative w-full flex items-center justify-center px-5"
-            style={{ paddingTop: "max(2rem, env(safe-area-inset-top, 0px))", paddingBottom: "3rem" }}
+            style={{
+              paddingTop: "max(2rem, env(safe-area-inset-top, 0px))",
+              paddingBottom: "3rem",
+              ...(effectiveLogoBand ? { backgroundColor: effectiveLogoBand } : undefined),
+            }}
           >
             {logoUrl ? (
               <img
@@ -1154,7 +1198,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
                 alt={profile.full_name}
                 loading="eager"
                 decoding="async"
-                className="mx-auto max-h-56 w-auto object-contain"
+                className="mx-auto"
+                style={logoImageStyle((profile as any).logo_scale)}
               />
             ) : (
               <div className="h-24" />
@@ -1210,16 +1255,18 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         <div 
           className={`max-w-md mx-auto ${isMasterLocationsHub ? 'px-3' : 'px-4'} ${hasCover || hasBanner ? '-mt-16' : 'pt-10'} pb-12 relative z-10 ${pfpCentered ? "text-center" : ""}`}
         >
-          {/* Action buttons - Share and Save Contact */}
-          <div className="absolute top-0 right-4 flex gap-2">
+          {/* Action buttons - Share and Save Contact. Solid high-contrast pill so
+              the share button is always visible and discoverable, even over
+              busy banner images. */}
+          <div className="absolute top-0 right-4 flex gap-2 z-20">
               {profile.contact_enabled && profile.contact_display_style !== 'button' && (
                 <span className="relative">
                   <button
                     onClick={handleSaveContact}
-                    className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
+                    className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
                     aria-label="Save contact"
                   >
-                    <UserPlus className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
+                    <UserPlus className="h-4 w-4" />
                   </button>
                   {showContactTooltip && (
                     <div
@@ -1234,10 +1281,11 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
               )}
               <button
                 onClick={handleShare}
-                className={`h-10 w-10 rounded-full flex items-center justify-center shadow-sm transition-colors ${isDarkBg ? 'bg-black/30 hover:bg-black/40' : 'bg-white/90 hover:bg-white'}`}
+                className={`h-11 pl-3.5 pr-4 rounded-full flex items-center gap-1.5 shadow-lg ring-1 ring-black/10 transition-transform active:scale-95 ${isDarkBg ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
                 aria-label="Share profile"
               >
-                <Share2 className={`h-4 w-4 ${isDarkBg ? 'text-white' : 'text-gray-900'}`} />
+                <Share2 className="h-4 w-4" />
+                <span className="text-sm font-semibold">Share</span>
               </button>
             </div>
 

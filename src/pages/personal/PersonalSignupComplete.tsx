@@ -245,9 +245,11 @@ const PersonalSignupComplete = () => {
             updateData.header_image_url = headerImageUrl;
           }
 
-          // Activate Card Club if selected during signup
+          // Card Club was selected during signup — do NOT grant it free.
+          // The $5/mo subscription is completed from the one-time welcome
+          // offer in the dashboard (see tapaway_pending_card_club).
           if (savedData.addExtraCard) {
-            updateData.has_card_addon = true;
+            localStorage.setItem("tapaway_pending_card_club", "1");
           }
 
           await supabase

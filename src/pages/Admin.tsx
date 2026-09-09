@@ -64,6 +64,7 @@ import {
   Percent,
   Tag,
   Mail,
+  Truck,
 } from "lucide-react";
 
 const SUPER_ADMIN_EMAIL = "tap@tapaway.co";
@@ -99,9 +100,10 @@ type Section = "overview" | "accounts" | "reps" | "promo" | "system";
 const NAV = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
   { id: "accounts" as const, label: "Accounts & Hubs", icon: Building2 },
-  { id: "print" as const, label: "Print & Ship Queue", icon: Printer, path: "/admin/print-queue" },
   { id: "fulfillment" as const, label: "Fulfillment", icon: PackageCheck, path: "/admin/fulfillment" },
+  { id: "van" as const, label: "Van Sale", icon: Truck, path: "/admin/van" },
   { id: "locations" as const, label: "Locations", icon: MapPin, path: "/admin/locations" },
+  { id: "emails" as const, label: "Emails", icon: Mail, path: "/admin/emails" },
   { id: "reps" as const, label: "Sales Reps", icon: Users },
   { id: "promo" as const, label: "Promo Links", icon: LinkIcon },
   { id: "system" as const, label: "System & SMS", icon: Settings },
@@ -118,7 +120,6 @@ const REP_CARDS = [
 const SYSTEM_LINKS = [
   { label: "Analytics", desc: "Validated traffic, quality & conversions", icon: Activity, path: "/admin/analytics" },
   { label: "Locations", desc: "Classified location map data & field ops", icon: MapPin, path: "/admin/locations" },
-  { label: "Print Queue", desc: "Track & bulk download card PDFs", icon: Printer, path: "/admin/print-queue" },
   { label: "Hub Health", desc: "Verify every live hub is publicly reachable", icon: Activity, path: "/admin/hub-health" },
   { label: "App Errors", desc: "Recent crashes captured from the app", icon: AlertTriangle, path: "/admin/errors" },
   { label: "VIP SMS Subscribers", desc: "Search & export VIP text lists", icon: MessageSquare, path: "/admin/sms-subscribers" },

@@ -119,6 +119,10 @@ function ProfilePreviewRendererComponent({
     ? getOptimizedImageUrl(profile.header_image_url, 400, 80)
     : null;
   const hasCover = !!coverImageUrl;
+  // Full-bleed photo banner (header_type === "banner"): the profile photo is
+  // the header, shown big up top — mirrors the live hub page.
+  const isBannerHeader =
+    profile.header_type === "banner" && !!profile.profile_photo_url;
   // Legacy header color kept only as a small block accent; it no longer
   // controls any header.
   const headerColor = profile.header_color || "#6366f1";
@@ -820,9 +824,25 @@ function ProfilePreviewRendererComponent({
       )}
       {/* Header or Banner */}
       <div className="relative w-full">
-        {/* Cover image — the only header decoration. Optional; legacy
-            header styles fall back to no cover. */}
-        {coverImageUrl ? (
+        {/* Full-bleed photo banner — the profile photo IS the header */}
+        {isBannerHeader ? (
+          <div className="h-56 overflow-hidden relative">
+            <img
+              src={getOptimizedImageUrl(profile.profile_photo_url!, 400, 80)}
+              alt=""
+              className="h-full w-full object-cover object-top"
+            />
+            {/* Fade overlay from banner to background */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+              style={{
+                background: `linear-gradient(to bottom, transparent 0%, ${
+                  isGradientBg ? getBaseColorFromGradient(backgroundColor) : effectiveBgColor
+                } 100%)`,
+              }}
+            />
+          </div>
+        ) : coverImageUrl ? (
           <div className="h-36 overflow-hidden relative">
             <img
               src={coverImageUrl}
@@ -845,13 +865,13 @@ function ProfilePreviewRendererComponent({
 
       {/* Profile section */}
       <div
-        className={`px-6 ${hasCover ? '-mt-12' : 'pt-6'} ${
+        className={`px-6 ${isBannerHeader ? '-mt-16' : hasCover ? '-mt-12' : 'pt-6'} ${
           pfpPosition === "left" ? "flex items-start gap-4" : ""
         }`}
       >
         {/* Avatar */}
-        {/* Avatar - hidden when the logo/banner is the header */}
-
+        {/* Avatar - hidden when the banner is the header (photo is already big up top) */}
+        {!isBannerHeader && (
           <div
             className={`relative ${
               pfpPosition === "left"
@@ -881,6 +901,7 @@ function ProfilePreviewRendererComponent({
               </div>
             )}
           </div>
+        )}
 
         {/* Name and headline */}
         <div

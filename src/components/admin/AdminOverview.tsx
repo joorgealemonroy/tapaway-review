@@ -1,703 +1,344 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Activity,
   AlertTriangle,
-  ArrowUpRight,
+  ArrowRight,
   CheckCircle2,
-  ClipboardList,
+  Clock,
+  CreditCard,
   DollarSign,
-  FileText,
-  Link2,
   Loader2,
-  MapPin,
-  MousePointerClick,
-  PackageCheck,
+  Mail,
+  Megaphone,
   Printer,
   RefreshCw,
-  ShieldAlert,
-  Timer,
+  Tag,
+  Truck,
   Users,
+  Zap,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
-import { useAdminOverview, EngagementRange } from "@/hooks/useAdminOverview";
-import { STATUS_LABELS, StatusKey, useLocationIntel } from "@/hooks/useLocationIntel";
-import MrrGoalBar from "./MrrGoalBar";
-import TrialPipeline from "./TrialPipeline";
-import TapLeaderboard from "./TapLeaderboard";
-import AtRiskList from "./AtRiskList";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
+/**
+ * Admin command center — short by design.
+ * Money (real Stripe MRR), what needs action today, and quick actions.
+ * Deep analytics live at /admin/analytics.
+ */
+
+interface PastDueItem {
+  email: string;
+  name: string;
+  amount_due_cents: number;
+  subscription_id: string;
+  account_id: string | null;
+  kind: "personal" | "restaurant" | null;
+}
+
+interface TrialEnding {
+  profile_id: string;
+  username: string;
+  name: string;
+  ends_at: string;
+}
+
+interface BillingSummary {
+  mrr_cents: number;
+  active_count: number;
+  trialing_count: number;
+  past_due_count: number;
+  past_due: PastDueItem[];
+  trials_ending: TrialEnding[];
+}
 
 const Panel = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-xl border border-white/5 bg-white/[0.02] ${className}`}>{children}</div>
 );
 
-const Metric = ({
-  label,
-  value,
-  sub,
-  loading,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub?: string;
-  loading?: boolean;
-}) => (
-  <Panel className="p-5">
-    <div className="text-xs uppercase tracking-widest text-white/40">{label}</div>
-    <div className="text-3xl font-semibold text-white mt-2 tabular-nums">
-      {loading ? <span className="inline-block h-8 w-16 rounded bg-white/[0.06] animate-pulse" /> : value}
-    </div>
-    {sub && <div className="text-xs text-white/40 mt-1">{sub}</div>}
-  </Panel>
-);
+const money = (cents: number) =>
+  `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
 
-const relative = (iso: string) => {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
-};
-
-const RANGES: { id: EngagementRange; label: string }[] = [
-  { id: "today", label: "Today" },
-  { id: "30d", label: "30 days" },
-  { id: "all", label: "All time" },
-];
-
-const DAY_RANGES = [7, 30, 90];
-
-const dayLabel = (iso: string) => {
-  const [, m, d] = iso.split("-");
-  return `${Number(m)}/${Number(d)}`;
+const inDays = (iso: string) => {
+  const d = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  return d <= 0 ? "today" : d === 1 ? "tomorrow" : `in ${d}d`;
 };
 
 const AdminOverview = ({ onOpenAccounts }: { onOpenAccounts: () => void }) => {
   const navigate = useNavigate();
-  const [range, setRange] = useState<EngagementRange>("30d");
-  const [dailyDays, setDailyDays] = useState(30);
-  const {
-    counts,
-    engagement,
-    engagementLoading,
-    daily,
-    dailyLoading,
-    lastEventAt,
-    linkHealth,
-    runLinkCheck,
-    activity,
-    loading,
-    lastUpdatedAt,
-    health,
-    refresh,
-    runHealth,
-    // Command center
-    mrr,
-    mrrLoading,
-    trials,
-    followupsDue,
-    pipelineLoading,
-    leaderboard,
-    leaderboardLoading,
-    atRisk,
-    atRiskLoading,
-    fulfillment,
-    fulfillmentLoading,
-  } = useAdminOverview(true, range, dailyDays);
+  const [billing, setBilling] = useState<BillingSummary | null>(null);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [billingError, setBillingError] = useState<string | null>(null);
+  const [unapprovedDemos, setUnapprovedDemos] = useState<number | null>(null);
+  const [awaitingPrint, setAwaitingPrint] = useState<number | null>(null);
+  const [nudging, setNudging] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  const {
-    counts: locCounts,
-    loading: locLoading,
-    error: locError,
-    reload: reloadLocations,
-  } = useLocationIntel(true);
+  const load = useCallback(async () => {
+    setBillingLoading(true);
+    setBillingError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-billing-summary");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      setBilling(data as BillingSummary);
+      setUpdatedAt(new Date());
 
-  const totalHubs = counts.personalTotal + counts.restaurantTotal;
-  const today = daily.length ? daily[daily.length - 1] : null;
-  const yesterday = daily.length > 1 ? daily[daily.length - 2] : null;
-  const deltaPct =
-    today && yesterday && yesterday.taps > 0
-      ? Math.round(((today.taps - yesterday.taps) / yesterday.taps) * 100)
-      : null;
+      const [{ count: demos }, { count: print }] = await Promise.all([
+        supabase
+          .from("personal_profiles")
+          .select("id", { count: "exact", head: true })
+          .or("sales_rep_id.not.is.null,created_by_rep_id.not.is.null")
+          .eq("is_approved", false),
+        supabase
+          .from("personal_profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("is_approved", true)
+          .is("printed_at", null),
+      ]);
+      setUnapprovedDemos(demos ?? 0);
+      setAwaitingPrint(print ?? 0);
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Couldn't load billing");
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const healthTone =
-    health.broken > 0 ? "err" : health.running || health.pending > 0 ? "warn" : "ok";
-  const healthClasses =
-    healthTone === "err"
-      ? "border-red-500/30 bg-red-500/[0.07]"
-      : healthTone === "warn"
-        ? "border-amber-500/25 bg-amber-500/[0.05]"
-        : "border-emerald-500/25 bg-emerald-500/[0.05]";
+  const nudge = async (item: PastDueItem) => {
+    if (!item.account_id || !item.kind) {
+      toast.error("No TapAway account linked to this subscription");
+      return;
+    }
+    setNudging(item.subscription_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-payment-recovery", {
+        body: { account_id: item.account_id, kind: item.kind },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      toast.success(`Nudge sent to ${item.name || item.email || "customer"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Nudge failed");
+    } finally {
+      setNudging(null);
+    }
+  };
 
-  const queues = [
-    { label: "Hubs pending approval", value: counts.pendingApproval, icon: ClipboardList, action: onOpenAccounts },
-    { label: "Changes requested", value: counts.changesRequested, icon: AlertTriangle, action: onOpenAccounts },
-    { label: "Cards awaiting print", value: counts.printAwaiting, icon: Printer, path: "/admin/print-queue" },
-    { label: "Demos to review", value: fulfillmentLoading ? 0 : fulfillment.needsReview, icon: ClipboardList, path: "/admin/fulfillment" },
-    { label: "Demos to print", value: fulfillmentLoading ? 0 : fulfillment.toPrint, icon: Printer, path: "/admin/fulfillment" },
-    { label: "Demos to deliver", value: fulfillmentLoading ? 0 : fulfillment.toDeliver, icon: PackageCheck, path: "/admin/fulfillment" },
-    { label: "Rep applications", value: counts.repAppsPending, icon: Users, path: "/admin/reps" },
-    { label: "Demo kit requests", value: counts.demoRequestsPending, icon: ClipboardList, path: "/admin/demo-requests" },
-    { label: "W-9s to review", value: counts.taxPending, icon: FileText, path: "/admin/tax-review" },
-    { label: "Unpaid commissions", value: counts.unpaidCommissions, icon: DollarSign, path: "/admin/payouts" },
-    { label: "Trials ending in 7d", value: counts.trialsExpiring7d, icon: Timer, action: onOpenAccounts },
-  ];
+  const actionCount =
+    (billing?.past_due.length ?? 0) +
+    (billing?.trials_ending.length ?? 0) +
+    (unapprovedDemos ?? 0) +
+    (awaitingPrint ?? 0);
 
   return (
-    <div className="space-y-6">
-      {/* Header / freshness */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-white font-medium">Command Center</h2>
-          <p className="text-sm text-white/40">
-            {lastUpdatedAt
-              ? `Updated ${lastUpdatedAt.toLocaleTimeString()} · auto-refreshes every 60s`
-              : "Loading live data…"}
-          </p>
+          <h1 className="text-xl font-bold text-white">Command Center</h1>
+          {updatedAt && (
+            <p className="text-xs text-white/40">
+              Updated {updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </p>
+          )}
         </div>
         <Button
-          onClick={() => void refresh()}
-          variant="ghost"
           size="sm"
-          className="text-white/70 hover:text-white hover:bg-white/[0.05] border border-white/5"
+          variant="ghost"
+          onClick={() => void load()}
+          disabled={billingLoading}
+          className="text-white/70 hover:text-white border border-white/10"
         >
-          <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${billingLoading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
       </div>
 
-      {/* 1 — MONEY: MRR + goal, trials active, van sales today, taps today */}
-      <MrrGoalBar mrr={mrr} loading={mrrLoading} />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Metric
-          label="Trials active"
-          value={pipelineLoading ? null : trials.length}
-          sub={`${followupsDue.length} follow-up${followupsDue.length === 1 ? "" : "s"} due today`}
-          loading={pipelineLoading}
-        />
-        <Metric
-          label="Van sales today"
-          value={loading ? null : counts.vanSalesToday}
-          sub="Paid on the spot — outside the trial pipeline"
-          loading={loading}
-        />
-        <Metric
-          label="Taps today"
-          value={dailyLoading ? null : (today?.taps ?? 0).toLocaleString()}
-          sub="Across all hubs"
-          loading={dailyLoading}
-        />
+      {billingError && (
+        <Panel className="p-4 border-red-500/30 bg-red-500/[0.06]">
+          <div className="flex items-center gap-2 text-sm text-red-300">
+            <AlertTriangle className="h-4 w-4" />
+            {billingError}
+          </div>
+        </Panel>
+      )}
+
+      {/* Money — real Stripe numbers */}
+      <div className="grid grid-cols-3 gap-3">
+        <Panel className="p-4">
+          <div className="text-[11px] uppercase tracking-widest text-white/40">MRR</div>
+          <div className="text-2xl font-bold text-white mt-1 tabular-nums">
+            {billingLoading ? (
+              <span className="inline-block h-7 w-20 rounded bg-white/[0.06] animate-pulse" />
+            ) : (
+              money(billing?.mrr_cents ?? 0)
+            )}
+          </div>
+          <div className="text-[11px] text-white/40 mt-0.5">live Stripe billing</div>
+        </Panel>
+        <Panel className="p-4">
+          <div className="text-[11px] uppercase tracking-widest text-white/40">Paying</div>
+          <div className="text-2xl font-bold text-white mt-1 tabular-nums">
+            {billingLoading ? (
+              <span className="inline-block h-7 w-12 rounded bg-white/[0.06] animate-pulse" />
+            ) : (
+              billing?.active_count ?? 0
+            )}
+          </div>
+          <div className="text-[11px] text-white/40 mt-0.5">active subs</div>
+        </Panel>
+        <Panel className="p-4">
+          <div className="text-[11px] uppercase tracking-widest text-white/40">Trialing</div>
+          <div className="text-2xl font-bold text-white mt-1 tabular-nums">
+            {billingLoading ? (
+              <span className="inline-block h-7 w-12 rounded bg-white/[0.06] animate-pulse" />
+            ) : (
+              billing?.trialing_count ?? 0
+            )}
+          </div>
+          <div className="text-[11px] text-white/40 mt-0.5">in trial</div>
+        </Panel>
       </div>
 
-      {/* 2 — TRIAL PIPELINE: who to close */}
-      <TrialPipeline
-        trials={trials}
-        followupsDue={followupsDue}
-        loading={pipelineLoading}
-        onOpenAccounts={onOpenAccounts}
-      />
-
-      {/* 3 — NEEDS ACTION queues */}
-      <Panel className="p-5">
-        <div className="mb-3">
-          <h3 className="text-white font-medium">Needs action</h3>
-          <p className="text-sm text-white/40">Everything waiting on you right now.</p>
+      {/* Needs action */}
+      <Panel className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-white flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-400" />
+            Needs action
+            {actionCount > 0 && (
+              <span className="text-xs font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                {actionCount}
+              </span>
+            )}
+          </h2>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {queues.map((q) => (
-            <button
-              key={q.label}
-              onClick={() => (q.action ? q.action() : q.path && navigate(q.path))}
-              className={`group flex items-center justify-between gap-2 px-3 py-3 rounded-lg border transition-all text-left min-h-[56px] ${
-                q.value > 0
-                  ? "border-primary/25 bg-primary/[0.06] hover:bg-primary/[0.1]"
-                  : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
-              }`}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <q.icon className={`h-4 w-4 shrink-0 ${q.value > 0 ? "text-primary" : "text-white/40"}`} />
-                <span className="text-xs text-white/70 group-hover:text-white truncate">{q.label}</span>
-              </span>
-              <span
-                className={`text-sm font-semibold tabular-nums shrink-0 ${
-                  q.value > 0 ? "text-white" : "text-white/30"
-                }`}
+
+        {billingLoading ? (
+          <div className="flex items-center gap-2 text-sm text-white/40 py-4">
+            <Loader2 className="h-4 w-4 animate-spin" /> Checking…
+          </div>
+        ) : actionCount === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-emerald-300 py-2">
+            <CheckCircle2 className="h-4 w-4" /> All clear. Nothing needs you right now.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {(billing?.past_due ?? []).map((p) => (
+              <div
+                key={p.subscription_id}
+                className="flex items-center gap-3 p-3 rounded-lg bg-red-500/[0.07] border border-red-500/20"
               >
-                {q.value}
-              </span>
+                <CreditCard className="h-4 w-4 text-red-300 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">
+                    {p.name || p.email || "Customer"}
+                  </div>
+                  <div className="text-xs text-white/50">
+                    Payment failed · {money(p.amount_due_cents)}/mo
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => void nudge(p)}
+                  disabled={nudging === p.subscription_id}
+                  className="shrink-0 min-h-[36px]"
+                >
+                  {nudging === p.subscription_id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Nudge"
+                  )}
+                </Button>
+              </div>
+            ))}
+
+            {(billing?.trials_ending ?? []).map((t) => (
+              <button
+                key={t.profile_id}
+                onClick={onOpenAccounts}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-amber-500/[0.07] border border-amber-500/20 text-left"
+              >
+                <Clock className="h-4 w-4 text-amber-300 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{t.name}</div>
+                  <div className="text-xs text-white/50">Trial ends {inDays(t.ends_at)}</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+              </button>
+            ))}
+
+            {(unapprovedDemos ?? 0) > 0 && (
+              <button
+                onClick={() => navigate("/admin/fulfillment")}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-left"
+              >
+                <Users className="h-4 w-4 text-white/60 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-white">
+                    {unapprovedDemos} demo{unapprovedDemos === 1 ? "" : "s"} waiting for approval
+                  </div>
+                  <div className="text-xs text-white/50">Review → print → activate</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+              </button>
+            )}
+
+            {(awaitingPrint ?? 0) > 0 && (
+              <button
+                onClick={() => navigate("/admin/fulfillment")}
+                className="w-full flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-left"
+              >
+                <Printer className="h-4 w-4 text-white/60 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-white">
+                    {awaitingPrint} approved hub{awaitingPrint === 1 ? "" : "s"} not printed yet
+                  </div>
+                  <div className="text-xs text-white/50">Print queue</div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-white/40 shrink-0" />
+              </button>
+            )}
+          </div>
+        )}
+      </Panel>
+
+      {/* Quick actions */}
+      <Panel className="p-4">
+        <h2 className="font-semibold text-white mb-3">Quick actions</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: "Van sale", desc: "Close on the spot", icon: Truck, path: "/admin/van" },
+            { label: "Fulfillment", desc: "Approve · print · ship", icon: Printer, path: "/admin/fulfillment" },
+            { label: "Broadcast", desc: "SMS blast", icon: Megaphone, path: "/admin/emails" },
+            { label: "Emails", desc: "Templates & history", icon: Mail, path: "/admin/emails" },
+            { label: "Promo link", desc: "Discount pay link", icon: Tag, path: "/admin/discounts" },
+            { label: "Analytics", desc: "Traffic & taps", icon: Users, path: "/admin/analytics" },
+          ].map((a) => (
+            <button
+              key={a.label}
+              onClick={() => navigate(a.path)}
+              className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10 text-left hover:bg-white/[0.06] transition-colors min-h-[56px]"
+            >
+              <a.icon className="h-5 w-5 text-primary shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-white">{a.label}</div>
+                <div className="text-xs text-white/50 truncate">{a.desc}</div>
+              </div>
             </button>
           ))}
         </div>
       </Panel>
 
-      {/* 3b — FULFILLMENT: one-tap entry to the pipeline board */}
-      <Panel className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-white font-medium">Fulfillment</h3>
-            <p className="text-sm text-white/40">
-              {fulfillmentLoading
-                ? "Loading queue…"
-                : `${fulfillment.needsReview} to review · ${fulfillment.toPrint} to print · ${fulfillment.toDeliver} to deliver`}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px]"
-            onClick={() => navigate("/admin/fulfillment")}
-          >
-            Open pipeline <ArrowUpRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </Panel>
-
-      {/* 3c — VIP SMS: opted-in subscriber count, links to the subscriber list */}
-      <Panel className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-white font-medium flex items-center gap-2">
-              VIP SMS subscribers
-              <span className="text-2xl font-semibold text-white tabular-nums">
-                {loading ? "—" : counts.smsSubscribers.toLocaleString()}
-              </span>
-            </h3>
-            <p className="text-sm text-white/40">
-              {loading
-                ? "Loading…"
-                : counts.smsSubscribers === 0
-                  ? "No one has opted in yet"
-                  : "Opted in across all restaurants"}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px]"
-            onClick={() => navigate("/admin/sms-subscribers")}
-          >
-            Open list <ArrowUpRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </Panel>
-
-      {/* 4 — TAP LEADERBOARD (admin only) */}
-      <TapLeaderboard
-        leaderboard={leaderboard}
-        loading={leaderboardLoading}
-        onOpenAccounts={onOpenAccounts}
-      />
-
-      {/* 5 — AT RISK */}
-      <AtRiskList atRisk={atRisk} loading={atRiskLoading} onOpenAccounts={onOpenAccounts} />
-
-      {/* 6 — HUB HEALTH: problems scream here */}
-      <div className={`rounded-xl border p-5 ${healthClasses}`}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            {healthTone === "ok" ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5" />
-            ) : healthTone === "warn" ? (
-              <Loader2 className="h-5 w-5 text-amber-400 mt-0.5 animate-spin" />
-            ) : (
-              <ShieldAlert className="h-5 w-5 text-red-400 mt-0.5" />
-            )}
-            <div>
-              <div className="text-white font-medium">
-                {health.broken > 0
-                  ? `${health.broken} of ${health.total} live hubs are not reachable`
-                  : health.running || health.pending > 0
-                    ? `Checking ${health.total} live hubs…`
-                    : health.total > 0
-                      ? `All ${health.total} live hubs are reachable`
-                      : "No live hubs to check"}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                Anonymous probes against the public endpoints ·{" "}
-                {health.lastCheckedAt ? `checked ${relative(health.lastCheckedAt.toISOString())}` : "running now"}
-              </div>
-              {health.brokenSlugs.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  {health.brokenSlugs.slice(0, 4).map((b) => (
-                    <div key={b.slug} className="text-xs flex gap-2">
-                      <span className="font-mono text-red-200">/{b.slug}</span>
-                      <span className="text-red-200/70 truncate">{b.detail}</span>
-                    </div>
-                  ))}
-                  {health.brokenSlugs.length > 4 && (
-                    <div className="text-xs text-red-200/60">+{health.brokenSlugs.length - 4} more</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => void runHealth()}
-              disabled={health.running}
-              size="sm"
-              variant="ghost"
-              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-            >
-              <Activity className="h-3.5 w-3.5 mr-2" />
-              Run check
-            </Button>
-            <Button
-              onClick={() => navigate("/admin/hub-health")}
-              size="sm"
-              variant="ghost"
-              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-            >
-              Details
-              <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Link health band */}
-      <div
-        className={`rounded-xl border p-5 ${
-          linkHealth.needsAttention > 0
-            ? "border-amber-500/30 bg-amber-500/[0.06]"
-            : "border-white/5 bg-white/[0.02]"
-        }`}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <Link2
-              className={`h-5 w-5 mt-0.5 ${linkHealth.needsAttention > 0 ? "text-amber-400" : "text-emerald-400"}`}
-            />
-            <div className="min-w-0">
-              <div className="text-white font-medium">
-                {linkHealth.totalLinks === 0
-                  ? "Links have not been checked yet"
-                  : linkHealth.needsAttention > 0
-                    ? `${linkHealth.needsAttention} of ${linkHealth.totalLinks} links need attention (${linkHealth.brokenLinks} confirmed broken across ${linkHealth.hubsWithBroken} hub${linkHealth.hubsWithBroken === 1 ? "" : "s"})`
-                    : `All ${linkHealth.totalLinks} checkable links responded`}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                Every outbound link opened server-side ·{" "}
-                {linkHealth.lastCheckedAt
-                  ? `checked ${relative(linkHealth.lastCheckedAt.toISOString())}`
-                  : "never run"}
-              </div>
-              {linkHealth.totalLinks > 0 && (
-                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/50">
-                  <span className="text-emerald-300/80">{linkHealth.breakdown.healthy} healthy</span>
-                  <span>{linkHealth.breakdown.redirected} redirected</span>
-                  <span className="text-red-300/80">{linkHealth.breakdown.confirmed_broken} confirmed broken</span>
-                  <span>{linkHealth.breakdown.server_error} server error</span>
-                  <span>{linkHealth.breakdown.tls_error} TLS error</span>
-                  <span>{linkHealth.breakdown.timeout} timeout</span>
-                  <span>{linkHealth.breakdown.malformed} malformed</span>
-                  <span className="text-white/40">
-                    {linkHealth.breakdown.blocked_unverifiable} blocked / unverifiable
-                  </span>
-                  {linkHealth.breakdown.false_positive > 0 && (
-                    <span className="text-white/40">{linkHealth.breakdown.false_positive} marked false positive</span>
-                  )}
-                </div>
-              )}
-              {linkHealth.worst.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  {linkHealth.worst.slice(0, 5).map((b) => (
-                    <div key={`${b.hub_id}-${b.url}`} className="text-xs flex gap-2 min-w-0">
-                      <span className="font-mono text-amber-200 shrink-0">/{b.slug ?? "?"}</span>
-                      <span className="text-white/50 shrink-0">{b.label}</span>
-                      <span className="text-white/40 shrink-0">{b.classification ?? b.status}</span>
-                      <span className="text-amber-200/70 truncate">{b.detail ?? ""}</span>
-                    </div>
-                  ))}
-                  {linkHealth.worst.length > 5 && (
-                    <div className="text-xs text-amber-200/60">+{linkHealth.worst.length - 5} more</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={() => void runLinkCheck()}
-              disabled={linkHealth.running}
-              size="sm"
-              variant="ghost"
-              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-            >
-              {linkHealth.running ? (
-                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-              ) : (
-                <Link2 className="h-3.5 w-3.5 mr-2" />
-              )}
-              Check links
-            </Button>
-            <Button
-              onClick={() => navigate("/admin/hub-health")}
-              size="sm"
-              variant="ghost"
-              className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-            >
-              Details
-              <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Engagement detail (kept, below the do-today sections) */}
-      <Panel className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h3 className="text-white font-medium">Engagement</h3>
-            <p className="text-sm text-white/40">Same source as Accounts &amp; Hubs, so the numbers match.</p>
-          </div>
-          <div className="flex rounded-lg border border-white/5 bg-white/[0.02] p-0.5">
-            {RANGES.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRange(r.id)}
-                className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
-                  range === r.id ? "bg-white/[0.08] text-white" : "text-white/50 hover:text-white/80"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Taps", value: engagement?.taps ?? 0 },
-            { label: "Clicks", value: engagement?.clicks ?? 0 },
-            { label: "Contact saves", value: engagement?.saves ?? 0 },
-          ].map((s) => (
-            <div key={s.label}>
-              <div className="text-xs uppercase tracking-widest text-white/40">{s.label}</div>
-              <div className="text-2xl font-semibold text-white mt-1 tabular-nums">
-                {engagementLoading ? (
-                  <span className="inline-block h-7 w-14 rounded bg-white/[0.06] animate-pulse" />
-                ) : (
-                  s.value.toLocaleString()
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Day-by-day activity */}
-        <div className="mt-6 pt-5 border-t border-white/5">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
-              <h4 className="text-white text-sm font-medium">Daily taps &amp; clicks</h4>
-              <p className="text-xs text-white/40">
-                {lastEventAt ? `Last event received ${relative(lastEventAt)}` : "No events recorded yet"} · your local
-                timezone
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-widest text-white/40">Today so far</div>
-                <div className="text-lg font-semibold text-white tabular-nums">
-                  {(today?.taps ?? 0).toLocaleString()}
-                  <span className="text-xs text-white/40 font-normal"> taps</span>
-                  {deltaPct !== null && (
-                    <span className={`ml-2 text-xs ${deltaPct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {deltaPct >= 0 ? "+" : ""}
-                      {deltaPct}%
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex rounded-lg border border-white/5 bg-white/[0.02] p-0.5">
-                {DAY_RANGES.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDailyDays(d)}
-                    className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
-                      dailyDays === d ? "bg-white/[0.08] text-white" : "text-white/50 hover:text-white/80"
-                    }`}
-                  >
-                    {d}d
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="h-56">
-            {dailyLoading ? (
-              <div className="h-full rounded-lg bg-white/[0.03] animate-pulse" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis
-                    dataKey="day"
-                    tickFormatter={dayLabel}
-                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval="preserveStartEnd"
-                    minTickGap={16}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                    contentStyle={{
-                      background: "#0a0e1a",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                    labelStyle={{ color: "rgba(255,255,255,0.6)" }}
-                  />
-                  <Bar dataKey="taps" name="Taps" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="clicks" name="Clicks" fill="rgba(255,255,255,0.28)" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-      </Panel>
-
-      {/* Business KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Metric
-          label="Total hubs"
-          value={totalHubs}
-          sub={`${counts.personalTotal} Solo · ${counts.restaurantTotal} Business`}
-          loading={loading}
-        />
-        <Metric
-          label="Active subscriptions"
-          value={counts.activeSubs}
-          sub={`${counts.trialing} on trial`}
-          loading={loading}
-        />
-        <Metric label="New hubs · 7d" value={counts.newLast7} sub="Created this week" loading={loading} />
-        <Metric
-          label="Hubs active · 7d"
-          value={engagement?.activeHubs ?? 0}
-          sub="Tapped in the last 7 days"
-          loading={engagementLoading}
-        />
-      </div>
-
-      {/* Recent activity */}
-      <Panel className="p-5">
-        <div className="mb-3">
-          <h3 className="text-white font-medium">Recent activity</h3>
-          <p className="text-sm text-white/40">Newest hub, submission and partner events.</p>
-        </div>
-        {loading ? (
-          <div className="py-6 text-center text-white/40 text-sm">Loading…</div>
-        ) : activity.length === 0 ? (
-          <div className="py-6 text-center text-white/40 text-sm">No recent activity.</div>
-        ) : (
-          <div className="divide-y divide-white/5">
-            {activity.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => a.path && navigate(a.path)}
-                className="w-full flex items-center justify-between gap-3 py-2.5 text-left hover:bg-white/[0.02] rounded px-1"
-              >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                      a.tone === "good" ? "bg-emerald-400" : a.tone === "warn" ? "bg-amber-400" : "bg-white/30"
-                    }`}
-                  />
-                  <span className="text-sm text-white/80 truncate">{a.label}</span>
-                  <span className="text-xs text-white/40 truncate hidden sm:inline">{a.detail}</span>
-                </span>
-                <span className="text-xs text-white/35 shrink-0">{relative(a.at)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </Panel>
-
-      {/* Location classification (kept at the bottom) */}
-      <Panel className="p-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <div className="text-white font-medium flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-emerald-400" /> Location classification
-            </div>
-            <div className="text-xs text-white/40">
-              Access and payment classification from the location system · does not affect MRR reporting
-            </div>
-          </div>
-          <Button
-            onClick={() => navigate("/admin/locations")}
-            size="sm"
-            variant="ghost"
-            className="text-white/70 hover:text-white hover:bg-white/[0.06] border border-white/10"
-          >
-            Open Locations <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-          </Button>
-        </div>
-        {locError ? (
-          <div className="text-sm text-red-300">
-            Couldn't load location classification.{" "}
-            <button className="underline" onClick={() => void reloadLocations()}>Retry</button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {(Object.keys(STATUS_LABELS) as StatusKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => navigate(`/admin/locations?status=${key}`)}
-                className="text-left rounded-lg border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors"
-              >
-                <div className="text-[10px] uppercase tracking-widest text-white/40">{STATUS_LABELS[key]}</div>
-                <div className="text-xl font-semibold text-white mt-1 tabular-nums">
-                  {locLoading ? (
-                    <span className="inline-block h-5 w-8 rounded bg-white/[0.06] animate-pulse" />
-                  ) : (
-                    locCounts[key]
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </Panel>
-
-      {/* App errors */}
-      <button
-        onClick={() => navigate("/admin/errors")}
-        className={`text-left rounded-xl border p-5 transition-colors w-full ${
-          counts.errors24h > 0
-            ? "border-red-500/30 bg-red-500/[0.07] hover:bg-red-500/[0.1]"
-            : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
-        }`}
-      >
-        <div className="text-xs uppercase tracking-widest text-white/40 flex items-center gap-1.5">
-          <MousePointerClick className="h-3.5 w-3.5" /> App errors · 24h
-        </div>
-        <div
-          className={`text-3xl font-semibold mt-2 tabular-nums ${
-            counts.errors24h > 0 ? "text-red-300" : "text-white"
-          }`}
-        >
-          {counts.errors24h}
-        </div>
-        <div className="text-xs text-white/40 mt-1">
-          {counts.errors24h > 0 ? "Open the error log" : "No crashes captured"}
-        </div>
-      </button>
+      <p className="text-center text-xs text-white/30 pb-2">
+        <DollarSign className="h-3 w-3 inline mr-1" />
+        MRR is live Stripe billing — never an estimate.
+      </p>
     </div>
   );
 };

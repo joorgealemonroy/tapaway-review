@@ -17,6 +17,7 @@ import {
 import { MessageSquare, Users, Send, Loader2, Check, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { tapawayUrl } from "@/lib/siteUrl";
 
 const MAX_LEN = 160;
 /** Same review-request signal the server uses — any mention of reviews. */
@@ -119,7 +120,7 @@ const SmsMarketingTab = ({ profileId, businessName, hubLink }: Props) => {
             (p?.contact_name && String(p.contact_name).trim()) ||
             (p?.username ? `@${p.username}` : "us"),
         );
-        setResolvedLink(hubLink || (p?.username ? `${window.location.origin}/${p.username}` : ""));
+        setResolvedLink(hubLink || (p?.username ? tapawayUrl(`/${p.username}`) : ""));
       }
     } catch (err) {
       console.error("SMS tab load error:", err);

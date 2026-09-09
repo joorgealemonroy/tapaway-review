@@ -63,6 +63,7 @@ interface OverviewProfile {
   headline: string | null;
   bio: string | null;
   header_type?: string | null;
+  header_type?: string | null;
   plan_type: string | null;
   subscription_status: string | null;
   trial_ends_at: string | null;
@@ -358,38 +359,28 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
         }
       />
 
-      {/* Delight: their place — photo, name, one tap to the live hub */}
-      <Card className="p-4 sm:p-5 card-elevated">
-        <div className="flex items-center gap-4">
-          {profile.profile_photo_url ? (
-            <img
-              src={profile.profile_photo_url}
-              alt={displayName}
-              className="w-14 h-14 rounded-full object-cover shrink-0"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shrink-0">
-              <span className="text-2xl font-bold text-white">{nameInitial}</span>
+      {/* Live hub strip — no photo here; design lives in the Design tab */}
+      {profile.username && (
+        <Card className="p-3 sm:p-4 card-elevated">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Your hub</p>
-            <h2 className="text-xl font-bold truncate">{displayName}</h2>
-            {profile.headline && (
-              <p className="text-sm text-muted-foreground truncate">{profile.headline}</p>
-            )}
-          </div>
-          {profile.username && (
-            <Button asChild variant="outline" className="min-h-[44px] shrink-0">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">Your hub is live</p>
+              <p className="text-xs text-muted-foreground truncate font-mono">
+                tapaway.co/{profile.username}
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="min-h-[44px] shrink-0">
               <a href={`/${profile.username}`} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">View your live hub</span>
-                <span className="sm:hidden">Live hub</span>
+                <ExternalLink className="w-4 h-4 mr-1.5" />
+                View
               </a>
             </Button>
-          )}
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
 
       {/* One-time first-run intro — new accounts only, never in admin view */}
       {!isReadOnlyView && (

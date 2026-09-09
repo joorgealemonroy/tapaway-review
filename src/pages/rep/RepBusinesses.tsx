@@ -11,6 +11,7 @@ import { RepShell } from '@/components/rep/RepShell';
 import { RepCard } from '@/components/rep/RepCard';
 import { PIPELINE_STATUSES } from '@/components/rep/StatusDot';
 import { isBrokenPlatformUrl } from '@/lib/brokenLinks';
+import { tapawayUrl } from '@/lib/siteUrl';
 
 interface Business {
   id: string;
@@ -251,7 +252,7 @@ const RepBusinesses = () => {
 
   const q = search.trim().toLowerCase();
   const sendClaimLink = async (hub: Business) => {
-    const claimUrl = `${window.location.origin}/claim?id=${hub.id}`;
+    const claimUrl = tapawayUrl(`/claim?id=${hub.id}`);
     let vip = 0;
     let owner = (hub.restaurant_name || 'there').split(' ')[0];
     try {

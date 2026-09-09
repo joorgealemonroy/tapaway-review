@@ -31,12 +31,15 @@ interface Props {
   profilePhotoUrl: string | null;
   /** The cover image shown at the top of the hub (personal_profiles.header_image_url). */
   bannerImageUrl: string | null;
+  /** Current header style: "banner" = full-bleed photo banner, anything else = classic. */
+  headerType: string | null;
   isFoundingUser?: boolean;
   showFoundingBadge?: boolean;
   onUpdate: (updates: {
     backgroundColor?: string | null;
     profilePhotoUrl?: string | null;
     bannerImageUrl?: string | null;
+    headerType?: string | null;
   }) => void;
 }
 
@@ -44,6 +47,7 @@ type DesignDatabaseUpdates = Partial<{
   background_color: string | null;
   profile_photo_url: string | null;
   header_image_url: string | null;
+  header_type: string | null;
 }>;
 
 type DesignPreviewUpdates = Parameters<Props["onUpdate"]>[0];
@@ -75,12 +79,14 @@ export const DashboardDesignTab = ({
   backgroundColor,
   profilePhotoUrl,
   bannerImageUrl,
+  headerType,
   isFoundingUser,
   showFoundingBadge,
   onUpdate,
 }: Props) => {
   const [pendingBgColor, setPendingBgColor] = useState(backgroundColor);
   const [bgColorInput, setBgColorInput] = useState(backgroundColor || "#ffffff");
+  const [pendingHeaderType, setPendingHeaderType] = useState(headerType);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [uploading, setUploading] = useState<"photo" | "banner" | null>(null);
@@ -106,7 +112,8 @@ export const DashboardDesignTab = ({
   useEffect(() => {
     setPendingBgColor(backgroundColor);
     setBgColorInput(backgroundColor || "#ffffff");
-  }, [backgroundColor]);
+    setPendingHeaderType(headerType);
+  }, [backgroundColor, headerType]);
 
   useEffect(() => {
     setBadgeVisible(showFoundingBadge ?? false);
@@ -176,6 +183,18 @@ export const DashboardDesignTab = ({
     setBgColorInput(color);
     // Keep the live preview in step with the picker.
     queueDesignSave({ background_color: color }, { backgroundColor: color });
+  };
+
+  // Header style: "banner" turns the profile photo into the full-bleed photo
+  // banner at the top of the hub (the big-image look). Anything else is the
+  // classic layout (avatar + optional cover image).
+  const handleHeaderTypeChange = (type: "banner" | "classic") => {
+    const dbValue = type === "banner" ? "banner" : "color";
+    setPendingHeaderType(dbValue);
+    queueDesignSave({ header_type: dbValue }, { headerType: dbValue });
+    toast.success(
+      type === "banner" ? "Photo banner on — looking sharp." : "Classic header on."
+    );
   };
 
   // --- Image upload plumbing ---
@@ -391,6 +410,71 @@ export const DashboardDesignTab = ({
           onChange={(e) => handleFileSelect(e, "photo")}
           className="hidden"
         />
+      </section>
+
+      <div className="h-px bg-border" />
+
+      {/* Header style — the big photo banner look vs classic */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">Header style</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Photo banner shows your profile photo big at the top of the hub.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => handleHeaderTypeChange("banner")}
+            disabled={!profilePhotoUrl || uploading !== null}
+            className={`min-h-[120px] rounded-xl border-2 p-3 flex flex-col items-center gap-2 transition-all text-left ${
+              pendingHeaderType === "banner"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-muted-foreground/40"
+            } ${!profilePhotoUrl ? "opacity-50" : ""}`}
+          >
+            <span className="w-full h-14 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+              {profilePhotoUrl ? (
+                <img src={profilePhotoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              )}
+            </span>
+            <span className="text-sm font-semibold">Photo banner</span>
+            <span className="text-xs text-muted-foreground text-center leading-tight">
+              Big image up top, like the best-looking hubs
+            </span>
+          </button>
+          <button
+            onClick={() => handleHeaderTypeChange("classic")}
+            disabled={uploading !== null}
+            className={`min-h-[120px] rounded-xl border-2 p-3 flex flex-col items-center gap-2 transition-all text-left ${
+              pendingHeaderType !== "banner"
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-muted-foreground/40"
+            }`}
+          >
+            <span className="w-full h-14 rounded-lg bg-muted flex items-center justify-center">
+              {profilePhotoUrl ? (
+                <img
+                  src={profilePhotoUrl}
+                  alt=""
+                  className="h-10 w-10 rounded-full object-cover border-2 border-background"
+                />
+              ) : (
+                <span className="h-10 w-10 rounded-full bg-muted-foreground/20" />
+              )}
+            </span>
+            <span className="text-sm font-semibold">Classic</span>
+            <span className="text-xs text-muted-foreground text-center leading-tight">
+              Round photo with your links below
+            </span>
+          </button>
+        </div>
+        {!profilePhotoUrl && (
+          <p className="text-xs text-muted-foreground">
+            Add a profile photo above to unlock the photo banner.
+          </p>
+        )}
       </section>
 
       <div className="h-px bg-border" />

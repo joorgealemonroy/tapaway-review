@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
+import { tapawayUrl } from "@/lib/siteUrl";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Copy, ExternalLink, Loader2 } from "lucide-react";
@@ -37,7 +38,7 @@ export default function CloseSaleDialog({
         if (error) throw error;
         const token = (data as { token?: string })?.token;
         if (!token) throw new Error("Could not create the sales link");
-        if (!cancelled) setUrl(`${window.location.origin}/claim?t=${encodeURIComponent(token)}`);
+        if (!cancelled) setUrl(tapawayUrl(`/claim?t=${encodeURIComponent(token)}`));
       } catch (err) {
         console.error("[close-sale] mint error", err);
         if (!cancelled) toast.error("Could not create the sales link");

@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -23,7 +22,6 @@ import {
   Star,
   Users,
   ArrowLeftRight,
-  Smartphone,
   CreditCard,
   MessageSquare,
   AlertTriangle,
@@ -45,6 +43,7 @@ import { AdvancedAnalyticsTab } from "@/components/personal/AdvancedAnalyticsTab
 import { DashboardContactCard } from "@/components/personal/DashboardContactCard";
 import { PersonalBillingTab } from "@/components/personal/PersonalBillingTab";
 import { CardsTab } from "@/components/personal/CardsTab";
+import { CardClubWelcomeOffer, PENDING_CARD_CLUB_KEY } from "@/components/personal/CardClubWelcomeOffer";
 
 import { WelcomeCoachMarks } from "@/components/personal/WelcomeCoachMarks";
 import { ConfettiEffect } from "@/components/personal/ConfettiEffect";
@@ -179,6 +178,7 @@ const PersonalDashboard = () => {
 
   const [upgrading, setUpgrading] = useState(false);
   const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
+  const [showCardClubOffer, setShowCardClubOffer] = useState(false);
   const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") || "overview");
   // Set by the /claim success page so the welcome card only shows right after activation.
   const [justClaimed] = useState(() => {
@@ -191,7 +191,6 @@ const PersonalDashboard = () => {
   const [coachHighlight, setCoachHighlight] = useState<string | null>(null);
   const welcomeParamRef = useRef<boolean>(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
   // Admin impersonation mode
   const adminViewId = searchParams.get("admin_view_personal") || searchParams.get("admin_view");
@@ -467,6 +466,14 @@ const PersonalDashboard = () => {
     }
   }, [profile]);
 
+  // One-time Card Club offer for signups that selected it at checkout.
+  // This is the only way to join Card Club — no self-serve subscribe exists.
+  useEffect(() => {
+    if (profile && localStorage.getItem(PENDING_CARD_CLUB_KEY) && !profile.has_card_addon) {
+      setShowCardClubOffer(true);
+    }
+  }, [profile]);
+
   // No longer auto-showing card modal
 
   // Handle upgrade success from URL param
@@ -637,6 +644,7 @@ const PersonalDashboard = () => {
     backgroundColor?: string | null;
     profilePhotoUrl?: string | null;
     bannerImageUrl?: string | null;
+    headerType?: string | null;
   }) => {
     if (profile) {
       const updatedProfile = {
@@ -644,6 +652,7 @@ const PersonalDashboard = () => {
         background_color: updates.backgroundColor !== undefined ? updates.backgroundColor : profile.background_color,
         profile_photo_url: updates.profilePhotoUrl !== undefined ? updates.profilePhotoUrl : profile.profile_photo_url,
         header_image_url: updates.bannerImageUrl !== undefined ? updates.bannerImageUrl : profile.header_image_url,
+        header_type: updates.headerType !== undefined ? updates.headerType : (profile as any).header_type,
       };
 
       setProfile(updatedProfile);
@@ -1415,6 +1424,7 @@ const PersonalDashboard = () => {
               backgroundColor={profile.background_color}
               profilePhotoUrl={profile.profile_photo_url}
               bannerImageUrl={profile.header_image_url}
+              headerType={(profile as any).header_type ?? null}
               isFoundingUser={profile.is_founding_user}
               showFoundingBadge={profile.show_founding_badge}
               onUpdate={handleDesignUpdate}
@@ -1511,31 +1521,6 @@ const PersonalDashboard = () => {
         </aside>
       </div>
 
-      {/* Mobile Preview FAB */}
-      <button
-        onClick={() => setMobilePreviewOpen(true)}
-        className="xl:hidden fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        aria-label="Preview profile"
-      >
-        <Smartphone className="h-6 w-6" />
-      </button>
-
-      {/* Mobile Preview Drawer */}
-      <Drawer open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
-        <DrawerContent className="max-h-[92vh]" showHandle={true}>
-          <DrawerHeader className="text-center pb-2">
-            <DrawerTitle className="text-sm font-semibold">Live Preview</DrawerTitle>
-          </DrawerHeader>
-          <div className="overflow-y-auto flex-1 pb-8 flex justify-center">
-            <ProfilePreviewPanel
-              profile={profile}
-              links={links}
-              blocks={previewBlocks}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
-
       {/* Autosave status */}
       <AutosaveStatusBar
         status={autosaveStatus}
@@ -1576,6 +1561,14 @@ const PersonalDashboard = () => {
         highlightedStep={coachHighlight}
         onHighlightChange={setCoachHighlight}
       />
+
+      {/* One-time Card Club offer (signup selection) */}
+      {showCardClubOffer && (
+        <CardClubWelcomeOffer
+          profileId={profile.id}
+          onDone={() => setShowCardClubOffer(false)}
+        />
+      )}
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav

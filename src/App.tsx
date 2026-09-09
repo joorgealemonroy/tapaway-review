@@ -78,7 +78,6 @@ const AdminFounders = lazy(() => import("./pages/admin/AdminFounders"));
 const AdminSmsSubscribers = lazy(() => import("./pages/admin/AdminSmsSubscribers"));
 const AdminHubHealth = lazy(() => import("./pages/admin/AdminHubHealth"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
-const AdminPrintQueue = lazy(() => import("./pages/admin/AdminPrintQueue"));
 const AdminFulfillment = lazy(() => import("./pages/admin/AdminFulfillment"));
 const AdminErrors = lazy(() => import("./pages/admin/AdminErrors"));
 const AdminLocations = lazy(() => import("./pages/admin/AdminLocations"));
@@ -206,7 +205,7 @@ const App = () => {
                 <Route path="/admin/sms-subscribers" element={<AdminSmsSubscribers />} />
                 <Route path="/admin/hub-health" element={<AdminHubHealth />} />
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/print-queue" element={<AdminPrintQueue />} />
+                <Route path="/admin/print-queue" element={<Navigate to="/admin/fulfillment" replace />} />
                 <Route path="/admin/fulfillment" element={<AdminFulfillment />} />
                 <Route path="/admin/errors" element={<AdminErrors />} />
                 <Route path="/admin/locations" element={<AdminLocations />} />

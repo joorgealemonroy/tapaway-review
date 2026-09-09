@@ -18,6 +18,7 @@ import {
   ArrowLeft, 
   Check,
   CreditCard,
+  Crown,
   Loader2,
   Shield,
   Sparkles,
@@ -1525,6 +1526,38 @@ export const CheckoutStep = ({ formData, updateFormData, onBack, onComplete, isL
             </p>
           )}
         </div>
+      )}
+
+      {/* Card Club upsell — signup-only offer */}
+      {!isFreePlan && (
+        <button
+          onClick={() => updateFormData({ addExtraCard: !formData.addExtraCard })}
+          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+            formData.addExtraCard
+              ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
+              : "border-border hover:border-primary/50"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+              formData.addExtraCard ? "border-primary bg-primary" : "border-muted-foreground/30"
+            }`}>
+              {formData.addExtraCard && <Check className="h-4 w-4 text-primary-foreground" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-foreground">Add Card Club — $5/mo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                3 fresh NFC cards every month, free shipping included.
+              </p>
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-500 mt-1.5">
+                Only available during signup — you won't be able to add Card Club later.
+              </p>
+            </div>
+          </div>
+        </button>
       )}
 
       {/* Order Summary */}

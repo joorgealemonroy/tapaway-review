@@ -113,8 +113,8 @@ const RestaurantSmsMarketingTab = ({ restaurantId, businessName, hubLink }: Prop
       setResolvedLink(
         hubLink ||
           (r?.custom_slug
-            ? `${window.location.origin}/${r.custom_slug}`
-            : `${window.location.origin}/hub/${restaurantId}`),
+            ? tapawayUrl(`/${r.custom_slug}`)
+            : tapawayUrl(`/hub/${restaurantId}`)),
       );
     }
     setLoading(false);

@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "lucide-react";
-import { CARD_ADDON_PRICE_ID, CARD_ONETIME_PRICE_ID } from "@/lib/constants";
+import { Package, Crown, Minus, Plus, Loader2, MapPin, Pencil, Check } from "lucide-react";
 
 interface CardsTabProps {
   profileId: string;
@@ -48,6 +47,9 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
   const [submitting, setSubmitting] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [editingAddress, setEditingAddress] = useState(false);
+  // One-time 3-pack price by plan — deliberately steep so the $5/mo Card Club
+  // subscription is the obvious choice for anyone who needs cards regularly.
+  const oneTimePrice = (planType || "").startsWith("venue") ? 49 : 29;
   const [address, setAddress] = useState<ShippingAddress>({
     name: fullName || "", line1: "", line2: "", city: "", state: "", postal_code: "", country: "US",
   });
@@ -150,12 +152,12 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
     }
   };
 
-  const handleCheckout = async (flow: "subscribe_addon" | "onetime") => {
+  const handleCheckout = async () => {
     if (!validateAddress()) return;
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-card-order", {
-        body: { flow, profile_id: profileId, quantity: 3, shipping: address },
+        body: { flow: "onetime", profile_id: profileId, quantity: 3, shipping: address },
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
@@ -254,54 +256,28 @@ export const CardsTab = ({ profileId, userId, hasCardAddon, planType, stripeCust
           </CardContent>
         </Card>
       ) : (
-        /* ─── Non-Member ─── */
-        <>
-          {/* Card Club Promo */}
-          <Card className="border-primary/30 bg-primary/5">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Card Club</CardTitle>
-              </div>
-              <CardDescription>
-                Request up to 3 NFC cards per month for just $5/mo. Free shipping included!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {editingAddress ? <AddressForm /> : <AddressSummary />}
-              <Button onClick={() => handleCheckout("subscribe_addon")} disabled={submitting} className="w-full min-h-[44px]">
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                Subscribe — $5/mo
-              </Button>
-            </CardContent>
-          </Card>
-
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* One-Time Purchase */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">One-Time Order</CardTitle>
-              </div>
-              <CardDescription>
-                Get 3 NFC cards shipped to you. No subscription required.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {editingAddress ? <AddressForm /> : <AddressSummary />}
-              <Button variant="outline" onClick={() => handleCheckout("onetime")} disabled={submitting} className="w-full min-h-[44px]">
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
-                Buy 3 Cards — $10
-              </Button>
-            </CardContent>
-          </Card>
-        </>
+        /* ─── Non-Member: one-time card order (priced so Card Club wins) ─── */
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Order More Cards</CardTitle>
+            </div>
+            <CardDescription>
+              Get 3 NFC cards shipped to you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {editingAddress ? <AddressForm /> : <AddressSummary />}
+            <Button onClick={handleCheckout} disabled={submitting} className="w-full min-h-[44px]">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Package className="h-4 w-4 mr-2" />}
+              Order 3 Cards — ${oneTimePrice}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Need cards every month? Ask us about Card Club — 3 cards/month for $5/mo.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Request History */}

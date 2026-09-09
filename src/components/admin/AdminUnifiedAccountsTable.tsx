@@ -746,7 +746,9 @@ const AdminUnifiedAccountsTable = () => {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading accounts…
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/5">
+        <>
+        {/* Desktop table */}
+        <div className="overflow-x-auto rounded-xl border border-white/5 hidden md:block">
           <table className="min-w-[1080px] w-full text-sm">
             <thead>
               <tr className="bg-white/[0.02] text-white/50 uppercase tracking-wide text-[11px]">
@@ -1023,6 +1025,100 @@ const AdminUnifiedAccountsTable = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile cards — no horizontal sliding */}
+        <div className="md:hidden space-y-2">
+          {filtered.map((r) => (
+            <div
+              key={`${r.kind}-${r.id}`}
+              className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {r.photo_url ? (
+                  <img src={r.photo_url} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-white/10 text-white/70 flex items-center justify-center text-sm shrink-0">
+                    {r.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-white/90 truncate text-sm">{r.name}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className="text-[10px] font-mono text-white/40">@{r.slug ?? "—"}</span>
+                    <span
+                      className={`inline-flex items-center px-1.5 py-px rounded-full text-[10px] ${
+                        r.subscription_status === "active"
+                          ? "bg-emerald-500/10 text-emerald-300"
+                          : r.subscription_status === "trialing"
+                          ? "bg-amber-500/10 text-amber-300"
+                          : r.subscription_status === "canceled" || r.subscription_status === "expired"
+                          ? "bg-red-500/10 text-red-300"
+                          : "bg-white/[0.04] text-white/50"
+                      }`}
+                    >
+                      {r.subscription_status ?? "—"}
+                    </span>
+                    {(r.pipeline ?? "live") !== "live" && (
+                      <span className={`inline-flex items-center px-1.5 py-px rounded-full text-[10px] ${PIPELINE_META[r.pipeline ?? "live"].cls}`}>
+                        {PIPELINE_META[r.pipeline ?? "live"].label}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-sm font-semibold text-white tabular-nums">{r.taps.toLocaleString()}</div>
+                  <div className="text-[10px] text-white/40">taps</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <Button
+                  onClick={() => openDashboard(r)}
+                  size="sm"
+                  variant="ghost"
+                  className="flex-1 h-10 text-xs text-white/70 hover:text-white border border-white/10"
+                >
+                  Dashboard
+                </Button>
+                {r.slug && (
+                  <Button
+                    onClick={() => openHub(r)}
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 text-white/60 hover:text-white border border-white/10"
+                    title="Open live hub"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+                {r.subscription_status === "past_due" && (
+                  <Button
+                    onClick={() => sendRecoveryNudge(r)}
+                    disabled={nudging === r.id}
+                    size="icon"
+                    variant="ghost"
+                    className="h-10 w-10 text-amber-300/80 border border-amber-500/20"
+                    title="Send payment-update reminder"
+                  >
+                    {nudging === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  </Button>
+                )}
+                {r.kind === "lite" && r.subscription_status !== "active" && (
+                  <Button
+                    onClick={() => setCloseSaleTarget({ id: r.id, name: r.name })}
+                    size="sm"
+                    className="h-10 px-3 text-xs bg-emerald-500/90 hover:bg-emerald-500 text-black font-semibold"
+                  >
+                    Close Sale
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="p-8 text-center text-xs text-white/40">No accounts match filters.</div>
+          )}
+        </div>
+        </>
       )}
 
       <HubAnalyticsDialog target={analyticsTarget} onClose={() => setAnalyticsTarget(null)} />
