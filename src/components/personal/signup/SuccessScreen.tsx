@@ -174,7 +174,7 @@ export const SuccessScreen = ({ username, email, planType = "yearly", vibeName, 
           transition={{ delay: 0.85, duration: 0.5 }}
           className="mt-2 text-muted-foreground text-center text-sm max-w-sm"
         >
-          You don't need to do a thing. We'll send you an email
+          You don't need to do a thing. We'll send you a text and an email
           {email ? (
             <> at <span className="font-medium text-foreground">{email}</span></>
           ) : null}{" "}

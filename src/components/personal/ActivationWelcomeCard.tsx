@@ -57,7 +57,7 @@ export function ActivationWelcomeCard({ profileId, username, onOpenTab }: Activa
         <div className="min-w-0">
           <h2 className="font-bold text-foreground">Welcome to TapAway! Your account is fully active.</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Sit tight — we're putting the finishing touches on your hub. We'll email you the moment it's ready to share, and you don't need to do a thing.
+            Sit tight — we're putting the finishing touches on your hub. We'll text you and email you the moment it's ready to share, and you don't need to do a thing.
           </p>
         </div>
       </div>

@@ -59,6 +59,10 @@ serve(async (req) => {
 
     const metadata = session.metadata || {};
     const customerEmail = session.customer_email || (session.customer as Stripe.Customer)?.email;
+    // Phone collected at Stripe checkout (phone_number_collection) — used to
+    // text the client when their hub is ready.
+    const customerPhone =
+      session.customer_details?.phone || (session.customer as Stripe.Customer)?.phone || null;
 
     // Van sale targeting (admin-created checkout sessions): when the session
     // carries a personal_profile_id, provision THAT profile directly instead
@@ -269,6 +273,7 @@ serve(async (req) => {
         stripe_billing_email: customerEmail,
       };
       if (trialEndsAt) updateData.trial_ends_at = trialEndsAt;
+      if (customerPhone) updateData.contact_phone = customerPhone;
       
       await supabase
         .from('personal_profiles')
@@ -294,6 +299,7 @@ serve(async (req) => {
           plan_type: detectedPlanType,
           stripe_billing_email: customerEmail,
           ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
+          ...(customerPhone ? { contact_phone: customerPhone } : {}),
         })
         .select()
         .single();

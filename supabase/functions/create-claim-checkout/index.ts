@@ -175,6 +175,8 @@ Deno.serve(async (req) => {
       // Stripe Checkout based on the dashboard payment-method settings.
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
+      // Collect phone so we can text the client when their hub is ready.
+      phone_number_collection: { enabled: true },
       success_url: `${origin}/claim?t=${encodeURIComponent(String(token))}&success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/claim?t=${encodeURIComponent(String(token))}`,
       metadata,

@@ -64,6 +64,9 @@ serve(async (req) => {
       success_url: `${origin}/personal/signup/complete?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/personal/signup`,
       billing_address_collection: 'required',
+      // Always collect the phone number at checkout so we can text the client
+      // when their hub is ready (stored to personal_profiles.contact_phone on verify).
+      phone_number_collection: { enabled: true },
       shipping_address_collection: {
         allowed_countries: ['US', 'CA', 'MX'],
       },

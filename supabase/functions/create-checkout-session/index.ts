@@ -277,6 +277,8 @@ serve(async (req) => {
       success_url: successUrl,
       cancel_url: `${req.headers.get('origin') || 'https://tapaway.co'}/onboarding`,
       billing_address_collection: 'required',
+      // Collect phone so we can text the client when their hub is ready.
+      phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },
       subscription_data: subscriptionData,
       metadata: {

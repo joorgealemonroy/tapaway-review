@@ -117,6 +117,8 @@ serve(async (req) => {
       success_url: `${baseUrl}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/onboarding`,
       billing_address_collection: "required",
+      // Collect phone so we can text the client when their hub is ready.
+      phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ["US"] },
       subscription_data: {
         trial_period_days: tierConfig.trialDays,
