@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_coupons: {
+        Row: {
+          amount_off_cents: number | null
+          created_at: string
+          duration: string
+          duration_in_months: number | null
+          id: string
+          name: string
+          note: string | null
+          percent_off: number | null
+          stripe_coupon_id: string
+        }
+        Insert: {
+          amount_off_cents?: number | null
+          created_at?: string
+          duration: string
+          duration_in_months?: number | null
+          id?: string
+          name: string
+          note?: string | null
+          percent_off?: number | null
+          stripe_coupon_id: string
+        }
+        Update: {
+          amount_off_cents?: number | null
+          created_at?: string
+          duration?: string
+          duration_in_months?: number | null
+          id?: string
+          name?: string
+          note?: string | null
+          percent_off?: number | null
+          stripe_coupon_id?: string
+        }
+        Relationships: []
+      }
       affiliate_abuse_flags: {
         Row: {
           created_at: string
@@ -1478,6 +1514,78 @@ export type Database = {
           },
         ]
       }
+      custom_plans: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          stripe_price_id: string
+          stripe_product_id: string
+          trial_days: number
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          stripe_price_id: string
+          stripe_product_id: string
+          trial_days?: number
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          stripe_price_id?: string
+          stripe_product_id?: string
+          trial_days?: number
+        }
+        Relationships: []
+      }
+      email_sends: {
+        Row: {
+          error: string | null
+          id: string
+          opened_at: string | null
+          profile_id: string | null
+          resend_id: string | null
+          sent_at: string
+          status: string
+          subject: string
+          template_key: string
+          to_email: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          opened_at?: string | null
+          profile_id?: string | null
+          resend_id?: string | null
+          sent_at?: string
+          status: string
+          subject: string
+          template_key: string
+          to_email: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          opened_at?: string | null
+          profile_id?: string | null
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_key?: string
+          to_email?: string
+        }
+        Relationships: []
+      }
       fulfillment_orders: {
         Row: {
           created_at: string
@@ -2610,6 +2718,11 @@ export type Database = {
       }
       personal_profiles: {
         Row: {
+          activated_at: string | null
+          activated_by: string | null
+          activated_card_id: string | null
+          approved_at: string | null
+          approved_by: string | null
           archived_at: string | null
           archived_header_image_url: string | null
           archived_header_type: string | null
@@ -2638,8 +2751,11 @@ export type Database = {
           contact_photo_url: string | null
           contact_title: string | null
           contact_website: string | null
+          converted_at: string | null
           created_at: string | null
           created_by_rep_id: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           email: string
           formatted_address: string | null
           founding_number: number | null
@@ -2657,7 +2773,6 @@ export type Database = {
           logo_bg_color: string | null
           logo_scale: string
           pfp_position: string | null
-          payment_state: string
           pipeline_status: string | null
           place_city: string | null
           place_lat: number | null
@@ -2673,6 +2788,8 @@ export type Database = {
           print_printed_at: string | null
           print_printed_by: string | null
           print_status: string | null
+          printed_at: string | null
+          printed_by: string | null
           profile_photo_url: string | null
           referred_by: string | null
           rep_note: string | null
@@ -2683,6 +2800,7 @@ export type Database = {
           show_founding_badge: boolean
           show_shop_section: boolean | null
           show_username: boolean
+          source: string | null
           stripe_billing_email: string | null
           stripe_connect_account_id: string | null
           stripe_customer_id: string | null
@@ -2700,6 +2818,11 @@ export type Database = {
           vibe_id: string | null
         }
         Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          activated_card_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           archived_header_image_url?: string | null
           archived_header_type?: string | null
@@ -2728,8 +2851,11 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          converted_at?: string | null
           created_at?: string | null
           created_by_rep_id?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           email: string
           formatted_address?: string | null
           founding_number?: number | null
@@ -2747,7 +2873,6 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
-          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2763,6 +2888,8 @@ export type Database = {
           print_printed_at?: string | null
           print_printed_by?: string | null
           print_status?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           rep_note?: string | null
@@ -2773,6 +2900,7 @@ export type Database = {
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
+          source?: string | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -2790,6 +2918,11 @@ export type Database = {
           vibe_id?: string | null
         }
         Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          activated_card_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           archived_header_image_url?: string | null
           archived_header_type?: string | null
@@ -2818,8 +2951,11 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          converted_at?: string | null
           created_at?: string | null
           created_by_rep_id?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           email?: string
           formatted_address?: string | null
           founding_number?: number | null
@@ -2837,7 +2973,6 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
-          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2853,6 +2988,8 @@ export type Database = {
           print_printed_at?: string | null
           print_printed_by?: string | null
           print_status?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           rep_note?: string | null
@@ -2863,6 +3000,7 @@ export type Database = {
           show_founding_badge?: boolean
           show_shop_section?: boolean | null
           show_username?: boolean
+          source?: string | null
           stripe_billing_email?: string | null
           stripe_connect_account_id?: string | null
           stripe_customer_id?: string | null
@@ -3120,6 +3258,44 @@ export type Database = {
           zip?: string
         }
         Relationships: []
+      }
+      rep_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          paid_at: string
+          sales_rep_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          sales_rep_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          sales_rep_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_payments_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rep_payout_accounts: {
         Row: {
@@ -3691,6 +3867,65 @@ export type Database = {
           },
         ]
       }
+      review_request_sends: {
+        Row: {
+          campaign_id: string | null
+          id: string
+          phone_hash: string
+          profile_id: string | null
+          restaurant_id: string | null
+          sent_at: string
+          sent_via: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          id?: string
+          phone_hash: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          sent_at?: string
+          sent_via?: string
+        }
+        Update: {
+          campaign_id?: string | null
+          id?: string
+          phone_hash?: string
+          profile_id?: string | null
+          restaurant_id?: string | null
+          sent_at?: string
+          sent_via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_request_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "personal_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_request_sends_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_sentiments: {
         Row: {
           ai_reply: string | null
@@ -4092,6 +4327,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trial_nurture_log_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trial_nurture_log_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -4553,6 +4795,10 @@ export type Database = {
           taps: number
         }[]
       }
+      admin_activate_card: {
+        Args: { _card_public_code: string; _profile_id: string }
+        Returns: Json
+      }
       admin_engagement_daily: {
         Args: { _days?: number; _tz?: string }
         Returns: {
@@ -4569,10 +4815,6 @@ export type Database = {
       admin_set_print_status: {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
-      }
-      admin_activate_card: {
-        Args: { _card_public_code: string; _profile_id: string }
-        Returns: Json
       }
       admin_swap_hub_slug: {
         Args: { _personal_id: string; _restaurant_id: string }
@@ -4696,26 +4938,6 @@ export type Database = {
           user_id: string
           username: string
           vibe_id: string
-        }[]
-      }
-      get_public_personal_profile_status: {
-        Args: { _slug: string }
-        Returns: {
-          background_color: string
-          bg_style: string
-          bio: string
-          button_theme: string
-          full_name: string
-          header_image_url: string
-          headline: string
-          id: string
-          is_approved: boolean
-          pfp_position: string
-          plan_type: string
-          profile_photo_url: string
-          subscription_status: string
-          text_color: string
-          username: string
         }[]
       }
       get_public_personal_showcase: {
