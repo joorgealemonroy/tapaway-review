@@ -2774,6 +2774,8 @@ export type Database = {
           updated_at: string | null
           user_id: string
           username: string
+          van_handoff_channel: string | null
+          van_handoff_sent_at: string | null
           vibe_id: string | null
         }
         Insert: {
@@ -2872,6 +2874,8 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           username: string
+          van_handoff_channel?: string | null
+          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Update: {
@@ -2970,6 +2974,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           username?: string
+          van_handoff_channel?: string | null
+          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Relationships: []
