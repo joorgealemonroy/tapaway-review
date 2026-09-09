@@ -9,7 +9,7 @@ interface ExpiredHubGateProps {
   restaurantId: string;
 }
 
-export const ExpiredHubGate = ({ businessName, restaurantId }: ExpiredHubGateProps) => {
+export const ExpiredHubGate = ({ businessName }: ExpiredHubGateProps) => {
   const navigate = useNavigate();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
