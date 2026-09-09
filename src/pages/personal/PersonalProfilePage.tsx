@@ -1280,7 +1280,8 @@ const PersonalProfilePage = ({ usernameOverride, initialProfile }: Props = {}) =
         ) : hasBanner ? (
           <div className="relative">
             {/* Full-bleed banner — the full picture stays in frame. */}
-            <div className="w-full h-[55vh] md:h-[50vh] overflow-hidden">
+            <div className="w-full h-[48vh] md:h-[44vh] overflow-hidden">
+
               <img
                 src={bannerUrl}
                 alt="Banner"
