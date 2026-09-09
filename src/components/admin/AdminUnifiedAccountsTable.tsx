@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import HubAnalyticsDialog, { HubAnalyticsTarget } from "@/components/admin/HubAnalyticsDialog";
 import CloseSaleDialog, { CloseSaleTarget } from "@/components/admin/CloseSaleDialog";
 import { toast } from "sonner";
@@ -22,6 +25,8 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
+  Calendar as CalendarIcon,
+  X,
   BellRing,
   CreditCard,
   ExternalLink,
@@ -145,6 +150,8 @@ const AdminUnifiedAccountsTable = () => {
   const [kindFilter, setKindFilter] = useState<"all" | Kind>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [brokenOnly, setBrokenOnly] = useState(false);
+  /** Exact calendar day filter (local time) on created_at. Null = presets only. */
+  const [pickedDate, setPickedDate] = useState<Date | undefined>(undefined);
   const [pipelineFilter, setPipelineFilter] = useState<"all" | PipelineKey>("live");
   const [zeroTapsOnly, setZeroTapsOnly] = useState(false);
   const [range, setRange] = useState<RangeKey>(() => {
@@ -327,8 +334,18 @@ const AdminUnifiedAccountsTable = () => {
     // "las islas marias gardena" must find the hub whose slug is
     // "islasmariasgardena" — compare with separators stripped too.
     const squashed = s.replace(/[^a-z0-9]/g, "");
+    const sameLocalDay = (iso: string | null, day: Date) => {
+      if (!iso) return false;
+      const d = new Date(iso);
+      return (
+        d.getFullYear() === day.getFullYear() &&
+        d.getMonth() === day.getMonth() &&
+        d.getDate() === day.getDate()
+      );
+    };
     return rows
       .filter((r) => {
+        if (pickedDate && !sameLocalDay(r.created_at, pickedDate)) return false;
         if (kindFilter !== "all" && r.kind !== kindFilter) return false;
         if (statusFilter !== "all" && r.subscription_status !== statusFilter) return false;
         if (pipelineFilter !== "all" && (r.pipeline ?? "live") !== pipelineFilter) return false;
@@ -360,7 +377,7 @@ const AdminUnifiedAccountsTable = () => {
         const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
         return (at - bt) * dir;
       });
-  }, [rows, search, kindFilter, statusFilter, pipelineFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir]);
+  }, [rows, search, kindFilter, statusFilter, pipelineFilter, brokenOnly, zeroTapsOnly, sortKey, sortDir, pickedDate]);
 
   const summary = useMemo(() => {
     const scoped = rows.filter((r) => (kindFilter === "all" ? true : r.kind === kindFilter));
@@ -671,6 +688,52 @@ const AdminUnifiedAccountsTable = () => {
             </button>
           ))}
         </div>
+
+        {/* Exact calendar day — shows every account created that day, all
+            statuses and pipeline stages, so nothing is hidden. */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "h-8 px-3 text-xs font-medium bg-white/[0.03] border-white/5 text-white/70 hover:text-white",
+                pickedDate && "bg-sky-500/15 border-sky-400/40 text-sky-100"
+              )}
+            >
+              <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+              {pickedDate ? pickedDate.toLocaleDateString() : "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarPicker
+              mode="single"
+              selected={pickedDate}
+              onSelect={(d) => {
+                setPickedDate(d);
+                if (d) {
+                  // Show the whole day: never hide expired/canceled/draft hubs.
+                  setStatusFilter("all");
+                  setPipelineFilter("all");
+                  setZeroTapsOnly(false);
+                  setBrokenOnly(false);
+                }
+              }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {pickedDate && (
+          <button
+            onClick={() => setPickedDate(undefined)}
+            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-white/10 bg-white/[0.04] text-[11px] text-white/70 hover:text-white"
+          >
+            Created {pickedDate.toLocaleDateString()}
+            <X className="h-3 w-3" />
+          </button>
+        )}
+
         <span className="text-[11px] text-white/35">Usage shown for: {rangeLabel}</span>
       </div>
 
