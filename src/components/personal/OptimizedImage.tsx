@@ -148,7 +148,7 @@ export const OptimizedImage = memo(function OptimizedImage({
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
-        fetchPriority={priority ? 'high' : undefined}
+        {...(priority ? ({ fetchpriority: 'high' } as Record<string, string>) : {})}
         sizes={sizes}
         onLoad={handleLoad}
         onError={handleError}
@@ -242,7 +242,7 @@ export const OptimizedAvatar = memo(function OptimizedAvatar({
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
-        fetchPriority={priority ? 'high' : undefined}
+        {...(priority ? ({ fetchpriority: 'high' } as Record<string, string>) : {})}
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
         className={cn(

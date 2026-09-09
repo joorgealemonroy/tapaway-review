@@ -412,7 +412,7 @@ function ProfilePreviewRendererComponent({
             alt={link.label}
             decoding="async"
             loading={index < 4 ? "eager" : "lazy"}
-            fetchPriority={index < 4 ? "high" : undefined}
+            {...(index < 4 ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -448,7 +448,7 @@ function ProfilePreviewRendererComponent({
             alt={link.label}
             decoding="async"
             loading={index < 4 ? "eager" : "lazy"}
-            fetchPriority={index < 4 ? "high" : undefined}
+            {...(index < 4 ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -506,7 +506,7 @@ function ProfilePreviewRendererComponent({
       >
         {link.thumbnail_url ? (
           <div className="h-10 w-10 rounded-lg overflow-hidden flex-shrink-0">
-            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} fetchPriority={index < 4 ? "high" : undefined} className="w-full h-full object-cover" />
+            <img src={getOptimizedImageUrl(link.thumbnail_url, 80)} alt="" decoding="async" loading={index < 4 ? "eager" : "lazy"} {...(index < 4 ? ({ fetchpriority: "high" } as Record<string, string>) : {})} className="w-full h-full object-cover" />
           </div>
         ) : isWhitePill && Icon ? (
           <Icon className="h-7 w-7 flex-shrink-0" />

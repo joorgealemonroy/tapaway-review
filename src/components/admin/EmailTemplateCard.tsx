@@ -74,7 +74,10 @@ export default function EmailTemplateCard({
 
   return (
     <>
-      <Card className="overflow-hidden">
+      {/* `relative` keeps the hidden 600px measuring iframe inside the card's
+          clipping box — without it, it escapes to the page and forces a
+          horizontal scrollbar on mobile. */}
+      <Card className="relative overflow-hidden">
         <CardContent className="p-0">
           <button
             type="button"

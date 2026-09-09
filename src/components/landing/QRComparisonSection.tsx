@@ -56,7 +56,7 @@ export const QRComparisonSection = () => {
         >
           {/* TapAway Card */}
           <div className="bg-card rounded-2xl border-2 border-primary p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-primary text-background text-xs font-bold px-3 py-1 rounded-bl-lg">
+            <div className="absolute top-0 right-0 bg-primary text-background text-xs font-bold px-3 py-1 rounded-bl-lg max-w-full">
               RECOMMENDED
             </div>
             <div className="flex items-center gap-3 mb-6">

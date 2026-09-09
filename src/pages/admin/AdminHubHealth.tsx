@@ -189,14 +189,14 @@ export default function AdminHubHealth() {
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="-mb-2 -ml-2 text-white/70 hover:text-white">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Admin
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold">Hub Health</h1>
             <p className="text-sm text-white/60 mt-1">
               Verifies that every hub the platform expects to be publicly live is actually reachable by a logged-out visitor.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={() => void runLinkCheck()} disabled={linksRunning} variant="secondary">
               {linksRunning ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
