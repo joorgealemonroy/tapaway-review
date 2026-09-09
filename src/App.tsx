@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MagicLinkVerify = lazy(() => import("./pages/auth/MagicLinkVerify"));
+const SetPassword = lazy(() => import("./pages/auth/SetPassword"));
 
 // Personal TapAway - code split (Business Lite dashboard still used internally)
 const ImportProfile = lazy(() => import("./pages/personal/ImportProfile"));

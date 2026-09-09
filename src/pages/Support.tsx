@@ -149,7 +149,7 @@ const Support = () => {
         business_name: account?.businessName || "",
         email,
         description,
-        request_details: (details ?? {}) as Record<string, unknown>,
+        request_details: JSON.parse(JSON.stringify(details ?? {})),
         user_id: user?.id || undefined,
       },
     ]);
