@@ -123,7 +123,8 @@ serve(async (req) => {
       to: normalized,
       subject: "Access your TapAway dashboard — set your password",
       html: rendered.html,
-      text: rendered.text,
+      // renderTemplate HTML-escapes vars; undo it for the plain-text link.
+      text: rendered.text.replace(/&amp;/g, "&"),
       templateKey: "dashboard_access",
     });
 
