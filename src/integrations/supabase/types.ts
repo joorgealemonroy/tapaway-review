@@ -2610,6 +2610,10 @@ export type Database = {
       }
       personal_profiles: {
         Row: {
+          activated_at: string | null
+          activated_by: string | null
+          approved_at: string | null
+          approved_by: string | null
           archived_at: string | null
           archived_header_image_url: string | null
           archived_header_type: string | null
@@ -2638,8 +2642,11 @@ export type Database = {
           contact_photo_url: string | null
           contact_title: string | null
           contact_website: string | null
+          converted_at: string | null
           created_at: string | null
           created_by_rep_id: string | null
+          delivered_at: string | null
+          delivered_by: string | null
           email: string
           formatted_address: string | null
           founding_number: number | null
@@ -2657,7 +2664,6 @@ export type Database = {
           logo_bg_color: string | null
           logo_scale: string
           pfp_position: string | null
-          payment_state: string
           pipeline_status: string | null
           place_city: string | null
           place_lat: number | null
@@ -2673,6 +2679,8 @@ export type Database = {
           print_printed_at: string | null
           print_printed_by: string | null
           print_status: string | null
+          printed_at: string | null
+          printed_by: string | null
           profile_photo_url: string | null
           referred_by: string | null
           rep_note: string | null
@@ -2695,11 +2703,13 @@ export type Database = {
           updated_at: string | null
           user_id: string
           username: string
-          van_handoff_channel: string | null
-          van_handoff_sent_at: string | null
           vibe_id: string | null
         }
         Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           archived_header_image_url?: string | null
           archived_header_type?: string | null
@@ -2728,8 +2738,11 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          converted_at?: string | null
           created_at?: string | null
           created_by_rep_id?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           email: string
           formatted_address?: string | null
           founding_number?: number | null
@@ -2747,7 +2760,6 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
-          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2763,6 +2775,8 @@ export type Database = {
           print_printed_at?: string | null
           print_printed_by?: string | null
           print_status?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           rep_note?: string | null
@@ -2785,11 +2799,13 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           username: string
-          van_handoff_channel?: string | null
-          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           archived_header_image_url?: string | null
           archived_header_type?: string | null
@@ -2818,8 +2834,11 @@ export type Database = {
           contact_photo_url?: string | null
           contact_title?: string | null
           contact_website?: string | null
+          converted_at?: string | null
           created_at?: string | null
           created_by_rep_id?: string | null
+          delivered_at?: string | null
+          delivered_by?: string | null
           email?: string
           formatted_address?: string | null
           founding_number?: number | null
@@ -2837,7 +2856,6 @@ export type Database = {
           logo_bg_color?: string | null
           logo_scale?: string
           pfp_position?: string | null
-          payment_state?: string
           pipeline_status?: string | null
           place_city?: string | null
           place_lat?: number | null
@@ -2853,6 +2871,8 @@ export type Database = {
           print_printed_at?: string | null
           print_printed_by?: string | null
           print_status?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
           profile_photo_url?: string | null
           referred_by?: string | null
           rep_note?: string | null
@@ -2875,8 +2895,6 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           username?: string
-          van_handoff_channel?: string | null
-          van_handoff_sent_at?: string | null
           vibe_id?: string | null
         }
         Relationships: []
@@ -3120,6 +3138,44 @@ export type Database = {
           zip?: string
         }
         Relationships: []
+      }
+      rep_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          paid_at: string
+          sales_rep_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          sales_rep_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          paid_at?: string
+          sales_rep_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_payments_sales_rep_id_fkey"
+            columns: ["sales_rep_id"]
+            isOneToOne: false
+            referencedRelation: "sales_reps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rep_payout_accounts: {
         Row: {
@@ -3490,8 +3546,6 @@ export type Database = {
           avm_question_title: string | null
           background_theme_style: string
           business_phone: string | null
-          card_check_message: string | null
-          card_check_status: string | null
           card_print_pdf_path: string | null
           created_at: string
           created_by: string | null
@@ -3557,8 +3611,6 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
-          card_check_message?: string | null
-          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -3624,8 +3676,6 @@ export type Database = {
           avm_question_title?: string | null
           background_theme_style?: string
           business_phone?: string | null
-          card_check_message?: string | null
-          card_check_status?: string | null
           card_print_pdf_path?: string | null
           created_at?: string
           created_by?: string | null
@@ -4092,6 +4142,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trial_nurture_log_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trial_nurture_log_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -4570,10 +4627,6 @@ export type Database = {
         Args: { _notes: string; _profile_id: string; _status: string }
         Returns: undefined
       }
-      admin_activate_card: {
-        Args: { _card_public_code: string; _profile_id: string }
-        Returns: Json
-      }
       admin_swap_hub_slug: {
         Args: { _personal_id: string; _restaurant_id: string }
         Returns: string
@@ -4696,26 +4749,6 @@ export type Database = {
           user_id: string
           username: string
           vibe_id: string
-        }[]
-      }
-      get_public_personal_profile_status: {
-        Args: { _slug: string }
-        Returns: {
-          background_color: string
-          bg_style: string
-          bio: string
-          button_theme: string
-          full_name: string
-          header_image_url: string
-          headline: string
-          id: string
-          is_approved: boolean
-          pfp_position: string
-          plan_type: string
-          profile_photo_url: string
-          subscription_status: string
-          text_color: string
-          username: string
         }[]
       }
       get_public_personal_showcase: {
