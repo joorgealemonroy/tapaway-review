@@ -70,7 +70,7 @@ async function resolveAccount(
   if (kind === "personal") {
     const { data, error } = await admin
       .from("personal_profiles")
-      .select("id, email, stripe_billing_email, full_name, username, contact_phone, hub_ready_notified_at")
+      .select("id, email, stripe_billing_email, full_name, username, billing_phone, contact_phone, hub_ready_notified_at")
       .eq("id", accountId)
       .maybeSingle();
     if (error) return { error: error.message };
@@ -80,7 +80,7 @@ async function resolveAccount(
       account: {
         email: (row.stripe_billing_email as string | null) || (row.email as string | null) || null,
         name: (row.full_name as string) || (row.username as string) || "friend",
-        phone: (row.contact_phone as string | null) || null,
+        phone: (row.billing_phone as string | null) || (row.contact_phone as string | null) || null,
         username: (row.username as string | null) || null,
         profileId: row.id as string,
         alreadyNotifiedAt: (row.hub_ready_notified_at as string | null) || null,
