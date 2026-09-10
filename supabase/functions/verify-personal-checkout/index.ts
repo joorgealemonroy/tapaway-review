@@ -274,9 +274,10 @@ serve(async (req) => {
         stripe_billing_email: customerEmail,
       };
       if (trialEndsAt) updateData.trial_ends_at = trialEndsAt;
-      // NOTE: contact_phone is only seeded on insert (below). It doubles as
-      // the vCard contact-card phone the client can edit — never overwrite it
-      // on update.
+      // The checkout phone is private (notifications only). It is stored in
+      // billing_phone, never in contact_phone (the public vCard field).
+      if (customerPhone) updateData.billing_phone = customerPhone;
+
       
       await supabase
         .from('personal_profiles')
@@ -302,7 +303,7 @@ serve(async (req) => {
           plan_type: detectedPlanType,
           stripe_billing_email: customerEmail,
           ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
-          ...(customerPhone ? { contact_phone: customerPhone } : {}),
+          ...(customerPhone ? { billing_phone: customerPhone } : {}),
         })
         .select()
         .single();
