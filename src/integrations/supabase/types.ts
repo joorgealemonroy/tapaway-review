@@ -2738,6 +2738,7 @@ export type Database = {
           banner_image_url: string | null
           banner_original_url: string | null
           bg_style: string | null
+          billing_phone: string | null
           bio: string | null
           business_phone: string | null
           button_theme: string | null
@@ -2840,6 +2841,7 @@ export type Database = {
           banner_image_url?: string | null
           banner_original_url?: string | null
           bg_style?: string | null
+          billing_phone?: string | null
           bio?: string | null
           business_phone?: string | null
           button_theme?: string | null
@@ -2942,6 +2944,7 @@ export type Database = {
           banner_image_url?: string | null
           banner_original_url?: string | null
           bg_style?: string | null
+          billing_phone?: string | null
           bio?: string | null
           business_phone?: string | null
           button_theme?: string | null

@@ -1,0 +1,2 @@
+ALTER TABLE public.personal_profiles ADD COLUMN IF NOT EXISTS billing_phone text;
+COMMENT ON COLUMN public.personal_profiles.billing_phone IS 'Private phone collected at Stripe checkout. Used for internal notifications only; never exposed via public hub RPCs or the public contact card.';
