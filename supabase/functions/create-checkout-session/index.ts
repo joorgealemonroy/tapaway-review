@@ -108,7 +108,15 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath } = body;
+    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId } = body;
+
+    // Trybe creator-attribution visitor id (optional; only present once the
+    // consent-gated pixel has loaded). Stored on the subscription so every
+    // future renewal invoice can be attributed to the original creator.
+    const trybeVid =
+      typeof trybeVisitorId === 'string' && trybeVisitorId.length > 0 && trybeVisitorId.length <= 128
+        ? trybeVisitorId
+        : '';
 
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
