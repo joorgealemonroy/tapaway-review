@@ -13,6 +13,7 @@ import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete"
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
 import {
+import { getTrybeVisitorId } from "@/lib/trybePixel";
   getOnboardingData,
   saveOnboardingData,
   clearOnboardingData,
@@ -754,6 +755,7 @@ const Onboarding = () => {
             hasProtection: protection,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
+            trybeVisitorId: getTrybeVisitorId(),
           },
         });
         if (error) throw error;

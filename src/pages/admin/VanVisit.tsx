@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
+import { getTrybeVisitorId } from "@/lib/trybePixel";
   ArrowLeft,
   ArrowRight,
   Search,
@@ -344,6 +345,7 @@ export default function VanVisit() {
           noTrial: true, // charges immediately; subscription starts 'active'
           personalProfileId: business.id,
           successPath: `/van-success?profile=${business.id}&name=${encodeURIComponent(business.full_name)}`,
+          trybeVisitorId: getTrybeVisitorId(),
         },
       });
       if (error) throw error;
