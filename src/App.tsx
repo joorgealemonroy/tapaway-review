@@ -13,6 +13,7 @@ import { RepImpersonationOverlay } from "@/components/rep/RepImpersonationOverla
 import SiteAnalytics from "@/components/analytics/SiteAnalytics";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { watchConsentForPixel } from "@/lib/metaPixel";
+import { watchConsentForTrybePixel } from "@/lib/trybePixel";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -126,9 +127,13 @@ const App = () => {
   // reload guard so a future deploy can reload again if needed.
   useEffect(() => {
     clearChunkReloadGuard();
-    // Meta Pixel boots only after tracking consent is accepted.
+    // Meta + Trybe pixels boot only after tracking consent is accepted.
     const unwatch = watchConsentForPixel();
-    return unwatch;
+    const unwatchTrybe = watchConsentForTrybePixel();
+    return () => {
+      unwatch();
+      unwatchTrybe();
+    };
   }, []);
 
   return (
