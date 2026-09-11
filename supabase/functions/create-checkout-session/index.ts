@@ -108,7 +108,15 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
 
     const body = await req.json();
-    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath } = body;
+    const { email, userId, restaurantId, planType, billingInterval, hasProtection: hasProtectionFlag, promoToken, dashboardType, claimRestaurantId, noTrial, personalProfileId, successPath, trybeVisitorId } = body;
+
+    // Trybe creator-attribution visitor id (optional; only present once the
+    // consent-gated pixel has loaded). Stored on the subscription so every
+    // future renewal invoice can be attributed to the original creator.
+    const trybeVid =
+      typeof trybeVisitorId === 'string' && trybeVisitorId.length > 0 && trybeVisitorId.length <= 128
+        ? trybeVisitorId
+        : '';
 
     // Validate the plan FIRST: validPlanType and config are referenced by the
     // subscription data and success URL built below. (Declaring them after
@@ -280,7 +288,10 @@ serve(async (req) => {
       // Collect phone so we can text the client when their hub is ready.
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },
-      subscription_data: subscriptionData,
+      subscription_data: {
+        ...subscriptionData,
+        ...(trybeVid ? { metadata: { trybe_visitor_id: trybeVid } } : {}),
+      },
       metadata: {
         // plan_type is what verify-checkout / the webhook persist to the DB:
         // 'solo_yearly' / 'venue_yearly' so admin MRR can amortize yearly
@@ -295,6 +306,7 @@ serve(async (req) => {
         promo_token: promoToken || '',
         dashboard_type: dashboardType || 'restaurant',
         claim_restaurant_id: claimRestaurantId || '',
+        trybe_visitor_id: trybeVid,
       },
     };
 

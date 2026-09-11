@@ -3,6 +3,7 @@ import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { sendTemplatedEmail } from "../_shared/email.ts";
 import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
+import { reportTrybeOrder } from "../_shared/trybeOrders.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1180,6 +1181,91 @@ if (event.type === 'checkout.session.completed') {
           console.log("[stripe-webhook] Meta CAPI:", capiResult);
         } catch (capiErr) {
           console.error("[stripe-webhook] Meta CAPI failed (non-fatal):", capiErr);
+        }
+
+        // ── Trybe server-side orders (creator attribution) ──
+        // Per Trybe support, attribution is PER ORDER: report EVERY paid
+        // invoice (first purchase AND each renewal) as its own order, always
+        // with the SAME original vid from subscription metadata. Trybe does
+        // not track renewals automatically.
+        // - Only Solo/Venue monthly/yearly + Card Club (tracked products).
+        // - $0 invoices are never reported (not a sale).
+        // - 12-month window: stop reporting once 12 months have passed since
+        //   the first attributed invoice. Trybe's commission rule should be
+        //   set to a flat 30% in the Trybe dashboard; the stop is here.
+        // - Per-invoice dedup via a reported-invoice list (retries safe).
+        // - Never throws — never fails the webhook.
+        try {
+          const trybeSubId = typeof invoice.subscription === "string" ? invoice.subscription : (invoice.subscription as any)?.id;
+          if (trybeSubId && (invoice.amount_paid ?? 0) > 0) {
+            const tSub: any = await stripe.subscriptions.retrieve(trybeSubId, { expand: ["items.data.price.product"] });
+            const TRACKED = new Set(["solo", "venue", "annual_value_pass"]);
+            let tracked = false;
+            const tItems: any[] = [];
+            for (const it of tSub.items?.data ?? []) {
+              const pr: any = it.price;
+              const prod: any = pr?.product;
+              const pk = prod?.metadata?.tapaway_plan;
+              const ak = prod?.metadata?.tapaway_addon;
+              const iv = pr?.recurring?.interval;
+              if ((pk && TRACKED.has(pk) && (iv === "month" || iv === "year")) || (ak === "card_club" && iv === "month")) tracked = true;
+              tItems.push({
+                productId: prod?.id,
+                productName: prod?.name,
+                quantity: it.quantity ?? 1,
+                price: typeof pr?.unit_amount === "number" ? pr.unit_amount / 100 : undefined,
+              });
+            }
+            const tMeta: Record<string, string> = { ...(tSub.metadata ?? {}) };
+            const vid = tMeta.trybe_visitor_id || "";
+
+            if (!tracked) {
+              console.log("[trybe] untracked product — skipping");
+            } else if (!vid) {
+              console.log("[trybe] no visitor id on subscription — skipping (cannot attribute)");
+            } else {
+              const invoiceDate = invoice.created ? new Date(invoice.created * 1000) : new Date();
+              const windowStart = tMeta.trybe_attribution_start ? new Date(tMeta.trybe_attribution_start) : invoiceDate;
+              const windowEnd = new Date(windowStart);
+              windowEnd.setMonth(windowEnd.getMonth() + 12);
+
+              let reported: string[] = [];
+              try { reported = JSON.parse(tMeta.trybe_reported_invoices || "[]"); } catch { reported = []; }
+              if (!Array.isArray(reported)) reported = [];
+
+              if (invoiceDate > windowEnd) {
+                console.log("[trybe] past 12-month attribution window — skipping");
+              } else if (reported.includes(invoice.id)) {
+                console.log("[trybe] invoice already reported — skipping");
+              } else {
+                const cust: any = invoice.customer;
+                const email =
+                  (typeof invoice.customer_email === "string" && invoice.customer_email) ||
+                  (cust && typeof cust.email === "string" ? cust.email : "");
+                const r = await reportTrybeOrder({
+                  orderId: invoice.id,
+                  value: (invoice.amount_paid ?? 0) / 100,
+                  currency: (invoice.currency || "usd").toUpperCase(),
+                  vid,
+                  ...(email ? { email } : {}),
+                  orderTime: invoiceDate.toISOString(),
+                  items: tItems,
+                });
+                if (r.ok) {
+                  reported.push(invoice.id);
+                  await stripe.subscriptions.update(trybeSubId, {
+                    metadata: {
+                      ...tMeta,
+                      trybe_attribution_start: windowStart.toISOString(),
+                      trybe_reported_invoices: JSON.stringify(reported.slice(-15)),
+                    },
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("[trybe] attribution failed (non-fatal):", e);
         }
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { GooglePlacesAutocomplete } from "@/components/GooglePlacesAutocomplete";
 import { isSuperAdmin } from "@/lib/grandfatheredUsers";
 import { normalizeGooglePlaceId, buildGoogleReviewUrl } from "@/lib/google";
+import { getTrybeVisitorId } from "@/lib/trybePixel";
 import {
   getOnboardingData,
   saveOnboardingData,
@@ -754,6 +755,7 @@ const Onboarding = () => {
             hasProtection: protection,
             promoToken: promoTokenParam || undefined,
             dashboardType: resolvedDashboardType,
+            trybeVisitorId: getTrybeVisitorId(),
           },
         });
         if (error) throw error;
