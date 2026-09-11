@@ -306,6 +306,7 @@ serve(async (req) => {
         promo_token: promoToken || '',
         dashboard_type: dashboardType || 'restaurant',
         claim_restaurant_id: claimRestaurantId || '',
+        trybe_visitor_id: trybeVid,
       },
     };
 
