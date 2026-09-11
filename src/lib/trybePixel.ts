@@ -74,3 +74,19 @@ export function watchConsentForTrybePixel(): () => void {
     if (state === "accepted") initTrybePixel();
   });
 }
+
+/**
+ * Trybe visitor id, if the consent-gated pixel has loaded and exposes it.
+ * Returns "" when tracking was declined or the pixel isn't ready — callers
+ * pass it through to checkout, where an empty value simply means "no
+ * creator attribution for this order".
+ */
+export function getTrybeVisitorId(): string {
+  try {
+    const w = window as any;
+    const vid = w?.trybe?.getVisitorId?.() ?? w?._trybe?.getVisitorId?.();
+    return typeof vid === "string" ? vid.slice(0, 128) : "";
+  } catch {
+    return "";
+  }
+}
