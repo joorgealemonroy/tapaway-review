@@ -288,7 +288,10 @@ serve(async (req) => {
       // Collect phone so we can text the client when their hub is ready.
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['US', 'CA', 'MX'] },
-      subscription_data: subscriptionData,
+      subscription_data: {
+        ...subscriptionData,
+        ...(trybeVid ? { metadata: { trybe_visitor_id: trybeVid } } : {}),
+      },
       metadata: {
         // plan_type is what verify-checkout / the webhook persist to the DB:
         // 'solo_yearly' / 'venue_yearly' so admin MRR can amortize yearly
