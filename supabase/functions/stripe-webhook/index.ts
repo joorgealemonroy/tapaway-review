@@ -3,6 +3,7 @@ import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { sendTemplatedEmail } from "../_shared/email.ts";
 import { sendMetaCapiEvent } from "../_shared/metaCapi.ts";
+import { reportTrybeOrder } from "../_shared/trybeOrders.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
