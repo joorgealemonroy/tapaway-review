@@ -11,10 +11,10 @@ const corsHeaders = {
 // Pricing matrix.
 // Yearly prices are FIRST-CLASS Stripe prices on the same product family —
 // never one-time charges (subscription-only invariant).
-// Solo yearly reuses the canonical 'TapAway Annual Value Pass' product
+// Solo yearly reuses the canonical annual Solo product
 // (metadata tapaway_plan=annual_value_pass) so the /claim annual option and
 // the signup yearly option resolve to ONE Stripe SKU, not two.
-// Venue yearly is a second price ($390/yr) on the Venue Pack product.
+// Venue yearly is a second price ($390/yr) on the TapAway Pro product.
 const PLAN_CONFIG: Record<string, {
   name: string;
   amount: number;            // monthly, cents
@@ -24,8 +24,8 @@ const PLAN_CONFIG: Record<string, {
   yearlyProductKey: string;  // metadata value of the product carrying the yearly price
   yearlyProductName: string;
 }> = {
-  solo: { name: 'Solo Pro', amount: 2000, yearlyAmount: 19900, trialDays: 14, productName: 'TapAway Solo Pro', yearlyProductKey: 'annual_value_pass', yearlyProductName: 'TapAway Annual Value Pass' },
-  venue: { name: 'Venue Pack', amount: 3900, yearlyAmount: 39000, trialDays: 14, productName: 'TapAway Venue Pack', yearlyProductKey: 'venue', yearlyProductName: 'TapAway Venue Pack' },
+  solo: { name: 'TapAway Solo', amount: 2000, yearlyAmount: 19900, trialDays: 14, productName: 'TapAway Solo', yearlyProductKey: 'annual_value_pass', yearlyProductName: 'TapAway Solo' },
+  venue: { name: 'TapAway Pro', amount: 3900, yearlyAmount: 39000, trialDays: 14, productName: 'TapAway Pro', yearlyProductKey: 'venue', yearlyProductName: 'TapAway Pro' },
 };
 
 const PROTECTION_AMOUNT = 500; // $5/mo

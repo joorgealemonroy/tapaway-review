@@ -1,7 +1,7 @@
 /**
  * "Logo header" style — the logo is shown whole (never cropped) at the top of
  * the hub, sitting directly on the page background, and the page then flows
- * straight into the standard Solo Pro layout.
+ * straight into the standard TapAway Solo layout.
  *
  * Sizing is defined mobile-first: a width percentage of the hub column plus a
  * viewport-height cap so tall/round crest logos never push the content off

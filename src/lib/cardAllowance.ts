@@ -30,9 +30,9 @@ export function cardAllowanceForPlan(planType: string | null | undefined): numbe
   return isVenuePlan(planType) ? VENUE_MONTHLY_CARDS : SOLO_MONTHLY_CARDS;
 }
 
-/** Short customer-facing plan name: "Venue" or "Solo". */
+/** Customer-facing plan name. */
 export function cardPlanLabel(planType: string | null | undefined): string {
-  return isVenuePlan(planType) ? "Venue" : "Solo";
+  return isVenuePlan(planType) ? "TapAway Pro" : "TapAway Solo";
 }
 
 /** Statuses that may request cards. */

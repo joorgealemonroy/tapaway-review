@@ -27,10 +27,10 @@ export const BillingTab = ({ restaurant, isTestAccount, isGrandfathered }: Billi
   const planType = restaurant?.plan_type || 'standard';
   const planLabel = planType === 'monthly' ? 'Monthly Plan'
     : planType === 'yearly' ? 'Yearly Plan'
-    : planType === 'solo' ? 'Solo Pro (Monthly)'
-    : planType === 'solo_yearly' ? 'Solo Pro (Yearly)'
-    : planType === 'venue' ? 'Venue Pack (Monthly)'
-    : planType === 'venue_yearly' ? 'Venue Pack (Yearly)'
+    : planType === 'solo' ? 'TapAway Solo (Monthly)'
+    : planType === 'solo_yearly' ? 'TapAway Solo (Yearly)'
+    : planType === 'venue' ? 'TapAway Pro (Monthly)'
+    : planType === 'venue_yearly' ? 'TapAway Pro (Yearly)'
     : 'Standard Plan';
   const isBundle = planType === 'bundle';
   const isPrivateAccess = planType === 'private_access';

@@ -27,8 +27,8 @@ type BillingInterval = "month" | "year";
 type Step = "plan" | "protection" | "info";
 
 const PLAN_DETAILS = {
-  solo: { label: "Solo Pro", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 3, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
-  venue: { label: "Venue Pack", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
+  solo: { label: "TapAway Solo", subtitle: "For Service Pros & Individuals.", price: 20, yearlyPrice: 199, yearlyPerMonth: "16.58", yearlyBadge: "Save $41/yr", cards: 4, icon: User, refill: "3-card", badge: null, trialDays: 14, totalTrialDays: 14 },
+  venue: { label: "TapAway Pro", subtitle: "For Storefronts & Teams.", price: 39, yearlyPrice: 390, yearlyPerMonth: "32.50", yearlyBadge: "2 months free", cards: 15, icon: Building2, refill: "10-card", badge: "Most Popular", trialDays: 14, totalTrialDays: 14 },
 };
 
 const PROTECTION_PRICE = 5;
@@ -959,7 +959,11 @@ const Onboarding = () => {
                             )}
                           </div>
                           <p className="text-sm text-gray-400 mb-1">{d.subtitle}</p>
-                          <p className="text-xs text-gray-500">Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards + Free Shipping</span>.</p>
+                          <div className="space-y-1 text-xs text-gray-500">
+                            <p>Includes <span className="font-bold text-gray-400">{d.cards} Smart Cards + Free Shipping</span>.</p>
+                            <p className="flex items-start gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" /> <span>Custom hub designed &amp; built for you.</span></p>
+                            <p className="flex items-start gap-1.5"><Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400" /> <span>Backed by the 14-Day Love-It Promise.</span></p>
+                          </div>
                         </div>
                       </div>
                     </button>

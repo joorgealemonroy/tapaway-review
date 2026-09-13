@@ -55,7 +55,7 @@ export async function resolvePersonalPriceId(
       stripe,
       'tapaway_plan',
       'annual_value_pass',
-      'TapAway Annual Value Pass',
+      'TapAway Solo',
     );
     return findOrCreatePrice(stripe, prod, PRICE_AMOUNTS.annual, 'year');
   }

@@ -17,8 +17,8 @@ function json(body: Record<string, unknown>, status = 200) {
 
 // ── Pricing (mirrors create-checkout-session) ──
 const PLAN_CONFIG: Record<string, { name: string; amount: number; trialDays: number; productName: string }> = {
-  solo: { name: "Solo Pro", amount: 2000, trialDays: 7, productName: "TapAway Solo Pro" },
-  venue: { name: "Venue Pack", amount: 3900, trialDays: 7, productName: "TapAway Venue Pack" },
+  solo: { name: "TapAway Solo", amount: 2000, trialDays: 7, productName: "TapAway Solo" },
+  venue: { name: "TapAway Pro", amount: 3900, trialDays: 7, productName: "TapAway Pro" },
 };
 const PROTECTION_AMOUNT = 500;
 
@@ -155,7 +155,7 @@ async function createSoloProfile(
     }
     profileId = created.id;
 
-    // Owner-claim path always defaults to Solo Pro (premium layout on from day one).
+    // Owner-claim path always defaults to TapAway Solo (premium layout on from day one).
     await adminClient
       .from("personal_profiles")
       .update({ plan_type: "solo_pro", is_founding_user: false, founding_number: null })

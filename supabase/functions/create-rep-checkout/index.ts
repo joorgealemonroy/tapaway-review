@@ -18,21 +18,21 @@ const PLAN_TIERS: Record<string, {
   trialDays: number;
 }> = {
   solo_monthly: {
-    label: 'Solo',
+    label: 'TapAway Solo',
     planTier: 'business_lite',
     billingCycle: 'monthly',
     priceAmount: 2000, // $20/mo
     interval: 'month',
-    productName: 'TapAway Solo (Monthly)',
+    productName: 'TapAway Solo',
     trialDays: 7,
   },
   venue_monthly: {
-    label: 'Venue',
+    label: 'TapAway Pro',
     planTier: 'restaurant',
     billingCycle: 'monthly',
     priceAmount: 3900, // $39/mo
     interval: 'month',
-    productName: 'TapAway Venue (Monthly)',
+    productName: 'TapAway Pro',
     trialDays: 7,
   },
 };
