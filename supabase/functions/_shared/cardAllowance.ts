@@ -27,7 +27,7 @@ export function cardAllowanceForPlan(planType: string | null | undefined): numbe
 }
 
 export function cardPlanLabel(planType: string | null | undefined): string {
-  return isVenuePlan(planType) ? "Venue" : "Solo";
+  return isVenuePlan(planType) ? "TapAway Pro" : "TapAway Solo";
 }
 
 export function canRequestCards(status: string | null | undefined): boolean {
