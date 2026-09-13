@@ -29,8 +29,8 @@ const corsHeaders = {
 
 // Same pricing matrix as create-checkout-session.
 const PLAN_CONFIG: Record<string, { name: string; amount: number; productName: string }> = {
-  solo: { name: 'Solo Pro', amount: 2000, productName: 'TapAway Solo Pro' },
-  venue: { name: 'Venue Pack', amount: 3900, productName: 'TapAway Venue Pack' },
+  solo: { name: 'TapAway Solo', amount: 2000, productName: 'TapAway Solo' },
+  venue: { name: 'TapAway Pro', amount: 3900, productName: 'TapAway Pro' },
 };
 
 const VALID_DURATIONS = ['once', 'repeating', 'forever'] as const;

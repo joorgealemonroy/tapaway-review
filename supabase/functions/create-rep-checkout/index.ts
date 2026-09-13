@@ -23,7 +23,7 @@ const PLAN_TIERS: Record<string, {
     billingCycle: 'monthly',
     priceAmount: 2000, // $20/mo
     interval: 'month',
-    productName: 'TapAway Solo (Monthly)',
+    productName: 'TapAway Solo',
     trialDays: 7,
   },
   venue_monthly: {
@@ -32,7 +32,7 @@ const PLAN_TIERS: Record<string, {
     billingCycle: 'monthly',
     priceAmount: 3900, // $39/mo
     interval: 'month',
-    productName: 'TapAway Venue (Monthly)',
+    productName: 'TapAway Pro',
     trialDays: 7,
   },
 };

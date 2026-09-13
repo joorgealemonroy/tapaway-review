@@ -34,11 +34,11 @@ export function humanizePlanName(plan: string | null | undefined): string {
   if (!plan) return "Free";
   const map: Record<string, string> = {
     venue: "Venue",
-    venue_pack: "Venue Pack",
+    venue_pack: "TapAway Pro",
     venue_yearly: "Venue (Yearly)",
     solo: "Solo",
     solo_yearly: "Solo (Yearly)",
-    solo_pro: "Solo Pro",
+    solo_pro: "TapAway Solo",
     multi: "Multi-location",
     free: "Free",
     monthly: "Monthly",

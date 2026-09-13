@@ -30,14 +30,14 @@ interface CompSettings {
 }
 
 const FIELDS: { key: keyof Omit<CompSettings, 'id'>; label: string; group: string; step?: string }[] = [
-  { key: 'restaurant_annual_upfront', label: 'Annual Upfront ($)', group: 'Venue Pack (Restaurant)', step: '1' },
-  { key: 'restaurant_annual_recurring', label: 'Annual Recurring ($)', group: 'Venue Pack (Restaurant)', step: '1' },
-  { key: 'restaurant_monthly_upfront', label: 'Monthly Upfront ($)', group: 'Venue Pack (Restaurant)', step: '1' },
-  { key: 'restaurant_monthly_recurring', label: 'Monthly Recurring ($)', group: 'Venue Pack (Restaurant)', step: '0.01' },
-  { key: 'lite_annual_upfront', label: 'Annual Upfront ($)', group: 'Solo Pro (Business Lite)', step: '1' },
-  { key: 'lite_annual_recurring', label: 'Annual Recurring ($)', group: 'Solo Pro (Business Lite)', step: '1' },
-  { key: 'lite_monthly_upfront', label: 'Monthly Upfront ($)', group: 'Solo Pro (Business Lite)', step: '1' },
-  { key: 'lite_monthly_recurring', label: 'Monthly Recurring ($)', group: 'Solo Pro (Business Lite)', step: '0.01' },
+  { key: 'restaurant_annual_upfront', label: 'Annual Upfront ($)', group: 'TapAway Pro (Restaurant)', step: '1' },
+  { key: 'restaurant_annual_recurring', label: 'Annual Recurring ($)', group: 'TapAway Pro (Restaurant)', step: '1' },
+  { key: 'restaurant_monthly_upfront', label: 'Monthly Upfront ($)', group: 'TapAway Pro (Restaurant)', step: '1' },
+  { key: 'restaurant_monthly_recurring', label: 'Monthly Recurring ($)', group: 'TapAway Pro (Restaurant)', step: '0.01' },
+  { key: 'lite_annual_upfront', label: 'Annual Upfront ($)', group: 'TapAway Solo (Business Lite)', step: '1' },
+  { key: 'lite_annual_recurring', label: 'Annual Recurring ($)', group: 'TapAway Solo (Business Lite)', step: '1' },
+  { key: 'lite_monthly_upfront', label: 'Monthly Upfront ($)', group: 'TapAway Solo (Business Lite)', step: '1' },
+  { key: 'lite_monthly_recurring', label: 'Monthly Recurring ($)', group: 'TapAway Solo (Business Lite)', step: '0.01' },
   { key: 'bonus_amount', label: 'Bonus Amount ($)', group: 'Bonus & Points' },
   { key: 'bonus_point_threshold', label: 'Point Threshold', group: 'Bonus & Points' },
   { key: 'restaurant_point_value', label: 'Venue Close Points', group: 'Bonus & Points', step: '0.5' },

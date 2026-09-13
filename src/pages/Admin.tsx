@@ -317,7 +317,7 @@ const Admin = () => {
   };
 
   const approveHub = async (r: Restaurant) => {
-    // On approval, default the hub to Solo Pro so the premium layout
+    // On approval, default the hub to TapAway Solo so the premium layout
     // is unlocked from approval through owner-claim.
     const { data, error: approveError } = await supabase
       .from("restaurants")
@@ -333,7 +333,7 @@ const Admin = () => {
       setRestaurants((prev) =>
         prev.map((x) => (x.id === r.id ? { ...x, is_approved: true, plan_type: "solo_pro" } : x))
       );
-      toast.success(`Hub approved — Solo Pro dashboard unlocked for the rep.`);
+      toast.success(`Hub approved — TapAway Solo dashboard unlocked for the rep.`);
     }
   };
 
