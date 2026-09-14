@@ -56,7 +56,6 @@ export const DashboardControlSection = () => {
               Raised your prices? Added a new service? Running a weekend promo? Update it once in
               your dashboard and every card out in the wild updates instantly.
             </p>
-
           </motion.div>
 
           {/* Right mockup */}
