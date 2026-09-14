@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Play, Star, TrendingUp } from "lucide-react";
+import { ArrowRight, Star, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
