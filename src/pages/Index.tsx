@@ -40,6 +40,7 @@ const Index = () => {
       <HeroSection />
       <DoneForYouSection />
       <ComparisonSection />
+      <DashboardControlSection />
       
       {/* How It Works with secondary NFC Card appearance */}
       <HowItWorksNew />
