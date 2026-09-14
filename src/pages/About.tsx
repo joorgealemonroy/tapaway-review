@@ -53,12 +53,12 @@ const About = () => {
         <title>About TapAway | TapAway</title>
         <meta
           name="description"
-          content="TapAway is a done-for-you NFC tap card platform for local businesses, founded by Jorge Monroy in Fontana, CA. One tap connects customers to your whole business."
+          content="TapAway is a done-for-you NFC tap card platform for businesses, founded by Jorge Monroy in Fontana, CA. One tap connects customers to your whole business."
         />
         <meta property="og:title" content="About TapAway | TapAway" />
         <meta
           property="og:description"
-          content="TapAway is a done-for-you NFC tap card platform for local businesses, founded by Jorge Monroy in Fontana, CA."
+          content="TapAway is a done-for-you NFC tap card platform for businesses, founded by Jorge Monroy in Fontana, CA."
         />
         <meta property="og:type" content="website" />
         <script type="application/ld+json">{JSON.stringify(organizationSchema)}</script>
@@ -83,7 +83,7 @@ const About = () => {
         <section className="space-y-3">
           <h2 className="text-2xl font-bold text-foreground">Who we are</h2>
           <p className="text-muted-foreground leading-relaxed">
-            TapAway is a done-for-you digital platform for local businesses. We create physical NFC and QR
+            TapAway is a done-for-you digital platform for businesses. We create physical NFC and QR
             tap cards — your customer taps one with their phone, and your entire business opens right in
             their pocket: your Instagram, your Google reviews, your menu, your booking link, directions, and
             your contact info, all in one custom mobile hub.
@@ -129,7 +129,7 @@ const About = () => {
         <section className="space-y-3">
           <h2 className="text-2xl font-bold text-foreground">Who it's for</h2>
           <p className="text-muted-foreground leading-relaxed">
-            TapAway is built for the local businesses that run on relationships: restaurants, barbershops,
+            TapAway is built for the businesses that run on relationships: restaurants, barbershops,
             salons, cafés, and auto shops. If your customers come in, sit down, and talk to you — TapAway
             keeps that conversation going after they leave.
           </p>

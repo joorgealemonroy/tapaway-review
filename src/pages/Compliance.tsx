@@ -28,7 +28,7 @@ const Compliance = () => {
         <section className="space-y-3">
           <h2 className="text-xl font-bold">Brand & Use Case</h2>
           <p className="text-muted-foreground leading-relaxed">
-            <strong>Brand:</strong> TapAway (tapaway.co) — a platform that gives local businesses NFC-enabled
+            <strong>Brand:</strong> TapAway (tapaway.co) — a platform that gives businesses NFC-enabled
             "tap" cards. Customers tap a card with their phone, land on the business's profile page, and may
             voluntarily join that business's VIP text list to receive promotions, updates, and offers from
             that specific business.

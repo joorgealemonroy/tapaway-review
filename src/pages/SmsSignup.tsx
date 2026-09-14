@@ -90,7 +90,7 @@ const SmsSignup = () => {
         <meta property="og:title" content="TapAway SMS Customer VIP Club Signup" />
         <meta
           property="og:description"
-          content="Opt in to loyalty rewards, exclusive discounts, and review reminders from participating local businesses."
+          content="Opt in to loyalty rewards, exclusive discounts, and review reminders from participating businesses."
         />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary" />

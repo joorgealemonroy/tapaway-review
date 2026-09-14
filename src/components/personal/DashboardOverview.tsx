@@ -295,7 +295,7 @@ export const DashboardOverview = ({ profile, links, isTrialing, onGoToTab, isRea
     {
       id: "google",
       label: "Google review link",
-      hint: "The #1 driver of reviews for local businesses.",
+      hint: "The #1 driver of reviews for businesses.",
       done: hasGoogleReview,
       targetTab: "links",
     },
