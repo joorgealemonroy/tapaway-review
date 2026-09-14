@@ -1,25 +1,13 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { Package, Send, BarChart3, Headphones, CheckCircle } from "lucide-react";
+import { Check } from "lucide-react";
 
 const bullets = [
-  {
-    icon: Package,
-    text: "We set up your review + social hub",
-  },
-  {
-    icon: Send,
-    text: "We ship your NFC cards",
-  },
-  {
-    icon: BarChart3,
-    text: "We track every tap",
-  },
-  {
-    icon: Headphones,
-    text: "We support you ongoing",
-  },
+  "We set up your review + social hub",
+  "We ship your NFC cards",
+  "We track every tap",
+  "We support you ongoing",
 ];
 
 export const DoneForYouSection = () => {
@@ -27,46 +15,60 @@ export const DoneForYouSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="py-16 px-4 bg-background">
-      <div className="max-w-3xl mx-auto">
+    <section ref={ref} className="bg-foreground px-4 py-12 text-background md:py-16">
+      <div className="mx-auto max-w-5xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="text-center mb-10"
+          className="mb-8 text-left"
         >
-          <h2 className="text-2xl md:text-3xl font-black text-foreground mb-3">
-            You Don't Lift a Finger.
+          <h2 className="mb-3 text-3xl font-black text-background md:text-4xl">
+            You don&apos;t lift a finger.
           </h2>
-          <p className="text-muted-foreground text-base max-w-lg mx-auto">
-            We handle everything so you can focus on running your business.
-          </p>
+          <p className="text-base text-background/65 md:text-lg">Here&apos;s the deal.</p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {bullets.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.4, delay: 0.1 + i * 0.1 }}
-              className="flex flex-col items-center text-center p-4 rounded-xl bg-muted/30 border border-border/50"
-            >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                <item.icon className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-foreground leading-snug">{item.text}</p>
-            </motion.div>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid overflow-hidden rounded-lg border border-background/15 md:grid-cols-[0.85fr_1.15fr]"
+        >
+          <div className="flex min-h-52 flex-col justify-center border-b border-background/15 px-7 py-8 md:min-h-72 md:border-b-0 md:border-r md:px-10">
+            <p className="mb-5 text-xs font-bold uppercase text-background/45">You</p>
+            <p className="max-w-52 text-3xl font-black leading-tight text-background md:text-4xl">
+              Run your business.
+            </p>
+            <p className="mt-3 text-base text-background/60">That&apos;s the whole list.</p>
+          </div>
+
+          <div className="px-7 py-8 md:px-10">
+            <p className="mb-4 text-xs font-bold uppercase text-background/45">We</p>
+            <div>
+              {bullets.map((item, i) => (
+                <motion.div
+                  key={item}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.35, delay: 0.2 + i * 0.08 }}
+                  className="flex min-h-13 items-center gap-3 border-b border-background/10 py-4 last:border-b-0"
+                >
+                  <Check aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" strokeWidth={3} />
+                  <p className="text-base font-bold leading-snug text-background">{item}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         <motion.p
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="text-center text-sm text-muted-foreground mt-8 font-medium"
+          className="mt-6 text-center text-sm font-medium text-background/60 md:text-base"
         >
-          This is <span className="text-foreground">infrastructure</span>, not a gadget.
+          This is <span className="font-bold text-background">infrastructure</span>, not a gadget.
         </motion.p>
       </div>
     </section>
