@@ -9,11 +9,13 @@ const bullets = [
 ];
 
 const pointers = [
+  { label: "Live stats" },
+  { label: "Tap trends" },
   { label: "Plan status" },
-  { label: "Live link" },
-  { label: "Tap alerts" },
-  { label: "Review activity" },
+  { label: "Tap & review alerts" },
 ];
+
+const tapBars = [35, 55, 40, 70, 50, 85, 65];
 
 const DashboardCard = ({
   icon: Icon,
@@ -28,7 +30,7 @@ const DashboardCard = ({
   body: string;
   meta?: string;
   tone?: "default" | "accent" | "highlight";
-  number: number;
+  number?: number;
 }) => {
   const iconBg =
     tone === "accent"
