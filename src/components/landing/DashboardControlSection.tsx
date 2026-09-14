@@ -1,5 +1,5 @@
 import { motion, useInView } from "framer-motion";
-import { Check, ExternalLink, Eye, MessageSquareReply, Sparkles, Trophy } from "lucide-react";
+import { Check, Eye, MessageSquareReply, Sparkles } from "lucide-react";
 import { useRef } from "react";
 
 const bullets = [
@@ -8,63 +8,13 @@ const bullets = [
   "No reprints, no new codes, no extra cost",
 ];
 
-const pointers = [
-  { label: "Live stats" },
-  { label: "Tap trends" },
-  { label: "Plan status" },
-  { label: "Tap & review alerts" },
-];
+const tapBars = [30, 45, 38, 62, 50, 78, 100];
 
-const tapBars = [35, 55, 40, 70, 50, 85, 65];
-
-const DashboardCard = ({
-  icon: Icon,
-  title,
-  body,
-  meta,
-  tone = "default",
-  number,
-}: {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-  meta?: string;
-  tone?: "default" | "accent" | "highlight";
-  number?: number;
-}) => {
-  const iconBg =
-    tone === "accent"
-      ? "bg-primary/20 text-primary"
-      : tone === "highlight"
-        ? "bg-yellow-500/10 text-yellow-500"
-        : "bg-muted text-muted-foreground";
-
-  return (
-    <div className="relative rounded-lg border border-border bg-card p-2 shadow-sm">
-      {number !== undefined && (
-        <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
-          {number}
-        </span>
-      )}
-      <div className="flex items-start gap-2">
-        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${iconBg}`}>
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-1.5">
-            <h4 className="truncate text-xs font-bold text-foreground">{title}</h4>
-            {meta && (
-              <span className="shrink-0 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-green-500">
-                {meta}
-              </span>
-            )}
-          </div>
-          <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">{body}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
+const FeatureTag = ({ children }: { children: string }) => (
+  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-primary">
+    {children}
+  </span>
+);
 
 export const DashboardControlSection = () => {
   const ref = useRef(null);
@@ -136,7 +86,10 @@ export const DashboardControlSection = () => {
                 {/* Header */}
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground">TapAway</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
+                    <span className="h-1 w-1 rounded-full bg-green-500" />
+                    Hub Live
+                  </span>
                 </div>
 
                 {/* Hub identity row */}
@@ -157,67 +110,85 @@ export const DashboardControlSection = () => {
                   </button>
                 </div>
 
-                {/* Stat row */}
-                <div className="relative mb-2 grid grid-cols-2 gap-2">
-                  <span className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
-                    1
-                  </span>
-                  <div className="rounded-lg border border-border bg-card p-2">
-                    <p className="text-sm font-black text-foreground">47</p>
-                    <p className="text-[9px] leading-tight text-muted-foreground">Taps this week</p>
+                {/* Hero stat card */}
+                <div className="mb-2 rounded-lg border border-border bg-card p-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Taps this week
+                    </p>
+                    <FeatureTag>Live stats</FeatureTag>
                   </div>
-                  <div className="rounded-lg border border-border bg-card p-2">
-                    <p className="text-sm font-black text-foreground">18</p>
-                    <p className="text-[9px] leading-tight text-muted-foreground">Review taps</p>
+                  <div className="mt-1 flex items-end gap-2">
+                    <p className="text-3xl font-black leading-none text-foreground">312</p>
+                    <span className="mb-0.5 rounded-full bg-green-500/10 px-1.5 py-0.5 text-[9px] font-bold text-green-500">
+                      +38%
+                    </span>
                   </div>
-                </div>
-
-                {/* Taps chart */}
-                <div className="relative mb-2 rounded-lg border border-border bg-card p-2">
-                  <span className="absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
-                    2
-                  </span>
-                  <p className="mb-1.5 text-[10px] font-bold text-foreground">Taps</p>
-                  <div className="flex h-10 items-end gap-1">
-                    {tapBars.map((h, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 rounded-sm bg-primary"
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
+                  <div className="mt-2 border-b border-border pb-px">
+                    <div className="flex h-12 items-end gap-1">
+                      {tapBars.map((h, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-t-sm bg-primary"
+                          style={{ height: `${h}%` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Dashboard cards */}
-                <div className="space-y-2">
-                  <DashboardCard
-                    icon={Trophy}
-                    title="TapAway Solo plan"
-                    body="Your hub is live and taking taps."
-                    meta="Hub Live"
-                    tone="accent"
-                    number={3}
-                  />
-                  <DashboardCard
-                    icon={Sparkles}
-                    title="Your hub is live"
-                    body="tapaway.co/samplecafe"
-                    tone="default"
-                  />
-                  <DashboardCard
-                    icon={Sparkles}
-                    title="First visit!"
-                    body="Someone tapped through — it’s working."
-                    tone="highlight"
-                    number={4}
-                  />
-                  <DashboardCard
-                    icon={MessageSquareReply}
-                    title="First review click"
-                    body="Someone tapped through to leave a review."
-                    tone="highlight"
-                  />
+                {/* Sync banner */}
+                <div className="mb-2 rounded-lg border border-primary/30 bg-primary/10 p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-bold leading-tight text-foreground">
+                      Edits go live on every card
+                    </p>
+                    <FeatureTag>Instant sync</FeatureTag>
+                  </div>
+                  <p className="mt-0.5 text-[9px] leading-snug text-muted-foreground">
+                    Update once — every card updates instantly.
+                  </p>
+                </div>
+
+                {/* Mini stat cards */}
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-border bg-card p-2">
+                    <p className="text-sm font-black text-foreground">128</p>
+                    <p className="text-[8px] leading-tight text-muted-foreground">Review taps</p>
+                    <span className="mt-1 inline-block rounded-full bg-green-500/10 px-1.5 py-px text-[8px] font-bold text-green-500">
+                      +24
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border bg-card p-2">
+                    <p className="text-sm font-black text-foreground">+14</p>
+                    <p className="text-[8px] leading-tight text-muted-foreground">New reviews</p>
+                  </div>
+                </div>
+
+                {/* Plan row */}
+                <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-2">
+                  <span className="text-[10px] font-bold text-foreground">TapAway Solo</span>
+                  <span className="rounded-full bg-green-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-green-500">
+                    Hub Live
+                  </span>
+                </div>
+
+                {/* Milestone card */}
+                <div className="rounded-lg border border-border bg-card p-2.5">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">
+                      Milestones
+                    </p>
+                    <FeatureTag>Smart alerts</FeatureTag>
+                  </div>
+                  <div className="flex items-center gap-2 border-b border-border pb-1.5">
+                    <Sparkles className="h-3 w-3 shrink-0 text-yellow-500" />
+                    <p className="text-[10px] font-bold text-foreground">First visit!</p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1.5">
+                    <MessageSquareReply className="h-3 w-3 shrink-0 text-yellow-500" />
+                    <p className="text-[10px] font-bold text-foreground">First review click</p>
+                  </div>
                 </div>
 
                 {/* Home indicator */}
@@ -229,18 +200,6 @@ export const DashboardControlSection = () => {
             <p className="mt-4 text-center text-xs font-medium text-muted-foreground">
               Your TapAway dashboard
             </p>
-
-            {/* Pointer legend */}
-            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[10px] text-muted-foreground">
-              {pointers.map((p, i) => (
-                <span key={p.label} className="inline-flex items-center gap-1.5">
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-black text-primary-foreground">
-                    {i + 1}
-                  </span>
-                  {p.label}
-                </span>
-              ))}
-            </div>
           </motion.div>
         </div>
       </div>
