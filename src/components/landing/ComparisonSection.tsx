@@ -1,110 +1,114 @@
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import { Check, X } from "lucide-react";
+import { useRef } from "react";
 
-const tapAwayFeatures = [
-  "Free 14-day trial",
-  "Done-for-you setup",
-  "Monthly review tracking",
-  "Multi-link review hub",
-  "Cancel anytime",
-  "Ongoing support",
+const comparisonRows = [
+  {
+    benefit: "Try it before you pay",
+    tapaway: "14 days free",
+  },
+  {
+    benefit: "We set it all up for you",
+  },
+  {
+    benefit: "Every tap + review tracked",
+  },
+  {
+    benefit: "Instagram, menu, booking in one place",
+    plate: "reviews only",
+    qr: "one link",
+  },
+  {
+    benefit: "A human when you need help",
+  },
+  {
+    benefit: "Edit your hub anytime",
+  },
+  {
+    benefit: "Cost to start",
+    tapaway: "$0",
+  },
 ];
 
-const competitorMissing = [
-  "No tracking",
-  "No support",
-  "No optimization",
-  "Easy to forget",
-];
+const NegativeCell = ({ detail }: { detail?: string }) => (
+  <div className="flex items-center gap-2 text-muted-foreground/70">
+    <X aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={3} />
+    {detail && <span className="text-sm whitespace-nowrap">{detail}</span>}
+  </div>
+);
 
 export const ComparisonSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="py-20 px-4 bg-muted/30">
-      <div className="max-w-4xl mx-auto">
+    <section ref={ref} className="bg-background px-4 py-12 text-foreground md:py-16">
+      <div className="mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="mb-8 max-w-4xl"
         >
-          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
-            Why TapAway Beats One-Time NFC Products
+          <h2 className="text-3xl font-black text-foreground md:text-5xl">
+            Why businesses switch to TapAway
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            One-time NFC plates sit unused. TapAway is infrastructure that actually gets you reviews.
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            A one-time plate is a sticker on your counter. A QR code is a chore for your customer.
+            Here&apos;s the honest side-by-side.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* TapAway Column */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-card rounded-2xl border-2 border-primary p-8 shadow-lg shadow-primary/10"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-black text-lg">T</span>
+        <div className="overflow-x-auto" aria-label="TapAway product comparison">
+          <div className="min-w-[760px]">
+            <div className="grid grid-cols-[minmax(280px,2.2fr)_minmax(155px,1fr)_minmax(155px,1fr)_minmax(155px,1fr)] border-b-2 border-border">
+              <div aria-hidden="true" />
+              <div className="bg-primary/10 px-5 py-5 text-sm font-black uppercase text-primary">
+                TapAway
               </div>
-              <h3 className="font-bold text-xl text-foreground">TapAway</h3>
+              <div className="px-5 py-5 text-sm font-bold uppercase text-muted-foreground">
+                One-Time Plate
+              </div>
+              <div className="px-5 py-5 text-sm font-bold uppercase text-muted-foreground">
+                QR Code
+              </div>
             </div>
 
-            <ul className="space-y-4">
-              {tapAwayFeatures.map((feature, i) => (
-                <motion.li
-                  key={feature}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-foreground font-medium">{feature}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Competitor Column */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-card rounded-2xl border border-border p-8"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                <span className="text-muted-foreground font-bold text-lg">?</span>
-              </div>
-              <h3 className="font-bold text-xl text-muted-foreground">One-Time NFC Plates</h3>
-            </div>
-
-            <ul className="space-y-4">
-              {competitorMissing.map((issue, i) => (
-                <motion.li
-                  key={issue}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.3, delay: 0.4 + i * 0.05 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <X className="w-4 h-4 text-destructive" />
-                  </div>
-                  <span className="text-muted-foreground">{issue}</span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
+            {comparisonRows.map((row, index) => (
+              <motion.div
+                key={row.benefit}
+                initial={{ opacity: 0, y: 8 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.3, delay: 0.12 + index * 0.05 }}
+                className="grid min-h-16 grid-cols-[minmax(280px,2.2fr)_minmax(155px,1fr)_minmax(155px,1fr)_minmax(155px,1fr)] border-b border-border"
+              >
+                <div className="flex items-center px-5 py-4 text-base font-medium text-foreground md:text-lg">
+                  {row.benefit}
+                </div>
+                <div className="flex items-center gap-2 bg-primary/10 px-5 py-4">
+                  <Check aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" strokeWidth={3} />
+                  {row.tapaway && <span className="font-bold text-foreground">{row.tapaway}</span>}
+                </div>
+                <div className="flex items-center px-5 py-4">
+                  <NegativeCell detail={row.plate} />
+                </div>
+                <div className="flex items-center px-5 py-4">
+                  <NegativeCell detail={row.qr} />
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="mx-auto mt-7 max-w-4xl text-center text-sm leading-relaxed text-muted-foreground md:text-base"
+        >
+          NFC works on all iPhones (7+) and most Android phones — no app required. Every card
+          includes a QR backup.
+        </motion.p>
       </div>
     </section>
   );

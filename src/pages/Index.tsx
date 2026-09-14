@@ -2,7 +2,6 @@ import { Helmet } from "react-helmet-async";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
-import { QRComparisonSection } from "@/components/landing/QRComparisonSection";
 import { HowItWorksNew } from "@/components/landing/HowItWorksNew";
 import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
@@ -40,7 +39,6 @@ const Index = () => {
       <HeroSection />
       <DoneForYouSection />
       <ComparisonSection />
-      <QRComparisonSection />
       
       {/* How It Works with secondary NFC Card appearance */}
       <HowItWorksNew />
