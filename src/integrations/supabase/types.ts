@@ -1724,11 +1724,52 @@ export type Database = {
           },
         ]
       }
+      google_review_snapshots: {
+        Row: {
+          captured_at: string
+          id: string
+          rating: number | null
+          restaurant_id: string
+          review_count: number
+        }
+        Insert: {
+          captured_at?: string
+          id?: string
+          rating?: number | null
+          restaurant_id: string
+          review_count: number
+        }
+        Update: {
+          captured_at?: string
+          id?: string
+          rating?: number | null
+          restaurant_id?: string
+          review_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_review_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_review_snapshots_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_reviews: {
         Row: {
+          attributed_to_tapaway: boolean
           author_name: string | null
           created_at: string | null
           id: number
+          matched_clicks: number
           place_id: string | null
           profile_photo_url: string | null
           rating: number
@@ -1739,9 +1780,11 @@ export type Database = {
           text: string | null
         }
         Insert: {
+          attributed_to_tapaway?: boolean
           author_name?: string | null
           created_at?: string | null
           id?: never
+          matched_clicks?: number
           place_id?: string | null
           profile_photo_url?: string | null
           rating: number
@@ -1752,9 +1795,11 @@ export type Database = {
           text?: string | null
         }
         Update: {
+          attributed_to_tapaway?: boolean
           author_name?: string | null
           created_at?: string | null
           id?: never
+          matched_clicks?: number
           place_id?: string | null
           profile_photo_url?: string | null
           rating?: number

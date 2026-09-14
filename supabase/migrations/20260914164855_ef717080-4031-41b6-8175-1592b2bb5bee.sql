@@ -1,0 +1,2 @@
+ALTER TABLE public.google_reviews ADD COLUMN IF NOT EXISTS attributed_to_tapaway boolean NOT NULL DEFAULT false;
+ALTER TABLE public.google_reviews ADD COLUMN IF NOT EXISTS matched_clicks integer NOT NULL DEFAULT 0;
