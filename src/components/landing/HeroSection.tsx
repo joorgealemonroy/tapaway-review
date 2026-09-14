@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
 import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
+import soniaAsset from "@/assets/sonia-berumen.jpg.asset.json";
 
 const cities = [
   "San Diego",
@@ -27,6 +28,7 @@ const clientFeedback = [
   {
     name: "Sonia Berumen",
     initials: "SB",
+    photo: soniaAsset.url,
     quote: "My favorite part is that they handle the setup. As a business owner, having one less thing to figure out means a lot.",
   },
   {
