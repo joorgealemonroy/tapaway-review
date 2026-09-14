@@ -250,7 +250,7 @@ export const HeroSection = () => {
                     </div>
                   </div>
                 )}
-                <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-3 mt-3">
                   {feedback.photo ? (
                     <img
                       src={feedback.photo}
