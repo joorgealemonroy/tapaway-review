@@ -4,7 +4,6 @@ import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { QRComparisonSection } from "@/components/landing/QRComparisonSection";
 import { HowItWorksNew } from "@/components/landing/HowItWorksNew";
-import { ProofSection } from "@/components/landing/ProofSection";
 import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
@@ -45,7 +44,6 @@ const Index = () => {
       
       {/* How It Works with secondary NFC Card appearance */}
       <HowItWorksNew />
-      <ProofSection />
       <RiskReversalSection />
       <FAQSection />
       <FooterCTA />

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, Star, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
@@ -19,7 +19,9 @@ const clientFeedback = [
   {
     name: "Victor Ramirez",
     initials: "VR",
+    business: "Las Islas Marias",
     quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
+    result: { before: 507, after: 551, gained: 44, days: 30 },
   },
   {
     name: "Sonia Berumen",
@@ -29,7 +31,9 @@ const clientFeedback = [
   {
     name: "Manuel Monroy",
     initials: "MM",
+    business: "Las Nuevas Islas",
     quote: "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
+    result: { before: 30, after: 63, gained: 33, days: 30, rating: 4.6 },
   },
   {
     name: "Amelia Zavala",
@@ -39,7 +43,9 @@ const clientFeedback = [
   {
     name: "Alexis Ramirez",
     initials: "AR",
+    business: "Space Studios",
     quote: "TapAway fits naturally into the customer experience. Our team can share our business information without slowing things down.",
+    result: { before: 2, after: 22, gained: 20, days: 30, rating: 5.0 },
   },
 ];
 
@@ -208,6 +214,33 @@ export const HeroSection = () => {
                 <blockquote className="mt-4 text-base italic leading-relaxed text-foreground/90">
                   {feedback.quote}
                 </blockquote>
+                {feedback.result && (
+                  <div className="mt-6 border-y border-border py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Before</p>
+                        <p className="mt-1 text-xl font-bold text-foreground">{feedback.result.before}</p>
+                      </div>
+                      <TrendingUp className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                      <div className="text-right">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Now</p>
+                        <p className="mt-1 text-xl font-bold text-primary">{feedback.result.after}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-xl font-black text-primary">+{feedback.result.gained}</p>
+                        <p className="text-xs text-muted-foreground">new reviews in {feedback.result.days} days</p>
+                      </div>
+                      {feedback.result.rating !== undefined && (
+                        <div className="flex shrink-0 items-center gap-1 font-bold text-foreground">
+                          <Star className="h-4 w-4 fill-primary text-primary" aria-hidden="true" />
+                          {feedback.result.rating.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-auto pt-8">
                   <div
                     className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
@@ -215,7 +248,12 @@ export const HeroSection = () => {
                   >
                     {feedback.initials}
                   </div>
-                  <h3 className="font-bold text-foreground">{feedback.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-foreground">{feedback.name}</h3>
+                    {feedback.business && (
+                      <p className="text-sm text-muted-foreground">{feedback.business}</p>
+                    )}
+                  </div>
                 </div>
               </motion.article>
             ))}
