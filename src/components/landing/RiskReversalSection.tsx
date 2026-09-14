@@ -3,7 +3,6 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { Link } from "react-router-dom";
-import mockupsAsset from "@/assets/tapaway-phone-mockups.png.asset.json";
 
 export const RiskReversalSection = () => {
   const ref = useRef(null);
@@ -61,7 +60,7 @@ export const RiskReversalSection = () => {
           {/* Right column: image */}
           <div className="flex items-center justify-center">
             <motion.img
-              src={mockupsAsset.url}
+              src="/tapaway-phone-mockups.png"
               alt="TapAway phone mockups showing example business hubs"
               className="w-full max-h-[520px] md:max-h-[640px] object-contain"
               initial={{ opacity: 0, scale: 0.96 }}
