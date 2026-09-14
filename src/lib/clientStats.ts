@@ -320,6 +320,39 @@ export async function getClientLastTapAt(
 }
 
 /**
+ * Per-review attribution for one client hub, from the google_reviews table
+ * (refreshed daily by the attribute-google-reviews edge function, newest-first).
+ * Returns raw counts only — the dashboard UI owns the "likely from TapAway"
+ * framing. A review counts as attributed when a google_click event exists for
+ * the restaurant in the 48 hours before the review's publish time.
+ */
+export interface AttributedReviews {
+  /** Reviews published within the window. */
+  newReviews: number;
+  /** Of those, how many followed a TapAway review-button tap. */
+  attributed: number;
+}
+
+export async function getAttributedReviews(
+  restaurantId: string,
+  daysBack: number,
+): Promise<AttributedReviews> {
+  const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("google_reviews")
+    .select("attributed_to_tapaway")
+    .eq("restaurant_id", restaurantId)
+    .gte("review_time", cutoff);
+
+  if (error) throw error;
+  const rows = (data ?? []) as { attributed_to_tapaway: boolean }[];
+  return {
+    newReviews: rows.length,
+    attributed: rows.filter((r) => r.attributed_to_tapaway).length,
+  };
+}
+
+/**
  * Google review count delta for one client hub, from weekly Places API
  * snapshots (google_review_snapshots). Returns raw numbers only — the
  * dashboard UI owns the framing.

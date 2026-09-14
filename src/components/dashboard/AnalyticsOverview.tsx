@@ -9,12 +9,14 @@ import {
   getClientLinkClickTotals,
   getClientLinkClicksByDay,
   getGoogleReviewDelta,
+  getAttributedReviews,
   losAngelesDayLabel,
   losAngelesWeekday,
   LINK_CLICK_EVENT_TYPES,
   LINK_CLICK_LABELS,
   type ClientLinkDayClicks,
   type GoogleReviewDelta,
+  type AttributedReviews,
 } from "@/lib/clientStats";
 
 interface AnalyticsData {
@@ -33,6 +35,8 @@ interface AnalyticsData {
   totalClicks: number;
   /** Weekly Google review-count snapshots. Null until the first sync lands. */
   reviewDelta: GoogleReviewDelta | null;
+  /** Per-review tap attribution. Null when no attributed review data yet. */
+  attributedReviews: AttributedReviews | null;
 }
 
 export interface AnalyticsOverviewProps {
@@ -65,6 +69,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     clicksByDay: [],
     totalClicks: 0,
     reviewDelta: null,
+    attributedReviews: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -85,12 +90,13 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     const load = async () => {
       setLoading(true);
       try {
-        const [tapStats, traffic, clickTotals, clicksByDay, reviewDelta] = await Promise.all([
+        const [tapStats, traffic, clickTotals, clicksByDay, reviewDelta, attributedReviews] = await Promise.all([
           getClientTapStats(restaurantId),
           getClientTrafficSeries(restaurantId, daysBack),
           getClientLinkClickTotals(restaurantId, daysBack),
           getClientLinkClicksByDay(restaurantId, daysBack),
           getGoogleReviewDelta(restaurantId, daysBack),
+          getAttributedReviews(restaurantId, daysBack),
         ]);
         if (cancelled) return;
 
@@ -134,6 +140,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           clicksByDay,
           totalClicks,
           reviewDelta,
+          attributedReviews,
         });
       } catch (error) {
         console.error("Error fetching analytics:", error);
@@ -237,6 +244,11 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
                   ? " · first check-in complete"
                   : ` · last check ${losAngelesDayLabel(analytics.reviewDelta.latestAt.slice(0, 10))}`}
               </p>
+              {analytics.attributedReviews && analytics.attributedReviews.attributed > 0 && (
+                <p className="text-sm font-semibold text-green-700 mt-1.5">
+                  ✓ {analytics.attributedReviews.attributed} of {analytics.attributedReviews.newReviews} likely from TapAway taps
+                </p>
+              )}
             </div>
           </div>
         </Card>
