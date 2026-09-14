@@ -24,6 +24,7 @@ const clientFeedback = [
     name: "Victor Ramirez",
     initials: "VR",
     photo: victorAsset.url,
+    alt: "Victor Ramirez, restaurant owner, gained 44 Google reviews in 30 days with TapAway NFC cards",
     quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
     result: { before: 507, after: 551, gained: 44, days: 30 },
   },
@@ -31,24 +32,28 @@ const clientFeedback = [
     name: "Sonia Berumen",
     initials: "SB",
     photo: soniaAsset.url,
+    alt: "Sonia Berumen, business owner using TapAway NFC tap cards",
     quote: "My favorite part is that they handle the setup. As a business owner, having one less thing to figure out means a lot.",
   },
   {
     name: "Manuel Monroy",
     initials: "MM",
     photo: manuelAsset.url,
+    alt: "Manuel Monroy, business owner, gained 33 Google reviews in 30 days with TapAway NFC cards",
     quote: "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
     result: { before: 30, after: 63, gained: 33, days: 30, rating: 4.6 },
   },
   {
     name: "Amelia Zavala",
     initials: "AZ",
+    alt: "Amelia Zavala, business owner using TapAway NFC tap cards",
     quote: "I love how TapAway brings our links together in a way that feels organized and professional. It’s such a nice touch for our business.",
   },
   {
     name: "Josh",
     initials: "J",
     photo: joshAsset.url,
+    alt: "Josh, business owner, gained 20 Google reviews in 30 days with TapAway NFC cards",
     quote: "",
     result: { before: 2, after: 22, gained: 20, days: 30, rating: 5.0 },
   },
@@ -81,7 +86,8 @@ export const HeroSection = () => {
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
-              <span className="text-primary whitespace-nowrap">5-Star</span> Reviews.
+              <span className="text-primary whitespace-nowrap">5-Star Google Reviews</span>{" "}
+              with NFC Cards.
             </h1>
 
             {/* Mobile card visual */}
@@ -254,7 +260,7 @@ export const HeroSection = () => {
                   {feedback.photo ? (
                     <img
                       src={feedback.photo}
-                      alt={feedback.name}
+                      alt={feedback.alt}
                       className="w-12 h-12 shrink-0 rounded-lg object-cover"
                     />
                   ) : (

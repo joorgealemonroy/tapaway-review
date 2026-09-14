@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>TapAway - Share Who You Are</title>
-    <meta name="description" content="TapAway makes it easy to share your links, contact info, and more with a single tap." />
+    <meta name="description" content="TapAway builds done-for-you NFC tap cards for local businesses. One tap opens your reviews, Instagram, menu & more. 14-day free trial." />
     <meta name="author" content="TapAway" />
     
     <!-- DNS prefetch for Supabase (used after hydration, not on critical path) -->
@@ -48,11 +48,68 @@
         "name": "TapAway",
         "url": "https://tapaway.co",
         "logo": "https://tapaway.co/apple-touch-icon.png",
+        "telephone": "+1-909-285-6321",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "16393 E Foothill Blvd",
+          "addressLocality": "Fontana",
+          "addressRegion": "CA",
+          "postalCode": "92335",
+          "addressCountry": "US"
+        },
+        "founder": {
+          "@type": "Person",
+          "name": "Jorge Monroy"
+        },
         "sameAs": [
           "https://www.instagram.com/tapawayco",
           "https://www.tiktok.com/@tapawayco",
           "https://twitter.com/tapawayco",
           "https://www.youtube.com/@tapawayco"
+        ]
+      }
+    </script>
+
+    <!-- Product structured data: TapAway Solo and TapAway Pro -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "itemListElement": [
+          {
+            "@type": "Product",
+            "position": 1,
+            "name": "TapAway Solo",
+            "description": "Done-for-you NFC and QR tap cards for local businesses. One tap opens a custom mobile hub with your Instagram, Google reviews, menu, booking, directions, and contact info.",
+            "url": "https://tapaway.co",
+            "brand": {
+              "@type": "Brand",
+              "name": "TapAway"
+            },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "USD",
+              "price": "20",
+              "description": "Monthly subscription with 14-day free trial. Cancel anytime."
+            }
+          },
+          {
+            "@type": "Product",
+            "position": 2,
+            "name": "TapAway Pro",
+            "description": "Done-for-you NFC and QR tap cards for local businesses. One tap opens a custom mobile hub with your Instagram, Google reviews, menu, booking, directions, and contact info.",
+            "url": "https://tapaway.co",
+            "brand": {
+              "@type": "Brand",
+              "name": "TapAway"
+            },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "USD",
+              "price": "39",
+              "description": "Monthly subscription with 14-day free trial. Cancel anytime."
+            }
+          }
         ]
       }
     </script>

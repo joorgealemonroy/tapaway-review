@@ -56,6 +56,15 @@ const DMCA = lazy(() => import("./pages/DMCA"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const DPA = lazy(() => import("./pages/DPA"));
 
+// SEO landing pages - lazy loaded
+const Faq = lazy(() => import("./pages/Faq"));
+const About = lazy(() => import("./pages/About"));
+const Restaurants = lazy(() => import("./pages/Restaurants"));
+const Barbershops = lazy(() => import("./pages/Barbershops"));
+const Salons = lazy(() => import("./pages/Salons"));
+const Cafes = lazy(() => import("./pages/Cafes"));
+const AutoShops = lazy(() => import("./pages/AutoShops"));
+
 // Sales Rep Portal - lazy loaded
 const RepHome = lazy(() => import("./pages/rep/RepHome"));
 const RepRestaurants = lazy(() => import("./pages/rep/RepBusinesses"));
@@ -232,6 +241,15 @@ const App = () => {
                 <Route path="/examples" element={<Examples />} />
                 <Route path="/compliance" element={<Compliance />} />
                 <Route path="/sms-signup" element={<SmsSignup />} />
+
+                {/* SEO landing pages (must stay above the /:slug resolver) */}
+                <Route path="/faq" element={<Faq />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/restaurants" element={<Restaurants />} />
+                <Route path="/barbershops" element={<Barbershops />} />
+                <Route path="/salons" element={<Salons />} />
+                <Route path="/cafes" element={<Cafes />} />
+                <Route path="/auto-shops" element={<AutoShops />} />
                 
                 {/* NFC Card Activation */}
                 <Route path="/c/:publicCode" element={<CardResolver />} />
