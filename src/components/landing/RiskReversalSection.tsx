@@ -3,7 +3,6 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { Link } from "react-router-dom";
-import mockupsAsset from "@/assets/tapaway-phone-mockups.png.asset.json";
 
 export const RiskReversalSection = () => {
   const ref = useRef(null);
