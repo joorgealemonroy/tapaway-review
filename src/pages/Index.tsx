@@ -3,7 +3,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { DoneForYouSection } from "@/components/landing/DoneForYouSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { DashboardControlSection } from "@/components/landing/DashboardControlSection";
-import { HowItWorksNew } from "@/components/landing/HowItWorksNew";
+
 import { RiskReversalSection } from "@/components/landing/RiskReversalSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FooterCTA } from "@/components/landing/FooterCTA";
@@ -42,8 +42,6 @@ const Index = () => {
       <ComparisonSection />
       <DashboardControlSection />
       
-      {/* How It Works with secondary NFC Card appearance */}
-      <HowItWorksNew />
       <RiskReversalSection />
       <FAQSection />
       <FooterCTA />
