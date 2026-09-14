@@ -208,12 +208,16 @@ export const HeroSection = () => {
                 transition={{ duration: 0.45, delay: index * 0.06 }}
                 className="min-h-64 flex flex-col bg-card rounded-lg p-6 border border-border"
               >
-                <span aria-hidden="true" className="text-4xl font-black leading-none text-primary">
-                  “
-                </span>
-                <blockquote className="mt-4 text-base italic leading-relaxed text-foreground/90">
-                  {feedback.quote}
-                </blockquote>
+                {feedback.quote && (
+                  <>
+                    <span aria-hidden="true" className="text-4xl font-black leading-none text-primary">
+                      “
+                    </span>
+                    <blockquote className="mt-4 text-base italic leading-relaxed text-foreground/90">
+                      {feedback.quote}
+                    </blockquote>
+                  </>
+                )}
                 {feedback.result && (
                   <div className="mt-6 border-y border-border py-4">
                     <div className="flex items-center justify-between gap-3">
