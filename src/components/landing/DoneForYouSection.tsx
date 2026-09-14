@@ -26,7 +26,6 @@ export const DoneForYouSection = () => {
           <h2 className="mb-3 text-3xl font-black text-foreground md:text-4xl">
             You don&apos;t lift a finger.
           </h2>
-          <p className="text-base text-muted-foreground md:text-lg">Here&apos;s the deal.</p>
         </motion.div>
 
         <motion.div
