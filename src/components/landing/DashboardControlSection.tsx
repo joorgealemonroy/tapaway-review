@@ -39,7 +39,7 @@ export const DashboardControlSection = () => {
   return (
     <section ref={ref} className="bg-background px-4 py-12 text-foreground md:py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="grid items-center gap-y-8 gap-x-10 lg:grid-cols-2 lg:gap-x-16">
           {/* Left text */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
