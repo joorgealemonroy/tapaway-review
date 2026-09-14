@@ -86,8 +86,7 @@ export const HeroSection = () => {
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground leading-[1.08] mb-5 md:mb-8">
               Turn Taps into{" "}
-              <span className="text-primary whitespace-nowrap">5-Star Google Reviews</span>{" "}
-              with NFC Cards.
+              <span className="text-primary whitespace-nowrap">5-Star Reviews.</span>
             </h1>
 
             {/* Mobile card visual */}
