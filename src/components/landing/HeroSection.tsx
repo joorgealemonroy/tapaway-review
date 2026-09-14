@@ -3,6 +3,7 @@ import { ArrowRight, Play, Star, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TapAwayCard3D from "@/components/TapAwayCard3D";
+import victorAsset from "@/assets/victor-ramirez.jpg.asset.json";
 
 const cities = [
   "San Diego",
