@@ -121,15 +121,6 @@ export const HeroSection = () => {
                 </p>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-4 rounded-xl border border-primary text-primary font-semibold hover:bg-primary/10 transition-all text-sm"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                <Play className="w-4 h-4 fill-primary" />
-                Watch a 30-Sec Demo
-              </motion.button>
             </div>
           </motion.div>
 
