@@ -54,11 +54,12 @@ export const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-      
-      <div className="relative max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+    <>
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
+        
+        <div className="relative w-full max-w-6xl mx-auto px-6 sm:px-8 py-8 md:py-20">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {/* Left: Copy */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -153,44 +154,74 @@ export const HeroSection = () => {
               </motion.div>
             </div>
           </motion.div>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-12 md:mt-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            className="text-2xl md:text-3xl font-black text-center mb-6"
-          >
-            Verified Client Feedback
-          </motion.h2>
+      <section
+        aria-labelledby="client-feedback-heading"
+        className="border-t border-border bg-background py-16 md:py-24"
+      >
+        <div className="max-w-6xl mx-auto px-6 sm:px-8">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-20 lg:items-end mb-10 md:mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 0.5 }}
+            >
+              <p className="text-sm font-bold uppercase text-primary mb-3">
+                Verified Client Feedback
+              </p>
+              <h2
+                id="client-feedback-heading"
+                className="max-w-3xl text-4xl sm:text-5xl lg:text-6xl font-black text-foreground leading-[1.08]"
+              >
+                What local business owners say after the cards go live.
+              </h2>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 0.5, delay: 0.08 }}
+              className="max-w-xl text-base md:text-lg leading-relaxed text-muted-foreground lg:pb-2"
+            >
+              Real feedback from local owners using TapAway to make every customer connection simpler.
+            </motion.p>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {clientFeedback.map((feedback, index) => (
               <motion.article
                 key={feedback.name}
                 initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.3 + index * 0.08 }}
-                className="bg-card rounded-2xl p-5 border border-border shadow-lg shadow-black/5"
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: index * 0.06 }}
+                className="min-h-64 flex flex-col bg-card rounded-lg p-6 border border-border"
               >
-                <div className="flex items-center gap-3 mb-4">
+                <span aria-hidden="true" className="text-4xl font-black leading-none text-primary">
+                  “
+                </span>
+                <blockquote className="mt-4 text-base italic leading-relaxed text-foreground/90">
+                  {feedback.quote}
+                </blockquote>
+                <div className="flex items-center gap-3 mt-auto pt-8">
                   <div
-                    className="w-12 h-12 shrink-0 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
+                    className="w-12 h-12 shrink-0 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-bold text-sm"
                     aria-label={`Photo placeholder for ${feedback.name}`}
                   >
                     {feedback.initials}
                   </div>
                   <h3 className="font-bold text-foreground">{feedback.name}</h3>
                 </div>
-                <blockquote className="text-sm leading-relaxed text-foreground/90">
-                  “{feedback.quote}”
-                </blockquote>
               </motion.article>
             ))}
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
