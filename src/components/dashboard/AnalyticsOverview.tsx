@@ -8,11 +8,13 @@ import {
   getClientTrafficSeries,
   getClientLinkClickTotals,
   getClientLinkClicksByDay,
+  getGoogleReviewDelta,
   losAngelesDayLabel,
   losAngelesWeekday,
   LINK_CLICK_EVENT_TYPES,
   LINK_CLICK_LABELS,
   type ClientLinkDayClicks,
+  type GoogleReviewDelta,
 } from "@/lib/clientStats";
 
 interface AnalyticsData {
@@ -29,6 +31,8 @@ interface AnalyticsData {
   /** Per-day per-link clicks, chronological, zero-filled (America/Los_Angeles). */
   clicksByDay: ClientLinkDayClicks[];
   totalClicks: number;
+  /** Weekly Google review-count snapshots. Null until the first sync lands. */
+  reviewDelta: GoogleReviewDelta | null;
 }
 
 export interface AnalyticsOverviewProps {
@@ -60,6 +64,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     peakDay: null,
     clicksByDay: [],
     totalClicks: 0,
+    reviewDelta: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -80,11 +85,12 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
     const load = async () => {
       setLoading(true);
       try {
-        const [tapStats, traffic, clickTotals, clicksByDay] = await Promise.all([
+        const [tapStats, traffic, clickTotals, clicksByDay, reviewDelta] = await Promise.all([
           getClientTapStats(restaurantId),
           getClientTrafficSeries(restaurantId, daysBack),
           getClientLinkClickTotals(restaurantId, daysBack),
           getClientLinkClicksByDay(restaurantId, daysBack),
+          getGoogleReviewDelta(restaurantId, daysBack),
         ]);
         if (cancelled) return;
 
@@ -127,6 +133,7 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           peakDay,
           clicksByDay,
           totalClicks,
+          reviewDelta,
         });
       } catch (error) {
         console.error("Error fetching analytics:", error);
@@ -205,6 +212,35 @@ export const AnalyticsOverview = ({ restaurantId, restaurantName, restaurant, us
           </div>
         </div>
       </Card>
+
+      {/* Google review growth — real counts from weekly Google snapshots.
+          Hidden until the first sync lands; never a placeholder number. */}
+      {analytics.reviewDelta?.status === "ok" && (
+        <Card className="p-4 sm:p-6 card-elevated border-yellow-500/20 bg-yellow-500/5 animate-scale-in">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+              <Star className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-muted-foreground">New Google reviews</p>
+              <p className="text-2xl sm:text-3xl font-bold">
+                {analytics.reviewDelta.newReviews > 0
+                  ? `+${analytics.reviewDelta.newReviews}`
+                  : analytics.reviewDelta.newReviews}
+                <span className="text-sm font-normal text-muted-foreground">
+                  {" "}in the last {daysBack} days
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {analytics.reviewDelta.latestCount} total on Google · checked weekly
+                {analytics.reviewDelta.isFirstSync
+                  ? " · first check-in complete"
+                  : ` · last check ${losAngelesDayLabel(analytics.reviewDelta.latestAt.slice(0, 10))}`}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Empty state: no fake stats — point the owner at the setup that drives taps. */}
       {analytics.totalTaps === 0 && (

@@ -320,6 +320,74 @@ export async function getClientLastTapAt(
 }
 
 /**
+ * Google review count delta for one client hub, from weekly Places API
+ * snapshots (google_review_snapshots). Returns raw numbers only — the
+ * dashboard UI owns the framing.
+ *
+ * Statuses:
+ * - "no_place_id": this restaurant has no Google Place ID linked, so there is
+ *   nothing to track yet. The UI should hide the card, not show a fake zero.
+ * - "no_snapshots": Place ID is linked but the weekly sync hasn't produced a
+ *   snapshot yet. The UI should say "first check-in pending", not a fake zero.
+ * - "ok": real data. newReviews is latest − earliest within the window and can
+ *   be negative when Google removes reviews. isFirstSync is true when only one
+ *   snapshot exists in the window (no real delta yet).
+ */
+export type GoogleReviewDeltaStatus = "no_place_id" | "no_snapshots" | "ok";
+
+export interface GoogleReviewDelta {
+  status: GoogleReviewDeltaStatus;
+  /** New reviews in the window (latest count − earliest count). Signed. */
+  newReviews: number;
+  /** Latest known total review count on Google. */
+  latestCount: number;
+  /** ISO timestamp of the latest snapshot. */
+  latestAt: string;
+  /** True when only one snapshot exists in the window — no real delta yet. */
+  isFirstSync: boolean;
+}
+
+export async function getGoogleReviewDelta(
+  restaurantId: string,
+  daysBack: number,
+): Promise<GoogleReviewDelta> {
+  const { data: placeRow, error: placeError } = await supabase
+    .from("restaurants")
+    .select("google_place_id")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (placeError) throw placeError;
+  const placeId = (placeRow as { google_place_id?: string | null } | null)?.google_place_id;
+  if (!placeId || !placeId.trim()) {
+    return { status: "no_place_id", newReviews: 0, latestCount: 0, latestAt: "", isFirstSync: true };
+  }
+
+  const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("google_review_snapshots")
+    .select("review_count, captured_at")
+    .eq("restaurant_id", restaurantId)
+    .gte("captured_at", cutoff)
+    .order("captured_at", { ascending: true });
+
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    return { status: "no_snapshots", newReviews: 0, latestCount: 0, latestAt: "", isFirstSync: true };
+  }
+
+  const earliest = data[0] as { review_count: number; captured_at: string };
+  const latest = data[data.length - 1] as { review_count: number; captured_at: string };
+  return {
+    status: "ok",
+    newReviews: latest.review_count - earliest.review_count,
+    latestCount: latest.review_count,
+    latestAt: latest.captured_at,
+    isFirstSync: data.length === 1,
+  };
+}
+
+/**
  * All-time count of review-link clicks (Google + Yelp) for one client hub.
  * Feeds the "first review click" milestone. Always real counts — never
  * estimated, never fabricated.
