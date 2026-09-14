@@ -8,14 +8,13 @@ const bullets = [
   "No reprints, no new codes, no extra cost",
 ];
 
-const pointers = [
-  { label: "Live stats" },
-  { label: "Tap trends" },
-  { label: "Plan status" },
-  { label: "Tap & review alerts" },
-];
+const tapBars = [30, 45, 38, 62, 50, 78, 100];
 
-const tapBars = [35, 55, 40, 70, 50, 85, 65];
+const FeatureTag = ({ children }: { children: string }) => (
+  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wider text-primary">
+    {children}
+  </span>
+);
 
 const DashboardCard = ({
   icon: Icon,
