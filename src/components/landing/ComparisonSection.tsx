@@ -14,7 +14,7 @@ const comparisonRows = [
     benefit: "Every tap + review tracked",
   },
   {
-    benefit: "Instagram, menu, booking in one place",
+    benefit: "Your whole business in one place",
     plate: "reviews only",
     qr: "one link",
   },
