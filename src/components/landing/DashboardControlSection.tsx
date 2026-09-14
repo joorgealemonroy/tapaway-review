@@ -39,7 +39,7 @@ export const DashboardControlSection = () => {
   return (
     <section ref={ref} className="bg-background px-4 py-12 text-foreground md:py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="grid items-center gap-y-8 gap-x-10 lg:grid-cols-2 lg:gap-x-16">
           {/* Left text */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -56,27 +56,6 @@ export const DashboardControlSection = () => {
               Raised your prices? Added a new service? Running a weekend promo? Update it once in
               your dashboard and every card out in the wild updates instantly.
             </p>
-
-            <ul className="mt-8 space-y-4">
-              {bullets.map((text, index) => (
-                <motion.li
-                  key={text}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.35, delay: 0.15 + index * 0.08 }}
-                  className="flex items-start gap-3"
-                >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Check
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 text-primary"
-                      strokeWidth={3}
-                    />
-                  </span>
-                  <span className="text-base font-medium text-foreground">{text}</span>
-                </motion.li>
-              ))}
-            </ul>
           </motion.div>
 
           {/* Right mockup */}
@@ -236,6 +215,35 @@ export const DashboardControlSection = () => {
             <p className="mt-4 text-center text-xs font-medium text-muted-foreground">
               Your TapAway dashboard
             </p>
+          </motion.div>
+
+          {/* Mobile bullets - under phone; Desktop bullets - under left text */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="lg:col-start-1 lg:row-start-2"
+          >
+            <ul className="space-y-4">
+              {bullets.map((text, index) => (
+                <motion.li
+                  key={text}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.35, delay: 0.15 + index * 0.08 }}
+                  className="flex items-start gap-3"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <Check
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 text-primary"
+                      strokeWidth={3}
+                    />
+                  </span>
+                  <span className="text-base font-medium text-foreground">{text}</span>
+                </motion.li>
+              ))}
+            </ul>
           </motion.div>
         </div>
       </div>
