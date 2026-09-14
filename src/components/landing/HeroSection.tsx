@@ -19,7 +19,6 @@ const clientFeedback = [
   {
     name: "Victor Ramirez",
     initials: "VR",
-    business: "Las Islas Marias",
     quote: "TapAway makes it easy for customers to find everything about our business in one place. Simple, professional, and convenient.",
     result: { before: 507, after: 551, gained: 44, days: 30 },
   },
@@ -31,7 +30,6 @@ const clientFeedback = [
   {
     name: "Manuel Monroy",
     initials: "MM",
-    business: "Las Nuevas Islas",
     quote: "TapAway makes it easy to stay connected with our customers. We can send a quick text with a special or reminder and give them a reason to come back through the door.",
     result: { before: 30, after: 63, gained: 33, days: 30, rating: 4.6 },
   },
@@ -43,7 +41,6 @@ const clientFeedback = [
   {
     name: "Josh",
     initials: "J",
-    business: "Space Studios",
     quote: "",
     result: { before: 2, after: 22, gained: 20, days: 30, rating: 5.0 },
   },
