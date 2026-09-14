@@ -65,30 +65,41 @@ serve(async (_req) => {
   let skipped = 0;
   const failed: string[] = [];
 
-  for (const r of restaurants ?? []) {
-    const placeId = (r.google_place_id as string | null)?.trim();
+  const queue = (restaurants ?? []).filter((r) => {
+    const placeId = ((r as { google_place_id?: string | null }).google_place_id ?? "").trim();
     if (!placeId) {
       skipped++;
-      continue;
+      return false;
     }
-    const place = await fetchReviewCount(placeId);
-    if (!place) {
-      failed.push(r.id as string);
-    } else {
-      const { error: insErr } = await supabaseAdmin.from("google_review_snapshots").insert({
-        restaurant_id: r.id,
-        review_count: place.reviewCount,
-        rating: place.rating,
-      });
-      if (insErr) failed.push(r.id as string);
-      else synced++;
-    }
-    // Be polite to the Places API.
-    await new Promise((res) => setTimeout(res, 150));
+    return true;
+  }) as { id: string; google_place_id: string }[];
+
+  // Batched parallel requests: a sequential loop (one Places call at a time)
+  // risks hitting the edge function timeout once most restaurants have a
+  // Place ID. Batches of 10 keep it fast without hammering the API.
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+    const batch = queue.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (r) => {
+        const place = await fetchReviewCount(r.google_place_id.trim());
+        if (!place) throw new Error("places_lookup_failed");
+        const { error: insErr } = await supabaseAdmin.from("google_review_snapshots").insert({
+          restaurant_id: r.id,
+          review_count: place.reviewCount,
+          rating: place.rating,
+        });
+        if (insErr) throw new Error("snapshot_insert_failed");
+      })
+    );
+    results.forEach((res, idx) => {
+      if (res.status === "fulfilled") synced++;
+      else failed.push(batch[idx].id);
+    });
   }
 
   return new Response(
-    JSON.stringify({ ok: true, synced, skipped, failed: failed.length }),
+    JSON.stringify({ ok: true, synced, skipped, failed: failed.length, total: queue.length }),
     { headers: { "Content-Type": "application/json" } }
   );
 });
