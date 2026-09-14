@@ -185,6 +185,10 @@ export const DashboardControlSection = () => {
                     number={4}
                   />
                 </div>
+
+                {/* Home indicator */}
+                <div className="absolute bottom-2 left-1/2 z-10 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-white/60" />
+              </div>
               </div>
             </div>
 
