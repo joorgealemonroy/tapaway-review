@@ -238,12 +238,12 @@ export const DashboardControlSection = () => {
             </p>
           </motion.div>
 
-          {/* Mobile bullets - under phone; Desktop bullets - under left text */}
+          {/* Mobile bullets - under phone */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="lg:col-start-1 lg:row-start-2"
+            className="lg:hidden"
           >
             <ul className="space-y-4">
               {bullets.map((text, index) => (
